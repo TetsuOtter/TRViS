@@ -33,7 +33,7 @@
 			Color="#512BD4" />
 		<!-- Splash Screen -->
 		<MauiSplashScreen
-			Include="Assets\Splash\tr_icon.512x512.png"
+			Include="Resources\Splash\tr_icon.512x512.png"
 			Color="#242c32" />
 		<MauiFont Include="Resources\Fonts\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
