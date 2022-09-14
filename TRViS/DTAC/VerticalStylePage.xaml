@@ -4,6 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:models="clr-namespace:TRViS.Models"
+	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
 	x:Class="TRViS.DTAC.VerticalStylePage"
 	x:DataType="models:TrainData"
 	BackgroundColor="White"
@@ -295,6 +296,9 @@
 			<ListView
 				x:Name="MyList"
 				BackgroundColor="White"
+				ios:ListView.SeparatorStyle="FullWidth"
+				SeparatorVisibility="Default"
+				SeparatorColor="#aaa"
 				SelectionMode="None"
 				RowHeight="60">
 				<ListView.ItemTemplate>
@@ -441,9 +445,6 @@
 									Style="{StaticResource TimetableLabel}"
 									Grid.Column="6"
 									Text="{Binding Remarks}"/>
-
-								<Line
-									Style="{StaticResource TimetableSeparatorLine}"/>
 							</Grid>
 						</ViewCell>
 					</DataTemplate>
