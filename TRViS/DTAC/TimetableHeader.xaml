@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	x:Class="TRViS.DTAC.TimetableHeader">
+	<Grid.Resources>
+		<ResourceDictionary>
+			<Color x:Key="DarkerGreen">#151</Color>
+		</ResourceDictionary>
+
+	</Grid.Resources>
+	<Label
+		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="0"
+		LineBreakMode="CharacterWrap"
+		Text="運転&#xa;時分"/>
+	<Line
+		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="0"/>
+
+	<Label
+		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="1"
+		Text="停車場名"/>
+	<Line
+		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="1"/>
+
+	<Frame
+		Grid.Column="2"
+		Margin="16,4"
+		HasShadow="False"
+		BorderColor="{x:Null}"
+		BackgroundColor="{StaticResource DarkerGreen}">
+		<Label
+			Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+			FontSize="{Binding FontSize_Large, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+			FontAttributes="Bold"
+			TextColor="White"
+			Text="着"/>
+	</Frame>
+	<Line
+		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="2"/>
+
+	<Label
+		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="3"
+		Text="発  (通)"/>
+	<Line
+		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="3"/>
+
+	<Label
+		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="4"
+		LineBreakMode="CharacterWrap"
+		Text="着線&#xa;発線"/>
+	<Line
+		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="4"/>
+
+	<Label
+		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="5"
+		LineBreakMode="CharacterWrap"
+		Text="制限&#xa;速度"/>
+	<Line
+		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="5"/>
+
+	<Label
+		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Grid.Column="6"
+		Text="記事"/>
+
+	<Frame
+		Grid.Column="7"
+		CornerRadius="4"
+		Padding="0"
+		Margin="4,6"
+		BorderColor="{x:Null}"
+		HasShadow="False"
+		BackgroundColor="White">
+		<Grid
+			Margin="4,6">
+			<Label
+				Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+				HorizontalOptions="Start"
+				VerticalOptions="Start"
+				FontAttributes="Bold"
+				Text="ﾏｰｶｰ"/>
+			<Label
+				Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+				HorizontalOptions="End"
+				VerticalOptions="Center"
+				FontFamily="MaterialIconsRegular"
+				FontSize="44"
+				ScaleX="0.5"
+				AnchorX="1"
+				TextColor="{StaticResource DarkerGreen}"
+				Text="&#xe9a2;"/>
+		</Grid>
+	</Frame>
+</Grid>

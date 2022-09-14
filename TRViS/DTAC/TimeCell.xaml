@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	x:DataType="dtac:TimeCell"
+	x:Class="TRViS.DTAC.TimeCell">
+	<Grid.ColumnDefinitions>
+		<ColumnDefinition Width="60"/>
+		<ColumnDefinition Width="24"/>
+	</Grid.ColumnDefinitions>
+	<Label
+		Style="{Binding DefaultLabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
+		Grid.Column="0"
+		HorizontalOptions="End"
+		Margin="0"
+		TextColor="{Binding TextColor, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
+		Text="{Binding HHMM, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"/>
+
+	<Label
+		Style="{Binding SSLabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
+		Grid.Column="1"
+		HorizontalOptions="Start"
+		TextColor="{Binding TextColor, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
+		Text="{Binding TimeData.Second, StringFormat='{0:D02}', Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"/>
+</Grid>
