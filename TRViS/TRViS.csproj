@@ -41,6 +41,11 @@
 		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 	</ItemGroup>
+	<ItemGroup>
+		<PackageReference
+			Include="CommunityToolkit.Maui"
+			Version="1.2.0" />
+	</ItemGroup>
 	<ProjectExtensions>
 		<MonoDevelop>
 			<Properties>
