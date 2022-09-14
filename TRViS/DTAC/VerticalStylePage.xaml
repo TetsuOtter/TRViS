@@ -112,6 +112,7 @@
 	</ContentPage.Resources>
 
 	<Grid
+		IgnoreSafeArea="True"
 		MinimumWidthRequest="740">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="64"/>
@@ -288,164 +289,168 @@
 			ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}"
 			Grid.Row="5"/>
 
-		<ListView
-			x:Name="MyList"
-			BackgroundColor="White"
-			SelectionMode="None"
-			Grid.Row="6"
-			RowHeight="60">
-			<ListView.ItemTemplate>
-				<DataTemplate
-					x:DataType="models:TimetableRow">
-					<ViewCell>
-						<Grid
-							ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}">
+		<Grid
+			IgnoreSafeArea="False"
+			Grid.Row="6">
+			<ListView
+				x:Name="MyList"
+				BackgroundColor="White"
+				SelectionMode="None"
+				RowHeight="60">
+				<ListView.ItemTemplate>
+					<DataTemplate
+						x:DataType="models:TimetableRow">
+						<ViewCell>
 							<Grid
-								Margin="4"
-								VerticalOptions="End"
-								Grid.Column="0">
-								<Grid.ColumnDefinitions>
-									<ColumnDefinition Width="*"/>
-									<ColumnDefinition Width="*"/>
-								</Grid.ColumnDefinitions>
-								<Label
-									Style="{StaticResource TimetableMidiumNumberLabel}"
-									HorizontalOptions="End"
-									Margin="0"
-									Grid.Column="0"
-									Text="{Binding DriveTimeMM}"/>
-								<Label
-									Style="{StaticResource TimetableDefaultNumberLabel}"
-									Margin="1"
-									HorizontalOptions="Start"
-									Grid.Column="1"
-									Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}"/>
-							</Grid>
-							<Label
-								Style="{StaticResource TimetableLabel}"
-								Margin="0"
-								Grid.Column="1"
-								Text="{Binding SpacedStationName}"/>
-
-							<Label
-								Style="{StaticResource TimetableLabel}"
-								IsVisible="{Binding HasBracket}"
-								Grid.Column="2"
-								HorizontalOptions="Start"
-								Text="("/>
-							<Label
-								Style="{StaticResource TimetableLabel}"
-								IsVisible="{Binding IsOperationOnlyStop}"
-								Grid.Column="2"
-								HorizontalOptions="Start"
-								Text="["/>
-
-							<dtac:TimeCell
-								TimeData="{Binding ArriveTime}"
-								Grid.Column="2">
-								<dtac:TimeCell.Triggers>
-									<DataTrigger Binding="{Binding IsPass}" Value="True" TargetType="dtac:TimeCell">
-										<Setter Property="IsVisible" Value="False"/>
-									</DataTrigger>
-								</dtac:TimeCell.Triggers>
-							</dtac:TimeCell>
-
-							<Image
-								IsVisible="{Binding IsPass}"
-								Aspect="AspectFit"
-								HeightRequest="22"
-								WidthRequest="22"
-								Source="dtac_pass_arrow.png"
-								Grid.Column="2"
-								HorizontalOptions="Center"
-								VerticalOptions="Center"/>
-
-							<Label
-								Style="{StaticResource TimetableLabel}"
-								IsVisible="{Binding HasBracket}"
-								Grid.Column="2"
-								HorizontalOptions="End"
-								Text=")"/>
-
-							<dtac:TimeCell
-								TimeData="{Binding DepartureTime}"
-								Grid.Column="3">
-								<dtac:TimeCell.Triggers>
-									<DataTrigger Binding="{Binding IsPass}" Value="True" TargetType="dtac:TimeCell">
-										<Setter Property="TextColor" Value="Red"/>
-									</DataTrigger>
-									<DataTrigger Binding="{Binding IsLastStop}" Value="True" TargetType="dtac:TimeCell">
-										<Setter Property="IsVisible" Value="False"/>
-									</DataTrigger>
-								</dtac:TimeCell.Triggers>
-							</dtac:TimeCell>
-
-							<Grid
-								IsVisible="{Binding IsLastStop}"
-								Grid.Column="3">
-								<Grid.RowDefinitions>
-									<RowDefinition Height="*"/>
-									<RowDefinition Height="*"/>
-									<RowDefinition Height="*"/>
-									<RowDefinition Height="*"/>
-								</Grid.RowDefinitions>
-								<Line
-									Style="{StaticResource LastStopLine}"
-									Grid.Row="1"/>
-								<Line
-									Style="{StaticResource LastStopLine}"
-									Grid.Row="2"/>
-							</Grid>
-
-							<Label
-								Style="{StaticResource TimetableLabel}"
-								IsVisible="{Binding IsOperationOnlyStop}"
-								Grid.Column="3"
-								HorizontalOptions="End"
-								Text="]"/>
-
-							<Label
-								Style="{StaticResource TimetableLabel}"
-								TextColor="Red"
-								Grid.Column="4"
-								Text="{Binding TrackName}"/>
-
-							<Grid
-								Grid.Column="5">
-								<Grid.RowDefinitions>
-									<RowDefinition Height="*"/>
-									<RowDefinition Height="*"/>
-								</Grid.RowDefinitions>
-								<Label
-									Style="{StaticResource TimetableLargeNumberLabel}"
+								ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}">
+								<Grid
+									Margin="4"
 									VerticalOptions="End"
-									HorizontalOptions="Start"
-									Margin="8,-4"
-									Grid.Row="0"
-									Text="{Binding RunInLimit}"/>
+									Grid.Column="0">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+									<Label
+										Style="{StaticResource TimetableMidiumNumberLabel}"
+										HorizontalOptions="End"
+										Margin="0"
+										Grid.Column="0"
+										Text="{Binding DriveTimeMM}"/>
+									<Label
+										Style="{StaticResource TimetableDefaultNumberLabel}"
+										Margin="1"
+										HorizontalOptions="Start"
+										Grid.Column="1"
+										Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}"/>
+								</Grid>
 								<Label
-									Style="{StaticResource TimetableLargeNumberLabel}"
-									VerticalOptions="Start"
+									Style="{StaticResource TimetableLabel}"
+									Margin="0"
+									Grid.Column="1"
+									Text="{Binding SpacedStationName}"/>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding HasBracket}"
+									Grid.Column="2"
+									HorizontalOptions="Start"
+									Text="("/>
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding IsOperationOnlyStop}"
+									Grid.Column="2"
+									HorizontalOptions="Start"
+									Text="["/>
+
+								<dtac:TimeCell
+									TimeData="{Binding ArriveTime}"
+									Grid.Column="2">
+									<dtac:TimeCell.Triggers>
+										<DataTrigger Binding="{Binding IsPass}" Value="True" TargetType="dtac:TimeCell">
+											<Setter Property="IsVisible" Value="False"/>
+										</DataTrigger>
+									</dtac:TimeCell.Triggers>
+								</dtac:TimeCell>
+
+								<Image
+									IsVisible="{Binding IsPass}"
+									Aspect="AspectFit"
+									HeightRequest="22"
+									WidthRequest="22"
+									Source="dtac_pass_arrow.png"
+									Grid.Column="2"
+									HorizontalOptions="Center"
+									VerticalOptions="Center"/>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding HasBracket}"
+									Grid.Column="2"
 									HorizontalOptions="End"
-									Margin="8,-4"
-									Grid.Row="1"
-									Text="{Binding RunOutLimit}"/>
+									Text=")"/>
+
+								<dtac:TimeCell
+									TimeData="{Binding DepartureTime}"
+									Grid.Column="3">
+									<dtac:TimeCell.Triggers>
+										<DataTrigger Binding="{Binding IsPass}" Value="True" TargetType="dtac:TimeCell">
+											<Setter Property="TextColor" Value="Red"/>
+										</DataTrigger>
+										<DataTrigger Binding="{Binding IsLastStop}" Value="True" TargetType="dtac:TimeCell">
+											<Setter Property="IsVisible" Value="False"/>
+										</DataTrigger>
+									</dtac:TimeCell.Triggers>
+								</dtac:TimeCell>
+
+								<Grid
+									IsVisible="{Binding IsLastStop}"
+									Grid.Column="3">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+									</Grid.RowDefinitions>
+									<Line
+										Style="{StaticResource LastStopLine}"
+										Grid.Row="1"/>
+									<Line
+										Style="{StaticResource LastStopLine}"
+										Grid.Row="2"/>
+								</Grid>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding IsOperationOnlyStop}"
+									Grid.Column="3"
+									HorizontalOptions="End"
+									Text="]"/>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									TextColor="Red"
+									Grid.Column="4"
+									Text="{Binding TrackName}"/>
+
+								<Grid
+									Grid.Column="5">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+									</Grid.RowDefinitions>
+									<Label
+										Style="{StaticResource TimetableLargeNumberLabel}"
+										VerticalOptions="End"
+										HorizontalOptions="Start"
+										Margin="8,-4"
+										Grid.Row="0"
+										Text="{Binding RunInLimit}"/>
+									<Label
+										Style="{StaticResource TimetableLargeNumberLabel}"
+										VerticalOptions="Start"
+										HorizontalOptions="End"
+										Margin="8,-4"
+										Grid.Row="1"
+										Text="{Binding RunOutLimit}"/>
+								</Grid>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									Grid.Column="6"
+									Text="{Binding Remarks}"/>
+
+								<Line
+									Style="{StaticResource TimetableSeparatorLine}"/>
 							</Grid>
-
-							<Label
-								Style="{StaticResource TimetableLabel}"
-								Grid.Column="6"
-								Text="{Binding Remarks}"/>
-
-							<Line
-								Style="{StaticResource TimetableSeparatorLine}"/>
-						</Grid>
-					</ViewCell>
-				</DataTemplate>
-			</ListView.ItemTemplate>
-		</ListView>
+						</ViewCell>
+					</DataTemplate>
+				</ListView.ItemTemplate>
+			</ListView>
+		</Grid>
 
 		<AbsoluteLayout
+			IgnoreSafeArea="True"
 			BackgroundColor="#333"
 			Grid.Row="7">
 			<Grid
