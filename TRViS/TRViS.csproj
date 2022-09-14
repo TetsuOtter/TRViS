@@ -45,6 +45,11 @@
 		<PackageReference
 			Include="CommunityToolkit.Maui"
 			Version="1.2.0" />
+		<PackageReference
+			Include="DependencyPropertyGenerator"
+			Version="1.0.3"
+			PrivateAssets="all"
+			ExcludeAssets="runtime" />
 	</ItemGroup>
 	<ProjectExtensions>
 		<MonoDevelop>
