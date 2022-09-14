@@ -9,6 +9,7 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<nullable>enable</nullable>
+		<LangVersion>preview</LangVersion>
 		<!-- Display name -->
 		<ApplicationTitle>TRViS</ApplicationTitle>
 		<!-- App Identifier -->
@@ -37,6 +38,7 @@
 			Include="Resources\Splash\tr_icon.png"
 			Color="#242c32" />
 		<MauiFont Include="Resources\Fonts\*" />
+		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 	</ItemGroup>
 	<ProjectExtensions>
