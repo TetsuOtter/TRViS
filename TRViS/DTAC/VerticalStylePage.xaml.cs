@@ -42,5 +42,11 @@ public partial class VerticalStylePage : ContentPage
 			new(12, 34, "E", false, false, false, false, new(12,34,56), new(12,34,56), "12", 12, 34, "テスト"),
 			new(12, 34, "F", false, false, false, false, new(12,34,56), new(12,34,56), "12", 12, 34, "テスト"),
 		};
+
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+			Content = new ScrollView()
+			{
+				Content = this.Content
+			};
 	}
 }

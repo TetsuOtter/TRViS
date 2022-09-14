@@ -112,7 +112,8 @@
 
 	</ContentPage.Resources>
 
-	<Grid>
+	<Grid
+		MinimumWidthRequest="740">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="64"/>
 			<RowDefinition Height="64"/>
