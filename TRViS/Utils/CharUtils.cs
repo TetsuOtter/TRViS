@@ -3,6 +3,7 @@
 public static partial class Utils
 {
 	public const string SPACE_CHAR = "\x2002";
+	public const string THIN_SPACE = "\x2009";
 
 	static public string InsertCharBetweenCharAndMakeWide(string input, string toInsert)
 	{
@@ -26,4 +27,7 @@ public static partial class Utils
 			>= '\x21' and <= '\x7E' => (char)(c - '\x21' + '\xFF01'),
 			_ => c
 		};
+
+	static public string ToWide(string s)
+		=> new string(s.Select(ToWide).ToArray());
 }
