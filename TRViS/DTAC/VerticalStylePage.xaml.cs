@@ -8,6 +8,18 @@ public partial class VerticalStylePage : ContentPage
 	{
 		InitializeComponent();
 
+		BindingContext = new TrainData(
+			"臨B999行路",
+			new(2022, 9, 15),
+			"工9911",
+			"75",
+			"通貨75D5",
+			"EF６５形\n現車　　　８両\n換算　２３．４",
+			9,
+			"(工９９１０から)\n(乗継)",
+			"テスト用データ"
+			);
+
 		MyList.ItemsSource = new TimetableRow[]
 		{
 			new(1, 3, "大宮", false, false, true, true, new(12,34,56), new(12,34,56), "12", 12, 34, "テスト"),
