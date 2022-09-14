@@ -1,4 +1,4 @@
-namespace TRViS.Models;
+namespace TRViS.IO.Models;
 
 public record TimetableRow(
 	int? DriveTimeMM,

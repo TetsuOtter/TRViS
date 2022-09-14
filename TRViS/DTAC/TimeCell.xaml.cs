@@ -1,5 +1,5 @@
 using DependencyPropertyGenerator;
-using TRViS.Models;
+using TRViS.IO.Models;
 
 namespace TRViS.DTAC;
 

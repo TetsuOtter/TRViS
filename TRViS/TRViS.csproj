@@ -51,6 +51,9 @@
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
+	</ItemGroup>
 	<ProjectExtensions>
 		<MonoDevelop>
 			<Properties>
