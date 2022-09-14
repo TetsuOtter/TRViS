@@ -89,7 +89,7 @@
 				<Setter Property="StrokeThickness" Value="0.5"/>
 			</Style>
 
-			<Style TargetType="dtac:TimeCell">
+			<Style x:Key="TimeCellStyle" TargetType="dtac:TimeCell">
 				<Setter Property="VerticalOptions" Value="Center"/>
 				<Setter Property="HorizontalOptions" Value="Center"/>
 				<Setter Property="DefaultLabelStyle" Value="{StaticResource TimetableLargeNumberLabel}"/>
@@ -344,6 +344,7 @@
 									Text="["/>
 
 								<dtac:TimeCell
+									Style="{StaticResource TimeCellStyle}"
 									TimeData="{Binding ArriveTime}"
 									Grid.Column="2">
 									<dtac:TimeCell.Triggers>
@@ -371,6 +372,7 @@
 									Text=")"/>
 
 								<dtac:TimeCell
+									Style="{StaticResource TimeCellStyle}"
 									TimeData="{Binding DepartureTime}"
 									Grid.Column="3">
 									<dtac:TimeCell.Triggers>
