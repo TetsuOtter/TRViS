@@ -9,5 +9,6 @@ public record TrainData(
 	string? NominalTractiveCapacity,
 	int? CarCount,
 	string? BeginRemarks,
-	string? Remarks
+	string? Remarks,
+	TimetableRow[]? Rows
 );

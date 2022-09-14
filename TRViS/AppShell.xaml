@@ -11,6 +11,9 @@
 			FontFamily="MaterialIconsRegular"
 			Size="36"/>
 	</Shell.FlyoutIcon>
+	<FlyoutItem Title="Select Train">
+		<ShellContent ContentTemplate="{DataTemplate local:SelectTrainPage}" />
+	</FlyoutItem>
 	<FlyoutItem Title="D-TAC">
 		<ShellContent ContentTemplate="{DataTemplate dtac:VerticalStylePage}" />
 	</FlyoutItem>

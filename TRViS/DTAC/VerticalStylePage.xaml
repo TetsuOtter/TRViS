@@ -3,15 +3,16 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
 	xmlns:conv="clr-namespace:TRViS.ValueConverters"
 	xmlns:dtacConv="clr-namespace:TRViS.ValueConverters.DTAC"
-	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls" xmlns:trvis="clr-namespace:TRViS"
 	x:Class="TRViS.DTAC.VerticalStylePage"
-	x:DataType="models:TrainData"
+	x:DataType="viewmodels:AppViewModel"
 	BackgroundColor="White"
 	Shell.BackgroundColor="#080"
-	Title="{Binding WorkName}">
+	Title="{Binding SelectedTrainData.WorkName}">
 	<ContentPage.Resources>
 		<ResourceDictionary>
 			<conv:ToWideConverter x:Key="ToWideConverter"/>
@@ -137,9 +138,11 @@
 			BackgroundColor="#eee"/>
 
 		<Grid
+			BindingContext="{Binding SelectedTrainData}"
 			Grid.Row="1"
 			BackgroundColor="White">
 			<Label
+				x:DataType="models:TrainData"
 				Margin="18,4"
 				LineHeight="1.2"
 				LineBreakMode="CharacterWrap"
@@ -191,9 +194,11 @@
 
 		<Grid
 			Grid.Row="3"
+			BindingContext="{Binding SelectedTrainData}"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="White">
 			<Label
+				x:DataType="models:TrainData"
 				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
 				TextColor="#33d"
 				FontSize="28"
@@ -204,6 +209,7 @@
 				Grid.Column="0"/>
 
 			<Label
+				x:DataType="models:TrainData"
 				Text="{Binding MaxSpeed, Converter={StaticResource ToWide}}"
 				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
@@ -214,6 +220,7 @@
 				Grid.Column="1"/>
 
 			<Label
+				x:DataType="models:TrainData"
 				Text="{Binding SpeedType, Converter={StaticResource ToWide}}"
 				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
@@ -224,6 +231,7 @@
 				Grid.Column="2"/>
 
 			<Label
+				x:DataType="models:TrainData"
 				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWide}}"
 				LineBreakMode="CharacterWrap"
 				LineHeight="1"
@@ -238,6 +246,7 @@
 
 		<Grid
 			Grid.Row="4"
+			BindingContext="{Binding SelectedTrainData}"
 			ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}"
 			BackgroundColor="White">
 			<Line
@@ -256,6 +265,7 @@
 					Margin="0"
 					Padding="4">
 					<Label
+						x:DataType="models:TrainData"
 						Style="{StaticResource TimetableLargeNumberLabel}"
 						VerticalOptions="Center"
 						Text="{Binding CarCount}"/>
@@ -278,6 +288,7 @@
 				Grid.Column="1"/>
 
 			<Label
+				x:DataType="models:TrainData"
 				Grid.Column="2"
 				Grid.ColumnSpan="6"
 				LineHeight="1.4"
@@ -297,10 +308,13 @@
 			Grid.Row="5"/>
 
 		<Grid
+			BindingContext="{Binding SelectedTrainData}"
 			IgnoreSafeArea="False"
 			Grid.Row="6">
 			<ListView
 				x:Name="MyList"
+				x:DataType="models:TrainData"
+				ItemsSource="{Binding Rows}"
 				BackgroundColor="White"
 				ios:ListView.SeparatorStyle="FullWidth"
 				SeparatorVisibility="Default"

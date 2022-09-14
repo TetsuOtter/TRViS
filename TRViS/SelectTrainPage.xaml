@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
+	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	BackgroundColor="{AppThemeBinding Dark=#222, Default=#ddd}"
+	x:DataType="viewmodels:AppViewModel"
+	x:Class="TRViS.SelectTrainPage"
+	Title="Select Train">
+	<VerticalStackLayout>
+		<Label
+			Text="TRViS"
+			FontSize="Title"/>
+		<Label
+			Text="Please Select Train"/>
+		<ListView
+			Margin="0,8"
+			SeparatorVisibility="Default"
+			VerticalOptions="FillAndExpand"
+			RowHeight="60"
+			SelectedItem="{Binding SelectedTrainData}"
+			ItemsSource="{Binding TrainDataList}">
+			<ListView.ItemTemplate>
+				<DataTemplate
+					x:DataType="models:TrainData">
+					<ViewCell>
+						<Grid
+							Margin="8,2">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="40"/>
+							</Grid.ColumnDefinitions>
+							<Label
+								VerticalOptions="Start"
+								Grid.Column="0">
+								<Label.FormattedText>
+									<FormattedString>
+										<Span Text="{Binding WorkName}"/>
+										<Span Text=" / "/>
+										<Span Text="{Binding TrainNumber}"/>
+									</FormattedString>
+								</Label.FormattedText>
+							</Label>
+							<Label
+								Margin="16,0"
+								Text="{Binding AffectDate, StringFormat='施行日: {0:yyyy/MM/dd}'}"
+								VerticalOptions="End"
+								Grid.Column="0"/>
+
+
+							<Button
+								Text="&#xeaf3;"
+								Margin="4"
+								Padding="2"
+								FontSize="Large"
+								FontFamily="MaterialIconsRegular"
+								Grid.Column="1"/>
+						</Grid>
+					</ViewCell>
+				</DataTemplate>
+
+			</ListView.ItemTemplate>
+
+		</ListView>
+	</VerticalStackLayout>
+</ContentPage>
