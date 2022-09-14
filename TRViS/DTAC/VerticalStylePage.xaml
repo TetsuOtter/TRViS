@@ -4,6 +4,8 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
+	xmlns:conv="clr-namespace:TRViS.ValueConverters"
+	xmlns:dtacConv="clr-namespace:TRViS.ValueConverters.DTAC"
 	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
 	x:Class="TRViS.DTAC.VerticalStylePage"
 	x:DataType="models:TrainData"
@@ -12,6 +14,10 @@
 	Title="{Binding WorkName}">
 	<ContentPage.Resources>
 		<ResourceDictionary>
+			<conv:ToWideConverter x:Key="ToWideConverter"/>
+			<dtacConv:StationNameConverter x:Key="StationNameConverter"/>
+			<dtacConv:TrainNumberConverter x:Key="TrainNumberConverter"/>
+
 			<Color x:Key="DarkerGreen">#151</Color>
 
 			<ColumnDefinitionCollection x:Key="TimetableColumnWidthCollection">
@@ -188,7 +194,7 @@
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="White">
 			<Label
-				Text="{Binding SpacedTrainNumber}"
+				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
 				TextColor="#33d"
 				FontSize="28"
 				FontAttributes="Bold"
@@ -198,7 +204,7 @@
 				Grid.Column="0"/>
 
 			<Label
-				Text="{Binding WideMaxSpeed}"
+				Text="{Binding MaxSpeed, Converter={StaticResource ToWide}}"
 				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
@@ -208,7 +214,7 @@
 				Grid.Column="1"/>
 
 			<Label
-				Text="{Binding WideSpeedType}"
+				Text="{Binding SpeedType, Converter={StaticResource ToWide}}"
 				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
@@ -218,7 +224,7 @@
 				Grid.Column="2"/>
 
 			<Label
-				Text="{Binding WideNTC}"
+				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWide}}"
 				LineBreakMode="CharacterWrap"
 				LineHeight="1"
 				HorizontalTextAlignment="End"
@@ -332,7 +338,7 @@
 									Style="{StaticResource TimetableLabel}"
 									Margin="0"
 									Grid.Column="1"
-									Text="{Binding SpacedStationName}"/>
+									Text="{Binding StationName, Converter={StaticResource StationNameConverter}}"/>
 
 								<Label
 									Style="{StaticResource TimetableLabel}"
