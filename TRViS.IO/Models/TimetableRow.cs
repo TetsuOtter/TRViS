@@ -11,7 +11,7 @@ public record TimetableRow(
 	bool IsLastStop,
 	TimeData? ArriveTime,
 	TimeData? DepartureTime,
-	string TrackName,
+	string? TrackName,
 	int? RunInLimit,
 	int? RunOutLimit,
 	string? Remarks
