@@ -1,4 +1,4 @@
-﻿
+
 INSERT INTO "workgroup" ("id", "name") VALUES ('1', 'Group01');
 
 INSERT INTO "work" ("id", "workgroupid", "name", "affectdate") VALUES ('1', '1', 'Work01', '2022-09-15');

@@ -1,4 +1,4 @@
-﻿CREATE TABLE "workgroup" (
+CREATE TABLE "workgroup" (
 	"id"	INTEGER NOT NULL,
 	"name"	TEXT NOT NULL,
 	PRIMARY KEY("id" AUTOINCREMENT)
