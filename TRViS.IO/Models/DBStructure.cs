@@ -5,7 +5,7 @@ namespace TRViS.IO.Models.DB;
 [Table("workgroup")]
 public class WorkGroup
 {
-	[PrimaryKey, AutoIncrement, Column("id")]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
 
 	[Column("name"), NotNull]
@@ -15,7 +15,7 @@ public class WorkGroup
 [Table("work")]
 public class Work
 {
-	[PrimaryKey, AutoIncrement, Column("id")]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
 
 	[Column("workgroupid"), NotNull]
@@ -31,7 +31,7 @@ public class Work
 [Table("station")]
 public class Station
 {
-	[PrimaryKey, AutoIncrement, Column("id")]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
 
 	[Column("workgroupid"), NotNull]
@@ -47,7 +47,7 @@ public class Station
 [Table("stationtrack")]
 public class StationTrack
 {
-	[PrimaryKey, AutoIncrement, Column("id")]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
 
 	[Column("stationid"), NotNull]
@@ -60,7 +60,7 @@ public class StationTrack
 [Table("traindata")]
 public class TrainData
 {
-	[PrimaryKey, AutoIncrement, Column("id")]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
 
 	[Column("workid"), NotNull]
@@ -94,7 +94,7 @@ public class TrainData
 [Table("timetablerow")]
 public class TimetableRowData
 {
-	[PrimaryKey, AutoIncrement, Column("id")]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
 
 	[Column("trainid"), NotNull]
