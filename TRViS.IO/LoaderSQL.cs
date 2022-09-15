@@ -5,15 +5,9 @@ using TRViS.IO.Models;
 
 namespace TRViS.IO;
 
-public class Loader : IDisposable
+public class LoaderSQL : IDisposable
 {
 	Dictionary<string, SQLiteConnection> Connections { get; } = new();
-
-	public static ValueTask<TrainData?> LoadFromFile(string path)
-		=> LoadFromFile(File.OpenRead(path));
-
-	public static ValueTask<TrainData?> LoadFromFile(Stream stream)
-		=> JsonSerializer.DeserializeAsync<TrainData>(stream);
 
 	public IReadOnlyList<TrainDataGroup> LoadFromSQLite(string path)
 	{

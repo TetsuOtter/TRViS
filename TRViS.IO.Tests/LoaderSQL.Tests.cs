@@ -1,5 +1,5 @@
 ﻿namespace TRViS.IO.Tests;
 
-public class LoaderTests
+public class LoaderSQLTests
 {
 }
