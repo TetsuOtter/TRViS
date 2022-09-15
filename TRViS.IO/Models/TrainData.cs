@@ -10,5 +10,6 @@ public record TrainData(
 	int? CarCount,
 	string? BeginRemarks,
 	string? Remarks,
-	TimetableRow[]? Rows
+	TimetableRow[]? Rows,
+	int Direction
 );

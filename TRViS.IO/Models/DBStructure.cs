@@ -86,6 +86,9 @@ public class TrainData
 
 	[Column("remarks")]
 	public string? Remarks { get; set; } = "";
+
+	[Column("direction"), NotNull]
+	public int Direction { get; set; }
 }
 
 [Table("timetablerow")]
