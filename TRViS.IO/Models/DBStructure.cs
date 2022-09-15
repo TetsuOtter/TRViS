@@ -3,7 +3,7 @@ using SQLite;
 namespace TRViS.IO.Models.DB;
 
 [Table("workgroup")]
-public class WorkGroup
+public record WorkGroup
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
@@ -13,7 +13,7 @@ public class WorkGroup
 }
 
 [Table("work")]
-public class Work
+public record Work
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
@@ -29,7 +29,7 @@ public class Work
 }
 
 [Table("station")]
-public class Station
+public record Station
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
@@ -45,7 +45,7 @@ public class Station
 }
 
 [Table("stationtrack")]
-public class StationTrack
+public record StationTrack
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
@@ -58,7 +58,7 @@ public class StationTrack
 }
 
 [Table("traindata")]
-public class TrainData
+public record TrainData
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
@@ -92,7 +92,7 @@ public class TrainData
 }
 
 [Table("timetablerow")]
-public class TimetableRowData
+public record TimetableRowData
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
 	public int Id { get; set; }
