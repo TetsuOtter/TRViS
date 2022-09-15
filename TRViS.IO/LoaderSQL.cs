@@ -7,23 +7,22 @@ namespace TRViS.IO;
 
 public class LoaderSQL : IDisposable
 {
-	Dictionary<string, SQLiteConnection> Connections { get; } = new();
+	SQLiteConnection Connection { get; }
 
-	public IReadOnlyList<TrainDataGroup> LoadFromSQLite(string path)
+	public LoaderSQL(string path)
+	{
+		Connection = new(path);
+	}
+
+	public IReadOnlyList<TrainDataGroup> LoadFromSQLite()
 	{
 		List<TrainDataGroup> result = new();
 
-		if (!Connections.TryGetValue(path, out SQLiteConnection? value) || value is null)
-		{
-			value = new(path);
-			Connections[path] = value;
-		}
-
 		var res =
-			from g in value.Table<Models.DB.WorkGroup>()
-			join n in value.Table<Models.DB.Work>()
+			from g in Connection.Table<Models.DB.WorkGroup>()
+			join n in Connection.Table<Models.DB.Work>()
 			on g.Id equals n.WorkGroupId
-			join t in value.Table<Models.DB.TrainData>()
+			join t in Connection.Table<Models.DB.TrainData>()
 			on n.Id equals t.WorkId
 			select new
 			{
@@ -46,19 +45,10 @@ public class LoaderSQL : IDisposable
 		return result;
 	}
 
-	public void Dispose(string path)
-	{
-		if (Connections.TryGetValue(path, out SQLiteConnection? cnx))
-		{
-			cnx?.Dispose();
-			Connections.Remove(path);
-		}
-	}
+	//public IReadOnlyList<Models.DB.WorkGroup> GetWorkGroupListAsync()
 
 	public void Dispose()
 	{
-		foreach (var v in Connections.Values)
-			v.Dispose();
-		Connections.Clear();
+		Connection.Dispose();
 	}
 }
