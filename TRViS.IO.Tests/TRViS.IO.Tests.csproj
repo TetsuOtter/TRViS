@@ -21,4 +21,8 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
+	</ItemGroup>
 </Project>
