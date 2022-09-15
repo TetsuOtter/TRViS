@@ -14,7 +14,7 @@ public class LoaderSQL : IDisposable
 		Connection = new(path);
 	}
 
-	public IReadOnlyList<TrainDataGroup> LoadFromSQLite()
+	public IReadOnlyList<TrainDataGroup> GetTrainDataGroupList()
 	{
 		List<TrainDataGroup> result = new();
 
