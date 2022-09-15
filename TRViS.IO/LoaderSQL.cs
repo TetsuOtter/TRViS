@@ -45,7 +45,53 @@ public class LoaderSQL : IDisposable
 		return result;
 	}
 
-	//public IReadOnlyList<Models.DB.WorkGroup> GetWorkGroupListAsync()
+	static TimeData? GetTimeData(int? hh, int? mm, int? ss)
+		=> hh is null && mm is null && ss is null ? null : new(hh, mm, ss);
+
+	public TrainData? GetTrainData(int trainId)
+		=> (from t in Connection.Table<Models.DB.TrainData>()
+				where t.Id == trainId
+				join w in Connection.Table<Models.DB.Work>()
+				on t.WorkId equals w.Id
+				select new TrainData(
+					w.Name,
+					DateOnly.TryParse(w.AffectDate, out DateOnly date) ? date : DateOnly.FromDateTime(DateTime.Now),
+					t.TrainNumber,
+					t.MaxSpeed,
+					t.SpeedType,
+					t.NominalTractiveCapacity,
+					t.CarCount,
+					t.BeginRemarks,
+					t.Remarks,
+					(
+						from r in Connection.Table<Models.DB.TimetableRowData>()
+						where r.TrainId == trainId
+						join s in Connection.Table<Models.DB.Station>()
+						on r.StationId equals s.Id
+						join n in Connection.Table<Models.DB.StationTrack>()
+						on r.StationTrackId equals n.Id into track
+						from tj in track.DefaultIfEmpty()
+						orderby t.Direction >= 0 ? s.Location : (s.Location * -1)
+						select new TimetableRow(
+							s.Location,
+							r.DriveTime_MM,
+							r.DriveTime_SS,
+							s.Name,
+							r.IsOperationOnlyStop ?? false,
+							r.IsPass ?? false,
+							r.HasBracket ?? false,
+							r.IsLastStop ?? false,
+							GetTimeData(r.Arrive_HH, r.Arrive_MM, r.Arrive_SS),
+							GetTimeData(r.Departure_HH, r.Departure_MM, r.Departure_SS),
+							tj?.Name,
+							r.RunInLimit,
+							r.RunOutLimit,
+							r.Remarks
+						)
+					).ToArray(),
+					t.Direction
+					)
+				).FirstOrDefault();
 
 	public IReadOnlyList<Models.DB.WorkGroup> GetWorkGroupList()
 		=> Connection.Table<Models.DB.WorkGroup>().ToList();
