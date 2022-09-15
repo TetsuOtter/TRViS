@@ -47,6 +47,15 @@ public class LoaderSQL : IDisposable
 
 	//public IReadOnlyList<Models.DB.WorkGroup> GetWorkGroupListAsync()
 
+	public IReadOnlyList<Models.DB.WorkGroup> GetWorkGroupList()
+		=> Connection.Table<Models.DB.WorkGroup>().ToList();
+
+	public IReadOnlyList<Models.DB.Work> GetWorkList(int workGroupId)
+		=> Connection.Table<Models.DB.Work>().Where(v => v.WorkGroupId == workGroupId).ToList();
+
+	public IReadOnlyList<Models.DB.TrainData> GetTrainDataList(int workId)
+		=> Connection.Table<Models.DB.TrainData>().Where(v => v.WorkId == workId).ToList();
+
 	public void Dispose()
 	{
 		Connection.Dispose();
