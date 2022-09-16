@@ -135,6 +135,8 @@ public record TimetableRowData
 	public int? Arrive_MM { get; set; }
 	[Column("arrive_ss")]
 	public int? Arrive_SS { get; set; }
+	[Column("arrive_str")]
+	public string? Arrive_Str { get; set; }
 
 	[Column("departure_hh")]
 	public int? Departure_HH { get; set; }
@@ -142,6 +144,8 @@ public record TimetableRowData
 	public int? Departure_MM { get; set; }
 	[Column("departure_ss")]
 	public int? Departure_SS { get; set; }
+	[Column("departure_str")]
+	public string? Departure_Str { get; set; }
 
 	[Column("stationtrackid")]
 	public int? StationTrackId { get; set; }

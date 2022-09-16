@@ -45,8 +45,8 @@ public class LoaderSQL : IDisposable
 		return result;
 	}
 
-	static TimeData? GetTimeData(int? hh, int? mm, int? ss)
-		=> hh is null && mm is null && ss is null ? null : new(hh, mm, ss);
+	static TimeData? GetTimeData(int? hh, int? mm, int? ss, string? str)
+		=> hh is null && mm is null && ss is null && string.IsNullOrEmpty(str) ? null : new(hh, mm, ss, str);
 
 	public TrainData? GetTrainData(int trainId)
 		=> (from t in Connection.Table<Models.DB.TrainData>()
@@ -85,8 +85,8 @@ public class LoaderSQL : IDisposable
 							r.IsPass ?? false,
 							r.HasBracket ?? false,
 							r.IsLastStop ?? false,
-							GetTimeData(r.Arrive_HH, r.Arrive_MM, r.Arrive_SS),
-							GetTimeData(r.Departure_HH, r.Departure_MM, r.Departure_SS),
+							GetTimeData(r.Arrive_HH, r.Arrive_MM, r.Arrive_SS, r.Arrive_Str),
+							GetTimeData(r.Departure_HH, r.Departure_MM, r.Departure_SS, r.Departure_Str),
 							tj?.Name,
 							r.RunInLimit,
 							r.RunOutLimit,
