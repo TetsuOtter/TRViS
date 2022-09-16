@@ -81,11 +81,23 @@ public record TrainData
 	[Column("carcount")]
 	public int? CarCount { get; set; }
 
+	[Column("destination")]
+	public string? Destination { get; set; } = "";
+
 	[Column("beginremarks")]
 	public string? BeginRemarks { get; set; } = "";
 
+	[Column("afterremarks")]
+	public string? AfterRemarks { get; set; } = "";
+
 	[Column("remarks")]
 	public string? Remarks { get; set; } = "";
+
+	[Column("beforedeparture")]
+	public string? BeforeDeparture { get; set; } = "";
+
+	[Column("traininfo")]
+	public string? TrainInfo { get; set; } = "";
 
 	[Column("direction"), NotNull]
 	public int Direction { get; set; }

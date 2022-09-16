@@ -8,8 +8,12 @@ public record TrainData(
 	string? SpeedType,
 	string? NominalTractiveCapacity,
 	int? CarCount,
+	string? Destination,
 	string? BeginRemarks,
+	string? AfterRemarks,
 	string? Remarks,
+	string? BeforeDeparture,
+	string? TrainInfo,
 	TimetableRow[]? Rows,
 	int Direction
 );

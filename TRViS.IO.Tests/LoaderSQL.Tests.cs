@@ -85,8 +85,12 @@ public class LoaderSQLTests
 				"高速特定",
 				"E237系\n1M",
 				1,
+				"行き先",
 				"〜試験用データ~",
+				"〜試験用データ終わり~",
 				"試験用データ",
+				"発前点検300分",
+				"試験用ダミーデータ",
 				actual.Rows,
 				1
 			)
@@ -148,8 +152,12 @@ public class LoaderSQLTests
 			SpeedType = "高速特定",
 			NominalTractiveCapacity = "E237系\n1M",
 			CarCount = 1,
+			Destination = "行き先",
 			Remarks = "試験用データ",
 			BeginRemarks = "〜試験用データ~",
+			AfterRemarks = "〜試験用データ終わり~",
+			BeforeDeparture = "発前点検300分",
+			TrainInfo = "試験用ダミーデータ",
 			Direction = 1
 		}));
 	}

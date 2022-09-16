@@ -61,8 +61,12 @@ public class LoaderSQL : IDisposable
 					t.SpeedType,
 					t.NominalTractiveCapacity,
 					t.CarCount,
+					t.Destination,
 					t.BeginRemarks,
+					t.AfterRemarks,
 					t.Remarks,
+					t.BeforeDeparture,
+					t.TrainInfo,
 					(
 						from r in Connection.Table<Models.DB.TimetableRowData>()
 						where r.TrainId == trainId

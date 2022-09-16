@@ -21,8 +21,12 @@ CREATE TABLE "traindata" (
 	"speedtype"	TEXT,
 	"ntc"	TEXT,
 	"carcount"	INTEGER,
+	"destination"	TEXT,
 	"beginremarks"	TEXT,
+	"afterremarks"	TEXT,
 	"remarks"	TEXT,
+	"beforedeparture"	TEXT,
+	"traininfo"	TEXT,
 	"direction" INTEGER NOT NULL,
 	FOREIGN KEY("workid") REFERENCES "work"("id"),
 	PRIMARY KEY("id" AUTOINCREMENT)
