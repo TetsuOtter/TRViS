@@ -4,34 +4,43 @@ using TRViS.IO.Models;
 namespace TRViS.DTAC;
 
 [DependencyProperty<TimeData>("TimeData")]
-[DependencyProperty<Style>("DefaultLabelStyle")]
-[DependencyProperty<Style>("SSLabelStyle")]
-[DependencyProperty<Color>("TextColor")]
+[DependencyProperty<bool>("IsPass")]
+[DependencyProperty<bool>("IsArrowVisible", IsReadOnly = true)]
+[DependencyProperty<bool>("IsStringVisible", IsReadOnly = true)]
+[DependencyProperty<Color>("TextColor", IsReadOnly = true)]
 [DependencyProperty<string>("HHMM", IsReadOnly = true)]
 public partial class TimeCell : Grid
 {
 	public TimeCell()
 	{
 		InitializeComponent();
+
+		OnIsPassChanged(IsPass);
 	}
+
+	partial void OnIsPassChanged(bool newValue)
+		=> TextColor = newValue ? Colors.Red : Colors.Black;
 
 	partial void OnTimeDataChanged(TimeData? newValue)
 	{
 		string hhmm = "";
+		IsStringVisible = false;
+		IsArrowVisible = false;
+		IsVisible = true;
 		if (newValue is null)
-		{
 			IsVisible = false;
-		}
-		else
+		else if (newValue.Hour is not null || newValue.Minute is not null || newValue.Second is not null)
 		{
-			IsVisible = true;
-
 			hhmm = $"{newValue.Hour}";
 			if (newValue.Hour is not null)
 				hhmm += ".";
 
 			hhmm += $"{newValue.Minute ?? 0:D02}";
 		}
+		else if (newValue.Text == "↓")
+			IsArrowVisible = true;
+		else
+			IsStringVisible = true;
 
 		HHMM = hhmm;
 	}

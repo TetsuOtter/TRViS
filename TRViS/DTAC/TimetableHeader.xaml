@@ -3,28 +3,30 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
-	x:Class="TRViS.DTAC.TimetableHeader">
+	x:Class="TRViS.DTAC.TimetableHeader"
+	ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}">
 	<Grid.Resources>
 		<ResourceDictionary>
-			<Color x:Key="DarkerGreen">#151</Color>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="Style_VerticalView.xaml" />
+			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
-
 	</Grid.Resources>
 	<Label
-		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource HeaderLabel}"
 		Grid.Column="0"
 		LineBreakMode="CharacterWrap"
 		Text="運転&#xa;時分"/>
 	<Line
-		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource SeparatorLine}"
 		Grid.Column="0"/>
 
 	<Label
-		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource HeaderLabel}"
 		Grid.Column="1"
 		Text="停車場名"/>
 	<Line
-		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource SeparatorLine}"
 		Grid.Column="1"/>
 
 	<Frame
@@ -34,44 +36,44 @@
 		BorderColor="{x:Null}"
 		BackgroundColor="{StaticResource DarkerGreen}">
 		<Label
-			Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+			Style="{StaticResource HeaderLabel}"
 			FontSize="{Binding FontSize_Large, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
 			FontAttributes="Bold"
 			TextColor="White"
 			Text="着"/>
 	</Frame>
 	<Line
-		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource SeparatorLine}"
 		Grid.Column="2"/>
 
 	<Label
-		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource HeaderLabel}"
 		Grid.Column="3"
 		Text="発  (通)"/>
 	<Line
-		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource SeparatorLine}"
 		Grid.Column="3"/>
 
 	<Label
-		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource HeaderLabel}"
 		Grid.Column="4"
 		LineBreakMode="CharacterWrap"
 		Text="着線&#xa;発線"/>
 	<Line
-		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource SeparatorLine}"
 		Grid.Column="4"/>
 
 	<Label
-		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource HeaderLabel}"
 		Grid.Column="5"
 		LineBreakMode="CharacterWrap"
 		Text="制限&#xa;速度"/>
 	<Line
-		Style="{Binding SeparatorLineStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource SeparatorLine}"
 		Grid.Column="5"/>
 
 	<Label
-		Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+		Style="{StaticResource HeaderLabel}"
 		Grid.Column="6"
 		Text="記事"/>
 
@@ -86,13 +88,13 @@
 		<Grid
 			Margin="4,6">
 			<Label
-				Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+				Style="{StaticResource HeaderLabel}"
 				HorizontalOptions="Start"
 				VerticalOptions="Start"
 				FontAttributes="Bold"
 				Text="ﾏｰｶｰ"/>
 			<Label
-				Style="{Binding LabelStyle, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
+				Style="{StaticResource HeaderLabel}"
 				HorizontalOptions="End"
 				VerticalOptions="Center"
 				FontFamily="MaterialIconsRegular"

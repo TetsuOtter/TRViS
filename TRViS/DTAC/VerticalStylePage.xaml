@@ -5,7 +5,8 @@
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
-	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls" xmlns:trvis="clr-namespace:TRViS"
+	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.DTAC.VerticalStylePage"
 	x:DataType="viewmodels:AppViewModel"
 	BackgroundColor="White"
@@ -42,6 +43,7 @@
 			Grid.Row="1"
 			BackgroundColor="White">
 			<Label
+				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Margin="18,4"
 				LineHeight="1.2"
@@ -98,6 +100,7 @@
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="White">
 			<Label
+				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
 				TextColor="#33d"
@@ -108,7 +111,8 @@
 				Style="{StaticResource SeparatorLine}"
 				Grid.Column="0"/>
 
-			<Label
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Text="{Binding MaxSpeed, Converter={StaticResource ToWideConverter}}"
 				LineBreakMode="CharacterWrap"
@@ -119,7 +123,8 @@
 				Style="{StaticResource SeparatorLine}"
 				Grid.Column="1"/>
 
-			<Label
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Text="{Binding SpeedType, Converter={StaticResource ToWideConverter}}"
 				LineBreakMode="CharacterWrap"
@@ -130,7 +135,8 @@
 				Style="{StaticResource SeparatorLine}"
 				Grid.Column="2"/>
 
-			<Label
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
 				LineBreakMode="CharacterWrap"
@@ -171,6 +177,7 @@
 						Text="{Binding CarCount}"/>
 
 					<Label
+						Style="{StaticResource LabelStyle}"
 						VerticalOptions="End"
 						HorizontalOptions="End"
 						Text="両"/>
@@ -187,7 +194,8 @@
 				Style="{StaticResource SeparatorLine}"
 				Grid.Column="1"/>
 
-			<Label
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Grid.Column="2"
 				Grid.ColumnSpan="6"
@@ -201,10 +209,7 @@
 
 		<dtac:TimetableHeader
 			BackgroundColor="#ddd"
-			LabelStyle="{StaticResource HeaderLabel}"
-			SeparatorLineStyle="{StaticResource SeparatorLine}"
 			FontSize_Large="28"
-			ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}"
 			Grid.Row="5"/>
 
 		<Grid
@@ -248,7 +253,7 @@
 										Grid.Column="1"
 										Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}"/>
 								</Grid>
-								<Label
+								<ctrls:HtmlAutoDetectLabel
 									Style="{StaticResource TimetableLabel}"
 									Margin="0"
 									Grid.Column="1"
@@ -270,23 +275,8 @@
 								<dtac:TimeCell
 									Style="{StaticResource TimeCellStyle}"
 									TimeData="{Binding ArriveTime}"
-									Grid.Column="2">
-									<dtac:TimeCell.Triggers>
-										<DataTrigger Binding="{Binding IsPass}" Value="True" TargetType="dtac:TimeCell">
-											<Setter Property="IsVisible" Value="False"/>
-										</DataTrigger>
-									</dtac:TimeCell.Triggers>
-								</dtac:TimeCell>
-
-								<Image
-									IsVisible="{Binding IsPass}"
-									Aspect="AspectFit"
-									HeightRequest="22"
-									WidthRequest="22"
-									Source="dtac_pass_arrow.png"
-									Grid.Column="2"
-									HorizontalOptions="Center"
-									VerticalOptions="Center"/>
+									IsPass="{Binding IsPass}"
+									Grid.Column="2"/>
 
 								<Label
 									Style="{StaticResource TimetableLabel}"
@@ -298,16 +288,8 @@
 								<dtac:TimeCell
 									Style="{StaticResource TimeCellStyle}"
 									TimeData="{Binding DepartureTime}"
-									Grid.Column="3">
-									<dtac:TimeCell.Triggers>
-										<DataTrigger Binding="{Binding IsPass}" Value="True" TargetType="dtac:TimeCell">
-											<Setter Property="TextColor" Value="Red"/>
-										</DataTrigger>
-										<DataTrigger Binding="{Binding IsLastStop}" Value="True" TargetType="dtac:TimeCell">
-											<Setter Property="IsVisible" Value="False"/>
-										</DataTrigger>
-									</dtac:TimeCell.Triggers>
-								</dtac:TimeCell>
+									IsPass="{Binding IsPass}"
+									Grid.Column="3"/>
 
 								<Grid
 									IsVisible="{Binding IsLastStop}"
@@ -333,7 +315,7 @@
 									HorizontalOptions="End"
 									Text="]"/>
 
-								<Label
+								<ctrls:HtmlAutoDetectLabel
 									Style="{StaticResource TimetableLabel}"
 									TextColor="Red"
 									Grid.Column="4"
@@ -361,8 +343,10 @@
 										Text="{Binding RunOutLimit}"/>
 								</Grid>
 
-								<Label
+								<ctrls:HtmlAutoDetectLabel
 									Style="{StaticResource TimetableLabel}"
+									HorizontalOptions="Start"
+									FontSize="16"
 									Grid.Column="6"
 									Text="{Binding Remarks}"/>
 							</Grid>
