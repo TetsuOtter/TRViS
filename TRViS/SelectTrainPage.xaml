@@ -2,66 +2,124 @@
 <ContentPage
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
+	xmlns:models="clr-namespace:TRViS.IO.Models.DB;assembly=TRViS.IO"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	BackgroundColor="{AppThemeBinding Dark=#222, Default=#ddd}"
 	x:DataType="viewmodels:AppViewModel"
 	x:Class="TRViS.SelectTrainPage"
 	Title="Select Train">
-	<VerticalStackLayout>
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<Style TargetType="Frame">
+				<Setter Property="HasShadow" Value="True"/>
+				<Setter Property="BorderColor" Value="{AppThemeBinding Dark=#ddd, Default=#222}"/>
+				<Setter Property="Margin" Value="8"/>
+				<Setter Property="Padding" Value="8"/>
+			</Style>
+		</ResourceDictionary>
+	</ContentPage.Resources>
+	<VerticalStackLayout
+		Margin="16">
 		<Label
+			Margin="16,4"
 			Text="TRViS"
 			FontSize="Title"/>
-		<Label
-			Text="Please Select Train"/>
-		<ListView
-			Margin="0,8"
-			SeparatorVisibility="Default"
+
+		<Button
+			Text="Select Database File"
+			Margin="16,4"
+			Clicked="Button_Clicked"/>
+
+		<Frame
 			VerticalOptions="FillAndExpand"
-			RowHeight="60"
-			SelectedItem="{Binding SelectedTrainData}"
-			ItemsSource="{Binding TrainDataList}">
-			<ListView.ItemTemplate>
-				<DataTemplate
-					x:DataType="models:TrainData">
-					<ViewCell>
-						<Grid
-							Margin="8,2">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="40"/>
-							</Grid.ColumnDefinitions>
+			MinimumHeightRequest="300">
+			<ScrollView>
+				<FlexLayout
+					Direction="Row"
+					AlignItems="Stretch"
+					Position="Relative"
+					JustifyContent="SpaceEvenly"
+					Wrap="Wrap">
+					<Frame
+						WidthRequest="300">
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="40"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
 							<Label
-								VerticalOptions="Start"
-								Grid.Column="0">
-								<Label.FormattedText>
-									<FormattedString>
-										<Span Text="{Binding WorkName}"/>
-										<Span Text=" / "/>
-										<Span Text="{Binding TrainNumber}"/>
-									</FormattedString>
-								</Label.FormattedText>
-							</Label>
-							<Label
-								Margin="16,0"
-								Text="{Binding AffectDate, StringFormat='施行日: {0:yyyy/MM/dd}'}"
-								VerticalOptions="End"
-								Grid.Column="0"/>
-
-
-							<Button
-								Text="&#xeaf3;"
-								Margin="4"
-								Padding="2"
-								FontSize="Large"
-								FontFamily="MaterialIconsRegular"
-								Grid.Column="1"/>
+								Grid.Row="0"
+								FontSize="Subtitle"
+								Text="Work Group"/>
+							<ListView
+								Grid.Row="1"
+								ItemsSource="{Binding WorkGroupList}"
+								SelectedItem="{Binding SelectedWorkGroup}">
+								<ListView.ItemTemplate>
+									<DataTemplate
+										x:DataType="models:WorkGroup">
+										<TextCell
+											Text="{Binding Name}"/>
+									</DataTemplate>
+								</ListView.ItemTemplate>
+							</ListView>
 						</Grid>
-					</ViewCell>
-				</DataTemplate>
+					</Frame>
 
-			</ListView.ItemTemplate>
+					<Frame
+						WidthRequest="300">
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="40"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							<Label
+								Grid.Row="0"
+								FontSize="Subtitle"
+								Text="Work"/>
+							<ListView
+								Grid.Row="1"
+								ItemsSource="{Binding WorkList}"
+								SelectedItem="{Binding SelectedWork}">
+								<ListView.ItemTemplate>
+									<DataTemplate
+										x:DataType="models:Work">
+										<TextCell
+											Text="{Binding Name}"/>
+									</DataTemplate>
+								</ListView.ItemTemplate>
+							</ListView>
+						</Grid>
+					</Frame>
 
-		</ListView>
+					<Frame
+						WidthRequest="300">
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="40"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							<Label
+								Grid.Row="0"
+								FontSize="Subtitle"
+								Text="Train"/>
+							<ListView
+								Grid.Row="1"
+								ItemsSource="{Binding DBTrainDataList}"
+								SelectedItem="{Binding SelectedDBTrainData}">
+								<ListView.ItemTemplate>
+									<DataTemplate
+										x:DataType="models:TrainData">
+										<TextCell
+											Text="{Binding TrainNumber}"/>
+									</DataTemplate>
+								</ListView.ItemTemplate>
+							</ListView>
+						</Grid>
+					</Frame>
+				</FlexLayout>
+			</ScrollView>
+		</Frame>
+
 	</VerticalStackLayout>
 </ContentPage>
