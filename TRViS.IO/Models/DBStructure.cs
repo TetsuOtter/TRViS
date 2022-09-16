@@ -70,34 +70,34 @@ public record TrainData
 	public string TrainNumber { get; set; } = "";
 
 	[Column("maxspeed")]
-	public string? MaxSpeed { get; set; } = "";
+	public string? MaxSpeed { get; set; }
 
 	[Column("speedtype")]
-	public string? SpeedType { get; set; } = "";
+	public string? SpeedType { get; set; }
 
 	[Column("ntc")]
-	public string? NominalTractiveCapacity { get; set; } = "";
+	public string? NominalTractiveCapacity { get; set; }
 
 	[Column("carcount")]
 	public int? CarCount { get; set; }
 
 	[Column("destination")]
-	public string? Destination { get; set; } = "";
+	public string? Destination { get; set; }
 
 	[Column("beginremarks")]
-	public string? BeginRemarks { get; set; } = "";
+	public string? BeginRemarks { get; set; }
 
 	[Column("afterremarks")]
-	public string? AfterRemarks { get; set; } = "";
+	public string? AfterRemarks { get; set; }
 
 	[Column("remarks")]
-	public string? Remarks { get; set; } = "";
+	public string? Remarks { get; set; }
 
 	[Column("beforedeparture")]
-	public string? BeforeDeparture { get; set; } = "";
+	public string? BeforeDeparture { get; set; }
 
 	[Column("traininfo")]
-	public string? TrainInfo { get; set; } = "";
+	public string? TrainInfo { get; set; }
 
 	[Column("direction"), NotNull]
 	public int Direction { get; set; }
