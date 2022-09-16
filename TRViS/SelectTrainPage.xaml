@@ -18,21 +18,27 @@
 			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
-	<VerticalStackLayout
+	<Grid
 		Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
 		<Label
 			Margin="16,4"
+			Grid.Row="0"
 			Text="TRViS"
 			FontSize="Title"/>
 
 		<Button
 			Text="Select Database File"
+			HorizontalOptions="End"
+			Grid.Row="0"
 			Margin="16,4"
 			Clicked="Button_Clicked"/>
 
 		<Frame
-			VerticalOptions="FillAndExpand"
-			MinimumHeightRequest="300">
+			Grid.Row="1">
 			<ScrollView>
 				<FlexLayout
 					Direction="Row"
@@ -41,6 +47,7 @@
 					JustifyContent="SpaceEvenly"
 					Wrap="Wrap">
 					<Frame
+						MinimumHeightRequest="300"
 						WidthRequest="300">
 						<Grid>
 							<Grid.RowDefinitions>
@@ -67,6 +74,7 @@
 					</Frame>
 
 					<Frame
+						MinimumHeightRequest="300"
 						WidthRequest="300">
 						<Grid>
 							<Grid.RowDefinitions>
@@ -93,6 +101,7 @@
 					</Frame>
 
 					<Frame
+						MinimumHeightRequest="300"
 						WidthRequest="300">
 						<Grid>
 							<Grid.RowDefinitions>
@@ -121,5 +130,5 @@
 			</ScrollView>
 		</Frame>
 
-	</VerticalStackLayout>
+	</Grid>
 </ContentPage>
