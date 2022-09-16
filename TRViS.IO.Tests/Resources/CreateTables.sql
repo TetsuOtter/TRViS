@@ -22,7 +22,8 @@ CREATE TABLE "traindata" (
 	"ntc"	TEXT,
 	"carcount"	INTEGER,
 	"beginremarks"	TEXT,
-	"remarks"	TEXT, direction INTEGER NOT NULL,
+	"remarks"	TEXT,
+	"direction" INTEGER NOT NULL,
 	FOREIGN KEY("workid") REFERENCES "work"("id"),
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
@@ -63,7 +64,9 @@ CREATE TABLE "timetablerow" (
 	"stationtrackid"	INTEGER,
 	"runinlimit"	INTEGER,
 	"runoutlimit"	INTEGER,
-	"remarks"	TEXT, arrive_str TEXT, departure_str TEXT,
+	"remarks"	TEXT,
+	"arrive_str" TEXT,
+	"departure_str" TEXT,
 	PRIMARY KEY("id" AUTOINCREMENT),
 	UNIQUE("trainid", "stationid"),
 	FOREIGN KEY("stationid") REFERENCES "station"("id"),
