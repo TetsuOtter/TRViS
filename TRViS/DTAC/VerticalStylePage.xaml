@@ -210,7 +210,7 @@
 
 			<Label
 				x:DataType="models:TrainData"
-				Text="{Binding MaxSpeed, Converter={StaticResource ToWide}}"
+				Text="{Binding MaxSpeed, Converter={StaticResource ToWideConverter}}"
 				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
@@ -221,7 +221,7 @@
 
 			<Label
 				x:DataType="models:TrainData"
-				Text="{Binding SpeedType, Converter={StaticResource ToWide}}"
+				Text="{Binding SpeedType, Converter={StaticResource ToWideConverter}}"
 				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
@@ -232,7 +232,7 @@
 
 			<Label
 				x:DataType="models:TrainData"
-				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWide}}"
+				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
 				LineBreakMode="CharacterWrap"
 				LineHeight="1"
 				HorizontalTextAlignment="End"
