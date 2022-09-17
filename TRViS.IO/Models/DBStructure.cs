@@ -2,10 +2,10 @@ using SQLite;
 
 namespace TRViS.IO.Models.DB;
 
-[Table("workgroup")]
+[Table("work_group")]
 public record WorkGroup
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
 
 	[Column("name"), NotNull]
@@ -15,26 +15,26 @@ public record WorkGroup
 [Table("work")]
 public record Work
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
 
-	[Column("workgroupid"), NotNull]
+	[Column("work_group_id"), NotNull]
 	public int WorkGroupId { get; set; }
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = "";
 
-	[Column("affectdate"), NotNull]
+	[Column("affect_date"), NotNull]
 	public string AffectDate { get; set; } = "";
 }
 
 [Table("station")]
 public record Station
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
 
-	[Column("workgroupid"), NotNull]
+	[Column("work_group_id"), NotNull]
 	public int WorkGroupId { get; set; }
 
 	[Column("name"), NotNull]
@@ -44,89 +44,91 @@ public record Station
 	public double Location { get; set; }
 }
 
-[Table("stationtrack")]
+[Table("station_track")]
 public record StationTrack
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
 
-	[Column("stationid"), NotNull]
+	[Column("station_id"), NotNull]
 	public int StationId { get; set; }
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = "";
 }
 
-[Table("traindata")]
+[Table("train_data")]
 public record TrainData
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
 
-	[Column("workid"), NotNull]
+	[Column("work_id"), NotNull]
 	public int WorkId { get; set; }
 
-	[Column("trainnumber"), NotNull]
+	[Column("train_number"), NotNull]
 	public string TrainNumber { get; set; } = "";
 
-	[Column("maxspeed")]
+	[Column("max_speed")]
 	public string? MaxSpeed { get; set; }
 
-	[Column("speedtype")]
+	[Column("speed_type")]
 	public string? SpeedType { get; set; }
 
 	[Column("ntc")]
 	public string? NominalTractiveCapacity { get; set; }
 
-	[Column("carcount")]
+	[Column("car_count")]
 	public int? CarCount { get; set; }
 
 	[Column("destination")]
 	public string? Destination { get; set; }
 
-	[Column("beginremarks")]
+	[Column("begin_remarks")]
 	public string? BeginRemarks { get; set; }
 
-	[Column("afterremarks")]
+	[Column("after_remarks")]
 	public string? AfterRemarks { get; set; }
 
 	[Column("remarks")]
 	public string? Remarks { get; set; }
 
-	[Column("beforedeparture")]
+	[Column("before_departure")]
 	public string? BeforeDeparture { get; set; }
 
-	[Column("traininfo")]
+	[Column("train_info")]
 	public string? TrainInfo { get; set; }
 
 	[Column("direction"), NotNull]
 	public int Direction { get; set; }
 }
 
-[Table("timetablerow")]
+[Table("timetable_row")]
 public record TimetableRowData
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull]
+	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
 
-	[Column("trainid"), NotNull]
+	[Column("train_id"), NotNull]
+	[Indexed(Name = "sqlite_autoindex_timetablerow_1", Order = 1, Unique = true)]
 	public int TrainId { get; set; }
 
-	[Column("stationid"), NotNull]
+	[Column("station_id"), NotNull]
+	[Indexed(Name = "sqlite_autoindex_timetablerow_1", Order = 2, Unique = true)]
 	public int StationId { get; set; }
 
-	[Column("drivetime_mm")]
+	[Column("drive_time_mm")]
 	public int? DriveTime_MM { get; set; }
-	[Column("drivetime_ss")]
+	[Column("drive_time_ss")]
 	public int? DriveTime_SS { get; set; }
 
-	[Column("isoperationonlystop")]
+	[Column("is_operation_only_stop")]
 	public bool? IsOperationOnlyStop { get; set; }
-	[Column("ispass")]
+	[Column("is_pass")]
 	public bool? IsPass { get; set; }
-	[Column("hasbracket")]
+	[Column("has_bracket")]
 	public bool? HasBracket { get; set; }
-	[Column("islaststop")]
+	[Column("is_last_stop")]
 	public bool? IsLastStop { get; set; }
 
 	[Column("arrive_hh")]
@@ -147,12 +149,12 @@ public record TimetableRowData
 	[Column("departure_str")]
 	public string? Departure_Str { get; set; }
 
-	[Column("stationtrackid")]
+	[Column("station_track_id")]
 	public int? StationTrackId { get; set; }
 
-	[Column("runinlimit")]
+	[Column("run_in_limit")]
 	public int? RunInLimit { get; set; }
-	[Column("runoutlimit")]
+	[Column("run_out_limit")]
 	public int? RunOutLimit { get; set; }
 
 	[Column("remarks")]

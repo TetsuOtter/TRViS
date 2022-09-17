@@ -1,4 +1,4 @@
-CREATE TABLE "workgroup" (
+CREATE TABLE "work_group" (
 	"id"	INTEGER NOT NULL,
 	"name"	TEXT NOT NULL,
 	PRIMARY KEY("id" AUTOINCREMENT)
@@ -6,74 +6,74 @@ CREATE TABLE "workgroup" (
 
 CREATE TABLE "work" (
 	"id"	INTEGER NOT NULL,
-	"workgroupid"	INTEGER NOT NULL,
+	"work_group_id"	INTEGER NOT NULL,
 	"name"	TEXT NOT NULL,
-	"affectdate"	TEXT NOT NULL,
-	FOREIGN KEY("workgroupid") REFERENCES "workgroup"("id"),
+	"affect_date"	TEXT NOT NULL,
+	FOREIGN KEY("work_group_id") REFERENCES "work_group"("id"),
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
 
-CREATE TABLE "traindata" (
+CREATE TABLE "train_data" (
 	"id"	INTEGER NOT NULL,
-	"workid"	INTEGER NOT NULL,
-	"trainnumber"	TEXT NOT NULL,
-	"maxspeed"	TEXT,
-	"speedtype"	TEXT,
+	"work_id"	INTEGER NOT NULL,
+	"train_number"	TEXT NOT NULL,
+	"max_speed"	TEXT,
+	"speed_type"	TEXT,
 	"ntc"	TEXT,
-	"carcount"	INTEGER,
+	"car_count"	INTEGER,
 	"destination"	TEXT,
-	"beginremarks"	TEXT,
-	"afterremarks"	TEXT,
+	"begin_remarks"	TEXT,
+	"after_remarks"	TEXT,
 	"remarks"	TEXT,
-	"beforedeparture"	TEXT,
-	"traininfo"	TEXT,
+	"before_departure"	TEXT,
+	"train_info"	TEXT,
 	"direction" INTEGER NOT NULL,
-	FOREIGN KEY("workid") REFERENCES "work"("id"),
+	FOREIGN KEY("work_id") REFERENCES "work"("id"),
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
 
 CREATE TABLE "station" (
 	"id"	INTEGER NOT NULL,
-	"workgroupid"	INTEGER NOT NULL,
+	"work_group_id"	INTEGER NOT NULL,
 	"name"	TEXT NOT NULL,
 	"location"	REAL NOT NULL,
 	PRIMARY KEY("id" AUTOINCREMENT),
-	FOREIGN KEY("workgroupid") REFERENCES "workgroup"("id")
+	FOREIGN KEY("work_group_id") REFERENCES "work_group"("id")
 );
 
-CREATE TABLE "stationtrack" (
+CREATE TABLE "station_track" (
 	"id"	INTEGER NOT NULL,
-	"stationid"	INTEGER NOT NULL,
+	"station_id"	INTEGER NOT NULL,
 	"name"	TEXT NOT NULL,
 	PRIMARY KEY("id" AUTOINCREMENT),
-	FOREIGN KEY("stationid") REFERENCES "station"("id")
+	FOREIGN KEY("station_id") REFERENCES "station"("id")
 );
 
 CREATE TABLE "timetablerow" (
 	"id"	INTEGER NOT NULL,
-	"trainid"	INTEGER NOT NULL,
-	"stationid"	INTEGER NOT NULL,
+	"train_id"	INTEGER NOT NULL,
+	"station_id"	INTEGER NOT NULL,
 	"drivetime_mm"	INTEGER,
 	"drivetime_ss"	INTEGER,
-	"isoperationonlystop"	INTEGER,
-	"ispass"	INTEGER,
-	"hasbracket"	INTEGER,
-	"islaststop"	INTEGER,
+	"is_operation_only_stop"	INTEGER,
+	"is_pass"	INTEGER,
+	"has_bracket"	INTEGER,
+	"is_last_stop"	INTEGER,
 	"arrive_hh"	INTEGER,
 	"arrive_mm"	INTEGER,
 	"arrive_ss"	INTEGER,
 	"departure_hh"	INTEGER,
 	"departure_mm"	INTEGER,
 	"departure_ss"	INTEGER,
-	"stationtrackid"	INTEGER,
-	"runinlimit"	INTEGER,
-	"runoutlimit"	INTEGER,
+	"station_track_id"	INTEGER,
+	"run_in_limit"	INTEGER,
+	"run_out_limit"	INTEGER,
 	"remarks"	TEXT,
 	"arrive_str" TEXT,
 	"departure_str" TEXT,
 	PRIMARY KEY("id" AUTOINCREMENT),
-	UNIQUE("trainid", "stationid"),
-	FOREIGN KEY("stationid") REFERENCES "station"("id"),
-	FOREIGN KEY("stationtrackid") REFERENCES "stationtrack"("id"),
-	FOREIGN KEY("trainid") REFERENCES "traindata"("id")
+	UNIQUE("train_id", "station_id"),
+	FOREIGN KEY("station_id") REFERENCES "station"("id"),
+	FOREIGN KEY("station_track_id") REFERENCES "station_track"("id"),
+	FOREIGN KEY("train_id") REFERENCES "train_data"("id")
 );
