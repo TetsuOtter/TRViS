@@ -84,7 +84,7 @@ jobs:
 
   build-publish-ios:
     if: |
-      !failure() &&
+      !failure()
       && !cancelled()
       && (
         github.event_name != 'pull_request'
