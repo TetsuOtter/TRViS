@@ -15,6 +15,8 @@
 				<Setter Property="BorderColor" Value="{AppThemeBinding Dark=#ddd, Default=#222}"/>
 				<Setter Property="Margin" Value="8"/>
 				<Setter Property="Padding" Value="8"/>
+				<Setter Property="FlexLayout.Basis" Value="350"/>
+				<Setter Property="FlexLayout.Grow" Value="1"/>
 			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
@@ -41,14 +43,8 @@
 			Grid.Row="1">
 			<ScrollView>
 				<FlexLayout
-					Direction="Row"
-					AlignItems="Stretch"
-					Position="Relative"
-					JustifyContent="SpaceEvenly"
 					Wrap="Wrap">
-					<Frame
-						MinimumHeightRequest="300"
-						WidthRequest="300">
+					<Frame>
 						<Grid>
 							<Grid.RowDefinitions>
 								<RowDefinition Height="40"/>
@@ -73,9 +69,7 @@
 						</Grid>
 					</Frame>
 
-					<Frame
-						MinimumHeightRequest="300"
-						WidthRequest="300">
+					<Frame>
 						<Grid>
 							<Grid.RowDefinitions>
 								<RowDefinition Height="40"/>
@@ -100,9 +94,7 @@
 						</Grid>
 					</Frame>
 
-					<Frame
-						MinimumHeightRequest="300"
-						WidthRequest="300">
+					<Frame>
 						<Grid>
 							<Grid.RowDefinitions>
 								<RowDefinition Height="40"/>
