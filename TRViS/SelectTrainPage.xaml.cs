@@ -1,3 +1,4 @@
+using TRViS.IO;
 using TRViS.ViewModels;
 
 namespace TRViS;
@@ -24,7 +25,7 @@ public partial class SelectTrainPage : ContentPage
 			{
 				viewModel.Loader?.Dispose();
 
-				viewModel.Loader = new(result.FullPath);
+				viewModel.Loader = new LoaderSQL(result.FullPath);
 			}
 		}
 		catch (Exception ex)

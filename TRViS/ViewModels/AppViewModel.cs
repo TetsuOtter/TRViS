@@ -10,7 +10,7 @@ namespace TRViS.ViewModels;
 public partial class AppViewModel : ObservableObject
 {
 	[ObservableProperty]
-	LoaderSQL? _Loader;
+	ILoader? _Loader;
 
 	[ObservableProperty]
 	IReadOnlyList<TRViS.IO.Models.DB.WorkGroup>? _WorkGroupList;
