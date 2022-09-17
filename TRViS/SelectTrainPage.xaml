@@ -17,6 +17,7 @@
 				<Setter Property="Padding" Value="8"/>
 				<Setter Property="FlexLayout.Basis" Value="350"/>
 				<Setter Property="FlexLayout.Grow" Value="1"/>
+				<Setter Property="MinimumHeightRequest" Value="500"/>
 			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
@@ -43,6 +44,7 @@
 			Grid.Row="1">
 			<ScrollView>
 				<FlexLayout
+					MinimumHeightRequest="600"
 					Wrap="Wrap">
 					<Frame>
 						<Grid>
