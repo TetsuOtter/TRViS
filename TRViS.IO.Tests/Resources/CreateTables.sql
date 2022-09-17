@@ -49,7 +49,7 @@ CREATE TABLE "station_track" (
 	FOREIGN KEY("station_id") REFERENCES "station"("id")
 );
 
-CREATE TABLE "timetablerow" (
+CREATE TABLE "timetable_row" (
 	"id"	INTEGER NOT NULL,
 	"train_id"	INTEGER NOT NULL,
 	"station_id"	INTEGER NOT NULL,
