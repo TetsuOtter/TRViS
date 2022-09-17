@@ -53,6 +53,9 @@
 			Version="1.0.3"
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
+		<PackageReference
+			Include="System.Text.Json"
+			Version="6.0.6" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
