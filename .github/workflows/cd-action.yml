@@ -152,7 +152,7 @@ jobs:
       with:
         dotnet-version: '6.0.x'
     - name: Install dotnet workloads
-      run: dotnet workload install maui-ios maui-android
+      run: dotnet workload install maui-ios maui-android maccatalyst
 
     - name: Install dependencies
       run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
