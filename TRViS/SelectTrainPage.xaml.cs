@@ -13,6 +13,8 @@ public partial class SelectTrainPage : ContentPage
 
 		this.viewModel = viewModel;
 		this.BindingContext = viewModel;
+
+		viewModel.Loader ??= new SampleDataLoader();
 	}
 
 	async void Button_Clicked(object sender, EventArgs e)
