@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
+	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+	xmlns:ctrls="clr-namespace:TRViS.Controls"
+	x:Class="TRViS.DTAC.VerticalStylePage"
+	x:DataType="viewmodels:AppViewModel"
+	BackgroundColor="White"
+	Title="{Binding SelectedTrainData.WorkName}">
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="Style_VerticalView.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</ContentPage.Resources>
+
+	<Grid
+		IgnoreSafeArea="True"
+		MinimumWidthRequest="740">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="64"/>
+			<RowDefinition Height="64"/>
+			<RowDefinition Height="54"/>
+			<RowDefinition Height="60"/>
+			<RowDefinition Height="60"/>
+			<RowDefinition Height="54"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="64"/>
+		</Grid.RowDefinitions>
+
+		<Grid
+			Grid.Row="0"
+			BackgroundColor="#eee"/>
+
+		<Grid
+			BindingContext="{Binding SelectedTrainData}"
+			Grid.Row="1"
+			BackgroundColor="White">
+			<Label
+				Style="{StaticResource LabelStyle}"
+				x:DataType="models:TrainData"
+				Margin="18,4"
+				LineHeight="1.2"
+				HorizontalOptions="Start">
+				<Label.FormattedText>
+					<FormattedString>
+						<Span Text="行路施行日&#xa;"/>
+						<Span Text="{Binding AffectDate, StringFormat='{0:yyyy年M月d日}'}"/>
+					</FormattedString>
+				</Label.FormattedText>
+			</Label>
+		</Grid>
+
+		<Grid
+			Grid.Row="2"
+			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
+			BackgroundColor="#ddd">
+			<Label
+				Style="{StaticResource HeaderLabel}"
+				Text="列　車"
+				Grid.Column="0"/>
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="0"/>
+
+			<Label
+				Style="{StaticResource HeaderLabel}"
+				Text="最高速度&#xa;(Ｋｍ / ｈ)"
+				HorizontalTextAlignment="Center"
+				Grid.Column="1"/>
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="1"/>
+
+			<Label
+				Style="{StaticResource HeaderLabel}"
+				Text="速度種別"
+				Grid.Column="2"/>
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="2"/>
+
+			<Label
+				Style="{StaticResource HeaderLabel}"
+				Text="けん引定数"
+				Grid.Column="3"/>
+		</Grid>
+
+		<Grid
+			Grid.Row="3"
+			BindingContext="{Binding SelectedTrainData}"
+			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
+			BackgroundColor="White">
+			<Label
+				Style="{StaticResource LabelStyle}"
+				x:DataType="models:TrainData"
+				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
+				TextColor="#33d"
+				FontSize="28"
+				FontAttributes="Bold"
+				Grid.Column="0"/>
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="0"/>
+
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
+				x:DataType="models:TrainData"
+				Text="{Binding MaxSpeed, Converter={StaticResource ToWideConverter}}"
+				HorizontalTextAlignment="End"
+				HorizontalOptions="End"
+				Grid.Column="1"/>
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="1"/>
+
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
+				x:DataType="models:TrainData"
+				Text="{Binding SpeedType, Converter={StaticResource ToWideConverter}}"
+				HorizontalTextAlignment="End"
+				HorizontalOptions="End"
+				Grid.Column="2"/>
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="2"/>
+
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
+				x:DataType="models:TrainData"
+				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
+				LineHeight="1"
+				HorizontalTextAlignment="End"
+				HorizontalOptions="End"
+				Grid.Column="3"/>
+		</Grid>
+
+		<Line
+			Grid.Row="3"
+			Style="{StaticResource TimetableSeparatorLine}"/>
+
+		<Grid
+			Grid.Row="4"
+			BindingContext="{Binding SelectedTrainData}"
+			ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}"
+			BackgroundColor="White">
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="0"/>
+
+			<Frame
+				Grid.Column="1"
+				BackgroundColor="White"
+				BorderColor="Transparent"
+				CornerRadius="4"
+				Padding="0"
+				Margin="16,6"
+				HasShadow="True">
+				<Grid
+					Margin="0"
+					Padding="4">
+					<Label
+						x:DataType="models:TrainData"
+						Style="{StaticResource TimetableLargeNumberLabel}"
+						VerticalOptions="Center"
+						Text="{Binding CarCount}"/>
+
+					<Label
+						Style="{StaticResource LabelStyle}"
+						VerticalOptions="End"
+						HorizontalOptions="End"
+						Text="両"/>
+				</Grid>
+				<Frame.Shadow>
+					<Shadow
+						Brush="Black"
+						Offset="2,2"
+						Radius="2"
+						Opacity="0.2" />
+				</Frame.Shadow>
+			</Frame>
+			<Line
+				Style="{StaticResource SeparatorLine}"
+				Grid.Column="1"/>
+
+			<ctrls:HtmlAutoDetectLabel
+				Style="{StaticResource LabelStyle}"
+				x:DataType="models:TrainData"
+				Grid.Column="2"
+				Grid.ColumnSpan="6"
+				LineHeight="1.4"
+				Margin="32,0"
+				HorizontalOptions="Start"
+				VerticalOptions="Center"
+				Text="{Binding BeginRemarks}"/>
+		</Grid>
+
+		<dtac:TimetableHeader
+			BackgroundColor="#ddd"
+			FontSize_Large="28"
+			Grid.Row="5"/>
+
+		<Grid
+			BindingContext="{Binding SelectedTrainData}"
+			IgnoreSafeArea="False"
+			Grid.Row="6">
+			<ListView
+				x:Name="MyList"
+				x:DataType="models:TrainData"
+				ItemsSource="{Binding Rows}"
+				BackgroundColor="White"
+				ios:ListView.SeparatorStyle="FullWidth"
+				SeparatorVisibility="Default"
+				SeparatorColor="#aaa"
+				SelectionMode="None"
+				RowHeight="60">
+				<ListView.ItemTemplate>
+					<DataTemplate
+						x:DataType="models:TimetableRow">
+						<ViewCell>
+							<Grid
+								ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}">
+								<Grid
+									Margin="2"
+									VerticalOptions="End"
+									Grid.Column="0">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+									<Label
+										Style="{StaticResource TimetableDriveTimeMMLabel}"
+										HorizontalOptions="End"
+										Margin="0"
+										Grid.Column="0"
+										Text="{Binding DriveTimeMM}"/>
+									<Label
+										Style="{StaticResource TimetableDriveTimeSSLabel}"
+										Margin="1"
+										HorizontalOptions="Start"
+										Grid.Column="1"
+										Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}"/>
+								</Grid>
+								<ctrls:HtmlAutoDetectLabel
+									Style="{StaticResource TimetableLabel}"
+									Margin="0"
+									Grid.Column="1"
+									Text="{Binding StationName, Converter={StaticResource StationNameConverter}}"/>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding HasBracket}"
+									Grid.Column="2"
+									HorizontalOptions="Start"
+									Text="("/>
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding IsOperationOnlyStop}"
+									Grid.Column="2"
+									HorizontalOptions="Start"
+									Text="["/>
+
+								<dtac:TimeCell
+									Style="{StaticResource TimeCellStyle}"
+									TimeData="{Binding ArriveTime}"
+									IsPass="{Binding IsPass}"
+									Grid.Column="2"/>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding HasBracket}"
+									Grid.Column="2"
+									HorizontalOptions="End"
+									Text=")"/>
+
+								<dtac:TimeCell
+									Style="{StaticResource TimeCellStyle}"
+									TimeData="{Binding DepartureTime}"
+									IsPass="{Binding IsPass}"
+									Grid.Column="3"/>
+
+								<Grid
+									IsVisible="{Binding IsLastStop}"
+									Grid.Column="3">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+									</Grid.RowDefinitions>
+									<Line
+										Style="{StaticResource LastStopLine}"
+										Grid.Row="1"/>
+									<Line
+										Style="{StaticResource LastStopLine}"
+										Grid.Row="2"/>
+								</Grid>
+
+								<Label
+									Style="{StaticResource TimetableLabel}"
+									IsVisible="{Binding IsOperationOnlyStop}"
+									Grid.Column="3"
+									HorizontalOptions="End"
+									Text="]"/>
+
+								<ctrls:HtmlAutoDetectLabel
+									Style="{StaticResource TimetableLabel}"
+									TextColor="Red"
+									Grid.Column="4"
+									Text="{Binding TrackName}"/>
+
+								<Grid
+									Margin="10,4"
+									Grid.Column="5">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="*"/>
+										<RowDefinition Height="*"/>
+									</Grid.RowDefinitions>
+									<Label
+										Style="{StaticResource TimetableRunLimitLabel}"
+										HorizontalOptions="Start"
+										Grid.Row="0"
+										Text="{Binding RunInLimit}"/>
+									<Label
+										Style="{StaticResource TimetableRunLimitLabel}"
+										HorizontalOptions="End"
+										Grid.Row="1"
+										Text="{Binding RunOutLimit}"/>
+								</Grid>
+
+								<ctrls:HtmlAutoDetectLabel
+									Style="{StaticResource TimetableLabel}"
+									FontAttributes="None"
+									HorizontalOptions="Start"
+									FontSize="16"
+									Grid.Column="6"
+									Text="{Binding Remarks}"/>
+							</Grid>
+						</ViewCell>
+					</DataTemplate>
+				</ListView.ItemTemplate>
+			</ListView>
+		</Grid>
+
+		<AbsoluteLayout
+			IgnoreSafeArea="True"
+			BackgroundColor="#333"
+			Grid.Row="7">
+			<Grid
+				IgnoreSafeArea="True"
+				VerticalOptions="Start"
+				WidthRequest="{Binding Width, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type Grid}}}">
+				<Label
+					FontSize="28"
+					Margin="16,0"
+					Text="注 意 事 項"
+					FontAttributes="Bold"
+					HorizontalOptions="Start"
+					VerticalOptions="Center"
+					TextColor="White"/>
+
+				<Button
+					Text="&#xe5ce;"
+					CornerRadius="4"
+					Margin="16,8"
+					Padding="0"
+					BackgroundColor="White"
+					BorderWidth="0"
+					TextColor="#aaa"
+					FontFamily="MaterialIconsRegular"
+					FontSize="40"
+					HorizontalOptions="End"
+					VerticalOptions="Start"/>
+			</Grid>
+		</AbsoluteLayout>
+	</Grid>
+</ContentPage>
