@@ -339,6 +339,7 @@
 
 								<ctrls:HtmlAutoDetectLabel
 									Style="{StaticResource TimetableLabel}"
+									FontAttributes="None"
 									HorizontalOptions="Start"
 									FontSize="16"
 									Grid.Column="6"
