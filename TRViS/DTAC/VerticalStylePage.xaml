@@ -227,7 +227,7 @@
 							<Grid
 								ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}">
 								<Grid
-									Margin="4"
+									Margin="2"
 									VerticalOptions="End"
 									Grid.Column="0">
 									<Grid.ColumnDefinitions>
@@ -235,13 +235,13 @@
 										<ColumnDefinition Width="*"/>
 									</Grid.ColumnDefinitions>
 									<Label
-										Style="{StaticResource TimetableMidiumNumberLabel}"
+										Style="{StaticResource TimetableDriveTimeMMLabel}"
 										HorizontalOptions="End"
 										Margin="0"
 										Grid.Column="0"
 										Text="{Binding DriveTimeMM}"/>
 									<Label
-										Style="{StaticResource TimetableDefaultNumberLabel}"
+										Style="{StaticResource TimetableDriveTimeSSLabel}"
 										Margin="1"
 										HorizontalOptions="Start"
 										Grid.Column="1"
@@ -316,23 +316,20 @@
 									Text="{Binding TrackName}"/>
 
 								<Grid
+									Margin="12,4"
 									Grid.Column="5">
 									<Grid.RowDefinitions>
 										<RowDefinition Height="*"/>
 										<RowDefinition Height="*"/>
 									</Grid.RowDefinitions>
 									<Label
-										Style="{StaticResource TimetableLargeNumberLabel}"
-										VerticalOptions="End"
+										Style="{StaticResource TimetableRunLimitLabel}"
 										HorizontalOptions="Start"
-										Margin="8,-4"
 										Grid.Row="0"
 										Text="{Binding RunInLimit}"/>
 									<Label
-										Style="{StaticResource TimetableLargeNumberLabel}"
-										VerticalOptions="Start"
+										Style="{StaticResource TimetableRunLimitLabel}"
 										HorizontalOptions="End"
-										Margin="8,-4"
 										Grid.Row="1"
 										Text="{Binding RunOutLimit}"/>
 								</Grid>
