@@ -10,7 +10,6 @@
 	x:Class="TRViS.DTAC.VerticalStylePage"
 	x:DataType="viewmodels:AppViewModel"
 	BackgroundColor="White"
-	Shell.BackgroundColor="#080"
 	Title="{Binding SelectedTrainData.WorkName}">
 	<ContentPage.Resources>
 		<ResourceDictionary>
