@@ -53,7 +53,7 @@ jobs:
 
     - name: generate bundle version pattern (Trigger:PullRequest)
       if: ${{ github.event_name == 'pull_request' }}
-      run: echo "0.0.0.${{ github.event.number }}" > DISP_VERSION
+      run: echo "0.0.${{ github.event.number }}" > DISP_VERSION
 
     - name: generate bundle version pattern (Trigger:WorkflowDispatch)
       if: ${{ github.event_name == 'workflow_dispatch' }}
