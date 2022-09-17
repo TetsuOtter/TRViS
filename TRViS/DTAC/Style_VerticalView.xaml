@@ -14,17 +14,17 @@
 
 	<ColumnDefinitionCollection x:Key="TimetableColumnWidthCollection">
 		<!-- 運転時分 -->
-		<ColumnDefinition Width="64"/>
+		<ColumnDefinition Width="60"/>
 		<!-- 停車場名 -->
-		<ColumnDefinition Width="128"/>
+		<ColumnDefinition Width="136"/>
 		<!-- 着 -->
-		<ColumnDefinition Width="128"/>
+		<ColumnDefinition Width="132"/>
 		<!-- 発 (通)  -->
-		<ColumnDefinition Width="128"/>
+		<ColumnDefinition Width="132"/>
 		<!-- 着線/発線 -->
-		<ColumnDefinition Width="64"/>
+		<ColumnDefinition Width="60"/>
 		<!-- 制限速度 -->
-		<ColumnDefinition Width="64"/>
+		<ColumnDefinition Width="60"/>
 		<!-- 記事 -->
 		<ColumnDefinition Width="*"/>
 		<!-- マーカー -->

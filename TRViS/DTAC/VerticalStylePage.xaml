@@ -315,7 +315,7 @@
 									Text="{Binding TrackName}"/>
 
 								<Grid
-									Margin="12,4"
+									Margin="10,4"
 									Grid.Column="5">
 									<Grid.RowDefinitions>
 										<RowDefinition Height="*"/>
