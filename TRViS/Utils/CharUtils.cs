@@ -1,4 +1,4 @@
-﻿namespace TRViS;
+namespace TRViS;
 
 public static partial class Utils
 {

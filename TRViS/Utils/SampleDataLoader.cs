@@ -1,4 +1,4 @@
-﻿using TRViS.IO.Models;
+using TRViS.IO.Models;
 using TRViS.IO.Models.DB;
 
 namespace TRViS;
