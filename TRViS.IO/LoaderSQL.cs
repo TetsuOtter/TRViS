@@ -3,7 +3,7 @@ using TRViS.IO.Models;
 
 namespace TRViS.IO;
 
-public class LoaderSQL : IDisposable
+public class LoaderSQL : ILoader, IDisposable
 {
 	SQLiteConnection Connection { get; }
 
