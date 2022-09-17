@@ -20,7 +20,9 @@ public static class MauiProgram
 		builder.Services
 			.AddSingleton(typeof(AppShell))
 			.AddSingleton(typeof(SelectTrainPage))
+			.AddSingleton(typeof(EasterEggPage))
 			.AddSingleton(typeof(DTAC.VerticalStylePage))
+			.AddSingleton(typeof(EasterEggPageViewModel))
 			.AddSingleton(typeof(AppViewModel));
 
 		return builder.Build();
