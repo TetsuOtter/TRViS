@@ -49,7 +49,7 @@
 		<Setter Property="FontSize" Value="14"/>
 		<Setter Property="FontFamily" Value="Hiragino Sans"/>
 		<Setter Property="Margin" Value="1"/>
-		<Setter Property="LineBreakMode" Value="NoWrap"/>
+		<Setter Property="LineBreakMode" Value="CharacterWrap"/>
 	</Style>
 	<Style TargetType="Label" BasedOn="{StaticResource LabelStyle}">
 		<Setter Property="Margin" Value="4"/>
@@ -65,6 +65,7 @@
 	<Style x:Key="TimetableLargeNumberLabel" TargetType="Label" BasedOn="{StaticResource TimetableLabel}">
 		<Setter Property="FontFamily" Value="Helvetica"/>
 		<Setter Property="VerticalOptions" Value="End"/>
+		<Setter Property="LineBreakMode" Value="NoWrap"/>
 	</Style>
 	<Style x:Key="TimetableMidiumNumberLabel" TargetType="Label" BasedOn="{StaticResource TimetableLargeNumberLabel}">
 		<Setter Property="FontSize" Value="22"/>

@@ -47,7 +47,6 @@
 				x:DataType="models:TrainData"
 				Margin="18,4"
 				LineHeight="1.2"
-				LineBreakMode="CharacterWrap"
 				HorizontalOptions="Start">
 				<Label.FormattedText>
 					<FormattedString>
@@ -73,7 +72,6 @@
 			<Label
 				Style="{StaticResource HeaderLabel}"
 				Text="最高速度&#xa;(Ｋｍ / ｈ)"
-				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="Center"
 				Grid.Column="1"/>
 			<Line
@@ -115,7 +113,6 @@
 				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Text="{Binding MaxSpeed, Converter={StaticResource ToWideConverter}}"
-				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="1"/>
@@ -127,7 +124,6 @@
 				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Text="{Binding SpeedType, Converter={StaticResource ToWideConverter}}"
-				LineBreakMode="CharacterWrap"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="2"/>
@@ -139,7 +135,6 @@
 				Style="{StaticResource LabelStyle}"
 				x:DataType="models:TrainData"
 				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
-				LineBreakMode="CharacterWrap"
 				LineHeight="1"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
@@ -203,7 +198,6 @@
 				Margin="32,0"
 				HorizontalOptions="Start"
 				VerticalOptions="Center"
-				LineBreakMode="CharacterWrap"
 				Text="{Binding BeginRemarks}"/>
 		</Grid>
 
