@@ -7,6 +7,7 @@
 	xmlns:dtac="clr-namespace:TRViS.DTAC">
 	<Shell.FlyoutIcon>
 		<FontImageSource
+			x:Name="FlyoutIconImage"
 			Glyph="&#xe241;"
 			FontFamily="MaterialIconsRegular"
 			Size="36"/>
@@ -19,5 +20,8 @@
 	</FlyoutItem>
 	<FlyoutItem Title="Third Party Licenses">
 		<ShellContent ContentTemplate="{DataTemplate local:ThirdPartyLicenses}" />
+	</FlyoutItem>
+	<FlyoutItem Title="">
+		<ShellContent ContentTemplate="{DataTemplate local:EasterEggPage}" />
 	</FlyoutItem>
 </Shell>
