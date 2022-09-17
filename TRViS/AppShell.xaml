@@ -4,5 +4,24 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS"
-	Shell.FlyoutBehavior="Disabled">
+	xmlns:dtac="clr-namespace:TRViS.DTAC">
+	<Shell.FlyoutIcon>
+		<FontImageSource
+			x:Name="FlyoutIconImage"
+			Glyph="&#xe241;"
+			FontFamily="MaterialIconsRegular"
+			Size="36"/>
+	</Shell.FlyoutIcon>
+	<FlyoutItem Title="Select Train">
+		<ShellContent ContentTemplate="{DataTemplate local:SelectTrainPage}" />
+	</FlyoutItem>
+	<FlyoutItem Title="D-TAC">
+		<ShellContent ContentTemplate="{DataTemplate dtac:VerticalStylePage}" />
+	</FlyoutItem>
+	<FlyoutItem Title="Third Party Licenses">
+		<ShellContent ContentTemplate="{DataTemplate local:ThirdPartyLicenses}" />
+	</FlyoutItem>
+	<FlyoutItem Title="">
+		<ShellContent ContentTemplate="{DataTemplate local:EasterEggPage}" />
+	</FlyoutItem>
 </Shell>

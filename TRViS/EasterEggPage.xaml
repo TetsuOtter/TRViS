@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:converters="clr-namespace:TRViS.ValueConverters"
+	x:DataType="viewmodels:EasterEggPageViewModel"
+	x:Class="TRViS.EasterEggPage"
+	Title="EasterEgg Page">
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<converters:DoubleToIntConverter x:Key="DoubleToIntConverter"/>
+
+			<Style TargetType="Slider">
+				<Setter Property="Minimum" Value="0"/>
+				<Setter Property="Maximum" Value="255"/>
+				<Setter Property="Margin" Value="4"/>
+			</Style>
+
+			<Style TargetType="Frame">
+				<Setter Property="Margin" Value="8"/>
+			</Style>
+		</ResourceDictionary>
+	</ContentPage.Resources>
+
+	<ScrollView>
+		<VerticalStackLayout>
+			<Frame>
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="90"/>
+					</Grid.ColumnDefinitions>
+
+					<Slider
+						Grid.Column="0"
+						Grid.Row="0"
+						Value="{Binding Color_Red, Converter={StaticResource DoubleToIntConverter}}"
+						ThumbColor="Red"/>
+					<Slider
+						Grid.Column="0"
+						Grid.Row="1"
+						Value="{Binding Color_Green, Converter={StaticResource DoubleToIntConverter}}"
+						ThumbColor="Green"/>
+					<Slider
+						Grid.Column="0"
+						Grid.Row="2"
+						Value="{Binding Color_Blue, Converter={StaticResource DoubleToIntConverter}}"
+						ThumbColor="Blue"/>
+
+					<Label
+						Grid.Row="0"
+						Grid.Column="1"
+						VerticalOptions="Center"
+						Text="{Binding Color_Red, StringFormat='{0:D3} (0x{0:X02})'}"/>
+					<Label
+						Grid.Row="1"
+						Grid.Column="1"
+						VerticalOptions="Center"
+						Text="{Binding Color_Green, StringFormat='{0:D3} (0x{0:X02})'}"/>
+					<Label
+						Grid.Row="2"
+						Grid.Column="1"
+						VerticalOptions="Center"
+						Text="{Binding Color_Blue, StringFormat='{0:D3} (0x{0:X02})'}"/>
+				</Grid>
+			</Frame>
+		</VerticalStackLayout>
+	</ScrollView>
+</ContentPage>

@@ -1,0 +1,246 @@
+name: Continuous Delivery Action
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+-.[0-9]+'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  workflow_dispatch:
+
+concurrency:
+  cd-action-${{ github.ref }}
+
+env:
+  CSPROJ_PATH: ./TRViS/TRViS.csproj
+  TARGET_FRAMEWORK: net6.0-ios
+  TARGET_RUNTIME: ios-arm64
+  OUTPUT_DIR: ./out
+  IPA_PATH: ./out/TRViS.ipa
+
+jobs:
+  generate-bundle-version:
+    if: |
+      !startsWith(github.ref, 'refs/tags/v')
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+      && !cancelled()
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    outputs:
+      display_version: ${{ steps.set_display_version.outputs.disp-version }}
+      build_number: ${{ steps.build_number.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{github.head_ref}}
+
+    - name: Get all tags from remote
+      run: git fetch --all --tags
+
+    - name: generate bundle version pattern (Trigger:Push to main)
+      if: ${{ github.event_name == 'push' }}
+      run: grep -oP '(?<=<ApplicationDisplayVersion>).*?(?=</ApplicationDisplayVersion>)' ${{ env.CSPROJ_PATH }} > DISP_VERSION
+
+    - name: generate bundle version pattern (Trigger:PullRequest)
+      if: ${{ github.event_name == 'pull_request' }}
+      run: echo "0.0.${{ github.event.number }}" > DISP_VERSION
+
+    - name: generate bundle version pattern (Trigger:WorkflowDispatch)
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+      run: echo "0.0.0" > DISP_VERSION
+
+    - name: set display version to variable
+      id: set_display_version
+      run: |
+        echo "::set-output name=disp-version::$(cat DISP_VERSION)"
+
+    - name: Get all tags reachable from current commit
+      run: |
+        git tag -l "v${{ steps.set_display_version.outputs.disp-version }}-[0-9]*" > VERSION_TAGS
+        cat VERSION_TAGS
+
+    - name: Generate new patch build number
+      id: build_number
+      run: |
+        if [ `cat VERSION_TAGS | wc -l` -eq 0 ]; then
+          BUILD_NUMBER=0
+        else
+          BUILD_NUMBER=`sort -rV VERSION_TAGS | head -n 1 | awk -F '-' '{print $2 + 1}'`
+        fi
+        echo "::set-output name=version::$BUILD_NUMBER"
+
+    - name: print new version number
+      run: echo "VersionNumber ... ${{ steps.set_display_version.outputs.disp-version }}-${{ steps.build_number.outputs.version }}"
+
+  build-publish-ios:
+    if: |
+      !failure()
+      && !cancelled()
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+
+    runs-on: macos-12
+    timeout-minutes: 30
+    needs:
+      - generate-bundle-version
+
+    steps:
+    - name: get version
+      id: get-version
+      run: |
+        if [ '${{ startsWith(github.ref, 'refs/tags/v') }}' == 'true' ]; then
+          VERSION=`echo '${{ github.ref }}' | tr -d 'refs/tags/v'`
+          echo "::set-output name=display_version::$(echo $VERSION | awk -F '-' '{print $1}')"
+          echo "::set-output name=build_number::$(echo $VERSION | awk -F '-' '{print $2}')"
+        else
+          echo "::set-output name=display_version::${{ needs.generate-bundle-version.outputs.display_version }}"
+          echo "::set-output name=build_number::${{ needs.generate-bundle-version.outputs.build_number }}"
+        fi
+
+    - name: Import Provisioning Profile
+      run: |
+        mkdir -p ${{ env.TARGET_DIR }}
+
+        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+          echo -n ${{ secrets.PROVISIONING_PROFILE }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+        fi
+      env:
+        TARGET_DIR: ~/Library/MobileDevice/Provisioning\ Profiles
+        TARGET_FILE: distribution.mobileprovision
+
+    - name: Import App Store Connect API Private Key
+      run: |
+        mkdir -p ${{ env.TARGET_DIR }}
+
+        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+          echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+        fi
+      env:
+        TARGET_DIR: ~/.appstoreconnect/private_keys
+        TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
+
+    - name: Generate Keychain Name
+      id: gen-keychain-name
+      run: echo "::set-output name=keychain-name::${{ github.run_id }}_${{ github.run_attempt }}"
+    - name: Import Code Sign Certificates
+      id: import-code-sign-cert
+      uses: apple-actions/import-codesign-certs@v1
+      with:
+        keychain: ${{ steps.gen-keychain-name.outputs.keychain-name }}
+        create-keychain: true
+        p12-file-base64: ${{ secrets.P12_FILE_BASE64 }}
+        p12-password: ${{ secrets.P12_PASSWORD }}
+
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '6.0.x'
+    - name: Install dotnet workloads
+      run: dotnet workload install maui-ios maui-android maccatalyst
+
+    - name: Install dependencies
+      run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
+
+    - name: Build
+      run: >
+        dotnet publish ${{ env.CSPROJ_PATH }}
+        -f ${{ env.TARGET_FRAMEWORK }}
+        -r ${{ env.TARGET_RUNTIME }}
+        -c Release
+        -o "${{ env.OUTPUT_DIR }}"
+        /p:ApplicationDisplayVersion=${{ steps.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ steps.get-version.outputs.build_number }}
+        /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_IOS }}"
+        /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
+
+    - name: validate
+      run: >
+        xcrun altool
+        --validate-app
+        --type ios
+        -f ${{ env.IPA_PATH }}
+        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+
+    - name: upload
+      run: >
+        xcrun altool
+        --upload-app
+        --type ios
+        -f ${{ env.IPA_PATH }}
+        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: ipa
+        path: ${{ env.IPA_PATH }}
+        retention-days: 3
+
+    - name: Post 'Import Code Sign Certificates'
+      if: always() && steps.import-code-sign-cert.conclusion == 'success'
+      run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+
+  set-tag:
+    if: |
+      needs.generate-bundle-version.result == 'success'
+      && needs.build-publish-ios.result == 'success'
+      && !cancelled()
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - generate-bundle-version
+      - build-publish-ios
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: fetch all history to assign tag
+      if: ${{ github.event_name == 'pull_request' }}
+      run: git fetch --unshallow --no-tags --no-recurse-submodules origin +${{ github.sha }}:${{ github.ref }}
+
+    - name: Setup github-actions[bot] account
+      run: |
+        git config user.name 'github-actions[bot]'
+        git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+    - name: set PR number
+      id: pr-num
+      if: ${{ github.event_name == 'pull_request' }}
+      run: echo "::set-output name=str::#${{ github.event.number }}"
+
+    - name: generate tag name
+      id: tag-name
+      run: echo "::set-output name=tag-name::v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}"
+
+    - name: tagging new tag
+      run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
+
+    - name: push new tag
+      run: git push origin ${{ steps.tag-name.outputs.tag-name }}
+
+    - name: Comment TagName and Actions-Run URL to PR
+      if: ${{ github.event_name == 'pull_request' }}
+      run: >
+        echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
+        ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
+        | gh pr comment ${{ github.event.number }} -F -
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,194 @@
+[
+  {
+    "id": "CommunityToolkit.Mvvm",
+    "resolvedVersion": "8.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://github.com/CommunityToolkit/dotnet",
+    "copyrightText": "(c) .NET Foundation and Contributors. All rights reserved."
+  },
+  {
+    "id": "DependencyPropertyGenerator",
+    "resolvedVersion": "1.0.3",
+    "license": "MIT",
+    "author": "havendv",
+    "projectUrl": null,
+    "copyrightText": null
+  },
+  {
+    "id": "material-design-icons",
+    "resolvedVersion": "4.0.0",
+    "license": "Apache-2.0",
+    "author": "Google",
+    "projectUrl": "https://github.com/google/material-design-icons",
+    "copyrightText": null
+  },
+  {
+    "id": "Microsoft.Maui.Dependencies",
+    "resolvedVersion": "6.0.486",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://github.com/dotnet/maui",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Maui.Extensions",
+    "resolvedVersion": "6.0.486",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://github.com/dotnet/maui",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "System.Runtime.InteropServices.NFloat.Internal",
+    "resolvedVersion": "6.0.1",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.Configuration",
+    "resolvedVersion": "6.0.1",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.Configuration.Abstractions",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.DependencyInjection",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.DependencyInjection.Abstractions",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.Logging",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.Logging.Abstractions",
+    "resolvedVersion": "6.0.1",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.Options",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Extensions.Primitives",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "Microsoft.Maui.Graphics",
+    "resolvedVersion": "6.0.403",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://github.com/dotnet/Microsoft.Maui.Graphics",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "sqlite-net-pcl",
+    "resolvedVersion": "1.8.116",
+    "license": "sqlite-net-pcl",
+    "author": "SQLite-net",
+    "projectUrl": "https://github.com/praeclarum/sqlite-net",
+    "copyrightText": null
+  },
+  {
+    "id": "SQLitePCLRaw.bundle_green",
+    "resolvedVersion": "2.1.0",
+    "license": "Apache-2.0",
+    "author": "Eric Sink",
+    "projectUrl": null,
+    "copyrightText": "Copyright 2014-2022 SourceGear, LLC"
+  },
+  {
+    "id": "SQLitePCLRaw.core",
+    "resolvedVersion": "2.1.0",
+    "license": "Apache-2.0",
+    "author": "Eric Sink",
+    "projectUrl": null,
+    "copyrightText": "Copyright 2014-2022 SourceGear, LLC"
+  },
+  {
+    "id": "SQLitePCLRaw.provider.sqlite3",
+    "resolvedVersion": "2.1.0",
+    "license": "Apache-2.0",
+    "author": "Eric Sink",
+    "projectUrl": null,
+    "copyrightText": "Copyright 2014-2022 SourceGear, LLC"
+  },
+  {
+    "id": "System.Diagnostics.DiagnosticSource",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "System.Memory",
+    "resolvedVersion": "4.5.3",
+    "license": "b6a011b2f3c05c5d8e201b44ec86d7c8b6884594693ffff76317fe14f71a6862",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "System.Runtime.CompilerServices.Unsafe",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "System.Text.Encodings.Web",
+    "resolvedVersion": "6.0.0",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  },
+  {
+    "id": "System.Text.Json",
+    "resolvedVersion": "6.0.6",
+    "license": "MIT",
+    "author": "Microsoft",
+    "projectUrl": "https://dot.net/",
+    "copyrightText": "\u00a9 Microsoft Corporation. All rights reserved."
+  }
+]

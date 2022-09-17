@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:models="clr-namespace:TRViS.Models"
+	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	x:DataType="viewmodels:ThirdPartyLicensesViewModel"
+	x:Class="TRViS.ThirdPartyLicenses"
+	Title="ThirdPartyLicenses">
+	<FlexLayout
+		AlignContent="Stretch"
+		AlignItems="Stretch"
+		Wrap="Wrap">
+		<Frame
+			FlexLayout.Grow="1"
+			FlexLayout.Basis="400"
+			Margin="4">
+			<ListView
+				SelectionMode="Single"
+				SelectedItem="{Binding SelectedLicenseData}"
+				ItemsSource="{Binding LicenseDataArray}">
+				<ListView.ItemTemplate>
+					<DataTemplate
+						x:DataType="models:LicenseData">
+						<TextCell
+							Text="{Binding id}"
+							Detail="{Binding author}"/>
+					</DataTemplate>
+				</ListView.ItemTemplate>
+			</ListView>
+		</Frame>
+
+		<Frame
+			Margin="4"
+			FlexLayout.Grow="2"
+			FlexLayout.Basis="600">
+			<ScrollView>
+				<Label
+					Text="{Binding LicenseText}"/>
+			</ScrollView>
+		</Frame>
+	</FlexLayout>
+</ContentPage>
