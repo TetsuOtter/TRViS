@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -205,147 +205,15 @@
 			FontSize_Large="28"
 			Grid.Row="5"/>
 
-		<Grid
+		<ScrollView
 			BindingContext="{Binding SelectedTrainData}"
-			IgnoreSafeArea="False"
 			Grid.Row="6">
-			<ListView
-				x:Name="MyList"
+			<dtac:VerticalTimetableView
 				x:DataType="models:TrainData"
-				ItemsSource="{Binding Rows}"
-				BackgroundColor="White"
-				ios:ListView.SeparatorStyle="FullWidth"
-				SeparatorVisibility="Default"
-				SeparatorColor="#aaa"
-				SelectionMode="None"
-				RowHeight="60">
-				<ListView.ItemTemplate>
-					<DataTemplate
-						x:DataType="models:TimetableRow">
-						<ViewCell>
-							<Grid
-								ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}">
-								<Grid
-									Margin="2"
-									VerticalOptions="End"
-									Grid.Column="0">
-									<Grid.ColumnDefinitions>
-										<ColumnDefinition Width="*"/>
-										<ColumnDefinition Width="*"/>
-									</Grid.ColumnDefinitions>
-									<Label
-										Style="{StaticResource TimetableDriveTimeMMLabel}"
-										HorizontalOptions="End"
-										Margin="0"
-										Grid.Column="0"
-										Text="{Binding DriveTimeMM}"/>
-									<Label
-										Style="{StaticResource TimetableDriveTimeSSLabel}"
-										Margin="1"
-										HorizontalOptions="Start"
-										Grid.Column="1"
-										Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}"/>
-								</Grid>
-								<ctrls:HtmlAutoDetectLabel
-									Style="{StaticResource TimetableLabel}"
-									Margin="0"
-									Grid.Column="1"
-									Text="{Binding StationName, Converter={StaticResource StationNameConverter}}"/>
-
-								<Label
-									Style="{StaticResource TimetableLabel}"
-									IsVisible="{Binding HasBracket}"
-									Grid.Column="2"
-									HorizontalOptions="Start"
-									Text="("/>
-								<Label
-									Style="{StaticResource TimetableLabel}"
-									IsVisible="{Binding IsOperationOnlyStop}"
-									Grid.Column="2"
-									HorizontalOptions="Start"
-									Text="["/>
-
-								<dtac:TimeCell
-									Style="{StaticResource TimeCellStyle}"
-									TimeData="{Binding ArriveTime}"
-									IsPass="{Binding IsPass}"
-									Grid.Column="2"/>
-
-								<Label
-									Style="{StaticResource TimetableLabel}"
-									IsVisible="{Binding HasBracket}"
-									Grid.Column="2"
-									HorizontalOptions="End"
-									Text=")"/>
-
-								<dtac:TimeCell
-									Style="{StaticResource TimeCellStyle}"
-									TimeData="{Binding DepartureTime}"
-									IsPass="{Binding IsPass}"
-									Grid.Column="3"/>
-
-								<Grid
-									IsVisible="{Binding IsLastStop}"
-									Grid.Column="3">
-									<Grid.RowDefinitions>
-										<RowDefinition Height="*"/>
-										<RowDefinition Height="*"/>
-										<RowDefinition Height="*"/>
-										<RowDefinition Height="*"/>
-									</Grid.RowDefinitions>
-									<Line
-										Style="{StaticResource LastStopLine}"
-										Grid.Row="1"/>
-									<Line
-										Style="{StaticResource LastStopLine}"
-										Grid.Row="2"/>
-								</Grid>
-
-								<Label
-									Style="{StaticResource TimetableLabel}"
-									IsVisible="{Binding IsOperationOnlyStop}"
-									Grid.Column="3"
-									HorizontalOptions="End"
-									Text="]"/>
-
-								<ctrls:HtmlAutoDetectLabel
-									Style="{StaticResource TimetableLabel}"
-									TextColor="Red"
-									Grid.Column="4"
-									Text="{Binding TrackName}"/>
-
-								<Grid
-									Margin="10,4"
-									Grid.Column="5">
-									<Grid.RowDefinitions>
-										<RowDefinition Height="*"/>
-										<RowDefinition Height="*"/>
-									</Grid.RowDefinitions>
-									<Label
-										Style="{StaticResource TimetableRunLimitLabel}"
-										HorizontalOptions="Start"
-										Grid.Row="0"
-										Text="{Binding RunInLimit}"/>
-									<Label
-										Style="{StaticResource TimetableRunLimitLabel}"
-										HorizontalOptions="End"
-										Grid.Row="1"
-										Text="{Binding RunOutLimit}"/>
-								</Grid>
-
-								<ctrls:HtmlAutoDetectLabel
-									Style="{StaticResource TimetableLabel}"
-									FontAttributes="None"
-									HorizontalOptions="Start"
-									FontSize="16"
-									Grid.Column="6"
-									Text="{Binding Remarks}"/>
-							</Grid>
-						</ViewCell>
-					</DataTemplate>
-				</ListView.ItemTemplate>
-			</ListView>
-		</Grid>
+				IgnoreSafeArea="False"
+				TimetableColumnDefinitions="{StaticResource TimetableColumnWidthCollection}"
+				TimetableRowList="{Binding Rows}"/>
+		</ScrollView>
 
 		<AbsoluteLayout
 			IgnoreSafeArea="True"
