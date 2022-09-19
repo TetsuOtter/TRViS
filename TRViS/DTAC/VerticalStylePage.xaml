@@ -205,13 +205,23 @@
 			Grid.Row="5"/>
 
 		<ScrollView
+			x:Name="TimetableAreaScrollView"
 			BindingContext="{Binding SelectedTrainData}"
+			Grid.Row="6"/>
+
+		<Frame
+			x:Name="TimetableViewActivityIndicatorFrame"
+			Opacity="0.6"
+			VerticalOptions="Start"
+			HasShadow="True"
+			HeightRequest="50"
+			WidthRequest="50"
+			Margin="8"
+			CornerRadius="25"
 			Grid.Row="6">
-			<dtac:VerticalTimetableView
-				x:DataType="models:TrainData"
-				IgnoreSafeArea="False"
-				TimetableRowList="{Binding Rows}"/>
-		</ScrollView>
+			<ActivityIndicator
+				IsRunning="True"/>
+		</Frame>
 
 		<AbsoluteLayout
 			IgnoreSafeArea="True"

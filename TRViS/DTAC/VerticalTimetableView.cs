@@ -6,66 +6,51 @@ using TRViS.IO.Models;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<IEnumerable<TimetableRow>>("TimetableRowList")]
+[DependencyProperty<bool>("IsBusy")]
+[DependencyProperty<TrainData>("SelectedTrainData")]
 public partial class VerticalTimetableView : Grid
 {
 	static readonly GridLength RowHeight = new(60);
 
-	Dictionary<TimetableRow, VerticalTimetableRow> ModelUIRelation { get; set; } = new();
+	public event EventHandler? IsBusyChanged;
 
-	partial void OnTimetableRowListChanged(IEnumerable<TimetableRow>? oldValue, IEnumerable<TimetableRow>? newValue)
+	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
-		if (oldValue is INotifyCollectionChanged vOld)
-			vOld.CollectionChanged -= TimetableRowList_CollectionChanged;
-
-		if (newValue is INotifyCollectionChanged v)
-			v.CollectionChanged += TimetableRowList_CollectionChanged;
-
-		SetRowViews();
+		SetRowViews(newValue?.Rows);
 	}
 
-	private void TimetableRowList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-		=> SetRowViews();
+	partial void OnIsBusyChanged()
+		=> IsBusyChanged?.Invoke(this, new());
 
-	void SetRowViews()
+	void SetRowViews(TimetableRow[]? newValue)
 	{
-		int? newCount = TimetableRowList?.Count();
+		IsBusy = true;
+		Children.Clear();
+
+		int? newCount = newValue?.Length;
 
 		SetRowDefinitions(newCount);
 
 		if (newCount is null || newCount <= 0)
-		{
-			ModelUIRelation.Clear();
-			Children.Clear();
 			return;
-		}
 
-		// TODO: Add / Remove等のイベントに応じて、最適な処理のみを実行するように書き直す
-		// `newCount is null`チェックにより、TimetableRowListがNULLでないことは自明である
-		Dictionary<TimetableRow, VerticalTimetableRow> NewModelUIRelation = new();
+
 		int i = 0;
-		foreach (var rowData in TimetableRowList!)
+		foreach (var rowData in newValue!)
 		{
-			// ModelUIRelationには、最終的に「現時点でのTimetableRowListに存在しないView」のみが残る
-			if (!ModelUIRelation.Remove(rowData, out VerticalTimetableRow? rowView) || rowView is null)
+			VerticalTimetableRow rowView = new()
 			{
-				rowView = new();
-				rowView.BindingContext = rowData;
+				BindingContext = rowData
+			};
 
-				Children.Add(rowView);
-			}
+			Children.Add(rowView);
 
 			Grid.SetRow(rowView, i);
-
-			NewModelUIRelation.Add(rowData, rowView);
 
 			i++;
 		}
 
-		foreach (var rowViewToRemove in ModelUIRelation.Values)
-			Children.Remove(rowViewToRemove);
-
-		ModelUIRelation = NewModelUIRelation;
+		IsBusy = false;
 	}
 
 	void SetRowDefinitions(int? newCount)

@@ -1,3 +1,4 @@
+using TRViS.IO.Models;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -26,5 +27,33 @@ public partial class VerticalStylePage : ContentPage
 			{
 				Content = this.Content
 			};
+
+		Task.Run(() =>
+		{
+			VerticalTimetableView view = new();
+
+			view.IsBusyChanged += (s, _) =>
+			{
+				if (s is not VerticalTimetableView v)
+					return;
+
+				if (v.IsBusy)
+				{
+					TimetableViewActivityIndicatorFrame.IsVisible = true;
+					TimetableViewActivityIndicatorFrame.FadeTo(1);
+				}
+				else
+					TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => TimetableViewActivityIndicatorFrame.IsVisible = false);
+			};
+
+			view.IgnoreSafeArea = false;
+			view.SetBinding(VerticalTimetableView.SelectedTrainDataProperty, new Binding()
+			{
+				Source = viewModel,
+				Path = nameof(AppViewModel.SelectedTrainData)
+			});
+
+			MainThread.BeginInvokeOnMainThread(() => TimetableAreaScrollView.Content = view);
+		});
 	}
 }
