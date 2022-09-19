@@ -16,6 +16,8 @@ public partial class VerticalStylePage : ContentPage
 		new(new(64))
 		);
 
+	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
+
 	public VerticalStylePage(AppViewModel viewModel)
 	{
 		InitializeComponent();
@@ -40,7 +42,7 @@ public partial class VerticalStylePage : ContentPage
 				if (v.IsBusy)
 				{
 					TimetableViewActivityIndicatorFrame.IsVisible = true;
-					TimetableViewActivityIndicatorFrame.FadeTo(1);
+					TimetableViewActivityIndicatorFrame.FadeTo(TimetableViewActivityIndicatorFrameMaxOpacity);
 				}
 				else
 					TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => TimetableViewActivityIndicatorFrame.IsVisible = false);
