@@ -38,6 +38,9 @@ public partial class VerticalTimetableView : Grid
 		int i = 0;
 		foreach (var rowData in newValue!)
 		{
+			if (rowData is null)
+				continue;
+
 			VerticalTimetableRow rowView = new()
 			{
 				BindingContext = rowData
