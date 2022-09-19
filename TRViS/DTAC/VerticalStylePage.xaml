@@ -5,7 +5,6 @@
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
-	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.DTAC.VerticalStylePage"
 	x:DataType="viewmodels:AppViewModel"
