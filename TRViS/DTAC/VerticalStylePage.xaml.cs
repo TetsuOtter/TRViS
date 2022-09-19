@@ -47,6 +47,7 @@ public partial class VerticalStylePage : ContentPage
 			};
 
 			view.IgnoreSafeArea = false;
+			view.VerticalOptions = LayoutOptions.Start;
 			view.SetBinding(VerticalTimetableView.SelectedTrainDataProperty, new Binding()
 			{
 				Source = viewModel,
