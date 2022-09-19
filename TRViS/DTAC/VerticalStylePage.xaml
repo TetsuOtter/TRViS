@@ -146,7 +146,7 @@
 		<Grid
 			Grid.Row="4"
 			BindingContext="{Binding SelectedTrainData}"
-			ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}"
+			ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
 			BackgroundColor="White">
 			<Line
 				Style="{StaticResource SeparatorLine}"
@@ -210,7 +210,6 @@
 			<dtac:VerticalTimetableView
 				x:DataType="models:TrainData"
 				IgnoreSafeArea="False"
-				TimetableColumnDefinitions="{StaticResource TimetableColumnWidthCollection}"
 				TimetableRowList="{Binding Rows}"/>
 		</ScrollView>
 

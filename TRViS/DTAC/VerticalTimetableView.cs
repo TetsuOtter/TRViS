@@ -7,7 +7,6 @@ using TRViS.IO.Models;
 namespace TRViS.DTAC;
 
 [DependencyProperty<IEnumerable<TimetableRow>>("TimetableRowList")]
-[DependencyProperty<ColumnDefinitionCollection>("TimetableColumnDefinitions")]
 public partial class VerticalTimetableView : Grid
 {
 	static readonly GridLength RowHeight = new(60);
@@ -51,11 +50,6 @@ public partial class VerticalTimetableView : Grid
 			if (!ModelUIRelation.Remove(rowData, out VerticalTimetableRow? rowView) || rowView is null)
 			{
 				rowView = new();
-				rowView.SetBinding(VerticalTimetableRow.ColumnDefinitionsProperty, new Binding()
-				{
-					Source = this,
-					Path = nameof(TimetableColumnDefinitions)
-				});
 				rowView.BindingContext = rowData;
 
 				Children.Add(rowView);

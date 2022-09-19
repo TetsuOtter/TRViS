@@ -7,6 +7,7 @@
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.DTAC.VerticalTimetableRow"
 	x:DataType="models:TimetableRow"
+	ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
 	Margin="0"
 	Padding="0">
 	<Grid.Resources>
