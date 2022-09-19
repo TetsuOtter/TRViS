@@ -67,7 +67,7 @@ public partial class VerticalTimetableView : Grid
 		}
 		else if (newCount < currentCount)
 		{
-			for (int i = RowDefinitions.Count - 1; i >= newCount; i++)
+			for (int i = RowDefinitions.Count - 1; i >= newCount; i--)
 				RowDefinitions.RemoveAt(i);
 		}
 	}
