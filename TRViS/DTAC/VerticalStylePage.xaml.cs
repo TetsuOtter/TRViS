@@ -34,6 +34,15 @@ public partial class VerticalStylePage : ContentPage
 		new(new(TRAIN_REMARKS_ROW_HEIGHT))
 		);
 
+	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
+		= INPAGE_TAB_ROW_HEIGHT
+		+ DATE_AND_START_BUTTON_ROW_HEIGHT
+		+ TRAIN_INFO_HEADER_ROW_HEIGHT
+		+ TRAIN_INFO_ROW_HEIGHT
+		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
+		+ TIMETABLE_HEADER_ROW_HEIGHT
+		+ TRAIN_REMARKS_ROW_HEIGHT;
+
 	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
 
 	public VerticalStylePage(AppViewModel viewModel)
@@ -64,6 +73,11 @@ public partial class VerticalStylePage : ContentPage
 				}
 				else
 					TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => TimetableViewActivityIndicatorFrame.IsVisible = false);
+
+				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
+				if (Content is ScrollView sv)
+					sv.Content.HeightRequest = Math.Max(this.Height,
+						CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, view.HeightRequest));
 			};
 
 			view.IgnoreSafeArea = false;
