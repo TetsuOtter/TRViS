@@ -19,18 +19,9 @@
 	</ContentPage.Resources>
 
 	<Grid
+		RowDefinitions="{x:Static dtac:VerticalStylePage.PageRowDefinitionCollection}"
 		IgnoreSafeArea="True"
 		MinimumWidthRequest="740">
-		<Grid.RowDefinitions>
-			<RowDefinition Height="64"/>
-			<RowDefinition Height="64"/>
-			<RowDefinition Height="54"/>
-			<RowDefinition Height="60"/>
-			<RowDefinition Height="60"/>
-			<RowDefinition Height="54"/>
-			<RowDefinition Height="*"/>
-			<RowDefinition Height="64"/>
-		</Grid.RowDefinitions>
 
 		<Grid
 			Grid.Row="0"
