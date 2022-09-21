@@ -7,6 +7,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 {
 	const int WORK_GROUP_1 = 1;
 	const int WORK_1_1 = 1;
+	const int TRAIN_1_1_1 = 1;
 
 	static readonly List<WorkGroup> WorkGroupList = new()
 	{
@@ -20,7 +21,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 	static readonly List<IO.Models.DB.TrainData> TrainDataList = new()
 	{
-		new(){ Id = WORK_1_1, TrainNumber = "Train01" },
+		new(){ Id = TRAIN_1_1_1, TrainNumber = "Train01" },
 	};
 
 	static readonly List<TrainDataGroup> TrainDataGroupList = new()
