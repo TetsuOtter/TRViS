@@ -68,13 +68,27 @@ public partial class VerticalStylePage : ContentPage
 
 			view.IgnoreSafeArea = false;
 			view.VerticalOptions = LayoutOptions.Start;
-			view.SetBinding(VerticalTimetableView.SelectedTrainDataProperty, new Binding()
+
+			MainThread.BeginInvokeOnMainThread(() =>
 			{
-				Source = viewModel,
-				Path = nameof(AppViewModel.SelectedTrainData)
+				if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+				{
+					Grid.SetRow(view, Grid.GetRow(TimetableAreaScrollView));
+					TimetableAreaScrollView.IsVisible = false;
+					MainGrid.Add(view);
+				}
+				else
+					TimetableAreaScrollView.Content = view;
 			});
 
-			MainThread.BeginInvokeOnMainThread(() => TimetableAreaScrollView.Content = view);
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				view.SetBinding(VerticalTimetableView.SelectedTrainDataProperty, new Binding()
+				{
+					Source = viewModel,
+					Path = nameof(AppViewModel.SelectedTrainData)
+				});
+			});
 		});
 	}
 }
