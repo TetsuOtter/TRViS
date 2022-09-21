@@ -4,7 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	x:Class="TRViS.DTAC.TimetableHeader"
-	ColumnDefinitions="{StaticResource TimetableColumnWidthCollection}">
+	ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}">
 	<Grid.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
