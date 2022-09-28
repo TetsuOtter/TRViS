@@ -23,6 +23,8 @@
 					<DataTemplate
 						x:DataType="models:LicenseData">
 						<TextCell
+							TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
+							DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
 							Text="{Binding id}"
 							Detail="{Binding author}"/>
 					</DataTemplate>
