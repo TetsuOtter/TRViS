@@ -14,7 +14,11 @@ public class StationNameConverter : IValueConverter
 		{
 			2 => Utils.InsertCharBetweenCharAndMakeWide(s, $"{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}"),
 			3 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.SPACE_CHAR),
-			4 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.THIN_SPACE),
+#if IOS
+			4 => DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Tablet
+				? Utils.InsertCharBetweenCharAndMakeWide(s, Utils.THIN_SPACE)
+				: s,
+#endif
 			_ => s
 		};
 	}
