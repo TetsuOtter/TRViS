@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net6.0-android31.0;net6.0-ios15.4;net6.0-maccatalyst15.4</TargetFrameworks>
+		<TargetFrameworks>net7.0-android33.0;net6.0-ios15.4;net6.0-maccatalyst15.4</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>TRViS</RootNamespace>
