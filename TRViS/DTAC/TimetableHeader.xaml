@@ -32,11 +32,16 @@
 	<Frame
 		Grid.Column="2"
 		Margin="16,4"
+		Padding="0"
 		HasShadow="False"
 		BorderColor="{x:Null}"
 		BackgroundColor="{StaticResource DarkerGreen}">
 		<Label
 			Style="{StaticResource HeaderLabel}"
+			Margin="0"
+			Padding="0"
+			HorizontalOptions="Center"
+			VerticalOptions="Center"
 			FontSize="{Binding FontSize_Large, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
 			FontAttributes="Bold"
 			TextColor="White"

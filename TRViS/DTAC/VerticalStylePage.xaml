@@ -218,33 +218,33 @@
 		<AbsoluteLayout
 			IgnoreSafeArea="True"
 			BackgroundColor="#333"
+			Margin="0"
+			Grid.Row="7"/>
+		<Grid
+			VerticalOptions="Start"
+			Margin="0"
 			Grid.Row="7">
-			<Grid
-				IgnoreSafeArea="True"
-				VerticalOptions="Start"
-				WidthRequest="{Binding Width, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type Grid}}}">
-				<Label
-					FontSize="28"
-					Margin="16,0"
-					Text="注 意 事 項"
-					FontAttributes="Bold"
-					HorizontalOptions="Start"
-					VerticalOptions="Center"
-					TextColor="White"/>
+			<Label
+				FontSize="28"
+				Margin="16,0"
+				Text="注 意 事 項"
+				FontAttributes="Bold"
+				HorizontalOptions="Start"
+				VerticalOptions="Center"
+				TextColor="White"/>
 
-				<Button
-					Text="&#xe5ce;"
-					CornerRadius="4"
-					Margin="16,8"
-					Padding="0"
-					BackgroundColor="White"
-					BorderWidth="0"
-					TextColor="#aaa"
-					FontFamily="MaterialIconsRegular"
-					FontSize="40"
-					HorizontalOptions="End"
-					VerticalOptions="Start"/>
-			</Grid>
-		</AbsoluteLayout>
+			<Button
+				Text="&#xe5ce;"
+				CornerRadius="4"
+				Margin="16,8"
+				Padding="0"
+				BackgroundColor="White"
+				BorderWidth="0"
+				TextColor="#aaa"
+				FontFamily="MaterialIconsRegular"
+				FontSize="40"
+				HorizontalOptions="End"
+				VerticalOptions="Start"/>
+		</Grid>
 	</Grid>
 </ContentPage>

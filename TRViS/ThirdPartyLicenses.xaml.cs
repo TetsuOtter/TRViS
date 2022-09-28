@@ -20,9 +20,29 @@ public partial class ThirdPartyLicenses : ContentPage
 
 	async void LoadLicenseList()
 	{
-		using Stream stream = await FileSystem.OpenAppPackageFileAsync(Path.Combine(ThirdPartyLicensesViewModel.licenseFileDir, "license_list.json"));
-		using StreamReader reader = new(stream);
+		var list =
+			(await LoadLicenseList("license_list.json"))
+			.Concat(await LoadLicenseList("license_list_custom.json"))
+			.ToList();
 
-		viewModel.LicenseDataArray = await JsonSerializer.DeserializeAsync<LicenseData[]>(stream);
+		list.Sort((v1, v2) => string.Compare(v1.id, v2.id));
+
+		viewModel.LicenseDataArray = list;
+	}
+
+	static async Task<LicenseData[]> LoadLicenseList(string fileName)
+	{
+		LicenseData[]? result = null;
+
+		string path = Path.Combine(ThirdPartyLicensesViewModel.licenseFileDir, fileName);
+		if (await FileSystem.AppPackageFileExistsAsync(path))
+		{
+			using Stream stream = await FileSystem.OpenAppPackageFileAsync(path);
+			result = await JsonSerializer.DeserializeAsync<LicenseData[]>(stream);
+		}
+
+		result ??= Array.Empty<LicenseData>();
+
+		return result;
 	}
 }

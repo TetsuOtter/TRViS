@@ -64,6 +64,8 @@
 									<DataTemplate
 										x:DataType="models:WorkGroup">
 										<TextCell
+											TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
+											DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
 											Text="{Binding Name}"/>
 									</DataTemplate>
 								</ListView.ItemTemplate>
@@ -89,6 +91,8 @@
 									<DataTemplate
 										x:DataType="models:Work">
 										<TextCell
+											TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
+											DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
 											Text="{Binding Name}"/>
 									</DataTemplate>
 								</ListView.ItemTemplate>
@@ -114,6 +118,8 @@
 									<DataTemplate
 										x:DataType="models:TrainData">
 										<TextCell
+											TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
+											DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
 											Text="{Binding TrainNumber}"/>
 									</DataTemplate>
 								</ListView.ItemTemplate>
