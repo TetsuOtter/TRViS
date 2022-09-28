@@ -91,7 +91,7 @@
 		HasShadow="False"
 		BackgroundColor="White">
 		<Grid
-			Margin="4,6">
+			Margin="{OnPlatform iOS='4,6', MacCatalyst='4,6', Default='4,0'}">
 			<Label
 				Style="{StaticResource HeaderLabel}"
 				HorizontalOptions="Start"
