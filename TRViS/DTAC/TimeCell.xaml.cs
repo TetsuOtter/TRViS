@@ -31,9 +31,9 @@ public partial class TimeCell : Grid
 			IsVisible = false;
 		else if (newValue.Hour is not null || newValue.Minute is not null || newValue.Second is not null)
 		{
-			hhmm = $"{newValue.Hour}";
+			hhmm = string.Empty;
 			if (newValue.Hour is not null)
-				hhmm += ".";
+				hhmm += $"{newValue.Hour % 24}.";
 
 			hhmm += $"{newValue.Minute ?? 0:D02}";
 		}
