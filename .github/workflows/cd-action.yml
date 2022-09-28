@@ -25,6 +25,7 @@ env:
   OUTPUT_DIR: ./out
   IPA_PATH: ./out/TRViS.ipa
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
+  APK_PATH: ./out/dev.t0r.trvis-Signed.apk
 
 jobs:
   generate-bundle-version:
@@ -283,6 +284,25 @@ jobs:
       with:
         name: aab
         path: ${{ env.AAB_PATH }}
+        retention-days: 3
+
+    - name: Upload APK (Push to Main)
+      if: |
+        !startsWith(github.ref, 'refs/tags/v')
+        && github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: apk
+        path: ${{ env.APK_PATH }}
+
+    - name: Upload APK (PR or Tag)
+      if: |
+        startsWith(github.ref, 'refs/tags/v')
+        || github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: apk
+        path: ${{ env.APK_PATH }}
         retention-days: 3
 
   publish-ios:
