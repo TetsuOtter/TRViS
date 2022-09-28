@@ -196,6 +196,9 @@
 			Property="BorderColor"
 			Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" />
 		<Setter
+			Property="BackgroundColor"
+			Value="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray950}}" />
+		<Setter
 			Property="CornerRadius"
 			Value="8" />
 	</Style>
