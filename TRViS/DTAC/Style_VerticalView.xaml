@@ -31,6 +31,7 @@
 		<Setter Property="FontFamily" Value="Hiragino Sans"/>
 		<Setter Property="Margin" Value="1"/>
 		<Setter Property="LineBreakMode" Value="CharacterWrap"/>
+		<Setter Property="LineHeight" Value="{OnPlatform Android=0.7, Default=1}"/>
 	</Style>
 	<Style TargetType="Label" BasedOn="{StaticResource LabelStyle}">
 		<Setter Property="Margin" Value="4"/>
@@ -40,7 +41,7 @@
 	</Style>
 	<Style x:Key="TimetableLabel" TargetType="Label" BasedOn="{StaticResource LabelStyle}">
 		<Setter Property="TextColor" Value="Black"/>
-		<Setter Property="FontSize" Value="28"/>
+		<Setter Property="FontSize" Value="{OnPlatform iOS=28, Default=26}"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
 	</Style>
 	<Style x:Key="TimetableLargeNumberLabel" TargetType="Label" BasedOn="{StaticResource TimetableLabel}">
@@ -49,7 +50,7 @@
 		<Setter Property="LineBreakMode" Value="NoWrap"/>
 	</Style>
 	<Style x:Key="TimetableRunLimitLabel" TargetType="Label" BasedOn="{StaticResource TimetableLargeNumberLabel}">
-		<Setter Property="FontSize" Value="24"/>
+		<Setter Property="FontSize" Value="{OnPlatform iOS=24, Default=22}"/>
 		<Setter Property="Margin" Value="0"/>
 		<Setter Property="Padding" Value="0"/>
 	</Style>
@@ -70,6 +71,7 @@
 		<Setter Property="Margin" Value="0,6"/>
 		<Setter Property="BackgroundColor" Value="#aaa"/>
 		<Setter Property="StrokeThickness" Value="1"/>
+		<Setter Property="WidthRequest" Value="1"/>
 	</Style>
 
 	<Style x:Key="TimetableSeparatorLine" TargetType="Line">
@@ -77,6 +79,7 @@
 		<Setter Property="BackgroundColor" Value="#aaa"/>
 		<Setter Property="Grid.ColumnSpan" Value="8"/>
 		<Setter Property="StrokeThickness" Value="0.5"/>
+		<Setter Property="HeightRequest" Value="0.5"/>
 	</Style>
 
 	<Style x:Key="TimeCellStyle" TargetType="dtac:TimeCell">
@@ -87,6 +90,7 @@
 	<Style x:Key="LastStopLine" TargetType="Line">
 		<Setter Property="BackgroundColor" Value="Black"/>
 		<Setter Property="StrokeThickness" Value="4"/>
+		<Setter Property="HeightRequest" Value="4"/>
 		<Setter Property="X1" Value="22"/>
 		<Setter Property="X1" Value="106"/>
 		<Setter Property="Y1" Value="0"/>
