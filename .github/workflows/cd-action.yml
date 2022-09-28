@@ -77,7 +77,7 @@ jobs:
       id: build_number
       run: |
         if [ `cat VERSION_TAGS | wc -l` -eq 0 ]; then
-          BUILD_NUMBER=0
+          BUILD_NUMBER=1
         else
           BUILD_NUMBER=`sort -rV VERSION_TAGS | head -n 1 | awk -F '-' '{print $2 + 1}'`
         fi
