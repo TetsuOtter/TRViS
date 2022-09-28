@@ -17,10 +17,15 @@ concurrency:
 
 env:
   CSPROJ_PATH: ./TRViS/TRViS.csproj
-  TARGET_FRAMEWORK: net6.0-ios
+  THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+  THIRD_PARTY_LICENSE_LIST_NAME: license_list
+  TARGET_FRAMEWORK: net6.0-ios15.4
   TARGET_RUNTIME: ios-arm64
+  TARGET_FRAMEWORK_ANDROID: net7.0-android33.0
   OUTPUT_DIR: ./out
   IPA_PATH: ./out/TRViS.ipa
+  AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
+  APK_PATH: ./out/dev.t0r.trvis-Signed.apk
 
 jobs:
   generate-bundle-version:
@@ -73,7 +78,7 @@ jobs:
       id: build_number
       run: |
         if [ `cat VERSION_TAGS | wc -l` -eq 0 ]; then
-          BUILD_NUMBER=0
+          BUILD_NUMBER=1
         else
           BUILD_NUMBER=`sort -rV VERSION_TAGS | head -n 1 | awk -F '-' '{print $2 + 1}'`
         fi
@@ -82,7 +87,7 @@ jobs:
     - name: print new version number
       run: echo "VersionNumber ... ${{ steps.set_display_version.outputs.disp-version }}-${{ steps.build_number.outputs.version }}"
 
-  build-publish-ios:
+  get-version:
     if: |
       !failure()
       && !cancelled()
@@ -90,12 +95,14 @@ jobs:
         github.event_name != 'pull_request'
         || github.event.pull_request.draft == false
       )
-
-    runs-on: macos-12
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
     needs:
       - generate-bundle-version
-
+    outputs:
+      display_version: ${{ steps.get-version.outputs.display_version }}
+      build_number: ${{ steps.get-version.outputs.build_number }}
+    
     steps:
     - name: get version
       id: get-version
@@ -109,6 +116,22 @@ jobs:
           echo "::set-output name=build_number::${{ needs.generate-bundle-version.outputs.build_number }}"
         fi
 
+
+  build-ios:
+    if: |
+      !failure()
+      && !cancelled()
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+
+    runs-on: macos-12
+    timeout-minutes: 30
+    needs:
+      - get-version
+
+    steps:
     - name: Import Provisioning Profile
       run: |
         mkdir -p ${{ env.TARGET_DIR }}
@@ -120,19 +143,6 @@ jobs:
       env:
         TARGET_DIR: ~/Library/MobileDevice/Provisioning\ Profiles
         TARGET_FILE: distribution.mobileprovision
-
-    - name: Import App Store Connect API Private Key
-      run: |
-        mkdir -p ${{ env.TARGET_DIR }}
-
-        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
-          echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-        fi
-      env:
-        TARGET_DIR: ~/.appstoreconnect/private_keys
-        TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Generate Keychain Name
       id: gen-keychain-name
@@ -150,12 +160,33 @@ jobs:
 
     - uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '7.0.100-rc.1.22431.12'
     - name: Install dotnet workloads
       run: dotnet workload install maui-ios maui-android maccatalyst
 
     - name: Install dependencies
       run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Prapare Python Package
+      run: |
+        python --version
+        python -m pip install aiofiles aiohttp
+    - name: Dump Third Party License Info
+      id: dump-third-party-license-info
+      continue-on-error: true
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Dump Third Party License Info (Retry)
+      if: steps.dump-third-party-license-info.outcome == 'failure'
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Print Third Party License Info Files
+      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
     - name: Build
       run: >
@@ -164,10 +195,149 @@ jobs:
         -r ${{ env.TARGET_RUNTIME }}
         -c Release
         -o "${{ env.OUTPUT_DIR }}"
-        /p:ApplicationDisplayVersion=${{ steps.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ steps.get-version.outputs.build_number }}
+        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
         /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_IOS }}"
         /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: ipa
+        path: ${{ env.IPA_PATH }}
+        retention-days: 3
+
+    - name: Post 'Import Code Sign Certificates'
+      if: always() && steps.import-code-sign-cert.conclusion == 'success'
+      run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+
+  build-android:
+    if: |
+      !failure()
+      && !cancelled()
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+
+    runs-on: macos-12
+    timeout-minutes: 30
+    needs:
+      - get-version
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '7.0.100-rc.1.22431.12'
+    - name: Install dotnet workloads
+      run: dotnet workload install maui-ios maui-android maccatalyst
+
+    - name: Install dependencies
+      run: dotnet restore ${{ env.CSPROJ_PATH }}
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Prapare Python Package
+      run: |
+        python --version
+        python -m pip install aiofiles aiohttp
+    - name: Dump Third Party License Info
+      id: dump-third-party-license-info
+      continue-on-error: true
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK_ANDROID }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Dump Third Party License Info (Retry)
+      if: steps.dump-third-party-license-info.outcome == 'failure'
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK_ANDROID }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Print Third Party License Info Files
+      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+    - name: Build
+      run: >
+        dotnet publish ${{ env.CSPROJ_PATH }}
+        -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+        -c Release
+        -o "${{ env.OUTPUT_DIR }}"
+        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+
+    - name: Upload AAB (Push to Main)
+      if: |
+        !startsWith(github.ref, 'refs/tags/v')
+        && github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: aab
+        path: ${{ env.AAB_PATH }}
+
+    - name: Upload AAB (PR or Tag)
+      if: |
+        startsWith(github.ref, 'refs/tags/v')
+        || github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: aab
+        path: ${{ env.AAB_PATH }}
+        retention-days: 3
+
+    - name: Upload APK (Push to Main)
+      if: |
+        !startsWith(github.ref, 'refs/tags/v')
+        && github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: apk
+        path: ${{ env.APK_PATH }}
+
+    - name: Upload APK (PR or Tag)
+      if: |
+        startsWith(github.ref, 'refs/tags/v')
+        || github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: apk
+        path: ${{ env.APK_PATH }}
+        retention-days: 3
+
+  publish-ios:
+    if: |
+      !failure()
+      && !cancelled()
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+
+    runs-on: macos-12
+    timeout-minutes: 10
+    needs:
+      - build-ios
+
+    steps:
+    - name: Import App Store Connect API Private Key
+      run: |
+        mkdir -p ${{ env.TARGET_DIR }}
+
+        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+          echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+        fi
+      env:
+        TARGET_DIR: ~/.appstoreconnect/private_keys
+        TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
+
+    - name: Download IPA
+      uses: actions/download-artifact@v3.0.0
+      with:
+        name: ipa
+        path: ${{ env.OUTPUT_DIR }}
 
     - name: validate
       run: >
@@ -187,28 +357,17 @@ jobs:
         --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
         --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
-    - name: Upload IPA
-      uses: actions/upload-artifact@v3.0.0
-      with:
-        name: ipa
-        path: ${{ env.IPA_PATH }}
-        retention-days: 3
-
-    - name: Post 'Import Code Sign Certificates'
-      if: always() && steps.import-code-sign-cert.conclusion == 'success'
-      run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
-
   set-tag:
     if: |
       needs.generate-bundle-version.result == 'success'
-      && needs.build-publish-ios.result == 'success'
+      && needs.publish-ios.result == 'success'
       && !cancelled()
 
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
       - generate-bundle-version
-      - build-publish-ios
+      - publish-ios
 
     steps:
     - uses: actions/checkout@v3

@@ -23,18 +23,20 @@
 		VerticalOptions="End"
 		Grid.Column="0">
 		<Grid.ColumnDefinitions>
-			<ColumnDefinition Width="*"/>
+			<ColumnDefinition Width="1.2*"/>
 			<ColumnDefinition Width="*"/>
 		</Grid.ColumnDefinitions>
 		<Label
 			Style="{StaticResource TimetableDriveTimeMMLabel}"
 			HorizontalOptions="End"
 			Margin="0"
+			Padding="0"
 			Grid.Column="0"
 			Text="{Binding DriveTimeMM}"/>
 		<Label
 			Style="{StaticResource TimetableDriveTimeSSLabel}"
 			Margin="1"
+			Padding="0"
 			HorizontalOptions="Start"
 			Grid.Column="1"
 			Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}"/>
@@ -103,12 +105,17 @@
 
 	<ctrls:HtmlAutoDetectLabel
 		Style="{StaticResource TimetableLabel}"
+		Margin="0"
+		Padding="0"
+		HorizontalOptions="Center"
+		VerticalOptions="Center"
 		TextColor="Red"
 		Grid.Column="4"
 		Text="{Binding TrackName}"/>
 
 	<Grid
 		Margin="10,4"
+		Padding="0"
 		Grid.Column="5">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="*"/>
@@ -117,10 +124,12 @@
 		<Label
 			Style="{StaticResource TimetableRunLimitLabel}"
 			HorizontalOptions="Start"
+			VerticalOptions="Center"
 			Grid.Row="0"
 			Text="{Binding RunInLimit}"/>
 		<Label
 			Style="{StaticResource TimetableRunLimitLabel}"
+			VerticalOptions="Center"
 			HorizontalOptions="End"
 			Grid.Row="1"
 			Text="{Binding RunOutLimit}"/>
