@@ -36,10 +36,39 @@
 			Margin="4"
 			FlexLayout.Grow="2"
 			FlexLayout.Basis="600">
-			<ScrollView>
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="40"/>
+					<RowDefinition Height="20"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
 				<Label
-					Text="{Binding LicenseText}"/>
-			</ScrollView>
+					FontSize="Title"
+					Grid.Row="0"
+					HorizontalOptions="Start"
+					Text="{Binding SelectedLicenseData.id}"/>
+				<Label
+					Grid.Row="1"
+					HorizontalOptions="Start"
+					Text="{Binding LicenseExpression}"/>
+
+				<ListView
+					SelectionMode="None"
+					Grid.Row="2"
+					ItemsSource="{Binding LicenseTextList}"
+					HasUnevenRows="True">
+					<ListView.ItemTemplate>
+						<DataTemplate
+							x:DataType="{x:Type viewmodels:MyKeyValuePair}">
+							<ViewCell>
+								<Label
+									HorizontalOptions="Start"
+									Text="{Binding Value}"/>
+							</ViewCell>
+						</DataTemplate>
+					</ListView.ItemTemplate>
+				</ListView>
+			</Grid>
 		</Frame>
 	</FlexLayout>
 </ContentPage>
