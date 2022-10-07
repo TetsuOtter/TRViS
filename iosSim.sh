@@ -3,6 +3,7 @@
 cd `dirname $0`
 
 TARGET_PROJ="TRViS/TRViS.csproj"
+TARGET_FRAMEWORK="net6.0-ios15.4"
 
 UDID_PATTERN="[[:alnum:]]{8}-[[:alnum:]]{4}-[[:alnum:]]{4}-[[:alnum:]]{4}-[[:alnum:]]{12}"
 
@@ -18,7 +19,7 @@ iOS Simulator Launcher
 If you don't specify UDID/DeviceName, you can select Device from available device list.
 
 dotnet command will executed like below ...
-	dotnet build -t:Run $TARGET_PROJ -f net6.0-ios15.4 -r iossimulator-x64 --no-self-contained --nologo "/p:_DeviceName=[DeviceName|:v2:udid=UDID]" [dotnet command options]
+	dotnet build -t:Run $TARGET_PROJ -f $TARGET_FRAMEWORK -r iossimulator-x64 --no-self-contained --nologo "/p:_DeviceName=[DeviceName|:v2:udid=UDID]" [dotnet command options]
 
 ---
 
@@ -95,5 +96,5 @@ else
 fi
 
 if [ ! -z "$DeviceName" ]; then
-  dotnet build -t:Run $TARGET_PROJ -f net6.0-ios -r $RUNTIME_IDENTIFIER --self-contained --nologo "/p:_DeviceName=$DeviceName" ${ARGS[@]}
+  dotnet build -t:Run $TARGET_PROJ -f $TARGET_FRAMEWORK -r $RUNTIME_IDENTIFIER --self-contained --nologo "/p:_DeviceName=$DeviceName" ${ARGS[@]}
 fi
