@@ -35,7 +35,7 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 
 		if (value.licenseDataType == "expression")
 		{
-			LicenseExpression = $"License Expression: '{value.license}'";
+			LicenseExpression = value.license;
 
 			foreach (string fileName in
 				Regex.Split(value.license, @"\(|\)| ")

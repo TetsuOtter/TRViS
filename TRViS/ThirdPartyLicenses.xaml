@@ -51,7 +51,19 @@
 				<Label
 					Grid.Row="1"
 					HorizontalOptions="Start"
-					Text="{Binding LicenseExpression}"/>
+					Text="{Binding LicenseExpression, StringFormat='License Expression: \'{}\''}">
+					<Label.Triggers>
+						<DataTrigger
+							TargetType="Label"
+							Binding="{Binding LicenseExpression}"
+							Value="">
+							<Setter
+								Property="IsVisible"
+								Value="False"/>
+						</DataTrigger>
+
+					</Label.Triggers>
+				</Label>
 
 				<ListView
 					SelectionMode="None"
