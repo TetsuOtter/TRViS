@@ -4,6 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:models="clr-namespace:TRViS.Models"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:DataType="viewmodels:ThirdPartyLicensesViewModel"
 	x:Class="TRViS.ThirdPartyLicenses"
 	Title="ThirdPartyLicenses">
@@ -36,10 +37,39 @@
 			Margin="4"
 			FlexLayout.Grow="2"
 			FlexLayout.Basis="600">
-			<ScrollView>
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="40"/>
+					<RowDefinition Height="20"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
 				<Label
-					Text="{Binding LicenseText}"/>
-			</ScrollView>
+					FontSize="Title"
+					Grid.Row="0"
+					HorizontalOptions="Start"
+					Text="{Binding SelectedLicenseData.id}"/>
+				<Label
+					Grid.Row="1"
+					HorizontalOptions="Start"
+					Text="{Binding LicenseExpression}"/>
+
+				<ListView
+					SelectionMode="None"
+					Grid.Row="2"
+					ItemsSource="{Binding LicenseTextList}"
+					HasUnevenRows="True">
+					<ListView.ItemTemplate>
+						<DataTemplate
+							x:DataType="{x:Type viewmodels:MyKeyValuePair}">
+							<ViewCell>
+								<ctrls:HtmlAutoDetectLabel
+									HorizontalOptions="Start"
+									Text="{Binding Value}"/>
+							</ViewCell>
+						</DataTemplate>
+					</ListView.ItemTemplate>
+				</ListView>
+			</Grid>
 		</Frame>
 	</FlexLayout>
 </ContentPage>
