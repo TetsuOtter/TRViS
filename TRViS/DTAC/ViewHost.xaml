@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS.DTAC"
+	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	x:Class="TRViS.DTAC.ViewHost"
+	x:DataType="viewmodels:DTACViewHostViewModel"
+	BackgroundColor="White"
+	Title="{Binding AppViewModel.SelectedTrainData.WorkName}">
+	<Grid
+		IgnoreSafeArea="True">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="64"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<HorizontalStackLayout
+			Grid.Row="0"
+			Margin="4,0"
+			BackgroundColor="#eee">
+			<local:TabButton
+				Text="ハ　コ"
+				CurrentMode="{Binding TabMode}"
+				TargetMode="Hako"/>
+			<local:TabButton
+				Text="時刻表"
+				CurrentMode="{Binding TabMode}"
+				TargetMode="VerticalView"/>
+			<local:TabButton
+				Text="行路添付"
+				CurrentMode="{Binding TabMode}"
+				TargetMode="WorkAffix"/>
+		</HorizontalStackLayout>
+
+		<local:Hako
+			x:Name="HakoView"
+			IsVisible="False"
+			Grid.Row="1"/>
+
+		<local:WorkAffix
+			x:Name="WorkAffixView"
+			IsVisible="False"
+			Grid.Row="1"/>
+
+		<local:VerticalStylePage
+			x:Name="VerticalStylePageView"
+			IsVisible="False"
+			BindingContext="{Binding AppViewModel.SelectedTrainData}"
+			Grid.Row="1"/>
+	</Grid>
+</ContentPage>
