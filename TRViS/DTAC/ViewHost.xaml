@@ -8,7 +8,8 @@
 	x:DataType="viewmodels:DTACViewHostViewModel"
 	BackgroundColor="White"
 	Title="{Binding AppViewModel.SelectedTrainData.WorkName}">
-	<Grid>
+	<Grid
+		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="64"/>
 			<RowDefinition Height="*"/>
