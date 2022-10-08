@@ -4,6 +4,9 @@ namespace TRViS;
 
 public partial class AppShell : Shell
 {
+	static public string AppVersionString
+		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";
+
 	public AppShell(EasterEggPageViewModel easterEggPageViewModel)
 	{
 		InitializeComponent();
