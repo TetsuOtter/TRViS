@@ -13,6 +13,22 @@
 			FontFamily="MaterialIconsRegular"
 			Size="36"/>
 	</Shell.FlyoutIcon>
+
+	<Shell.FlyoutFooter>
+		<VerticalStackLayout
+			Margin="4">
+			<Frame
+				BackgroundColor="{AppThemeBinding Default=White, Dark=Black}"
+				BorderColor="{AppThemeBinding Default=#333, Dark=#CCC}"
+				HorizontalOptions="Center"
+				Margin="8"
+				Padding="8">
+				<Label
+					Text="{x:Static local:AppShell.AppVersionString}"/>
+			</Frame>
+		</VerticalStackLayout>
+	</Shell.FlyoutFooter>
+
 	<FlyoutItem Title="Select Train">
 		<ShellContent ContentTemplate="{DataTemplate local:SelectTrainPage}" />
 	</FlyoutItem>
