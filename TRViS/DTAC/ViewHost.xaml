@@ -16,19 +16,36 @@
 		</Grid.RowDefinitions>
 
 		<HorizontalStackLayout
+			Grid.Row="0"
+			Margin="4,0"
 			BackgroundColor="#eee">
+			<local:TabButton
+				Text="ハ　コ"
+				CurrentMode="{Binding TabMode}"
+				TargetMode="Hako"/>
+			<local:TabButton
+				Text="時刻表"
+				CurrentMode="{Binding TabMode}"
+				TargetMode="VerticalView"/>
+			<local:TabButton
+				Text="行路添付"
+				CurrentMode="{Binding TabMode}"
+				TargetMode="WorkAffix"/>
 		</HorizontalStackLayout>
 
 		<local:Hako
-			IsVisible="{Binding IsHakoMode}"
+			x:Name="HakoView"
+			IsVisible="False"
 			Grid.Row="1"/>
 
 		<local:WorkAffix
-			IsVisible="{Binding IsWorkAffixMode}"
+			x:Name="WorkAffixView"
+			IsVisible="False"
 			Grid.Row="1"/>
 
 		<local:VerticalStylePage
-			IsVisible="{Binding IsVerticalViewMode}"
+			x:Name="VerticalStylePageView"
+			IsVisible="False"
 			BindingContext="{Binding AppViewModel.SelectedTrainData}"
 			Grid.Row="1"/>
 	</Grid>
