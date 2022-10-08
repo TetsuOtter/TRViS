@@ -20,39 +20,54 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 	[ObservableProperty]
 	string _LicenseExpression = "";
 
+	string _lastLicense = "";
+
 	public const string licenseFileDir = "licenses";
 	async partial void OnSelectedLicenseDataChanged(LicenseData? value)
 	{
-		List<MyKeyValuePair> list = new();
+		if (_lastLicense == value?.license)
+			return;
+		LicenseTextList = null;
+		_lastLicense = "";
 
 		if (value is null)
 		{
-			LicenseTextList = list;
 			LicenseExpression = "";
 			return;
 		}
 
-
-		if (value.licenseDataType == "expression")
+		try
 		{
-			LicenseExpression = value.license;
+			List<MyKeyValuePair> list = new();
+			if (value.licenseDataType == "expression")
+			{
+				LicenseExpression = value.license;
 
-			foreach (string fileName in
-				Regex.Split(value.license, @"\(|\)| ")
-					.Where(v => !string.IsNullOrWhiteSpace(v) && v != "AND" && v != "OR")
-			)
-				await loadLicenseText(list, fileName);
+				foreach (string fileName in
+					Regex.Split(value.license, @"\(|\)| ")
+						.Where(v => !string.IsNullOrWhiteSpace(v) && v != "AND" && v != "OR")
+				)
+				{
+					list.Add(await LoadLicenseText(value.license));
+				}
+			}
+			else
+			{
+				LicenseExpression = "";
+				list.Add(await LoadLicenseText(value.license));
+			}
+
+			_lastLicense = value.license;
+			LicenseTextList = list;
 		}
-		else
+		catch (Exception ex)
 		{
-			LicenseExpression = "";
-			await loadLicenseText(list, value.license);
+			Console.WriteLine(ex);
+			await Shell.Current.DisplayAlert("Cannot load License Info", $"{value.id}に関するライセンス情報の読み込みに失敗しました。\n(license: {value.license})\n{ex.Message}", "OK");
 		}
-
-		LicenseTextList = list;
 	}
 
-	async static Task loadLicenseText(List<MyKeyValuePair> list, string fileName)
+	async static Task<MyKeyValuePair> LoadLicenseText(string fileName)
 	{
 		string path = Path.Combine(licenseFileDir, fileName);
 
@@ -69,6 +84,6 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 			text = await reader.ReadToEndAsync();
 		}
 
-		list.Add(new(fileName, text));
+		return new(fileName, text);
 	}
 }

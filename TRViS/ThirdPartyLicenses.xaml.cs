@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Text.Json;
+using TRViS.Controls;
 using TRViS.Models;
 using TRViS.ViewModels;
 
@@ -15,7 +17,42 @@ public partial class ThirdPartyLicenses : ContentPage
 
 		BindingContext = viewModel;
 
+		viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
 		Task.Run(LoadLicenseList);
+	}
+
+	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName != nameof(ThirdPartyLicensesViewModel.LicenseTextList))
+			return;
+
+		VerticalStackLayout licenses = new();
+		if (viewModel.LicenseTextList?.Count > 0)
+		{
+			foreach (var v in viewModel.LicenseTextList)
+			{
+				licenses.Children.Add(new HtmlAutoDetectLabel()
+				{
+					Text = v.Value
+				});
+				licenses.Children.Add(new BoxView()
+				{
+					HeightRequest = 1,
+					BackgroundColor = new(0x80, 0x80, 0x80)
+				});
+			}
+		}
+		else
+		{
+			// NULL or Length=0
+			licenses.Children.Add(new Label()
+			{
+				Text = "(No License Info)"
+			});
+		}
+
+		LicenseTextArea.Content = licenses;
 	}
 
 	async void LoadLicenseList()

@@ -4,7 +4,6 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:models="clr-namespace:TRViS.Models"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
-	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:DataType="viewmodels:ThirdPartyLicensesViewModel"
 	x:Class="TRViS.ThirdPartyLicenses"
 	Title="ThirdPartyLicenses">
@@ -61,26 +60,12 @@
 								Property="IsVisible"
 								Value="False"/>
 						</DataTrigger>
-
 					</Label.Triggers>
 				</Label>
 
-				<ListView
-					SelectionMode="None"
-					Grid.Row="2"
-					ItemsSource="{Binding LicenseTextList}"
-					HasUnevenRows="True">
-					<ListView.ItemTemplate>
-						<DataTemplate
-							x:DataType="{x:Type viewmodels:MyKeyValuePair}">
-							<ViewCell>
-								<ctrls:HtmlAutoDetectLabel
-									HorizontalOptions="Start"
-									Text="{Binding Value}"/>
-							</ViewCell>
-						</DataTemplate>
-					</ListView.ItemTemplate>
-				</ListView>
+				<ScrollView
+					x:Name="LicenseTextArea"
+					Grid.Row="2"/>
 			</Grid>
 		</Frame>
 	</FlexLayout>
