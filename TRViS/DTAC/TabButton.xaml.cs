@@ -48,7 +48,7 @@ public partial class TabButton : ContentView
 
 	void BaseBox_Tapped(object sender, EventArgs e)
 	{
-		if (IsSelected)
+		if (IsSelected || !IsEnabled)
 			return;
 
 		CurrentMode = TargetMode;
