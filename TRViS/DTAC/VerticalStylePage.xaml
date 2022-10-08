@@ -1,22 +1,19 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
-	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.DTAC.VerticalStylePage"
-	x:DataType="viewmodels:AppViewModel"
-	BackgroundColor="White"
-	Title="{Binding SelectedTrainData.WorkName}">
-	<ContentPage.Resources>
+	x:DataType="models:TrainData">
+	<ContentView.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceDictionary Source="Style_VerticalView.xaml" />
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
-	</ContentPage.Resources>
+	</ContentView.Resources>
 
 	<Grid
 		x:Name="MainGrid"
@@ -29,12 +26,10 @@
 			BackgroundColor="#eee"/>
 
 		<Grid
-			BindingContext="{Binding SelectedTrainData}"
 			Grid.Row="1"
 			BackgroundColor="White">
 			<Label
 				Style="{StaticResource LabelStyle}"
-				x:DataType="models:TrainData"
 				Margin="18,4"
 				LineHeight="1.2"
 				HorizontalOptions="Start">
@@ -84,12 +79,10 @@
 
 		<Grid
 			Grid.Row="3"
-			BindingContext="{Binding SelectedTrainData}"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="White">
 			<Label
 				Style="{StaticResource LabelStyle}"
-				x:DataType="models:TrainData"
 				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
 				TextColor="#33d"
 				FontSize="28"
@@ -101,7 +94,6 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				Style="{StaticResource LabelStyle}"
-				x:DataType="models:TrainData"
 				Text="{Binding MaxSpeed, Converter={StaticResource ToWideConverter}}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
@@ -112,7 +104,6 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				Style="{StaticResource LabelStyle}"
-				x:DataType="models:TrainData"
 				Text="{Binding SpeedType, Converter={StaticResource ToWideConverter}}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
@@ -123,7 +114,6 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				Style="{StaticResource LabelStyle}"
-				x:DataType="models:TrainData"
 				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
 				LineHeight="1"
 				HorizontalTextAlignment="End"
@@ -137,7 +127,6 @@
 
 		<Grid
 			Grid.Row="4"
-			BindingContext="{Binding SelectedTrainData}"
 			ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
 			BackgroundColor="White">
 			<Line
@@ -156,7 +145,6 @@
 					Margin="0"
 					Padding="4">
 					<Label
-						x:DataType="models:TrainData"
 						Style="{StaticResource TimetableLargeNumberLabel}"
 						VerticalOptions="Center"
 						Text="{Binding CarCount}"/>
@@ -181,7 +169,6 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				Style="{StaticResource LabelStyle}"
-				x:DataType="models:TrainData"
 				Grid.Column="2"
 				Grid.ColumnSpan="6"
 				LineHeight="1.4"
@@ -198,7 +185,6 @@
 
 		<ScrollView
 			x:Name="TimetableAreaScrollView"
-			BindingContext="{Binding SelectedTrainData}"
 			Grid.Row="6"/>
 
 		<Frame
@@ -247,4 +233,4 @@
 				VerticalOptions="Start"/>
 		</Grid>
 	</Grid>
-</ContentPage>
+</ContentView>

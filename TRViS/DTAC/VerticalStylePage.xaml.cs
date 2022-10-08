@@ -3,7 +3,7 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-public partial class VerticalStylePage : ContentPage
+public partial class VerticalStylePage : ContentView
 {
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
 		new(new(60)),
@@ -45,11 +45,9 @@ public partial class VerticalStylePage : ContentPage
 
 	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
 
-	public VerticalStylePage(AppViewModel viewModel)
+	public VerticalStylePage()
 	{
 		InitializeComponent();
-
-		BindingContext = viewModel;
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 			Content = new ScrollView()
@@ -99,8 +97,8 @@ public partial class VerticalStylePage : ContentPage
 			{
 				view.SetBinding(VerticalTimetableView.SelectedTrainDataProperty, new Binding()
 				{
-					Source = viewModel,
-					Path = nameof(AppViewModel.SelectedTrainData)
+					Source = this,
+					Path = nameof(VerticalStylePage.BindingContext)
 				});
 			});
 		});
