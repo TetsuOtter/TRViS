@@ -9,7 +9,7 @@
 		Margin="8,0">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="*"/>
-			<RowDefinition Height="2.5*"/>
+			<RowDefinition Height="2*"/>
 		</Grid.RowDefinitions>
 
 		<Grid
@@ -18,7 +18,7 @@
 				x:Name="BaseBox"
 				Color="{x:Static local:TabButton.BASE_COLOR_DISABLED}"
 				CornerRadius="4"
-				Margin="0,-2">
+				Margin="0,-4">
 				<BoxView.Shadow>
 					<Shadow
 						Brush="Black"
