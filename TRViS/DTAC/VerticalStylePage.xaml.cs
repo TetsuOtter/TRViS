@@ -49,7 +49,8 @@ public partial class VerticalStylePage : ContentView
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 			Content = new ScrollView()
 			{
-				Content = this.Content
+				Content = this.Content,
+				BackgroundColor = Colors.White
 			};
 
 		Task.Run(() =>
