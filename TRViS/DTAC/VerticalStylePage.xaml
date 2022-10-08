@@ -23,10 +23,6 @@
 
 		<Grid
 			Grid.Row="0"
-			BackgroundColor="#eee"/>
-
-		<Grid
-			Grid.Row="1"
 			BackgroundColor="White">
 			<Label
 				Style="{StaticResource LabelStyle}"
@@ -43,7 +39,7 @@
 		</Grid>
 
 		<Grid
-			Grid.Row="2"
+			Grid.Row="1"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="#ddd">
 			<Label
@@ -78,7 +74,7 @@
 		</Grid>
 
 		<Grid
-			Grid.Row="3"
+			Grid.Row="2"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="White">
 			<Label
@@ -122,11 +118,11 @@
 		</Grid>
 
 		<Line
-			Grid.Row="3"
+			Grid.Row="2"
 			Style="{StaticResource TimetableSeparatorLine}"/>
 
 		<Grid
-			Grid.Row="4"
+			Grid.Row="3"
 			ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
 			BackgroundColor="White">
 			<Line
@@ -181,11 +177,11 @@
 		<dtac:TimetableHeader
 			BackgroundColor="#ddd"
 			FontSize_Large="28"
-			Grid.Row="5"/>
+			Grid.Row="4"/>
 
 		<ScrollView
 			x:Name="TimetableAreaScrollView"
-			Grid.Row="6"/>
+			Grid.Row="5"/>
 
 		<Frame
 			x:Name="TimetableViewActivityIndicatorFrame"
@@ -196,7 +192,7 @@
 			WidthRequest="50"
 			Margin="8"
 			CornerRadius="25"
-			Grid.Row="6">
+			Grid.Row="5">
 			<ActivityIndicator
 				IsRunning="True"/>
 		</Frame>
@@ -205,11 +201,11 @@
 			IgnoreSafeArea="True"
 			BackgroundColor="#333"
 			Margin="0"
-			Grid.Row="7"/>
+			Grid.Row="6"/>
 		<Grid
 			VerticalOptions="Start"
 			Margin="0"
-			Grid.Row="7">
+			Grid.Row="6">
 			<Label
 				FontSize="28"
 				Margin="16,0"

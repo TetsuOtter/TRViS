@@ -10,9 +10,13 @@
 	Title="{Binding AppViewModel.SelectedTrainData.WorkName}">
 	<Grid>
 		<Grid.RowDefinitions>
-			<RowDefinition Height="60"/>
+			<RowDefinition Height="64"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
+
+		<HorizontalStackLayout
+			BackgroundColor="#eee">
+		</HorizontalStackLayout>
 
 		<local:Hako
 			IsVisible="{Binding IsHakoMode}"
