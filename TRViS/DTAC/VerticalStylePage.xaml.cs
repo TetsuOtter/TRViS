@@ -3,7 +3,7 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-public partial class VerticalStylePage : ContentPage
+public partial class VerticalStylePage : ContentView
 {
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
 		new(new(60)),
@@ -16,7 +16,6 @@ public partial class VerticalStylePage : ContentPage
 		new(new(64))
 		);
 
-	const double INPAGE_TAB_ROW_HEIGHT = 64;
 	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 64;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
@@ -24,7 +23,6 @@ public partial class VerticalStylePage : ContentPage
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_REMARKS_ROW_HEIGHT = 64;
 	static public RowDefinitionCollection PageRowDefinitionCollection => new(
-		new(new(INPAGE_TAB_ROW_HEIGHT)),
 		new(new(DATE_AND_START_BUTTON_ROW_HEIGHT)),
 		new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
 		new(new(TRAIN_INFO_ROW_HEIGHT)),
@@ -35,8 +33,7 @@ public partial class VerticalStylePage : ContentPage
 		);
 
 	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
-		= INPAGE_TAB_ROW_HEIGHT
-		+ DATE_AND_START_BUTTON_ROW_HEIGHT
+		= DATE_AND_START_BUTTON_ROW_HEIGHT
 		+ TRAIN_INFO_HEADER_ROW_HEIGHT
 		+ TRAIN_INFO_ROW_HEIGHT
 		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
@@ -45,16 +42,15 @@ public partial class VerticalStylePage : ContentPage
 
 	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
 
-	public VerticalStylePage(AppViewModel viewModel)
+	public VerticalStylePage()
 	{
 		InitializeComponent();
-
-		BindingContext = viewModel;
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 			Content = new ScrollView()
 			{
-				Content = this.Content
+				Content = this.Content,
+				BackgroundColor = Colors.White
 			};
 
 		Task.Run(() =>
@@ -99,8 +95,8 @@ public partial class VerticalStylePage : ContentPage
 			{
 				view.SetBinding(VerticalTimetableView.SelectedTrainDataProperty, new Binding()
 				{
-					Source = viewModel,
-					Path = nameof(AppViewModel.SelectedTrainData)
+					Source = this,
+					Path = nameof(VerticalStylePage.BindingContext)
 				});
 			});
 		});

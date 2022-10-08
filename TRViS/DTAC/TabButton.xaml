@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS.DTAC"
+	x:Class="TRViS.DTAC.TabButton"
+	WidthRequest="152">
+	<Grid
+		Margin="8,0">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="2*"/>
+		</Grid.RowDefinitions>
+
+		<Grid
+			Grid.Row="1">
+			<BoxView
+				x:Name="BaseBox"
+				Color="{x:Static local:TabButton.BASE_COLOR_DISABLED}"
+				CornerRadius="4"
+				Margin="0,-4">
+				<BoxView.Shadow>
+					<Shadow
+						Brush="Black"
+						Offset="2,2"
+						Radius="2"
+						Opacity="0" />
+				</BoxView.Shadow>
+			</BoxView>
+
+			<Label
+				x:Name="ButtonLabel"
+				TextColor="Black"
+				FontFamily="Hiragino Sans"
+				FontSize="18"
+				FontAttributes="Bold"
+				VerticalOptions="Center"
+				HorizontalOptions="Center"/>
+
+			<Line
+				x:Name="BottomLine"
+				IsVisible="False"
+				Grid.Row="1"
+				HeightRequest="4"
+				VerticalOptions="End"
+				BackgroundColor="#080"
+				Margin="8,0"/>
+
+			<Grid.GestureRecognizers>
+				<TapGestureRecognizer Tapped="BaseBox_Tapped"/>
+			</Grid.GestureRecognizers>
+		</Grid>
+	</Grid>
+</ContentView>

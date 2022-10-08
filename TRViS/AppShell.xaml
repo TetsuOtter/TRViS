@@ -33,7 +33,7 @@
 		<ShellContent ContentTemplate="{DataTemplate local:SelectTrainPage}" />
 	</FlyoutItem>
 	<FlyoutItem Title="D-TAC">
-		<ShellContent ContentTemplate="{DataTemplate dtac:VerticalStylePage}" />
+		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}" />
 	</FlyoutItem>
 	<FlyoutItem Title="Third Party Licenses">
 		<ShellContent ContentTemplate="{DataTemplate local:ThirdPartyLicenses}" />
