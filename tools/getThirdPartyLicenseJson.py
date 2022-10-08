@@ -99,6 +99,20 @@ def getAndTrySetUniqueKey(dic: Dict[str, str], key: str) -> str:
   dic[key] = hashStr
   return hashStr
 
+async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str):
+  async with aio_open(targetPath, 'w') as f:
+    text = ''
+    async with session.get(srcUrl) as result:
+      if not result.ok:
+        raise EOFError(f'GET Request to {srcUrl} failed')
+
+      text = await result.text()
+
+      result.close()
+      if not result.closed:
+        await result.wait_for_close()
+    await f.write(text)
+
 async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str]):
   url = licenseInfo.licenseUrl
 
@@ -128,20 +142,7 @@ async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: s
     for v in dirs[4:]:
       path = '/' + v
     url = f"https://raw.githubusercontent.com/{userName}/{repoName}/{refName}{path}"
-
-  async with aio_open(licenseFilePath, 'w') as f:
-    text = ''
-    async with session.get(url) as result:
-      if not result.ok:
-        raise EOFError(f'GET Request to {url} failed')
-
-      text = await result.text()
-
-      result.close()
-      if not result.closed:
-        await result.wait_for_close()
-    await f.write(text)
-
+  await getAndWriteFile(session, url, licenseFilePath)
 
 async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licenseInfo: LicenseInfo, targetDir: str):
   licenseList = [str(v) for v in re.split("\(|\)| ", licenseInfo.license) if (v != '' or v.isspace()) and v != "OR" and v != "AND"]
@@ -151,18 +152,7 @@ async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licen
       continue
 
     url = f'https://raw.githubusercontent.com/spdx/license-list-data/master/text/{licenseId}.txt'
-    async with aio_open(licenseFilePath, 'w') as f:
-      text = ''
-      async with session.get(url) as result:
-        if not result.ok:
-          raise EOFError(f'GET Request to {url} failed')
-
-        text = await result.text()
-
-        result.close()
-        if not result.closed:
-          await result.wait_for_close()
-      await f.write(text)
+    await getAndWriteFile(session, url, licenseFilePath)
 
 def dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir: str, targetDir: str, licenseInfo: LicenseInfo):
   packageNameLower = str.lower(licenseInfo.id)
