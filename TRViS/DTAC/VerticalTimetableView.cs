@@ -41,10 +41,7 @@ public partial class VerticalTimetableView : Grid
 			if (rowData is null)
 				continue;
 
-			VerticalTimetableRow rowView = new()
-			{
-				BindingContext = rowData
-			};
+			VerticalTimetableRow rowView = new(rowData);
 
 			Children.Add(rowView);
 
