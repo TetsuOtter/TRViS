@@ -7,9 +7,9 @@ public partial class VerticalStylePage : ContentView
 {
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
 		new(new(60)),
-		new(new(136)),
-		new(new(132)),
-		new(new(132)),
+		new(new(140)),
+		new(new(140)),
+		new(new(140)),
 		new(new(60)),
 		new(new(60)),
 		new(new(1, GridUnitType.Star)),
@@ -20,7 +20,7 @@ public partial class VerticalStylePage : ContentView
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
-	const double TIMETABLE_HEADER_ROW_HEIGHT = 54;
+	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 	const double TRAIN_REMARKS_ROW_HEIGHT = 64;
 	static public RowDefinitionCollection PageRowDefinitionCollection => new(
 		new(new(DATE_AND_START_BUTTON_ROW_HEIGHT)),
@@ -79,6 +79,14 @@ public partial class VerticalStylePage : ContentView
 			view.IgnoreSafeArea = false;
 			view.VerticalOptions = LayoutOptions.Start;
 
+			view.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
+			{
+				Source = this.StartEndRunButton,
+				Path = nameof(StartEndRunButton.IsRunStarted)
+			});
+
+			view.ScrollRequested += VerticalTimetableView_ScrollRequested;
+
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
 				if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
@@ -100,5 +108,11 @@ public partial class VerticalStylePage : ContentView
 				});
 			});
 		});
+	}
+
+	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
+	{
+		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
+			await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
 	}
 }

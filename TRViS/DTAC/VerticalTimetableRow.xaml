@@ -18,8 +18,15 @@
 		</ResourceDictionary>
 	</Grid.Resources>
 
+	<BoxView
+		x:Name="CurrentLocationBoxView"
+		HeightRequest="60"
+		Margin="0"
+		VerticalOptions="End"
+		Color="#080"/>
+
 	<Grid
-		Margin="2"
+		Margin="2,0"
 		VerticalOptions="End"
 		Grid.Column="0">
 		<Grid.ColumnDefinitions>
@@ -32,14 +39,36 @@
 			Margin="0"
 			Padding="0"
 			Grid.Column="0"
-			Text="{Binding DriveTimeMM}"/>
+			Text="{Binding DriveTimeMM}">
+			<Label.Triggers>
+				<DataTrigger
+					TargetType="Label"
+					Binding="{Binding Source={x:Reference CurrentLocationBoxView}, Path=IsVisible}"
+					Value="True">
+					<Setter
+						Property="TextColor"
+						Value="White"/>
+				</DataTrigger>
+			</Label.Triggers>
+		</Label>
 		<Label
 			Style="{StaticResource TimetableDriveTimeSSLabel}"
 			Margin="1"
 			Padding="0"
 			HorizontalOptions="Start"
 			Grid.Column="1"
-			Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}"/>
+			Text="{Binding DriveTimeSS, StringFormat='{0:D2}'}">
+			<Label.Triggers>
+				<DataTrigger
+					TargetType="Label"
+					Binding="{Binding Source={x:Reference CurrentLocationBoxView}, Path=IsVisible}"
+					Value="True">
+					<Setter
+						Property="TextColor"
+						Value="White"/>
+				</DataTrigger>
+			</Label.Triggers>
+		</Label>
 	</Grid>
 	<ctrls:HtmlAutoDetectLabel
 		Style="{StaticResource TimetableLabel}"
@@ -146,6 +175,15 @@
 	<BoxView
 		HeightRequest="0.5"
 		Color="#aaa"
+		HorizontalOptions="Fill"
+		VerticalOptions="End"
+		Grid.ColumnSpan="8"/>
+
+	<BoxView
+		x:Name="CurrentLocationLine"
+		Margin="0,-2"
+		HeightRequest="4"
+		Color="#080"
 		HorizontalOptions="Fill"
 		VerticalOptions="End"
 		Grid.ColumnSpan="8"/>
