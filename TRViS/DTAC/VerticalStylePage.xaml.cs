@@ -79,6 +79,12 @@ public partial class VerticalStylePage : ContentView
 			view.IgnoreSafeArea = false;
 			view.VerticalOptions = LayoutOptions.Start;
 
+			view.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
+			{
+				Source = this.StartEndRunButton,
+				Path = nameof(StartEndRunButton.IsRunStarted)
+			});
+
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
 				if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)

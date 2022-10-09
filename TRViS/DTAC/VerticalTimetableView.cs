@@ -7,6 +7,7 @@ using TRViS.IO.Models;
 namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsBusy")]
+[DependencyProperty<bool>("IsRunStarted")]
 [DependencyProperty<TrainData>("SelectedTrainData")]
 public partial class VerticalTimetableView : Grid
 {
@@ -43,6 +44,10 @@ public partial class VerticalTimetableView : Grid
 
 			VerticalTimetableRow rowView = new(rowData);
 
+			TapGestureRecognizer tapGestureRecognizer = new();
+			tapGestureRecognizer.Tapped += RowTapped;
+			rowView.GestureRecognizers.Add(tapGestureRecognizer);
+
 			Children.Add(rowView);
 
 			Grid.SetRow(rowView, i);
@@ -51,6 +56,54 @@ public partial class VerticalTimetableView : Grid
 		}
 
 		IsBusy = false;
+	}
+
+	VerticalTimetableRow? _CurrentRunningRow = null;
+	VerticalTimetableRow? CurrentRunningRow
+	{
+		get => _CurrentRunningRow;
+		set
+		{
+			if (_CurrentRunningRow == value)
+				return;
+
+			if (_CurrentRunningRow is not null)
+				_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+
+			_CurrentRunningRow = value;
+
+			if (value is not null)
+			{
+				value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+			}
+		}
+	}
+
+	private void RowTapped(object? sender, EventArgs e)
+	{
+		if (sender is not VerticalTimetableRow row)
+			return;
+
+		if (!IsRunStarted || !IsEnabled)
+			return;
+
+		switch (row.LocationState)
+		{
+			case VerticalTimetableRow.LocationStates.Undefined:
+				CurrentRunningRow = row;
+				break;
+			case VerticalTimetableRow.LocationStates.AroundThisStation:
+				row.LocationState = VerticalTimetableRow.LocationStates.RunningToNextStation;
+				break;
+			case VerticalTimetableRow.LocationStates.RunningToNextStation:
+				row.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+				break;
+		}
+	}
+
+	partial void OnIsRunStartedChanged(bool newValue)
+	{
+		CurrentRunningRow = newValue ? Children.FirstOrDefault(v => v is VerticalTimetableRow) as VerticalTimetableRow : null;
 	}
 
 	void SetRowDefinitions(int? newCount)

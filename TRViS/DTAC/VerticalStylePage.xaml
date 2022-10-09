@@ -45,6 +45,7 @@
 			</Label>
 
 			<dtac:StartEndRunButton
+				x:Name="StartEndRunButton"
 				Grid.Column="1"
 				Margin="2,8"/>
 
