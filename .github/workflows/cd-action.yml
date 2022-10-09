@@ -385,6 +385,7 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
+    if: success() && ${{ github.event_name == 'push' }}
     timeout-minutes: 5
     needs:
       - set-tag
@@ -392,14 +393,12 @@ jobs:
 
     steps:
     - name: Download APK
-      if: ${{ github.event_name == 'push' }}
       uses: actions/download-artifact@v3.0.0
       with:
         name: apk
         path: ${{ env.OUTPUT_DIR }}
 
     - name: Create Release
-      if: ${{ github.event_name == 'push' }}
       run: >
         gh release create ${{ needs.set-tag.outputs.tag-name }}
         --draft
