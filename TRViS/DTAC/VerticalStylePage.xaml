@@ -27,7 +27,7 @@
 			<Label
 				Style="{StaticResource LabelStyle}"
 				Margin="18,4"
-				LineHeight="1.2"
+				FontSize="18"
 				HorizontalOptions="Start">
 				<Label.FormattedText>
 					<FormattedString>
