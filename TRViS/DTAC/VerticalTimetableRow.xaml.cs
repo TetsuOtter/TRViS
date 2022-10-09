@@ -50,12 +50,13 @@ public partial class VerticalTimetableRow : Grid
 	public VerticalTimetableRow()
 	{
 		InitializeComponent();
+
+		CurrentLocationBoxView.IsVisible = false;
+		CurrentLocationLine.IsVisible = false;
 	}
 
-	public VerticalTimetableRow(TimetableRow rowData)
+	public VerticalTimetableRow(TimetableRow rowData) : this()
 	{
-		InitializeComponent();
-
 		BindingContext = rowData;
 	}
 }

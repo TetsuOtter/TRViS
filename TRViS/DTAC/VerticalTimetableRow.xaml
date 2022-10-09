@@ -20,7 +20,6 @@
 
 	<BoxView
 		x:Name="CurrentLocationBoxView"
-		IsVisible="False"
 		HeightRequest="60"
 		Margin="0"
 		VerticalOptions="End"
@@ -182,7 +181,6 @@
 
 	<BoxView
 		x:Name="CurrentLocationLine"
-		IsVisible="False"
 		Margin="0,-2"
 		HeightRequest="4"
 		Color="#080"
