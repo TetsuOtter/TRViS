@@ -85,6 +85,8 @@ public partial class VerticalStylePage : ContentView
 				Path = nameof(StartEndRunButton.IsRunStarted)
 			});
 
+			view.ScrollRequested += VerticalTimetableView_ScrollRequested;
+
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
 				if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
@@ -106,5 +108,11 @@ public partial class VerticalStylePage : ContentView
 				});
 			});
 		});
+	}
+
+	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
+	{
+		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
+			await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
 	}
 }

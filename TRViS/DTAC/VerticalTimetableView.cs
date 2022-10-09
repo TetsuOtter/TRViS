@@ -11,9 +11,21 @@ namespace TRViS.DTAC;
 [DependencyProperty<TrainData>("SelectedTrainData")]
 public partial class VerticalTimetableView : Grid
 {
+	public class ScrollRequestedEventArgs : EventArgs
+	{
+		public double PositionY { get; }
+
+		public ScrollRequestedEventArgs(double PositionY)
+		{
+			this.PositionY = PositionY;
+		}
+	}
+
 	static readonly GridLength RowHeight = new(60);
 
 	public event EventHandler? IsBusyChanged;
+
+	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
@@ -75,6 +87,13 @@ public partial class VerticalTimetableView : Grid
 			if (value is not null)
 			{
 				value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+
+				if (value.LocationState != VerticalTimetableRow.LocationStates.Undefined)
+				{
+					int rowCount = Grid.GetRow(value);
+
+					ScrollRequested?.Invoke(this, new(Math.Max(rowCount - 1, 0) * RowHeight.Value));
+				}
 			}
 		}
 	}
