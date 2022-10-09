@@ -7,9 +7,9 @@ public partial class VerticalStylePage : ContentView
 {
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
 		new(new(60)),
-		new(new(136)),
-		new(new(132)),
-		new(new(132)),
+		new(new(140)),
+		new(new(140)),
+		new(new(140)),
 		new(new(60)),
 		new(new(60)),
 		new(new(1, GridUnitType.Star)),
@@ -20,7 +20,7 @@ public partial class VerticalStylePage : ContentView
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
-	const double TIMETABLE_HEADER_ROW_HEIGHT = 54;
+	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 	const double TRAIN_REMARKS_ROW_HEIGHT = 64;
 	static public RowDefinitionCollection PageRowDefinitionCollection => new(
 		new(new(DATE_AND_START_BUTTON_ROW_HEIGHT)),

@@ -14,13 +14,13 @@
 
 	<ColumnDefinitionCollection x:Key="TrainInfoColumnWidthCollection">
 		<!-- 列車 -->
-		<ColumnDefinition Width="256"/>
+		<ColumnDefinition Width="270"/>
 		<!-- 最高速度 -->
-		<ColumnDefinition Width="128"/>
+		<ColumnDefinition Width="120"/>
 		<!-- 速度種別 -->
 		<ColumnDefinition Width="*"/>
 		<!-- けん引定数 -->
-		<ColumnDefinition Width="186"/>
+		<ColumnDefinition Width="168"/>
 	</ColumnDefinitionCollection>
 
 	<Style x:Key="LabelStyle" TargetType="Label">
