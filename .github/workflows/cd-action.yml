@@ -344,6 +344,9 @@ jobs:
     needs:
       - generate-bundle-version
       - publish-ios
+    
+    outputs:
+      tag-name: ${{ steps.tag-name.outputs.tag-name }}
 
     steps:
     - uses: actions/checkout@v3
@@ -380,19 +383,29 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  create-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - set-tag
+      - build-android
+
+    steps:
     - name: Download APK
-      # if: ${{ github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' }}
       uses: actions/download-artifact@v3.0.0
       with:
         name: apk
         path: ${{ env.OUTPUT_DIR }}
 
     - name: Create Release
-      # if: ${{ github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' }}
       run: >
-        gh release create ${{ steps.tag-name.outputs.tag-name }}
+        gh release create ${{ needs.set-tag.outputs.tag-name }}
         --draft
         --generate-notes
         ${{ env.OUTPUT_DIR }}/*.apk
+        --repo ${{ github.repository }}
+        --notes 'This release is automatically created by actions ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
