@@ -24,6 +24,13 @@
 		<Grid
 			Grid.Row="0"
 			BackgroundColor="White">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="160"/>
+				<ColumnDefinition Width="120"/>
+				<ColumnDefinition Width="80"/>
+			</Grid.ColumnDefinitions>
+
 			<Label
 				Style="{StaticResource LabelStyle}"
 				Margin="18,4"
@@ -36,6 +43,11 @@
 					</FormattedString>
 				</Label.FormattedText>
 			</Label>
+
+			<dtac:StartEndRunButton
+				Grid.Column="1"
+				Margin="2,8"/>
+
 		</Grid>
 
 		<Grid
