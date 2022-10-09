@@ -267,38 +267,14 @@ jobs:
         /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
         /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
-    - name: Upload AAB (Push to Main)
-      if: |
-        !startsWith(github.ref, 'refs/tags/v')
-        && github.event_name != 'pull_request'
-      uses: actions/upload-artifact@v3.0.0
-      with:
-        name: aab
-        path: ${{ env.AAB_PATH }}
-
-    - name: Upload AAB (PR or Tag)
-      if: |
-        startsWith(github.ref, 'refs/tags/v')
-        || github.event_name == 'pull_request'
+    - name: Upload AAB
       uses: actions/upload-artifact@v3.0.0
       with:
         name: aab
         path: ${{ env.AAB_PATH }}
         retention-days: 3
 
-    - name: Upload APK (Push to Main)
-      if: |
-        !startsWith(github.ref, 'refs/tags/v')
-        && github.event_name != 'pull_request'
-      uses: actions/upload-artifact@v3.0.0
-      with:
-        name: apk
-        path: ${{ env.APK_PATH }}
-
-    - name: Upload APK (PR or Tag)
-      if: |
-        startsWith(github.ref, 'refs/tags/v')
-        || github.event_name == 'pull_request'
+    - name: Upload APK
       uses: actions/upload-artifact@v3.0.0
       with:
         name: apk
@@ -401,5 +377,22 @@ jobs:
         echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
         ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
         | gh pr comment ${{ github.event.number }} -F -
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download APK
+      # if: ${{ github.event_name == 'push' }}
+      uses: actions/download-artifact@v3.0.0
+      with:
+        name: apk
+        path: ${{ env.OUTPUT_DIR }}
+
+    - name: Create Release
+      # if: ${{ github.event_name == 'push' }}
+      run: >
+        gh release create ${{ steps.tag-name.outputs.tag-name }}
+        --draft
+        --generate-notes
+        ${{ env.OUTPUT_DIR }}/*.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
