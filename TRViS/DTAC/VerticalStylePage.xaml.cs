@@ -82,7 +82,7 @@ public partial class VerticalStylePage : ContentView
 			view.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
 			{
 				Source = this.StartEndRunButton,
-				Path = nameof(StartEndRunButton.IsRunStarted)
+				Path = nameof(StartEndRunButton.IsChecked)
 			});
 
 			view.ScrollRequested += VerticalTimetableView_ScrollRequested;
