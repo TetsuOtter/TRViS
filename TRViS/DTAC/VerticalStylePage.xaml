@@ -6,6 +6,7 @@
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.DTAC.VerticalStylePage"
+	x:Name="this"
 	x:DataType="models:TrainData">
 	<ContentView.Resources>
 		<ResourceDictionary>
@@ -47,7 +48,9 @@
 			<dtac:StartEndRunButton
 				x:Name="StartEndRunButton"
 				Grid.Column="1"
-				Margin="2,8"/>
+				VerticalOptions="Center"
+				HorizontalOptions="End"
+				Margin="2"/>
 
 		</Grid>
 
@@ -210,36 +213,8 @@
 				IsRunning="True"/>
 		</Frame>
 
-		<AbsoluteLayout
-			IgnoreSafeArea="True"
-			BackgroundColor="#333"
-			Margin="0"
+		<dtac:Remarks
+			RemarksData="{Binding Source={x:Reference this}, Path=BindingContext}"
 			Grid.Row="6"/>
-		<Grid
-			VerticalOptions="Start"
-			Margin="0"
-			Grid.Row="6">
-			<Label
-				FontSize="28"
-				Margin="16,0"
-				Text="注 意 事 項"
-				FontAttributes="Bold"
-				HorizontalOptions="Start"
-				VerticalOptions="Center"
-				TextColor="White"/>
-
-			<Button
-				Text="&#xe5ce;"
-				CornerRadius="4"
-				Margin="16,8"
-				Padding="0"
-				BackgroundColor="White"
-				BorderWidth="0"
-				TextColor="#aaa"
-				FontFamily="MaterialIconsRegular"
-				FontSize="40"
-				HorizontalOptions="End"
-				VerticalOptions="Start"/>
-		</Grid>
 	</Grid>
 </ContentView>

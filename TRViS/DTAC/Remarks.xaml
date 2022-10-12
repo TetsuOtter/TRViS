@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS.DTAC"
+	xmlns:ctrls="clr-namespace:TRViS.Controls"
+	x:DataType="local:Remarks"
+	BackgroundColor="#333"
+	HeightRequest="320"
+	VerticalOptions="End"
+	x:Class="TRViS.DTAC.Remarks">
+	<Grid.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="Style_VerticalView.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</Grid.Resources>
+
+	<Grid.RowDefinitions>
+		<RowDefinition Height="64"/>
+		<RowDefinition Height="256"/>
+		<RowDefinition Height="{Binding BottomPadding}"/>
+	</Grid.RowDefinitions>
+
+	<Label
+		Grid.Row="0"
+		FontSize="28"
+		Margin="16,0"
+		Text="注 意 事 項"
+		FontAttributes="Bold"
+		HorizontalOptions="Start"
+		VerticalOptions="Center"
+		TextColor="White"/>
+
+	<local:OpenCloseButton
+		Grid.Row="0"
+		TextWhenOpen="&#xe5cf;"
+		TextWhenClosed="&#xe5ce;"
+		IsOpen="{Binding IsOpen}"
+		Margin="16,0"
+		HorizontalOptions="End"
+		VerticalOptions="Center"/>
+
+	<ScrollView
+		BackgroundColor="White"
+		Grid.Row="1"
+		Padding="2"
+		Margin="8">
+		<ctrls:HtmlAutoDetectLabel
+			x:Name="RemarksLabel"
+			Style="{StaticResource LabelStyle}"
+			HorizontalOptions="Start"
+			VerticalOptions="Start"/>
+	</ScrollView>
+
+	<BoxView
+		Grid.Row="2"
+		Color="#333"/>
+</Grid>
