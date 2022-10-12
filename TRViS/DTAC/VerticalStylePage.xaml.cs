@@ -16,7 +16,7 @@ public partial class VerticalStylePage : ContentView
 		new(new(64))
 		);
 
-	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 64;
+	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
