@@ -16,6 +16,12 @@ public partial class ViewHost : ContentPage
 
 		ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
+		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, new Binding()
+		{
+			Source = vm,
+			Path = nameof(AppViewModel.SelectedTrainData)
+		});
+
 		UpdateContent();
 	}
 

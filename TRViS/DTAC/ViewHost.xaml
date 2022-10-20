@@ -46,7 +46,6 @@
 		<local:VerticalStylePage
 			x:Name="VerticalStylePageView"
 			IsVisible="False"
-			BindingContext="{Binding AppViewModel.SelectedTrainData}"
 			Grid.Row="1"/>
 	</Grid>
 </ContentPage>
