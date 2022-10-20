@@ -43,6 +43,7 @@ public partial class Remarks : Grid
 	{
 		Margin = new(0, BottomMargin);
 		HeightRequest = HEADER_HEIGHT + contentAreaHeight + bottomPadding;
+		OnIsOpenChanged(IsOpen);
 	}
 
 	void OnPageHeightChanged(in double newValue)
