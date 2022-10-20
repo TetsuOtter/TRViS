@@ -215,6 +215,7 @@
 
 		<dtac:Remarks
 			RemarksData="{Binding Source={x:Reference this}, Path=BindingContext}"
+			ZIndex="1"
 			Grid.Row="6"/>
 	</Grid>
 </ContentView>
