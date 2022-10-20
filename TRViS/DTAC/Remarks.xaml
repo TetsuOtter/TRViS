@@ -19,7 +19,7 @@
 
 	<Grid.RowDefinitions>
 		<RowDefinition Height="64"/>
-		<RowDefinition Height="256"/>
+		<RowDefinition Height="{Binding ContentAreaHeight}"/>
 		<RowDefinition Height="{Binding BottomPadding}"/>
 	</Grid.RowDefinitions>
 

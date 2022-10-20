@@ -8,11 +8,14 @@ namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsOpen", DefaultBindingMode = DefaultBindingMode.TwoWay)]
 [DependencyProperty<IHasRemarksProperty>("RemarksData", DefaultBindingMode = DefaultBindingMode.TwoWay)]
+[DependencyProperty<GridLength>("ContentAreaHeight", IsReadOnly = true)]
 [DependencyProperty<GridLength>("BottomPadding", IsReadOnly = true)]
 public partial class Remarks : Grid
 {
+	const double HEADER_HEIGHT = 64;
+	const double DEFAULT_CONTENT_AREA_HEIGHT = 256;
 	double BottomMargin
-		=> -256 - BottomPadding.Value;
+		=> -ContentAreaHeight.Value - BottomPadding.Value;
 
 	public Remarks()
 	{
@@ -20,7 +23,7 @@ public partial class Remarks : Grid
 
 		BindingContext = this;
 
-		Margin = new(0, BottomMargin);
+		ContentAreaHeight = new(DEFAULT_CONTENT_AREA_HEIGHT);
 		BottomPadding = new(0);
 	}
 
@@ -28,13 +31,29 @@ public partial class Remarks : Grid
 		=> this.TranslateTo(0, newValue ? BottomMargin : 0, easing: Easing.SinInOut);
 
 	partial void OnBottomPaddingChanged(GridLength newValue)
-	{
-		Margin = new(0, BottomMargin);
-		HeightRequest = 320 + newValue.Value;
-	}
+		=> HeightChanged(ContentAreaHeight.Value, newValue.Value);
+
+	partial void OnContentAreaHeightChanged(GridLength newValue)
+		=> HeightChanged(newValue.Value, BottomPadding.Value);
 
 	partial void OnRemarksDataChanged(IHasRemarksProperty? newValue)
 		=> RemarksLabel.Text = newValue?.Remarks;
+
+	void HeightChanged(in double contentAreaHeight, in double bottomPadding)
+	{
+		Margin = new(0, BottomMargin);
+		HeightRequest = HEADER_HEIGHT + contentAreaHeight + bottomPadding;
+	}
+
+	void OnPageHeightChanged(in double newValue)
+	{
+		ContentAreaHeight = new(newValue switch
+		{
+			<= 64 => 64,
+			>= DEFAULT_CONTENT_AREA_HEIGHT => DEFAULT_CONTENT_AREA_HEIGHT,
+			_ => newValue
+		});
+	}
 
 #if IOS
 	UIKit.UIWindow? UIWindow = null;
@@ -56,6 +75,15 @@ public partial class Remarks : Grid
 
 		if (UIWindow is not null)
 			BottomPadding = new(UIWindow.SafeAreaInsets.Bottom.Value);
+
+		OnPageHeightChanged(Shell.Current.CurrentPage.Height * 0.4);
+
+		base.OnSizeAllocated(width, height);
+	}
+#else
+	protected override void OnSizeAllocated(double width, double height)
+	{
+		OnPageHeightChanged(Shell.Current.CurrentPage.Height * 0.4);
 
 		base.OnSizeAllocated(width, height);
 	}
