@@ -12,7 +12,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<GridLength>("BottomPadding", IsReadOnly = true)]
 public partial class Remarks : Grid
 {
-	const double HEADER_HEIGHT = 64;
+	public const double HEADER_HEIGHT = 64;
 	const double DEFAULT_CONTENT_AREA_HEIGHT = 256;
 	double BottomMargin
 		=> -ContentAreaHeight.Value - BottomPadding.Value;

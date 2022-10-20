@@ -22,6 +22,12 @@ public partial class ViewHost : ContentPage
 			Path = nameof(AppViewModel.SelectedTrainData)
 		});
 
+		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
+		{
+			Source = vm,
+			Path = nameof(AppViewModel.SelectedTrainData)
+		});
+
 		UpdateContent();
 	}
 
@@ -34,7 +40,7 @@ public partial class ViewHost : ContentPage
 	void UpdateContent()
 	{
 		HakoView.IsVisible = ViewModel.IsHakoMode;
-		VerticalStylePageView.IsVisible = ViewModel.IsVerticalViewMode;
+		VerticalStylePageRemarksView.IsVisible = ViewModel.IsVerticalViewMode;
 		WorkAffixView.IsVisible = ViewModel.IsWorkAffixMode;
 	}
 }

@@ -23,15 +23,13 @@ public partial class VerticalStylePage : ContentView
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
-	const double TRAIN_REMARKS_ROW_HEIGHT = 64;
 	static public RowDefinitionCollection PageRowDefinitionCollection => new(
 		new(new(DATE_AND_START_BUTTON_ROW_HEIGHT)),
 		new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
 		new(new(TRAIN_INFO_ROW_HEIGHT)),
 		new(new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT)),
 		new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
-		new(new(1, GridUnitType.Star)),
-		new(new(TRAIN_REMARKS_ROW_HEIGHT))
+		new(new(1, GridUnitType.Star))
 		);
 
 	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
@@ -39,8 +37,7 @@ public partial class VerticalStylePage : ContentView
 		+ TRAIN_INFO_HEADER_ROW_HEIGHT
 		+ TRAIN_INFO_ROW_HEIGHT
 		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
-		+ TIMETABLE_HEADER_ROW_HEIGHT
-		+ TRAIN_REMARKS_ROW_HEIGHT;
+		+ TIMETABLE_HEADER_ROW_HEIGHT;
 
 	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
 
