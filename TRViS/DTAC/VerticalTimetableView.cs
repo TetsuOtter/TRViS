@@ -35,39 +35,48 @@ public partial class VerticalTimetableView : Grid
 	partial void OnIsBusyChanged()
 		=> IsBusyChanged?.Invoke(this, new());
 
-	void SetRowViews(TimetableRow[]? newValue)
+	async void SetRowViews(TimetableRow[]? newValue)
 	{
-		IsBusy = true;
-		Children.Clear();
+		await MainThread.InvokeOnMainThreadAsync(() =>
+		{
+			IsBusy = true;
 
-		int? newCount = newValue?.Length;
+			Children.Clear();
+		});
+
+		int newCount = newValue?.Length ?? 0;
 
 		SetRowDefinitions(newCount);
 
-		if (newCount is null || newCount <= 0)
+		await Task.Run(async () =>
+		{
+			for (int i = 0; i < newCount; i++)
+				await AddNewRow(newValue![i], i);
+		});
+
+		await MainThread.InvokeOnMainThreadAsync(() =>
+		{
+			IsBusy = false;
+		});
+	}
+
+	async Task AddNewRow(TimetableRow? row, int index)
+	{
+		if (row is null)
 			return;
 
+		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row));
 
-		int i = 0;
-		foreach (var rowData in newValue!)
+		TapGestureRecognizer tapGestureRecognizer = new();
+		tapGestureRecognizer.Tapped += RowTapped;
+		rowView.GestureRecognizers.Add(tapGestureRecognizer);
+
+		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
-			if (rowData is null)
-				continue;
-
-			VerticalTimetableRow rowView = new(rowData);
-
-			TapGestureRecognizer tapGestureRecognizer = new();
-			tapGestureRecognizer.Tapped += RowTapped;
-			rowView.GestureRecognizers.Add(tapGestureRecognizer);
-
 			Children.Add(rowView);
 
-			Grid.SetRow(rowView, i);
-
-			i++;
-		}
-
-		IsBusy = false;
+			Grid.SetRow(rowView, index);
+		});
 	}
 
 	VerticalTimetableRow? _CurrentRunningRow = null;
@@ -130,7 +139,7 @@ public partial class VerticalTimetableView : Grid
 		int currentCount = RowDefinitions.Count;
 		HeightRequest = newCount * RowHeight.Value ?? 0;
 
-		if (newCount is null)
+		if (newCount is null || newCount <= 0)
 			RowDefinitions.Clear();
 		else if (currentCount < newCount)
 		{
