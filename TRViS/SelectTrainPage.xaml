@@ -59,7 +59,7 @@
 							<ListView
 								Grid.Row="1"
 								ItemsSource="{Binding WorkGroupList}"
-								SelectedItem="{Binding SelectedWorkGroup}">
+								SelectedItem="{Binding SelectedWorkGroup, Mode=TwoWay}">
 								<ListView.ItemTemplate>
 									<DataTemplate
 										x:DataType="models:WorkGroup">
@@ -86,7 +86,7 @@
 							<ListView
 								Grid.Row="1"
 								ItemsSource="{Binding WorkList}"
-								SelectedItem="{Binding SelectedWork}">
+								SelectedItem="{Binding SelectedWork, Mode=TwoWay}">
 								<ListView.ItemTemplate>
 									<DataTemplate
 										x:DataType="models:Work">
@@ -113,7 +113,7 @@
 							<ListView
 								Grid.Row="1"
 								ItemsSource="{Binding DBTrainDataList}"
-								SelectedItem="{Binding SelectedDBTrainData}">
+								SelectedItem="{Binding SelectedDBTrainData, Mode=TwoWay}">
 								<ListView.ItemTemplate>
 									<DataTemplate
 										x:DataType="models:TrainData">

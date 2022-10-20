@@ -43,10 +43,12 @@
 			IsVisible="False"
 			Grid.Row="1"/>
 
-		<local:VerticalStylePage
-			x:Name="VerticalStylePageView"
+		<local:WithRemarksView
+			x:Name="VerticalStylePageRemarksView"
 			IsVisible="False"
-			BindingContext="{Binding AppViewModel.SelectedTrainData}"
-			Grid.Row="1"/>
+			Grid.Row="1">
+			<local:VerticalStylePage
+				x:Name="VerticalStylePageView"/>
+		</local:WithRemarksView>
 	</Grid>
 </ContentPage>

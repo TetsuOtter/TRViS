@@ -16,4 +16,4 @@ public record TrainData(
 	string? TrainInfo,
 	TimetableRow[]? Rows,
 	int Direction
-);
+) : IHasRemarksProperty;

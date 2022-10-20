@@ -1,8 +1,10 @@
+using DependencyPropertyGenerator;
+
 using TRViS.IO.Models;
-using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
+[DependencyProperty<TrainData>("SelectedTrainData")]
 public partial class VerticalStylePage : ContentView
 {
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
@@ -16,20 +18,18 @@ public partial class VerticalStylePage : ContentView
 		new(new(64))
 		);
 
-	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 64;
+	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
-	const double TRAIN_REMARKS_ROW_HEIGHT = 64;
 	static public RowDefinitionCollection PageRowDefinitionCollection => new(
 		new(new(DATE_AND_START_BUTTON_ROW_HEIGHT)),
 		new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
 		new(new(TRAIN_INFO_ROW_HEIGHT)),
 		new(new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT)),
 		new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
-		new(new(1, GridUnitType.Star)),
-		new(new(TRAIN_REMARKS_ROW_HEIGHT))
+		new(new(1, GridUnitType.Star))
 		);
 
 	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
@@ -37,10 +37,11 @@ public partial class VerticalStylePage : ContentView
 		+ TRAIN_INFO_HEADER_ROW_HEIGHT
 		+ TRAIN_INFO_ROW_HEIGHT
 		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
-		+ TIMETABLE_HEADER_ROW_HEIGHT
-		+ TRAIN_REMARKS_ROW_HEIGHT;
+		+ TIMETABLE_HEADER_ROW_HEIGHT;
 
 	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
+
+	VerticalTimetableView TimetableView { get; } = new();
 
 	public VerticalStylePage()
 	{
@@ -53,61 +54,50 @@ public partial class VerticalStylePage : ContentView
 				BackgroundColor = Colors.White
 			};
 
-		Task.Run(() =>
+		TimetableView.IsBusyChanged += (s, _) =>
 		{
-			VerticalTimetableView view = new();
+			if (s is not VerticalTimetableView v)
+				return;
 
-			view.IsBusyChanged += (s, _) =>
+			if (v.IsBusy)
 			{
-				if (s is not VerticalTimetableView v)
-					return;
+				TimetableViewActivityIndicatorFrame.IsVisible = true;
+				TimetableViewActivityIndicatorFrame.FadeTo(TimetableViewActivityIndicatorFrameMaxOpacity);
+			}
+			else
+				TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => TimetableViewActivityIndicatorFrame.IsVisible = false);
 
-				if (v.IsBusy)
-				{
-					TimetableViewActivityIndicatorFrame.IsVisible = true;
-					TimetableViewActivityIndicatorFrame.FadeTo(TimetableViewActivityIndicatorFrameMaxOpacity);
-				}
-				else
-					TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => TimetableViewActivityIndicatorFrame.IsVisible = false);
+			// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
+			if (Content is ScrollView sv)
+				sv.Content.HeightRequest = Math.Max(this.Height,
+					CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, TimetableView.HeightRequest));
+		};
 
-				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
-				if (Content is ScrollView sv)
-					sv.Content.HeightRequest = Math.Max(this.Height,
-						CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, view.HeightRequest));
-			};
+		TimetableView.IgnoreSafeArea = false;
+		TimetableView.VerticalOptions = LayoutOptions.Start;
 
-			view.IgnoreSafeArea = false;
-			view.VerticalOptions = LayoutOptions.Start;
-
-			view.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
-			{
-				Source = this.StartEndRunButton,
-				Path = nameof(StartEndRunButton.IsRunStarted)
-			});
-
-			view.ScrollRequested += VerticalTimetableView_ScrollRequested;
-
-			MainThread.BeginInvokeOnMainThread(() =>
-			{
-				if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
-				{
-					Grid.SetRow(view, Grid.GetRow(TimetableAreaScrollView));
-					TimetableAreaScrollView.IsVisible = false;
-					MainGrid.Add(view);
-				}
-				else
-					TimetableAreaScrollView.Content = view;
-			});
-
-			MainThread.BeginInvokeOnMainThread(() =>
-			{
-				view.SetBinding(VerticalTimetableView.SelectedTrainDataProperty, new Binding()
-				{
-					Source = this,
-					Path = nameof(VerticalStylePage.BindingContext)
-				});
-			});
+		TimetableView.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
+		{
+			Source = this.StartEndRunButton,
+			Path = nameof(StartEndRunButton.IsChecked)
 		});
+
+		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
+
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+		{
+			Grid.SetRow(TimetableView, Grid.GetRow(TimetableAreaScrollView));
+			TimetableAreaScrollView.IsVisible = false;
+			MainGrid.Add(TimetableView);
+		}
+		else
+			TimetableAreaScrollView.Content = TimetableView;
+	}
+
+	partial void OnSelectedTrainDataChanged(TrainData? newValue)
+	{
+		BindingContext = newValue;
+		TimetableView.SelectedTrainData = newValue;
 	}
 
 	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
