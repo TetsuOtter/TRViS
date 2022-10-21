@@ -41,7 +41,7 @@
 				<Label.FormattedText>
 					<FormattedString>
 						<Span Text="行路施行日&#xa;"/>
-						<Span Text="{Binding AffectDate, StringFormat='{0:yyyy年M月d日}'}"/>
+						<Span Text="{Binding AffectDate, Source={x:Reference this}}"/>
 					</FormattedString>
 				</Label.FormattedText>
 			</Label>
