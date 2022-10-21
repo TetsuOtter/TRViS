@@ -3,6 +3,7 @@ using System.ComponentModel;
 using DependencyPropertyGenerator;
 
 using TRViS.IO.Models;
+using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
@@ -26,6 +27,8 @@ public partial class VerticalTimetableView : Grid
 	public event EventHandler? IsBusyChanged;
 
 	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
+
+	public DTACMarkerViewModel MarkerViewModel { get; init; } = new();
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
@@ -65,7 +68,7 @@ public partial class VerticalTimetableView : Grid
 		if (row is null)
 			return;
 
-		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row));
+		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row, MarkerViewModel));
 
 		TapGestureRecognizer tapGestureRecognizer = new();
 		tapGestureRecognizer.Tapped += RowTapped;
