@@ -2,7 +2,7 @@
 
 public record TrainData(
 	string? WorkName,
-	DateOnly AffectDate,
+	DateOnly? AffectDate,
 	string? TrainNumber,
 	string? MaxSpeed,
 	string? SpeedType,

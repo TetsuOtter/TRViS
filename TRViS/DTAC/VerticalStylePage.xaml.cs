@@ -5,6 +5,7 @@ using TRViS.IO.Models;
 namespace TRViS.DTAC;
 
 [DependencyProperty<TrainData>("SelectedTrainData")]
+[DependencyProperty<string>("AffectDate")]
 public partial class VerticalStylePage : ContentView
 {
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
@@ -98,6 +99,10 @@ public partial class VerticalStylePage : ContentView
 	{
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
+
+		// TODO: https://github.com/TetsuOtter/TRViS/issues/10
+		// 「翌」表示を実装したら、ここも適切な日付を表示するようにする。
+		AffectDate = (newValue?.AffectDate ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyy年M月d日");
 	}
 
 	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
