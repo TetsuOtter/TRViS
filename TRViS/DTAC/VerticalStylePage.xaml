@@ -149,7 +149,7 @@
 			<Frame
 				IsVisible="{Binding CarCount, Converter={x:Static conv:IsOneOrMoreIntConverter.Default}}"
 				Grid.Column="1"
-				BackgroundColor="White"
+				BackgroundColor="#FEFEFE"
 				BorderColor="Transparent"
 				CornerRadius="4"
 				Padding="0"
@@ -165,6 +165,7 @@
 
 					<Label
 						Style="{StaticResource LabelStyle}"
+						FontSize="18"
 						VerticalOptions="End"
 						HorizontalOptions="End"
 						Text="両"/>
