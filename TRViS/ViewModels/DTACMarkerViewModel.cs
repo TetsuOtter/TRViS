@@ -26,8 +26,14 @@ public partial class DTACMarkerViewModel : ObservableObject
 	};
 
 	[ObservableProperty]
-	private Color _SelectedColor = Colors.Red;
+	private Color _SelectedColor;
 
 	[ObservableProperty]
-	private string _SelectedText = string.Empty;
+	private string _SelectedText;
+
+	public DTACMarkerViewModel()
+	{
+		_SelectedColor = ColorList[0];
+		_SelectedText = TextList[0];
+	}
 }
