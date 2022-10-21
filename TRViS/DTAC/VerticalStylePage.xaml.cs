@@ -1,6 +1,7 @@
 using DependencyPropertyGenerator;
 
 using TRViS.IO.Models;
+using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
@@ -47,6 +48,8 @@ public partial class VerticalStylePage : ContentView
 	public VerticalStylePage()
 	{
 		InitializeComponent();
+
+		this.TimetableHeader.MarkerSettings = TimetableView.MarkerViewModel;
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 			Content = new ScrollView()

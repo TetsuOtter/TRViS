@@ -5,8 +5,10 @@
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
+	xmlns:conv="clr-namespace:TRViS.ValueConverters"
 	x:Class="TRViS.DTAC.VerticalTimetableRow"
 	x:DataType="models:TimetableRow"
+	x:Name="this"
 	ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
 	Margin="0"
 	Padding="0">
@@ -178,6 +180,35 @@
 		HorizontalOptions="Fill"
 		VerticalOptions="End"
 		Grid.ColumnSpan="8"/>
+
+	<Button
+		x:Name="MarkerBox"
+		Text="{Binding Source={x:Reference this}, Path=MarkedText}"
+		Clicked="MarkerBoxClicked"
+		IsVisible="False"
+		IsEnabled="{Binding Source={x:Reference this}, Path=IsMarkingMode}"
+		Grid.Column="7"
+		BackgroundColor="{Binding Source={x:Reference this}, Path=MarkedColor}"
+		TextColor="{Binding Source={x:Reference this}, Path=MarkedColor, Converter={x:Static conv:BGColorToTextColorConverter.Default}}"
+		FontFamily="Hiragino Sans"
+		FontAttributes="Bold"
+		FontSize="18"
+		BorderColor="Transparent"
+		CornerRadius="4"
+		Padding="0"
+		Margin="8"
+		HorizontalOptions="Start"
+		VerticalOptions="Center"
+		HeightRequest="40"
+		WidthRequest="40">
+		<Button.Shadow>
+			<Shadow
+				Brush="Black"
+				Offset="2,2"
+				Radius="2"
+				Opacity="0.2" />
+		</Button.Shadow>
+	</Button>
 
 	<BoxView
 		x:Name="CurrentLocationLine"
