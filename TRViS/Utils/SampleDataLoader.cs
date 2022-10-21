@@ -293,7 +293,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 	static readonly IO.Models.TrainData SampleTrainData2 = new(
 	WorkName: "Work1-1",
-	AffectDate: new(2022, 9, 16),
+	AffectDate: null,
 	TrainNumber: "試単9092",
 	MaxSpeed: null,
 	SpeedType: null,
