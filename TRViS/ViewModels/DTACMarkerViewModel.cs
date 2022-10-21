@@ -26,6 +26,9 @@ public partial class DTACMarkerViewModel : ObservableObject
 	};
 
 	[ObservableProperty]
+	private bool _IsToggled;
+
+	[ObservableProperty]
 	private Color _SelectedColor;
 
 	[ObservableProperty]

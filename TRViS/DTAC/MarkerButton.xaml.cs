@@ -6,30 +6,33 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<bool>("IsMarkModeToggled")]
+[DependencyProperty<DTACMarkerViewModel>("MarkerSettings")]
 public partial class MarkerButton : Frame
 {
-	DTACMarkerViewModel VM { get; } = new();
-
 	public MarkerButton()
 	{
 		InitializeComponent();
 	}
 
+	partial void OnMarkerSettingsChanged(DTACMarkerViewModel? newValue)
+	{
+		BindingContext = newValue;
+	}
+
 	async void TapGestureRecognizer_Tapped(object sender, EventArgs e)
 	{
-		if (Shell.Current.CurrentPage is not ViewHost page)
+		if (Shell.Current.CurrentPage is not ViewHost page || MarkerSettings is null)
 			return;
 
-		if (IsMarkModeToggled)
+		if (MarkerSettings.IsToggled)
 		{
-			IsMarkModeToggled = false;
+			MarkerSettings.IsToggled = false;
 			return;
 		}
 
-		IsMarkModeToggled = true;
+		MarkerSettings.IsToggled = true;
 
-		SelectMarkerPopup popup = new(VM)
+		SelectMarkerPopup popup = new(MarkerSettings)
 		{
 			Anchor = this,
 		};

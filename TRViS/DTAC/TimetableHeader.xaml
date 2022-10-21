@@ -83,5 +83,6 @@
 		Text="記事"/>
 
 	<dtac:MarkerButton
+		x:Name="MarkerBtn"
 		Grid.Column="7"/>
 </Grid>
