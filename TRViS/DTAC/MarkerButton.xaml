@@ -2,7 +2,9 @@
 <Frame
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS.DTAC"
 	x:Class="TRViS.DTAC.MarkerButton"
+	x:Name="this"
 	CornerRadius="4"
 	Padding="0"
 	WidthRequest="56"
@@ -27,7 +29,16 @@
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
 			FontAttributes="Bold"
-			Text="ﾏｰｶｰ"/>
+			Text="ﾏｰｶｰ">
+			<Label.Triggers>
+				<DataTrigger
+						TargetType="Label"
+						Binding="{Binding Source={x:Reference this}, Path=IsMarkModeToggled}"
+						Value="True">
+					<Setter Property="TextColor" Value="White"/>
+				</DataTrigger>
+			</Label.Triggers>
+		</Label>
 
 		<Label
 			Style="{StaticResource HeaderLabel}"
@@ -38,6 +49,29 @@
 			ScaleX="0.5"
 			AnchorX="1"
 			TextColor="{StaticResource DarkerGreen}"
-			Text="&#xe9a2;"/>
+			Text="&#xe9a2;">
+			<Label.Triggers>
+				<DataTrigger
+						TargetType="Label"
+						Binding="{Binding Source={x:Reference this}, Path=IsMarkModeToggled}"
+						Value="True">
+					<Setter Property="TextColor" Value="White"/>
+				</DataTrigger>
+			</Label.Triggers>
+		</Label>
 	</Grid>
+
+	<Frame.GestureRecognizers>
+		<TapGestureRecognizer
+			Tapped="TapGestureRecognizer_Tapped"/>
+	</Frame.GestureRecognizers>
+
+	<Frame.Triggers>
+		<DataTrigger
+			TargetType="Frame"
+			Binding="{Binding Source={x:Reference this}, Path=IsMarkModeToggled}"
+			Value="True">
+			<Setter Property="BackgroundColor" Value="{StaticResource DarkerGreen}"/>
+		</DataTrigger>
+	</Frame.Triggers>
 </Frame>
