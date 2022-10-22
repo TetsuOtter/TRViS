@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Frame
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:vm="clr-namespace:TRViS.ViewModels"
+	x:Class="TRViS.DTAC.MarkerButton"
+	x:DataType="vm:DTACMarkerViewModel"
+	x:Name="this"
+	CornerRadius="4"
+	Padding="0"
+	WidthRequest="56"
+	HeightRequest="44"
+	HorizontalOptions="Center"
+	VerticalOptions="Center"
+	BorderColor="{x:Null}"
+	HasShadow="False"
+	BackgroundColor="White">
+	<Frame.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="Style_VerticalView.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</Frame.Resources>
+
+	<Grid
+		Margin="{OnPlatform iOS='4,6', MacCatalyst='4,6', Default='4,0'}">
+		<Label
+			Style="{StaticResource HeaderLabel}"
+			HorizontalOptions="Start"
+			VerticalOptions="Start"
+			FontAttributes="Bold"
+			Text="ﾏｰｶｰ">
+			<Label.Triggers>
+				<DataTrigger
+						TargetType="Label"
+						Binding="{Binding IsToggled}"
+						Value="True">
+					<Setter Property="TextColor" Value="White"/>
+				</DataTrigger>
+			</Label.Triggers>
+		</Label>
+
+		<Label
+			Style="{StaticResource HeaderLabel}"
+			HorizontalOptions="End"
+			VerticalOptions="Center"
+			FontFamily="MaterialIconsRegular"
+			FontSize="44"
+			ScaleX="0.5"
+			AnchorX="1"
+			TextColor="{StaticResource DarkerGreen}"
+			Text="&#xe9a2;">
+			<Label.Triggers>
+				<DataTrigger
+						TargetType="Label"
+						Binding="{Binding IsToggled}"
+						Value="True">
+					<Setter Property="TextColor" Value="White"/>
+				</DataTrigger>
+			</Label.Triggers>
+		</Label>
+	</Grid>
+
+	<Frame.GestureRecognizers>
+		<TapGestureRecognizer
+			Tapped="TapGestureRecognizer_Tapped"/>
+	</Frame.GestureRecognizers>
+
+	<Frame.Triggers>
+		<DataTrigger
+			TargetType="Frame"
+			Binding="{Binding IsToggled}"
+			Value="True">
+			<Setter Property="BackgroundColor" Value="{StaticResource DarkerGreen}"/>
+		</DataTrigger>
+	</Frame.Triggers>
+</Frame>

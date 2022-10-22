@@ -46,8 +46,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	void SetTitleTextColor()
 	{
 		// ref: http://www.asahi-net.or.jp/~gx4s-kmgi/page04.html
-		int diff = ((Color_Red * 299) + (Color_Green * 587) + (Color_Blue * 114)) / 1000;
-		ShellTitleTextColor = diff >= 128 ? Colors.Black : Colors.White;
+		ShellTitleTextColor = Utils.GetTextColorFromBGColor(Color_Red, Color_Green, Color_Blue);
 	}
 
 	partial void OnColor_RedChanged(int value)
