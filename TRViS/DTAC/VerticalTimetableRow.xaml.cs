@@ -33,10 +33,13 @@ public partial class VerticalTimetableRow : Grid
 			if (!IsEnabled || value == LocationStates.Undefined)
 			{
 				CurrentLocationBoxView.IsVisible = false;
-				CurrentLocationLine.IsVisible = false;
 				_LocationState = LocationStates.Undefined;
 				return;
 			}
+
+			// 最終行の場合は、次の駅に進まないようにする。
+			if (IsLastRow && value == LocationStates.RunningToNextStation)
+				return;
 
 			_LocationState = value;
 
@@ -45,34 +48,35 @@ public partial class VerticalTimetableRow : Grid
 				case LocationStates.AroundThisStation:
 					CurrentLocationBoxView.IsVisible = true;
 					CurrentLocationBoxView.Margin = new(0);
-					CurrentLocationLine.IsVisible = false;
 					break;
 
 				case LocationStates.RunningToNextStation:
 					CurrentLocationBoxView.IsVisible = true;
 					CurrentLocationBoxView.Margin = new(0, -30);
-					CurrentLocationLine.IsVisible = true;
 					break;
 			}
 		}
 	}
+
+	public bool IsLastRow { get; }
 
 	public VerticalTimetableRow()
 	{
 		InitializeComponent();
 
 		CurrentLocationBoxView.IsVisible = false;
-		CurrentLocationLine.IsVisible = false;
 
 		MarkedColor = DefaultMarkButtonColor;
 		IsMarkingMode = false;
 	}
 
-	public VerticalTimetableRow(TimetableRow rowData, DTACMarkerViewModel? markerViewModel = null) : this()
+	public VerticalTimetableRow(TimetableRow rowData, DTACMarkerViewModel? markerViewModel = null, bool isLastRow = false) : this()
 	{
 		BindingContext = rowData;
 
 		MarkerViewModel = markerViewModel;
+
+		IsLastRow = isLastRow;
 	}
 
 	void MarkerBoxClicked(object sender, EventArgs e)

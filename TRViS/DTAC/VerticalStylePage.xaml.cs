@@ -9,8 +9,9 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("AffectDate")]
 public partial class VerticalStylePage : ContentView
 {
+	public const double RUN_TIME_COLUMN_WIDTH = 60;
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
-		new(new(60)),
+		new(new(RUN_TIME_COLUMN_WIDTH)),
 		new(new(140)),
 		new(new(140)),
 		new(new(140)),

@@ -30,6 +30,26 @@ public partial class VerticalTimetableView : Grid
 
 	public DTACMarkerViewModel MarkerViewModel { get; init; } = new();
 
+	public static readonly Color CURRENT_LOCATION_MARKER_COLOR = new(0x00, 0x88, 0x00);
+	BoxView CurrentLocationBoxView { get; } = new()
+	{
+		IsVisible = false,
+		HeightRequest = RowHeight.Value / 2,
+		WidthRequest = VerticalStylePage.RUN_TIME_COLUMN_WIDTH,
+		Margin = new(0),
+		VerticalOptions = LayoutOptions.Start,
+		HorizontalOptions = LayoutOptions.Start,
+		Color = CURRENT_LOCATION_MARKER_COLOR,
+	};
+	BoxView CurrentLocationLine { get; } = new()
+	{
+		IsVisible = false,
+		HeightRequest = 4,
+		Margin = new(0, -2),
+		VerticalOptions = LayoutOptions.End,
+		Color = CURRENT_LOCATION_MARKER_COLOR,
+	};
+
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
 		SetRowViews(newValue?.Rows);
@@ -54,21 +74,23 @@ public partial class VerticalTimetableView : Grid
 		await Task.Run(async () =>
 		{
 			for (int i = 0; i < newCount; i++)
-				await AddNewRow(newValue![i], i);
+				await AddNewRow(newValue![i], i, i == (newCount - 1));
 		});
 
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
+			Add(CurrentLocationBoxView);
+			Add(CurrentLocationLine);
 			IsBusy = false;
 		});
 	}
 
-	async Task AddNewRow(TimetableRow? row, int index)
+	async Task AddNewRow(TimetableRow? row, int index, bool isLastRow)
 	{
 		if (row is null)
 			return;
 
-		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row, MarkerViewModel));
+		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row, MarkerViewModel, isLastRow));
 
 		TapGestureRecognizer tapGestureRecognizer = new();
 		tapGestureRecognizer.Tapped += RowTapped;
@@ -100,10 +122,16 @@ public partial class VerticalTimetableView : Grid
 			{
 				value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
 
+				int rowCount = Grid.GetRow(value);
+
+				Grid.SetRow(CurrentLocationBoxView, rowCount + 1);
+				Grid.SetRow(CurrentLocationLine, rowCount);
+
+				CurrentLocationBoxView.IsVisible = false;
+				CurrentLocationLine.IsVisible = false;
+
 				if (value.LocationState != VerticalTimetableRow.LocationStates.Undefined)
 				{
-					int rowCount = Grid.GetRow(value);
-
 					ScrollRequested?.Invoke(this, new(Math.Max(rowCount - 1, 0) * RowHeight.Value));
 				}
 			}
@@ -130,6 +158,9 @@ public partial class VerticalTimetableView : Grid
 				row.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
 				break;
 		}
+
+		CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible
+			= row.LocationState == VerticalTimetableRow.LocationStates.RunningToNextStation;
 	}
 
 	partial void OnIsRunStartedChanged(bool newValue)
