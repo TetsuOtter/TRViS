@@ -1,6 +1,7 @@
 using DependencyPropertyGenerator;
 
 using TRViS.IO.Models;
+using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
@@ -8,8 +9,9 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("AffectDate")]
 public partial class VerticalStylePage : ContentView
 {
+	public const double RUN_TIME_COLUMN_WIDTH = 60;
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
-		new(new(60)),
+		new(new(RUN_TIME_COLUMN_WIDTH)),
 		new(new(140)),
 		new(new(140)),
 		new(new(140)),
@@ -47,6 +49,8 @@ public partial class VerticalStylePage : ContentView
 	public VerticalStylePage()
 	{
 		InitializeComponent();
+
+		this.TimetableHeader.MarkerSettings = TimetableView.MarkerViewModel;
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 			Content = new ScrollView()
