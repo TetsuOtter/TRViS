@@ -28,7 +28,10 @@
 						<ViewCell>
 							<BoxView
 								Color="{Binding .}"
-								Margin="12"/>
+								HeightRequest="16"
+								WidthRequest="16"
+								HorizontalOptions="Center"
+								VerticalOptions="Center"/>
 						</ViewCell>
 					</DataTemplate>
 				</ListView.ItemTemplate>
