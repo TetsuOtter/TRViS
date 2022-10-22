@@ -188,7 +188,7 @@
 		IsVisible="False"
 		IsEnabled="{Binding Source={x:Reference this}, Path=IsMarkingMode}"
 		Grid.Column="7"
-		BackgroundColor="{Binding Source={x:Reference this}, Path=MarkedColor}"
+		Background="{Binding Source={x:Reference this}, Path=MarkedBrush}"
 		TextColor="{Binding Source={x:Reference this}, Path=MarkedColor, Converter={x:Static conv:BGColorToTextColorConverter.Default}}"
 		FontFamily="Hiragino Sans"
 		FontAttributes="Bold"

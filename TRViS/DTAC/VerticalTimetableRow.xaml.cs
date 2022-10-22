@@ -7,6 +7,7 @@ namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsMarkingMode", IsReadOnly = true)]
 [DependencyProperty<Color>("MarkedColor", IsReadOnly = true)]
+[DependencyProperty<Brush>("MarkedBrush", IsReadOnly = true)]
 [DependencyProperty<string>("MarkedText", IsReadOnly = true)]
 [DependencyProperty<DTACMarkerViewModel>("MarkerViewModel", IsReadOnly = true)]
 public partial class VerticalTimetableRow : Grid
@@ -117,6 +118,7 @@ public partial class VerticalTimetableRow : Grid
 	partial void OnMarkedColorChanged(Color? newValue)
 	{
 		BackgroundColor = newValue == DefaultMarkButtonColor ? null : newValue?.WithAlpha(BG_ALPHA);
+		MarkedBrush = new SolidColorBrush(newValue ?? DefaultMarkButtonColor);
 	}
 
 	partial void OnIsMarkingModeChanged(bool newValue)
