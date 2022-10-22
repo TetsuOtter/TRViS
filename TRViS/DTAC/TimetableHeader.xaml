@@ -82,32 +82,7 @@
 		Grid.Column="6"
 		Text="記事"/>
 
-	<Frame
-		Grid.Column="7"
-		CornerRadius="4"
-		Padding="0"
-		Margin="4,8"
-		BorderColor="{x:Null}"
-		HasShadow="False"
-		BackgroundColor="White">
-		<Grid
-			Margin="{OnPlatform iOS='4,6', MacCatalyst='4,6', Default='4,0'}">
-			<Label
-				Style="{StaticResource HeaderLabel}"
-				HorizontalOptions="Start"
-				VerticalOptions="Start"
-				FontAttributes="Bold"
-				Text="ﾏｰｶｰ"/>
-			<Label
-				Style="{StaticResource HeaderLabel}"
-				HorizontalOptions="End"
-				VerticalOptions="Center"
-				FontFamily="MaterialIconsRegular"
-				FontSize="44"
-				ScaleX="0.5"
-				AnchorX="1"
-				TextColor="{StaticResource DarkerGreen}"
-				Text="&#xe9a2;"/>
-		</Grid>
-	</Frame>
+	<dtac:MarkerButton
+		x:Name="MarkerBtn"
+		Grid.Column="7"/>
 </Grid>
