@@ -22,16 +22,26 @@
 				SeparatorVisibility="Default"
 				ios:ListView.SeparatorStyle="FullWidth"
 				ItemsSource="{Binding ColorList, Mode=OneTime}"
-				SelectedItem="{Binding SelectedColor, Mode=TwoWay}">
+				SelectedItem="{Binding SelectedMarkerInfo, Mode=TwoWay}">
 				<ListView.ItemTemplate>
 					<DataTemplate>
-						<ViewCell>
-							<BoxView
-								Color="{Binding .}"
-								HeightRequest="16"
-								WidthRequest="16"
-								HorizontalOptions="Center"
-								VerticalOptions="Center"/>
+						<ViewCell
+							x:DataType="vm:MarkerInfo">
+							<ContentView>
+								<Frame
+									HeightRequest="32"
+									WidthRequest="32"
+									VerticalOptions="Center"
+									HorizontalOptions="Center"
+									BackgroundColor="{Binding Color}">
+									<Label
+										Text="{Binding Name}"
+										TextColor="Black"
+										Background="#AFFF"
+										HorizontalOptions="Center"
+										VerticalOptions="Center"/>
+								</Frame>
+							</ContentView>
 						</ViewCell>
 					</DataTemplate>
 				</ListView.ItemTemplate>
