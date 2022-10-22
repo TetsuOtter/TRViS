@@ -194,6 +194,7 @@
 		</Grid>
 
 		<dtac:TimetableHeader
+			x:Name="TimetableHeader"
 			BackgroundColor="#ddd"
 			FontSize_Large="28"
 			Grid.Row="4"/>
