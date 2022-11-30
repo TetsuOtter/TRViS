@@ -65,7 +65,7 @@ public partial class Remarks : Grid
 		// ios15 >= ref: https://zenn.dev/paraches/articles/windows_was_depricated_in_ios15
 		if (UIWindow is null)
 		{
-			if (UIKit.UIDevice.CurrentDevice.CheckSystemVersion(15, 0))
+			if (OperatingSystem.IsIOSVersionAtLeast(13, 0))
 			{
 				if (UIKit.UIApplication.SharedApplication.ConnectedScenes.ToArray().FirstOrDefault(v => v is UIKit.UIWindowScene) is UIKit.UIWindowScene scene)
 					UIWindow = scene.Windows.FirstOrDefault();
