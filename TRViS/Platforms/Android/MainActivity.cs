@@ -16,7 +16,7 @@ public class MainActivity : MauiAppCompatActivity
 			return;
 
 		if (
-			Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.R
+			OperatingSystem.IsAndroidVersionAtLeast(30)
 			&& Window.DecorView.WindowInsetsController is IWindowInsetsController windowInsetsController
 		)
 		{
@@ -32,7 +32,9 @@ public class MainActivity : MauiAppCompatActivity
 				| SystemUiFlags.HideNavigation
 				| SystemUiFlags.Fullscreen;
 
+#pragma warning disable CA1416, CA1422
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(int)flags;
+#pragma warning restore
 		}
 	}
 }
