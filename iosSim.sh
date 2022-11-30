@@ -3,7 +3,7 @@
 cd `dirname $0`
 
 TARGET_PROJ="TRViS/TRViS.csproj"
-TARGET_FRAMEWORK="net6.0-ios15.4"
+TARGET_FRAMEWORK="net7.0-ios16.0"
 
 UDID_PATTERN="[[:alnum:]]{8}-[[:alnum:]]{4}-[[:alnum:]]{4}-[[:alnum:]]{4}-[[:alnum:]]{12}"
 

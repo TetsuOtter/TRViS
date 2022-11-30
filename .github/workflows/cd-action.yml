@@ -19,13 +19,14 @@ env:
   CSPROJ_PATH: ./TRViS/TRViS.csproj
   THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
   THIRD_PARTY_LICENSE_LIST_NAME: license_list
-  TARGET_FRAMEWORK: net6.0-ios15.4
+  TARGET_FRAMEWORK: net7.0-ios16.0
   TARGET_RUNTIME: ios-arm64
   TARGET_FRAMEWORK_ANDROID: net7.0-android33.0
   OUTPUT_DIR: ./out
   IPA_PATH: ./out/TRViS.ipa
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
+  DOTNET_VERSION: 7.0.x
 
 jobs:
   generate-bundle-version:
@@ -160,7 +161,7 @@ jobs:
 
     - uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '7.0.100-rc.1.22431.12'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: Install dotnet workloads
       run: dotnet workload install maui-ios maui-android maccatalyst
 
@@ -230,7 +231,7 @@ jobs:
 
     - uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '7.0.100-rc.1.22431.12'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: Install dotnet workloads
       run: dotnet workload install maui-ios maui-android maccatalyst
 
