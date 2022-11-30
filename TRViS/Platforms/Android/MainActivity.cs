@@ -32,7 +32,9 @@ public class MainActivity : MauiAppCompatActivity
 				| SystemUiFlags.HideNavigation
 				| SystemUiFlags.Fullscreen;
 
+#pragma warning disable CA1416, CA1422
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(int)flags;
+#pragma warning restore
 		}
 	}
 }
