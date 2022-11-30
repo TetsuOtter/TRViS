@@ -16,7 +16,7 @@ public class MainActivity : MauiAppCompatActivity
 			return;
 
 		if (
-			Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.R
+			OperatingSystem.IsAndroidVersionAtLeast(30)
 			&& Window.DecorView.WindowInsetsController is IWindowInsetsController windowInsetsController
 		)
 		{
