@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net7.0-android;</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net6.0-ios;net6.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net7.0-ios;net7.0-maccatalyst</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>TRViS</RootNamespace>
 		<UseMaui>true</UseMaui>

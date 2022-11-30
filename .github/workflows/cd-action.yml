@@ -19,7 +19,7 @@ env:
   CSPROJ_PATH: ./TRViS/TRViS.csproj
   THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
   THIRD_PARTY_LICENSE_LIST_NAME: license_list
-  TARGET_FRAMEWORK: net6.0-ios
+  TARGET_FRAMEWORK: net7.0-ios
   TARGET_RUNTIME: ios-arm64
   TARGET_FRAMEWORK_ANDROID: net7.0-android
   OUTPUT_DIR: ./out
