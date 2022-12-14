@@ -178,12 +178,12 @@ jobs:
       id: dump-third-party-license-info
       continue-on-error: true
       run: |
-        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
         ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
     - name: Dump Third Party License Info (Retry)
       if: steps.dump-third-party-license-info.outcome == 'failure'
       run: |
-        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
         ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
@@ -248,12 +248,12 @@ jobs:
       id: dump-third-party-license-info
       continue-on-error: true
       run: |
-        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK_ANDROID }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
         ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
     - name: Dump Third Party License Info (Retry)
       if: steps.dump-third-party-license-info.outcome == 'failure'
       run: |
-        python ./tools/getThirdPartyLicenseJson.py ${{ env.TARGET_FRAMEWORK_ANDROID }} ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
         ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
