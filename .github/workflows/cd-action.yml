@@ -131,6 +131,9 @@ jobs:
     timeout-minutes: 30
     needs:
       - get-version
+    
+    env:
+      WITHOUT_ANDROID: true
 
     steps:
     - name: Import Provisioning Profile
@@ -168,7 +171,7 @@ jobs:
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
-      run: dotnet workload install maui-ios maui-android maccatalyst
+      run: dotnet workload install maui-ios maccatalyst
 
     - name: Install dependencies
       run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
