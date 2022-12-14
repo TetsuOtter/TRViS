@@ -20,7 +20,6 @@
 	<Grid.RowDefinitions>
 		<RowDefinition Height="64"/>
 		<RowDefinition Height="{Binding ContentAreaHeight}"/>
-		<RowDefinition Height="{Binding BottomPadding}"/>
 	</Grid.RowDefinitions>
 
 	<Label
@@ -53,8 +52,4 @@
 			HorizontalOptions="Start"
 			VerticalOptions="Start"/>
 	</ScrollView>
-
-	<BoxView
-		Grid.Row="2"
-		Color="#333"/>
 </Grid>

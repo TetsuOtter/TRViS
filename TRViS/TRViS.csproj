@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net7.0-android33.0;net6.0-ios15.4;net6.0-maccatalyst15.4</TargetFrameworks>
+		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net7.0-android;</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net7.0-ios;net7.0-maccatalyst</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>TRViS</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -55,10 +56,10 @@
 			ExcludeAssets="runtime" />
 		<PackageReference
 			Include="System.Text.Json"
-			Version="6.0.6" />
+			Version="7.0.0" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="1.3.0" />
+			Version="3.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />

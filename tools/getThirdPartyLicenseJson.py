@@ -172,10 +172,22 @@ async def dumpLicenseTextFile(session: ClientSession, targetDir: str, globalPack
   elif licenseInfo.licenseDataType == LICENSE_TYPE_FILE:
     dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir, targetDir, licenseInfo)
 
-async def main(targetFramework: str, targetDir: str) -> int:
+def getFrameworkVersion(platform: str) -> str:
+  with Popen(["dotnet", "list", CSPROJ_PATH, "package"], stdout=PIPE) as p:
+    for line in p.stdout.readlines():
+      lineStr = line.decode(ENC)
+      frameworkVersionCheckResult = re.search(r"\[net\d+\.\d+-" + platform + r"\d+.\d+\]", lineStr)
+      
+      if not frameworkVersionCheckResult:
+        continue
+
+      return frameworkVersionCheckResult.group().removeprefix('[').removesuffix(']')
+
+async def main(platform: str, targetDir: str) -> int:
   if not exists(targetDir):
     makedirs(targetDir)
 
+  targetFramework = getFrameworkVersion(platform)
   lines: List[List[bytes]]
   with Popen(["dotnet", "list", CSPROJ_PATH, "package", "--framework", targetFramework, '--include-transitive'], stdout=PIPE) as p:
     lines = [line.split() for line in p.stdout.readlines()]
