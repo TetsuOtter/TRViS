@@ -163,7 +163,7 @@ jobs:
         security import certificate.p12 -k ${{ env.KEYCHAIN_NAME }} -P ${{ secrets.P12_PASSWORD }} -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/xcrun
         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${{ secrets.P12_PASSWORD }} ${{ env.KEYCHAIN_NAME }}
       env:
-        KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}
+        KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
     - uses: actions/checkout@v3
 
