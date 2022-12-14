@@ -160,7 +160,7 @@ jobs:
         p12-file-base64: ${{ secrets.P12_FILE_BASE64 }}
         p12-password: ${{ secrets.P12_PASSWORD }}
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Xcode version
       uses: maxim-lobanov/setup-xcode@v1.5.1
@@ -235,7 +235,7 @@ jobs:
       - get-version
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: actions/setup-dotnet@v2
       with:
