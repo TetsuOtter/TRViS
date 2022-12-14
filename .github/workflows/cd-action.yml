@@ -26,6 +26,7 @@ env:
   IPA_PATH: ./out/TRViS.ipa
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
+  SDK_VERSION: '7.0.x'
 
 jobs:
   generate-bundle-version:
@@ -165,7 +166,7 @@ jobs:
 
     - uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '7.0.100-rc.1.22431.12'
+        dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
       run: dotnet workload install maui-ios maui-android maccatalyst
 
@@ -235,7 +236,7 @@ jobs:
 
     - uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '7.0.100-rc.1.22431.12'
+        dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
       run: dotnet workload install maui-android
 
