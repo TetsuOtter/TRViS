@@ -151,14 +151,19 @@ jobs:
     - name: Generate Keychain Name
       id: gen-keychain-name
       run: echo "keychain-name=${{ github.run_id }}_${{ github.run_attempt }}" >> $GITHUB_OUTPUT
-    - name: Import Code Sign Certificates
-      id: import-code-sign-cert
-      uses: apple-actions/import-codesign-certs@v1
-      with:
-        keychain: ${{ steps.gen-keychain-name.outputs.keychain-name }}
-        create-keychain: true
-        p12-file-base64: ${{ secrets.P12_FILE_BASE64 }}
-        p12-password: ${{ secrets.P12_PASSWORD }}
+    
+    # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
+    - name: Build keychain
+      run: |
+        echo ${{ secrets.P12_FILE_BASE64 }} | base64 --decode > certificate.p12
+        security create-keychain -p ${{ secrets.P12_PASSWORD }} ${{ env.KEYCHAIN_NAME }}
+        security default-keychain -s ${{ env.KEYCHAIN_NAME }}
+        security unlock-keychain -p ${{ secrets.P12_PASSWORD }} ${{ env.KEYCHAIN_NAME }}
+        security set-keychain-settings -lut 21600 ${{ env.KEYCHAIN_NAME }}
+        security import certificate.p12 -k ${{ env.KEYCHAIN_NAME }} -P ${{ secrets.P12_PASSWORD }} -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/xcrun
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${{ secrets.P12_PASSWORD }} ${{ env.KEYCHAIN_NAME }}
+      env:
+        KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}
 
     - uses: actions/checkout@v3
 
