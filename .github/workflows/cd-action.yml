@@ -68,7 +68,7 @@ jobs:
     - name: set display version to variable
       id: set_display_version
       run: |
-        echo "::set-output name=disp-version::$(cat DISP_VERSION)"
+        echo "disp-version=$(cat DISP_VERSION)" >> $GITHUB_OUTPUT
 
     - name: Get all tags reachable from current commit
       run: |
@@ -83,7 +83,7 @@ jobs:
         else
           BUILD_NUMBER=`sort -rV VERSION_TAGS | head -n 1 | awk -F '-' '{print $2 + 1}'`
         fi
-        echo "::set-output name=version::$BUILD_NUMBER"
+        echo "version=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
     - name: print new version number
       run: echo "VersionNumber ... ${{ steps.set_display_version.outputs.disp-version }}-${{ steps.build_number.outputs.version }}"
@@ -110,11 +110,11 @@ jobs:
       run: |
         if [ '${{ startsWith(github.ref, 'refs/tags/v') }}' == 'true' ]; then
           VERSION=`echo '${{ github.ref }}' | tr -d 'refs/tags/v'`
-          echo "::set-output name=display_version::$(echo $VERSION | awk -F '-' '{print $1}')"
-          echo "::set-output name=build_number::$(echo $VERSION | awk -F '-' '{print $2}')"
+          echo "display_version=$(echo $VERSION | awk -F '-' '{print $1}')" >> $GITHUB_OUTPUT
+          echo "build_number=$(echo $VERSION | awk -F '-' '{print $2}')" >> $GITHUB_OUTPUT
         else
-          echo "::set-output name=display_version::${{ needs.generate-bundle-version.outputs.display_version }}"
-          echo "::set-output name=build_number::${{ needs.generate-bundle-version.outputs.build_number }}"
+          echo "display_version=${{ needs.generate-bundle-version.outputs.display_version }}" >> $GITHUB_OUTPUT
+          echo "build_number=${{ needs.generate-bundle-version.outputs.build_number }}" >> $GITHUB_OUTPUT
         fi
 
 
@@ -150,7 +150,7 @@ jobs:
 
     - name: Generate Keychain Name
       id: gen-keychain-name
-      run: echo "::set-output name=keychain-name::${{ github.run_id }}_${{ github.run_attempt }}"
+      run: echo "keychain-name=${{ github.run_id }}_${{ github.run_attempt }}" >> $GITHUB_OUTPUT
     - name: Import Code Sign Certificates
       id: import-code-sign-cert
       uses: apple-actions/import-codesign-certs@v1
@@ -371,11 +371,11 @@ jobs:
     - name: set PR number
       id: pr-num
       if: ${{ github.event_name == 'pull_request' }}
-      run: echo "::set-output name=str::#${{ github.event.number }}"
+      run: echo "str=#${{ github.event.number }}" >> $GITHUB_OUTPUT
 
     - name: generate tag name
       id: tag-name
-      run: echo "::set-output name=tag-name::v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}"
+      run: echo "tag-name=v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}" >> $GITHUB_OUTPUT
 
     - name: tagging new tag
       run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
