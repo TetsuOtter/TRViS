@@ -28,6 +28,9 @@ public partial class DTACMarkerViewModel : ObservableObject
 	{
 		string.Empty,
 		"停車",
+		"徐行",
+		"両数",
+		"規制",
 	};
 
 	[ObservableProperty]
