@@ -19,12 +19,18 @@ public partial class DTACMarkerViewModel : ObservableObject
 
 		// Yellow
 		new("黄", new(0xf0, 0xf0, 0x40)),
+
+		// Brown
+		new("茶", new(0x80, 0x40, 0x20)),
 	};
 
 	public List<string> TextList { get; } = new()
 	{
 		string.Empty,
 		"停車",
+		"徐行",
+		"両数",
+		"規制",
 	};
 
 	[ObservableProperty]
