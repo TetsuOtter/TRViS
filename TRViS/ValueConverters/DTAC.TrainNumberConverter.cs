@@ -12,8 +12,8 @@ public class TrainNumberConverter : IValueConverter
 
 		return s.Length switch
 		{
-			<= 5 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.SPACE_CHAR),
-			<= 8 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.THIN_SPACE),
+			<= 6 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.SPACE_CHAR),
+			<= 9 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.THIN_SPACE),
 			_ => s
 		};
 	}
