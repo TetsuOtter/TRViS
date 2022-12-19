@@ -75,32 +75,43 @@ public class LoaderSQLTests
 
 		TrainData? actual = loader.GetTrainData(1);
 		Assert.That(actual, Is.Not.Null);
+		Assert.That(actual.Rows, Is.Not.Null);
 
-		Assert.That(actual, Is.EqualTo(
-			new TrainData(
-				"Work01",
-				new(2022, 9, 15),
-				"T9910X",
-				"95",
-				"高速特定",
-				"E237系\n1M",
-				1,
-				"行き先",
-				"〜試験用データ~",
-				"〜試験用データ終わり~",
-				"試験用データ",
-				"発前点検300分",
-				"試験用ダミーデータ",
-				actual.Rows,
-				1
-			)
-		));
-
-		Assert.That(actual.Rows, Is.EquivalentTo(new TimetableRow[]
+		Assert.Multiple(() =>
 		{
-			new(1, 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc"),
-			new(2, 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null)
-		}));
+			Assert.That(actual, Is.EqualTo(
+				new TrainData(
+					"Work01",
+					new(2022, 9, 15),
+					"T9910X",
+					"95",
+					"高速特定",
+					"E237系\n1M",
+					1,
+					"行き先",
+					"〜試験用データ~",
+					"〜試験用データ終わり~",
+					"試験用データ",
+					"発前点検300分",
+					"試験用ダミーデータ",
+					actual.Rows,
+					1,
+
+					"着後作業 10分",
+					"点検",
+					"作業",
+					1,
+					false,
+					null
+				)
+			));
+
+			Assert.That(actual.Rows, Is.EquivalentTo(new TimetableRow[]
+			{
+				new(new(1, null, null, null), 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc", false, null, null),
+				new(new(2, 135.5, 35.5, 200), 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null, false, null, null)
+			}));
+		});
 	}
 
 	[Test]

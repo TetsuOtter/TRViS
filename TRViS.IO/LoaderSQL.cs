@@ -75,7 +75,7 @@ public class LoaderSQL : ILoader, IDisposable
 						from tj in track.DefaultIfEmpty()
 						orderby t.Direction >= 0 ? s.Location : (s.Location * -1)
 						select new TimetableRow(
-							Location: s.Location,
+							Location: new(s.Location, s.Location_Lon_deg, s.Location_Lat_deg, s.OnStationDetectRadius_m),
 							DriveTimeMM: r.DriveTime_MM,
 							DriveTimeSS: r.DriveTime_SS,
 							StationName: s.Name,
@@ -88,10 +88,26 @@ public class LoaderSQL : ILoader, IDisposable
 							TrackName: tj?.Name,
 							RunInLimit: r.RunInLimit,
 							RunOutLimit: r.RunOutLimit,
-							Remarks: r.Remarks
+							Remarks: r.Remarks,
+
+							IsInfoRow: s.RecordType
+								is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
+								or (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain,
+
+							// TODO: マーカーのデフォルト設定のサポート
+							DefaultMarkerColor_RGB: null,
+							DefaultMarkerText: null
 						)
 					).ToArray(),
-					Direction: t.Direction
+					Direction: t.Direction,
+					AfterArrive: t.AfterArrive,
+					BeforeDepartureOnStationTrackCol: t.BeforeDeparture_OnStationTrackCol,
+					AfterArriveOnStationTrackCol: t.AfterArrive_OnStationTrackCol,
+					DayCount: t.DayCount ?? 0,
+					IsRideOnMoving: t.IsRideOnMoving,
+
+					// TODO: E電時刻表用の線色設定のサポート
+					LineColor_RGB: null
 					)
 				).FirstOrDefault();
 
