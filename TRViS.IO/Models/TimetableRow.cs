@@ -1,7 +1,7 @@
 namespace TRViS.IO.Models;
 
 public record TimetableRow(
-	double Location,
+	LocationInfo Location,
 	int? DriveTimeMM,
 	int? DriveTimeSS,
 	string StationName,
@@ -14,5 +14,8 @@ public record TimetableRow(
 	string? TrackName,
 	int? RunInLimit,
 	int? RunOutLimit,
-	string? Remarks
+	string? Remarks,
+	bool IsInfoRow,
+	int? DefaultMarkerColor_RGB,
+	string? DefaultMarkerText
 );
