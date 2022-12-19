@@ -1,4 +1,4 @@
-## データベース構造
+# データベース構造
 
 将来的にはデータベース作成ツールを組み込むつもりですが、現在は未実装です。
 ただし、本アプリはSQLite3をDBエンジンとして使用しており、フリーソフトを用いて簡単にデータベースを作成することができます。
@@ -17,14 +17,14 @@
 |`station_track`|各駅の番線情報を記録する|
 |`timetable_row`|各列車の各駅到着時刻等を記録する|
 
-### 注意事項
+## 注意事項
 
 HTMLで表示内容を書くことができるColumnがありますが、HTMLを利用する場合は**何らかのタグで表示内容全体を囲んで**記録してください。
 実装の都合上、文字列の先頭に`<`、加えて末尾に`>`が存在する場合にHTMLで描画するようにしています。
 
 例えば、一部を太文字にしたい場合は、`ABC<b>D</b>EF`ではなく、`<span>ABC<b>D</b>EF</span>`のようにします。
 
-### work_groupテーブル
+## work_groupテーブル
 
 https://github.com/TetsuOtter/TRViS/blob/97de680106a7219d22753f4174b6167342e1f700/TRViS.IO.Tests/Resources/CreateTables.sql#L1-L5
 
@@ -33,7 +33,7 @@ https://github.com/TetsuOtter/TRViS/blob/97de680106a7219d22753f4174b6167342e1f70
 |`id`|INTEGER NOT NULL|WorkGroupテーブル内での一意の番号 (`AUTOINCREMENT`なため、自動で付与される)|0 ~|
 |`name`|TEXT NOT NULL|WorkGroupの名前|0 ~|
 
-### workテーブル
+## workテーブル
 
 https://github.com/TetsuOtter/TRViS/blob/97de680106a7219d22753f4174b6167342e1f700/TRViS.IO.Tests/Resources/CreateTables.sql#L7-L14
 
@@ -43,7 +43,7 @@ https://github.com/TetsuOtter/TRViS/blob/97de680106a7219d22753f4174b6167342e1f70
 |`work_group_id`|INTEGER NOT NULL|関連づけるWorkGroupの`id` (`work_group`で作成したWorkGroupのIDを指定する)|0 ~|
 |`name`|TEXT NOT NULL|WorkGroupの名前|0 ~|
 
-### train_dataテーブル
+## train_dataテーブル
 
 列車ごとの情報を記録するテーブルです。各駅の停車時刻等は`timetable_row`テーブルに記録します。
 
@@ -69,7 +69,7 @@ https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7
 なお、`v0.0.1-3`の時点では、`destination`、`after_remarks`、`remarks`、`before_departure`、`train_info`が未実装です。
 データをDBに含めることはできますが、現時点で、アプリ内で表示させることはできません。
 
-### stationテーブル
+## stationテーブル
 
 各駅の情報を記録するテーブルです。駅の情報はWorkGroupごとに分けることができます。
 
@@ -86,7 +86,7 @@ https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7
 駅名の全体を表す`full_name`は、現状アプリ内で実装されていません。
 上で示したSQLにも入れ忘れているので、このカラムの追加は任意です。
 
-### station_trackテーブル
+## station_trackテーブル
 
 https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7b/TRViS.IO.Tests/Resources/CreateTables.sql#L44-L50
 
@@ -98,7 +98,7 @@ https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7
 
 `name`には、例えば13番線であれば`１３`を指定します。
 
-### timetable_rowテーブル
+## timetable_rowテーブル
 
 https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7b/TRViS.IO.Tests/Resources/CreateTables.sql#L52-L79
 
