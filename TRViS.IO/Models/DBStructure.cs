@@ -2,6 +2,23 @@ using SQLite;
 
 namespace TRViS.IO.Models.DB;
 
+public enum ContentType
+{
+	Text,
+	URI,
+	PNG,
+	PDF,
+	JPG,
+}
+
+public enum StationRecordType
+{
+	NormalStation_ShownOnETimetable,
+	NormalStation_NotShownOnETimetable,
+	InfoRow_ForAlmostTrain,
+	InfoRow_ForSomeTrain,
+}
+
 [Table("work_group")]
 public record WorkGroup
 {
