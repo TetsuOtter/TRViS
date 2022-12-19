@@ -1,12 +1,16 @@
 INSERT INTO "work_group"
 (
   "id",
-  "name"
+  "name",
+
+  "db_version"
 )
 VALUES
 (
   '1',
-  'Group01'
+  'Group01',
+
+  '1'
 );
 
 INSERT INTO "work"
@@ -14,26 +18,54 @@ INSERT INTO "work"
   "id",
   "work_group_id",
   "name",
-  "affect_date"
+  "affect_date",
+
+  "affix_content_type",
+  "affix_content",
+  "remarks",
+  "has_e_train_timetable",
+  "e_train_timetable_content_type",
+  "e_train_timetable_content"
 )
 VALUES
 (
   '1',
   '1',
   'Work01',
-  '2022-09-15'
+  '2022-09-15',
+
+  NULL,
+  NULL,
+  'Work01 - Remarks',
+  '1',
+  NULL,
+  NULL
 ),
 (
   '2',
   '1',
   'Work02',
-  '2022-09-15'
+  '2022-09-15',
+
+  NULL,
+  NULL,
+  'Work02 - Remarks',
+  '2',
+  NULL,
+  NULL
 ),
 (
   '3',
   '1',
   'Work03',
-  '2022-09-15'
+  '2022-09-15',
+
+  NULL,
+  NULL,
+  'Work03 - Remarks',
+  '3',
+  NULL,
+  NULL
 );
 
 INSERT INTO "station"
@@ -41,38 +73,74 @@ INSERT INTO "station"
   "id",
   "work_group_id",
   "name",
-  "location"
+  "location",
+
+  "location_lon_deg",
+  "location_lat_deg",
+  "on_station_detect_radius_m",
+  "full_name",
+  "record_type"
 )
 VALUES
 (
   '1',
   '1',
   'Station1',
-  '1.0'
+  '1.0',
+
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL
 ),
 (
   '2',
   '1',
   'Station2',
-  '2.0'
+  '2.0',
+
+  '135.5',
+  '35.5',
+  '200',
+  'Station-2 Full Name',
+  '1'
 ),
 (
   '3',
   '1',
   'Station3',
-  '3.0'
+  '3.0',
+
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL
 ),
 (
   '4',
   '1',
   'Station4',
-  '4.0'
+  '4.0',
+
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL
 ),
 (
   '5',
   '1',
   'Station5',
-  '5.0'
+  '5.0',
+
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL
 );
 
 INSERT INTO "station_track"
@@ -123,7 +191,14 @@ INSERT INTO "train_data"
   "remarks",
   "before_departure",
   "train_info",
-  "direction"
+  "direction",
+
+  "after_arrive",
+  "before_departure_on_station_track_col",
+  "after_arrive_on_station_track_col",
+  "day_count",
+  "is_ride_on_moving",
+  "color_id"
 )
 VALUES
 (
@@ -141,7 +216,14 @@ VALUES
   '試験用データ',
   '発前点検300分',
   '試験用ダミーデータ',
-  '1'
+  '1',
+
+  '着後作業 10分',
+  '点検',
+  '作業',
+  1,
+  '0',
+  NULL
 );
 
 INSERT INTO "timetable_row"
@@ -166,7 +248,11 @@ INSERT INTO "timetable_row"
   "run_out_limit",
   "remarks",
   "arrive_str",
-  "departure_str"
+  "departure_str",
+
+  "marker_color_id",
+  "marker_text",
+  "work_type"
 )
 VALUES
 (
@@ -190,6 +276,10 @@ VALUES
   NULL,
   'abc',
   NULL,
+  NULL,
+
+  NULL,
+  '試験',
   NULL
 ),
 (
@@ -213,5 +303,9 @@ VALUES
   NULL,
   NULL,
   '停車',
-  NULL
+  NULL,
+
+  NULL,
+  NULL,
+  '0'
 );

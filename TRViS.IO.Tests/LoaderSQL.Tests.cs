@@ -113,7 +113,8 @@ public class LoaderSQLTests
 		Assert.That(actual, Has.Member(new Models.DB.WorkGroup()
 		{
 			Id = 1,
-			Name = "Group01"
+			Name = "Group01",
+			DBVersion = 1,
 		}));
 	}
 
@@ -131,7 +132,14 @@ public class LoaderSQLTests
 				Id = i,
 				WorkGroupId = 1,
 				Name = $"Work0{i}",
-				AffectDate = "2022-09-15"
+				AffectDate = "2022-09-15",
+
+				AffixContentType = null,
+				AffixContent = null,
+				Remarks = $"Work0{i} - Remarks",
+				HasETrainTimetable = i == 1,
+				ETrainTimetableContentType = null,
+				ETrainTimetableContent = null,
 			}));
 		}
 	}
@@ -158,7 +166,14 @@ public class LoaderSQLTests
 			AfterRemarks = "〜試験用データ終わり~",
 			BeforeDeparture = "発前点検300分",
 			TrainInfo = "試験用ダミーデータ",
-			Direction = 1
+			Direction = 1,
+
+			AfterArrive = "着後作業 10分",
+			BeforeDeparture_OnStationTrackCol = "点検",
+			AfterArrive_OnStationTrackCol = "作業",
+			DayCount = 1,
+			IsRideOnMoving = false,
+			ColorId = null,
 		}));
 	}
 }
