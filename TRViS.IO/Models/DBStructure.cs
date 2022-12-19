@@ -34,7 +34,7 @@ public record Work
 	public int? AffixContentType { get; set; }
 
 	[Column("affix_content")]
-	public byte[]? AffixContet { get; set; }
+	public byte[]? AffixContent { get; set; }
 
 	[Column("remarks")]
 	public string? Remarks { get; set; }
