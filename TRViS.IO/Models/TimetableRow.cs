@@ -15,7 +15,7 @@ public record TimetableRow(
 	int? RunInLimit,
 	int? RunOutLimit,
 	string? Remarks,
-	bool IsInfoRow,
-	int? DefaultMarkerColor_RGB,
-	string? DefaultMarkerText
+	bool IsInfoRow = false,
+	int? DefaultMarkerColor_RGB = null,
+	string? DefaultMarkerText = null
 );
