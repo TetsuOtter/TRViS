@@ -5,10 +5,10 @@ public record TrainDataFileInfo(
 	string TrainID,
 	string WorkName,
 	string TrainNumber
-	);
+);
 
 public record TrainDataGroup(
 	string ID,
 	string GroupName,
 	TrainDataFileInfo[] FileInfoArray
-	);
+);

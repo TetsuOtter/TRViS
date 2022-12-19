@@ -15,4 +15,4 @@ public record TimetableRow(
 	int? RunInLimit,
 	int? RunOutLimit,
 	string? Remarks
-	);
+);
