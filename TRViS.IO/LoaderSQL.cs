@@ -52,19 +52,19 @@ public class LoaderSQL : ILoader, IDisposable
 				join w in Connection.Table<Models.DB.Work>()
 				on t.WorkId equals w.Id
 				select new TrainData(
-					w.Name,
-					DateOnly.TryParse(w.AffectDate, out DateOnly date) ? date : null,
-					t.TrainNumber,
-					t.MaxSpeed,
-					t.SpeedType,
-					t.NominalTractiveCapacity,
-					t.CarCount,
-					t.Destination,
-					t.BeginRemarks,
-					t.AfterRemarks,
-					t.Remarks,
-					t.BeforeDeparture,
-					t.TrainInfo,
+					WorkName: w.Name,
+					AffectDate: DateOnly.TryParse(w.AffectDate, out DateOnly date) ? date : null,
+					TrainNumber: t.TrainNumber,
+					MaxSpeed: t.MaxSpeed,
+					SpeedType: t.SpeedType,
+					NominalTractiveCapacity: t.NominalTractiveCapacity,
+					CarCount: t.CarCount,
+					Destination: t.Destination,
+					BeginRemarks: t.BeginRemarks,
+					AfterRemarks: t.AfterRemarks,
+					Remarks: t.Remarks,
+					BeforeDeparture: t.BeforeDeparture,
+					TrainInfo: t.TrainInfo,
 					(
 						from r in Connection.Table<Models.DB.TimetableRowData>()
 						where r.TrainId == trainId
@@ -75,23 +75,23 @@ public class LoaderSQL : ILoader, IDisposable
 						from tj in track.DefaultIfEmpty()
 						orderby t.Direction >= 0 ? s.Location : (s.Location * -1)
 						select new TimetableRow(
-							s.Location,
-							r.DriveTime_MM,
-							r.DriveTime_SS,
-							s.Name,
-							r.IsOperationOnlyStop ?? false,
-							r.IsPass ?? false,
-							r.HasBracket ?? false,
-							r.IsLastStop ?? false,
-							GetTimeData(r.Arrive_HH, r.Arrive_MM, r.Arrive_SS, r.Arrive_Str),
-							GetTimeData(r.Departure_HH, r.Departure_MM, r.Departure_SS, r.Departure_Str),
-							tj?.Name,
-							r.RunInLimit,
-							r.RunOutLimit,
-							r.Remarks
+							Location: s.Location,
+							DriveTimeMM: r.DriveTime_MM,
+							DriveTimeSS: r.DriveTime_SS,
+							StationName: s.Name,
+							IsOperationOnlyStop: r.IsOperationOnlyStop ?? false,
+							IsPass: r.IsPass ?? false,
+							HasBracket: r.HasBracket ?? false,
+							IsLastStop: r.IsLastStop ?? false,
+							ArriveTime: GetTimeData(r.Arrive_HH, r.Arrive_MM, r.Arrive_SS, r.Arrive_Str),
+							DepartureTime: GetTimeData(r.Departure_HH, r.Departure_MM, r.Departure_SS, r.Departure_Str),
+							TrackName: tj?.Name,
+							RunInLimit: r.RunInLimit,
+							RunOutLimit: r.RunOutLimit,
+							Remarks: r.Remarks
 						)
 					).ToArray(),
-					t.Direction
+					Direction: t.Direction
 					)
 				).FirstOrDefault();
 
