@@ -40,8 +40,8 @@ CREATE TABLE "train_data" (
 	"direction" INTEGER NOT NULL,
 
 	"after_arrive" TEXT,
-	"before_departure_on__station_track_col" TEXT,
-	"after_arrive_on__station_track_col" TEXT,
+	"before_departure_on_station_track_col" TEXT,
+	"after_arrive_on_station_track_col" TEXT,
 	"day_count" INTEGER,
 	"is_ride_on_moving" INTEGER,
 	"color_id" INTEGER,
