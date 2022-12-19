@@ -4,9 +4,9 @@ using TRViS.IO.Models;
 
 namespace TRViS.IO.Tests;
 
-public class LoaderSQLTests
+public class LoaderSQLV0Tests
 {
-	const string DB_FILE_NAME = $"{nameof(LoaderSQLTests)}.sqlite";
+	const string DB_FILE_NAME = $"{nameof(LoaderSQLV0Tests)}.sqlite";
 	static readonly string DB_FILE_PATH = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "", DB_FILE_NAME);
 
 	[OneTimeSetUp]
@@ -19,7 +19,7 @@ public class LoaderSQLTests
 
 		try
 		{
-			string sql = File.ReadAllText(Path.Combine("Resources", "CreateTables.sql"));
+			string sql = File.ReadAllText(Path.Combine("Resources", "CreateTables.v0.sql"));
 
 			foreach (var query in sql.Split(';'))
 			{
@@ -28,7 +28,7 @@ public class LoaderSQLTests
 				cnx.Execute(query);
 			}
 
-			string sql_add_data = File.ReadAllText(Path.Combine("Resources", "AddSampleData_1.sql"));
+			string sql_add_data = File.ReadAllText(Path.Combine("Resources", "AddSampleData_0.sql"));
 
 			foreach (var query in sql_add_data.Split(';'))
 			{
@@ -75,43 +75,32 @@ public class LoaderSQLTests
 
 		TrainData? actual = loader.GetTrainData(1);
 		Assert.That(actual, Is.Not.Null);
-		Assert.That(actual.Rows, Is.Not.Null);
 
-		Assert.Multiple(() =>
+		Assert.That(actual, Is.EqualTo(
+			new TrainData(
+				"Work01",
+				new(2022, 9, 15),
+				"T9910X",
+				"95",
+				"高速特定",
+				"E237系\n1M",
+				1,
+				"行き先",
+				"〜試験用データ~",
+				"〜試験用データ終わり~",
+				"試験用データ",
+				"発前点検300分",
+				"試験用ダミーデータ",
+				actual.Rows,
+				1
+			)
+		));
+
+		Assert.That(actual.Rows, Is.EquivalentTo(new TimetableRow[]
 		{
-			Assert.That(actual, Is.EqualTo(
-				new TrainData(
-					"Work01",
-					new(2022, 9, 15),
-					"T9910X",
-					"95",
-					"高速特定",
-					"E237系\n1M",
-					1,
-					"行き先",
-					"〜試験用データ~",
-					"〜試験用データ終わり~",
-					"試験用データ",
-					"発前点検300分",
-					"試験用ダミーデータ",
-					actual.Rows,
-					1,
-
-					"着後作業 10分",
-					"点検",
-					"作業",
-					1,
-					false,
-					null
-				)
-			));
-
-			Assert.That(actual.Rows, Is.EquivalentTo(new TimetableRow[]
-			{
-				new(new(1, null, null, null), 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc", false, null, null),
-				new(new(2, 135.5, 35.5, 200), 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null, false, null, null)
-			}));
-		});
+			new(new(1), 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc"),
+			new(new(2), 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null)
+		}));
 	}
 
 	[Test]
@@ -124,8 +113,7 @@ public class LoaderSQLTests
 		Assert.That(actual, Has.Member(new Models.DB.WorkGroup()
 		{
 			Id = 1,
-			Name = "Group01",
-			DBVersion = 1,
+			Name = "Group01"
 		}));
 	}
 
@@ -143,14 +131,7 @@ public class LoaderSQLTests
 				Id = i,
 				WorkGroupId = 1,
 				Name = $"Work0{i}",
-				AffectDate = "2022-09-15",
-
-				AffixContentType = null,
-				AffixContent = null,
-				Remarks = $"Work0{i} - Remarks",
-				HasETrainTimetable = i == 1,
-				ETrainTimetableContentType = null,
-				ETrainTimetableContent = null,
+				AffectDate = "2022-09-15"
 			}));
 		}
 	}
@@ -177,14 +158,7 @@ public class LoaderSQLTests
 			AfterRemarks = "〜試験用データ終わり~",
 			BeforeDeparture = "発前点検300分",
 			TrainInfo = "試験用ダミーデータ",
-			Direction = 1,
-
-			AfterArrive = "着後作業 10分",
-			BeforeDeparture_OnStationTrackCol = "点検",
-			AfterArrive_OnStationTrackCol = "作業",
-			DayCount = 1,
-			IsRideOnMoving = false,
-			ColorId = null,
+			Direction = 1
 		}));
 	}
 }

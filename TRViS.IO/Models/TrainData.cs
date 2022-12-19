@@ -15,5 +15,11 @@ public record TrainData(
 	string? BeforeDeparture,
 	string? TrainInfo,
 	TimetableRow[]? Rows,
-	int Direction
+	int Direction,
+	string? AfterArrive = null,
+	string? BeforeDepartureOnStationTrackCol = null,
+	string? AfterArriveOnStationTrackCol = null,
+	int DayCount = 0,
+	bool? IsRideOnMoving = null,
+	int? LineColor_RGB = null
 ) : IHasRemarksProperty;

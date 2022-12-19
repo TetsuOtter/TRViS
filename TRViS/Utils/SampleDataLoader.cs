@@ -48,7 +48,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		Rows: new[]
 		{
 			new TimetableRow(
-				Location: 1,
+				Location: new(1),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅１",
@@ -64,7 +64,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 2,
+				Location: new(2),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅２",
@@ -80,7 +80,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "<b>記事</b>"
 			),
 			new TimetableRow(
-				Location: 3,
+				Location: new(3),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅３",
@@ -96,7 +96,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "転線"
 			),
 			new TimetableRow(
-				Location: 4,
+				Location: new(4),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "東京",
@@ -112,7 +112,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 5,
+				Location: new(5),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "津",
@@ -128,7 +128,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事\n任意の内容"
 			),
 			new TimetableRow(
-				Location: 6,
+				Location: new(6),
 				DriveTimeMM: 4,
 				DriveTimeSS: 30,
 				StationName: "大宮",
@@ -144,7 +144,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 7,
+				Location: new(7),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
 				StationName: "南浦和",
@@ -160,7 +160,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 8,
+				Location: new(8),
 				DriveTimeMM: null,
 				DriveTimeSS: 5,
 				StationName: "さ新都心",
@@ -176,7 +176,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 9,
+				Location: new(9),
 				DriveTimeMM: 1,
 				DriveTimeSS: null,
 				StationName: "赤羽",
@@ -192,7 +192,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 10,
+				Location: new(10),
 				DriveTimeMM: 10,
 				DriveTimeSS: 0,
 				StationName: "駅１０",
@@ -208,7 +208,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 11,
+				Location: new(11),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅１１",
@@ -224,7 +224,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 12,
+				Location: new(12),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅１２",
@@ -240,7 +240,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 13,
+				Location: new(13),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅１３",
@@ -256,7 +256,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 14,
+				Location: new(14),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅１４",
@@ -272,7 +272,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 15,
+				Location: new(15),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅１５",
@@ -308,7 +308,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	Rows: new[]
 	{
 			new TimetableRow(
-				Location: 1,
+				Location: new(1),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅１",
@@ -324,7 +324,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 2,
+				Location: new(2),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅２",
@@ -340,7 +340,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "<b>記事</b>"
 			),
 			new TimetableRow(
-				Location: 3,
+				Location: new(3),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "駅３",
@@ -356,7 +356,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "転線"
 			),
 			new TimetableRow(
-				Location: 4,
+				Location: new(4),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "東京",
@@ -372,7 +372,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
-				Location: 5,
+				Location: new(5),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
 				StationName: "津",
