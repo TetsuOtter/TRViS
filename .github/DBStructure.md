@@ -26,28 +26,36 @@ HTMLで表示内容を書くことができるColumnがありますが、HTMLを
 
 ## work_groupテーブル
 
-https://github.com/TetsuOtter/TRViS/blob/97de680106a7219d22753f4174b6167342e1f700/TRViS.IO.Tests/Resources/CreateTables.sql#L1-L5
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L1-L7
 
 |Column|Type|Description|Version|
 |---:|:---:|:---|:---:|
 |`id`|INTEGER NOT NULL|WorkGroupテーブル内での一意の番号 (`AUTOINCREMENT`なため、自動で付与される)|0 ~|
 |`name`|TEXT NOT NULL|WorkGroupの名前|0 ~|
+|`db_version`|INTEGER|データベース構造のバージョン|1 ~|
 
 ## workテーブル
 
-https://github.com/TetsuOtter/TRViS/blob/97de680106a7219d22753f4174b6167342e1f700/TRViS.IO.Tests/Resources/CreateTables.sql#L7-L14
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L9-L24
 
 |Column|Type|Description|Version|
 |---:|:---:|:---|:---:|
 |`id`|INTEGER NOT NULL|Workテーブル内での一意の番号 (`AUTOINCREMENT`なため、自動で付与される)|0 ~|
 |`work_group_id`|INTEGER NOT NULL|関連づけるWorkGroupの`id` (`work_group`で作成したWorkGroupのIDを指定する)|0 ~|
 |`name`|TEXT NOT NULL|WorkGroupの名前|0 ~|
+|`affect_date`|TEXT NOT NULL|「行路施行日」に表示する日付<br/>`YYYY-MM-DD`形式で指定できます。あるいは、空文字列にすることで、アプリで読み込んだ当日の日付が表示されます|0 ~|
+|`affix_content_type`|INTEGER|「行路添付」に表示するデータのデータ形式|1 ~|
+|`affix_content`|BLOB|「行路添付」に表示するデータ|1 ~|
+|`remarks`|TEXT|行路の注意事項 (HTMLを書くと、任意のスタイルで文字を表示できます)|1 ~|
+|`has_e_train_timetable`|INTEGER|「E電時刻表」を持っているか|1 ~|
+|`e_train_timetable_content_type`|INTEGER|「E電時刻表」に表示するデータのデータ形式|1 ~|
+|`e_train_timetable_content`|BLOB|「E電時刻表」に表示するデータ|1 ~|
 
 ## train_dataテーブル
 
 列車ごとの情報を記録するテーブルです。各駅の停車時刻等は`timetable_row`テーブルに記録します。
 
-https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7b/TRViS.IO.Tests/Resources/CreateTables.sql#L16-L33
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L26-L52
 
 |Column|Type|Description|Version|
 |---:|:---:|:---|:---:|
@@ -65,30 +73,43 @@ https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7
 |`before_departure`|TEXT|「発前」に表示される内容 (HTMLを書くと、任意のスタイルで文字を表示できます)|0 ~|
 |`train_info`|TEXT|「発前」の上部分に表示される内容 (HTMLを書くと、任意のスタイルで文字を表示できます)|0 ~|
 |`direction`|INTEGER NOT NULL|列車の進行方向を表す値<br/>0以上の値を設定することで、駅位置について昇順(`0 to 9`の順)で表示されます。逆に、0未満で降順(`9 to 0`)です。|0 ~|
-
-なお、`v0.0.1-3`の時点では、`destination`、`after_remarks`、`remarks`、`before_departure`、`train_info`が未実装です。
-データをDBに含めることはできますが、現時点で、アプリ内で表示させることはできません。
+|`after_arrive`|TEXT|「着後」に表示される内容 (HTMLを書くと、任意のスタイルで文字を表示できます)|1 ~|
+|`before_departure_on_station_track_col`|TEXT|「発前」に表示される内容のうち、「着発線」と同じ列に表示されるもの|1 ~|
+|`after_arrive_on_station_track_col`|TEXT|「着後」に表示される内容のうち、「着発線」と同じ列に表示されるもの|1 ~|
+|`day_count`|INTEGER|仕業の初日からの経過日数 (初日なら`NULL`または`0`、明けなら`1`)|1 ~|
+|`is_ride_on_moving`|INTEGER|便乗かどうか (便乗なら`1`、そうでないなら`0`)|1 ~|
+|`color_id`|INTEGER|E電時刻表で使用する、線の色ID|1 ~|
 
 ## stationテーブル
 
 各駅の情報を記録するテーブルです。駅の情報はWorkGroupごとに分けることができます。
 
-https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7b/TRViS.IO.Tests/Resources/CreateTables.sql#L35-L42
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L54-L68
 
 |Column|Type|Description|Version|
 |---:|:---:|:---|:---:|
 |`id`|INTEGER NOT NULL|Stationテーブル内での一意の番号 (`AUTOINCREMENT`なため、自動で付与される)|0 ~|
 |`work_group_id`|INTEGER NOT NULL|関連づけるWorkGroupの`id` (`work_group`で作成したWorkGroupのIDを指定する)|0 ~|
-|`name`|TEXT NOT NULL|駅の名前 (4文字以下で指定)|0 ~|
-|`full_name`|TEXT|駅の完全な名前 (5文字以上の格納が可能)|0 ~|
+|`name`|TEXT NOT NULL|時刻表に表示するのに使用する文字列 (駅名の場合は4文字以下)|0 ~|
+|`full_name`|TEXT|駅の完全な名前 (5文字以上の格納が可能)|1 ~|
 |`location`|REAL NOT NULL|駅の位置 [m] (駅の並び順を決定するのに使用)|0 ~|
+|`location_lon_deg`|REAL|駅の経度を度数法で表したもの [deg]|1 ~|
+|`location_lat_deg`|REAL|駅の緯度を度数法で表したもの [deg]|1 ~|
+|`on_station_detect_radius_m`|REAL|駅に在線しているかどうかを検出する円の半径 [m]|1 ~|
+|`record_type`|INTEGER|駅の種類|1 ~|
 
-駅名の全体を表す`full_name`は、現状アプリ内で実装されていません。
-上で示したSQLにも入れ忘れているので、このカラムの追加は任意です。
+なお、`record_type`にて使用する数字と意味の対照は以下の通りです。
+
+|Value|Meaning|
+|:---:|:---|
+|0|通常の駅 (E電時刻表に表示させる)|
+|1|通常の駅 (E電時刻表に表示させない)|
+|2|情報を表示する行 (ほぼ全ての列車に表示させるもの)<br/>(例: 「交直切換」など)|
+|3|情報を表示する行 (一部の列車に表示させるもの)<br/>(例: 工臨の現場情報など)|
 
 ## station_trackテーブル
 
-https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7b/TRViS.IO.Tests/Resources/CreateTables.sql#L44-L50
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L70-L76
 
 |Column|Type|Description|Version|
 |---:|:---:|:---|:---:|
@@ -100,7 +121,7 @@ https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7
 
 ## timetable_rowテーブル
 
-https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7b/TRViS.IO.Tests/Resources/CreateTables.sql#L52-L79
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L78-L111
 
 |Column|Type|Description|Version|
 |---:|:---:|:---|:---:|
@@ -125,3 +146,32 @@ https://github.com/TetsuOtter/TRViS/blob/a02427bd35a93f4f64046685b68533f858809d7
 |`run_in_limit`|INTEGER|「制限速度」列に進入制限として表示する速度。`NULL`で非表示|0 ~|
 |`run_out_limit`|INTEGER|「制限速度」列に進出制限として表示する速度。`NULL`で非表示|0 ~|
 |`remarks`|TEXT|「記事」列に表示する文字列 (HTMLを書くと、任意のスタイルで文字を表示できます)|0 ~|
+|`marker_color_id`|INTEGER|デフォルトで表示させるマーカーの色ID|1 ~|
+|`marker_text`|TEXT|デフォルトで表示させるマーカーのテキスト|1 ~|
+|`work_type`|INTEGER|仕業の情報|1 ~|
+
+なお、`record_type`にて使用する数字と意味の対照は以下の通りです。
+
+|Value|Meaning|
+|:---:|:---|
+|0|なし|
+
+(現在策定中)
+
+## languageテーブル
+
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L113-L119
+
+多言語対応用言語情報を記録するテーブル
+
+現在準備中
+
+## colorテーブル
+
+https://github.com/TetsuOtter/TRViS/blob/eb35688f6f5544b1448f554b692f705f7a715141/TRViS.IO.Tests/Resources/CreateTables.sql#L161-L167
+
+|Column|Type|Description|Version|
+|---:|:---:|:---|:---:|
+|`id`|INTEGER NOT NULL|Colorテーブル内での一意の番号 (`AUTOINCREMENT`なため、自動で付与される)|1 ~|
+|`name`|TEXT|色の名前|1 ~|
+|`rgb`|INTEGER|色の情報 (`0xRRGGBB`)|1 ~|
