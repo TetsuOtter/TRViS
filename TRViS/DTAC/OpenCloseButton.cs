@@ -7,6 +7,8 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("TextWhenClosed")]
 public partial class OpenCloseButton : Button
 {
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsOpenChanged;
+
 	public OpenCloseButton()
 	{
 		this.SetBinding(TextProperty, new Binding()
@@ -55,4 +57,7 @@ public partial class OpenCloseButton : Button
 
 		Clicked += (_, _) => IsOpen = !IsOpen;
 	}
+
+	partial void OnIsOpenChanged(bool oldValue, bool newValue)
+		=> IsOpenChanged?.Invoke(this, new(oldValue, newValue));
 }
