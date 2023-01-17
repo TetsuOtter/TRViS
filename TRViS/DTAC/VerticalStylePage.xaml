@@ -52,6 +52,14 @@
 				HorizontalOptions="End"
 				Margin="2"/>
 
+			<dtac:OpenCloseButton
+				Grid.Column="3"
+				TextWhenOpen="&#xe5ce;"
+				TextWhenClosed="&#xe5cf;"
+				IsOpenChanged="BeforeRemarks_TrainInfo_OpenCloseChanged"
+				Margin="0"
+				HorizontalOptions="Center"
+				VerticalOptions="Center"/>
 		</Grid>
 
 		<Grid

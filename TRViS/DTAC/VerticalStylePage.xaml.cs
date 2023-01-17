@@ -30,7 +30,7 @@ public partial class VerticalStylePage : ContentView
 	RowDefinition DateAndStartButtonRowDefinition { get; } = new(DATE_AND_START_BUTTON_ROW_HEIGHT);
 
 	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
-		= DATE_AND_START_BUTTON_ROW_HEIGHT
+		= DATE_AND_START_BUTTON_ROW_HEIGHT * 3
 		+ TRAIN_INFO_HEADER_ROW_HEIGHT
 		+ TRAIN_INFO_ROW_HEIGHT
 		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
@@ -116,5 +116,14 @@ public partial class VerticalStylePage : ContentView
 	{
 		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
 			await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
+	}
+
+	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
+	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
+	{
+		(double start, double end) = e.NewValue ? (3, 1) : (1, 3);
+
+		new Animation(v => DateAndStartButtonRowDefinition.Height = DATE_AND_START_BUTTON_ROW_HEIGHT * v, start, end, Easing.SinInOut)
+			.Commit(this, DateAndStartButton_AnimationName, length: 3000, finished: (v, _) => DateAndStartButtonRowDefinition.Height = DATE_AND_START_BUTTON_ROW_HEIGHT * v);
 	}
 }
