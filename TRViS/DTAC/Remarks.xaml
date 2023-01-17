@@ -36,7 +36,7 @@
 		Grid.Row="0"
 		TextWhenOpen="&#xe5cf;"
 		TextWhenClosed="&#xe5ce;"
-		IsOpen="{Binding IsOpen}"
+		IsOpenChanged="OpenCloseButton_IsOpenChanged"
 		Margin="16,0"
 		HorizontalOptions="End"
 		VerticalOptions="Center"/>
