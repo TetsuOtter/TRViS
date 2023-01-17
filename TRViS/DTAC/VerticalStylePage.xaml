@@ -19,7 +19,6 @@
 
 	<Grid
 		x:Name="MainGrid"
-		RowDefinitions="{x:Static dtac:VerticalStylePage.PageRowDefinitionCollection}"
 		IgnoreSafeArea="True"
 		MinimumWidthRequest="740">
 
