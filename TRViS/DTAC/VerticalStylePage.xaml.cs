@@ -124,6 +124,6 @@ public partial class VerticalStylePage : ContentView
 		(double start, double end) = e.NewValue ? (3, 1) : (1, 3);
 
 		new Animation(v => DateAndStartButtonRowDefinition.Height = DATE_AND_START_BUTTON_ROW_HEIGHT * v, start, end, Easing.SinInOut)
-			.Commit(this, DateAndStartButton_AnimationName, length: 3000, finished: (v, _) => DateAndStartButtonRowDefinition.Height = DATE_AND_START_BUTTON_ROW_HEIGHT * v);
+			.Commit(this, DateAndStartButton_AnimationName, length: 250, finished: (v, _) => DateAndStartButtonRowDefinition.Height = DATE_AND_START_BUTTON_ROW_HEIGHT * v);
 	}
 }
