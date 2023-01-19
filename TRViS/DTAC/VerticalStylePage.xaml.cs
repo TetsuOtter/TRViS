@@ -104,9 +104,12 @@ public partial class VerticalStylePage : ContentView
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
 
-		// TODO: https://github.com/TetsuOtter/TRViS/issues/10
-		// 「翌」表示を実装したら、ここも適切な日付を表示するようにする。
-		AffectDate = (newValue?.AffectDate ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyy年M月d日");
+		int dayCount = newValue?.DayCount ?? 0;
+		this.IsNextDayLabel.IsVisible = dayCount > 0;
+		AffectDate = (
+			newValue?.AffectDate
+			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
+		).ToString("yyyy年M月d日");
 	}
 
 	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
