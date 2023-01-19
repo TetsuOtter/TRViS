@@ -24,21 +24,17 @@ public partial class VerticalStylePage : ContentView
 	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
+	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = TrainInfo_BeforeDeparture.DEFAULT_ROW_HEIGHT * 2;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
-	static public RowDefinitionCollection PageRowDefinitionCollection => new(
-		new(new(DATE_AND_START_BUTTON_ROW_HEIGHT)),
-		new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
-		new(new(TRAIN_INFO_ROW_HEIGHT)),
-		new(new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT)),
-		new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
-		new(new(1, GridUnitType.Star))
-		);
+
+	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
 
 	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
 		= DATE_AND_START_BUTTON_ROW_HEIGHT
 		+ TRAIN_INFO_HEADER_ROW_HEIGHT
 		+ TRAIN_INFO_ROW_HEIGHT
+		+ TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT
 		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
 		+ TIMETABLE_HEADER_ROW_HEIGHT;
 
@@ -49,6 +45,16 @@ public partial class VerticalStylePage : ContentView
 	public VerticalStylePage()
 	{
 		InitializeComponent();
+
+		MainGrid.RowDefinitions = new(
+			new(DATE_AND_START_BUTTON_ROW_HEIGHT),
+			new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
+			new(new(TRAIN_INFO_ROW_HEIGHT)),
+			TrainInfo_BeforeDepature_RowDefinition,
+			new(new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT)),
+			new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
+			new(new(1, GridUnitType.Star))
+		);
 
 		this.TimetableHeader.MarkerSettings = TimetableView.MarkerViewModel;
 
@@ -83,8 +89,8 @@ public partial class VerticalStylePage : ContentView
 
 		TimetableView.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
 		{
-			Source = this.StartEndRunButton,
-			Path = nameof(StartEndRunButton.IsChecked)
+			Source = this.PageHeaderArea,
+			Path = nameof(PageHeader.IsRunning)
 		});
 
 		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
@@ -104,6 +110,10 @@ public partial class VerticalStylePage : ContentView
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
 
+		TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
+		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
+		TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
+
 		int dayCount = newValue?.DayCount ?? 0;
 		this.IsNextDayLabel.IsVisible = dayCount > 0;
 		AffectDate = (
@@ -112,9 +122,21 @@ public partial class VerticalStylePage : ContentView
 		).ToString("yyyy年M月d日");
 	}
 
+	partial void OnAffectDateChanged(string? newValue)
+	 => PageHeaderArea.AffectDateLabelText = newValue ?? "";
+
 	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
 	{
 		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
 			await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
+	}
+
+	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
+	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
+	{
+		(double start, double end) = e.NewValue ? (TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT, 0d) : (0d, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT);
+
+		new Animation(v => TrainInfo_BeforeDepature_RowDefinition.Height = v, start, end, Easing.SinInOut)
+			.Commit(this, DateAndStartButton_AnimationName, length: 250, finished: (v, _) => TrainInfo_BeforeDepature_RowDefinition.Height = v);
 	}
 }
