@@ -407,6 +407,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	Remarks: null,
 	BeforeDeparture: null,
 	TrainInfo: null,
+
+	DayCount: 1,
+
 	Rows: new[]
 	{
 			new TimetableRow(
