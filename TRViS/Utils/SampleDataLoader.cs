@@ -9,6 +9,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	const int WORK_1_1 = 1;
 	const int TRAIN_1_1_1 = 1;
 	const int TRAIN_1_1_2 = 2;
+	const int TRAIN_1_1_3 = 3;
 
 	static readonly List<WorkGroup> WorkGroupList = new()
 	{
@@ -24,6 +25,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	{
 		new(){ Id = TRAIN_1_1_1, TrainNumber = "Train01" },
 		new(){ Id = TRAIN_1_1_2, TrainNumber = "Train02" },
+		new(){ Id = TRAIN_1_1_3, TrainNumber = "Train03" },
 	};
 
 	static readonly List<TrainDataGroup> TrainDataGroupList = new()
@@ -391,6 +393,58 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	1
 	);
 
+	static readonly IO.Models.TrainData SampleTrainData3 = new(
+	WorkName: "Work1-1",
+	AffectDate: null,
+	TrainNumber: "試単9093",
+	MaxSpeed: null,
+	SpeedType: null,
+	NominalTractiveCapacity: null,
+	CarCount: null,
+	Destination: null,
+	BeginRemarks: null,
+	AfterRemarks: null,
+	Remarks: null,
+	BeforeDeparture: null,
+	TrainInfo: null,
+	Rows: new[]
+	{
+			new TimetableRow(
+				Location: new(1),
+				DriveTimeMM: 1,
+				DriveTimeSS: 5,
+				StationName: "駅１",
+				IsOperationOnlyStop: false,
+				IsPass: false,
+				HasBracket: true,
+				IsLastStop: false,
+				ArriveTime: new(1,23,45,null),
+				DepartureTime: new(1,25,null, null),
+				TrackName: "1",
+				RunInLimit: null,
+				RunOutLimit: 30,
+				Remarks: "記事"
+			),
+			new TimetableRow(
+				Location: new(2),
+				DriveTimeMM: 1,
+				DriveTimeSS: 5,
+				StationName: "駅２",
+				IsOperationOnlyStop: false,
+				IsPass: false,
+				HasBracket: false,
+				IsLastStop: false,
+				ArriveTime: new(null,null,null,null),
+				DepartureTime: new(null,26,10, null),
+				TrackName: "10",
+				RunInLimit: 30,
+				RunOutLimit: 30,
+				Remarks: "<b>記事</b>"
+			),
+	},
+	Direction: 1
+	);
+
 	public void Dispose() { }
 
 	public IO.Models.TrainData? GetTrainData(int trainId)
@@ -398,6 +452,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		{
 			TRAIN_1_1_1 => SampleTrainData,
 			TRAIN_1_1_2 => SampleTrainData2,
+			TRAIN_1_1_3 => SampleTrainData3,
 			_ => null
 		};
 
