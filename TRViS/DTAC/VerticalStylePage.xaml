@@ -22,45 +22,11 @@
 		IgnoreSafeArea="True"
 		MinimumWidthRequest="740">
 
-		<Grid
+		<dtac:PageHeader
+			x:Name="PageHeaderArea"
 			Grid.Row="0"
-			BackgroundColor="White">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="*"/>
-				<ColumnDefinition Width="160"/>
-				<ColumnDefinition Width="120"/>
-				<ColumnDefinition Width="80"/>
-			</Grid.ColumnDefinitions>
-
-			<Label
-				Style="{StaticResource LabelStyle}"
-				Margin="18,4"
-				FontSize="18"
-				HorizontalOptions="Start">
-				<Label.FormattedText>
-					<FormattedString>
-						<Span Text="行路施行日&#xa;"/>
-						<Span Text="{Binding AffectDate, Source={x:Reference this}}"/>
-					</FormattedString>
-				</Label.FormattedText>
-			</Label>
-
-			<dtac:StartEndRunButton
-				x:Name="StartEndRunButton"
-				Grid.Column="1"
-				VerticalOptions="Center"
-				HorizontalOptions="End"
-				Margin="2"/>
-
-			<dtac:OpenCloseButton
-				Grid.Column="3"
-				TextWhenOpen="&#xe5ce;"
-				TextWhenClosed="&#xe5cf;"
-				IsOpenChanged="BeforeRemarks_TrainInfo_OpenCloseChanged"
-				Margin="0"
-				HorizontalOptions="Center"
-				VerticalOptions="Center"/>
-		</Grid>
+			IsOpenChanged="BeforeRemarks_TrainInfo_OpenCloseChanged"
+			BackgroundColor="White"/>
 
 		<Grid
 			Grid.Row="1"

@@ -86,8 +86,8 @@ public partial class VerticalStylePage : ContentView
 
 		TimetableView.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
 		{
-			Source = this.StartEndRunButton,
-			Path = nameof(StartEndRunButton.IsChecked)
+			Source = this.PageHeaderArea,
+			Path = nameof(PageHeader.IsRunning)
 		});
 
 		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
@@ -111,6 +111,9 @@ public partial class VerticalStylePage : ContentView
 		// 「翌」表示を実装したら、ここも適切な日付を表示するようにする。
 		AffectDate = (newValue?.AffectDate ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyy年M月d日");
 	}
+
+	partial void OnAffectDateChanged(string? newValue)
+	 => PageHeaderArea.AffectDateLabelText = newValue ?? "";
 
 	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
 	{
