@@ -24,15 +24,17 @@ public partial class VerticalStylePage : ContentView
 	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
+	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = TrainInfo_BeforeDeparture.DEFAULT_ROW_HEIGHT * 2;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 
-	RowDefinition DateAndStartButtonRowDefinition { get; } = new(DATE_AND_START_BUTTON_ROW_HEIGHT);
+	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
 
 	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
-		= DATE_AND_START_BUTTON_ROW_HEIGHT * 3
+		= DATE_AND_START_BUTTON_ROW_HEIGHT
 		+ TRAIN_INFO_HEADER_ROW_HEIGHT
 		+ TRAIN_INFO_ROW_HEIGHT
+		+ TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT
 		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
 		+ TIMETABLE_HEADER_ROW_HEIGHT;
 
@@ -45,9 +47,10 @@ public partial class VerticalStylePage : ContentView
 		InitializeComponent();
 
 		MainGrid.RowDefinitions = new(
-			DateAndStartButtonRowDefinition,
+			new(DATE_AND_START_BUTTON_ROW_HEIGHT),
 			new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
 			new(new(TRAIN_INFO_ROW_HEIGHT)),
+			TrainInfo_BeforeDepature_RowDefinition,
 			new(new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT)),
 			new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
 			new(new(1, GridUnitType.Star))
@@ -107,6 +110,10 @@ public partial class VerticalStylePage : ContentView
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
 
+		TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
+		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
+		TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
+
 		// TODO: https://github.com/TetsuOtter/TRViS/issues/10
 		// 「翌」表示を実装したら、ここも適切な日付を表示するようにする。
 		AffectDate = (newValue?.AffectDate ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyy年M月d日");
@@ -124,9 +131,9 @@ public partial class VerticalStylePage : ContentView
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
 	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
 	{
-		(double start, double end) = e.NewValue ? (3, 1) : (1, 3);
+		(double start, double end) = e.NewValue ? (TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT, 0d) : (0d, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT);
 
-		new Animation(v => DateAndStartButtonRowDefinition.Height = DATE_AND_START_BUTTON_ROW_HEIGHT * v, start, end, Easing.SinInOut)
-			.Commit(this, DateAndStartButton_AnimationName, length: 250, finished: (v, _) => DateAndStartButtonRowDefinition.Height = DATE_AND_START_BUTTON_ROW_HEIGHT * v);
+		new Animation(v => TrainInfo_BeforeDepature_RowDefinition.Height = v, start, end, Easing.SinInOut)
+			.Commit(this, DateAndStartButton_AnimationName, length: 250, finished: (v, _) => TrainInfo_BeforeDepature_RowDefinition.Height = v);
 	}
 }
