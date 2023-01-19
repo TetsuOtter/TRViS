@@ -11,10 +11,6 @@ public partial class StartEndRunButton : ToggleButton
 	{
 		InitializeComponent();
 
-#if !IOS && !MACCATALYST
-		// iOSとMacCatalystでは、MAUI側のバグによりGradientBrushが適用されない
-		// ref: https://github.com/dotnet/maui/pull/7925
-		// TODO: iOS/MacCatalystでもGradientBrushを適用する
 		LinearGradientBrush brush = new()
 		{
 			StartPoint = new(0, 0),
@@ -25,8 +21,5 @@ public partial class StartEndRunButton : ToggleButton
 		brush.GradientStops.Add(new(GREEN.AddLuminosity(-BUTTON_LUMINOUS_DELTA), 1.0f));
 
 		BaseFrame.Background = brush;
-#else
-		BaseFrame.BackgroundColor = GREEN;
-#endif
 	}
 }
