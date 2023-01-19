@@ -142,6 +142,17 @@
 			Grid.Row="3"
 			ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
 			BackgroundColor="White">
+			<Label
+				x:Name="IsNextDayLabel"
+				IsVisible="False"
+				Style="{StaticResource LabelStyle}"
+				Text="(翌)"
+				FontSize="24"
+				Grid.Column="0"
+				HorizontalOptions="Center"
+				VerticalOptions="Center"
+				TextColor="#33d"/>
+
 			<Line
 				Style="{StaticResource SeparatorLine}"
 				Grid.Column="0"/>
