@@ -14,7 +14,7 @@ public static class DTACElementStyles
 
 	public static readonly int BeforeDeparture_AfterArrive_Height = 48;
 
-	public const double RUN_TIME_COLUMN_WIDTH = 48;
+	public const double RUN_TIME_COLUMN_WIDTH = 60;
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
 		new(new(RUN_TIME_COLUMN_WIDTH)),
 		new(new(140)),
