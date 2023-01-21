@@ -309,7 +309,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	CarCount: null,
 	Destination: null,
 	BeginRemarks: null,
-	AfterRemarks: null,
+	AfterRemarks: "(入換)",
 	Remarks: null,
 	BeforeDeparture: null,
 	TrainInfo: null,
@@ -415,6 +415,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	TrainInfo: null,
 
 	DayCount: 1,
+
+	AfterArrive: "入換   20分",
+	AfterArriveOnStationTrackCol: "入換",
 
 	Rows: new[]
 	{
