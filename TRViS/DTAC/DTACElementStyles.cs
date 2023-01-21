@@ -12,6 +12,18 @@ public static class DTACElementStyles
 	public static readonly int DefaultTextSize = 14;
 	public static readonly int LargeTextSize = 24;
 
+	public const double RUN_TIME_COLUMN_WIDTH = 48;
+	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
+		new(new(RUN_TIME_COLUMN_WIDTH)),
+		new(new(140)),
+		new(new(140)),
+		new(new(140)),
+		new(new(60)),
+		new(new(60)),
+		new(new(1, GridUnitType.Star)),
+		new(new(64))
+		);
+
 	public static T LabelStyle<T>() where T : Label, new()
 	{
 		T v = new();

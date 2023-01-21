@@ -117,7 +117,7 @@
 
 		<Grid
 			Grid.Row="4"
-			ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
+			ColumnDefinitions="{x:Static dtac:DTACElementStyles.TimetableColumnWidthCollection}"
 			BackgroundColor="White">
 			<Label
 				x:Name="IsNextDayLabel"

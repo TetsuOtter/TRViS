@@ -35,7 +35,7 @@ public partial class VerticalTimetableView : Grid
 	{
 		IsVisible = false,
 		HeightRequest = RowHeight.Value / 2,
-		WidthRequest = VerticalStylePage.RUN_TIME_COLUMN_WIDTH,
+		WidthRequest = DTACElementStyles.RUN_TIME_COLUMN_WIDTH,
 		Margin = new(0),
 		VerticalOptions = LayoutOptions.Start,
 		HorizontalOptions = LayoutOptions.Start,

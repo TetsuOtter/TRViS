@@ -9,18 +9,6 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("AffectDate")]
 public partial class VerticalStylePage : ContentView
 {
-	public const double RUN_TIME_COLUMN_WIDTH = 60;
-	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
-		new(new(RUN_TIME_COLUMN_WIDTH)),
-		new(new(140)),
-		new(new(140)),
-		new(new(140)),
-		new(new(60)),
-		new(new(60)),
-		new(new(1, GridUnitType.Star)),
-		new(new(64))
-		);
-
 	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
