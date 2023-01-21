@@ -70,6 +70,8 @@ public static class DTACElementStyles
 		v.StrokeThickness = 0.5;
 		v.HeightRequest = 0.5;
 
+		Grid.SetColumnSpan(v, 8);
+
 		return v;
 	}
 }
