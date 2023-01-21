@@ -47,6 +47,12 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		Remarks: "サンプルデータです。\n車掌省略",
 		BeforeDeparture: "転線   10分",
 		TrainInfo: "<span style=\"color:red\">車掌省略</span>",
+
+		BeforeDepartureOnStationTrackCol: "転線",
+
+		AfterArrive: "入換   20分",
+		AfterArriveOnStationTrackCol: "入換",
+
 		Rows: new[]
 		{
 			new TimetableRow(
@@ -290,7 +296,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 		},
-		1
+		Direction: 1
 		);
 
 	static readonly IO.Models.TrainData SampleTrainData2 = new(
