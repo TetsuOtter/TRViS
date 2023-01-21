@@ -44,17 +44,12 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		RowDefinitions = DefaultRowDefinitions;
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
 
-		Line trainInfoAreaSeparator = DTACElementStyles.HorizontalSeparatorLineStyle();
 		TrainInfoArea.HorizontalOptions = LayoutOptions.Start;
 
 		// BeforeDepartureArea
 		BeforeDeparture = new(this, "発前");
 
 		Grid.SetColumnSpan(TrainInfoArea, 8);
-		this.Add(
-			trainInfoAreaSeparator,
-			row: 0
-		);
 		this.Add(
 			TrainInfoArea,
 			row: 0

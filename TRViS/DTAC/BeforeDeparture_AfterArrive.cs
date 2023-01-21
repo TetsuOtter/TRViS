@@ -16,7 +16,8 @@ public class BeforeDeparture_AfterArrive
 	};
 	readonly Label HeaderLabel = DTACElementStyles.HeaderLabelStyle<Label>();
 
-	readonly Line Separator = DTACElementStyles.HorizontalSeparatorLineStyle();
+	readonly Line UpperSeparator = DTACElementStyles.HorizontalSeparatorLineStyle();
+	readonly Line LowerSeparator = DTACElementStyles.HorizontalSeparatorLineStyle();
 
 	readonly HtmlAutoDetectLabel Label = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
 	readonly HtmlAutoDetectLabel Label_OnStationTrackColumn = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
@@ -26,6 +27,8 @@ public class BeforeDeparture_AfterArrive
 	public BeforeDeparture_AfterArrive(Grid Parent, string HeaderLabelText)
 	{
 		this.Parent = Parent;
+
+		UpperSeparator.VerticalOptions = LayoutOptions.Start;
 
 		Label.HorizontalOptions = LayoutOptions.Start;
 		Label_OnStationTrackColumn.HorizontalOptions = LayoutOptions.Start;
@@ -65,7 +68,8 @@ public class BeforeDeparture_AfterArrive
 		Parent.Add(HeaderLabel);
 		Parent.Add(Label);
 		Parent.Add(Label_OnStationTrackColumn);
-		Parent.Add(Separator);
+		Parent.Add(LowerSeparator);
+		Parent.Add(UpperSeparator);
 	}
 
 	bool _IsVisible = false;
@@ -81,7 +85,8 @@ public class BeforeDeparture_AfterArrive
 
 			HeaderBoxView.IsVisible
 				= HeaderLabel.IsVisible
-				= Separator.IsVisible
+				= LowerSeparator.IsVisible
+				= UpperSeparator.IsVisible
 				= Label.IsVisible
 				= Label_OnStationTrackColumn.IsVisible
 				= value;
@@ -92,7 +97,8 @@ public class BeforeDeparture_AfterArrive
 	{
 		Grid.SetRow(HeaderBoxView, row);
 		Grid.SetRow(HeaderLabel, row);
-		Grid.SetRow(Separator, row);
+		Grid.SetRow(LowerSeparator, row);
+		Grid.SetRow(UpperSeparator, row);
 		Grid.SetRow(Label, row);
 		Grid.SetRow(Label_OnStationTrackColumn, row);
 	}

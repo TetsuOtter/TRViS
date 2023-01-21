@@ -23,7 +23,6 @@ public class BeforeAfterRemarks
 	}
 
 	readonly HtmlAutoDetectLabel Label = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
-	readonly Line Separator = DTACElementStyles.HorizontalSeparatorLineStyle();
 
 	public string Text
 	{
@@ -42,7 +41,6 @@ public class BeforeAfterRemarks
 	public void AddToParent()
 	{
 		Parent.Add(Label);
-		Parent.Add(Separator);
 	}
 
 	bool _IsVisible = false;
@@ -53,19 +51,12 @@ public class BeforeAfterRemarks
 		{
 			_IsVisible = value;
 			Label.IsVisible = value;
-			Separator.IsVisible = value;
 		}
-	}
-
-	public void IsElementUnderThisVisible(in bool isVisible)
-	{
-		Separator.IsVisible = _IsVisible || isVisible;
 	}
 
 	public void SetRow(in int row)
 	{
 		Grid.SetRow(Label, row);
-		Grid.SetRow(Separator, row);
 	}
 }
 

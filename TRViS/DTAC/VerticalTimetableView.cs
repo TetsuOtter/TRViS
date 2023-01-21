@@ -100,9 +100,6 @@ public partial class VerticalTimetableView : Grid
 			AfterArrive.Text = trainData?.AfterArrive ?? string.Empty;
 			AfterArrive.Text_OnStationTrackColumn = trainData?.AfterArriveOnStationTrackCol ?? string.Empty;
 
-			// AfterArriveAreaを表示するなら、AfterRemarksが無くてもAfterRemarksSeparatorを表示する
-			AfterRemarks.IsElementUnderThisVisible(AfterArrive.IsVisible);
-
 			AfterRemarks.AddToParent();
 			AfterArrive.AddToParent();
 
