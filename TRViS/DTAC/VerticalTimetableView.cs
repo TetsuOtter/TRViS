@@ -2,6 +2,9 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using DependencyPropertyGenerator;
 
+using Microsoft.Maui.Controls.Shapes;
+
+using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
@@ -35,7 +38,7 @@ public partial class VerticalTimetableView : Grid
 	{
 		IsVisible = false,
 		HeightRequest = RowHeight.Value / 2,
-		WidthRequest = VerticalStylePage.RUN_TIME_COLUMN_WIDTH,
+		WidthRequest = DTACElementStyles.RUN_TIME_COLUMN_WIDTH,
 		Margin = new(0),
 		VerticalOptions = LayoutOptions.Start,
 		HorizontalOptions = LayoutOptions.Start,
@@ -50,15 +53,26 @@ public partial class VerticalTimetableView : Grid
 		Color = CURRENT_LOCATION_MARKER_COLOR,
 	};
 
+	readonly BeforeAfterRemarks AfterRemarks;
+	readonly BeforeDeparture_AfterArrive AfterArrive;
+
+	public VerticalTimetableView()
+	{
+		AfterArrive = new(this, "着後");
+		AfterRemarks = new(this);
+
+		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
+	}
+
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
-		SetRowViews(newValue?.Rows);
+		SetRowViews(newValue, newValue?.Rows);
 	}
 
 	partial void OnIsBusyChanged()
 		=> IsBusyChanged?.Invoke(this, new());
 
-	async void SetRowViews(TimetableRow[]? newValue)
+	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
 	{
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
@@ -71,6 +85,9 @@ public partial class VerticalTimetableView : Grid
 
 		SetRowDefinitions(newCount);
 
+		AfterRemarks.SetRow(newCount);
+		AfterArrive.SetRow(newCount + 1);
+
 		await Task.Run(async () =>
 		{
 			for (int i = 0; i < newCount; i++)
@@ -79,6 +96,13 @@ public partial class VerticalTimetableView : Grid
 
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
+			AfterRemarks.Text = trainData?.AfterRemarks ?? string.Empty;
+			AfterArrive.Text = trainData?.AfterArrive ?? string.Empty;
+			AfterArrive.Text_OnStationTrackColumn = trainData?.AfterArriveOnStationTrackCol ?? string.Empty;
+
+			AfterRemarks.AddToParent();
+			AfterArrive.AddToParent();
+
 			Add(CurrentLocationBoxView);
 			Add(CurrentLocationLine);
 			IsBusy = false;
@@ -98,6 +122,7 @@ public partial class VerticalTimetableView : Grid
 
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
+			Grid.SetColumnSpan(rowView, 8);
 			Children.Add(rowView);
 
 			Grid.SetRow(rowView, index);
@@ -168,12 +193,21 @@ public partial class VerticalTimetableView : Grid
 		CurrentRunningRow = newValue ? Children.FirstOrDefault(v => v is VerticalTimetableRow) as VerticalTimetableRow : null;
 	}
 
-	void SetRowDefinitions(int? newCount)
+	void SetRowDefinitions(int newCount)
 	{
 		int currentCount = RowDefinitions.Count;
-		HeightRequest = newCount * RowHeight.Value ?? 0;
 
-		if (newCount is null || newCount <= 0)
+		if (newCount < 0)
+			throw new ArgumentOutOfRangeException(nameof(newCount), "count must be 0 or more");
+
+		// After Remarks
+		newCount += 1;
+
+		RowDefinitions.Remove(AfterArrive.RowDefinition);
+
+		HeightRequest = (newCount * RowHeight.Value) + AfterArrive.RowDefinition.Height.Value;
+
+		if (newCount <= 0)
 			RowDefinitions.Clear();
 		else if (currentCount < newCount)
 		{
@@ -185,5 +219,7 @@ public partial class VerticalTimetableView : Grid
 			for (int i = RowDefinitions.Count - 1; i >= newCount; i--)
 				RowDefinitions.RemoveAt(i);
 		}
+
+		RowDefinitions.Add(AfterArrive.RowDefinition);
 	}
 }

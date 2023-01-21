@@ -9,7 +9,7 @@
 	x:Class="TRViS.DTAC.VerticalTimetableRow"
 	x:DataType="models:TimetableRow"
 	x:Name="this"
-	ColumnDefinitions="{x:Static dtac:VerticalStylePage.TimetableColumnWidthCollection}"
+	ColumnDefinitions="{x:Static dtac:DTACElementStyles.TimetableColumnWidthCollection}"
 	Margin="0"
 	Padding="0">
 	<Grid.Resources>

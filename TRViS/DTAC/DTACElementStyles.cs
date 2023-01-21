@@ -12,6 +12,20 @@ public static class DTACElementStyles
 	public static readonly int DefaultTextSize = 14;
 	public static readonly int LargeTextSize = 24;
 
+	public const int BeforeDeparture_AfterArrive_Height = 45;
+
+	public const double RUN_TIME_COLUMN_WIDTH = 60;
+	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
+		new(new(RUN_TIME_COLUMN_WIDTH)),
+		new(new(140)),
+		new(new(140)),
+		new(new(140)),
+		new(new(60)),
+		new(new(60)),
+		new(new(1, GridUnitType.Star)),
+		new(new(64))
+		);
+
 	public static T LabelStyle<T>() where T : Label, new()
 	{
 		T v = new();
@@ -55,6 +69,8 @@ public static class DTACElementStyles
 		v.BackgroundColor = SeparatorLineColor;
 		v.StrokeThickness = 0.5;
 		v.HeightRequest = 0.5;
+
+		Grid.SetColumnSpan(v, 8);
 
 		return v;
 	}
