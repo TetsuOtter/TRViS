@@ -23,10 +23,15 @@ public class BeforeDeparture_AfterArrive
 	readonly HtmlAutoDetectLabel Label_OnStationTrackColumn = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
 
 	Grid Parent { get; }
+	bool AlwaysShow { get; }
 
 	public BeforeDeparture_AfterArrive(Grid Parent, string HeaderLabelText)
+		: this(Parent, HeaderLabelText, false) { }
+
+	public BeforeDeparture_AfterArrive(Grid Parent, string HeaderLabelText, bool AlwaysShow)
 	{
 		this.Parent = Parent;
+		this.AlwaysShow = AlwaysShow;
 
 		UpperSeparator.VerticalOptions = LayoutOptions.Start;
 
@@ -40,6 +45,8 @@ public class BeforeDeparture_AfterArrive
 		Grid.SetColumnSpan(Label_OnStationTrackColumn, 4);
 
 		HeaderLabel.Text = HeaderLabelText;
+
+		IsVisible = AlwaysShow;
 	}
 
 	public string Text
@@ -50,7 +57,8 @@ public class BeforeDeparture_AfterArrive
 			if (Label.Text == value)
 				return;
 
-			IsVisible = !string.IsNullOrWhiteSpace(value);
+			if (!AlwaysShow)
+				IsVisible = !string.IsNullOrWhiteSpace(value);
 
 			Label.Text = value;
 		}

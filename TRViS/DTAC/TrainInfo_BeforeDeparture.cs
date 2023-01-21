@@ -46,7 +46,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		TrainInfoArea.HorizontalOptions = LayoutOptions.Start;
 
 		// BeforeDepartureArea
-		BeforeDeparture = new(this, "発前");
+		BeforeDeparture = new(this, "発前", true);
 
 		Grid.SetColumnSpan(TrainInfoArea, 8);
 		this.Add(
