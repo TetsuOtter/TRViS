@@ -6,11 +6,10 @@ namespace TRViS.DTAC;
 
 public partial class TrainInfo_BeforeDeparture : Grid
 {
-	public const int DEFAULT_ROW_HEIGHT = 48;
 	static readonly RowDefinitionCollection DefaultRowDefinitions = new()
 	{
-		new RowDefinition(DEFAULT_ROW_HEIGHT),
-		new RowDefinition(DEFAULT_ROW_HEIGHT)
+		new RowDefinition(DTACElementStyles.BeforeDeparture_AfterArrive_Height),
+		new RowDefinition(DTACElementStyles.BeforeDeparture_AfterArrive_Height)
 	};
 
 	#region TrainInfo Area
