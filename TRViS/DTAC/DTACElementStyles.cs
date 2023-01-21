@@ -12,7 +12,7 @@ public static class DTACElementStyles
 	public static readonly int DefaultTextSize = 14;
 	public static readonly int LargeTextSize = 24;
 
-	public static readonly int BeforeDeparture_AfterArrive_Height = 48;
+	public const int BeforeDeparture_AfterArrive_Height = 45;
 
 	public const double RUN_TIME_COLUMN_WIDTH = 60;
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
