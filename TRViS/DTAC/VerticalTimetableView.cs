@@ -121,6 +121,32 @@ public partial class VerticalTimetableView : Grid
 		if (row is null)
 			return;
 
+		if (row.IsInfoRow)
+		{
+			await MainThread.InvokeOnMainThreadAsync(() =>
+			{
+				HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
+				Line line = DTACElementStyles.HorizontalSeparatorLineStyle();
+
+				label.Text = row.Remarks;
+
+				Grid.SetColumnSpan(label, 3);
+
+				this.Add(
+					label,
+					column: 1,
+					row: index
+				);
+				this.Add(
+					line,
+					column: 0,
+					row: index
+				);
+			});
+
+			return;
+		}
+
 		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row, MarkerViewModel, isLastRow));
 
 		TapGestureRecognizer tapGestureRecognizer = new();
