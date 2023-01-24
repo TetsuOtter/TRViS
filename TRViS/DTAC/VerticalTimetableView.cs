@@ -90,8 +90,15 @@ public partial class VerticalTimetableView : Grid
 
 		await Task.Run(async () =>
 		{
+			int lastTimetableRowIndex = 0;
 			for (int i = 0; i < newCount; i++)
-				await AddNewRow(newValue![i], i, i == (newCount - 1));
+			{
+				if (newValue is not null && !newValue[i].IsInfoRow)
+					lastTimetableRowIndex = i;
+			}
+
+			for (int i = 0; i < newCount; i++)
+				await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
 		});
 
 		await MainThread.InvokeOnMainThreadAsync(() =>
@@ -113,6 +120,32 @@ public partial class VerticalTimetableView : Grid
 	{
 		if (row is null)
 			return;
+
+		if (row.IsInfoRow)
+		{
+			await MainThread.InvokeOnMainThreadAsync(() =>
+			{
+				HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
+				Line line = DTACElementStyles.HorizontalSeparatorLineStyle();
+
+				label.Text = row.StationName;
+
+				Grid.SetColumnSpan(label, 3);
+
+				this.Add(
+					label,
+					column: 1,
+					row: index
+				);
+				this.Add(
+					line,
+					column: 0,
+					row: index
+				);
+			});
+
+			return;
+		}
 
 		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row, MarkerViewModel, isLastRow));
 
