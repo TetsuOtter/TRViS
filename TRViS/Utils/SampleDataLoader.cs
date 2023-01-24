@@ -155,7 +155,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
-				StationName: "テスト用InfoRow",
+				StationName: "<span style=\"color:royalblue\">交  直  切  換</span>",
 				IsOperationOnlyStop: false,
 				IsPass: false,
 				HasBracket: false,
@@ -165,7 +165,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: null,
 				RunInLimit: null,
 				RunOutLimit: null,
-				Remarks: "<span style=\"color:royalblue\">交  直  切  換</span>",
+				Remarks: null,
 				IsInfoRow: true
 			),
 			new TimetableRow(
@@ -204,7 +204,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
-				StationName: "テスト用InfoRow 2",
+				StationName: "<span style=\"color:red\">交  直  切  換  2</span>",
 				IsOperationOnlyStop: false,
 				IsPass: false,
 				HasBracket: false,
@@ -214,14 +214,14 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: null,
 				RunInLimit: null,
 				RunOutLimit: null,
-				Remarks: "<span style=\"color:red\">交  直  切  換  2</span>",
+				Remarks: null,
 				IsInfoRow: true
 			),
 			new TimetableRow(
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
-				StationName: "テスト用InfoRow 3",
+				StationName: "<span style=\"color:royalblue\">交  直  切  換  3</span>",
 				IsOperationOnlyStop: false,
 				IsPass: false,
 				HasBracket: false,
@@ -231,7 +231,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: null,
 				RunInLimit: null,
 				RunOutLimit: null,
-				Remarks: "<span style=\"color:royalblue\">交  直  切  換  3</span>",
+				Remarks: null,
 				IsInfoRow: true
 			),
 			new TimetableRow(

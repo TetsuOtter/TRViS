@@ -128,7 +128,7 @@ public partial class VerticalTimetableView : Grid
 				HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
 				Line line = DTACElementStyles.HorizontalSeparatorLineStyle();
 
-				label.Text = row.Remarks;
+				label.Text = row.StationName;
 
 				Grid.SetColumnSpan(label, 3);
 
