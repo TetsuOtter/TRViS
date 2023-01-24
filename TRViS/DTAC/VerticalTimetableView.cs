@@ -90,8 +90,15 @@ public partial class VerticalTimetableView : Grid
 
 		await Task.Run(async () =>
 		{
+			int lastTimetableRowIndex = 0;
 			for (int i = 0; i < newCount; i++)
-				await AddNewRow(newValue![i], i, i == (newCount - 1));
+			{
+				if (newValue is not null && !newValue[i].IsInfoRow)
+					lastTimetableRowIndex = i;
+			}
+
+			for (int i = 0; i < newCount; i++)
+				await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
 		});
 
 		await MainThread.InvokeOnMainThreadAsync(() =>
