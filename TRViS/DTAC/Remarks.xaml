@@ -25,9 +25,9 @@
 	<Label
 		Grid.Row="0"
 		FontSize="28"
+		FontFamily="Hiragino Sans W6"
 		Margin="16,0"
 		Text="注 意 事 項"
-		FontAttributes="Bold"
 		HorizontalOptions="Start"
 		VerticalOptions="Center"
 		TextColor="White"/>
