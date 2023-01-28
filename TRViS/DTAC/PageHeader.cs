@@ -42,6 +42,10 @@ public partial class PageHeader : Grid
 		=> StartEndRunButton.IsChecked = newValue;
 	#endregion
 
+	#region Location Service Button
+	readonly LocationServiceButton LocationServiceButton = new();
+	#endregion
+
 	#region Open / Close Button
 	readonly OpenCloseButton OpenCloseButton = new();
 
@@ -74,6 +78,8 @@ public partial class PageHeader : Grid
 		StartEndRunButton.Margin = new(2);
 		StartEndRunButton.IsCheckedChanged += (_, e) => this.IsRunning = e.NewValue;
 
+		LocationServiceButton.Margin = new(4, 8);
+
 		OpenCloseButton.TextWhenOpen = "\xe5ce";
 		OpenCloseButton.TextWhenClosed = "\xe5cf";
 		OpenCloseButton.IsOpenChanged += OpenCloseButton_IsOpenChanged;
@@ -86,6 +92,9 @@ public partial class PageHeader : Grid
 		);
 		this.Add(StartEndRunButton,
 			column: 1
+		);
+		this.Add(LocationServiceButton,
+			column: 2
 		);
 		this.Add(
 			OpenCloseButton,
