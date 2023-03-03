@@ -36,6 +36,8 @@ public partial class VerticalTimetableView : Grid
 	partial void OnIsBusyChanged()
 		=> IsBusyChanged?.Invoke(this, new());
 
+	int CurrentRunningRowIndex = -1;
+
 	VerticalTimetableRow? _CurrentRunningRow = null;
 	VerticalTimetableRow? CurrentRunningRow
 	{
@@ -45,28 +47,7 @@ public partial class VerticalTimetableView : Grid
 			if (_CurrentRunningRow == value)
 				return;
 
-			if (_CurrentRunningRow is not null)
-				_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
-
-			_CurrentRunningRow = value;
-
-			if (value is not null)
-			{
-				value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
-
-				int rowCount = Grid.GetRow(value);
-
-				Grid.SetRow(CurrentLocationBoxView, rowCount + 1);
-				Grid.SetRow(CurrentLocationLine, rowCount);
-
-				CurrentLocationBoxView.IsVisible = false;
-				CurrentLocationLine.IsVisible = false;
-
-				if (value.LocationState != VerticalTimetableRow.LocationStates.Undefined)
-				{
-					ScrollRequested?.Invoke(this, new(Math.Max(rowCount - 1, 0) * RowHeight.Value));
-				}
-			}
+			SetCurrentRunningRow(value);
 		}
 	}
 
@@ -98,5 +79,46 @@ public partial class VerticalTimetableView : Grid
 	partial void OnIsRunStartedChanged(bool newValue)
 	{
 		CurrentRunningRow = newValue ? Children.FirstOrDefault(v => v is VerticalTimetableRow) as VerticalTimetableRow : null;
+	}
+
+	public void SetCurrentRunningRow(int index)
+		=> SetCurrentRunningRow(index, RowViewList.ElementAtOrDefault(index));
+
+	public void SetCurrentRunningRow(VerticalTimetableRow? value)
+		=> SetCurrentRunningRow(value is null ? -1 : RowViewList.IndexOf(value), value);
+
+	void SetCurrentRunningRow(int index, VerticalTimetableRow? value)
+	{
+		if (CurrentRunningRowIndex == index || CurrentRunningRow == value)
+			return;
+
+		if (RowViewList.ElementAtOrDefault(index) != value)
+			throw new ArgumentException("value is not match with element at given index", nameof(value));
+
+		if (_CurrentRunningRow is not null)
+			_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+
+		_CurrentRunningRow = value;
+
+		if (value is not null)
+		{
+			CurrentRunningRowIndex = index;
+			value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+
+			int rowCount = Grid.GetRow(value);
+
+			Grid.SetRow(CurrentLocationBoxView, rowCount + 1);
+			Grid.SetRow(CurrentLocationLine, rowCount);
+
+			CurrentLocationBoxView.IsVisible = false;
+			CurrentLocationLine.IsVisible = false;
+
+			if (value.LocationState != VerticalTimetableRow.LocationStates.Undefined)
+			{
+				ScrollRequested?.Invoke(this, new(Math.Max(rowCount - 1, 0) * RowHeight.Value));
+			}
+		}
+		else
+			CurrentRunningRowIndex = -1;
 	}
 }

@@ -30,6 +30,8 @@ public partial class VerticalTimetableView
 	readonly BeforeAfterRemarks AfterRemarks;
 	readonly BeforeDeparture_AfterArrive AfterArrive;
 
+	readonly List<VerticalTimetableRow> RowViewList = new();
+
 	public VerticalTimetableView()
 	{
 		AfterArrive = new(this, "着後");
@@ -40,6 +42,7 @@ public partial class VerticalTimetableView
 
 	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
 	{
+		RowViewList.Clear();
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
 			IsBusy = true;
@@ -126,6 +129,7 @@ public partial class VerticalTimetableView
 
 			Grid.SetRow(rowView, index);
 		});
+		RowViewList.Add(rowView);
 	}
 
 	void SetRowDefinitions(int newCount)
