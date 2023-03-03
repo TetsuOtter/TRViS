@@ -38,6 +38,8 @@ public partial class VerticalTimetableView
 		AfterRemarks = new(this);
 
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
+
+		LocationService.IsNearbyChanged += LocationService_IsNearbyChanged;
 	}
 
 	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)

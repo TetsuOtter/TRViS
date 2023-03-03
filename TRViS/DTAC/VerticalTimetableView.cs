@@ -1,12 +1,14 @@
 using DependencyPropertyGenerator;
 
 using TRViS.IO.Models;
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsBusy")]
 [DependencyProperty<bool>("IsRunStarted")]
+[DependencyProperty<bool>("IsLocationServiceEnabled")]
 [DependencyProperty<TrainData>("SelectedTrainData")]
 public partial class VerticalTimetableView : Grid
 {
@@ -19,6 +21,8 @@ public partial class VerticalTimetableView : Grid
 			this.PositionY = PositionY;
 		}
 	}
+
+	LocationService LocationService { get; } = new();
 
 	static readonly GridLength RowHeight = new(60);
 
@@ -37,6 +41,8 @@ public partial class VerticalTimetableView : Grid
 		=> IsBusyChanged?.Invoke(this, new());
 
 	int CurrentRunningRowIndex = -1;
+
+	VerticalTimetableRow? NextRunningRow = null;
 
 	VerticalTimetableRow? _CurrentRunningRow = null;
 	VerticalTimetableRow? CurrentRunningRow
@@ -66,9 +72,11 @@ public partial class VerticalTimetableView : Grid
 				break;
 			case VerticalTimetableRow.LocationStates.AroundThisStation:
 				row.LocationState = VerticalTimetableRow.LocationStates.RunningToNextStation;
+				SetNearbyCheckInfo(NextRunningRow);
 				break;
 			case VerticalTimetableRow.LocationStates.RunningToNextStation:
 				row.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+				SetNearbyCheckInfo(CurrentRunningRow);
 				break;
 		}
 
@@ -78,7 +86,46 @@ public partial class VerticalTimetableView : Grid
 
 	partial void OnIsRunStartedChanged(bool newValue)
 	{
-		CurrentRunningRow = newValue ? Children.FirstOrDefault(v => v is VerticalTimetableRow) as VerticalTimetableRow : null;
+		CurrentRunningRow = newValue ? RowViewList.FirstOrDefault() : null;
+	}
+
+	partial void OnIsLocationServiceEnabledChanged(bool newValue)
+	{
+		LocationService.IsEnabled = newValue;
+	}
+
+	private void LocationService_IsNearbyChanged(object? sender, bool oldValue, bool newValue)
+	{
+		if (!IsRunStarted || !IsEnabled || CurrentRunningRow is null)
+			return;
+
+		if (newValue)
+		{
+			SetCurrentRunningRow(NextRunningRow);
+		}
+		else if (CurrentRunningRow is not null)
+		{
+			CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.RunningToNextStation;
+
+			SetNearbyCheckInfo(NextRunningRow);
+		}
+	}
+
+	private void SetNearbyCheckInfo(VerticalTimetableRow? nextRunningRow)
+	{
+		if (nextRunningRow?.BindingContext is TimetableRow nextRowData)
+		{
+			LocationService.NearbyCenter
+				= nextRowData.Location is LocationInfo
+				{
+					Latitude_deg: double lat,
+					Longitude_deg: double lon
+				}
+					? new Location(lat, lon)
+					: null;
+
+			LocationService.NearbyRadius_m = nextRowData.Location.OnStationDetectRadius_m ?? 300;
+		}
 	}
 
 	public void SetCurrentRunningRow(int index)
@@ -120,5 +167,9 @@ public partial class VerticalTimetableView : Grid
 		}
 		else
 			CurrentRunningRowIndex = -1;
+
+		NextRunningRow = RowViewList.ElementAtOrDefault(index + 1);
+
+		SetNearbyCheckInfo(value);
 	}
 }
