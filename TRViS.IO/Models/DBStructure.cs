@@ -155,12 +155,6 @@ public record TrainData
 	[Column("direction"), NotNull]
 	public int Direction { get; set; }
 
-	[Column("marker_color_id")]
-	public int? MarkerColorId { get; set; }
-
-	[Column("marker_text")]
-	public string? MarkerText { get; set; }
-
 	[Column("work_type")]
 	public int? WorkType { get; set; }
 
