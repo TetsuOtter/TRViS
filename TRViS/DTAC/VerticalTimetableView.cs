@@ -80,6 +80,7 @@ public partial class VerticalTimetableView : Grid
 		}
 
 		_lastTappInfo = null;
+		IsLocationServiceEnabled = false;
 
 		switch (row.LocationState)
 		{
