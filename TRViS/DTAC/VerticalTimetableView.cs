@@ -57,6 +57,8 @@ public partial class VerticalTimetableView : Grid
 		}
 	}
 
+	const double DOUBLE_TAP_DETECT_MS = 500;
+	(VerticalTimetableRow row, DateTime time)? _lastTappInfo = null;
 	private void RowTapped(object? sender, EventArgs e)
 	{
 		if (sender is not VerticalTimetableRow row)
@@ -64,6 +66,20 @@ public partial class VerticalTimetableView : Grid
 
 		if (!IsRunStarted || !IsEnabled)
 			return;
+
+		if (IsLocationServiceEnabled)
+		{
+			DateTime dateTimeNow = DateTime.Now;
+			if (_lastTappInfo is null
+				|| _lastTappInfo.Value.row != row
+				|| dateTimeNow.AddMilliseconds(DOUBLE_TAP_DETECT_MS) < _lastTappInfo.Value.time)
+			{
+				_lastTappInfo = (row, dateTimeNow);
+				return;
+			}
+		}
+
+		_lastTappInfo = null;
 
 		switch (row.LocationState)
 		{
