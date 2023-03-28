@@ -51,9 +51,9 @@ public partial class LocationService : ObservableObject, IDisposable
 
 		private set
 		{
-			if (value == _LastLocation
-				|| _LastLocation is null
-				|| value?.Equals(_LastLocation) != false
+			if (
+				value == _LastLocation
+				|| (_LastLocation is not null && value?.Equals(_LastLocation) != false)
 			)
 				return;
 
