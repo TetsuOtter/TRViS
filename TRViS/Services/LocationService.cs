@@ -110,22 +110,25 @@ public partial class LocationService : ObservableObject, IDisposable
 
 		return Task.Run(async () =>
 		{
+			// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
+			// accuracy: 30m - 500m
+			GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
+
 			while (!token.IsCancellationRequested)
 			{
-				// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
-				// accuracy: 30m - 500m
-				GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
+				TimeSpan timeout = Interval;
+				req.Timeout = timeout;
 
-				Application.Current?.Dispatcher
-					.DispatchAsync(() => CheckAndNotifyCurrentLocation(req, token))
-					.ConfigureAwait(false);
-
-				await Task.Delay(Interval, token).ConfigureAwait(false);
+				await Task.WhenAll(new Task[]
+				{
+					CheckAndNotifyCurrentLocation(req, token),
+					Task.Delay(timeout, token),
+				});
 			}
 		}, token);
 	}
 
-	async void CheckAndNotifyCurrentLocation(GeolocationRequest req, CancellationToken token)
+	async Task CheckAndNotifyCurrentLocation(GeolocationRequest req, CancellationToken token)
 	{
 		try
 		{
