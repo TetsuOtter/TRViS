@@ -138,6 +138,7 @@ public partial class LocationService : ObservableObject, IDisposable
 		{
 			IsEnabled = false;
 			gpsCancelation?.Cancel();
+			System.Diagnostics.Debug.WriteLine(ex);
 
 			if (ExceptionThrown is null)
 				throw;
