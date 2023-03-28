@@ -1,4 +1,6 @@
-using DependencyPropertyGenerator;
+using CommunityToolkit.Mvvm.ComponentModel;
+
+using TRViS.Controls;
 
 namespace TRViS.Services;
 
@@ -12,14 +14,62 @@ public class ExceptionThrownEventArgs : EventArgs
 	}
 }
 
-[DependencyProperty<bool>("IsEnabled")]
-[DependencyProperty<TimeSpan>("Interval")]
-[DependencyProperty<Location>("NearbyCenter")]
-[DependencyProperty<double>("NearbyRadius_m", DefaultValue = 300)]
-[DependencyProperty<bool>("IsNearby", IsReadOnly = true)]
-[DependencyProperty<Location>("LastLocation", IsReadOnly = true)]
-public partial class LocationService : IDisposable
+public partial class LocationService : ObservableObject, IDisposable
 {
+	[ObservableProperty]
+	bool _IsEnabled;
+
+	[ObservableProperty]
+	TimeSpan _Interval;
+
+	[ObservableProperty]
+	Location? _NearbyCenter;
+
+	[ObservableProperty]
+	double _NearbyRadius_m = 300;
+
+	bool _IsNearby;
+	public bool IsNearby
+	{
+		get => _IsNearby;
+		private set
+		{
+			if (_IsNearby == value)
+				return;
+
+			this.OnPropertyChanging(nameof(IsNearby));
+			_IsNearby = value;
+			this.OnPropertyChanged(nameof(IsNearby));
+			IsNearbyChanged?.Invoke(this, !value, value);
+		}
+	}
+
+	Location? _LastLocation;
+	public Location? LastLocation
+	{
+		get => _LastLocation;
+
+		private set
+		{
+			if (value == _LastLocation
+				|| _LastLocation is null
+				|| value?.Equals(_LastLocation) != false
+			)
+				return;
+
+			this.OnPropertyChanging(nameof(LastLocation));
+
+			double? distance = value?.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
+			IsNearby = (distance is double v && v <= NearbyRadius_m);
+
+			Location? lastLocation = _LastLocation;
+			_LastLocation = value;
+
+			this.OnPropertyChanged(nameof(LastLocation));
+			LastLocationChanged?.Invoke(this, lastLocation, value);
+		}
+	}
+
 	public event EventHandler<Exception>? ExceptionThrown;
 	public event ValueChangedEventHandler<bool>? IsNearbyChanged;
 	public event ValueChangedEventHandler<Location?>? LastLocationChanged;
@@ -35,18 +85,6 @@ public partial class LocationService : IDisposable
 			gpsCancelation?.Cancel();
 		else
 			Task.Run(StartGPS);
-	}
-
-	partial void OnIsNearbyChanged(bool oldValue, bool newValue)
-	{
-		IsNearbyChanged?.Invoke(this, oldValue, newValue);
-	}
-
-	partial void OnLastLocationChanged(Location? oldValue, Location? newValue)
-	{
-		double? distance = newValue?.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
-		IsNearby = (distance is double v && v <= NearbyRadius_m);
-		LastLocationChanged?.Invoke(this, oldValue, newValue);
 	}
 
 	partial void OnNearbyCenterChanged(Location? newValue)
