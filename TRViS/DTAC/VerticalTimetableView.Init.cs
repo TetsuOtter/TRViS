@@ -40,6 +40,10 @@ public partial class VerticalTimetableView
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
 
 		LocationService.IsNearbyChanged += LocationService_IsNearbyChanged;
+		LocationService.ExceptionThrown += (s, e) =>
+		{
+			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
+		};
 	}
 
 	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
