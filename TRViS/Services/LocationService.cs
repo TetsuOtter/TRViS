@@ -59,8 +59,10 @@ public partial class LocationService : ObservableObject, IDisposable
 
 			this.OnPropertyChanging(nameof(LastLocation));
 
-			double? distance = value?.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
-			IsNearby = (distance is double v && v <= NearbyRadius_m);
+			double distance = NearbyCenter is null || value is null
+				? double.PositiveInfinity
+				: value.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
+			IsNearby = distance <= NearbyRadius_m;
 
 			Location? lastLocation = _LastLocation;
 			_LastLocation = value;
