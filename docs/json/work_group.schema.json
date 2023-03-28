@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trvis.t0r.dev/json/v1/work_group.schema.json",
+
+	"type": "object",
+	"additionalProperties": false,
+
+	"required": [
+		"Name",
+		"Works"
+	],
+
+	"properties": {
+		"Name": {
+			"type": "string",
+			"minLength": 1
+		},
+		"DBVersion": {
+			"type": "integer",
+			"minimum": 0
+		},
+
+		"Works": {
+			"type": "array",
+			"minItems": 0,
+
+			"items": {
+				"$ref": "/json/v1/work.schema.json"
+			}
+		}
+	}
+}

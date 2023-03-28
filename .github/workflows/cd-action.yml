@@ -399,7 +399,9 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
-    if: success() && ${{ github.event_name == 'push' }}
+    if: |
+      github.event_name == 'push'
+      && github.ref_name == 'main'
     timeout-minutes: 5
     needs:
       - set-tag
