@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trvis.t0r.dev/json/v1/train.schema.json",
+
+  "type": "object",
+  "additionalProperties": true,
+
+  "required": [
+    "Name",
+    "Trains"
+  ],
+
+  "properties": {
+    "Name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "AffectDate": {
+      "type": "string"
+    },
+    "AffixContentType": {
+      "type": "integer"
+    },
+    "AffixContent": {
+      "type": "string"
+    },
+    "Remarks": {
+      "type": "string"
+    },
+    "HasETrainTimetable": {
+      "type": "boolean"
+    },
+    "ETrainTimetableContentType": {
+      "type": "integer"
+    },
+    "ETrainTimetableContent": {
+      "type": "string"
+    },
+
+    "Trains": {
+      "type": "array",
+      "minItems": 0,
+
+      "items": {
+        "$ref": "/json/v1/train.schema.json"
+      }
+    }
+  }
+}

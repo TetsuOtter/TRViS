@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trvis.t0r.dev/json/v1/timetable_row.schema.json",
+
+  "type": "object",
+  "additionalProperties": true,
+
+  "required": [
+    "StationName",
+    "Location_m"
+  ],
+
+  "properties": {
+    "StationName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Location_m": {
+      "type": "number"
+    },
+    "Longitude_deg": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    },
+    "Latitude_deg": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "OnStationDetectRadius_m": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "FullName": {
+      "type": "string"
+    },
+    "RecordType": {
+      "type": "integer"
+    },
+
+    "TrackName": {
+      "type": "string"
+    },
+
+    "DriveTime_MM": {
+      "type": "integer",
+      "minimum": 0,
+      "exclusiveMaximum": 100
+    },
+    "DriveTime_SS": {
+      "type": "integer",
+      "minimum": 0,
+      "exclusiveMaximum": 60
+    },
+    "IsOperationOnlyStop": {
+      "type": "boolean"
+    },
+    "IsPass": {
+      "type": "boolean"
+    },
+    "HasBracket": {
+      "type": "boolean"
+    },
+    "IsLastStop": {
+      "type": "boolean"
+    },
+    "Arrive": {
+      "type": "string"
+    },
+    "Departure": {
+      "type": "string"
+    },
+    "RunInLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "exclusiveMaximum": 1000
+    },
+    "RunOutLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "exclusiveMaximum": 1000
+    },
+    "Remarks": {
+      "type": "string"
+    },
+    "MarkerColor": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{6}$"
+    },
+    "MarkerText": {
+      "type": "string"
+    },
+    "WorkType": {
+      "type": "integer"
+    }
+  }
+}
