@@ -27,7 +27,7 @@ public partial class LocationService : ObservableObject, IDisposable
 
 	[ObservableProperty]
 	double _NearbyRadius_m = DefaultNearbyRadius_m;
-	public const double DefaultNearbyRadius_m = 300;
+	public const double DefaultNearbyRadius_m = 200;
 
 	bool _IsNearby;
 	public bool IsNearby
