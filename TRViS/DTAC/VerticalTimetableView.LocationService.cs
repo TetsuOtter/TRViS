@@ -49,7 +49,7 @@ public partial class VerticalTimetableView : Grid
 					? new Location(lat, lon)
 					: null;
 
-			LocationService.NearbyRadius_m = nextRowData.Location.OnStationDetectRadius_m ?? 300;
+			LocationService.NearbyRadius_m = nextRowData.Location.OnStationDetectRadius_m ?? LocationService.DefaultNearbyRadius_m;
 		}
 	}
 
