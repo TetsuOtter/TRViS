@@ -162,34 +162,37 @@ public partial class VerticalTimetableView : Grid
 		if (RowViewList.ElementAtOrDefault(index) != value)
 			throw new ArgumentException("value is not match with element at given index", nameof(value));
 
-		if (_CurrentRunningRow is not null)
-			_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
-
-		_CurrentRunningRow = value;
-
-		if (value is not null)
+		MainThread.BeginInvokeOnMainThread(() =>
 		{
-			CurrentRunningRowIndex = index;
-			value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+			if (_CurrentRunningRow is not null)
+				_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
 
-			int rowCount = Grid.GetRow(value);
+			_CurrentRunningRow = value;
 
-			Grid.SetRow(CurrentLocationBoxView, rowCount + 1);
-			Grid.SetRow(CurrentLocationLine, rowCount);
-
-			CurrentLocationBoxView.IsVisible = false;
-			CurrentLocationLine.IsVisible = false;
-
-			if (value.LocationState != VerticalTimetableRow.LocationStates.Undefined)
+			if (value is not null)
 			{
-				ScrollRequested?.Invoke(this, new(Math.Max(rowCount - 1, 0) * RowHeight.Value));
+				CurrentRunningRowIndex = index;
+				value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+
+				int rowCount = Grid.GetRow(value);
+
+				Grid.SetRow(CurrentLocationBoxView, rowCount + 1);
+				Grid.SetRow(CurrentLocationLine, rowCount);
+
+				CurrentLocationBoxView.IsVisible = false;
+				CurrentLocationLine.IsVisible = false;
+
+				if (value.LocationState != VerticalTimetableRow.LocationStates.Undefined)
+				{
+					ScrollRequested?.Invoke(this, new(Math.Max(rowCount - 1, 0) * RowHeight.Value));
+				}
 			}
-		}
-		else
-			CurrentRunningRowIndex = -1;
+			else
+				CurrentRunningRowIndex = -1;
 
-		NextRunningRow = RowViewList.ElementAtOrDefault(index + 1);
+			NextRunningRow = RowViewList.ElementAtOrDefault(index + 1);
 
-		SetNearbyCheckInfo(value);
+			SetNearbyCheckInfo(value);
+		});
 	}
 }
