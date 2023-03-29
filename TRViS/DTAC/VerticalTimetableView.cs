@@ -108,6 +108,9 @@ public partial class VerticalTimetableView : Grid
 
 	partial void OnIsLocationServiceEnabledChanged(bool newValue)
 	{
+		if (newValue)
+			SetNearbyCheckInfo(CurrentRunningRow);
+
 		LocationService.IsEnabled = newValue;
 	}
 
