@@ -100,6 +100,7 @@ public partial class LocationService : ObservableObject, IDisposable
 		if (LastLocation is null || newValue is null)
 			return;
 
+		IsNearby = false;
 		setIsNearby(LastLocation);
 	}
 
@@ -114,6 +115,8 @@ public partial class LocationService : ObservableObject, IDisposable
 
 		gpsCancelation = new CancellationTokenSource();
 		CancellationToken token = gpsCancelation.Token;
+		LastLocation = null;
+		_IsNearby = true;
 
 		return Task.Run(async () =>
 		{

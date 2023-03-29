@@ -21,7 +21,7 @@ public partial class VerticalTimetableView : Grid
 
 	private void LocationService_IsNearbyChanged(object? sender, bool oldValue, bool newValue)
 	{
-		if (!IsRunStarted || !IsEnabled || CurrentRunningRow is null)
+		if (!IsRunStarted || !IsEnabled || CurrentRunningRow is null || !LocationService.IsEnabled)
 			return;
 
 		if (newValue)
