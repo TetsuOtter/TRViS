@@ -96,8 +96,6 @@ public partial class VerticalTimetableView : Grid
 				CurrentRunningRowIndex = -1;
 
 			NextRunningRow = RowViewList.ElementAtOrDefault(index + 1);
-
-			SetNearbyCheckInfo(value);
 		});
 	}
 }

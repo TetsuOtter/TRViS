@@ -89,11 +89,9 @@ public partial class VerticalTimetableView : Grid
 				break;
 			case VerticalTimetableRow.LocationStates.AroundThisStation:
 				row.LocationState = VerticalTimetableRow.LocationStates.RunningToNextStation;
-				SetNearbyCheckInfo(NextRunningRow);
 				break;
 			case VerticalTimetableRow.LocationStates.RunningToNextStation:
 				row.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
-				SetNearbyCheckInfo(CurrentRunningRow);
 				break;
 		}
 
