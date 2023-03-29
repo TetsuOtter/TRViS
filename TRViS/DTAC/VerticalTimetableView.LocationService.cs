@@ -11,12 +11,14 @@ public partial class VerticalTimetableView : Grid
 {
 	LocationService LocationService { get; } = new();
 
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged;
 	partial void OnIsLocationServiceEnabledChanged(bool newValue)
 	{
 		if (newValue)
 			SetNearbyCheckInfo(CurrentRunningRow);
 
 		LocationService.IsEnabled = newValue;
+		IsLocationServiceEnabledChanged?.Invoke(this, new(!newValue, newValue));
 	}
 
 	private void LocationService_IsNearbyChanged(object? sender, bool oldValue, bool newValue)

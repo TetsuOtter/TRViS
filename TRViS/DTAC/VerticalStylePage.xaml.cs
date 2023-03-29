@@ -92,11 +92,13 @@ public partial class VerticalStylePage : ContentView
 		else
 			TimetableAreaScrollView.Content = TimetableView;
 
-		PageHeaderArea.IsLocationServiceEnabledChanged += PageHeaderArea_IsLocationServiceEnabledChanged;
+		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
+		TimetableView.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 	}
 
-	private void PageHeaderArea_IsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
+	private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
+		PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
 		TimetableView.IsLocationServiceEnabled = e.NewValue;
 	}
 
