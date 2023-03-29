@@ -72,9 +72,10 @@ public partial class LocationService : ObservableObject, IDisposable
 
 	void setIsNearby(in Location? location)
 	{
-		double distance = NearbyCenter is null || location is null
-			? double.PositiveInfinity
-			: location.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
+		if (NearbyCenter is null || location is null)
+			return;
+
+		double distance = location.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
 
 		IsNearby = distance <= NearbyRadius_m;
 	}
