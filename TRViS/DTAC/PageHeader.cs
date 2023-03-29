@@ -40,7 +40,18 @@ public partial class PageHeader : Grid
 	readonly StartEndRunButton StartEndRunButton = new();
 
 	partial void OnIsRunningChanged(bool newValue)
-		=> StartEndRunButton.IsChecked = newValue;
+	{
+		StartEndRunButton.IsChecked = newValue;
+
+		LocationServiceButton.IsEnabled = newValue;
+	}
+
+	private void StartEndRunButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
+	{
+		this.IsRunning = e.NewValue;
+
+		LocationServiceButton.IsEnabled = e.NewValue;
+	}
 	#endregion
 
 	#region Location Service Button
@@ -95,6 +106,7 @@ public partial class PageHeader : Grid
 		StartEndRunButton.Margin = new(2);
 		StartEndRunButton.IsCheckedChanged += (_, e) => this.IsRunning = e.NewValue;
 
+		LocationServiceButton.IsEnabled = false;
 		LocationServiceButton.Margin = new(4, 8);
 		LocationServiceButton.IsCheckedChanged += LocationServiceButton_IsCheckedChanged;
 
