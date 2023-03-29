@@ -59,10 +59,7 @@ public partial class LocationService : ObservableObject, IDisposable
 
 			this.OnPropertyChanging(nameof(LastLocation));
 
-			double distance = NearbyCenter is null || value is null
-				? double.PositiveInfinity
-				: value.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
-			IsNearby = distance <= NearbyRadius_m;
+			setIsNearby(value);
 
 			Location? lastLocation = _LastLocation;
 			_LastLocation = value;
@@ -70,6 +67,15 @@ public partial class LocationService : ObservableObject, IDisposable
 			this.OnPropertyChanged(nameof(LastLocation));
 			LastLocationChanged?.Invoke(this, lastLocation, value);
 		}
+	}
+
+	void setIsNearby(in Location? location)
+	{
+		double distance = NearbyCenter is null || location is null
+			? double.PositiveInfinity
+			: location.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
+
+		IsNearby = distance <= NearbyRadius_m;
 	}
 
 	public event EventHandler<Exception>? ExceptionThrown;
@@ -94,8 +100,7 @@ public partial class LocationService : ObservableObject, IDisposable
 		if (LastLocation is null || newValue is null)
 			return;
 
-		double? distance = LastLocation.CalculateDistance(newValue, DistanceUnits.Kilometers) * 1000;
-		IsNearby = (distance is double v && v <= NearbyRadius_m);
+		setIsNearby(LastLocation);
 	}
 
 	public Task StartGPS()
