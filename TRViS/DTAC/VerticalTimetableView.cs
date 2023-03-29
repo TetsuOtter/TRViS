@@ -55,6 +55,9 @@ public partial class VerticalTimetableView : Grid
 	partial void OnIsRunStartedChanged(bool newValue)
 	{
 		CurrentRunningRow = newValue ? RowViewList.FirstOrDefault() : null;
+
+		if (!newValue)
+			IsLocationServiceEnabled = false;
 	}
 
 	const double DOUBLE_TAP_DETECT_MS = 500;
