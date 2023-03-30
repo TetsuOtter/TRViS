@@ -26,5 +26,7 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Check whether you are near a station or not.</string>
 </dict>
 </plist>
