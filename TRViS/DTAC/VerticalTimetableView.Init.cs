@@ -11,10 +11,10 @@ public partial class VerticalTimetableView
 	BoxView CurrentLocationBoxView { get; } = new()
 	{
 		IsVisible = false,
-		HeightRequest = RowHeight.Value / 2,
+		HeightRequest = RowHeight.Value,
 		WidthRequest = DTACElementStyles.RUN_TIME_COLUMN_WIDTH,
 		Margin = new(0),
-		VerticalOptions = LayoutOptions.Start,
+		VerticalOptions = LayoutOptions.End,
 		HorizontalOptions = LayoutOptions.Start,
 		Color = CURRENT_LOCATION_MARKER_COLOR,
 	};
@@ -38,6 +38,7 @@ public partial class VerticalTimetableView
 		AfterRemarks = new(this);
 
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
+		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
 		LocationService.IsNearbyChanged += LocationService_IsNearbyChanged;
 		LocationService.ExceptionThrown += (s, e) =>

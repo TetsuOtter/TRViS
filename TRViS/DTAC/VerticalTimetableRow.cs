@@ -27,8 +27,17 @@ public partial class VerticalTimetableRow
 			if (!IsEnabled || value == LocationStates.Undefined)
 			{
 				_LocationState = LocationStates.Undefined;
+				if (DriveTimeMM is not null)
+					DriveTimeMM.TextColor = Colors.Black;
+				if (DriveTimeSS is not null)
+					DriveTimeSS.TextColor = Colors.Black;
 				return;
 			}
+
+			if (DriveTimeMM is not null)
+				DriveTimeMM.TextColor = Colors.White;
+			if (DriveTimeSS is not null)
+				DriveTimeSS.TextColor = Colors.White;
 
 			// 最終行の場合は、次の駅に進まないようにする。
 			if (IsLastRow && value == LocationStates.RunningToNextStation)

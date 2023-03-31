@@ -57,7 +57,10 @@ public partial class VerticalTimetableView : Grid
 		CurrentRunningRow = newValue ? RowViewList.FirstOrDefault() : null;
 
 		if (!newValue)
+		{
 			IsLocationServiceEnabled = false;
+			CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible = false;
+		}
 	}
 
 	const double DOUBLE_TAP_DETECT_MS = 500;
@@ -91,14 +94,11 @@ public partial class VerticalTimetableView : Grid
 				CurrentRunningRow = row;
 				break;
 			case VerticalTimetableRow.LocationStates.AroundThisStation:
-				row.LocationState = VerticalTimetableRow.LocationStates.RunningToNextStation;
+				UpdateCurrentRunningLocationVisualizer(row, VerticalTimetableRow.LocationStates.RunningToNextStation);
 				break;
 			case VerticalTimetableRow.LocationStates.RunningToNextStation:
-				row.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
+				UpdateCurrentRunningLocationVisualizer(row, VerticalTimetableRow.LocationStates.AroundThisStation);
 				break;
 		}
-
-		CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible
-			= row.LocationState == VerticalTimetableRow.LocationStates.RunningToNextStation;
 	}
 }
