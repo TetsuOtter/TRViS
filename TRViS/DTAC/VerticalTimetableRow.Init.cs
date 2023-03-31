@@ -16,6 +16,7 @@ public partial class VerticalTimetableRow
 		private set
 		{
 			MarkerBox.IsVisible = value || (MarkedColor is not null);
+			MarkerBox.IsEnabled = value;
 			_IsMarkingMode = value;
 		}
 	}
