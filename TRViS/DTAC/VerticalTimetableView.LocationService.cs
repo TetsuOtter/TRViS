@@ -40,7 +40,7 @@ public partial class VerticalTimetableView : Grid
 
 	private void SetNearbyCheckInfo(VerticalTimetableRow? nextRunningRow)
 	{
-		if (nextRunningRow?.BindingContext is TimetableRow nextRowData)
+		if (nextRunningRow?.RowData is TimetableRow nextRowData)
 		{
 			LocationService.NearbyCenter
 				= nextRowData.Location is LocationInfo
@@ -81,7 +81,7 @@ public partial class VerticalTimetableView : Grid
 				CurrentRunningRowIndex = index;
 				value.LocationState = VerticalTimetableRow.LocationStates.AroundThisStation;
 
-				int rowCount = Grid.GetRow(value);
+				int rowCount = value.RowIndex;
 
 				Grid.SetRow(CurrentLocationBoxView, rowCount + 1);
 				Grid.SetRow(CurrentLocationLine, rowCount);

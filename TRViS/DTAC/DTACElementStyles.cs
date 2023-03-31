@@ -114,6 +114,7 @@ public static class DTACElementStyles
 		T v = TimetableLargeNumberLabel<T>();
 
 		v.FontSize = 26;
+		v.Margin = v.Padding = new(0);
 
 		return v;
 	}
@@ -124,6 +125,8 @@ public static class DTACElementStyles
 
 		v.FontSize = 18;
 		v.Margin = new(1);
+		v.Padding = new(0);
+		v.HorizontalOptions = LayoutOptions.Start;
 
 		return v;
 	}
