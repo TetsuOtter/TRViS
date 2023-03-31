@@ -45,7 +45,7 @@ public partial class VerticalTimetableView
 			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
 		};
 
-		LocationService.Interval = new TimeSpan(0, 0, 5);
+		LocationService.Interval = new TimeSpan(0, 0, 3);
 	}
 
 	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
