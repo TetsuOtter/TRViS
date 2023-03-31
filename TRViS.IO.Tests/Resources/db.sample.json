@@ -1,0 +1,138 @@
+[
+	{
+		"Name": "WorkGroup01",
+		"DBVersion": 1,
+
+		"Works": [
+			{
+				"Name": "WG01-Work01",
+				"AffectDate": "20230318",
+
+				"AffixContentType": -1,
+				"AffixContent": "",
+
+				"Remarks": "仕業に対する注意事項を記載する",
+
+				"HasETrainTimetable": false,
+				"ETrainTimetableContentType": -1,
+				"ETrainTimetableContent": "",
+
+				"Trains": [
+					{
+						"TrainNumber": "WG01-W01-Train01",
+						"MaxSpeed": "最高速度",
+						"SpeedType": "速度種別",
+						"NominalTractiveCapacity": "けん引定数",
+						"CarCount": 10,
+						"Destination": "終着駅",
+						"BeginRemarks": "`(乗継)`など 最初の駅の上に記載されている内容",
+						"AfterRemarks": "`(乗継)`など 最後の駅の下に記載されている内容",
+						"Remarks": "列車に対する注意事項を記載する",
+						"BeforeDeparture": "発前作業",
+						"TrainInfo": "列車情報 (列車名など)",
+						"Direction": 1,
+						"WorkType": 0,
+						"AfterArrive": "着後作業",
+						"BeforeDeparture_OnStationTrackCol": "「発前」のうち、着発番線と同じ行に記載されている内容",
+						"AfterArrive_OnStationTrackCol": "「着後」のうち、着発番線と同じ行に記載されている内容",
+						"DayCount": 0,
+						"IsRideOnMoving": false,
+						"Color": "2255BB",
+
+						"TimetableRows": [
+							{
+								"StationName": "StaName01",
+								"Location_m": 1.0,
+								"Longitude_deg": 135,
+								"Latitude_deg": 38,
+								"OnStationDetectRadius_m": 300,
+								"FullName": "Station Name (Number: 01)",
+								"RecordType": 0,
+
+								"TrackName": "着発番線",
+
+								"DriveTime_MM": 1,
+								"DriveTime_SS": 25,
+								"IsOperationOnlyStop": false,
+								"IsPass": false,
+								"HasBracket": false,
+								"IsLastStop": false,
+								"Arrive": "12:34:56",
+								"Departure": "13:24:35",
+								"Remarks": "各駅の注意事項を記載する",
+								"MarkerColor": "3366CC",
+								"MarkerText": "マーカーのテキスト (全角2文字まで)",
+								"WorkType": 0
+							},
+							{
+								"StationName": "StaName02",
+								"Location_m": 1.1
+							},
+							{
+								"StationName": "StaName03",
+								"Location_m": 1.2
+							}
+						]
+					},
+					{
+						"TrainNumber": "WG01-W01-Train02",
+						"Direction": -1,
+
+						"TimetableRows": [
+							{
+								"StationName": "StaName03",
+								"Location_m": 1.2
+							},
+							{
+								"StationName": "StaName02",
+								"Location_m": 1.1
+							},
+							{
+								"StationName": "StaName01",
+								"Location_m": 1.0
+							}
+						]
+					}
+				]
+			},
+			{
+				"Name": "WG01-Work02",
+
+				"Trains": [
+					{
+						"TrainNumber": "WG01-W02-Train01",
+						"Direction": 1,
+
+						"TimetableRows": [
+						]
+					},
+					{
+						"TrainNumber": "WG01-W02-Train02",
+						"Direction": -1,
+
+						"TimetableRows": [
+							{
+								"StationName": "StaName03",
+								"Location_m": 1.2
+							},
+							{
+								"StationName": "StaName02",
+								"Location_m": 1.1
+							},
+							{
+								"StationName": "StaName01",
+								"Location_m": 1.0
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"Name": "WorkGroup02",
+
+		"Works": [
+		]
+	}
+]

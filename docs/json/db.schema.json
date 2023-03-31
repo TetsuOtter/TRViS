@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trvis.t0r.dev/json/v1/db.schema.json",
+
+	"type": "array",
+	"minItems": 0,
+
+	"items": {
+		"$ref": "/json/v1/work_group.schema.json"
+	}
+}

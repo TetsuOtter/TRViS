@@ -27,7 +27,10 @@ public partial class SelectTrainPage : ContentPage
 			{
 				viewModel.Loader?.Dispose();
 
-				viewModel.Loader = new LoaderSQL(result.FullPath);
+				if (result.FullPath.EndsWith(".json"))
+					viewModel.Loader = await LoaderJson.InitFromFileAsync(result.FullPath);
+				else
+					viewModel.Loader = new LoaderSQL(result.FullPath);
 			}
 		}
 		catch (Exception ex)

@@ -9,10 +9,25 @@ public static class DTACElementStyles
 	public static readonly Color HeaderBackgroundColor = new(0xdd, 0xdd, 0xdd);
 	public static readonly Color SeparatorLineColor = new(0xaa, 0xaa, 0xaa);
 
+	public static readonly Color DefaultGreen = new(0x00, 0x80, 0x00);
+	public static readonly Color DarkGreen = new(0x00, 0x44, 0x00);
+
 	public static readonly int DefaultTextSize = 14;
 	public static readonly int LargeTextSize = 24;
 
 	public const int BeforeDeparture_AfterArrive_Height = 45;
+
+	public const string DefaultFontFamily = "Hiragino Sans";
+	public const string MaterialIconFontFamily = "MaterialIconsRegular";
+	public const string TimetableNumFontFamily = "Helvetica";
+
+	public static readonly Shadow DefaultShadow = new()
+	{
+		Brush = Colors.Black,
+		Offset = new(3, 3),
+		Radius = 3,
+		Opacity = 0.2f
+	};
 
 	public const double RUN_TIME_COLUMN_WIDTH = 60;
 	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
@@ -34,7 +49,7 @@ public static class DTACElementStyles
 		v.VerticalOptions = LayoutOptions.Center;
 		v.TextColor = DefaultTextColor;
 		v.FontSize = DefaultTextSize;
-		v.FontFamily = "Hiragino Sans";
+		v.FontFamily = DefaultFontFamily;
 		v.Margin = new(4);
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 

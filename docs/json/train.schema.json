@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trvis.t0r.dev/json/v1/train.schema.json",
+
+  "type": "object",
+  "additionalProperties": true,
+
+  "required": [
+    "TrainNumber",
+    "Direction",
+    "TimetableRows"
+  ],
+
+  "properties": {
+    "TrainNumber": {
+      "type": "string",
+      "minLength": 1
+    },
+    "MaxSpeed": {
+      "type": "string"
+    },
+    "SpeedType": {
+      "type": "string"
+    },
+    "NominalTractiveCapacity": {
+      "type": "string"
+    },
+    "CarCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "Destination": {
+      "type": "string"
+    },
+    "BeginRemarks": {
+      "type": "string"
+    },
+    "AfterRemarks": {
+      "type": "string"
+    },
+    "Remarks": {
+      "type": "string"
+    },
+    "BeforeDeparture": {
+      "type": "string"
+    },
+    "TrainInfo": {
+      "type": "string"
+    },
+    "Direction": {
+      "type": "number"
+    },
+    "WorkType": {
+      "type": "integer"
+    },
+    "AfterArrive": {
+      "type": "string"
+    },
+    "BeforeDeparture_OnStationTrackCol": {
+      "type": "string"
+    },
+    "AfterArrive_OnStationTrackCol": {
+      "type": "string"
+    },
+    "DayCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "IsRideOnMoving": {
+      "type": "boolean"
+    },
+    "Color": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{6}$"
+    },
+
+    "TimetableRows": {
+      "type": "array",
+      "minItems": 1,
+
+      "items": {
+        "$ref": "/json/v1/timetable_row.schema.json"
+      }
+    }
+  }
+}
