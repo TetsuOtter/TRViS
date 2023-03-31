@@ -17,7 +17,7 @@
 		<ColumnDefinition Width="270"/>
 		<!-- 最高速度 -->
 		<ColumnDefinition Width="120"/>
-		<!-- 速度種別 -->
+		<!-- 速度種別 (Default: 210) -->
 		<ColumnDefinition Width="*"/>
 		<!-- けん引定数 -->
 		<ColumnDefinition Width="168"/>

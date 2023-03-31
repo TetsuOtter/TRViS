@@ -11,10 +11,10 @@ public partial class VerticalTimetableView
 	BoxView CurrentLocationBoxView { get; } = new()
 	{
 		IsVisible = false,
-		HeightRequest = RowHeight.Value / 2,
+		HeightRequest = RowHeight.Value,
 		WidthRequest = DTACElementStyles.RUN_TIME_COLUMN_WIDTH,
 		Margin = new(0),
-		VerticalOptions = LayoutOptions.Start,
+		VerticalOptions = LayoutOptions.End,
 		HorizontalOptions = LayoutOptions.Start,
 		Color = CURRENT_LOCATION_MARKER_COLOR,
 	};
@@ -38,6 +38,7 @@ public partial class VerticalTimetableView
 		AfterRemarks = new(this);
 
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
+		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
 		LocationService.IsNearbyChanged += LocationService_IsNearbyChanged;
 		LocationService.ExceptionThrown += (s, e) =>
@@ -93,14 +94,14 @@ public partial class VerticalTimetableView
 		});
 	}
 
-	async Task AddNewRow(TimetableRow? row, int index, bool isLastRow)
+	Task AddNewRow(TimetableRow? row, int index, bool isLastRow)
 	{
 		if (row is null)
-			return;
+			return Task.CompletedTask;
 
-		if (row.IsInfoRow)
+		return MainThread.InvokeOnMainThreadAsync(() =>
 		{
-			await MainThread.InvokeOnMainThreadAsync(() =>
+			if (row.IsInfoRow)
 			{
 				HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
 				Line line = DTACElementStyles.HorizontalSeparatorLineStyle();
@@ -119,25 +120,18 @@ public partial class VerticalTimetableView
 					column: 0,
 					row: index
 				);
-			});
+			}
+			else
+			{
+				VerticalTimetableRow rowView = new VerticalTimetableRow(this, index, row, MarkerViewModel, isLastRow);
 
-			return;
-		}
+				TapGestureRecognizer tapGestureRecognizer = new();
+				tapGestureRecognizer.Tapped += RowTapped;
+				rowView.GestureRecognizers.Add(tapGestureRecognizer);
 
-		VerticalTimetableRow rowView = await MainThread.InvokeOnMainThreadAsync(() => new VerticalTimetableRow(row, MarkerViewModel, isLastRow));
-
-		TapGestureRecognizer tapGestureRecognizer = new();
-		tapGestureRecognizer.Tapped += RowTapped;
-		rowView.GestureRecognizers.Add(tapGestureRecognizer);
-
-		await MainThread.InvokeOnMainThreadAsync(() =>
-		{
-			Grid.SetColumnSpan(rowView, 8);
-			Children.Add(rowView);
-
-			Grid.SetRow(rowView, index);
+				RowViewList.Add(rowView);
+			}
 		});
-		RowViewList.Add(rowView);
 	}
 
 	void SetRowDefinitions(int newCount)
