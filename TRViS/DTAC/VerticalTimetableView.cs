@@ -19,7 +19,7 @@ public partial class VerticalTimetableView : Grid
 		}
 	}
 
-	static readonly GridLength RowHeight = new(60);
+	static public readonly GridLength RowHeight = new(60);
 
 	public event EventHandler? IsBusyChanged;
 
