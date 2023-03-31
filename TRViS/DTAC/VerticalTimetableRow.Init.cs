@@ -7,7 +7,7 @@ namespace TRViS.DTAC;
 
 public partial class VerticalTimetableRow
 {
-	public bool IsEnabled { get; set; }
+	public bool IsEnabled { get; set; } = true;
 
 	bool _IsMarkingMode;
 	public bool IsMarkingMode
