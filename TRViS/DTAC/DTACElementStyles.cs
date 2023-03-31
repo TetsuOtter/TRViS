@@ -76,6 +76,68 @@ public static class DTACElementStyles
 		return v;
 	}
 
+	public static T TimetableLabel<T>() where T : Label, new()
+	{
+		T v = LabelStyle<T>();
+
+		v.TextColor = Colors.Black;
+		v.FontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+		v.FontAttributes = FontAttributes.Bold;
+
+		return v;
+	}
+
+	public static T TimetableLargeNumberLabel<T>() where T : Label, new()
+	{
+		T v = TimetableLabel<T>();
+
+		v.FontFamily = "Helvetica";
+		v.VerticalOptions = LayoutOptions.End;
+		v.LineBreakMode = LineBreakMode.NoWrap;
+
+		return v;
+	}
+
+	public static T TimetableRunLimitLabel<T>() where T : Label, new()
+	{
+		T v = TimetableLargeNumberLabel<T>();
+
+		v.FontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 24 : 22;
+		v.Margin = v.Padding = new(0);
+		v.VerticalOptions = LayoutOptions.Center;
+
+		return v;
+	}
+
+	public static T TimetableDriveTimeMMLabel<T>() where T : Label, new()
+	{
+		T v = TimetableLargeNumberLabel<T>();
+
+		v.FontSize = 26;
+
+		return v;
+	}
+
+	public static T TimetableDriveTimeSSLabel<T>() where T : Label, new()
+	{
+		T v = TimetableLargeNumberLabel<T>();
+
+		v.FontSize = 18;
+		v.Margin = new(1);
+
+		return v;
+	}
+
+	public static T TimetableDefaultNumberLabel<T>() where T : Label, new()
+	{
+		T v = TimetableLabel<T>();
+
+		v.FontSize = 16;
+		v.Margin = new(1, 3);
+
+		return v;
+	}
+
 	public static Line HorizontalSeparatorLineStyle()
 	{
 		Line v = new();
@@ -86,6 +148,54 @@ public static class DTACElementStyles
 		v.HeightRequest = 0.5;
 
 		Grid.SetColumnSpan(v, 8);
+
+		return v;
+	}
+
+	public static TimeCell TimeCell()
+	{
+		TimeCell v = new();
+
+		v.VerticalOptions
+			= v.HorizontalOptions
+			= LayoutOptions.Center;
+
+		return v;
+	}
+
+	public static Grid LastStopLineGrid()
+	{
+		Grid v = new()
+		{
+			RowDefinitions =
+			{
+				new RowDefinition(new GridLength(1, GridUnitType.Star)),
+				new RowDefinition(new GridLength(1, GridUnitType.Star)),
+				new RowDefinition(new GridLength(1, GridUnitType.Star)),
+				new RowDefinition(new GridLength(1, GridUnitType.Star)),
+			}
+		};
+
+		v.Add(LastStopLine(), row: 1);
+		v.Add(LastStopLine(), row: 2);
+
+		return v;
+	}
+
+	public static Line LastStopLine()
+	{
+		Line v = new()
+		{
+			BackgroundColor = Colors.Black,
+			StrokeThickness = 4,
+			HeightRequest = 4,
+			X1 = 22,
+			X2 = 106,
+			Y1 = 0,
+			Y2 = 0,
+			VerticalOptions = LayoutOptions.Center,
+			HorizontalOptions = LayoutOptions.Center,
+		};
 
 		return v;
 	}
