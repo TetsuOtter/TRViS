@@ -64,7 +64,7 @@ public partial class VerticalTimetableView : Grid
 	(VerticalTimetableRow row, DateTime time)? _lastTappInfo = null;
 	private void RowTapped(object? sender, EventArgs e)
 	{
-		if (sender is not VerticalTimetableRow row)
+		if (sender is not BoxView boxView || boxView.BindingContext is not VerticalTimetableRow row)
 			return;
 
 		if (!IsRunStarted || !IsEnabled)

@@ -74,6 +74,7 @@ public partial class VerticalTimetableRow
 		{
 			IsVisible = true,
 			Color = Colors.White,
+			BindingContext = this,
 		};
 		Grid.SetColumnSpan(BackgroundBoxView, 8);
 		parent.Add(BackgroundBoxView, row: rowIndex);
