@@ -4,6 +4,7 @@ namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsOpen")]
 [DependencyProperty<bool>("IsRunning")]
+[DependencyProperty<bool>("IsLocationServiceEnabled")]
 public partial class PageHeader : Grid
 {
 	static readonly ColumnDefinitionCollection DefaultColumnDefinitions = new()
@@ -39,11 +40,38 @@ public partial class PageHeader : Grid
 	readonly StartEndRunButton StartEndRunButton = new();
 
 	partial void OnIsRunningChanged(bool newValue)
-		=> StartEndRunButton.IsChecked = newValue;
+	{
+		StartEndRunButton.IsChecked = newValue;
+
+		LocationServiceButton.IsEnabled = newValue;
+	}
+
+	private void StartEndRunButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
+	{
+		this.IsRunning = e.NewValue;
+
+		LocationServiceButton.IsEnabled = e.NewValue;
+	}
 	#endregion
 
 	#region Location Service Button
 	readonly LocationServiceButton LocationServiceButton = new();
+
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged
+	{
+		add => LocationServiceButton.IsCheckedChanged += value;
+		remove => LocationServiceButton.IsCheckedChanged -= value;
+	}
+
+	partial void OnIsLocationServiceEnabledChanged(bool newValue)
+	{
+		LocationServiceButton.IsChecked = newValue;
+	}
+
+	private void LocationServiceButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
+	{
+		IsLocationServiceEnabled = e.NewValue;
+	}
 	#endregion
 
 	#region Open / Close Button
@@ -78,7 +106,9 @@ public partial class PageHeader : Grid
 		StartEndRunButton.Margin = new(2);
 		StartEndRunButton.IsCheckedChanged += (_, e) => this.IsRunning = e.NewValue;
 
+		LocationServiceButton.IsEnabled = false;
 		LocationServiceButton.Margin = new(4, 8);
+		LocationServiceButton.IsCheckedChanged += LocationServiceButton_IsCheckedChanged;
 
 		OpenCloseButton.TextWhenOpen = "\xe5ce";
 		OpenCloseButton.TextWhenClosed = "\xe5cf";

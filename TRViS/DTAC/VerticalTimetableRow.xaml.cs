@@ -33,7 +33,7 @@ public partial class VerticalTimetableRow : Grid
 
 			if (!IsEnabled || value == LocationStates.Undefined)
 			{
-				CurrentLocationBoxView.IsVisible = false;
+				MainThread.BeginInvokeOnMainThread(() => CurrentLocationBoxView.IsVisible = false);
 				_LocationState = LocationStates.Undefined;
 				return;
 			}
@@ -44,18 +44,21 @@ public partial class VerticalTimetableRow : Grid
 
 			_LocationState = value;
 
-			switch (value)
+			MainThread.BeginInvokeOnMainThread(() =>
 			{
-				case LocationStates.AroundThisStation:
-					CurrentLocationBoxView.IsVisible = true;
-					CurrentLocationBoxView.Margin = new(0);
-					break;
+				switch (value)
+				{
+					case LocationStates.AroundThisStation:
+						CurrentLocationBoxView.IsVisible = true;
+						CurrentLocationBoxView.Margin = new(0);
+						break;
 
-				case LocationStates.RunningToNextStation:
-					CurrentLocationBoxView.IsVisible = true;
-					CurrentLocationBoxView.Margin = new(0, -30);
-					break;
-			}
+					case LocationStates.RunningToNextStation:
+						CurrentLocationBoxView.IsVisible = true;
+						CurrentLocationBoxView.Margin = new(0, -30);
+						break;
+				}
+			});
 		}
 	}
 

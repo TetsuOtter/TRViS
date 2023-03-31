@@ -91,6 +91,15 @@ public partial class VerticalStylePage : ContentView
 		}
 		else
 			TimetableAreaScrollView.Content = TimetableView;
+
+		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
+		TimetableView.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
+	}
+
+	private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
+	{
+		PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
+		TimetableView.IsLocationServiceEnabled = e.NewValue;
 	}
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
