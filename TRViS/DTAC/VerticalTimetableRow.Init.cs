@@ -94,6 +94,7 @@ public partial class VerticalTimetableRow
 					new ColumnDefinition(new GridLength(1.2, GridUnitType.Star)),
 					new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
 				},
+				InputTransparent = true,
 			};
 
 			if (isDriveTimeMMVisible)
@@ -198,6 +199,7 @@ public partial class VerticalTimetableRow
 					new RowDefinition(new GridLength(1, GridUnitType.Star)),
 					new RowDefinition(new GridLength(1, GridUnitType.Star)),
 				},
+				InputTransparent = true,
 			};
 
 			if (isRunInLimitVisible)

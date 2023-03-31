@@ -83,6 +83,7 @@ public static class DTACElementStyles
 		v.TextColor = Colors.Black;
 		v.FontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
 		v.FontAttributes = FontAttributes.Bold;
+		v.InputTransparent = true;
 
 		return v;
 	}
@@ -181,6 +182,7 @@ public static class DTACElementStyles
 
 		v.Add(LastStopLine(), row: 1);
 		v.Add(LastStopLine(), row: 2);
+		v.InputTransparent = true;
 
 		return v;
 	}
