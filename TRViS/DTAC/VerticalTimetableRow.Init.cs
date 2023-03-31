@@ -43,6 +43,7 @@ public partial class VerticalTimetableRow
 			{
 				BackgroundBoxView.Color = value.WithAlpha(BG_ALPHA);
 				MarkerBox.BackgroundColor = value;
+				MarkerBox.TextColor = Utils.GetTextColorFromBGColor(value);
 			}
 		}
 	}
