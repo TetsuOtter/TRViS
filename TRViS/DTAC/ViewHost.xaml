@@ -17,7 +17,8 @@
 
 		<HorizontalStackLayout
 			Grid.Row="0"
-			Margin="4,0"
+			Margin="0"
+			Padding="4,0"
 			BackgroundColor="#eee">
 			<local:TabButton
 				Text="ハ　コ"
