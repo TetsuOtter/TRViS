@@ -61,7 +61,7 @@ public partial class VerticalTimetableRow
 		}
 		else
 		{
-			MarkedColor = DefaultMarkButtonColor;
+			MarkedColor = null;
 			MarkerBox.Text = null;
 		}
 	}
