@@ -10,7 +10,11 @@ public class StationNameConverter : IValueConverter
 		if (value is not string s)
 			return value;
 
-		return s.Length switch
+		return StationNameConverter.Convert(s);
+	}
+
+	public static string Convert(string s)
+		=> s.Length switch
 		{
 			2 => Utils.InsertCharBetweenCharAndMakeWide(s, $"{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}"),
 			3 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.SPACE_CHAR),
@@ -21,7 +25,6 @@ public class StationNameConverter : IValueConverter
 #endif
 			_ => s
 		};
-	}
 
 	public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
 		=> (value as string)?.Replace(Utils.SPACE_CHAR, string.Empty).Replace(Utils.THIN_SPACE, string.Empty) ?? value;

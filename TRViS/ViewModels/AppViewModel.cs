@@ -31,6 +31,44 @@ public partial class AppViewModel : ObservableObject
 	[ObservableProperty]
 	TrainData? _SelectedTrainData;
 
+	public event EventHandler<ValueChangedEventArgs<AppTheme>>? CurrentAppThemeChanged;
+	AppTheme _SystemAppTheme;
+	AppTheme _CurrentAppTheme;
+	public AppTheme CurrentAppTheme
+	{
+		get => _CurrentAppTheme;
+		set
+		{
+			if (value == AppTheme.Unspecified)
+				value = _SystemAppTheme;
+
+			if (_CurrentAppTheme == value)
+				return;
+
+			AppTheme tmp = _CurrentAppTheme;
+			_CurrentAppTheme = value;
+			CurrentAppThemeChanged?.Invoke(this, new(tmp, value));
+		}
+	}
+
+	public AppViewModel()
+	{
+		if (Application.Current is not null)
+		{
+			_CurrentAppTheme = Application.Current.RequestedTheme;
+
+			// does not fire -> https://github.com/dotnet/maui/pull/11199
+			// will be resolved with net8
+			Application.Current.RequestedThemeChanged += (s, e) =>
+			{
+				_SystemAppTheme = e.RequestedTheme;
+
+				if (Application.Current.UserAppTheme == AppTheme.Unspecified)
+					CurrentAppTheme = e.RequestedTheme;
+			};
+		}
+	}
+
 	partial void OnLoaderChanged(ILoader? value)
 	{
 		SelectedWorkGroup = null;

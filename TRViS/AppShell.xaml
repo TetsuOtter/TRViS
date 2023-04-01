@@ -38,7 +38,7 @@
 	<FlyoutItem Title="Third Party Licenses">
 		<ShellContent ContentTemplate="{DataTemplate local:ThirdPartyLicenses}" />
 	</FlyoutItem>
-	<FlyoutItem Title="">
+	<FlyoutItem Title="Settings">
 		<ShellContent ContentTemplate="{DataTemplate local:EasterEggPage}" />
 	</FlyoutItem>
 </Shell>

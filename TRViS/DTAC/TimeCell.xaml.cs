@@ -15,6 +15,8 @@ public partial class TimeCell : Grid
 	{
 		InitializeComponent();
 
+		InputTransparent = true;
+
 		OnIsPassChanged(IsPass);
 	}
 
