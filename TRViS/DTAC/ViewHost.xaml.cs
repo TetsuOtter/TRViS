@@ -10,6 +10,7 @@ public partial class ViewHost : ContentPage
 	DTACViewHostViewModel ViewModel { get; }
 
 	readonly GradientStop TitleBG_Top = new(Colors.White.WithAlpha(0.8f), 0);
+	readonly GradientStop TitleBG_Middle = new(Colors.White.WithAlpha(0.5f), 0.5f);
 	readonly GradientStop TitleBG_MidBottom = new(Colors.White.WithAlpha(0.1f), 0.8f);
 	readonly GradientStop TitleBG_Bottom = new(Colors.White.WithAlpha(0), 1);
 
@@ -31,6 +32,7 @@ public partial class ViewHost : ContentPage
 		TitleBGGradientFrame.Background = new LinearGradientBrush(new GradientStopCollection()
 		{
 			TitleBG_Top,
+			TitleBG_Middle,
 			TitleBG_MidBottom,
 			TitleBG_Bottom,
 		},
@@ -73,6 +75,7 @@ public partial class ViewHost : ContentPage
 	void SetTitleBGGradientColor(Color v)
 	{
 		TitleBG_Top.Color = v.WithAlpha(0.8f);
+		TitleBG_Middle.Color = v.WithAlpha(0.5f);
 		TitleBG_MidBottom.Color = v.WithAlpha(0.1f);
 		TitleBG_Bottom.Color = v.WithAlpha(0);
 	}
