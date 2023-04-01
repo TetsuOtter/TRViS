@@ -26,11 +26,14 @@ public partial class ViewHost : ContentPage
 		TitleBGGradientFrame.Background = new LinearGradientBrush(new GradientStopCollection()
 		{
 			TitleBG_Top,
+			TitleBG_MidBottom,
 			TitleBG_Bottom,
 		},
 		new Point(0, 0),
 		new Point(0, 1));
 
+		vm.CurrentAppThemeChanged += (s, e) => SetTitleBGGradientColor(e.NewValue);
+		SetTitleBGGradientColor(vm.CurrentAppTheme);
 		vm.PropertyChanged += Vm_PropertyChanged;
 		eevm.PropertyChanged += Eevm_PropertyChanged;
 
@@ -58,6 +61,15 @@ public partial class ViewHost : ContentPage
 			appShell.SafeAreaMarginChanged += AppShell_SafeAreaMarginChanged;
 			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
 		}
+	}
+
+	void SetTitleBGGradientColor(AppTheme v)
+		=> SetTitleBGGradientColor(v == AppTheme.Dark ? Colors.Black : Colors.White);
+	void SetTitleBGGradientColor(Color v)
+	{
+		TitleBG_Top.Color = v.WithAlpha(0.8f);
+		TitleBG_MidBottom.Color = v.WithAlpha(0.1f);
+		TitleBG_Bottom.Color = v.WithAlpha(0);
 	}
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
