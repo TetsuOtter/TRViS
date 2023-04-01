@@ -22,7 +22,12 @@ public partial class ViewHost : ContentPage
 		TitleLabel.Text = vm.SelectedWork?.Name;
 		TitleLabel.TextColor = MenuButton.TextColor = eevm.ShellTitleTextColor;
 
-		TitleBGBoxView.BackgroundColor = eevm.ShellBackgroundColor;
+		TitleBGBoxView.SetBinding(BoxView.ColorProperty, new Binding()
+		{
+			Source = eevm,
+			Path = nameof(EasterEggPageViewModel.ShellBackgroundColor)
+		});
+
 		TitleBGGradientFrame.Background = new LinearGradientBrush(new GradientStopCollection()
 		{
 			TitleBG_Top,
@@ -95,10 +100,6 @@ public partial class ViewHost : ContentPage
 
 		switch (e.PropertyName)
 		{
-			case nameof(EasterEggPageViewModel.ShellBackgroundColor):
-				TitleBGBoxView.Color = vm.ShellBackgroundColor;
-				break;
-
 			case nameof(EasterEggPageViewModel.ShellTitleTextColor):
 				TitleLabel.TextColor = MenuButton.TextColor = vm.ShellTitleTextColor;
 				break;
