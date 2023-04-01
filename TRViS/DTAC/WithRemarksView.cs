@@ -27,6 +27,12 @@ public partial class WithRemarksView : Grid
 		Margin = new(0);
 		Padding = new(0);
 
+		if (Shell.Current is AppShell appShell)
+		{
+			appShell.SafeAreaMarginChanged += AppShell_SafeAreaMarginChanged;
+			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
+		}
+
 #if IOS
 		this.Add(BottomPaddingView, row: 1);
 #endif
@@ -47,30 +53,13 @@ public partial class WithRemarksView : Grid
 		RemarksView.RemarksData = newValue;
 	}
 
-#if IOS
-	UIKit.UIWindow? UIWindow = null;
-
-	protected override void OnSizeAllocated(double width, double height)
+	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
-		// SafeAreaInsets ref: https://stackoverflow.com/questions/46829840/get-safe-area-inset-top-and-bottom-heights
-		// ios15 >= ref: https://zenn.dev/paraches/articles/windows_was_depricated_in_ios15
-		if (UIWindow is null)
-		{
-			if (OperatingSystem.IsIOSVersionAtLeast(13, 0))
-			{
-				if (UIKit.UIApplication.SharedApplication.ConnectedScenes.ToArray().FirstOrDefault(v => v is UIKit.UIWindowScene) is UIKit.UIWindowScene scene)
-					UIWindow = scene.Windows.FirstOrDefault();
-			}
-			else
-				UIWindow = UIKit.UIApplication.SharedApplication.Windows.FirstOrDefault();
-		}
+#if IOS
+		double bottomPaddingValue = newValue.Bottom;
 
-		double bottomPaddingValue = 0;
-
-		if (UIWindow is not null)
-		{
-			bottomPaddingValue = UIWindow.SafeAreaInsets.Bottom.Value;
-		}
+		if (oldValue.Bottom == bottomPaddingValue)
+			return;
 
 		if (bottomPaddingValue > 0)
 		{
@@ -84,9 +73,7 @@ public partial class WithRemarksView : Grid
 
 		RemarksAreaRowDefinition.Height = Remarks.HEADER_HEIGHT - bottomPaddingValue;
 		RemarksView.BottomSafeAreaHeight = bottomPaddingValue;
-
-		base.OnSizeAllocated(width, height);
-	}
 #endif
+	}
 }
 
