@@ -11,12 +11,38 @@
 	<Grid
 		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>
+			<RowDefinition Height="{x:Static local:ViewHost.TitleViewHeight}"/>
 			<RowDefinition Height="64"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 
-		<HorizontalStackLayout
+		<BoxView
+			x:Name="TitleBGBoxView"
 			Grid.Row="0"
+			Margin="-100,-100,-100,0"/>
+
+		<Button
+			x:Name="MenuButton"
+			Margin="4"
+			HorizontalOptions="Start"
+			VerticalOptions="Center"
+			Text="&#xe241;"
+			FontFamily="MaterialIconsRegular"
+			FontSize="36"
+			BackgroundColor="{x:Null}"
+			Clicked="MenuButton_Clicked" />
+
+		<Label
+			x:Name="TitleLabel"
+			FontFamily=""
+			Margin="4"
+			HorizontalOptions="Center"
+			VerticalOptions="Center"
+			FontAttributes="Bold"
+			FontSize="Header"/>
+
+		<HorizontalStackLayout
+			Grid.Row="1"
 			Margin="0"
 			Padding="4,0"
 			BackgroundColor="#eee">
@@ -37,17 +63,17 @@
 		<local:Hako
 			x:Name="HakoView"
 			IsVisible="False"
-			Grid.Row="1"/>
+			Grid.Row="2"/>
 
 		<local:WorkAffix
 			x:Name="WorkAffixView"
 			IsVisible="False"
-			Grid.Row="1"/>
+			Grid.Row="2"/>
 
 		<local:WithRemarksView
 			x:Name="VerticalStylePageRemarksView"
 			IsVisible="False"
-			Grid.Row="1">
+			Grid.Row="2">
 			<local:VerticalStylePage
 				x:Name="VerticalStylePageView"/>
 		</local:WithRemarksView>
