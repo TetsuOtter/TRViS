@@ -10,9 +10,11 @@ public partial class PageHeader : Grid
 	static readonly ColumnDefinitionCollection DefaultColumnDefinitions = new()
 	{
 		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
-		new ColumnDefinition(160),
-		new ColumnDefinition(120),
-		new ColumnDefinition(80),
+
+		// under total: 378
+		new ColumnDefinition(186),
+		new ColumnDefinition(128),
+		new ColumnDefinition(60),
 	};
 
 	#region Affect Date Label

@@ -6,7 +6,7 @@
 	xmlns:converters="clr-namespace:TRViS.ValueConverters"
 	x:DataType="viewmodels:EasterEggPageViewModel"
 	x:Class="TRViS.EasterEggPage"
-	Title="EasterEgg Page">
+	Title="Settings">
 	<ContentPage.Resources>
 		<ResourceDictionary>
 			<converters:DoubleToIntConverter x:Key="DoubleToIntConverter"/>
