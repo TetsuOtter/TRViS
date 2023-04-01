@@ -20,6 +20,13 @@
 			x:Name="TitleBGBoxView"
 			Grid.Row="0"
 			Margin="-100,-100,-100,0"/>
+		<Frame
+			x:Name="TitleBGGradientFrame"
+			HasShadow="False"
+			CornerRadius="0"
+			BorderColor="{x:Null}"
+			Grid.Row="0"
+			Margin="0,0,0,30"/>
 
 		<Button
 			x:Name="MenuButton"

@@ -9,6 +9,10 @@ public partial class ViewHost : ContentPage
 
 	DTACViewHostViewModel ViewModel { get; }
 
+	readonly GradientStop TitleBG_Top = new(Colors.White.WithAlpha(0.8f), 0);
+	readonly GradientStop TitleBG_MidBottom = new(Colors.White.WithAlpha(0.1f), 0.8f);
+	readonly GradientStop TitleBG_Bottom = new(Colors.White.WithAlpha(0), 1);
+
 	public ViewHost(AppViewModel vm, EasterEggPageViewModel eevm)
 	{
 		Shell.SetNavBarIsVisible(this, false);
@@ -19,6 +23,13 @@ public partial class ViewHost : ContentPage
 		TitleLabel.TextColor = MenuButton.TextColor = eevm.ShellTitleTextColor;
 
 		TitleBGBoxView.BackgroundColor = eevm.ShellBackgroundColor;
+		TitleBGGradientFrame.Background = new LinearGradientBrush(new GradientStopCollection()
+		{
+			TitleBG_Top,
+			TitleBG_Bottom,
+		},
+		new Point(0, 0),
+		new Point(0, 1));
 
 		vm.PropertyChanged += Vm_PropertyChanged;
 		eevm.PropertyChanged += Eevm_PropertyChanged;
@@ -41,6 +52,23 @@ public partial class ViewHost : ContentPage
 		});
 
 		UpdateContent();
+
+		if (Shell.Current is AppShell appShell)
+		{
+			appShell.SafeAreaMarginChanged += AppShell_SafeAreaMarginChanged;
+			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
+		}
+	}
+
+	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
+	{
+		double top = newValue.Top;
+		if (oldValue.Top == top
+			&& oldValue.Left == newValue.Left
+			&& oldValue.Right == newValue.Right)
+			return;
+
+		TitleBGGradientFrame.Margin = new(-newValue.Left, -top, -newValue.Right, 30);
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
