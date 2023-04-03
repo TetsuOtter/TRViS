@@ -116,6 +116,7 @@ public static class DTACElementStyles
 
 		v.FontSize = 26;
 		v.Margin = v.Padding = new(0);
+		v.HorizontalOptions = LayoutOptions.End;
 
 		return v;
 	}
