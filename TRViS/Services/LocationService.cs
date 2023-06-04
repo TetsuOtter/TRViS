@@ -80,7 +80,9 @@ public partial class LocationService : ObservableObject, IDisposable
 		bool isNearby = distance <= NearbyRadius_m;
 		LogView.Add(
 			LogView.Priority.Info,
-			$"setIsNearby ... {location} (Distance:{distance}m/{NearbyRadius_m} from {NearbyCenter} -> IsNearBy:{isNearby})"
+
+			$"setIsNearby() Lon:{location.Longitude:F5}, Lat:{location.Latitude:F5}"
+			+ $" (Distance:{distance:F2}m/{NearbyRadius_m:F2}m from Lon:{NearbyCenter.Longitude:F5}, Lat:{NearbyCenter.Latitude:F5} -> IsNearBy:{isNearby})"
 		);
 		IsNearby = isNearby;
 	}
