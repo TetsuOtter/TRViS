@@ -46,20 +46,10 @@
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference
-			Include="CommunityToolkit.Mvvm"
-			Version="8.1.0" />
-		<PackageReference
-			Include="DependencyPropertyGenerator"
-			Version="1.2.5"
-			PrivateAssets="all"
-			ExcludeAssets="runtime" />
-		<PackageReference
-			Include="System.Text.Json"
-			Version="7.0.2" />
-		<PackageReference
-			Include="CommunityToolkit.Maui"
-			Version="5.0.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
+		<PackageReference Include="DependencyPropertyGenerator" Version="1.2.5" PrivateAssets="all" ExcludeAssets="runtime" />
+		<PackageReference Include="System.Text.Json" Version="7.0.2" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="5.2.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
