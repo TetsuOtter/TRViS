@@ -77,7 +77,12 @@ public partial class LocationService : ObservableObject, IDisposable
 
 		double distance = location.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
 
-		IsNearby = distance <= NearbyRadius_m;
+		bool isNearby = distance <= NearbyRadius_m;
+		LogView.Add(
+			LogView.Priority.Info,
+			$"setIsNearby ... {location} (Distance:{distance}m/{NearbyRadius_m} from {NearbyCenter} -> IsNearBy:{isNearby})"
+		);
+		IsNearby = isNearby;
 	}
 
 	public event EventHandler<Exception>? ExceptionThrown;
@@ -126,6 +131,7 @@ public partial class LocationService : ObservableObject, IDisposable
 			// accuracy: 30m - 500m
 			GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
 
+			LogView.Add("Location Service Starting...");
 			while (!token.IsCancellationRequested)
 			{
 				TimeSpan timeout = Interval;
@@ -137,6 +143,7 @@ public partial class LocationService : ObservableObject, IDisposable
 					Task.Delay(timeout, token),
 				});
 			}
+			LogView.Add("Location Service Ended");
 		}, token);
 	}
 
@@ -148,12 +155,15 @@ public partial class LocationService : ObservableObject, IDisposable
 
 			if (loc is not null)
 				LastLocation = loc;
+			else
+				LogView.Add("CurrentLocation is UNKNOWN (value was null)");
 		}
 		catch (Exception ex)
 		{
 			IsEnabled = false;
 			gpsCancelation?.Cancel();
 			System.Diagnostics.Debug.WriteLine(ex);
+			LogView.Add(LogView.Priority.Error, "GetLocationAsync failed:" + ex.ToString());
 
 			if (ExceptionThrown is null)
 				throw;
