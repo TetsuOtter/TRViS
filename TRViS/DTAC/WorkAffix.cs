@@ -8,6 +8,13 @@ public class WorkAffix : ContentView
 	{
 		BackgroundColor = Colors.White;
 
-		Content = new LogView();
+		LogView logView = new()
+		{
+			PriorityFilter
+				= LogView.Priority.Info
+				| LogView.Priority.Warn
+				| LogView.Priority.Error
+		};
+		Content = logView;
 	}
 }
