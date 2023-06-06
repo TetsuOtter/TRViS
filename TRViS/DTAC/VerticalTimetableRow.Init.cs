@@ -21,6 +21,9 @@ public partial class VerticalTimetableRow
 		}
 	}
 
+	void setMarkerBoxDefaultColor()
+		=> DTACElementStyles.MarkerMarkButtonBGColor.Apply(MarkerBox, VisualElement.BackgroundColorProperty);
+
 	Color? _MarkedColor = null;
 	public Color? MarkedColor
 	{
@@ -36,12 +39,12 @@ public partial class VerticalTimetableRow
 
 			if (value is null)
 			{
-				BackgroundBoxView.Color = Colors.White;
-				MarkerBox.BackgroundColor = DefaultMarkButtonColor;
+				BackgroundBoxView.BackgroundColor = Colors.Transparent;
+				setMarkerBoxDefaultColor();
 			}
 			else
 			{
-				BackgroundBoxView.Color = value.WithAlpha(BG_ALPHA);
+				BackgroundBoxView.Color = value;
 				MarkerBox.BackgroundColor = value;
 				MarkerBox.TextColor = Utils.GetTextColorFromBGColor(value);
 			}
@@ -75,8 +78,9 @@ public partial class VerticalTimetableRow
 		BackgroundBoxView = new()
 		{
 			IsVisible = true,
-			Color = Colors.White,
+			Color = Colors.Transparent,
 			BindingContext = this,
+			Opacity = BG_ALPHA,
 		};
 		Grid.SetColumnSpan(BackgroundBoxView, 8);
 		parent.Add(BackgroundBoxView, row: rowIndex);
@@ -235,21 +239,12 @@ public partial class VerticalTimetableRow
 			parent.Add(Remarks, 6, rowIndex);
 		}
 
-		BoxView RowSeparator = new()
-		{
-			HeightRequest = 0.5,
-			Color = DTACElementStyles.SeparatorLineColor,
-			HorizontalOptions = LayoutOptions.Fill,
-			VerticalOptions = LayoutOptions.End,
-		};
-		Grid.SetColumnSpan(RowSeparator, 8);
-		parent.Add(RowSeparator, row: rowIndex);
+		parent.Add(DTACElementStyles.HorizontalSeparatorLineStyle(), row: rowIndex);
 
 		MarkerBox = new()
 		{
 			IsVisible = false,
 			IsEnabled = false,
-			BackgroundColor = DefaultMarkButtonColor,
 			FontFamily = "Hiragino Sans",
 			FontSize = 18,
 			BorderColor = Colors.Transparent,
@@ -261,7 +256,9 @@ public partial class VerticalTimetableRow
 			HeightRequest = 40,
 			WidthRequest = 40,
 			Shadow = DTACElementStyles.DefaultShadow,
+			Opacity = 0.9,
 		};
+		setMarkerBoxDefaultColor();
 		MarkerBox.Shadow.Offset = new(2, 2);
 		MarkerBox.Shadow.Radius = 2;
 		MarkerBox.Clicked += MarkerBoxClicked;

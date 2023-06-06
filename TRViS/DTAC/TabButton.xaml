@@ -30,7 +30,6 @@
 
 			<Label
 				x:Name="ButtonLabel"
-				TextColor="Black"
 				FontFamily="Hiragino Sans"
 				FontSize="18"
 				FontAttributes="Bold"

@@ -25,7 +25,6 @@ public class LocationServiceButton : ToggleButton
 		{
 			Margin = new(SelectedRectThickness),
 			CornerRadius = CornerRadius - SelectedRectMargin - SelectedRectThickness,
-			Color = DTACElementStyles.DarkGreen,
 		}
 	};
 	readonly Frame NotSelectedSideBase = new()
@@ -54,7 +53,6 @@ public class LocationServiceButton : ToggleButton
 			Margin = new(0),
 			Padding = new(0),
 			CornerRadius = CornerRadius,
-			BackgroundColor = DTACElementStyles.DarkGreen,
 			BorderColor = Colors.Transparent,
 			HasShadow = true,
 			Shadow = DTACElementStyles.DefaultShadow,
@@ -62,6 +60,9 @@ public class LocationServiceButton : ToggleButton
 		Grid.SetColumnSpan(baseFrame, 2);
 
 		InitElements();
+
+		DTACElementStyles.DarkGreen.Apply(baseFrame, BackgroundColorProperty);
+		DTACElementStyles.DarkGreen.Apply(SelectedSideBase.Content, BoxView.ColorProperty);
 
 		HorizontalStackLayout on_group = new()
 		{

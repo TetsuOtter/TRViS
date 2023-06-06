@@ -12,7 +12,6 @@ public class BeforeDeparture_AfterArrive
 	{
 		IsVisible = false,
 		Margin = new(0),
-		Color = DTACElementStyles.HeaderBackgroundColor,
 	};
 	readonly Label HeaderLabel = DTACElementStyles.HeaderLabelStyle<Label>();
 
@@ -43,6 +42,9 @@ public class BeforeDeparture_AfterArrive
 
 		Grid.SetColumn(Label_OnStationTrackColumn, 4);
 		Grid.SetColumnSpan(Label_OnStationTrackColumn, 4);
+
+		DTACElementStyles.HeaderTextColor.Apply(HeaderLabel, Microsoft.Maui.Controls.Label.TextColorProperty);
+		DTACElementStyles.HeaderBackgroundColor.Apply(HeaderBoxView, BoxView.ColorProperty);
 
 		HeaderLabel.Text = HeaderLabelText;
 

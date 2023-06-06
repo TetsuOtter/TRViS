@@ -24,6 +24,8 @@ public partial class Remarks : Grid
 		BindingContext = this;
 
 		ContentAreaHeight = new(DEFAULT_CONTENT_AREA_HEIGHT);
+
+		DTACElementStyles.DefaultBGColor.Apply(RemarksTextScrollView, BackgroundColorProperty);
 	}
 
 	partial void OnIsOpenChanged(bool newValue)
