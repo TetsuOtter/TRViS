@@ -40,8 +40,12 @@ public static class DTACElementStyles
 	);
 	public static readonly AppThemeColorBindingExtension DarkGreen = new(
 		new(0x00, 0x44, 0x00),
-		new(0x00, 0x44, 0x00)
+		new(0x00, 0x33, 0x00)
 	);
+
+	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideFrameColor = genColor(0xFF, 0xAA);
+	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
+	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xE8);
 
 	public static readonly int DefaultTextSize = 14;
 	public static readonly int LargeTextSize = 24;
