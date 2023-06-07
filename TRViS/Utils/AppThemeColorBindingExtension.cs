@@ -10,6 +10,7 @@ public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension wher
 	public AppThemeGenericsBindingExtension(T Default, T Dark)
 	{
 		base.Default = Default;
+		base.Light = Default;
 		base.Dark = Dark;
 	}
 
