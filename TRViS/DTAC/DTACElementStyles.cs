@@ -47,6 +47,8 @@ public static class DTACElementStyles
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
 	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xE8);
 
+	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
+
 	public static readonly int DefaultTextSize = 14;
 	public static readonly int LargeTextSize = 24;
 
