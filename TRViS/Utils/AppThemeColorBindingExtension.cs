@@ -14,7 +14,7 @@ public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension wher
 		base.Dark = Dark;
 	}
 
-	public virtual void Apply(VisualElement? elem, BindableProperty prop)
+	public virtual void Apply(BindableObject? elem, BindableProperty prop)
 		=> elem?.SetAppTheme(prop, this.Light, this.Dark);
 }
 
@@ -22,6 +22,6 @@ public class AppThemeColorBindingExtension : AppThemeGenericsBindingExtension<Co
 {
 	public AppThemeColorBindingExtension(Color Default, Color Dark) : base(Default, Dark) { }
 
-	public override void Apply(VisualElement? elem, BindableProperty prop)
+	public override void Apply(BindableObject? elem, BindableProperty prop)
 		=> elem?.SetAppThemeColor(prop, this.Light, this.Dark);
 }
