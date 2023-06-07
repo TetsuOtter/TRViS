@@ -13,7 +13,7 @@ public static class DTACElementStyles
 
 	public static readonly AppThemeColorBindingExtension DefaultTextColor = genColor(0x33, 0xFF);
 	public static readonly AppThemeColorBindingExtension HeaderTextColor = genColor(0x55, 0xFF);
-	public static readonly AppThemeColorBindingExtension TimetableTextColor = genColor(0x00, 0xEE);
+	public static readonly AppThemeColorBindingExtension TimetableTextColor = genColor(0x00, 0xDD);
 	public static readonly AppThemeColorBindingExtension TimetableTextInvColor = genColor(0xFF, 0xFF);
 	public static readonly AppThemeColorBindingExtension TrainNumNextDayTextColor = new(
 		new(0x33, 0x33, 0xDD),
@@ -45,7 +45,7 @@ public static class DTACElementStyles
 
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideFrameColor = genColor(0xFF, 0xAA);
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
-	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xE8);
+	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xDD);
 
 	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
 
