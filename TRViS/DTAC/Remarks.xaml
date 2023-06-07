@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS.DTAC"
+	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	x:DataType="local:Remarks"
 	BackgroundColor="#333"
@@ -42,7 +43,8 @@
 		VerticalOptions="Center"/>
 
 	<ScrollView
-		BackgroundColor="White"
+		x:Name="RemarksTextScrollView"
+		BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}"
 		Grid.Row="1"
 		Padding="2"
 		Margin="8">

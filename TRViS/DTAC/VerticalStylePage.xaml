@@ -26,12 +26,12 @@
 			x:Name="PageHeaderArea"
 			Grid.Row="0"
 			IsOpenChanged="BeforeRemarks_TrainInfo_OpenCloseChanged"
-			BackgroundColor="White"/>
+			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}"/>
 
 		<Grid
 			Grid.Row="1"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
-			BackgroundColor="#ddd">
+			BackgroundColor="{x:Static dtac:DTACElementStyles.HeaderBackgroundColor}">
 			<Label
 				Style="{StaticResource HeaderLabel}"
 				Text="列　車"
@@ -66,11 +66,11 @@
 		<Grid
 			Grid.Row="2"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
-			BackgroundColor="White">
+			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
 			<Label
 				Style="{StaticResource LabelStyle}"
 				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
-				TextColor="#33d"
+				TextColor="{x:Static dtac:DTACElementStyles.TrainNumNextDayTextColor}"
 				FontSize="28"
 				FontAttributes="Bold"
 				Grid.Column="0"/>
@@ -118,7 +118,7 @@
 		<Grid
 			Grid.Row="4"
 			ColumnDefinitions="{x:Static dtac:DTACElementStyles.TimetableColumnWidthCollection}"
-			BackgroundColor="White">
+			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
 			<Label
 				x:Name="IsNextDayLabel"
 				IsVisible="False"
@@ -137,7 +137,7 @@
 			<Frame
 				IsVisible="{Binding CarCount, Converter={x:Static conv:IsOneOrMoreIntConverter.Default}}"
 				Grid.Column="1"
-				BackgroundColor="#FEFEFE"
+				BackgroundColor="{x:Static dtac:DTACElementStyles.CarCountBGColor}"
 				BorderColor="Transparent"
 				CornerRadius="4"
 				Padding="0"
@@ -183,7 +183,7 @@
 
 		<dtac:TimetableHeader
 			x:Name="TimetableHeader"
-			BackgroundColor="#ddd"
+			BackgroundColor="{x:Static dtac:DTACElementStyles.HeaderBackgroundColor}"
 			FontSize_Large="28"
 			Grid.Row="5"/>
 
