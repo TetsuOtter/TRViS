@@ -39,7 +39,7 @@ public partial class VerticalTimetableRow
 
 			if (value is null)
 			{
-				BackgroundBoxView.BackgroundColor = Colors.Transparent;
+				BackgroundBoxView.Color = Colors.Transparent;
 				setMarkerBoxDefaultColor();
 			}
 			else
