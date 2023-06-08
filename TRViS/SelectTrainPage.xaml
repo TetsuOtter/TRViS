@@ -4,7 +4,8 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:models="clr-namespace:TRViS.IO.Models.DB;assembly=TRViS.IO"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
-	BackgroundColor="{AppThemeBinding Dark=#222, Default=#ddd}"
+	xmlns:local="clr-namespace:TRViS"
+	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
 	x:DataType="viewmodels:AppViewModel"
 	x:Class="TRViS.SelectTrainPage"
 	Title="Select Train">
@@ -12,7 +13,7 @@
 		<ResourceDictionary>
 			<Style TargetType="Frame">
 				<Setter Property="HasShadow" Value="True"/>
-				<Setter Property="BorderColor" Value="{AppThemeBinding Dark=#ddd, Default=#222}"/>
+				<Setter Property="BorderColor" Value="{x:Static local:RootStyles.FrameBorderColor}"/>
 				<Setter Property="Margin" Value="8"/>
 				<Setter Property="Padding" Value="8"/>
 				<Setter Property="FlexLayout.Basis" Value="350"/>
@@ -64,8 +65,8 @@
 									<DataTemplate
 										x:DataType="models:WorkGroup">
 										<TextCell
-											TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
-											DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
+											TextColor="{x:Static local:RootStyles.TableTextColor}"
+											DetailColor="{x:Static local:RootStyles.TableDetailColor}"
 											Text="{Binding Name}"/>
 									</DataTemplate>
 								</ListView.ItemTemplate>
@@ -91,8 +92,8 @@
 									<DataTemplate
 										x:DataType="models:Work">
 										<TextCell
-											TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
-											DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
+											TextColor="{x:Static local:RootStyles.TableTextColor}"
+											DetailColor="{x:Static local:RootStyles.TableDetailColor}"
 											Text="{Binding Name}"/>
 									</DataTemplate>
 								</ListView.ItemTemplate>
@@ -118,8 +119,8 @@
 									<DataTemplate
 										x:DataType="models:TrainData">
 										<TextCell
-											TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
-											DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
+											TextColor="{x:Static local:RootStyles.TableTextColor}"
+											DetailColor="{x:Static local:RootStyles.TableDetailColor}"
 											Text="{Binding TrainNumber}"/>
 									</DataTemplate>
 								</ListView.ItemTemplate>
