@@ -14,6 +14,7 @@
 			<Style TargetType="Frame">
 				<Setter Property="HasShadow" Value="True"/>
 				<Setter Property="BorderColor" Value="{x:Static local:RootStyles.FrameBorderColor}"/>
+				<Setter Property="BackgroundColor" Value="{x:Static local:RootStyles.BackgroundColor}"/>
 				<Setter Property="Margin" Value="8"/>
 				<Setter Property="Padding" Value="8"/>
 				<Setter Property="FlexLayout.Basis" Value="350"/>
