@@ -21,7 +21,12 @@ public partial class TimeCell : Grid
 	}
 
 	partial void OnIsPassChanged(bool newValue)
-		=> TextColor = newValue ? Colors.Red : Colors.Black;
+	{
+		if (newValue)
+			TextColor = Colors.Red;
+		else
+			DTACElementStyles.TimetableTextColor.Apply(this, TextColorPropertyKey.BindableProperty);
+	}
 
 	partial void OnTimeDataChanged(TimeData? newValue)
 	{

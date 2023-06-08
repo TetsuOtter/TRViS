@@ -18,21 +18,18 @@ public class LocationServiceButton : ToggleButton
 		Margin = new(SelectedRectMargin),
 		Padding = new(0),
 		CornerRadius = CornerRadius - SelectedRectMargin,
-		BackgroundColor = Colors.White,
 		BorderColor = Colors.Transparent,
 		HasShadow = false,
 		Content = new BoxView()
 		{
 			Margin = new(SelectedRectThickness),
 			CornerRadius = CornerRadius - SelectedRectMargin - SelectedRectThickness,
-			Color = DTACElementStyles.DarkGreen,
 		}
 	};
 	readonly Frame NotSelectedSideBase = new()
 	{
 		Margin = new(NotSelectedRectMargin),
 		CornerRadius = CornerRadius - NotSelectedRectMargin,
-		BackgroundColor = Colors.White,
 		Shadow = DTACElementStyles.DefaultShadow,
 	};
 
@@ -54,7 +51,6 @@ public class LocationServiceButton : ToggleButton
 			Margin = new(0),
 			Padding = new(0),
 			CornerRadius = CornerRadius,
-			BackgroundColor = DTACElementStyles.DarkGreen,
 			BorderColor = Colors.Transparent,
 			HasShadow = true,
 			Shadow = DTACElementStyles.DefaultShadow,
@@ -62,6 +58,11 @@ public class LocationServiceButton : ToggleButton
 		Grid.SetColumnSpan(baseFrame, 2);
 
 		InitElements();
+
+		DTACElementStyles.DarkGreen.Apply(baseFrame, BackgroundColorProperty);
+		DTACElementStyles.DarkGreen.Apply(SelectedSideBase.Content, BoxView.ColorProperty);
+		DTACElementStyles.LocationServiceSelectedSideFrameColor.Apply(SelectedSideBase, BackgroundColorProperty);
+		DTACElementStyles.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
 
 		HorizontalStackLayout on_group = new()
 		{
@@ -121,11 +122,18 @@ public class LocationServiceButton : ToggleButton
 
 	void OnIsCheckedChanged(bool isLocationServiceEnabled)
 	{
-		Label_ON.TextColor
-			= Label_Location.TextColor
-			= isLocationServiceEnabled ? Colors.White : Colors.Black;
-		Label_OFF.TextColor
-			= !isLocationServiceEnabled ? Colors.White : Colors.Black;
+		if (isLocationServiceEnabled)
+		{
+			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
+			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
+			Label_OFF.TextColor = Colors.Black;
+		}
+		else
+		{
+			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
+			Label_ON.TextColor = Colors.Black;
+			Label_Location.TextColor = Colors.Black;
+		}
 
 		Grid.SetColumn(SelectedSideBase, isLocationServiceEnabled ? 0 : 1);
 		Grid.SetColumn(NotSelectedSideBase, !isLocationServiceEnabled ? 0 : 1);

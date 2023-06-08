@@ -68,6 +68,8 @@ public partial class ViewHost : ContentPage
 			appShell.SafeAreaMarginChanged += AppShell_SafeAreaMarginChanged;
 			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
 		}
+
+		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 	}
 
 	void SetTitleBGGradientColor(AppTheme v)

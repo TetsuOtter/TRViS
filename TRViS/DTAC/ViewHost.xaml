@@ -6,7 +6,7 @@
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	x:Class="TRViS.DTAC.ViewHost"
 	x:DataType="viewmodels:DTACViewHostViewModel"
-	BackgroundColor="White"
+	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}"
 	Title="{Binding AppViewModel.SelectedTrainData.WorkName}">
 	<Grid
 		IgnoreSafeArea="True">
@@ -52,7 +52,7 @@
 			Grid.Row="1"
 			Margin="0"
 			Padding="4,0"
-			BackgroundColor="#eee">
+			BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}">
 			<local:TabButton
 				Text="ハ　コ"
 				CurrentMode="{Binding TabMode}"
