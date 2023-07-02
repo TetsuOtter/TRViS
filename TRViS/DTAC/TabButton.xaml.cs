@@ -17,6 +17,7 @@ public partial class TabButton : ContentView
 		InitializeComponent();
 
 		UpdateIsSelectedProperty();
+		DTACElementStyles.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
 	}
 
 	partial void OnCurrentModeChanged()
@@ -36,12 +37,12 @@ public partial class TabButton : ContentView
 
 		if (newValue)
 		{
-			BaseBox.Color = Colors.White;
+			DTACElementStyles.DefaultBGColor.Apply(BaseBox, BoxView.ColorProperty);
 			BaseBox.Shadow.Opacity = 0.2f;
 		}
 		else
 		{
-			BaseBox.Color = BASE_COLOR_DISABLED;
+			DTACElementStyles.TabButtonBGColor.Apply(BaseBox, BoxView.ColorProperty);
 			BaseBox.Shadow.Opacity = 0;
 		}
 	}

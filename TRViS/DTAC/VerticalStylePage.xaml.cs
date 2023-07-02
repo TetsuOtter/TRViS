@@ -47,11 +47,13 @@ public partial class VerticalStylePage : ContentView
 		this.TimetableHeader.MarkerSettings = TimetableView.MarkerViewModel;
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+		{
 			Content = new ScrollView()
 			{
 				Content = this.Content,
-				BackgroundColor = Colors.White
 			};
+			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);
+		}
 
 		TimetableView.IsBusyChanged += (s, _) =>
 		{

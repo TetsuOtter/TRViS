@@ -26,7 +26,7 @@
 	<Style x:Key="LabelStyle" TargetType="Label">
 		<Setter Property="HorizontalOptions" Value="Center"/>
 		<Setter Property="VerticalOptions" Value="Center"/>
-		<Setter Property="TextColor" Value="#333"/>
+		<Setter Property="TextColor" Value="{x:Static dtac:DTACElementStyles.DefaultTextColor}"/>
 		<Setter Property="FontSize" Value="14"/>
 		<Setter Property="FontFamily" Value="Hiragino Sans"/>
 		<Setter Property="Margin" Value="1"/>
@@ -37,10 +37,10 @@
 		<Setter Property="Margin" Value="4"/>
 	</Style>
 	<Style x:Key="HeaderLabel" TargetType="Label" BasedOn="{StaticResource LabelStyle}">
-		<Setter Property="TextColor" Value="#555"/>
+		<Setter Property="TextColor" Value="{x:Static dtac:DTACElementStyles.HeaderTextColor}"/>
 	</Style>
 	<Style x:Key="TimetableLabel" TargetType="Label" BasedOn="{StaticResource LabelStyle}">
-		<Setter Property="TextColor" Value="Black"/>
+		<Setter Property="TextColor" Value="{x:Static dtac:DTACElementStyles.TimetableTextColor}"/>
 		<Setter Property="FontSize" Value="{OnPlatform iOS=28, Default=26}"/>
 		<Setter Property="FontAttributes" Value="Bold"/>
 	</Style>
@@ -69,14 +69,14 @@
 	<Style x:Key="SeparatorLine" TargetType="Line">
 		<Setter Property="HorizontalOptions" Value="End"/>
 		<Setter Property="Margin" Value="0,6"/>
-		<Setter Property="BackgroundColor" Value="#aaa"/>
+		<Setter Property="BackgroundColor" Value="{x:Static dtac:DTACElementStyles.SeparatorLineColor}"/>
 		<Setter Property="StrokeThickness" Value="1"/>
 		<Setter Property="WidthRequest" Value="1"/>
 	</Style>
 
 	<Style x:Key="TimetableSeparatorLine" TargetType="Line">
 		<Setter Property="VerticalOptions" Value="End"/>
-		<Setter Property="BackgroundColor" Value="#aaa"/>
+		<Setter Property="BackgroundColor" Value="{x:Static dtac:DTACElementStyles.SeparatorLineColor}"/>
 		<Setter Property="Grid.ColumnSpan" Value="8"/>
 		<Setter Property="StrokeThickness" Value="0.5"/>
 		<Setter Property="HeightRequest" Value="0.5"/>
@@ -88,7 +88,7 @@
 	</Style>
 
 	<Style x:Key="LastStopLine" TargetType="Line">
-		<Setter Property="BackgroundColor" Value="Black"/>
+		<Setter Property="BackgroundColor" Value="{x:Static dtac:DTACElementStyles.TimetableTextColor}"/>
 		<Setter Property="StrokeThickness" Value="4"/>
 		<Setter Property="HeightRequest" Value="4"/>
 		<Setter Property="X1" Value="22"/>
