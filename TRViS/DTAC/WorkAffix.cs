@@ -4,6 +4,6 @@ public class WorkAffix : ContentView
 {
 	public WorkAffix()
 	{
-		BackgroundColor = Colors.White;
+		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 	}
 }

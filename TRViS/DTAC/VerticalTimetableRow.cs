@@ -5,7 +5,6 @@ namespace TRViS.DTAC;
 
 public partial class VerticalTimetableRow
 {
-	static readonly Color DefaultMarkButtonColor = new(0xFA, 0xFA, 0xFA);
 	const float BG_ALPHA = 0.3f;
 
 	public enum LocationStates
@@ -27,17 +26,13 @@ public partial class VerticalTimetableRow
 			if (!IsEnabled || value == LocationStates.Undefined)
 			{
 				_LocationState = LocationStates.Undefined;
-				if (DriveTimeMM is not null)
-					DriveTimeMM.TextColor = Colors.Black;
-				if (DriveTimeSS is not null)
-					DriveTimeSS.TextColor = Colors.Black;
+				DTACElementStyles.TimetableTextColor.Apply(DriveTimeMM, Label.TextColorProperty);
+				DTACElementStyles.TimetableTextColor.Apply(DriveTimeSS, Label.TextColorProperty);
 				return;
 			}
 
-			if (DriveTimeMM is not null)
-				DriveTimeMM.TextColor = Colors.White;
-			if (DriveTimeSS is not null)
-				DriveTimeSS.TextColor = Colors.White;
+			DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeMM, Label.TextColorProperty);
+			DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeSS, Label.TextColorProperty);
 
 			// 最終行の場合は、次の駅に進まないようにする。
 			if (IsLastRow && value == LocationStates.RunningToNextStation)

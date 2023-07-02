@@ -41,11 +41,11 @@ public partial class OpenCloseButton : Button
 
 		CornerRadius = 4;
 		Padding = 0;
-		BackgroundColor = Colors.White;
 		BorderWidth = 0;
-		TextColor = new(0xAA, 0xAA, 0xAA);
 		FontFamily = "MaterialIconsRegular";
 		FontSize = 40;
+		DTACElementStyles.OpenCloseButtonBGColor.Apply(this, BackgroundColorProperty);
+		DTACElementStyles.OpenCloseButtonTextColor.Apply(this, TextColorProperty);
 
 		Shadow = new()
 		{

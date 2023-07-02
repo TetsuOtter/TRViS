@@ -4,13 +4,50 @@ namespace TRViS.DTAC;
 
 public static class DTACElementStyles
 {
-	public static readonly Color DefaultTextColor = new(0x33, 0x33, 0x33);
-	public static readonly Color HeaderTextColor = new(0x55, 0x55, 0x55);
-	public static readonly Color HeaderBackgroundColor = new(0xdd, 0xdd, 0xdd);
-	public static readonly Color SeparatorLineColor = new(0xaa, 0xaa, 0xaa);
+	static Color genColor(byte value)
+		=> new(value, value, value);
+	static AppThemeColorBindingExtension genColor(byte defaultColorValue, byte darkColorValue)
+		=> new(genColor(defaultColorValue), genColor(darkColorValue));
 
-	public static readonly Color DefaultGreen = new(0x00, 0x80, 0x00);
-	public static readonly Color DarkGreen = new(0x00, 0x44, 0x00);
+	const byte baseDarkColor = 0x25;
+
+	public static readonly AppThemeColorBindingExtension DefaultTextColor = genColor(0x33, 0xFF);
+	public static readonly AppThemeColorBindingExtension HeaderTextColor = genColor(0x55, 0xFF);
+	public static readonly AppThemeColorBindingExtension TimetableTextColor = genColor(0x00, 0xDD);
+	public static readonly AppThemeColorBindingExtension TimetableTextInvColor = genColor(0xFF, 0xFF);
+	public static readonly AppThemeColorBindingExtension TrainNumNextDayTextColor = new(
+		new(0x33, 0x33, 0xDD),
+		new(0x44, 0x99, 0xFF)
+	);
+	public static readonly AppThemeColorBindingExtension HeaderBackgroundColor = genColor(0xDD, baseDarkColor + 0x18);
+	public static readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xDD, baseDarkColor + 0x33);
+	public static readonly AppThemeColorBindingExtension DefaultBGColor = genColor(0xFF, baseDarkColor);
+	public static readonly AppThemeColorBindingExtension CarCountBGColor = genColor(0xFE, baseDarkColor + 0x11);
+	public static readonly AppThemeColorBindingExtension TabAreaBGColor = genColor(0xEE, baseDarkColor - 0x20);
+	public static readonly AppThemeColorBindingExtension TabButtonBGColor = genColor(0xDD, baseDarkColor - 0x11);
+
+	public static readonly AppThemeColorBindingExtension OpenCloseButtonBGColor = genColor(0xFE, 0x4A);
+	public static readonly AppThemeColorBindingExtension OpenCloseButtonTextColor = genColor(0xAA, 0x99);
+	public static readonly AppThemeColorBindingExtension MarkerButtonIconColor = new(
+		new(0x00, 0x44, 0x00),
+		new(0x00, 0x99, 0x00)
+	);
+	public static readonly AppThemeColorBindingExtension MarkerMarkButtonBGColor = genColor(0xFA, 0x4A);
+
+	public static readonly AppThemeColorBindingExtension DefaultGreen = new(
+		new(0x00, 0x80, 0x00),
+		new(0x00, 0x80, 0x00)
+	);
+	public static readonly AppThemeColorBindingExtension DarkGreen = new(
+		new(0x00, 0x44, 0x00),
+		new(0x00, 0x33, 0x00)
+	);
+
+	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideFrameColor = genColor(0xFF, 0xAA);
+	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
+	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xDD);
+
+	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
 
 	public static readonly int DefaultTextSize = 14;
 	public static readonly int LargeTextSize = 24;
@@ -47,7 +84,7 @@ public static class DTACElementStyles
 
 		v.HorizontalOptions = LayoutOptions.Center;
 		v.VerticalOptions = LayoutOptions.Center;
-		v.TextColor = DefaultTextColor;
+		DefaultTextColor.Apply(v, Label.TextColorProperty);
 		v.FontSize = DefaultTextSize;
 		v.FontFamily = DefaultFontFamily;
 		v.Margin = new(4);
@@ -62,7 +99,7 @@ public static class DTACElementStyles
 	{
 		T v = LabelStyle<T>();
 
-		v.TextColor = HeaderTextColor;
+		HeaderTextColor.Apply(v, Label.TextColorProperty);
 
 		return v;
 	}
@@ -80,7 +117,7 @@ public static class DTACElementStyles
 	{
 		T v = LabelStyle<T>();
 
-		v.TextColor = Colors.Black;
+		TimetableTextColor.Apply(v, Label.TextColorProperty);
 		v.FontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
 		v.FontAttributes = FontAttributes.Bold;
 		v.InputTransparent = true;
@@ -148,7 +185,7 @@ public static class DTACElementStyles
 		Line v = new();
 
 		v.VerticalOptions = LayoutOptions.End;
-		v.BackgroundColor = SeparatorLineColor;
+		SeparatorLineColor.Apply(v, Line.BackgroundColorProperty);
 		v.StrokeThickness = 0.5;
 		v.HeightRequest = 0.5;
 
@@ -192,7 +229,6 @@ public static class DTACElementStyles
 	{
 		Line v = new()
 		{
-			BackgroundColor = Colors.Black,
 			StrokeThickness = 4,
 			HeightRequest = 4,
 			X1 = 22,
@@ -202,6 +238,8 @@ public static class DTACElementStyles
 			VerticalOptions = LayoutOptions.Center,
 			HorizontalOptions = LayoutOptions.Center,
 		};
+
+		TimetableTextColor.Apply(v, Line.BackgroundColorProperty);
 
 		return v;
 	}
