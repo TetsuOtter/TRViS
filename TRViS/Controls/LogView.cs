@@ -70,7 +70,6 @@ public partial class LogView : ScrollView
 	public LogView()
 	{
 		this.Content = label;
-		label.TextColor = Colors.Black;
 		LogAdded += OnLogAdded;
 	}
 
