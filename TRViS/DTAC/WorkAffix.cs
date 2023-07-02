@@ -16,5 +16,6 @@ public class WorkAffix : ContentView
 				| LogView.Priority.Error
 		};
 		Content = logView;
+		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 	}
 }
