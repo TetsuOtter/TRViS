@@ -37,7 +37,9 @@ public class AppDelegate : MauiUIApplicationDelegate
 				DocumentType = NSDocumentType.HTML,
 				StringEncoding = NSStringEncoding.UTF8,
 			},
+			#pragma warning disable CS8601
 			ref nsError);
+			#pragma warning restore CS8601
 	}
 
 	static string? CleanseFontName(string? fontName, IFontRegistrar? fontRegistrar)
