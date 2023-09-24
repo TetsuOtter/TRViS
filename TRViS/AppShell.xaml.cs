@@ -1,3 +1,5 @@
+using System.Runtime.Versioning;
+
 using TRViS.ViewModels;
 
 namespace TRViS;
@@ -36,19 +38,35 @@ public partial class AppShell : Shell
 #if IOS
 	UIKit.UIWindow? UIWindow = null;
 
+	[SupportedOSPlatform("ios13.0")]
+	static UIKit.UIWindow? GetUIWindowOnIOS13OrLater()
+	{
+		if (UIKit.UIApplication.SharedApplication.ConnectedScenes.ToArray().FirstOrDefault(v => v is UIKit.UIWindowScene) is UIKit.UIWindowScene scene)
+			return scene.Windows.FirstOrDefault();
+		else
+			return null;
+	}
+
+	[SupportedOSPlatform("ios")]
+	[UnsupportedOSPlatform("ios15.0")]
+	static UIKit.UIWindow? GetUIWindow()
+	{
+		return UIKit.UIApplication.SharedApplication.Windows.FirstOrDefault();
+	}
+
 	protected override void OnSizeAllocated(double width, double height)
 	{
+		if (!OperatingSystem.IsIOS())
+			return;
+
 		// SafeAreaInsets ref: https://stackoverflow.com/questions/46829840/get-safe-area-inset-top-and-bottom-heights
 		// ios15 >= ref: https://zenn.dev/paraches/articles/windows_was_depricated_in_ios15
 		if (UIWindow is null)
 		{
-			if (OperatingSystem.IsIOSVersionAtLeast(13, 0))
-			{
-				if (UIKit.UIApplication.SharedApplication.ConnectedScenes.ToArray().FirstOrDefault(v => v is UIKit.UIWindowScene) is UIKit.UIWindowScene scene)
-					UIWindow = scene.Windows.FirstOrDefault();
-			}
-			else
-				UIWindow = UIKit.UIApplication.SharedApplication.Windows.FirstOrDefault();
+			UIWindow = OperatingSystem.IsIOSVersionAtLeast(13)
+				? GetUIWindowOnIOS13OrLater()
+				: GetUIWindow()
+			;
 		}
 
 		if (UIWindow is not null)
