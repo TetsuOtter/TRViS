@@ -1,5 +1,3 @@
-using Microsoft.Maui.Controls.Shapes;
-
 using TRViS.Controls;
 using TRViS.IO.Models;
 
@@ -40,7 +38,6 @@ public partial class VerticalTimetableView
 		AfterRemarks = new(this);
 
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
-		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
 		LocationService.IsNearbyChanged += LocationService_IsNearbyChanged;
 		LocationService.ExceptionThrown += (s, e) =>
@@ -91,7 +88,10 @@ public partial class VerticalTimetableView
 			AfterArrive.AddToParent();
 
 			Add(CurrentLocationBoxView);
-			Add(CurrentLocationLine);
+			this.AddWithSpan(
+				CurrentLocationLine,
+				columnSpan: 8
+			);
 			IsBusy = false;
 		});
 	}
@@ -106,22 +106,16 @@ public partial class VerticalTimetableView
 			if (row.IsInfoRow)
 			{
 				HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
-				Line line = DTACElementStyles.HorizontalSeparatorLineStyle();
 
 				label.Text = row.StationName;
 
-				Grid.SetColumnSpan(label, 3);
-
-				this.Add(
+				this.AddWithSpan(
 					label,
 					column: 1,
-					row: index
+					row: index,
+					columnSpan: 3
 				);
-				this.Add(
-					line,
-					column: 0,
-					row: index
-				);
+				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, index);
 			}
 			else
 			{

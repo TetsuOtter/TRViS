@@ -6,16 +6,13 @@ namespace TRViS.DTAC;
 
 public class BeforeAfterRemarks
 {
-	Grid Parent;
+	readonly Grid Parent;
 
 	public BeforeAfterRemarks(Grid Parent)
 	{
 		this.Parent = Parent;
 
 		IsVisible = false;
-
-		Grid.SetColumn(Label, 2);
-		Grid.SetColumnSpan(Label, 6);
 
 		Label.Margin = new(32, 0);
 		Label.HorizontalOptions = LayoutOptions.Start;
@@ -40,7 +37,11 @@ public class BeforeAfterRemarks
 
 	public void AddToParent()
 	{
-		Parent.Add(Label);
+		Parent.AddWithSpan(
+			Label,
+			column: 2,
+			columnSpan: 6
+		);
 	}
 
 	bool _IsVisible = false;
@@ -56,7 +57,8 @@ public class BeforeAfterRemarks
 
 	public void SetRow(in int row)
 	{
-		Grid.SetRow(Label, row);
+		// Grid.SetRow(Label, row);
+		Parent.SetRow(Label, row);
 	}
 }
 

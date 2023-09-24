@@ -48,10 +48,9 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		// BeforeDepartureArea
 		BeforeDeparture = new(this, "発前", true);
 
-		Grid.SetColumnSpan(TrainInfoArea, 8);
-		this.Add(
+		this.AddWithSpan(
 			TrainInfoArea,
-			row: 0
+			columnSpan: 8
 		);
 
 		BeforeDeparture.AddToParent();

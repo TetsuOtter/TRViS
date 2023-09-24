@@ -37,12 +37,6 @@ public class BeforeDeparture_AfterArrive
 		Label.HorizontalOptions = LayoutOptions.Start;
 		Label_OnStationTrackColumn.HorizontalOptions = LayoutOptions.Start;
 
-		Grid.SetColumn(Label, 1);
-		Grid.SetColumnSpan(Label, 7);
-
-		Grid.SetColumn(Label_OnStationTrackColumn, 4);
-		Grid.SetColumnSpan(Label_OnStationTrackColumn, 4);
-
 		DTACElementStyles.HeaderTextColor.Apply(HeaderLabel, Microsoft.Maui.Controls.Label.TextColorProperty);
 		DTACElementStyles.HeaderBackgroundColor.Apply(HeaderBoxView, BoxView.ColorProperty);
 
@@ -76,10 +70,18 @@ public class BeforeDeparture_AfterArrive
 	{
 		Parent.Add(HeaderBoxView);
 		Parent.Add(HeaderLabel);
-		Parent.Add(Label);
-		Parent.Add(Label_OnStationTrackColumn);
-		Parent.Add(LowerSeparator);
-		Parent.Add(UpperSeparator);
+		Parent.AddWithSpan(
+			Label,
+			column: 1,
+			columnSpan: 7
+		);
+		Parent.AddWithSpan(
+			Label_OnStationTrackColumn,
+			column: 4,
+			columnSpan: 4
+		);
+		DTACElementStyles.AddHorizontalSeparatorLineStyle(Parent, LowerSeparator, 0);
+		DTACElementStyles.AddHorizontalSeparatorLineStyle(Parent, UpperSeparator, 0);
 	}
 
 	bool _IsVisible = false;
@@ -109,8 +111,23 @@ public class BeforeDeparture_AfterArrive
 		Grid.SetRow(HeaderLabel, row);
 		Grid.SetRow(LowerSeparator, row);
 		Grid.SetRow(UpperSeparator, row);
-		Grid.SetRow(Label, row);
-		Grid.SetRow(Label_OnStationTrackColumn, row);
+		// Parent.SetRow(Label, row);
+		// Parent.SetRow(Label_OnStationTrackColumn, row);
+		Console.WriteLine($"SetRow: {row} (Label: {Label.Text})");
+		Parent.Remove(Label);
+		Parent.Remove(Label_OnStationTrackColumn);
+		Parent.AddWithSpan(
+			Label,
+			row: row,
+			column: 1,
+			columnSpan: 7
+		);
+		Parent.AddWithSpan(
+			Label_OnStationTrackColumn,
+			row: row,
+			column: 4,
+			columnSpan: 4
+		);
 	}
 }
 

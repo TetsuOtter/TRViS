@@ -55,7 +55,6 @@ public class LocationServiceButton : ToggleButton
 			HasShadow = true,
 			Shadow = DTACElementStyles.DefaultShadow,
 		};
-		Grid.SetColumnSpan(baseFrame, 2);
 
 		InitElements();
 
@@ -79,7 +78,11 @@ public class LocationServiceButton : ToggleButton
 			= Label_OFF.ScaleX
 			= 0.9;
 
-		grid.Add(baseFrame, 0);
+		grid.AddWithSpan(
+			baseFrame,
+			row: 0,
+			columnSpan: 2
+		);
 		grid.Add(SelectedSideBase, 0);
 		grid.Add(NotSelectedSideBase, 0);
 

@@ -193,9 +193,17 @@ public static class DTACElementStyles
 
 		SeparatorLineColor.Apply(v, Line.BackgroundColorProperty);
 
-		Grid.SetColumnSpan(v, 8);
-
 		return v;
+	}
+	public static void AddHorizontalSeparatorLineStyle(Grid grid, int row)
+		=> AddHorizontalSeparatorLineStyle(grid, HorizontalSeparatorLineStyle(), row);
+	public static void AddHorizontalSeparatorLineStyle(Grid grid, Line line, int row)
+	{
+		grid.AddWithSpan(
+			line,
+			row: row,
+			columnSpan: 8
+		);
 	}
 
 	public static TimeCell TimeCell()
