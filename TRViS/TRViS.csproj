@@ -49,7 +49,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="8.0.0-preview.2.7871" />
+			Version="8.0.0-preview.7.8842" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.2.0" />
