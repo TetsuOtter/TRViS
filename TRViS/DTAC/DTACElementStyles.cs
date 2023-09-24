@@ -180,14 +180,18 @@ public static class DTACElementStyles
 		return v;
 	}
 
+	static readonly AppThemeGenericsBindingExtension<Brush> SeparatorLineBrush = SeparatorLineColor.ToBrushTheme();
 	public static Line HorizontalSeparatorLineStyle()
 	{
-		Line v = new();
+		Line v = new()
+		{
+			VerticalOptions = LayoutOptions.End,
+			StrokeThickness = 0.5,
+			HeightRequest = 0.5,
+			Fill = SeparatorLineBrush.Default,
+		};
 
-		v.VerticalOptions = LayoutOptions.End;
 		SeparatorLineColor.Apply(v, Line.BackgroundColorProperty);
-		v.StrokeThickness = 0.5;
-		v.HeightRequest = 0.5;
 
 		Grid.SetColumnSpan(v, 8);
 
