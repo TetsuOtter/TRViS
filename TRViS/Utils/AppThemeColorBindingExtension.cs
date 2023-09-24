@@ -30,4 +30,7 @@ public class AppThemeColorBindingExtension : AppThemeGenericsBindingExtension<Co
 
 	public override void Apply(BindableObject? elem, BindableProperty prop)
 		=> elem?.SetAppThemeColor(prop, this.Light, this.Dark);
+	
+	public AppThemeGenericsBindingExtension<Brush> ToBrushTheme()
+		=> new(new SolidColorBrush(this.Default), new SolidColorBrush(this.Dark));
 }
