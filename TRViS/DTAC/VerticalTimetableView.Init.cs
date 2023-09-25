@@ -88,10 +88,9 @@ public partial class VerticalTimetableView
 			AfterArrive.AddToParent();
 
 			Add(CurrentLocationBoxView);
-			this.AddWithSpan(
-				CurrentLocationLine,
-				columnSpan: 8
-			);
+			Grid.SetColumnSpan(CurrentLocationBoxView, 8);
+			Add(CurrentLocationLine);
+
 			IsBusy = false;
 		});
 	}
@@ -109,12 +108,11 @@ public partial class VerticalTimetableView
 
 				label.Text = row.StationName;
 
-				this.AddWithSpan(
-					label,
-					column: 1,
-					row: index,
-					columnSpan: 3
-				);
+				Grid.SetColumn(label, 1);
+				Grid.SetRow(label, index);
+				Grid.SetColumnSpan(label, 3);
+				Add(label);
+
 				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, index);
 			}
 			else

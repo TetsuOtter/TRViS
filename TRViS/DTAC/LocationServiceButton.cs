@@ -78,13 +78,10 @@ public class LocationServiceButton : ToggleButton
 			= Label_OFF.ScaleX
 			= 0.9;
 
-		grid.AddWithSpan(
-			baseFrame,
-			row: 0,
-			columnSpan: 2
-		);
-		grid.Add(SelectedSideBase, 0);
-		grid.Add(NotSelectedSideBase, 0);
+		Grid.SetColumnSpan(baseFrame, 2);
+		grid.Add(baseFrame);
+		grid.Add(SelectedSideBase);
+		grid.Add(NotSelectedSideBase);
 
 		grid.Add(on_group, 0);
 		grid.Add(Label_OFF, 1);

@@ -199,11 +199,9 @@ public static class DTACElementStyles
 		=> AddHorizontalSeparatorLineStyle(grid, HorizontalSeparatorLineStyle(), row);
 	public static void AddHorizontalSeparatorLineStyle(Grid grid, Line line, int row)
 	{
-		grid.AddWithSpan(
-			line,
-			row: row,
-			columnSpan: 8
-		);
+		Grid.SetRow(line, row);
+		Grid.SetColumnSpan(line, 8);
+		grid.Add(line);
 	}
 
 	public static TimeCell TimeCell()

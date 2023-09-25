@@ -37,11 +37,9 @@ public class BeforeAfterRemarks
 
 	public void AddToParent()
 	{
-		Parent.AddWithSpan(
-			Label,
-			column: 2,
-			columnSpan: 6
-		);
+		Grid.SetColumn(Label, 2);
+		Grid.SetColumnSpan(Label, 6);
+		Parent.Add(Label);
 	}
 
 	bool _IsVisible = false;
@@ -57,8 +55,7 @@ public class BeforeAfterRemarks
 
 	public void SetRow(in int row)
 	{
-		// Grid.SetRow(Label, row);
-		Parent.SetRow(Label, row);
+		Grid.SetRow(Label, row);
 	}
 }
 

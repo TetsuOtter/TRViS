@@ -82,11 +82,9 @@ public partial class VerticalTimetableRow
 			BindingContext = this,
 			Opacity = BG_ALPHA,
 		};
-		parent.AddWithSpan(
-			BackgroundBoxView,
-			row: rowIndex,
-			columnSpan: 8
-		);
+		Grid.SetRow(BackgroundBoxView, rowIndex);
+		Grid.SetColumnSpan(BackgroundBoxView, 8);
+		parent.Add(BackgroundBoxView);
 
 		#region Drive Time
 		bool isDriveTimeMMVisible = rowData.DriveTimeMM is not null and > 0;
