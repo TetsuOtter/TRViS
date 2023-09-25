@@ -28,8 +28,25 @@ public partial class Remarks : Grid
 		DTACElementStyles.DefaultBGColor.Apply(RemarksTextScrollView, BackgroundColorProperty);
 	}
 
+	public void ResetTextScrollViewPosition()
+	{
+#if IOS
+		if (Shell.Current is AppShell shell)
+			RemarksTextScrollView.TranslateTo(
+				x: 0,
+				y: IsOpen ? 0 : shell.SafeAreaMargin.Bottom,
+				length: 250 / 2,
+				easing: Easing.CubicOut
+			);
+#endif
+	}
+
 	partial void OnIsOpenChanged(bool newValue)
-		=> this.TranslateTo(0, newValue ? BottomMargin : 0, easing: Easing.SinInOut);
+	{
+		this.TranslateTo(0, newValue ? BottomMargin : 0, easing: Easing.SinInOut);
+
+		ResetTextScrollViewPosition();
+	}
 
 	partial void OnBottomSafeAreaHeightChanged(double newValue)
 		=> Margin = new(0, BottomMargin);
