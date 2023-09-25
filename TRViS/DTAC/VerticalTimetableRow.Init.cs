@@ -114,7 +114,10 @@ public partial class VerticalTimetableRow
 			if (isDriveTimeSSVisible)
 			{
 				DriveTimeSS = DTACElementStyles.TimetableDriveTimeSSLabel<Label>();
-				DriveTimeSS.Text = rowData.DriveTimeSS.ToString();
+				string? text = rowData.DriveTimeSS.ToString();
+				if (text is not null and { Length: 1 })
+					text = "  " + text;
+				DriveTimeSS.Text = text;
 				DriveTimeGrid.Add(DriveTimeSS, column: 1);
 			}
 
