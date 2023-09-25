@@ -86,8 +86,8 @@ public partial class VerticalTimetableRow
 		parent.Add(BackgroundBoxView, row: rowIndex);
 
 		#region Drive Time
-		bool isDriveTimeMMVisible = rowData.DriveTimeMM is not null and > 0;
-		bool isDriveTimeSSVisible = rowData.DriveTimeMM is not null and > 0;
+		bool isDriveTimeMMVisible = rowData.DriveTimeMM is not null and >= 0 and < 100;
+		bool isDriveTimeSSVisible = rowData.DriveTimeSS is not null and >= 0 and < 100;
 
 		if (isDriveTimeMMVisible || isDriveTimeSSVisible)
 		{
@@ -114,7 +114,10 @@ public partial class VerticalTimetableRow
 			if (isDriveTimeSSVisible)
 			{
 				DriveTimeSS = DTACElementStyles.TimetableDriveTimeSSLabel<Label>();
-				DriveTimeSS.Text = rowData.DriveTimeSS.ToString();
+				string? text = rowData.DriveTimeSS.ToString();
+				if (text is not null and { Length: 1 })
+					text = "  " + text;
+				DriveTimeSS.Text = text;
 				DriveTimeGrid.Add(DriveTimeSS, column: 1);
 			}
 
