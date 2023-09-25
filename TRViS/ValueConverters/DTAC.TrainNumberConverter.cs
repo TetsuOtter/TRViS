@@ -5,7 +5,7 @@ namespace TRViS.ValueConverters.DTAC;
 
 public class TrainNumberConverter : IValueConverter
 {
-	public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+	public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
 	{
 		if (value is not string s)
 			return value;
@@ -18,7 +18,7 @@ public class TrainNumberConverter : IValueConverter
 		};
 	}
 
-	public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+	public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
 		=> (value as string)?.Replace(Utils.SPACE_CHAR, string.Empty).Replace(Utils.THIN_SPACE, string.Empty) ?? value;
 }
 
