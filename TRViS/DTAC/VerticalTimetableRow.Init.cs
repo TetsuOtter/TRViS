@@ -86,8 +86,8 @@ public partial class VerticalTimetableRow
 		parent.Add(BackgroundBoxView, row: rowIndex);
 
 		#region Drive Time
-		bool isDriveTimeMMVisible = rowData.DriveTimeMM is not null and >= 0;
-		bool isDriveTimeSSVisible = rowData.DriveTimeSS is not null and >= 0;
+		bool isDriveTimeMMVisible = rowData.DriveTimeMM is not null and >= 0 and < 100;
+		bool isDriveTimeSSVisible = rowData.DriveTimeSS is not null and >= 0 and < 100;
 
 		if (isDriveTimeMMVisible || isDriveTimeSSVisible)
 		{
