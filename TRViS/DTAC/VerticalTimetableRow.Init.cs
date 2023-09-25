@@ -87,7 +87,7 @@ public partial class VerticalTimetableRow
 
 		#region Drive Time
 		bool isDriveTimeMMVisible = rowData.DriveTimeMM is not null and > 0;
-		bool isDriveTimeSSVisible = rowData.DriveTimeMM is not null and > 0;
+		bool isDriveTimeSSVisible = rowData.DriveTimeSS is not null and > 0;
 
 		if (isDriveTimeMMVisible || isDriveTimeSSVisible)
 		{
