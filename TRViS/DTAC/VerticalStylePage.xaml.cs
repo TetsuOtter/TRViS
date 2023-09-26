@@ -138,6 +138,8 @@ public partial class VerticalStylePage : ContentView
 
 		new Animation(
 			v => {
+				if (!TrainInfo_BeforeDepartureArea.IsVisible)
+					TrainInfo_BeforeDepartureArea.IsVisible = true;
 				TrainInfo_BeforeDepature_RowDefinition.Height = v;
 				TrainInfo_BeforeDepartureArea.HeightRequest = v;
 			},
@@ -147,7 +149,11 @@ public partial class VerticalStylePage : ContentView
 		)
 			.Commit(
 				this,
-				DateAndStartButton_AnimationName
+				DateAndStartButton_AnimationName,
+				finished: (_, canceled) => {
+					if (!isToOpen && !canceled)
+						TrainInfo_BeforeDepartureArea.IsVisible = false;
+				}
 			);
 	}
 }
