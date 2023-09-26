@@ -133,9 +133,11 @@ public partial class VerticalStylePage : ContentView
 	{
 		bool isToOpen = e.NewValue;
 		(double start, double end) = isToOpen
-			? (0d, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT)
-			: (TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT, 0d);
+			? (TrainInfo_BeforeDepature_RowDefinition.Height.Value, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT)
+			: (TrainInfo_BeforeDepature_RowDefinition.Height.Value, 0d);
 
+		if (this.AnimationIsRunning(DateAndStartButton_AnimationName))
+			this.AbortAnimation(DateAndStartButton_AnimationName);
 		new Animation(
 			v => {
 				if (!TrainInfo_BeforeDepartureArea.IsVisible)
