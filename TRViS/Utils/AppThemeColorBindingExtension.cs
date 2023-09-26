@@ -1,3 +1,5 @@
+using TRViS.Controls;
+
 namespace TRViS;
 
 public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension where T : class
@@ -15,7 +17,11 @@ public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension wher
 	}
 
 	public virtual void Apply(BindableObject? elem, BindableProperty prop)
-		=> elem?.SetAppTheme(prop, this.Light, this.Dark);
+	{
+		elem?.SetAppTheme(prop, this.Light, this.Dark);
+		if (elem is HtmlAutoDetectLabel label && prop == HtmlAutoDetectLabel.TextColorProperty)
+			label.CurrentAppThemeColorBindingExtension = this as AppThemeColorBindingExtension;
+	}
 }
 
 public class AppThemeColorBindingExtension : AppThemeGenericsBindingExtension<Color>
@@ -23,5 +29,9 @@ public class AppThemeColorBindingExtension : AppThemeGenericsBindingExtension<Co
 	public AppThemeColorBindingExtension(Color Default, Color Dark) : base(Default, Dark) { }
 
 	public override void Apply(BindableObject? elem, BindableProperty prop)
-		=> elem?.SetAppThemeColor(prop, this.Light, this.Dark);
+	{
+		elem?.SetAppThemeColor(prop, this.Light, this.Dark);
+		if (elem is HtmlAutoDetectLabel label && prop == HtmlAutoDetectLabel.TextColorProperty)
+			label.CurrentAppThemeColorBindingExtension = this;
+	}
 }
