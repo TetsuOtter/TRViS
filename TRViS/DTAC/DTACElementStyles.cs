@@ -33,6 +33,8 @@ public static class DTACElementStyles
 		new(0x00, 0x99, 0x00)
 	);
 	public static readonly AppThemeColorBindingExtension MarkerMarkButtonBGColor = genColor(0xFA, 0x4A);
+	public static readonly AppThemeGenericsBindingExtension<Brush> MarkerMarkButtonBGColorBrush
+		= MarkerMarkButtonBGColor.ToBrushTheme();
 
 	public static readonly AppThemeColorBindingExtension DefaultGreen = new(
 		new(0x00, 0x80, 0x00),
