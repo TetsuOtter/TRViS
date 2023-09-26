@@ -114,7 +114,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
 				DepartureTime: new(1,25,null, null),
-				TrackName: "1",
+				TrackName: """<span style="color: aqua">1</span>""",
 				RunInLimit: null,
 				RunOutLimit: null,
 				Remarks: "記事"
