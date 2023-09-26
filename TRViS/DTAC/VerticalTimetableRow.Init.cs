@@ -22,7 +22,7 @@ public partial class VerticalTimetableRow
 	}
 
 	void setMarkerBoxDefaultColor()
-		=> DTACElementStyles.MarkerMarkButtonBGColor.Apply(MarkerBox, VisualElement.BackgroundColorProperty);
+		=> DTACElementStyles.MarkerMarkButtonBGColorBrush.Apply(MarkerBox, VisualElement.BackgroundProperty);
 
 	Color? _MarkedColor = null;
 	public Color? MarkedColor
@@ -45,7 +45,7 @@ public partial class VerticalTimetableRow
 			else
 			{
 				BackgroundBoxView.Color = value;
-				MarkerBox.BackgroundColor = value;
+				MarkerBox.Background = new SolidColorBrush(value);
 				MarkerBox.TextColor = Utils.GetTextColorFromBGColor(value);
 			}
 		}
@@ -251,6 +251,7 @@ public partial class VerticalTimetableRow
 			IsEnabled = false,
 			FontFamily = "Hiragino Sans",
 			FontSize = 18,
+			FontAttributes = FontAttributes.Bold,
 			BorderColor = Colors.Transparent,
 			CornerRadius = 4,
 			Padding = new(0),
