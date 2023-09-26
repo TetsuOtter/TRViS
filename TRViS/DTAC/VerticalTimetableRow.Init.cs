@@ -190,6 +190,7 @@ public partial class VerticalTimetableRow
 			TrackName.Margin = TrackName.Padding = new(0);
 			TrackName.HorizontalOptions = TrackName.VerticalOptions = LayoutOptions.Center;
 			TrackName.TextColor = Colors.Red;
+			TrackName.CurrentAppThemeColorBindingExtension = null;
 			TrackName.Text = rowData.TrackName;
 			parent.Add(TrackName, 4, rowIndex);
 		}
