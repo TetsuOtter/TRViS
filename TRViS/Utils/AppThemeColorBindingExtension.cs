@@ -2,8 +2,8 @@ namespace TRViS;
 
 public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension where T : class
 {
-	private T _Dark;
-	private T _Default;
+	private readonly T _Dark;
+	private readonly T _Default;
 	public new T Dark => base.Dark as T ?? _Dark;
 	public new T Light => base.Light as T ?? _Default;
 	public new T Default => base.Default as T ?? _Default;
