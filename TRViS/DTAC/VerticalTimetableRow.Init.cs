@@ -250,6 +250,7 @@ public partial class VerticalTimetableRow
 			IsEnabled = false,
 			FontFamily = "Hiragino Sans",
 			FontSize = 18,
+			FontAttributes = FontAttributes.Bold,
 			BorderColor = Colors.Transparent,
 			CornerRadius = 4,
 			Padding = new(0),
