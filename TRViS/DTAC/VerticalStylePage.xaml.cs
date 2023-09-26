@@ -1,7 +1,5 @@
 using DependencyPropertyGenerator;
-
 using TRViS.IO.Models;
-using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
@@ -133,9 +131,31 @@ public partial class VerticalStylePage : ContentView
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
 	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
 	{
-		(double start, double end) = e.NewValue ? (TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT, 0d) : (0d, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT);
+		bool isToOpen = e.NewValue;
+		(double start, double end) = isToOpen
+			? (TrainInfo_BeforeDepature_RowDefinition.Height.Value, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT)
+			: (TrainInfo_BeforeDepature_RowDefinition.Height.Value, 0d);
 
-		new Animation(v => TrainInfo_BeforeDepature_RowDefinition.Height = v, start, end, Easing.SinInOut)
-			.Commit(this, DateAndStartButton_AnimationName, length: 250, finished: (v, _) => TrainInfo_BeforeDepature_RowDefinition.Height = v);
+		if (this.AnimationIsRunning(DateAndStartButton_AnimationName))
+			this.AbortAnimation(DateAndStartButton_AnimationName);
+		new Animation(
+			v => {
+				if (!TrainInfo_BeforeDepartureArea.IsVisible)
+					TrainInfo_BeforeDepartureArea.IsVisible = true;
+				TrainInfo_BeforeDepature_RowDefinition.Height = v;
+				TrainInfo_BeforeDepartureArea.HeightRequest = v;
+			},
+			start,
+			end,
+			Easing.SinInOut
+		)
+			.Commit(
+				this,
+				DateAndStartButton_AnimationName,
+				finished: (_, canceled) => {
+					if (!isToOpen && !canceled)
+						TrainInfo_BeforeDepartureArea.IsVisible = false;
+				}
+			);
 	}
 }
