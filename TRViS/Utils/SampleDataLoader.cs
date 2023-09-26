@@ -57,8 +57,8 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		{
 			new TimetableRow(
 				Location: new(1),
-				DriveTimeMM: 1,
-				DriveTimeSS: 5,
+				DriveTimeMM: 0,
+				DriveTimeSS: 0,
 				StationName: "駅１",
 				IsOperationOnlyStop: false,
 				IsPass: false,
@@ -73,8 +73,8 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Location: new(2),
-				DriveTimeMM: 1,
-				DriveTimeSS: 5,
+				DriveTimeMM: 10,
+				DriveTimeSS: 50,
 				StationName: "駅２",
 				IsOperationOnlyStop: false,
 				IsPass: false,
@@ -89,8 +89,8 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Location: new(3),
-				DriveTimeMM: 1,
-				DriveTimeSS: 5,
+				DriveTimeMM: 100,
+				DriveTimeSS: 50,
 				StationName: "駅３",
 				IsOperationOnlyStop: true,
 				IsPass: false,
@@ -106,7 +106,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			new TimetableRow(
 				Location: new(4),
 				DriveTimeMM: 1,
-				DriveTimeSS: 5,
+				DriveTimeSS: null,
 				StationName: "東京",
 				IsOperationOnlyStop: false,
 				IsPass: false,
@@ -121,7 +121,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Location: new(5),
-				DriveTimeMM: 1,
+				DriveTimeMM: null,
 				DriveTimeSS: 5,
 				StationName: "津",
 				IsOperationOnlyStop: false,
