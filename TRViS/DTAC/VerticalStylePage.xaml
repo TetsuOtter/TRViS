@@ -25,6 +25,7 @@
 		<dtac:PageHeader
 			x:Name="PageHeaderArea"
 			Grid.Row="0"
+			IsOpen="False"
 			IsOpenChanged="BeforeRemarks_TrainInfo_OpenCloseChanged"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}"/>
 
