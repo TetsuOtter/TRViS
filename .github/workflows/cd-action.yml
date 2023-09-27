@@ -21,9 +21,12 @@ env:
   THIRD_PARTY_LICENSE_LIST_NAME: license_list
   TARGET_FRAMEWORK: net8.0-ios
   TARGET_RUNTIME: ios-arm64
+  TARGET_FRAMEWORK_MAC: net8.0-maccatalyst
+  TARGET_RUNTIME_MAC: osx
   TARGET_FRAMEWORK_ANDROID: net8.0-android
   OUTPUT_DIR: ./out
   IPA_PATH: ./out/TRViS.ipa
+  PKG_PATH: ./out/TRViS.pkg
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
   SDK_VERSION: '8.0.100-preview.4.23260.5'
@@ -46,7 +49,7 @@ jobs:
       build_number: ${{ steps.build_number.outputs.version }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         ref: ${{github.head_ref}}
 
@@ -127,7 +130,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 30
     needs:
       - get-version
@@ -165,14 +168,14 @@ jobs:
       env:
         KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Xcode version
-      uses: maxim-lobanov/setup-xcode@v1.5.1
+      uses: maxim-lobanov/setup-xcode@v1.6.0
       with:
         xcode-version: latest-stable
 
-    - uses: actions/setup-dotnet@v2
+    - uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -215,7 +218,7 @@ jobs:
         /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
 
     - name: Upload IPA
-      uses: actions/upload-artifact@v3.0.0
+      uses: actions/upload-artifact@v3
       with:
         name: ipa
         path: ${{ env.IPA_PATH }}
@@ -240,9 +243,9 @@ jobs:
       - get-version
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions/setup-dotnet@v2
+    - uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -282,18 +285,131 @@ jobs:
         /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
     - name: Upload AAB
-      uses: actions/upload-artifact@v3.0.0
+      uses: actions/upload-artifact@v3
       with:
         name: aab
         path: ${{ env.AAB_PATH }}
         retention-days: 3
 
     - name: Upload APK
-      uses: actions/upload-artifact@v3.0.0
+      uses: actions/upload-artifact@v3
       with:
         name: apk
         path: ${{ env.APK_PATH }}
         retention-days: 3
+
+  build-mac:
+    if: |
+      !failure()
+      && !cancelled()
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+
+    runs-on: macos-13
+    timeout-minutes: 30
+    needs:
+      - get-version
+    
+    env:
+      WITHOUT_ANDROID: true
+
+    steps:
+    - name: Import Provisioning Profile
+      run: |
+        mkdir -p ${{ env.TARGET_DIR }}
+
+        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+          echo -n ${{ secrets.PROVISIONING_PROFILE_MAC }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+        fi
+      env:
+        TARGET_DIR: ~/Library/MobileDevice/Provisioning\ Profiles
+        TARGET_FILE: distribution.provisionprofile
+
+    - name: Generate Keychain Name
+      id: gen-keychain-name
+      run: echo "keychain-name=${{ github.run_id }}_${{ github.run_attempt }}" >> $GITHUB_OUTPUT
+    
+    # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
+    - name: Build keychain
+      run: |
+        echo "${{ secrets.P12_FILE_MAC_BASE64 }}" | base64 --decode > certificate.p12
+        security create-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
+        security default-keychain -s "${{ env.KEYCHAIN_NAME }}"
+        security unlock-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
+        security set-keychain-settings -lut 21600 "${{ env.KEYCHAIN_NAME }}"
+        security import certificate.p12 -k "${{ env.KEYCHAIN_NAME }}" -P '${{ secrets.P12_PASSWORD_MAC }}' -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/xcrun
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
+      env:
+        KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode version
+      uses: maxim-lobanov/setup-xcode@v1.6.0
+      with:
+        xcode-version: latest-stable
+
+    - uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.SDK_VERSION }}
+    - name: Install dotnet workloads
+      run: dotnet workload install maui-ios maccatalyst
+
+    - name: Install dependencies
+      run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME_MAC }}
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Prapare Python Package
+      run: |
+        python --version
+        python -m pip install aiofiles aiohttp
+    - name: Dump Third Party License Info
+      id: dump-third-party-license-info
+      continue-on-error: true
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Dump Third Party License Info (Retry)
+      if: steps.dump-third-party-license-info.outcome == 'failure'
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Print Third Party License Info Files
+      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+    - name: Build
+      run: >
+        dotnet publish ${{ env.CSPROJ_PATH }}
+        -f ${{ env.TARGET_FRAMEWORK_MAC }}
+        -c Release
+        -o "${{ env.OUTPUT_DIR }}"
+        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+        /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_MAC }}"
+        /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_MAC }}"
+        /p:EnablePackageSigning=true
+        /p:PackageSigningKey='${{ secrets.PACKAGE_SIGN_KEY_NAME_MAC }}'
+        /p:CodesignEntitlements='Platforms/MacCatalyst/Entitlements.plist'
+
+    - name: Change pkg file name
+      working-directory: ${{ env.OUTPUT_DIR }}
+      run: mv TRViS-${{ needs.get-version.outputs.display_version }}.pkg ${{ env.PKG_PATH }}
+
+    - name: Upload PKG
+      uses: actions/upload-artifact@v3
+      with:
+        name: pkg
+        path: ${{ env.PKG_PATH }}
+        retention-days: 3
+
+    - name: Post 'Import Code Sign Certificates'
+      if: always() && steps.import-code-sign-cert.conclusion == 'success'
+      run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
   publish-ios:
     if: |
@@ -304,7 +420,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 10
     needs:
       - build-ios
@@ -324,7 +440,7 @@ jobs:
         TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Download IPA
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v3
       with:
         name: ipa
         path: ${{ env.OUTPUT_DIR }}
@@ -347,10 +463,65 @@ jobs:
         --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
         --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
+  publish-mac:
+    if: |
+      !failure()
+      && !cancelled()
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+
+    runs-on: macos-13
+    timeout-minutes: 10
+    needs:
+      - build-mac
+
+    steps:
+    - name: Import App Store Connect API Private Key
+      run: |
+        mkdir -p ${{ env.TARGET_DIR }}
+
+        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+          echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+        fi
+      env:
+        TARGET_DIR: ~/.appstoreconnect/private_keys
+        TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
+
+    - name: Download PKG
+      uses: actions/download-artifact@v3
+      with:
+        name: pkg
+        path: ${{ env.OUTPUT_DIR }}
+
+    - name: validate
+      run: >
+        xcrun altool
+        --validate-app
+        --type mac
+        -f ${{ env.PKG_PATH }}
+        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+
+    - name: upload
+      run: >
+        xcrun altool
+        --upload-app
+        --type mac
+        -f ${{ env.PKG_PATH }}
+        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+
   set-tag:
     if: |
       needs.generate-bundle-version.result == 'success'
-      && needs.publish-ios.result == 'success'
+      && (
+        needs.publish-ios.result == 'success'
+        || needs.publish-mac.result == 'success'
+      )
       && !cancelled()
 
     runs-on: ubuntu-latest
@@ -358,12 +529,13 @@ jobs:
     needs:
       - generate-bundle-version
       - publish-ios
+      - publish-mac
     
     outputs:
       tag-name: ${{ steps.tag-name.outputs.tag-name }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: fetch all history to assign tag
       if: ${{ github.event_name == 'pull_request' }}
       run: git fetch --unshallow --no-tags --no-recurse-submodules origin +${{ github.sha }}:${{ github.ref }}
@@ -393,6 +565,7 @@ jobs:
       run: >
         echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
         ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
+        ' (Publish Status iOS: ${{ needs.publish-ios.result }} / macOS: ${{ needs.publish-mac.result }})'
         | gh pr comment ${{ github.event.number }} -F -
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -409,7 +582,7 @@ jobs:
 
     steps:
     - name: Download APK
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v3
       with:
         name: apk
         path: ${{ env.OUTPUT_DIR }}
