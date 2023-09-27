@@ -131,7 +131,7 @@ jobs:
       )
 
     runs-on: macos-13
-    timeout-minutes: 360
+    timeout-minutes: 30
     needs:
       - get-version
     
@@ -308,7 +308,7 @@ jobs:
       )
 
     runs-on: macos-13
-    timeout-minutes: 30
+    timeout-minutes: 360
     needs:
       - get-version
     
@@ -473,7 +473,7 @@ jobs:
       )
 
     runs-on: macos-13
-    timeout-minutes: 10
+    timeout-minutes: 30
     needs:
       - build-mac
 
