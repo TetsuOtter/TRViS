@@ -1,5 +1,12 @@
+using System.Text;
+
 using CommunityToolkit.Maui;
-using TRViS.IO;
+
+using NLog;
+using NLog.Config;
+using NLog.Targets;
+using NLog.Targets.Wrappers;
+
 using TRViS.ViewModels;
 
 namespace TRViS;
@@ -9,6 +16,9 @@ public static class MauiProgram
 	static readonly string CrashLogFilePath;
 	public static readonly DirectoryInfo CrashLogFileDirectory;
 	static readonly string CrashLogFileName;
+
+	static readonly Logger logger;
+	const string logFormat = "${longdate} [${threadid:padding=8}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
 
 	static MauiProgram()
 	{
@@ -24,9 +34,72 @@ public static class MauiProgram
 			baseDirPath = FileSystem.Current.AppDataDirectory;
 		}
 
-
 		CrashLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "crashlogs"));
 		CrashLogFilePath = Path.Combine(CrashLogFileDirectory.FullName, CrashLogFileName);
+
+		logger = SetupLogger(baseDirPath);
+	}
+
+	static Logger SetupLogger(string baseDirPath)
+	{
+		DirectoryInfo NormalLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "logs"));
+		bool isNormalLogFileDirectoryExists = NormalLogFileDirectory.Exists;
+		if (!isNormalLogFileDirectoryExists)
+		{
+			NormalLogFileDirectory.Create();
+		}
+
+#if DEBUG
+		ConsoleTarget consoleTarget = new("console")
+		{
+			Layout = logFormat,
+			Encoding = Encoding.UTF8,
+		};
+		LoggingRule consoleLoggingRule = new("*", LogLevel.Trace, consoleTarget);
+#endif
+
+		FileTarget fileTarget = new("file")
+		{
+			FileName = Path.Combine(NormalLogFileDirectory.FullName, "logs_current.trvis.log"),
+			ArchiveFileName = Path.Combine(NormalLogFileDirectory.FullName, "logs.{#}.trvis.log"),
+			ArchiveNumbering = ArchiveNumberingMode.DateAndSequence,
+			ArchiveEvery = FileArchivePeriod.Day,
+			MaxArchiveFiles = 14,
+
+			Encoding = Encoding.UTF8,
+			LineEnding = LineEndingMode.LF,
+			WriteBom = false,
+			CreateDirs = false,
+			Layout = logFormat,
+		};
+		AsyncTargetWrapper fileAsyncTargetWrapper = new("async", fileTarget)
+		{
+			OverflowAction = AsyncTargetWrapperOverflowAction.Grow,
+			QueueLimit = 5000,
+			BatchSize = 100,
+			TimeToSleepBetweenBatches = 100,
+		};
+		LoggingRule fileLoggingRule = new("*", LogLevel.Info, fileAsyncTargetWrapper);
+
+		LoggingConfiguration loggingConfiguration = new()
+		{
+			LoggingRules =
+			{
+#if DEBUG
+				consoleLoggingRule,
+#endif
+
+				fileLoggingRule,
+			},
+		};
+
+		LogManager
+			.Setup()
+			.LoadConfiguration(loggingConfiguration);
+
+		Logger _logger = LogManager.GetCurrentClassLogger();
+		_logger.Info("TRViS Starting... (isNormalLogFileDirectoryExists: {0})", isNormalLogFileDirectoryExists);
+		return _logger;
 	}
 
 	public static MauiApp CreateMauiApp()
@@ -59,6 +132,8 @@ public static class MauiProgram
 	{
 		if (e.ExceptionObject is not Exception ex)
 			return;
+
+		logger.Fatal(ex, "UnhandledException");
 
 		if (!CrashLogFileDirectory.Exists)
 		{
