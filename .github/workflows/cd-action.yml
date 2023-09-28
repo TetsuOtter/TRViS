@@ -522,7 +522,7 @@ jobs:
         needs.publish-ios.result == 'success'
         || needs.publish-mac.result == 'success'
       )
-      && !cancelled()
+      && !failure()
 
     runs-on: ubuntu-latest
     timeout-minutes: 5
