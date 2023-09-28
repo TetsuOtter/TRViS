@@ -340,8 +340,8 @@ jobs:
         security default-keychain -d user -s "${{ env.KEYCHAIN_NAME }}"
         security unlock-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
         security set-keychain-settings -lut 21600 "${{ env.KEYCHAIN_NAME }}"
-        security import certificate.p12 -k "${{ env.KEYCHAIN_NAME }}" -P '${{ secrets.P12_PASSWORD_MAC }}' -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/xcrun
-        security set-key-partition-list -S apple-tool:,apple:,codesign:,productsign: -s -k '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
+        security import certificate.p12 -k "${{ env.KEYCHAIN_NAME }}" -P '${{ secrets.P12_PASSWORD_MAC }}' -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/xcrun
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
       env:
         KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
