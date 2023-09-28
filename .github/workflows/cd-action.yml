@@ -397,8 +397,10 @@ jobs:
         /p:CodesignEntitlements='Platforms/MacCatalyst/Entitlements.plist'
 
     - name: Change pkg file name
-      working-directory: ${{ env.OUTPUT_DIR }}
-      run: mv TRViS-${{ needs.get-version.outputs.display_version }}.pkg ${{ env.PKG_PATH }}
+      run: >
+        mv
+        ${{ env.OUTPUT_DIR }}/TRViS-${{ needs.get-version.outputs.display_version }}.pkg
+        ${{ env.PKG_PATH }}
 
     - name: Upload PKG
       uses: actions/upload-artifact@v3
