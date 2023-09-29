@@ -6,17 +6,23 @@ namespace TRViS;
 
 public partial class AppShell : Shell
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 	static public string AppVersionString
 		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";
 
 	public AppShell(EasterEggPageViewModel easterEggPageViewModel)
 	{
+		logger.Trace("AppShell Creating");
+		logger.Info("Application Version: {0}", AppVersionString);
+
 		InitializeComponent();
 
 		SetBinding(Shell.BackgroundColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellBackgroundColor) });
 		SetBinding(Shell.TitleColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
 
 		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
+		logger.Trace("AppShell Created");
 	}
 
 	public event ValueChangedEventHandler<Thickness>? SafeAreaMarginChanged;
@@ -29,6 +35,7 @@ public partial class AppShell : Shell
 			if (_SafeAreaMargin == value)
 				return;
 
+			logger.Info("SafeAreaMargin Changed: {0} -> {1}", _SafeAreaMargin, value);
 			Thickness tmp = _SafeAreaMargin;
 			_SafeAreaMargin = value;
 			SafeAreaMarginChanged?.Invoke(this, tmp, value);
@@ -56,7 +63,9 @@ public partial class AppShell : Shell
 
 	protected override void OnSizeAllocated(double width, double height)
 	{
-		if (!OperatingSystem.IsIOS())
+		bool isIOS = OperatingSystem.IsIOS();
+		logger.Info("OnSizeAllocated: {0}x{1} / ios:{2}", width, height, isIOS);
+		if (!isIOS)
 			return;
 
 		// SafeAreaInsets ref: https://stackoverflow.com/questions/46829840/get-safe-area-inset-top-and-bottom-heights
@@ -67,6 +76,7 @@ public partial class AppShell : Shell
 				? GetUIWindowOnIOS13OrLater()
 				: GetUIWindow()
 			;
+			logger.Info("UIWindow: {0}", UIWindow is null ? "null" : UIWindow.ToString());
 		}
 
 		if (UIWindow is not null)

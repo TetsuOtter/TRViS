@@ -36,6 +36,8 @@ public partial class VerticalTimetableView
 
 	public VerticalTimetableView()
 	{
+		logger.Trace("Creating...");
+
 		AfterArrive = new(this, "着後");
 		AfterRemarks = new(this);
 
@@ -49,27 +51,38 @@ public partial class VerticalTimetableView
 		};
 
 		LocationService.Interval = new TimeSpan(0, 0, 1);
+
+		logger.Trace("Created");
 	}
 
 	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
 	{
+		logger.Info("Setting RowViews... (Current RowViewList.Count: {0})", RowViewList.Count);
 		RowViewList.Clear();
+
+		logger.Trace("Starting ClearOldRowViews Task...");
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
+			logger.Trace("MainThread: Clearing old RowViews...");
 			IsBusy = true;
 
 			Children.Clear();
+			logger.Trace("MainThread: Clearing old RowViews Complete");
 		});
+		logger.Trace("ClearOldRowViews Task Complete");
 
 		int newCount = newValue?.Length ?? 0;
+		logger.Debug("newCount: {0}", newCount);
 
 		SetRowDefinitions(newCount);
 
 		AfterRemarks.SetRow(newCount);
 		AfterArrive.SetRow(newCount + 1);
 
+		logger.Trace("Starting RowViewInit Task...");
 		await Task.Run(async () =>
 		{
+			logger.Trace("Task: Finding last Station Row...");
 			int lastTimetableRowIndex = 0;
 			for (int i = 0; i < newCount; i++)
 			{
@@ -77,12 +90,18 @@ public partial class VerticalTimetableView
 					lastTimetableRowIndex = i;
 			}
 
+			logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
 			for (int i = 0; i < newCount; i++)
 				await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
+			logger.Trace("Task: RowViewInit Complete");
 		});
+		logger.Trace("RowViewInit Task Complete");
 
+		logger.Trace("Starting FooterInsertion Task...");
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
+			logger.Trace("MainThread: Inserting Footer...");
+
 			AfterRemarks.Text = trainData?.AfterRemarks ?? string.Empty;
 			AfterArrive.Text = trainData?.AfterArrive ?? string.Empty;
 			AfterArrive.Text_OnStationTrackColumn = trainData?.AfterArriveOnStationTrackCol ?? string.Empty;
@@ -93,16 +112,31 @@ public partial class VerticalTimetableView
 			Add(CurrentLocationBoxView);
 			Add(CurrentLocationLine);
 			IsBusy = false;
+
+			logger.Trace("MainThread: FooterInsertion Complete");
 		});
+		logger.Trace("FooterInsertion Task Complete");
+
+		logger.Info("RowViews are set");
 	}
 
 	Task AddNewRow(TimetableRow? row, int index, bool isLastRow)
 	{
 		if (row is null)
+		{
+			logger.Trace("row is null -> skipping...");
 			return Task.CompletedTask;
+		}
 
 		return MainThread.InvokeOnMainThreadAsync(() =>
 		{
+			logger.Debug("MainThread: Adding new Row (index: {0}, isLastRow: {1}, isInfoRow: {2}, Text: {3})",
+				index,
+				isLastRow,
+				row.IsInfoRow,
+				row.StationName
+			);
+
 			if (row.IsInfoRow)
 			{
 				HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
@@ -125,7 +159,7 @@ public partial class VerticalTimetableView
 			}
 			else
 			{
-				VerticalTimetableRow rowView = new VerticalTimetableRow(this, index, row, MarkerViewModel, isLastRow);
+				VerticalTimetableRow rowView = new(this, index, row, MarkerViewModel, isLastRow);
 
 				TapGestureRecognizer tapGestureRecognizer = new();
 				tapGestureRecognizer.Tapped += RowTapped;
@@ -139,6 +173,7 @@ public partial class VerticalTimetableView
 	void SetRowDefinitions(int newCount)
 	{
 		int currentCount = RowDefinitions.Count;
+		logger.Debug("Count {0} -> {1}", currentCount, newCount);
 
 		if (newCount < 0)
 			throw new ArgumentOutOfRangeException(nameof(newCount), "count must be 0 or more");
@@ -149,6 +184,7 @@ public partial class VerticalTimetableView
 		RowDefinitions.Remove(AfterArrive.RowDefinition);
 
 		HeightRequest = (newCount * RowHeight.Value) + AfterArrive.RowDefinition.Height.Value;
+		logger.Debug("HeightRequest: {0}", HeightRequest);
 
 		if (newCount <= 0)
 			RowDefinitions.Clear();
