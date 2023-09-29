@@ -79,7 +79,15 @@ public static class MauiProgram
 			BatchSize = 100,
 			TimeToSleepBetweenBatches = 100,
 		};
-		LoggingRule fileLoggingRule = new("*", LogLevel.Info, fileAsyncTargetWrapper);
+		LoggingRule fileLoggingRule = new(
+			"*",
+			#if DEBUG
+			LogLevel.Trace,
+			#else
+			LogLevel.Info,
+			#endif
+			fileAsyncTargetWrapper
+		);
 
 		LoggingConfiguration loggingConfiguration = new()
 		{
