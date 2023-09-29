@@ -96,7 +96,7 @@ public partial class ThirdPartyLicenses : ContentPage
 		if (result is null)
 		{
 			logger.Warn("License List Not Found in App Package");
-			result = [];
+			result = Array.Empty<LicenseData>();
 		}
 
 		logger.Info("License List Loaded from {0}", fileName);
