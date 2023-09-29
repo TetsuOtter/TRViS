@@ -7,6 +7,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<bool>("IsLocationServiceEnabled")]
 public partial class PageHeader : Grid
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	static readonly ColumnDefinitionCollection DefaultColumnDefinitions = new()
 	{
 		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
@@ -29,11 +30,15 @@ public partial class PageHeader : Grid
 		set
 		{
 			if (_AffectDateLabelText == value)
+			{
+				logger.Trace("newValue: {0} (unchanged)", value);
 				return;
+			}
 
 			_AffectDateLabelText = value;
 
 			AffectDateLabel.Text = AffectDateLabelTextPrefix + value;
+			logger.Info("AffectDateLabelText: {0}", value);
 		}
 	}
 	#endregion
@@ -43,6 +48,7 @@ public partial class PageHeader : Grid
 
 	partial void OnIsRunningChanged(bool newValue)
 	{
+		logger.Info("IsRunning: {0}", newValue);
 		StartEndRunButton.IsChecked = newValue;
 
 		LocationServiceButton.IsEnabled = newValue;
@@ -50,6 +56,8 @@ public partial class PageHeader : Grid
 
 	private void StartEndRunButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
+		logger.Trace("newValue: {0}", e.NewValue);
+
 		this.IsRunning = e.NewValue;
 
 		LocationServiceButton.IsEnabled = e.NewValue;
@@ -67,11 +75,13 @@ public partial class PageHeader : Grid
 
 	partial void OnIsLocationServiceEnabledChanged(bool newValue)
 	{
+		logger.Info("IsLocationServiceEnabled: {0}", newValue);
 		LocationServiceButton.IsChecked = newValue;
 	}
 
 	private void LocationServiceButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
+		logger.Trace("newValue: {0}", e.NewValue);
 		IsLocationServiceEnabled = e.NewValue;
 	}
 	#endregion
@@ -86,16 +96,22 @@ public partial class PageHeader : Grid
 	}
 
 	partial void OnIsOpenChanged(bool newValue)
-		=> OpenCloseButton.IsOpen = newValue;
+	{
+		logger.Info("OpenCloseButton.IsOpen: {0}", newValue);
+		OpenCloseButton.IsOpen = newValue;
+	} 
 
 	private void OpenCloseButton_IsOpenChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
+		logger.Trace("newValue: {0}", e.NewValue);
 		IsOpen = e.NewValue;
 	}
 	#endregion
 
 	public PageHeader()
 	{
+		logger.Trace("Creating...");
+
 		ColumnDefinitions = DefaultColumnDefinitions;
 
 		AffectDateLabel.Margin = new(18, 4);
@@ -132,5 +148,7 @@ public partial class PageHeader : Grid
 			OpenCloseButton,
 			column: 3
 		);
+
+		logger.Trace("Created");
 	}
 }

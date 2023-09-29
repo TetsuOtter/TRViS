@@ -4,6 +4,7 @@ namespace TRViS.DTAC;
 
 public partial class StartEndRunButton : ToggleButton
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	static readonly Color GREEN = new(0, 0x80, 0);
 	static readonly Color GREEN_DARK = new(0, 0x70, 0);
 	const float BUTTON_LUMINOUS_DELTA = 0.05f;
@@ -19,6 +20,8 @@ public partial class StartEndRunButton : ToggleButton
 
 	public StartEndRunButton()
 	{
+		logger.Trace("Creating...");
+
 		InitializeComponent();
 
 		LinearGradientBrush brush = new()
@@ -43,5 +46,7 @@ public partial class StartEndRunButton : ToggleButton
 		brush.GradientStops.Add(gradientStop_Down);
 
 		BaseFrame.Background = brush;
+
+		logger.Trace("Created");
 	}
 }
