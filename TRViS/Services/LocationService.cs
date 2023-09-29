@@ -192,7 +192,7 @@ public partial class LocationService : ObservableObject, IDisposable
 
 		try
 		{
-			Location? loc = await MainThread.InvokeOnMainThreadAsync(() => Geolocation.Default.GetLocationAsync(req, token));
+			Location? loc = await Geolocation.Default.GetLocationAsync(req, token);
 
 			if (loc is not null)
 			{
