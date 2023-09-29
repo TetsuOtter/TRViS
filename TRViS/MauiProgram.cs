@@ -18,7 +18,7 @@ public static class MauiProgram
 	static readonly string CrashLogFileName;
 
 	static readonly Logger logger;
-	const string logFormat = "${longdate} [${threadid:padding=8}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
+	const string logFormat = "${longdate} [${threadid:padding=3}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
 
 	static MauiProgram()
 	{
