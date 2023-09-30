@@ -20,7 +20,34 @@ public partial class EasterEggPageViewModel : ObservableObject
 	[ObservableProperty]
 	int _Color_Blue;
 
-	public DTACMarkerViewModel MarkerViewModel { get; }
+	[ObservableProperty]
+	double _LocationServiceInterval_Seconds = 1;
+
+	public IReadOnlyList<double> LocationServiceIntervalItems { get; } = new List<double>()
+	{
+		0.1,
+		0.2,
+		0.25,
+		0.5,
+		1,
+		2,
+		3,
+		4,
+		5,
+		10,
+		30,
+		60,
+	};
+
+	[ObservableProperty]
+	string _LocationServiceIntervalSettingHeaderLabel = "";
+	partial void OnLocationServiceInterval_SecondsChanged(double value)
+	{
+		logger.Debug("OnLocationServiceInterval_SecondsChanged (value: {0})", value);
+		LocationServiceIntervalSettingHeaderLabel = $"Location Service Interval: {value:F2} [s]";
+	}
+
+    public DTACMarkerViewModel MarkerViewModel { get; }
 
 	public EasterEggPageViewModel()
 	{
@@ -95,6 +122,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		Color_Red = settingFile.TitleColor.Red;
 		Color_Green = settingFile.TitleColor.Green;
 		Color_Blue = settingFile.TitleColor.Blue;
+		LocationServiceInterval_Seconds = settingFile.LocationServiceInterval_Seconds;
 
 		MarkerViewModel?.UpdateList(settingFile);
 
@@ -108,6 +136,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		SettingFileStructure settingFile = new()
 		{
 			TitleColor = new(ShellBackgroundColor),
+			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds
 		};
 
 		MarkerViewModel?.SetToSettings(settingFile);

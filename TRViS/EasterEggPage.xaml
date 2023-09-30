@@ -102,6 +102,20 @@
 			<Frame>
 				<VerticalStackLayout>
 					<Label
+						x:Name="LocationServiceIntervalSettingHeaderLabel"
+						Text="{Binding LocationServiceIntervalSettingHeaderLabel, Mode=OneWay}"
+						FontSize="Header"
+						/>
+					<ListView
+						VerticalScrollBarVisibility="Never"
+						ItemsSource="{Binding LocationServiceIntervalItems, Mode=OneTime}"
+						SelectedItem="{Binding LocationServiceInterval_Seconds, Mode=TwoWay}"
+					/>
+				</VerticalStackLayout>
+			</Frame>
+			<Frame>
+				<VerticalStackLayout>
+					<Label
 						Text="Log File Path"
 						FontSize="Header"
 						/>
