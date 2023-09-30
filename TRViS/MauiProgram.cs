@@ -16,6 +16,7 @@ public static class MauiProgram
 	static readonly string CrashLogFilePath;
 	public static readonly DirectoryInfo CrashLogFileDirectory;
 	static readonly string CrashLogFileName;
+	public static readonly DirectoryInfo NormalLogFileDirectory;
 
 	static readonly Logger logger;
 	const string logFormat = "${longdate} [${threadid:padding=3}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
@@ -37,12 +38,12 @@ public static class MauiProgram
 		CrashLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "crashlogs"));
 		CrashLogFilePath = Path.Combine(CrashLogFileDirectory.FullName, CrashLogFileName);
 
-		logger = SetupLogger(baseDirPath);
+		NormalLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "logs"));
+		logger = SetupLogger();
 	}
 
-	static Logger SetupLogger(string baseDirPath)
+	static Logger SetupLogger()
 	{
-		DirectoryInfo NormalLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "logs"));
 		bool isNormalLogFileDirectoryExists = NormalLogFileDirectory.Exists;
 		if (!isNormalLogFileDirectoryExists)
 		{
