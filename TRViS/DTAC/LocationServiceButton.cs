@@ -4,6 +4,7 @@ namespace TRViS.DTAC;
 
 public class LocationServiceButton : ToggleButton
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	const float CornerRadius = 5;
 	const float SelectedRectMargin = 2;
 	const float SelectedRectThickness = 2;
@@ -35,6 +36,8 @@ public class LocationServiceButton : ToggleButton
 
 	public LocationServiceButton()
 	{
+		logger.Trace("Creating...");
+
 		IsCheckedChanged += OnIsCheckedChanged;
 
 		Grid grid = new()
@@ -89,10 +92,14 @@ public class LocationServiceButton : ToggleButton
 		Content = grid;
 
 		OnIsCheckedChanged(false);
+
+		logger.Trace("Created");
 	}
 
 	void InitElements()
 	{
+		logger.Trace("Initializing elements...");
+
 		Label_Location.Text = "\xe0c8";
 		Label_ON.Text = "ON";
 		Label_OFF.Text = "OFF";
@@ -115,6 +122,8 @@ public class LocationServiceButton : ToggleButton
 			= Label_ON.Padding
 			= Label_OFF.Padding
 			= new(0);
+
+		logger.Trace("Initialized");
 	}
 
 	void OnIsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
@@ -124,12 +133,14 @@ public class LocationServiceButton : ToggleButton
 	{
 		if (isLocationServiceEnabled)
 		{
+			logger.Info("Location Service is enabled");
 			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
 			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
 			Label_OFF.TextColor = Colors.Black;
 		}
 		else
 		{
+			logger.Info("Location Service is disabled");
 			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
 			Label_ON.TextColor = Colors.Black;
 			Label_Location.TextColor = Colors.Black;

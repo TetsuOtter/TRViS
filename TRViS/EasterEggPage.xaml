@@ -70,6 +70,18 @@
 						Text="{Binding Color_Blue, StringFormat='{0:D3} (0x{0:X02})'}"/>
 				</Grid>
 			</Frame>
+			<Frame>
+				<VerticalStackLayout>
+					<Label
+						Text="Log File Path"
+						FontSize="Header"
+						/>
+					<Label
+						x:Name="LogFilePathLabel"
+						FontSize="Body"
+						/>
+				</VerticalStackLayout>
+			</Frame>
 		</VerticalStackLayout>
 	</ScrollView>
 </ContentPage>

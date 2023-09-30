@@ -8,9 +8,12 @@ namespace TRViS;
 
 public partial class ThirdPartyLicenses : ContentPage
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	ThirdPartyLicensesViewModel viewModel { get; }
 	public ThirdPartyLicenses()
 	{
+		logger.Trace("Creating");
+
 		InitializeComponent();
 
 		viewModel = new ThirdPartyLicensesViewModel();
@@ -19,7 +22,10 @@ public partial class ThirdPartyLicenses : ContentPage
 
 		viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
+		logger.Trace("Creating Task to Load License List");
 		Task.Run(LoadLicenseList);
+
+		logger.Trace("Created");
 	}
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -27,9 +33,12 @@ public partial class ThirdPartyLicenses : ContentPage
 		if (e.PropertyName != nameof(ThirdPartyLicensesViewModel.LicenseTextList))
 			return;
 
+		logger.Debug("LicenseTextList Changed");
+
 		VerticalStackLayout licenses = new();
 		if (viewModel.LicenseTextList?.Count > 0)
 		{
+			logger.Debug("LicenseTextList Length: {0}", viewModel.LicenseTextList.Count);
 			foreach (var v in viewModel.LicenseTextList)
 			{
 				licenses.Children.Add(new HtmlAutoDetectLabel()
@@ -45,6 +54,7 @@ public partial class ThirdPartyLicenses : ContentPage
 		}
 		else
 		{
+			logger.Warn("LicenseTextList is null or empty");
 			// NULL or Length=0
 			licenses.Children.Add(new Label()
 			{
@@ -57,6 +67,7 @@ public partial class ThirdPartyLicenses : ContentPage
 
 	async void LoadLicenseList()
 	{
+		logger.Info("Loading License List");
 		var list =
 			(await LoadLicenseList("license_list.json"))
 			.Concat(await LoadLicenseList("license_list_custom.json"))
@@ -65,21 +76,30 @@ public partial class ThirdPartyLicenses : ContentPage
 		list.Sort((v1, v2) => string.Compare(v1.id, v2.id));
 
 		viewModel.LicenseDataArray = list;
+		logger.Info("License List Loaded");
 	}
 
 	static async Task<LicenseData[]> LoadLicenseList(string fileName)
 	{
+		logger.Info("Loading License List from {0}", fileName);
 		LicenseData[]? result = null;
 
 		string path = Path.Combine(ThirdPartyLicensesViewModel.licenseFileDir, fileName);
+		logger.Debug("License List Path: {0}", path);
 		if (await FileSystem.AppPackageFileExistsAsync(path))
 		{
 			using Stream stream = await FileSystem.OpenAppPackageFileAsync(path);
 			result = await JsonSerializer.DeserializeAsync<LicenseData[]>(stream);
+			logger.Debug("License List Loaded from App Package (Length: {0})", result?.Length ?? 0);
 		}
 
-		result ??= Array.Empty<LicenseData>();
+		if (result is null)
+		{
+			logger.Warn("License List Not Found in App Package");
+			result = Array.Empty<LicenseData>();
+		}
 
+		logger.Info("License List Loaded from {0}", fileName);
 		return result;
 	}
 }

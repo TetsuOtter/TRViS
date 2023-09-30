@@ -4,6 +4,7 @@ namespace TRViS.Controls;
 
 public class HtmlAutoDetectLabel : Label
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public AppThemeColorBindingExtension? CurrentAppThemeColorBindingExtension { get; set; }
 	public Color? LastTextColor {get; private set; }
 
@@ -14,11 +15,15 @@ public class HtmlAutoDetectLabel : Label
 		if (propertyName == nameof(Text))
 		{
 			if (string.IsNullOrEmpty(Text))
+			{
+				logger.Debug("Text Changed -> (NullOrEmpty)");
 				TextType = TextType.Text;
+			}
 			else
 			{
 				string text = Text.Trim();
 				bool isColoredString = text.Contains("color:");
+				logger.Trace("Text Changed -> {0} (isColoredString: {1})", text, isColoredString);
 
 				try
 				{
@@ -27,10 +32,19 @@ public class HtmlAutoDetectLabel : Label
 					{
 						if (_textType == TextType.Html && isColoredString)
 						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is not null && TextType: Html && isColoredString: true -> AppThemeColor set to null");
 							this.SetAppThemeColor(TextColorProperty, null, null);
 						}
 						else
 						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is not null"
+								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+								+ " -> Restore AppThemeColor(Light:{2}, Dark:{3})",
+								_textType,
+								isColoredString,
+								CurrentAppThemeColorBindingExtension.Light,
+								CurrentAppThemeColorBindingExtension.Dark
+							);
 							CurrentAppThemeColorBindingExtension.Apply(this, TextColorProperty);
 						}
 					}
@@ -38,18 +52,40 @@ public class HtmlAutoDetectLabel : Label
 					{
 						if (_textType == TextType.Html && isColoredString)
 						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is null && TextType: Html && isColoredString: true -> TextColor set to null");
 							LastTextColor = TextColor;
 							TextColor = null;
 						}
 						else if (TextColor is null && LastTextColor is not null)
 						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is null"
+								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+								+ " && TextColor is null && LastTextColor is not null"
+								+ " -> Restore TextColor({2})",
+								_textType,
+								isColoredString,
+								LastTextColor
+							);
 							TextColor = LastTextColor;
+						}
+						else
+						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is null"
+								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+								+ " && TextColor is not null"
+								+ " -> Do Nothing",
+								_textType,
+								isColoredString
+							);
 						}
 					}
 					TextType = _textType;
+
+					logger.Trace("Processing Complete -> TextType: {0}", TextType);
 				}
 				catch (Exception ex)
 				{
+					logger.Warn(ex, "Exception Occurred -> TextType set to Text");
 					Console.WriteLine(ex);
 					TextType = TextType.Text;
 				}

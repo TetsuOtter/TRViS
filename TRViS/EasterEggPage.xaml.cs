@@ -4,14 +4,18 @@ namespace TRViS;
 
 public partial class EasterEggPage : ContentPage
 {
-	EasterEggPageViewModel viewModel { get; }
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
 	public EasterEggPage(EasterEggPageViewModel vm)
 	{
+		logger.Trace("EasterEggPage Creating (EasterEggPageViewModel: {0})", vm);
+
 		InitializeComponent();
 
-		viewModel = vm;
-
 		BindingContext = vm;
+
+		LogFilePathLabel.Text = MauiProgram.NormalLogFileDirectory.FullName;
+
+		logger.Trace("EasterEggPage Created");
 	}
 }
