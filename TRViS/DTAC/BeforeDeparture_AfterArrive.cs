@@ -6,6 +6,7 @@ namespace TRViS.DTAC;
 
 public class BeforeDeparture_AfterArrive
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public readonly RowDefinition RowDefinition = new(DTACElementStyles.BeforeDeparture_AfterArrive_Height);
 
 	readonly BoxView HeaderBoxView = new()
@@ -29,6 +30,12 @@ public class BeforeDeparture_AfterArrive
 
 	public BeforeDeparture_AfterArrive(Grid Parent, string HeaderLabelText, bool AlwaysShow)
 	{
+		logger.Trace("Creating... (Parent: {0}, HeaderLabelText: {1}, AlwaysShow: {2})",
+			Parent.GetType().Name,
+			HeaderLabelText,
+			AlwaysShow
+		);
+
 		this.Parent = Parent;
 		this.AlwaysShow = AlwaysShow;
 
@@ -49,6 +56,8 @@ public class BeforeDeparture_AfterArrive
 		HeaderLabel.Text = HeaderLabelText;
 
 		IsVisible = AlwaysShow;
+
+		logger.Trace("Created");
 	}
 
 	public string Text
@@ -57,11 +66,15 @@ public class BeforeDeparture_AfterArrive
 		set
 		{
 			if (Label.Text == value)
+			{
+				logger.Trace("Text is the same, skipping... ({0})", value);
 				return;
+			}
 
 			if (!AlwaysShow)
 				IsVisible = !string.IsNullOrWhiteSpace(value);
 
+			logger.Debug("Setting Text to {0}, AlwaysShow: {1}, IsVisible: {2}", value, AlwaysShow, IsVisible);
 			Label.Text = value;
 		}
 	}
@@ -69,7 +82,17 @@ public class BeforeDeparture_AfterArrive
 	public string Text_OnStationTrackColumn
 	{
 		get => Label_OnStationTrackColumn.Text;
-		set => Label_OnStationTrackColumn.Text = value;
+		set
+		{
+			if (Label_OnStationTrackColumn.Text == value)
+			{
+				logger.Trace("Text is the same, skipping... ({0})", value);
+				return;
+			}
+
+			logger.Debug("Setting Text_OnStationTrackColumn to {0}", value);
+			Label_OnStationTrackColumn.Text = value;
+		} 
 	}
 
 	public void AddToParent()
@@ -89,8 +112,12 @@ public class BeforeDeparture_AfterArrive
 		set
 		{
 			if (_IsVisible == value)
+			{
+				logger.Trace("IsVisible is the same({0}), skipping...", value);
 				return;
+			}
 
+			logger.Debug("Setting IsVisible to {0}", value);
 			_IsVisible = value;
 
 			HeaderBoxView.IsVisible

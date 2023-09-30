@@ -7,10 +7,13 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("TextWhenClosed")]
 public partial class OpenCloseButton : Button
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsOpenChanged;
 
 	public OpenCloseButton()
 	{
+		logger.Trace("Creating...");
+
 		this.SetBinding(TextProperty, new Binding()
 		{
 			Source = this,
@@ -55,9 +58,14 @@ public partial class OpenCloseButton : Button
 			Opacity = 0.4f
 		};
 
-		Clicked += (_, _) => IsOpen = !IsOpen;
+		Clicked += (_, e) => IsOpen = !IsOpen;
+
+		logger.Trace("Created");
 	}
 
 	partial void OnIsOpenChanged(bool oldValue, bool newValue)
-		=> IsOpenChanged?.Invoke(this, new(oldValue, newValue));
+	{
+		logger.Info("IsOpen changed from {0} to {1}", oldValue, newValue);
+		IsOpenChanged?.Invoke(this, new(oldValue, newValue));
+	}
 }
