@@ -31,6 +31,7 @@ public class SettingFileStructure
 	/// この値は、0.1 (秒) 以上である必要があります。
 	/// </remarks>
 	public double LocationServiceInterval_Seconds { get; set; } = 1;
+	public static readonly double MinimumLocationServiceIntervalValue = 0.1;
 
 	public override string ToString()
 	{

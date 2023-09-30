@@ -60,6 +60,20 @@ public partial class EasterEggPageViewModel : ObservableObject
 			await settingFile.SaveToJsonFileAsync();
 		}
 
+		if (settingFile.LocationServiceInterval_Seconds < SettingFileStructure.MinimumLocationServiceIntervalValue)
+		{
+			logger.Warn("Setting LocationServiceInterval({0}) to default value (value: {1})", settingFile.LocationServiceInterval_Seconds, SettingFileStructure.MinimumLocationServiceIntervalValue);
+
+			// ここでは上書き保存は行わない。警告を出すのみに留める。
+			await Shell.Current.DisplayAlert(
+				"Invalid LocationServiceInterval Value",
+				$"value({settingFile.LocationServiceInterval_Seconds}) must be same or more than {SettingFileStructure.MinimumLocationServiceIntervalValue}",
+				"OK"
+			);
+
+			settingFile.LocationServiceInterval_Seconds = SettingFileStructure.MinimumLocationServiceIntervalValue;
+		}
+
 		ShellBackgroundColor = settingFile.TitleColor.ToColor();
 		Color_Red = settingFile.TitleColor.Red;
 		Color_Green = settingFile.TitleColor.Green;
