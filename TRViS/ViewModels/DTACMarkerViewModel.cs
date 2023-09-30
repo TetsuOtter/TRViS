@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using TRViS.MyAppCustomizables;
 
 namespace TRViS.ViewModels;
 
@@ -6,6 +7,8 @@ public record MarkerInfo(string Name, Color Color);
 
 public partial class DTACMarkerViewModel : ObservableObject
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 	public List<MarkerInfo> ColorList { get; } = new()
 	{
 		// Red
@@ -62,5 +65,64 @@ public partial class DTACMarkerViewModel : ObservableObject
 	partial void OnSelectedColorChanged(Color? value)
 	{
 		SelectedMarkerInfo = ColorList.FirstOrDefault(v => v.Color == value);
+	}
+
+	public void UpdateList(SettingFileStructure settingFile)
+	{
+		logger.Trace("Executing... Colors Count {0} -> {1} / Texts Count {2} -> {3}",
+			ColorList.Count,
+			settingFile.MarkerColors.Count,
+			TextList.Count,
+			settingFile.MarkerTexts.Length
+		);
+
+		ColorList.Clear();
+		ColorList.AddRange(settingFile.MarkerColors.Select(v => new MarkerInfo(v.Key, v.Value.ToColor())));
+		if (SelectedMarkerInfo is not null && !ColorList.Contains(SelectedMarkerInfo))
+		{
+			logger.Debug("Current SelectedMarkerInfo is not in ColorList");
+			int newIndex = ColorList.FindIndex(v => v.Name == SelectedMarkerInfo.Name || v.Color == SelectedMarkerInfo.Color);
+			if (0 <= newIndex)
+			{
+				SelectedMarkerInfo = ColorList[newIndex];
+				logger.Debug("Current ColorName or ColorValue Found in ColorList (newIndex: {0}, Obj:{1})", newIndex, SelectedMarkerInfo);
+			}
+			else
+			{
+				logger.Debug("Current ColorName or ColorValue Not Found in ColorList");
+				SelectedMarkerInfo = ColorList.FirstOrDefault();
+				logger.Debug("Selected First Item in ColorList, or null (Obj:{0})", SelectedMarkerInfo);
+			}
+		}
+
+		TextList.Clear();
+		TextList.AddRange(settingFile.MarkerTexts);
+		if (SelectedText is not null && !TextList.Contains(SelectedText))
+		{
+			logger.Debug("Current SelectedText is not in TextList");
+			int newIndex = TextList.FindIndex(v => v == SelectedText);
+			if (0 <= newIndex)
+			{
+				SelectedText = TextList[newIndex];
+				logger.Debug("Current Text Found in TextList (newIndex: {0}, Obj:{1})", newIndex, SelectedText);
+			}
+			else
+			{
+				SelectedText = string.Empty;
+				logger.Debug("Current Text Not Found in TextList -> set to string.Empty");
+			}
+		}
+
+		logger.Trace("Completed");
+	}
+
+	public void SetToSettings(SettingFileStructure settingFile)
+	{
+		logger.Trace("Executing...");
+
+		settingFile.MarkerColors = ColorList.ToDictionary(v => v.Name, v => new ColorSetting(v.Color));
+		settingFile.MarkerTexts = TextList.ToArray();
+
+		logger.Trace("Completed");
 	}
 }

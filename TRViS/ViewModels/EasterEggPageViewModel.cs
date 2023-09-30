@@ -20,9 +20,13 @@ public partial class EasterEggPageViewModel : ObservableObject
 	[ObservableProperty]
 	int _Color_Blue;
 
+	public DTACMarkerViewModel MarkerViewModel { get; }
+
 	public EasterEggPageViewModel()
 	{
 		logger.Trace("EasterEggPageViewModel Creating (with Task.Run)");
+
+		MarkerViewModel = InstanceManager.DTACMarkerViewModel;
 
 		Task.Run(LoadFromFileAsync);
 	}
@@ -58,6 +62,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 
 			logger.Info("Setting title color stored in AppPreference (value: {0:X6})", value);
 			settingFile.TitleColor = new(Color.FromInt(value));
+			MarkerViewModel?.SetToSettings(settingFile);
 			await settingFile.SaveToJsonFileAsync();
 		}
 
@@ -91,6 +96,8 @@ public partial class EasterEggPageViewModel : ObservableObject
 		Color_Green = settingFile.TitleColor.Green;
 		Color_Blue = settingFile.TitleColor.Blue;
 
+		MarkerViewModel?.UpdateList(settingFile);
+
 		SetTitleTextColor();
 		logger.Trace("InitAsync Completed");
 	}
@@ -102,6 +109,8 @@ public partial class EasterEggPageViewModel : ObservableObject
 		{
 			TitleColor = new(ShellBackgroundColor),
 		};
+
+		MarkerViewModel?.SetToSettings(settingFile);
 
 		await settingFile.SaveToJsonFileAsync();
 	}
