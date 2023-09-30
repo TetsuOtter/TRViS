@@ -21,7 +21,7 @@ public partial class VerticalTimetableView : Grid
 
 	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
-	public DTACMarkerViewModel MarkerViewModel { get; init; } = new();
+	public DTACMarkerViewModel MarkerViewModel { get; } = InstanceManager.DTACMarkerViewModel;
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
