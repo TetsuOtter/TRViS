@@ -14,7 +14,7 @@ public partial class EasterEggPage : ContentPage
 
 		BindingContext = vm;
 
-		LogFilePathLabel.Text = MauiProgram.NormalLogFileDirectory.FullName;
+		LogFilePathLabel.Text = DirectoryPathProvider.NormalLogFileDirectory.FullName;
 
 		logger.Trace("EasterEggPage Created");
 	}

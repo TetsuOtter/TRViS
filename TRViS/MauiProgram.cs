@@ -14,9 +14,7 @@ namespace TRViS;
 public static class MauiProgram
 {
 	static readonly string CrashLogFilePath;
-	public static readonly DirectoryInfo CrashLogFileDirectory;
 	static readonly string CrashLogFileName;
-	public static readonly DirectoryInfo NormalLogFileDirectory;
 
 	static readonly Logger logger;
 	const string logFormat = "${longdate} [${threadid:padding=3}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
@@ -25,29 +23,17 @@ public static class MauiProgram
 	{
 		CrashLogFileName = $"{DateTime.Now:yyyyMMdd_HHmmss}.crashlog.trvis.txt";
 
-		string baseDirPath;
-		if (DeviceInfo.Current.Platform == DevicePlatform.iOS)
-		{
-			baseDirPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-		}
-		else
-		{
-			baseDirPath = FileSystem.Current.AppDataDirectory;
-		}
+		CrashLogFilePath = Path.Combine(DirectoryPathProvider.CrashLogFileDirectory.FullName, CrashLogFileName);
 
-		CrashLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "crashlogs"));
-		CrashLogFilePath = Path.Combine(CrashLogFileDirectory.FullName, CrashLogFileName);
-
-		NormalLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "logs"));
 		logger = SetupLogger();
 	}
 
 	static Logger SetupLogger()
 	{
-		bool isNormalLogFileDirectoryExists = NormalLogFileDirectory.Exists;
+		bool isNormalLogFileDirectoryExists = DirectoryPathProvider.NormalLogFileDirectory.Exists;
 		if (!isNormalLogFileDirectoryExists)
 		{
-			NormalLogFileDirectory.Create();
+			DirectoryPathProvider.NormalLogFileDirectory.Create();
 		}
 
 #if DEBUG
@@ -61,8 +47,8 @@ public static class MauiProgram
 
 		FileTarget fileTarget = new("file")
 		{
-			FileName = Path.Combine(NormalLogFileDirectory.FullName, "logs_current.trvis.log"),
-			ArchiveFileName = Path.Combine(NormalLogFileDirectory.FullName, "logs.{#}.trvis.log"),
+			FileName = Path.Combine(DirectoryPathProvider.NormalLogFileDirectory.FullName, "logs_current.trvis.log"),
+			ArchiveFileName = Path.Combine(DirectoryPathProvider.NormalLogFileDirectory.FullName, "logs.{#}.trvis.log"),
 			ArchiveNumbering = ArchiveNumberingMode.DateAndSequence,
 			ArchiveEvery = FileArchivePeriod.Day,
 			MaxArchiveFiles = 14,
@@ -144,9 +130,9 @@ public static class MauiProgram
 
 		logger.Fatal(ex, "UnhandledException");
 
-		if (!CrashLogFileDirectory.Exists)
+		if (!DirectoryPathProvider.CrashLogFileDirectory.Exists)
 		{
-			CrashLogFileDirectory.Create();
+			DirectoryPathProvider.CrashLogFileDirectory.Create();
 		}
 
 		await File.AppendAllTextAsync(CrashLogFilePath, $"{DateTime.Now:[yyyy/MM/dd HH:mm:ss]} {ex.Message}\n{ex.StackTrace}\n---\n(InnerException: {ex.InnerException})\n\n");
