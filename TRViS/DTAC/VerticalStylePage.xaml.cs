@@ -45,8 +45,6 @@ public partial class VerticalStylePage : ContentView
 			new(new(1, GridUnitType.Star))
 		);
 
-		this.TimetableHeader.MarkerSettings = TimetableView.MarkerViewModel;
-
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
 			logger.Info("Device is Phone or Unknown -> make it to fill-scrollable");

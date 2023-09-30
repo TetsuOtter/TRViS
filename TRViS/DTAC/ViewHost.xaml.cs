@@ -15,9 +15,12 @@ public partial class ViewHost : ContentPage
 	readonly GradientStop TitleBG_MidBottom = new(Colors.White.WithAlpha(0.1f), 0.8f);
 	readonly GradientStop TitleBG_Bottom = new(Colors.White.WithAlpha(0), 1);
 
-	public ViewHost(AppViewModel vm, EasterEggPageViewModel eevm)
+	public ViewHost()
 	{
 		logger.Trace("Creating...");
+
+		AppViewModel vm = InstanceManager.AppViewModel;
+		EasterEggPageViewModel eevm = InstanceManager.EasterEggPageViewModel;
 
 		Shell.SetNavBarIsVisible(this, false);
 
