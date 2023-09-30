@@ -20,11 +20,40 @@
 			<Style TargetType="Frame">
 				<Setter Property="Margin" Value="8"/>
 			</Style>
+
+			<Style TargetType="Button">
+				<Setter Property="Margin" Value="8"/>
+				<Setter Property="Padding" Value="8"/>
+				<Setter Property="LineBreakMode" Value="WordWrap" />
+			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
 
 	<ScrollView>
-		<VerticalStackLayout>
+		<VerticalStackLayout Margin="4,8">
+			<HorizontalStackLayout
+				IsVisible="false"
+				HorizontalOptions="Start">
+				<Button
+					Text="Load from..."
+					Clicked="OnLoadFromPickerClicked"
+				/>
+				<Button
+					Text="Save to..."
+					Clicked="OnSaveToPickerClicked"
+				/>
+			</HorizontalStackLayout>
+			<HorizontalStackLayout
+				HorizontalOptions="End">
+				<Button
+					Text="Reload Saved"
+					Clicked="OnReloadSavedClicked"
+				/>
+				<Button
+					Text="Save"
+					Clicked="OnSaveClicked"
+				/>
+			</HorizontalStackLayout>
 			<Frame>
 				<Grid>
 					<Grid.RowDefinitions>
