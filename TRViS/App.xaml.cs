@@ -4,13 +4,13 @@ public partial class App : Application
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-	public App(AppShell mainPage)
+	public App()
 	{
 		logger.Trace("App Creating");
 
 		InitializeComponent();
 
-		MainPage = mainPage;
+		MainPage = new AppShell();
 
 		logger.Trace("App Created");
 	}

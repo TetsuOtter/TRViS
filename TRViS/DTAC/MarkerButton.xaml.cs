@@ -1,35 +1,28 @@
 using CommunityToolkit.Maui.Views;
-
-using DependencyPropertyGenerator;
-
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<DTACMarkerViewModel>("MarkerSettings")]
 public partial class MarkerButton : Frame
 {
+	DTACMarkerViewModel MarkerSettings { get; }
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public MarkerButton()
 	{
 		logger.Trace("Creating...");
 
+		MarkerSettings = InstanceManager.DTACMarkerViewModel;
+		BindingContext = MarkerSettings;
 		InitializeComponent();
 
 		logger.Trace("Created");
 	}
 
-	partial void OnMarkerSettingsChanged(DTACMarkerViewModel? newValue)
-	{
-		logger.Trace("OnMarkerSettingsChanged({0})", newValue?.GetType().Name ?? "null");
-		BindingContext = newValue;
-	}
-
 	async void TapGestureRecognizer_Tapped(object sender, EventArgs e)
 	{
-		if (Shell.Current.CurrentPage is not ViewHost page || MarkerSettings is null)
+		if (Shell.Current.CurrentPage is not ViewHost page)
 		{
-			logger.Warn("Shell.Current.CurrentPage is not ViewHost or MarkerSettings is null");
+			logger.Warn("Shell.Current.CurrentPage is not ViewHost");
 			return;
 		}
 
