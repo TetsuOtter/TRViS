@@ -32,7 +32,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		logger.Info("Loading SettingFileStructure from default setting file");
 		(SettingFileStructure settingFile, string? msg) = await SettingFileStructure.LoadFromJsonFileOrCreateAsync();
 
-		await InitAsync(settingFile, msg == SettingFileStructure.settingFileCreatedMsg);
+		await InitAsync(settingFile, msg);
 	}
 
 	public async Task LoadFromFileAsync(string path)
@@ -45,11 +45,12 @@ public partial class EasterEggPageViewModel : ObservableObject
 			tmp = await SettingFileStructure.LoadFromJsonAsync(stream);
 		}
 
-		await InitAsync(tmp.settingFile, tmp.msg == SettingFileStructure.settingFileCreatedMsg);
+		await InitAsync(tmp.settingFile, tmp.msg);
 	}
 
-	async Task InitAsync(SettingFileStructure settingFile, bool isNewlyCreated)
+	async Task InitAsync(SettingFileStructure settingFile, string? errorMsg)
 	{
+		bool isNewlyCreated = errorMsg == SettingFileStructure.settingFileCreatedMsg;
 		logger.Debug("InitAsync (setting: {0}, isNewlyCreated: {1})", settingFile, isNewlyCreated);
 		if (isNewlyCreated && Preferences.Default.ContainsKey(nameof(ShellBackgroundColor)))
 		{
@@ -58,6 +59,17 @@ public partial class EasterEggPageViewModel : ObservableObject
 			logger.Info("Setting title color stored in AppPreference (value: {0:X6})", value);
 			settingFile.TitleColor = new(Color.FromInt(value));
 			await settingFile.SaveToJsonFileAsync();
+		}
+
+		if (!isNewlyCreated && errorMsg is not null)
+		{
+			await Shell.Current.DisplayAlert(
+				"Failed to load setting file",
+				errorMsg,
+				"OK"
+			);
+			// 読み込み自体に失敗しているため、設定の反映は行わない
+			return;
 		}
 
 		if (settingFile.LocationServiceInterval_Seconds < SettingFileStructure.MinimumLocationServiceIntervalValue)
