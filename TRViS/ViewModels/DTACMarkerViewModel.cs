@@ -32,6 +32,7 @@ public partial class DTACMarkerViewModel : ObservableObject
 		"両数",
 		"規制",
 		"時変",
+		"合図",
 	};
 
 	[ObservableProperty]
