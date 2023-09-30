@@ -11,10 +11,12 @@ public partial class AppShell : Shell
 	static public string AppVersionString
 		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";
 
-	public AppShell(EasterEggPageViewModel easterEggPageViewModel)
+	public AppShell()
 	{
 		logger.Trace("AppShell Creating");
 		logger.Info("Application Version: {0}", AppVersionString);
+
+		EasterEggPageViewModel easterEggPageViewModel = InstanceManager.EasterEggPageViewModel;
 
 		InitializeComponent();
 

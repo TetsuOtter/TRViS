@@ -8,13 +8,13 @@ public partial class SelectTrainPage : ContentPage
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	AppViewModel viewModel { get; }
 
-	public SelectTrainPage(AppViewModel viewModel)
+	public SelectTrainPage()
 	{
 		logger.Trace("Creating (AppViewModel: {0})", viewModel);
 
 		InitializeComponent();
 
-		this.viewModel = viewModel;
+		this.viewModel = InstanceManager.AppViewModel;
 		this.BindingContext = viewModel;
 
 		viewModel.Loader ??= new SampleDataLoader();

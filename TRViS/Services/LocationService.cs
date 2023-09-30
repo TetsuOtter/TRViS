@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.Controls;
+using TRViS.MyAppCustomizables;
+using TRViS.ViewModels;
 
 namespace TRViS.Services;
 
@@ -20,9 +22,6 @@ public partial class LocationService : ObservableObject, IDisposable
 
 	[ObservableProperty]
 	bool _IsEnabled;
-
-	[ObservableProperty]
-	TimeSpan _Interval;
 
 	[ObservableProperty]
 	Location? _NearbyCenter;
@@ -141,6 +140,22 @@ public partial class LocationService : ObservableObject, IDisposable
 		setIsNearby(LastLocation);
 	}
 
+	static EasterEggPageViewModel EasterEggPageViewModel { get; } = InstanceManager.EasterEggPageViewModel;
+	static double lastInterval = 1;
+	static TimeSpan lastIntervalTimeSpan = TimeSpan.FromSeconds(lastInterval);
+	static TimeSpan Interval
+	{
+		get
+		{
+			if (lastInterval == EasterEggPageViewModel.LocationServiceInterval_Seconds)
+				return lastIntervalTimeSpan;
+
+			logger.Info("Interval is changed to {0}[s]", EasterEggPageViewModel.LocationServiceInterval_Seconds);
+			lastInterval = EasterEggPageViewModel.LocationServiceInterval_Seconds;
+			lastIntervalTimeSpan = TimeSpan.FromSeconds(lastInterval);
+			return lastIntervalTimeSpan;
+		}
+	}
 	public Task StartGPS()
 	{
 		logger.Trace("Starting...");
