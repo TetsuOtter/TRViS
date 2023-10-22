@@ -33,12 +33,12 @@
 		<!-- App Icon -->
 		<MauiIcon
 			Include="Resources\AppIcon\appicon.svg"
-			ForegroundFile="Resources\AppIcon\appiconfg.svg"
-			Color="#512BD4" />
+			ForegroundFile="Resources\AppIcon\appiconfg.png"
+			Color="#ccc" />
 		<!-- Splash Screen -->
 		<MauiSplashScreen
-			Include="Resources\Splash\tr_icon.png"
-			Color="#242c32" />
+			Include="Resources\AppIcon\appiconfg.png"
+			Color="#999" />
 		<MauiFont Include="Resources\Fonts\*" />
 		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
