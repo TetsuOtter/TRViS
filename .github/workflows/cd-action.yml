@@ -512,7 +512,7 @@ jobs:
     - name: extract dSYM
       run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
     - name: Check dSYM
-      run: dwarfdump -all ${{ env.IOS_DSYM_FILENAME }}
+      run: dwarfdump -u ${{ env.IOS_DSYM_FILENAME }}
     - name: upload dSYM
       run: appcenter crashes upload-symbols --symbol ${{ env.IOS_DSYM_FILENAME }}
       env:
