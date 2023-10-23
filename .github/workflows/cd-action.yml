@@ -211,6 +211,7 @@ jobs:
     - name: Add AppCenterSecrets.cs
       run: |
         echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo 'public const string IOS = "${{ secrets.APP_CENTER_SECRET_IOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
@@ -298,6 +299,7 @@ jobs:
     - name: Add AppCenterSecrets.cs
       run: |
         echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo 'public const string ANDROID = "${{ secrets.APP_CENTER_SECRET_ANDROID }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
@@ -413,6 +415,7 @@ jobs:
     - name: Add AppCenterSecrets.cs
       run: |
         echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo 'public const string MACOS = "${{ secrets.APP_CENTER_SECRET_MACOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
