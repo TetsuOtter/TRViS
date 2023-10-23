@@ -31,6 +31,8 @@ env:
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
   SDK_VERSION: '8.0.100-preview.4.23260.5'
   APP_CENTER_SECRETS_FILE_NAME: ./TRViS/AppCenterSecrets.cs
+  IOS_DSYM_PATH: ./TRViS/bin/Release/net8.0-ios/ios-arm64
+  IOS_DSYM_FILENAME: TRViS.app.dSYM
 
 jobs:
   generate-bundle-version:
@@ -233,6 +235,15 @@ jobs:
         path: ${{ env.IPA_PATH }}
         retention-days: 3
 
+    - name: tar dSYM
+      run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
+    - name: Upload dSYM
+      uses: actions/upload-artifact@v3
+      with:
+        name: dSYM
+        path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
+        retention-days: 3
+  
     - name: Post 'Import Code Sign Certificates'
       if: always() && steps.import-code-sign-cert.conclusion == 'success'
       run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
@@ -489,6 +500,20 @@ jobs:
         -f ${{ env.IPA_PATH }}
         --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
         --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+
+    - name: Download dSYM
+      uses: actions/download-artifact@v3
+      with:
+        name: dSYM
+        path: .
+    - name: extract dSYM
+      run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
+    - name: Check dSYM
+      run: dwarfdump -all ${{ env.IOS_DSYM_FILENAME }}
+    - name: upload dSYM
+      run: appcenter crashes upload-symbols --symbol ${{ env.IOS_DSYM_FILENAME }}
+      env:
+        APPCENTER_ACCESS_TOKEN: ${{ secrets.APPCENTER_ACCESS_TOKEN_IOS }}
 
   publish-mac:
     if: |
