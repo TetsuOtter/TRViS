@@ -46,6 +46,10 @@
 			<HorizontalStackLayout
 				HorizontalOptions="End">
 				<Button
+					Text="Crash!"
+					Clicked="DoCrash"
+				/>
+				<Button
 					Text="Reload Saved"
 					Clicked="OnReloadSavedClicked"
 				/>

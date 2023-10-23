@@ -82,6 +82,8 @@ public partial class App : Application
 				);
 			}
 		}
+
+		Crashes.NotifyUserConfirmation(UserConfirmation.AlwaysSend);
 	}
 
 	private void WindowOnDestroying(object? sender, EventArgs e)
