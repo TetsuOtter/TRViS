@@ -1,7 +1,8 @@
 using System.Text;
 
 using CommunityToolkit.Maui;
-
+using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -24,6 +25,28 @@ public static class MauiProgram
 		CrashLogFilePath = Path.Combine(DirectoryPathProvider.CrashLogFileDirectory.FullName, CrashLogFileName);
 
 		logger = SetupLogger();
+
+		try
+		{
+			Microsoft.AppCenter.AppCenter.Start(
+#if IOS
+				AppCenterSecrets.IOS
+#elif ANDROID
+				AppCenterSecrets.ANDROID
+#elif WINDOWS
+				AppCenterSecrets.WINDOWS
+#elif MACCATALYST
+				AppCenterSecrets.MACOS
+#endif
+				,
+				typeof(Analytics),
+				typeof(Crashes)
+			);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "AppCenter.Start Failed");
+		}
 	}
 
 	static Logger SetupLogger()

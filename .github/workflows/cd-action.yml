@@ -30,6 +30,7 @@ env:
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
   SDK_VERSION: '8.0.100-preview.4.23260.5'
+  APP_CENTER_SECRETS_FILE_NAME: ./TRViS/AppCenterSecrets.cs
 
 jobs:
   generate-bundle-version:
@@ -205,6 +206,14 @@ jobs:
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
+    - name: Add AppCenterSecrets.cs
+      run: |
+        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo 'public const string IOS = "${{ secrets.APP_CENTER_SECRET_IOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+
     - name: Build
       run: >
         dotnet publish ${{ env.CSPROJ_PATH }}
@@ -274,6 +283,14 @@ jobs:
         ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+    - name: Add AppCenterSecrets.cs
+      run: |
+        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo 'public const string ANDROID = "${{ secrets.APP_CENTER_SECRET_ANDROID }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
     - name: Build
       run: >
@@ -381,6 +398,14 @@ jobs:
         ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+    - name: Add AppCenterSecrets.cs
+      run: |
+        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo 'public const string MACOS = "${{ secrets.APP_CENTER_SECRET_MACOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
     - name: Build
       run: >
