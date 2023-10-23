@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using Microsoft.AppCenter.Crashes;
 using TRViS.ViewModels;
 
 namespace TRViS;
@@ -28,6 +30,16 @@ public partial class EasterEggPage : ContentPage
 	private void OnSaveToPickerClicked(object sender, EventArgs e)
 	{
 		logger.Trace("Not Implemented");
+	}
+
+	private void DoCrash(object sender, EventArgs e)
+	{
+		logger.Trace("Executing...");
+
+		// Crashes.GenerateTestCrash();
+		Marshal.ReadByte(IntPtr.Zero);
+
+		logger.Info("Crash Complete");
 	}
 
 	private async void OnReloadSavedClicked(object sender, EventArgs e)
