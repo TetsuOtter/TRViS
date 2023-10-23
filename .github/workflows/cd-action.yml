@@ -513,10 +513,14 @@ jobs:
       run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
     - name: Check dSYM
       run: dwarfdump -u ${{ env.IOS_DSYM_FILENAME }}
-    - name: upload dSYM
-      run: appcenter crashes upload-symbols --symbol ${{ env.IOS_DSYM_FILENAME }}
-      env:
-        APPCENTER_ACCESS_TOKEN: ${{ secrets.APPCENTER_ACCESS_TOKEN_IOS }}
+    - name: Install AppCenter CLI
+      run: npm install -g appcenter-cli
+    - name: upload dSYM to AppCenter
+      run: >
+        appcenter crashes upload-symbols
+        --token ${{ secrets.APPCENTER_ACCESS_TOKEN_IOS }}
+        --app 'Tetsu_Otter/TRViS-iOS-Beta'
+        --symbol ${{ env.IOS_DSYM_FILENAME }}
 
   publish-mac:
     if: |
