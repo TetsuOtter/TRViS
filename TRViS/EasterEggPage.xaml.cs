@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.AppCenter.Crashes;
 using TRViS.ViewModels;
 
@@ -35,7 +36,8 @@ public partial class EasterEggPage : ContentPage
 	{
 		logger.Trace("Executing...");
 
-		Crashes.GenerateTestCrash();
+		// Crashes.GenerateTestCrash();
+		Marshal.ReadByte(IntPtr.Zero);
 
 		logger.Info("Crash Complete");
 	}
