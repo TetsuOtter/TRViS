@@ -45,6 +45,9 @@
 		<MauiAsset
 			Include="Resources\Raw\**"
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+		<MauiAsset
+			Include="..\docs\md\**"
+			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference
