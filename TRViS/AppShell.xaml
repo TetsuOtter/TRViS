@@ -4,6 +4,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS"
+	xmlns:pages="clr-namespace:TRViS.RootPages"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	FlyoutBackgroundColor="{AppThemeBinding Light=#EEE, Dark=#111}">
 	<Shell.FlyoutIcon>
@@ -41,4 +42,17 @@
 	<FlyoutItem Title="Settings">
 		<ShellContent ContentTemplate="{DataTemplate local:EasterEggPage}" />
 	</FlyoutItem>
+	<FlyoutItem Title="Privacy Policy">
+		<ShellContent>
+			<pages:ShowMarkdownPage
+				FileName="PrivacyPolicy.md"
+				Title="Privacy Policy"
+			/>
+		</ShellContent>
+	</FlyoutItem>
+
+	<MenuItem
+		Text="Privacy Policy (online)"
+		Command="{x:Static local:Utils.OpenUrlCommand}"
+		CommandParameter="https://github.com/TetsuOtter/TRViS/blob/main/docs/md/PrivacyPolicy.md" />
 </Shell>
