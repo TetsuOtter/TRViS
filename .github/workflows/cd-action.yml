@@ -30,6 +30,9 @@ env:
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
   SDK_VERSION: '8.0.100-preview.4.23260.5'
+  APP_CENTER_SECRETS_FILE_NAME: ./TRViS/AppCenterSecrets.cs
+  IOS_DSYM_PATH: ./TRViS/bin/Release/net8.0-ios/ios-arm64
+  IOS_DSYM_FILENAME: TRViS.app.dSYM
 
 jobs:
   generate-bundle-version:
@@ -205,6 +208,15 @@ jobs:
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
+    - name: Add AppCenterSecrets.cs
+      run: |
+        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo 'public const string IOS = "${{ secrets.APP_CENTER_SECRET_IOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+
     - name: Build
       run: >
         dotnet publish ${{ env.CSPROJ_PATH }}
@@ -224,6 +236,15 @@ jobs:
         path: ${{ env.IPA_PATH }}
         retention-days: 3
 
+    - name: tar dSYM
+      run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
+    - name: Upload dSYM
+      uses: actions/upload-artifact@v3
+      with:
+        name: dSYM
+        path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
+        retention-days: 3
+  
     - name: Post 'Import Code Sign Certificates'
       if: always() && steps.import-code-sign-cert.conclusion == 'success'
       run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
@@ -274,6 +295,15 @@ jobs:
         ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+    - name: Add AppCenterSecrets.cs
+      run: |
+        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo 'public const string ANDROID = "${{ secrets.APP_CENTER_SECRET_ANDROID }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
     - name: Build
       run: >
@@ -382,6 +412,15 @@ jobs:
     - name: Print Third Party License Info Files
       run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
+    - name: Add AppCenterSecrets.cs
+      run: |
+        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo 'public const string MACOS = "${{ secrets.APP_CENTER_SECRET_MACOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+
     - name: Build
       run: >
         dotnet publish ${{ env.CSPROJ_PATH }}
@@ -464,6 +503,24 @@ jobs:
         -f ${{ env.IPA_PATH }}
         --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
         --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+
+    - name: Download dSYM
+      uses: actions/download-artifact@v3
+      with:
+        name: dSYM
+        path: .
+    - name: extract dSYM
+      run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
+    - name: Check dSYM
+      run: dwarfdump -u ${{ env.IOS_DSYM_FILENAME }}
+    - name: Install AppCenter CLI
+      run: npm install -g appcenter-cli
+    - name: upload dSYM to AppCenter
+      run: >
+        appcenter crashes upload-symbols
+        --token ${{ secrets.APPCENTER_ACCESS_TOKEN_IOS }}
+        --app 'Tetsu_Otter/TRViS-iOS-Beta'
+        --symbol ${{ env.IOS_DSYM_FILENAME }}
 
   publish-mac:
     if: |
