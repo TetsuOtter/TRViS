@@ -1,7 +1,7 @@
 using TRViS.IO;
 using TRViS.ViewModels;
 
-namespace TRViS;
+namespace TRViS.RootPages;
 
 public partial class SelectTrainPage : ContentPage
 {

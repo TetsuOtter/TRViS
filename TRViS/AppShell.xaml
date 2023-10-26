@@ -31,7 +31,7 @@
 	</Shell.FlyoutFooter>
 
 	<FlyoutItem Title="Select Train">
-		<ShellContent ContentTemplate="{DataTemplate local:SelectTrainPage}" />
+		<ShellContent ContentTemplate="{DataTemplate pages:SelectTrainPage}" />
 	</FlyoutItem>
 	<FlyoutItem Title="D-TAC">
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}" />
