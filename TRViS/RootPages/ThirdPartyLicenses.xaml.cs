@@ -4,7 +4,7 @@ using TRViS.Controls;
 using TRViS.Models;
 using TRViS.ViewModels;
 
-namespace TRViS;
+namespace TRViS.RootPages;
 
 public partial class ThirdPartyLicenses : ContentPage
 {
