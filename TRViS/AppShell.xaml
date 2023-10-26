@@ -40,7 +40,7 @@
 		<ShellContent ContentTemplate="{DataTemplate local:ThirdPartyLicenses}" />
 	</FlyoutItem>
 	<FlyoutItem Title="Settings">
-		<ShellContent ContentTemplate="{DataTemplate local:EasterEggPage}" />
+		<ShellContent ContentTemplate="{DataTemplate pages:EasterEggPage}" />
 	</FlyoutItem>
 	<FlyoutItem Title="Privacy Policy">
 		<ShellContent>

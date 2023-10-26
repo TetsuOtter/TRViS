@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using Microsoft.AppCenter.Crashes;
 using TRViS.ViewModels;
 
-namespace TRViS;
+namespace TRViS.RootPages;
 
 public partial class EasterEggPage : ContentPage
 {
