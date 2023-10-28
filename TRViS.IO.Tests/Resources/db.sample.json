@@ -41,36 +41,74 @@
 
 						"TimetableRows": [
 							{
-								"StationName": "StaName01",
-								"Location_m": 1.0,
-								"Longitude_deg": 135,
-								"Latitude_deg": 38,
-								"OnStationDetectRadius_m": 300,
-								"FullName": "Station Name (Number: 01)",
+								"StationName": "千葉",
+								"Location_m": 0,
+		　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　"Longitude_deg": ,
+								"Latitude_deg": ,
+								"OnStationDetectRadius_m":300 ,
+								"FullName": "千葉 (Number: 01)",
 								"RecordType": 0,
 
-								"TrackName": "着発番線",
+								"TrackName": "7",
 
 								"DriveTime_MM": 1,
-								"DriveTime_SS": 25,
+								"DriveTime_SS":30,
 								"IsOperationOnlyStop": false,
 								"IsPass": false,
 								"HasBracket": false,
 								"IsLastStop": false,
-								"Arrive": "12:34:56",
-								"Departure": "13:24:35",
-								"Remarks": "各駅の注意事項を記載する",
+								"Arrive": "9:32:30",
+								"Departure": "9:40",
+								"Remarks": "制限45 45",
 								"MarkerColor": "3366CC",
 								"MarkerText": "マーカーのテキスト (全角2文字まで)",
 								"WorkType": 0
 							},
 							{
-								"StationName": "StaName02",
-								"Location_m": 1.1
-							},
+								"StationName": "東千葉",
+								"Location_m": 0.9
+	　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　"Longitude_deg": ,
+								"Latitude_deg": 0,
+								"OnStationDetectRadius_m": 300,
+								"FullName": "東千葉",
+								"RecordType": 0,
+
+								"TrackName": "",
+
+								"DriveTime_MM": 1,
+								"DriveTime_SS": 30,
+								"IsOperationOnlyStop": false,
+								"IsPass": true,
+								"HasBracket": false,
+								"IsLastStop": false,
+								"Arrive": "↓",
+								"Departure": ":41:30",
+								"Remarks": "通過",
+								"MarkerColor": "3366CC",
+								"MarkerText": "マーカーのテキスト (全角2文字まで)",
+								"WorkType": 0
+						
 							{
-								"StationName": "StaName03",
-								"Location_m": 1.2
+								"StationName": "都賀",
+								"Location_m": 4.2
+								"Longitude_deg": ,
+								"Latitude_deg": ,
+								"OnStationDetectRadius_m": 300,
+								"FullName": "都賀",
+								"RecordType": 0
+								"TrackName": ""
+							        "DriveTime_MM": 3,
+　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　"DriveTime_SS": 30,
+								"IsOperationOnlyStop": false,
+								"IsPass": true,
+								"HasBracket": false,
+								"IsLastStop": false,
+								"Arrive": "↓",
+								"Departure": "45",
+								"Remarks": "通過",
+								"MarkerColor": "3366CC",
+								"MarkerText": "マーカーのテキスト (全角2文字まで)",
+								"WorkType": 0
 							}
 						]
 					},
