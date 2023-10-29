@@ -21,6 +21,7 @@
 ## 利用状況の収集
 
 本アプリでは、利用状況を収集するために、Microsoftが提供する Visual Studio App Center (以下 AppCenter) を利用しています。
+AppCenterを用いて利用状況を収集する機能については、無効化することができます。
 
 AppCenterのセキュリティとコンプライアンスについては、以下のリンクをご確認ください。
 
@@ -29,6 +30,7 @@ https://learn.microsoft.com/ja-jp/appcenter/general/app-center-security
 ### iOS版 / iPadOS版 / macOS版
 
 Apple系の端末では、AppCenterの他に、Appleが提供するApp Store等のサービスを使用しています。
+
 これらのサービスのプライバシーポリシーについては、以下のリンクをご確認ください。
 
 https://www.apple.com/jp/legal/privacy/data/
@@ -36,6 +38,9 @@ https://www.apple.com/jp/legal/privacy/data/
 ## クラッシュログの収集
 
 本アプリでは、クラッシュログを収集するために、Microsoftが提供する Visual Studio App Center (以下 AppCenter) を利用しています。
+
+AppCenterを用いてクラッシュログを収集する機能は無効にできません。品質向上にご協力ください。
+但し、クラッシュした際の実行ログを送信するかしないかは、ユーザが選択できます。
 
 AppCenterのセキュリティとコンプライアンスについては、以下のリンクをご確認ください。
 
