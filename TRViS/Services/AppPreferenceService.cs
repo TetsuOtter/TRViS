@@ -10,9 +10,14 @@ public static class AppPreferenceService
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
+	static string ToKeyString(in AppPreferenceKeys key)
+	{
+		return key.ToString();
+	}
+
 	public static bool Get(in AppPreferenceKeys key, bool defaultValue, out bool hasKey)
 	{
-		string keyStr = key.ToString();
+		string keyStr = ToKeyString(key);
 		logger.Trace("key: {0}, default:{1}", keyStr, defaultValue);
 
 		hasKey = Preferences.ContainsKey(keyStr);
@@ -29,7 +34,7 @@ public static class AppPreferenceService
 
 	public static string Get(in AppPreferenceKeys key, string defaultValue, out bool hasKey)
 	{
-		string keyStr = key.ToString();
+		string keyStr = ToKeyString(key);
 		logger.Trace("key: {0}, default:{1}", keyStr, defaultValue);
 
 		hasKey = Preferences.ContainsKey(keyStr);
