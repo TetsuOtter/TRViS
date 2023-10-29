@@ -48,4 +48,18 @@ public static class AppPreferenceService
 		logger.Trace("value: {0}", value);
 		return value;
 	}
+
+	public static void Set(in AppPreferenceKeys key, bool value)
+	{
+		string keyStr = ToKeyString(key);
+		logger.Trace("key: {0}, value:{1}", keyStr, value);
+		Preferences.Set(keyStr, value);
+	}
+
+	public static void Set(in AppPreferenceKeys key, string value)
+	{
+		string keyStr = ToKeyString(key);
+		logger.Trace("key: {0}, value:{1}", keyStr, value);
+		Preferences.Set(keyStr, value);
+	}
 }
