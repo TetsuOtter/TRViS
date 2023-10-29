@@ -1,6 +1,7 @@
 using Microsoft.AppCenter;
 using Microsoft.AppCenter.Analytics;
 using Microsoft.AppCenter.Crashes;
+using TRViS.ViewModels;
 
 namespace TRViS.Services;
 
@@ -10,6 +11,11 @@ public static class AppCenterService
 
 	static public bool IsInitialized { get; private set; } = false;
 	static public bool IsStarted { get; private set; } = false;
+
+	static public bool IsCrashesStarted{ get; private set; } = false;
+	static public bool IsAnalyticsStarted{ get; private set; } = false;
+
+	static public IAppCenterSetting? CurrentSetting { get; private set; }
 
 	static readonly object initLockObj = new();
 	public static bool Initialize()
@@ -55,14 +61,85 @@ public static class AppCenterService
 		return false;
 	}
 
-	public static async Task<bool> Start()
+	static async Task<bool> ApplyAnalyticsSettingAsync(bool statusToBe)
 	{
-		if (IsStarted)
-			return true;
-
-		if (!IsInitialized && !Initialize())
+		bool isAnalyticsEnabled = await Analytics.IsEnabledAsync();
+		if (statusToBe == isAnalyticsEnabled)
 		{
-			logger.Fatal("AppCenter.Initialize Failed");
+			logger.Debug("AppCenter Analytics already {0}", statusToBe ? "enabled" : "disabled");
+			return true;
+		}
+
+		if (statusToBe == true && !IsAnalyticsStarted) {
+			AppCenter.Start(typeof(Analytics));
+			IsAnalyticsStarted = true;
+			logger.Debug("AppCenter Analytics started");
+		}
+
+		await Analytics.SetEnabledAsync(statusToBe);
+		logger.Debug("AppCenter Analytics {0}", statusToBe ? "enabled" : "disabled");
+		return true;
+	}
+
+	static async Task<bool> ApplyCrashesSettingAsync(bool statusToBe)
+	{
+		bool isAnalyticsEnabled = await Crashes.IsEnabledAsync();
+		if (statusToBe == isAnalyticsEnabled)
+		{
+			logger.Debug("AppCenter Crashes already {0}", statusToBe ? "enabled" : "disabled");
+			return true;
+		}
+
+		if (statusToBe == true && !IsCrashesStarted) {
+			Crashes.GetErrorAttachments = LoggerService.GetErrorAttachmentsCallback;
+
+			Crashes.FailedToSendErrorReport += (sender, e) =>
+			{
+				ErrorReport crashReport = e.Report;
+				logger.Error("Failed to send error report ...Reason: {0}", e.Exception);
+				logger.Error("Failed to send error report ...Report: Id:{0}, AppStart:{1}, AppCrash:{2}, Details:{3}, StackTrace:{4}",
+					crashReport.Id,
+					crashReport.AppStartTime,
+					crashReport.AppErrorTime,
+					#if IOS || MACCATALYST
+					crashReport.AppleDetails,
+					#elif ANDROID
+					crashReport.AndroidDetails,
+					#else
+					crashReport.Exception,
+					#endif
+					crashReport.StackTrace
+				);
+			};
+
+			AppCenter.Start(typeof(Crashes));
+			IsCrashesStarted = true;
+			logger.Debug("AppCenter Crashes started");
+			await InitCrashesSettings();
+			logger.Trace("AppCenter Crashes settings initialized");
+		}
+
+		await Crashes.SetEnabledAsync(statusToBe);
+		logger.Debug("AppCenter Crashes {0}", statusToBe ? "enabled" : "disabled");
+		if (statusToBe == true)
+		{
+			Crashes.NotifyUserConfirmation(UserConfirmation.AlwaysSend);
+		}
+		return true;
+	}
+
+	public static async Task<bool> ApplySettingAsync(IAppCenterSetting setting)
+	{
+		if (!IsStarted && !setting.IsEnabled)
+		{
+			logger.Debug("AppCenter is not started so needless to stop");
+			CurrentSetting = setting;
+			return true;
+		}
+
+		if (!Initialize())
+		{
+			logger.Error("AppCenter.Initialize Failed");
 			return false;
 		}
 
@@ -72,20 +149,33 @@ public static class AppCenterService
 			return false;
 		}
 
-		logger.Info("AppCenter configured. Starting...");
-		await StartAppCenter();
-		logger.Info("AppCenter All Services successfully Started");
-		IsStarted = true;
+		CurrentSetting = setting;
+
+		// NotStarted && ToDisableは最初にチェック済みなので、ここではチェックしない
+		if (!setting.IsEnabled)
+		{
+			await ApplyAnalyticsSettingAsync(false);
+			await ApplyCrashesSettingAsync(false);
+			await AppCenter.SetEnabledAsync(false);
+			IsStarted = false;
+			logger.Info("AppCenter stopped");
+			return true;
+		}
+
+		if (!IsStarted && setting.IsEnabled)
+		{
+			await AppCenter.SetEnabledAsync(true);
+			await ApplyCrashesSettingAsync(true);
+			IsStarted = true;
+		}
+
+		await ApplyAnalyticsSettingAsync(setting.IsAnalyticsEnabled);
+		logger.Info("AppCenter started");
 		return true;
 	}
 
-	static async Task StartAppCenter()
+	static async Task InitCrashesSettings()
 	{
-		AppCenter.Start(typeof(Analytics));
-		logger.Debug("AppCenter Analytics started");
-		AppCenter.Start(typeof(Crashes));
-		logger.Debug("AppCenter Crashes started");
-
 		bool hadMemoryWarning = await Crashes.HasReceivedMemoryWarningInLastSessionAsync();
 		if (hadMemoryWarning)
 		{
@@ -115,7 +205,5 @@ public static class AppCenterService
 				);
 			}
 		}
-
-		Crashes.NotifyUserConfirmation(UserConfirmation.AlwaysSend);
 	}
 }
