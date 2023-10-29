@@ -3,6 +3,7 @@ namespace TRViS.Services;
 public enum AppPreferenceKeys
 {
 	IsAppCenterEnabled,
+	IsAppCenterAnalyticsEnabled,
 	IsAppCenterLogShareEnabled,
 }
 
