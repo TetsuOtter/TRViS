@@ -8,6 +8,8 @@ public partial class SimpleMarkdownView : ContentView
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	readonly SimpleMarkdownLabel markdownLabel;
 
+	string currentFileName = string.Empty;
+
 	public SimpleMarkdownView()
 	{
 		logger.Trace("Creating...");
@@ -22,6 +24,41 @@ public partial class SimpleMarkdownView : ContentView
 		logger.Trace("Created.");
 	}
 
+	Task LoadMarkdownFile()
+		=> LoadMarkdownFile(FileName ?? string.Empty);
+	async Task LoadMarkdownFile(string fileName)
+	{
+		bool isExist = await FileSystem.AppPackageFileExistsAsync(fileName);
+		if (!isExist)
+		{
+			logger.Warn("File not found: '{0}'", fileName);
+			return;
+		}
+
+		try
+		{
+			using Stream stream = await FileSystem.OpenAppPackageFileAsync(fileName);
+			using StreamReader reader = new(stream);
+			string fileContent = await reader.ReadToEndAsync();
+			markdownLabel.MarkdownFileContent = fileContent;
+			currentFileName = fileName;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Open file failed: '{0}'", fileName);
+		}
+	}
+
+	protected override void OnSizeAllocated(double width, double height)
+	{
+		base.OnSizeAllocated(width, height);
+
+		if (currentFileName == FileName || string.IsNullOrEmpty(FileName))
+			return;
+
+		Task.Run(LoadMarkdownFile);
+	}
+
 	partial void OnFileNameChanged(string? oldValue, string? newValue)
 	{
 		logger.Debug("OnFileNameChanged: '{0}' -> '{1}'", oldValue, newValue);
@@ -32,25 +69,6 @@ public partial class SimpleMarkdownView : ContentView
 			return;
 		}
 
-		Task.Run(async () => {
-			bool isExist = await FileSystem.AppPackageFileExistsAsync(newValue);
-			if (!isExist)
-			{
-				logger.Warn("File not found: '{0}'", newValue);
-				return;
-			}
-
-			try
-			{
-				using Stream stream = await FileSystem.OpenAppPackageFileAsync(newValue);
-				using StreamReader reader = new(stream);
-				string fileContent = await reader.ReadToEndAsync();
-				markdownLabel.MarkdownFileContent = fileContent;
-			}
-			catch (Exception ex)
-			{
-				logger.Error(ex, "Open file failed: '{0}'", newValue);
-			}
-		});
+		Task.Run(LoadMarkdownFile);
 	}
 }
