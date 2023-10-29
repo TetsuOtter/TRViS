@@ -11,7 +11,7 @@ namespace TRViS.Services;
 
 public static class LoggerService
 {
-	static readonly Logger logger = SetupLogger();
+	static readonly Logger logger;
 	const string logFormat = "${longdate} [${threadid:padding=3}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
 
 	static readonly DirectoryInfo LOG_FILE_DIRECTORY_INFO = DirectoryPathProvider.NormalLogFileDirectory;
@@ -22,6 +22,11 @@ public static class LoggerService
 
 	static string CurrentLogFilePath => Path.Combine(LOG_FILE_DIRECTORY_PATH, CURRENT_LOG_FILE_NAME);
 	static string ArchiveLogFilePathFormat => Path.Combine(LOG_FILE_DIRECTORY_PATH, ARCHIVE_LOG_FILE_NAME_FORMAT);
+
+	static LoggerService()
+	{
+		logger = SetupLogger();
+	}
 
 	static public void SetupLoggerService()
 	{
