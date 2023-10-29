@@ -11,12 +11,20 @@ public partial class AppShell : Shell
 	static public string AppVersionString
 		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";
 
+	readonly AppCenterSettingViewModel AppCenterSettingViewModel =  InstanceManager.AppCenterSettingViewModel;
+
 	public AppShell()
 	{
 		logger.Trace("AppShell Creating");
 		logger.Info("Application Version: {0}", AppVersionString);
 
 		EasterEggPageViewModel easterEggPageViewModel = InstanceManager.EasterEggPageViewModel;
+
+		logger.Trace("Checking AppCenter Setting");
+		if (AppCenterSettingViewModel.IsEnabled)
+		{
+			AppCenterSettingViewModel.SaveAndApplySettings(false).ConfigureAwait(false);
+		}
 
 		InitializeComponent();
 
