@@ -5,6 +5,7 @@
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
 	x:Class="TRViS.RootPages.AppCenterSettingPage"
+	x:DataType="vm:AppCenterSettingViewModel"
 	Title="AppCenter Setting"
 >
 	<Grid
@@ -74,7 +75,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					Grid.Row="1"
 					Grid.Column="1"
 					VerticalOptions="Center"
-					IsToggled="False"/>
+					IsToggled="{Binding IsLogShareEnabled}"/>
 
 				<Label
 					Grid.Row="2"
@@ -85,7 +86,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					Grid.Row="2"
 					Grid.Column="1"
 					VerticalOptions="Center"
-					IsToggled="True"/>
+					IsToggled="{Binding IsAnalyticsEnabled}"/>
 
 				<Button
 					Padding="16,32"
