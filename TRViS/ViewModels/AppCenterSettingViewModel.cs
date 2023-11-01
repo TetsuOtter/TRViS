@@ -48,10 +48,12 @@ public partial class AppCenterSettingViewModel : ObservableObject, IAppCenterSet
 
 	public AppCenterSettingViewModel CopyFrom(IAppCenterSetting src)
 	{
+		logger.Trace("Copying (src: {0})", src);
 		IsEnabled = src.IsEnabled;
 		IsAnalyticsEnabled = src.IsAnalyticsEnabled;
 		IsLogShareEnabled = src.IsLogShareEnabled;
 		InstallId = src.InstallId;
+		logger.Trace("Copied  (dst: {0})", this);
 		return this;
 	}
 
