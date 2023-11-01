@@ -33,7 +33,7 @@
 	<FlyoutItem Title="AppCenter Setting">
 		<ShellContent ContentTemplate="{DataTemplate pages:AppCenterSettingPage}" />
 	</FlyoutItem>
-	<FlyoutItem Title="Select Train">
+	<FlyoutItem Title="Select Train" Route="{x:Static pages:SelectTrainPage.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate pages:SelectTrainPage}" />
 	</FlyoutItem>
 	<FlyoutItem Title="D-TAC">
