@@ -89,7 +89,7 @@ public partial class AppCenterSettingViewModel : ObservableObject, IAppCenterSet
 			IsAnalyticsEnabled,
 			IsLogShareEnabled
 		);
-		if (!doSave)
+		if (doSave)
 		{
 			AppPreferenceService.Set(AppPreferenceKeys.IsAppCenterEnabled, IsEnabled);
 			AppPreferenceService.Set(AppPreferenceKeys.IsAppCenterAnalyticsEnabled, IsAnalyticsEnabled);
