@@ -96,6 +96,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					Grid.Column="0"
 					Grid.ColumnSpan="2"
 					HorizontalOptions="Start"
+					Clicked="OnResetButtonClicked"
 					Text="保存値を復元"/>
 				<Button
 					Padding="16,32"
@@ -103,6 +104,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					Grid.Column="0"
 					Grid.ColumnSpan="2"
 					HorizontalOptions="End"
+					Clicked="OnSaveButtonClicked"
 					Text="保存"/>
 			</Grid>
 		</Frame>
