@@ -1,5 +1,8 @@
+#if IOS
 using System.Runtime.Versioning;
+#endif
 
+using TRViS.RootPages;
 using TRViS.ViewModels;
 
 namespace TRViS;
@@ -23,16 +26,45 @@ public partial class AppShell : Shell
 		logger.Trace("Checking AppCenter Setting");
 		if (AppCenterSettingViewModel.IsEnabled)
 		{
+			logger.Trace("AppCenter Applying...");
 			AppCenterSettingViewModel.SaveAndApplySettings(false).ConfigureAwait(false);
 		}
 
 		InitializeComponent();
+
+		if (AppCenterSettingViewModel.IsEnabled)
+		{
+			GoToAsync("//" + nameof(SelectTrainPage)).ConfigureAwait(false);
+		}
+		else
+		{
+			GoToAsync("//" + nameof(AppCenterSettingPage)).ConfigureAwait(false);
+		}
+
+		AppCenterSettingViewModel.IsEnabledChanged += ApplyFlyoutBhavior;
+		ApplyFlyoutBhavior(this, false, AppCenterSettingViewModel.IsEnabled);
 
 		SetBinding(Shell.BackgroundColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellBackgroundColor) });
 		SetBinding(Shell.TitleColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
 
 		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
 		logger.Trace("AppShell Created");
+	}
+
+	void ApplyFlyoutBhavior(object? sender, bool oldValue, bool newValue)
+	{
+		logger.Trace("{0} -> {1}", oldValue, newValue);
+		if (newValue == true)
+		{
+			FlyoutIcon = FlyoutIconImage;
+			FlyoutBehavior = FlyoutBehavior.Flyout;
+		}
+		else
+		{
+			FlyoutIcon = null;
+			FlyoutBehavior = FlyoutBehavior.Disabled;
+			FlyoutIsPresented = false;
+		}
 	}
 
 	public event ValueChangedEventHandler<Thickness>? SafeAreaMarginChanged;
