@@ -93,6 +93,13 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					Grid.Row="4"
 					Grid.Column="0"
 					Grid.ColumnSpan="2"
+					HorizontalOptions="Start"
+					Text="保存値を復元"/>
+				<Button
+					Padding="16,32"
+					Grid.Row="4"
+					Grid.Column="0"
+					Grid.ColumnSpan="2"
 					HorizontalOptions="End"
 					Text="保存"/>
 			</Grid>
