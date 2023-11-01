@@ -1,3 +1,7 @@
+using Microsoft.AppCenter;
+using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
+
 namespace TRViS;
 
 public partial class App : Application

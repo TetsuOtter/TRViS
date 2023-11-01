@@ -1,11 +1,8 @@
-using System.Text;
-
 using CommunityToolkit.Maui;
 
 using NLog;
-using NLog.Config;
-using NLog.Targets;
-using NLog.Targets.Wrappers;
+
+using TRViS.Services;
 
 namespace TRViS;
 
@@ -23,76 +20,8 @@ public static class MauiProgram
 
 		CrashLogFilePath = Path.Combine(DirectoryPathProvider.CrashLogFileDirectory.FullName, CrashLogFileName);
 
-		logger = SetupLogger();
-	}
-
-	static Logger SetupLogger()
-	{
-		bool isNormalLogFileDirectoryExists = DirectoryPathProvider.NormalLogFileDirectory.Exists;
-		if (!isNormalLogFileDirectoryExists)
-		{
-			DirectoryPathProvider.NormalLogFileDirectory.Create();
-		}
-
-#if DEBUG
-		ConsoleTarget consoleTarget = new("console")
-		{
-			Layout = logFormat,
-			Encoding = Encoding.UTF8,
-		};
-		LoggingRule consoleLoggingRule = new("*", LogLevel.Trace, consoleTarget);
-#endif
-
-		FileTarget fileTarget = new("file")
-		{
-			FileName = Path.Combine(DirectoryPathProvider.NormalLogFileDirectory.FullName, "logs_current.trvis.log"),
-			ArchiveFileName = Path.Combine(DirectoryPathProvider.NormalLogFileDirectory.FullName, "logs.{#}.trvis.log"),
-			ArchiveNumbering = ArchiveNumberingMode.DateAndSequence,
-			ArchiveEvery = FileArchivePeriod.Day,
-			MaxArchiveFiles = 14,
-
-			Encoding = Encoding.UTF8,
-			LineEnding = LineEndingMode.LF,
-			WriteBom = false,
-			CreateDirs = false,
-			Layout = logFormat,
-		};
-		AsyncTargetWrapper fileAsyncTargetWrapper = new("async", fileTarget)
-		{
-			OverflowAction = AsyncTargetWrapperOverflowAction.Grow,
-			QueueLimit = 5000,
-			BatchSize = 100,
-			TimeToSleepBetweenBatches = 100,
-		};
-		LoggingRule fileLoggingRule = new(
-			"*",
-			#if DEBUG
-			LogLevel.Trace,
-			#else
-			LogLevel.Info,
-			#endif
-			fileAsyncTargetWrapper
-		);
-
-		LoggingConfiguration loggingConfiguration = new()
-		{
-			LoggingRules =
-			{
-#if DEBUG
-				consoleLoggingRule,
-#endif
-
-				fileLoggingRule,
-			},
-		};
-
-		LogManager
-			.Setup()
-			.LoadConfiguration(loggingConfiguration);
-
-		Logger _logger = LogManager.GetCurrentClassLogger();
-		_logger.Info("TRViS Starting... (isNormalLogFileDirectoryExists: {0})", isNormalLogFileDirectoryExists);
-		return _logger;
+		LoggerService.SetupLoggerService();
+		logger = LogManager.GetCurrentClassLogger();
 	}
 
 	public static MauiApp CreateMauiApp()
