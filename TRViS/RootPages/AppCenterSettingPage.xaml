@@ -74,6 +74,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 				<Switch
 					Grid.Row="1"
 					Grid.Column="1"
+					OnColor="GreenYellow"
 					VerticalOptions="Center"
 					IsToggled="{Binding IsLogShareEnabled}"/>
 
@@ -85,6 +86,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 				<Switch
 					Grid.Row="2"
 					Grid.Column="1"
+					OnColor="GreenYellow"
 					VerticalOptions="Center"
 					IsToggled="{Binding IsAnalyticsEnabled}"/>
 
