@@ -64,7 +64,9 @@ public static class AppCenterService
 	static async Task<bool> ApplyAnalyticsSettingAsync(bool statusToBe)
 	{
 		bool isAnalyticsEnabled = await Analytics.IsEnabledAsync();
-		if (statusToBe == isAnalyticsEnabled)
+		// サービスが開始していない場合は、開始する必要がある
+		// ただし、toBe Falseの場合は処理しない
+		if (statusToBe == isAnalyticsEnabled && (IsAnalyticsStarted || statusToBe == false))
 		{
 			logger.Debug("AppCenter Analytics already {0}", statusToBe ? "enabled" : "disabled");
 			return true;
@@ -83,8 +85,10 @@ public static class AppCenterService
 
 	static async Task<bool> ApplyCrashesSettingAsync(bool statusToBe)
 	{
-		bool isAnalyticsEnabled = await Crashes.IsEnabledAsync();
-		if (statusToBe == isAnalyticsEnabled)
+		bool isCrashesEnabled = await Crashes.IsEnabledAsync();
+		// サービスが開始していない場合は、開始する必要がある
+		// ただし、toBe Falseの場合は処理しない
+		if (statusToBe == isCrashesEnabled && (IsCrashesStarted || statusToBe == false))
 		{
 			logger.Debug("AppCenter Crashes already {0}", statusToBe ? "enabled" : "disabled");
 			return true;
