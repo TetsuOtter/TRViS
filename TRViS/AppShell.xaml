@@ -30,7 +30,7 @@
 		</VerticalStackLayout>
 	</Shell.FlyoutFooter>
 
-	<FlyoutItem Title="AppCenter Setting">
+	<FlyoutItem Title="AppCenter Setting" Route="{x:Static pages:AppCenterSettingPage.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate pages:AppCenterSettingPage}" />
 	</FlyoutItem>
 	<FlyoutItem Title="Select Train" Route="{x:Static pages:SelectTrainPage.NameOfThisClass}">
