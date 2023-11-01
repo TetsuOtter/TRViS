@@ -114,6 +114,8 @@ public partial class AppCenterSettingViewModel : ObservableObject, IAppCenterSet
 		return
 			IsEnabled == other.IsEnabled
 			&&
+			IsAnalyticsEnabled == other.IsAnalyticsEnabled
+			&&
 			IsLogShareEnabled == other.IsLogShareEnabled
 			&&
 			InstallId == other.InstallId
@@ -129,12 +131,20 @@ public partial class AppCenterSettingViewModel : ObservableObject, IAppCenterSet
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(IsEnabled, IsLogShareEnabled, InstallId);
+		return HashCode.Combine(IsEnabled, IsAnalyticsEnabled, IsLogShareEnabled, InstallId);
 	}
 
 	public override string ToString()
 	{
-		return $"{{IsEnabled: {IsEnabled}, IsLogShareEnabled: {IsLogShareEnabled}, InstallId: {InstallId}}}";
+		return "{"
+			+ $"IsEnabled: {IsEnabled}"
+			+ ", "
+			+ $"IsAnalyticsEnabled: {IsAnalyticsEnabled}"
+			+ ", "
+			+ $"IsLogShareEnabled: {IsLogShareEnabled}"
+			+ ", "
+			+ $"InstallId: {InstallId}"
+			+ "}";
 	}
 	#endregion overrides
 }
