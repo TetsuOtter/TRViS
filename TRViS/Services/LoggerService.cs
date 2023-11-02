@@ -17,11 +17,11 @@ public static class LoggerService
 	static readonly DirectoryInfo LOG_FILE_DIRECTORY_INFO = DirectoryPathProvider.NormalLogFileDirectory;
 	static readonly string LOG_FILE_DIRECTORY_PATH = LOG_FILE_DIRECTORY_INFO.FullName;
 	const string CURRENT_LOG_FILE_NAME = "logs_current.trvis.log";
-	const string ARCHIVE_LOG_FILE_NAME_FORMAT = "logs.{#}.trvis.log";
+	const string ARCHIVE_LOG_FILE_NAME_FORMAT = "logs.{0}.trvis.log";
 	const string ARCHIVE_LOG_FILE_NAME_PATTERN = "logs.*.trvis.log";
 
 	static string CurrentLogFilePath => Path.Combine(LOG_FILE_DIRECTORY_PATH, CURRENT_LOG_FILE_NAME);
-	static string ArchiveLogFilePathFormat => Path.Combine(LOG_FILE_DIRECTORY_PATH, ARCHIVE_LOG_FILE_NAME_FORMAT);
+	const int MAX_ARCHIVE_LOG_FILE_COUNT = 14;
 
 	static LoggerService()
 	{
@@ -33,6 +33,60 @@ public static class LoggerService
 		logger.Debug("LoggerService Created");
 	}
 
+	static Exception? ArchiveLastLogFile()
+	{
+		Console.WriteLine("ArchiveLastLogFile");
+		try
+		{
+			FileInfo lastLogFile = new(CurrentLogFilePath);
+			if (!lastLogFile.Exists)
+			{
+				Console.WriteLine("lastLogFile not exists");
+				return null;
+			}
+
+			string archiveLogFileName = string.Format(
+				ARCHIVE_LOG_FILE_NAME_FORMAT,
+				lastLogFile.CreationTime.ToUniversalTime().ToString("yyyyMMdd.HHmmss")
+			);
+			string archiveLogFilePath = Path.Combine(LOG_FILE_DIRECTORY_PATH, archiveLogFileName);
+
+			Console.WriteLine("lastLogFile: {0} -> {1}", lastLogFile.FullName, archiveLogFilePath);
+			File.Move(lastLogFile.FullName, archiveLogFilePath);
+			return null;
+		}
+		catch (Exception ex)
+		{
+			return ex;
+		}
+	}
+
+	static Exception? DeleteOldLogFiles(Logger _logger)
+	{
+		_logger.Trace("Executing...");
+		try
+		{
+			IEnumerable<FileInfo> oldLogFiles = LOG_FILE_DIRECTORY_INFO.EnumerateFiles(
+				ARCHIVE_LOG_FILE_NAME_PATTERN,
+				SearchOption.TopDirectoryOnly
+			)
+				.OrderByDescending(fileInfo => fileInfo.LastWriteTime)
+				.Skip(MAX_ARCHIVE_LOG_FILE_COUNT);
+
+			foreach (FileInfo oldLogFile in oldLogFiles)
+			{
+				_logger.Info("Deleting oldLogFile: {0}", oldLogFile.FullName);
+				oldLogFile.Delete();
+			}
+
+			return null;
+		}
+		catch (Exception ex)
+		{
+			return ex;
+		}
+	}
+
 	static Logger SetupLogger()
 	{
 		bool isNormalLogFileDirectoryExists = LOG_FILE_DIRECTORY_INFO.Exists;
@@ -40,6 +94,8 @@ public static class LoggerService
 		{
 			LOG_FILE_DIRECTORY_INFO.Create();
 		}
+
+		Exception? exceptionOnArchiveLastLogFile = ArchiveLastLogFile();
 
 #if DEBUG
 		ConsoleTarget consoleTarget = new("console")
@@ -53,8 +109,6 @@ public static class LoggerService
 		FileTarget fileTarget = new("file")
 		{
 			FileName = CurrentLogFilePath,
-			ArchiveFileName = ArchiveLogFilePathFormat,
-			ArchiveNumbering = ArchiveNumberingMode.Sequence,
 			ArchiveEvery = FileArchivePeriod.None,
 			MaxArchiveFiles = 14,
 
@@ -99,6 +153,14 @@ public static class LoggerService
 
 		Logger _logger = LogManager.GetCurrentClassLogger();
 		_logger.Info("TRViS Starting... (isNormalLogFileDirectoryExists: {0})", isNormalLogFileDirectoryExists);
+
+		if (exceptionOnArchiveLastLogFile is not null)
+			_logger.Error(exceptionOnArchiveLastLogFile, "ArchiveLastLogFile Failed");
+
+		Exception? exceptionOnDeleteOldLogFiles = DeleteOldLogFiles(_logger);
+		if (exceptionOnDeleteOldLogFiles is not null)
+			_logger.Error(exceptionOnDeleteOldLogFiles, "DeleteOldLogFiles Failed");
+
 		return _logger;
 	}
 
@@ -106,7 +168,7 @@ public static class LoggerService
 	const int MAX_LOG_LENGTH_TO_ATTACH = 6 * 1024 * 1024;
 	// このCallbackは、Crash直後ではなく、Crash Logの送信直前に呼び出される。
 	// つまり、次回起動時の実行になってしまう。
-	public static readonly GetErrorAttachmentsCallback GetErrorAttachmentsCallback = (report) =>
+	public static ErrorAttachmentLog[] GetErrorAttachmentsCallback(ErrorReport report)
 	{
 		logger.Debug("called with report: Id:{0}, AppStart:{1}, AppCrash:{2}, Details:{3}, StackTrace:{4}",
 			report.Id,
@@ -163,5 +225,5 @@ public static class LoggerService
 			logger.Error(ex, "GetErrorAttachmentsCallback Failed");
 			return Array.Empty<ErrorAttachmentLog>();
 		}
-	};
+	}
 }
