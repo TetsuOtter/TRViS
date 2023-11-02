@@ -7,7 +7,7 @@
 	xmlns:local="clr-namespace:TRViS"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
 	x:DataType="viewmodels:AppViewModel"
-	x:Class="TRViS.SelectTrainPage"
+	x:Class="TRViS.RootPages.SelectTrainPage"
 	Title="Select Train">
 	<ContentPage.Resources>
 		<ResourceDictionary>
