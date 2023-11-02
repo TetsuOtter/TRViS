@@ -5,7 +5,7 @@
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:converters="clr-namespace:TRViS.ValueConverters"
 	x:DataType="viewmodels:EasterEggPageViewModel"
-	x:Class="TRViS.EasterEggPage"
+	x:Class="TRViS.RootPages.EasterEggPage"
 	Title="Settings">
 	<ContentPage.Resources>
 		<ResourceDictionary>
@@ -45,6 +45,10 @@
 			</HorizontalStackLayout>
 			<HorizontalStackLayout
 				HorizontalOptions="End">
+				<Button
+					Text="Crash!"
+					Clicked="DoCrash"
+				/>
 				<Button
 					Text="Reload Saved"
 					Clicked="OnReloadSavedClicked"
