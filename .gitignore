@@ -1,4 +1,5 @@
 TRViS/Resources/Raw/licenses/*
+TRViS/AppCenterSecrets.cs
 
 # globs
 Makefile.in
