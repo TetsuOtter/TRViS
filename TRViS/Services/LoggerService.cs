@@ -184,6 +184,12 @@ public static class LoggerService
 			report.StackTrace
 		);
 
+		if (!InstanceManager.AppCenterSettingViewModel.IsLogShareEnabled)
+		{
+			logger.Info("LogShare is disabled, so skipping...");
+			return Array.Empty<ErrorAttachmentLog>();
+		}
+
 		try
 		{
 			string? lastLogFilePath = LOG_FILE_DIRECTORY_INFO.EnumerateFiles(
