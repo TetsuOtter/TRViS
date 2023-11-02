@@ -38,7 +38,7 @@
 		<!-- Splash Screen -->
 		<MauiSplashScreen
 			Include="Resources\AppIcon\appiconfg.png"
-			Color="#cfc" />
+			Color="#583" />
 		<MauiFont Include="Resources\Fonts\*" />
 		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
