@@ -21,6 +21,8 @@ public class SimpleView : Grid
 		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
 		RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
 		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
+		RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
+		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
 
 		new SimpleRow(this, 0)
 		{
@@ -37,6 +39,14 @@ public class SimpleView : Grid
 			ToStationName = "長い駅名",
 			ToTime = new(12, 34, 56, null),
 			TrainNumber = "現回９９２３横浜",
+		};
+		new SimpleRow(this, 2)
+		{
+			FromStationName = "さ新都心",
+			FromTime = new(12, 34, 56, null),
+			ToStationName = "長い駅名",
+			ToTime = new(12, 34, 56, null),
+			TrainNumber = "入換担当\n　　現回９９２３横浜",
 		};
 
 		logger.Debug("Created");
