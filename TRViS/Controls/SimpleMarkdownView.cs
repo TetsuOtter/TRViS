@@ -2,13 +2,13 @@ using DependencyPropertyGenerator;
 
 namespace TRViS.Controls;
 
-[DependencyProperty<string>("FileName")]
+[DependencyProperty<ResourceManager.AssetName>("FileName", DefaultValue = ResourceManager.AssetName.UNKNOWN)]
 public partial class SimpleMarkdownView : ContentView
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	readonly SimpleMarkdownLabel markdownLabel;
 
-	string currentFileName = string.Empty;
+	ResourceManager.AssetName currentFileName = ResourceManager.AssetName.UNKNOWN;
 
 	public SimpleMarkdownView()
 	{
@@ -25,22 +25,12 @@ public partial class SimpleMarkdownView : ContentView
 	}
 
 	Task LoadMarkdownFile()
-		=> LoadMarkdownFile(FileName ?? string.Empty);
-	async Task LoadMarkdownFile(string fileName)
+		=> LoadMarkdownFile(FileName);
+	async Task LoadMarkdownFile(ResourceManager.AssetName fileName)
 	{
-		bool isExist = await FileSystem.AppPackageFileExistsAsync(fileName);
-		if (!isExist)
-		{
-			logger.Warn("File not found: '{0}'", fileName);
-			return;
-		}
-
 		try
 		{
-			using Stream stream = await FileSystem.OpenAppPackageFileAsync(fileName);
-			using StreamReader reader = new(stream);
-			string fileContent = await reader.ReadToEndAsync();
-			markdownLabel.MarkdownFileContent = fileContent;
+			markdownLabel.MarkdownFileContent = await ResourceManager.Current.LoadAssetAsync(fileName);
 			currentFileName = fileName;
 		}
 		catch (Exception ex)
@@ -53,21 +43,16 @@ public partial class SimpleMarkdownView : ContentView
 	{
 		base.OnSizeAllocated(width, height);
 
-		if (currentFileName == FileName || string.IsNullOrEmpty(FileName))
+		if (currentFileName == FileName)
 			return;
 
 		Task.Run(LoadMarkdownFile);
 	}
 
-	partial void OnFileNameChanged(string? oldValue, string? newValue)
+	partial void OnFileNameChanged(ResourceManager.AssetName oldValue, ResourceManager.AssetName newValue)
 	{
 		logger.Debug("OnFileNameChanged: '{0}' -> '{1}'", oldValue, newValue);
 		markdownLabel.MarkdownFileContent = string.Empty;
-		if (string.IsNullOrEmpty(newValue))
-		{
-			logger.Debug("newValue is null or empty.");
-			return;
-		}
 
 		Task.Run(LoadMarkdownFile);
 	}

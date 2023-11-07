@@ -6,8 +6,7 @@
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	x:Class="TRViS.DTAC.ViewHost"
 	x:DataType="viewmodels:DTACViewHostViewModel"
-	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}"
-	Title="{Binding AppViewModel.SelectedTrainData.WorkName}">
+	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}">
 	<Grid
 		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>

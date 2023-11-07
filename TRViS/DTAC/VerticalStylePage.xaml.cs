@@ -1,5 +1,7 @@
 using DependencyPropertyGenerator;
+
 using TRViS.IO.Models;
+using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
@@ -28,10 +30,24 @@ public partial class VerticalStylePage : ContentView
 	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
 
 	VerticalTimetableView TimetableView { get; } = new();
+	DTACViewHostViewModel DTACViewHostViewModel { get; }
+	TrainData? CurrentShowingTrainData { get; set; }
 
 	public VerticalStylePage()
 	{
 		logger.Trace("Creating...");
+
+		DTACViewHostViewModel = InstanceManager.DTACViewHostViewModel;
+		DTACViewHostViewModel.PropertyChanged += (_, e) =>
+		{
+			switch (e.PropertyName)
+			{
+				case nameof(DTACViewHostViewModel.IsViewHostVisible):
+				case nameof(DTACViewHostViewModel.IsVerticalViewMode):
+					OnSelectedTrainDataChanged(SelectedTrainData);
+					break;
+			}
+		};
 
 		InitializeComponent();
 
@@ -48,6 +64,7 @@ public partial class VerticalStylePage : ContentView
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
 			logger.Info("Device is Phone or Unknown -> make it to fill-scrollable");
+			this.Content.VerticalOptions = LayoutOptions.Start;
 			Content = new ScrollView()
 			{
 				Content = this.Content,
@@ -121,6 +138,20 @@ public partial class VerticalStylePage : ContentView
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
+		if (CurrentShowingTrainData == newValue)
+		{
+			logger.Debug("CurrentShowingTrainData == newValue -> do nothing");
+			return;
+		}
+		if (!DTACViewHostViewModel.IsViewHostVisible || !DTACViewHostViewModel.IsVerticalViewMode)
+		{
+			logger.Debug("IsViewHostVisible: {0}, IsVerticalViewMode: {1} -> lazy load",
+				DTACViewHostViewModel.IsViewHostVisible,
+				DTACViewHostViewModel.IsVerticalViewMode
+			);
+			return;
+		}
+		CurrentShowingTrainData = newValue;
 		logger.Info("SelectedTrainDataChanged: {0}", newValue);
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
