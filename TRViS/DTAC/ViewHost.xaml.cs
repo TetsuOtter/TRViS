@@ -50,10 +50,15 @@ public partial class ViewHost : ContentPage
 		vm.PropertyChanged += Vm_PropertyChanged;
 		eevm.PropertyChanged += Eevm_PropertyChanged;
 
-		ViewModel = new(vm);
+		ViewModel = InstanceManager.DTACViewHostViewModel;
 		BindingContext = ViewModel;
 
 		ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+		Shell.Current.Navigated += (s, e) =>
+		{
+			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
+		};
 
 		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, new Binding()
 		{
@@ -133,6 +138,7 @@ public partial class ViewHost : ContentPage
 			string title = (sender as AppViewModel)?.SelectedWork?.Name ?? "";
 			logger.Info("SelectedWork is changed to {0}", title);
 			TitleLabel.Text = title;
+			Title = title;
 		}
 	}
 
