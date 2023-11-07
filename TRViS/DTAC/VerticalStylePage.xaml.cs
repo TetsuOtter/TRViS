@@ -64,6 +64,7 @@ public partial class VerticalStylePage : ContentView
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
 			logger.Info("Device is Phone or Unknown -> make it to fill-scrollable");
+			this.Content.VerticalOptions = LayoutOptions.Start;
 			Content = new ScrollView()
 			{
 				Content = this.Content,
