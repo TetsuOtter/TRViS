@@ -21,23 +21,29 @@ public partial class SimpleRow
 	readonly Label FromTimeLabel;
 	readonly Label ToStationNameLabel;
 	readonly Label ToTimeLabel;
-	static Label GenStationNameLabel(int rowIndex, int colIndex)
+	static Label GenStationNameLabel(int rowIndex, int colIndex, TimetableRow? row)
 	{
 		Label v = DTACElementStyles.LargeLabelStyle<Label>();
 		v.VerticalOptions = LayoutOptions.End;
 		v.HorizontalOptions = LayoutOptions.Center;
 		v.Margin = StaNameTrainNumButtonMargin;
+		v.Text = row?.StationName;
 
 		Grid.SetRow(v, rowIndex);
 		Grid.SetColumn(v, colIndex);
 
 		return v;
 	}
-	static Label GenTimeLabel(int rowIndex, int colIndex)
+	static Label GenTimeLabel(int rowIndex, int colIndex, TimeData? time)
 	{
 		Label v = DTACElementStyles.LabelStyle<Label>();
 		v.VerticalOptions = LayoutOptions.Center;
 		v.HorizontalOptions = LayoutOptions.Center;
+
+		if (time is not null && time.Hour is not null && time.Minute is not null)
+		{
+			v.FormattedText = GetTimeLabelText(time);
+		}
 
 		Grid.SetRow(v, rowIndex);
 		Grid.SetColumn(v, colIndex);
@@ -78,7 +84,7 @@ public partial class SimpleRow
 	{
 		ToggleButton v = new()
 		{
-			Content = SelectTrainButtonFrame
+			Content = SelectTrainButtonFrame,
 		};
 
 		Grid.SetColumn(v, 1);
@@ -89,11 +95,12 @@ public partial class SimpleRow
 		return v;
 	}
 	readonly Label TrainNumberLabel;
-	static Label GenTrainNumberLabel()
+	static Label GenTrainNumberLabel(TrainData trainData)
 	{
 		Label v = DTACElementStyles.LargeLabelStyle<Label>();
 
 		v.FontSize = TrainNumberLabelTextSize;
+		v.Text = trainData.TrainNumber;
 
 		return v;
 	}
@@ -121,18 +128,31 @@ public partial class SimpleRow
 		return v;
 	}
 
+	public TrainData TrainData { get; }
+	public IO.Models.DB.TrainData DBTrainData { get; }
+	public TimetableRow? FirstRow { get; } = null;
+	public TimetableRow? LastRow { get; } = null;
+
 	readonly Grid ParentGrid;
 
-	public SimpleRow(Grid parentGrid, int dataIndex)
+	public SimpleRow(Grid parentGrid, int dataIndex, TrainData TrainData, IO.Models.DB.TrainData DBTrainData)
 	{
 		logger.Debug("Creating");
+
+		this.TrainData = TrainData;
+		this.DBTrainData = DBTrainData;
+		if (TrainData.Rows is not null)
+		{
+			FirstRow = TrainData.Rows.FirstOrDefault(v => !v.IsInfoRow);
+			LastRow = TrainData.Rows.LastOrDefault(v => !v.IsInfoRow);
+		}
 
 		ParentGrid = parentGrid;
 
 		int rowIndex_StaName_SelectBtn = dataIndex * 2;
 		int rowIndex_time = rowIndex_StaName_SelectBtn + 1;
 
-		TrainNumberLabel = GenTrainNumberLabel();
+		TrainNumberLabel = GenTrainNumberLabel(TrainData);
 		SelectTrainButtonFrame = GenSelectTrainButtonFrame(TrainNumberLabel);
 		SelectTrainButton = GenSelectTrainButton(SelectTrainButtonFrame, (sender, e) =>
 		{
@@ -142,11 +162,11 @@ public partial class SimpleRow
 
 		RouteLine = GenRouteLine(rowIndex_time);
 
-		FromStationNameLabel = GenStationNameLabel(rowIndex_StaName_SelectBtn, 0);
-		ToStationNameLabel = GenStationNameLabel(rowIndex_StaName_SelectBtn, 2);
+		FromStationNameLabel = GenStationNameLabel(rowIndex_StaName_SelectBtn, 0, FirstRow);
+		ToStationNameLabel = GenStationNameLabel(rowIndex_StaName_SelectBtn, 2, LastRow);
 
-		FromTimeLabel = GenTimeLabel(rowIndex_time, 0);
-		ToTimeLabel = GenTimeLabel(rowIndex_time, 2);
+		FromTimeLabel = GenTimeLabel(rowIndex_time, 0, FirstRow?.DepartureTime);
+		ToTimeLabel = GenTimeLabel(rowIndex_time, 2, LastRow?.ArriveTime);
 
 		parentGrid.Add(SelectTrainButton);
 		parentGrid.Add(FromStationNameLabel);
@@ -155,6 +175,9 @@ public partial class SimpleRow
 		parentGrid.Add(FromTimeLabel);
 		parentGrid.Add(RouteLine);
 		parentGrid.Add(ToTimeLabel);
+
+		SelectTrainButton.IsChecked = InstanceManager.AppViewModel.SelectedDBTrainData?.Id == DBTrainData.Id;
+		SetTrainNumberButtonState();
 
 		logger.Debug("Created");
 	}
@@ -189,52 +212,9 @@ public partial class SimpleRow
 		}
 	}
 
-	public string FromStationName
-	{
-		get => FromStationNameLabel.Text;
-		set => FromStationNameLabel.Text = value;
-	}
-	public string ToStationName
-	{
-		get => ToStationNameLabel.Text;
-		set => ToStationNameLabel.Text = value;
-	}
-	public string TrainNumber
-	{
-		get => TrainNumberLabel.Text;
-		set => TrainNumberLabel.Text = Utils.ToWide(value);
-	}
-
-	private TimeData? fromTime;
-	public TimeData? FromTime
-	{
-		get => fromTime;
-		set
-		{
-			if (value == fromTime)
-				return;
-			fromTime = value;
-			if (value is null)
-				FromTimeLabel.Text = null;
-			else
-				FromTimeLabel.FormattedText = GetTimeLabelText(value);
-		}
-	}
-	private TimeData? toTime;
-	public TimeData? ToTime
-	{
-		get => toTime;
-		set
-		{
-			if (value == toTime)
-				return;
-			toTime = value;
-			if (value is null)
-				ToTimeLabel.Text = null;
-			else
-				ToTimeLabel.FormattedText = GetTimeLabelText(value);
-		}
-	}
+	public string FromStationName => FromStationNameLabel.Text;
+	public string ToStationName => ToStationNameLabel.Text;
+	public string TrainNumber => TrainNumberLabel.Text;
 
 	static FormattedString GetTimeLabelText(TimeData value)
 	{

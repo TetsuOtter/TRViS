@@ -1,3 +1,8 @@
+using System.ComponentModel;
+
+using TRViS.IO;
+using TRViS.IO.Models.DB;
+
 namespace TRViS.DTAC.HakoParts;
 
 public class SimpleView : Grid
@@ -12,7 +17,7 @@ public class SimpleView : Grid
 	public SimpleView()
 	{
 		logger.Debug("Creating...");
-		
+
 		ColumnDefinitions.Add(new(new(STA_NAME_TIME_COLUMN_WIDTH, GridUnitType.Absolute)));
 		ColumnDefinitions.Add(new(new(1, GridUnitType.Star)));
 		ColumnDefinitions.Add(new(new(STA_NAME_TIME_COLUMN_WIDTH, GridUnitType.Absolute)));
@@ -24,34 +29,9 @@ public class SimpleView : Grid
 		RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
 		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
 
-		SimpleRow row1 = new(this, 0)
-		{
-			FromStationName = "試験1",
-			FromTime = new(12, 34, null, null),
-			ToStationName = "試験2",
-			ToTime = new(12, 34, 56, null),
-			TrainNumber = "試験3",
-		};
-		SimpleRow row2 = new(this, 1)
-		{
-			FromStationName = "さ新都心",
-			FromTime = new(12, 34, 56, null),
-			ToStationName = "長い駅名",
-			ToTime = new(12, 34, 56, null),
-			TrainNumber = "現回９９２３横浜",
-		};
-		SimpleRow row3 = new(this, 2)
-		{
-			FromStationName = "さ新都心",
-			FromTime = new(12, 34, 56, null),
-			ToStationName = "長い駅名",
-			ToTime = new(12, 34, 56, null),
-			TrainNumber = "入換担当\n　　現回９９２３横浜",
-		};
+		InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
 
-		row1.IsSelectedChanged += OnIsSelectedChanged;
-		row2.IsSelectedChanged += OnIsSelectedChanged;
-		row3.IsSelectedChanged += OnIsSelectedChanged;
+		OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
 
 		logger.Debug("Created");
 	}
@@ -74,12 +54,75 @@ public class SimpleView : Grid
 
 			logger.Debug("renew selection to {0}", row.TrainNumber);
 			SelectedRow = row;
+			InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
 		}
 		else if (SelectedRow == row)
 		{
 			logger.Debug("SelectedRow == row ({0}) -> reset selection", SelectedRow.TrainNumber);
 			SelectedRow.IsSelected = false;
 			SelectedRow = null;
+		}
+	}
+
+	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork))
+		{
+			OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+		}
+	}
+	void OnSelectedWorkChanged(Work? newWork)
+	{
+		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
+		Clear();
+		if (newWork is null)
+		{
+			logger.Debug("newWork is null");
+			return;
+		}
+
+		ILoader? loader = InstanceManager.AppViewModel.Loader;
+		if (loader is null)
+		{
+			logger.Debug("loader is null");
+			return;
+		}
+
+		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
+		SetRowDefinitions(trainDataList.Count);
+		for (int i = 0; i < trainDataList.Count; i++)
+		{
+			TrainData dbTrainData = trainDataList[i];
+			IO.Models.TrainData? trainData = loader.GetTrainData(dbTrainData.Id);
+			if (trainData is null)
+			{
+				logger.Debug("trainData is null");
+				continue;
+			}
+
+			SimpleRow row = new(this, i, trainData, dbTrainData);
+			row.IsSelectedChanged += OnIsSelectedChanged;
+		}
+	}
+
+	void SetRowDefinitions(int workCount)
+	{
+		int currentWorkCount = RowDefinitions.Count / 2;
+		if (currentWorkCount == workCount)
+		{
+			logger.Debug("currentWorkCount == workCount ({0})", workCount);
+			return;
+		}
+
+		for (int i = currentWorkCount; i < workCount; i++)
+		{
+			RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
+			RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
+		}
+		for (int i = currentWorkCount - 1; workCount <= i; i--)
+		{
+			RowDefinitions.RemoveAt(i * 2);
+			RowDefinitions.RemoveAt(i * 2);
 		}
 	}
 }
