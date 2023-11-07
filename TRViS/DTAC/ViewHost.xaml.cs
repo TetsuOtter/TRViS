@@ -55,6 +55,11 @@ public partial class ViewHost : ContentPage
 
 		ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
+		Shell.Current.Navigated += (s, e) =>
+		{
+			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
+		};
+
 		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, new Binding()
 		{
 			Source = vm,

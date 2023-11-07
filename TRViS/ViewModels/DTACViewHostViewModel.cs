@@ -20,6 +20,8 @@ public partial class DTACViewHostViewModel : ObservableObject
 	bool _IsHakoMode = false;
 	[ObservableProperty]
 	bool _IsWorkAffixMode = false;
+	[ObservableProperty]
+	bool _IsViewHostVisible = false;
 
 	public DTACViewHostViewModel()
 	{
