@@ -1,6 +1,6 @@
 namespace TRViS.DTAC;
 
-public partial class Hako : ContentView
+public partial class Hako : Grid
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public Hako()
