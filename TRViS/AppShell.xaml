@@ -48,7 +48,7 @@
 	<FlyoutItem Title="Privacy Policy">
 		<ShellContent>
 			<pages:ShowMarkdownPage
-				FileName="PrivacyPolicy.md"
+				FileName="PrivacyPolicy_md"
 				Title="Privacy Policy"
 			/>
 		</ShellContent>

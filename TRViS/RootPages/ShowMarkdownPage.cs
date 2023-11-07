@@ -4,7 +4,7 @@ using TRViS.Controls;
 
 namespace TRViS.RootPages;
 
-[DependencyProperty<string>("FileName")]
+[DependencyProperty<ResourceManager.AssetName>("FileName", DefaultValue = ResourceManager.AssetName.UNKNOWN)]
 public partial class ShowMarkdownPage : ContentPage
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -21,11 +21,16 @@ public partial class ShowMarkdownPage : ContentPage
 		scrollView.Content = markdownView;
 		Content = scrollView;
 
+		NavigatedTo += (_, _) => {
+			logger.Info("NavigatedTo executing with FileName: '{0}'", FileName);
+			markdownView.FileName = FileName;
+		};
+
 		logger.Trace("Created.");
 	}
 
-	partial void OnFileNameChanged(string? oldValue, string? newValue)
+	protected override void OnAppearing()
 	{
-		markdownView.FileName = newValue;
+		base.OnAppearing();
 	}
 }
