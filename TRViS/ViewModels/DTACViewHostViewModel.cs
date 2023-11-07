@@ -11,8 +11,6 @@ public partial class DTACViewHostViewModel : ObservableObject
 		WorkAffix
 	}
 
-	public AppViewModel AppViewModel { get; }
-
 	[ObservableProperty]
 	Mode _TabMode = Mode.VerticalView;
 
@@ -23,9 +21,8 @@ public partial class DTACViewHostViewModel : ObservableObject
 	[ObservableProperty]
 	bool _IsWorkAffixMode = false;
 
-	public DTACViewHostViewModel(AppViewModel vm)
+	public DTACViewHostViewModel()
 	{
-		AppViewModel = vm;
 	}
 
 	partial void OnTabModeChanged(Mode value)
