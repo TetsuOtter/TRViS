@@ -24,7 +24,7 @@ public class SimpleView : Grid
 		RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
 		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
 
-		new SimpleRow(this, 0)
+		SimpleRow row1 = new(this, 0)
 		{
 			FromStationName = "試験1",
 			FromTime = new(12, 34, null, null),
@@ -32,7 +32,7 @@ public class SimpleView : Grid
 			ToTime = new(12, 34, 56, null),
 			TrainNumber = "試験3",
 		};
-		new SimpleRow(this, 1)
+		SimpleRow row2 = new(this, 1)
 		{
 			FromStationName = "さ新都心",
 			FromTime = new(12, 34, 56, null),
@@ -40,7 +40,7 @@ public class SimpleView : Grid
 			ToTime = new(12, 34, 56, null),
 			TrainNumber = "現回９９２３横浜",
 		};
-		new SimpleRow(this, 2)
+		SimpleRow row3 = new(this, 2)
 		{
 			FromStationName = "さ新都心",
 			FromTime = new(12, 34, 56, null),
@@ -49,6 +49,37 @@ public class SimpleView : Grid
 			TrainNumber = "入換担当\n　　現回９９２３横浜",
 		};
 
+		row1.IsSelectedChanged += OnIsSelectedChanged;
+		row2.IsSelectedChanged += OnIsSelectedChanged;
+		row3.IsSelectedChanged += OnIsSelectedChanged;
+
 		logger.Debug("Created");
+	}
+
+	void OnIsSelectedChanged(object? sender, bool oldValue, bool newValue)
+	{
+		if (sender is not SimpleRow row)
+		{
+			logger.Debug("sender is not SimpleRow");
+			return;
+		}
+
+		if (newValue == true)
+		{
+			if (SelectedRow is not null && SelectedRow != row)
+			{
+				logger.Debug("SelectedRow is not null and SelectedRow != row -> last selection ({0}) set to false", SelectedRow.TrainNumber);
+				SelectedRow.IsSelected = false;
+			}
+
+			logger.Debug("renew selection to {0}", row.TrainNumber);
+			SelectedRow = row;
+		}
+		else if (SelectedRow == row)
+		{
+			logger.Debug("SelectedRow == row ({0}) -> reset selection", SelectedRow.TrainNumber);
+			SelectedRow.IsSelected = false;
+			SelectedRow = null;
+		}
 	}
 }

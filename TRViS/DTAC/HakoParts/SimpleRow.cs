@@ -173,6 +173,12 @@ public partial class SimpleRow
 		}
 	}
 
+	public bool IsSelected
+	{
+		get => SelectTrainButton.IsChecked;
+		set => SelectTrainButton.IsChecked = value;
+	}
+
 	public bool IsEnabled
 	{
 		get => SelectTrainButton.IsEnabled;
