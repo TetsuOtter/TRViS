@@ -19,6 +19,12 @@ public partial class WithRemarksView : Grid
 	};
 #endif
 
+	public bool IsOpen
+	{
+		get => RemarksView.IsOpen;
+		set => RemarksView.IsOpen = value;
+	}
+
 	public WithRemarksView()
 	{
 		logger.Trace("Creating...");

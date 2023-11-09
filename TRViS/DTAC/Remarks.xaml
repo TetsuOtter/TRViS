@@ -34,6 +34,7 @@
 		TextColor="White"/>
 
 	<local:OpenCloseButton
+		x:Name="OpenCloseButton"
 		Grid.Row="0"
 		TextWhenOpen="&#xe5cf;"
 		TextWhenClosed="&#xe5ce;"

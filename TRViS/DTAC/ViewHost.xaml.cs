@@ -215,5 +215,14 @@ public partial class ViewHost : ContentPage
 		HakoRemarksView.IsVisible = ViewModel.IsHakoMode;
 		VerticalStylePageRemarksView.IsVisible = ViewModel.IsVerticalViewMode;
 		WorkAffixView.IsVisible = ViewModel.IsWorkAffixMode;
+
+		if (!ViewModel.IsHakoMode && HakoRemarksView.IsOpen)
+		{
+			HakoRemarksView.IsOpen = false;
+		}
+		if (!ViewModel.IsVerticalViewMode && VerticalStylePageRemarksView.IsOpen)
+		{
+			VerticalStylePageRemarksView.IsOpen = false;
+		}
 	}
 }
