@@ -31,6 +31,12 @@ public partial class AppViewModel : ObservableObject
 	[ObservableProperty]
 	TrainData? _SelectedTrainData;
 
+	[ObservableProperty]
+	double _WindowHeight;
+
+	[ObservableProperty]
+	double _WindowWidth;
+
 	public event EventHandler<ValueChangedEventArgs<AppTheme>>? CurrentAppThemeChanged;
 	AppTheme _SystemAppTheme;
 	AppTheme _CurrentAppTheme;
