@@ -10,7 +10,7 @@ namespace TRViS.DTAC;
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
+	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 64;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;
@@ -162,11 +162,6 @@ public partial class VerticalStylePage : ContentView
 
 		int dayCount = newValue?.DayCount ?? 0;
 		this.IsNextDayLabel.IsVisible = dayCount > 0;
-		AffectDate = (
-			newValue?.AffectDate
-			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
-		).ToString("yyyy年M月d日");
-		logger.Debug("date: {0}, dayCount: {1}, AffectDate: {2}", newValue?.AffectDate, dayCount, AffectDate);
 	}
 
 	partial void OnAffectDateChanged(string? newValue)

@@ -45,6 +45,8 @@ public static class DTACElementStyles
 		new(0x00, 0x33, 0x00)
 	);
 
+	public static readonly AppThemeColorBindingExtension ForegroundBlackWhite = genColor(0x00, 0xFF);
+
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideFrameColor = genColor(0xFF, 0xAA);
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
 	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xDD);
@@ -59,6 +61,8 @@ public static class DTACElementStyles
 	public const string DefaultFontFamily = "Hiragino Sans";
 	public const string MaterialIconFontFamily = "MaterialIconsRegular";
 	public const string TimetableNumFontFamily = "Helvetica";
+
+	public const string AffectDateLabelTextPrefix = "行路施行日\n";
 
 	public static readonly Shadow DefaultShadow = new()
 	{
@@ -92,7 +96,7 @@ public static class DTACElementStyles
 		v.Margin = new(4);
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 
-		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1;
+		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1.1;
 
 		return v;
 	}
@@ -102,6 +106,33 @@ public static class DTACElementStyles
 		T v = LabelStyle<T>();
 
 		HeaderTextColor.Apply(v, Label.TextColorProperty);
+
+		return v;
+	}
+
+	public static T AffectDateLabelStyle<T>() where T : Label, new()
+	{
+		T v = LabelStyle<T>();
+
+		v.Margin = new(18, 4);
+		v.LineHeight = 1.2;
+		v.FontSize = 18;
+		v.HorizontalOptions = LayoutOptions.Start;
+		v.Text = AffectDateLabelTextPrefix;
+
+		return v;
+	}
+
+	public static T HakoTabWorkInfoLabelStyle<T>() where T : Label, new()
+	{
+		T v = LabelStyle<T>();
+
+		v.Margin = new(12, 4);
+		v.LineHeight = 1.2;
+		v.FontAttributes = FontAttributes.Bold;
+		v.Text = null;
+		v.HorizontalOptions = LayoutOptions.End;
+		v.HorizontalTextAlignment = TextAlignment.End;
 
 		return v;
 	}
