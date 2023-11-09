@@ -3,6 +3,21 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS.DTAC"
+	xmlns:HakoParts="clr-namespace:TRViS.DTAC.HakoParts"
 	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}"
 	x:Class="TRViS.DTAC.Hako">
+	<Grid.RowDefinitions>
+		<RowDefinition Height="{x:Static local:VerticalStylePage.DATE_AND_START_BUTTON_ROW_HEIGHT}" />
+		<RowDefinition Height="80" />
+		<RowDefinition Height="*" />
+	</Grid.RowDefinitions>
+
+	<ScrollView
+		x:Name="SimpleViewScrollView"
+		Grid.Row="2"
+	>
+		<HakoParts:SimpleView
+			x:Name="SimpleView"
+		/>
+	</ScrollView>
 </Grid>

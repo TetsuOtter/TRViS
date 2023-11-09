@@ -96,7 +96,7 @@ public static class DTACElementStyles
 		v.Margin = new(4);
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 
-		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1;
+		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1.1;
 
 		return v;
 	}
@@ -119,6 +119,20 @@ public static class DTACElementStyles
 		v.FontSize = 18;
 		v.HorizontalOptions = LayoutOptions.Start;
 		v.Text = AffectDateLabelTextPrefix;
+
+		return v;
+	}
+
+	public static T HakoTabWorkInfoLabelStyle<T>() where T : Label, new()
+	{
+		T v = LabelStyle<T>();
+
+		v.Margin = new(12, 4);
+		v.LineHeight = 1.2;
+		v.FontAttributes = FontAttributes.Bold;
+		v.Text = null;
+		v.HorizontalOptions = LayoutOptions.End;
+		v.HorizontalTextAlignment = TextAlignment.End;
 
 		return v;
 	}

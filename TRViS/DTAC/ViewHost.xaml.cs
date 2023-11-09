@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using TRViS.IO.Models;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -77,6 +78,10 @@ public partial class ViewHost : ContentPage
 
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
+		OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
+		OnSelectedWorkChanged(vm.SelectedWork);
+		OnSelectedTrainChanged(vm.SelectedTrainData);
+
 		logger.Trace("Created");
 	}
 
@@ -133,6 +138,10 @@ public partial class ViewHost : ContentPage
 
 		switch (e.PropertyName)
 		{
+			case nameof(AppViewModel.SelectedWorkGroup):
+				OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
+				break;
+
 			case nameof(AppViewModel.SelectedWork):
 				OnSelectedWorkChanged(vm.SelectedWork);
 				break;
@@ -143,11 +152,20 @@ public partial class ViewHost : ContentPage
 		}
 	}
 
+	void OnSelectedWorkGroupChanged(IO.Models.DB.WorkGroup? newValue)
+	{
+		string title = newValue?.Name ?? string.Empty;
+		logger.Info("SelectedWorkGroup is changed to {0}", title);
+		HakoView.WorkSpaceName = title;
+	}
+
 	void OnSelectedWorkChanged(IO.Models.DB.Work? newValue)
 	{
 		string title = newValue?.Name ?? string.Empty;
 		logger.Info("SelectedWork is changed to {0}", title);
 		TitleLabel.Text = title;
+
+		HakoView.WorkName = title;
 	}
 
 	void OnSelectedTrainChanged(TrainData? newValue)
@@ -166,6 +184,7 @@ public partial class ViewHost : ContentPage
 		);
 
 		VerticalStylePageView.AffectDate = affectDate;
+		HakoView.AffectDate = affectDate;
 	}
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
