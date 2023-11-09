@@ -67,6 +67,11 @@ public partial class ViewHost : ContentPage
 			Path = nameof(AppViewModel.SelectedTrainData)
 		});
 
+		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
+		{
+			Source = vm,
+			Path = nameof(AppViewModel.SelectedWork)
+		});
 		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
 		{
 			Source = vm,
@@ -207,7 +212,7 @@ public partial class ViewHost : ContentPage
 			ViewModel.IsVerticalViewMode,
 			ViewModel.IsWorkAffixMode
 		);
-		HakoView.IsVisible = ViewModel.IsHakoMode;
+		HakoRemarksView.IsVisible = ViewModel.IsHakoMode;
 		VerticalStylePageRemarksView.IsVisible = ViewModel.IsVerticalViewMode;
 		WorkAffixView.IsVisible = ViewModel.IsWorkAffixMode;
 	}

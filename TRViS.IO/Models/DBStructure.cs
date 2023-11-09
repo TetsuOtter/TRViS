@@ -33,7 +33,7 @@ public record WorkGroup
 }
 
 [Table("work")]
-public record Work
+public record Work : IHasRemarksProperty
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -111,7 +111,7 @@ public record StationTrack
 }
 
 [Table("train_data")]
-public record TrainData
+public record TrainData : IHasRemarksProperty
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
