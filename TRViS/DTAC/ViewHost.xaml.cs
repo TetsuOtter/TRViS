@@ -136,6 +136,10 @@ public partial class ViewHost : ContentPage
 			case nameof(AppViewModel.SelectedWork):
 				OnSelectedWorkChanged(vm.SelectedWork);
 				break;
+
+			case nameof(AppViewModel.SelectedTrainData):
+				OnSelectedTrainChanged(vm.SelectedTrainData);
+				break;
 		}
 	}
 
@@ -144,6 +148,24 @@ public partial class ViewHost : ContentPage
 		string title = newValue?.Name ?? string.Empty;
 		logger.Info("SelectedWork is changed to {0}", title);
 		TitleLabel.Text = title;
+	}
+
+	void OnSelectedTrainChanged(TrainData? newValue)
+	{
+		int dayCount = newValue?.DayCount ?? 0;
+		string affectDate = (
+			newValue?.AffectDate
+			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
+		).ToString("yyyy年M月d日");
+
+		logger.Debug(
+			"date: {0}, dayCount: {1}, AffectDate: {2}",
+			newValue?.AffectDate,
+			dayCount,
+			affectDate
+		);
+
+		VerticalStylePageView.AffectDate = affectDate;
 	}
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

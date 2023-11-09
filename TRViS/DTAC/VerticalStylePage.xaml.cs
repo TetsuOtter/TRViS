@@ -131,11 +131,6 @@ public partial class VerticalStylePage : ContentView
 
 		int dayCount = newValue?.DayCount ?? 0;
 		this.IsNextDayLabel.IsVisible = dayCount > 0;
-		AffectDate = (
-			newValue?.AffectDate
-			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
-		).ToString("yyyy年M月d日");
-		logger.Debug("date: {0}, dayCount: {1}, AffectDate: {2}", newValue?.AffectDate, dayCount, AffectDate);
 	}
 
 	partial void OnAffectDateChanged(string? newValue)
