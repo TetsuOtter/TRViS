@@ -62,6 +62,8 @@ public static class DTACElementStyles
 	public const string MaterialIconFontFamily = "MaterialIconsRegular";
 	public const string TimetableNumFontFamily = "Helvetica";
 
+	public const string AffectDateLabelTextPrefix = "行路施行日\n";
+
 	public static readonly Shadow DefaultShadow = new()
 	{
 		Brush = Colors.Black,
@@ -104,6 +106,19 @@ public static class DTACElementStyles
 		T v = LabelStyle<T>();
 
 		HeaderTextColor.Apply(v, Label.TextColorProperty);
+
+		return v;
+	}
+
+	public static T AffectDateLabelStyle<T>() where T : Label, new()
+	{
+		T v = LabelStyle<T>();
+
+		v.Margin = new(18, 4);
+		v.LineHeight = 1.2;
+		v.FontSize = 18;
+		v.HorizontalOptions = LayoutOptions.Start;
+		v.Text = AffectDateLabelTextPrefix;
 
 		return v;
 	}
