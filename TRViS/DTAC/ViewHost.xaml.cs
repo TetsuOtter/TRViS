@@ -128,12 +128,22 @@ public partial class ViewHost : ContentPage
 
 	private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(AppViewModel.SelectedWork))
+		if (sender is not AppViewModel vm)
+			return;
+
+		switch (e.PropertyName)
 		{
-			string title = (sender as AppViewModel)?.SelectedWork?.Name ?? "";
-			logger.Info("SelectedWork is changed to {0}", title);
-			TitleLabel.Text = title;
+			case nameof(AppViewModel.SelectedWork):
+				OnSelectedWorkChanged(vm.SelectedWork);
+				break;
 		}
+	}
+
+	void OnSelectedWorkChanged(IO.Models.DB.Work? newValue)
+	{
+		string title = newValue?.Name ?? string.Empty;
+		logger.Info("SelectedWork is changed to {0}", title);
+		TitleLabel.Text = title;
 	}
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
