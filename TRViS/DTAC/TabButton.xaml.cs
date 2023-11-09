@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using DependencyPropertyGenerator;
 using TRViS.ViewModels;
 
@@ -12,6 +13,8 @@ public partial class TabButton : ContentView
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public static readonly Color BASE_COLOR_DISABLED = new(0xDD, 0xDD, 0xDD);
 
+	public static readonly double NORMAL_MODE_WIDTH = 152;
+
 	public TabButton()
 	{
 		logger.Trace("Creating...");
@@ -21,7 +24,28 @@ public partial class TabButton : ContentView
 		UpdateIsSelectedProperty();
 		DTACElementStyles.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
 
+		InstanceManager.AppViewModel.PropertyChanged += AppViewModel_PropertyChanged;
+		OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
+
 		logger.Trace("Created");
+	}
+
+	private void AppViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		switch (e.PropertyName)
+		{
+			case nameof(AppViewModel.WindowWidth):
+				OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
+				break;
+		}
+	}
+	void OnWindowWidthChanged(double newValue)
+	{
+		logger.Trace("newValue: {0}", newValue);
+
+		int tabButtonCount = 3;
+		double calcedMaxWidth = (newValue - 8) / tabButtonCount;
+		WidthRequest = Math.Min(calcedMaxWidth, NORMAL_MODE_WIDTH);
 	}
 
 	partial void OnCurrentModeChanged()
