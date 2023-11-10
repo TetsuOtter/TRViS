@@ -20,7 +20,7 @@ public enum StationRecordType
 }
 
 [Table("work_group")]
-public record WorkGroup
+public class WorkGroup : IEquatable<WorkGroup>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -30,10 +30,32 @@ public record WorkGroup
 
 	[Column("db_version")]
 	public int? DBVersion { get; set; } = 0;
+
+	public bool Equals(WorkGroup? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			Name == obj.Name
+			&&
+			DBVersion == obj.DBVersion
+		);
+	}
+	public override bool Equals(object? obj)
+		=> Equals(obj as WorkGroup);
+
+	public override int GetHashCode()
+		=> HashCode.Combine(Id, Name, DBVersion);
+
+	public override string ToString()
+		=> $"WorkGroup(Id={Id}, Name={Name}, DBVersion={DBVersion})";
 }
 
 [Table("work")]
-public record Work : IHasRemarksProperty
+public class Work : IHasRemarksProperty, IEquatable<Work>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -64,10 +86,66 @@ public record Work : IHasRemarksProperty
 
 	[Column("e_train_timetable_content")]
 	public byte[]? ETrainTimetableContent { get; set; }
+
+	public bool Equals(Work? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			WorkGroupId == obj.WorkGroupId
+			&&
+			Name == obj.Name
+			&&
+			AffectDate == obj.AffectDate
+			&&
+			AffixContentType == obj.AffixContentType
+			&&
+			Utils.IsArrayEquals(AffixContent, obj.AffixContent)
+			&&
+			Remarks == obj.Remarks
+			&&
+			HasETrainTimetable == obj.HasETrainTimetable
+			&&
+			ETrainTimetableContentType == obj.ETrainTimetableContentType
+			&&
+			Utils.IsArrayEquals(ETrainTimetableContent, obj.ETrainTimetableContent)
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as Work);
+
+	public override int GetHashCode()
+	{
+		HashCode hashCode = new();
+		hashCode.Add(Id);
+		hashCode.Add(WorkGroupId);
+		hashCode.Add(Name);
+		hashCode.Add(AffectDate);
+		hashCode.Add(AffixContentType);
+		if (AffixContent is not null)
+			hashCode.AddBytes(AffixContent.AsSpan());
+		else
+			hashCode.Add(AffixContent);
+		hashCode.Add(Remarks);
+		hashCode.Add(HasETrainTimetable);
+		hashCode.Add(ETrainTimetableContentType);
+		if (AffixContent is not null)
+			hashCode.AddBytes(ETrainTimetableContent.AsSpan());
+		else
+			hashCode.Add(ETrainTimetableContent);
+		return hashCode.ToHashCode();
+	}
+
+	public override string ToString()
+		=> $"Work[{WorkGroupId} / {Id}](Name='{Name}', AffectDate={AffectDate}, AffixContentType={AffixContentType}(len:{AffixContent?.Length}), Remarks='{Remarks}', HasETrainTimetable={HasETrainTimetable}(ContentType={ETrainTimetableContentType}, len={ETrainTimetableContent?.Length}))";
 }
 
 [Table("station")]
-public record Station
+public class Station : IEquatable<Station>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -95,10 +173,57 @@ public record Station
 
 	[Column("record_type")]
 	public int? RecordType { get; set; }
+
+	public bool Equals(Station? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			WorkGroupId == obj.WorkGroupId
+			&&
+			Name == obj.Name
+			&&
+			Location == obj.Location
+			&&
+			Location_Lon_deg == obj.Location_Lon_deg
+			&&
+			Location_Lat_deg == obj.Location_Lat_deg
+			&&
+			OnStationDetectRadius_m == obj.OnStationDetectRadius_m
+			&&
+			FullName == obj.FullName
+			&&
+			RecordType == obj.RecordType
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as Station);
+
+	public override int GetHashCode()
+	{
+		HashCode hashCode = new();
+		hashCode.Add(Id);
+		hashCode.Add(WorkGroupId);
+		hashCode.Add(Name);
+		hashCode.Add(Location);
+		hashCode.Add(Location_Lon_deg);
+		hashCode.Add(Location_Lat_deg);
+		hashCode.Add(OnStationDetectRadius_m);
+		hashCode.Add(FullName);
+		hashCode.Add(RecordType);
+		return hashCode.ToHashCode();
+	}
+
+	public override string ToString()
+		=> $"Station[{WorkGroupId} / {Id}](Name='{Name}'(FullName='{FullName}', RecordType={RecordType}), Location={Location}({Location_Lon_deg}, {Location_Lat_deg}) with {OnStationDetectRadius_m}[m])";
 }
 
 [Table("station_track")]
-public record StationTrack
+public class StationTrack : IEquatable<StationTrack>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -108,10 +233,33 @@ public record StationTrack
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = "";
+
+	public bool Equals(StationTrack? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			StationId == obj.StationId
+			&&
+			Name == obj.Name
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as StationTrack);
+
+	public override int GetHashCode()
+	 => HashCode.Combine(Id, StationId, Name);
+
+	public override string ToString()
+		=> $"StationTrack[{StationId} / {Id}](Name='{Name}')";
 }
 
 [Table("train_data")]
-public record TrainData : IHasRemarksProperty
+public class TrainData : IHasRemarksProperty, IEquatable<TrainData>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -175,10 +323,93 @@ public record TrainData : IHasRemarksProperty
 
 	[Column("color_id")]
 	public int? ColorId { get; set; }
+
+	public bool Equals(TrainData? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			WorkId == obj.WorkId
+			&&
+			TrainNumber == obj.TrainNumber
+			&&
+			MaxSpeed == obj.MaxSpeed
+			&&
+			SpeedType == obj.SpeedType
+			&&
+			NominalTractiveCapacity == obj.NominalTractiveCapacity
+			&&
+			CarCount == obj.CarCount
+			&&
+			Destination == obj.Destination
+			&&
+			BeginRemarks == obj.BeginRemarks
+			&&
+			AfterRemarks == obj.AfterRemarks
+			&&
+			Remarks == obj.Remarks
+			&&
+			BeforeDeparture == obj.BeforeDeparture
+			&&
+			TrainInfo == obj.TrainInfo
+			&&
+			Direction == obj.Direction
+			&&
+			WorkType == obj.WorkType
+			&&
+			AfterArrive == obj.AfterArrive
+			&&
+			BeforeDeparture_OnStationTrackCol == obj.BeforeDeparture_OnStationTrackCol
+			&&
+			AfterArrive_OnStationTrackCol == obj.AfterArrive_OnStationTrackCol
+			&&
+			DayCount == obj.DayCount
+			&&
+			IsRideOnMoving == obj.IsRideOnMoving
+			&&
+			ColorId == obj.ColorId
+		);
+	}
+	
+	public override bool Equals(object? obj)
+		=> Equals(obj as TrainData);
+
+	public override int GetHashCode()
+	{
+		HashCode hashCode = new();
+		hashCode.Add(Id);
+		hashCode.Add(WorkId);
+		hashCode.Add(TrainNumber);
+		hashCode.Add(MaxSpeed);
+		hashCode.Add(SpeedType);
+		hashCode.Add(NominalTractiveCapacity);
+		hashCode.Add(CarCount);
+		hashCode.Add(Destination);
+		hashCode.Add(BeginRemarks);
+		hashCode.Add(AfterRemarks);
+		hashCode.Add(Remarks);
+		hashCode.Add(BeforeDeparture);
+		hashCode.Add(TrainInfo);
+		hashCode.Add(Direction);
+		hashCode.Add(WorkType);
+		hashCode.Add(AfterArrive);
+		hashCode.Add(BeforeDeparture_OnStationTrackCol);
+		hashCode.Add(AfterArrive_OnStationTrackCol);
+		hashCode.Add(DayCount);
+		hashCode.Add(IsRideOnMoving);
+		hashCode.Add(ColorId);
+		return hashCode.ToHashCode();
+	}
+
+	public override string ToString()
+		=> $"TrainData[{WorkId} / {Id}](TrainNumber='{TrainNumber}', MaxSpeed='{MaxSpeed}', SpeedType='{SpeedType}', NominalTractiveCapacity='{NominalTractiveCapacity}', CarCount={CarCount}, Destination='{Destination}', BeginRemarks='{BeginRemarks}', AfterRemarks='{AfterRemarks}', Remarks='{Remarks}', BeforeDeparture='{BeforeDeparture}', TrainInfo='{TrainInfo}', Direction={Direction}, WorkType={WorkType}, AfterArrive='{AfterArrive}', BeforeDeparture_OnStationTrackCol='{BeforeDeparture_OnStationTrackCol}', AfterArrive_OnStationTrackCol='{AfterArrive_OnStationTrackCol}', DayCount={DayCount}, IsRideOnMoving={IsRideOnMoving}, ColorId={ColorId})";
 }
 
 [Table("timetable_row")]
-public record TimetableRowData
+public class TimetableRowData : IEquatable<TimetableRowData>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -242,20 +473,133 @@ public record TimetableRowData
 
 	[Column("work_type")]
 	public int? WorkType { get; set; }
+
+	public bool Equals(TimetableRowData? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			TrainId == obj.TrainId
+			&&
+			StationId == obj.StationId
+			&&
+			DriveTime_MM == obj.DriveTime_MM
+			&&
+			DriveTime_SS == obj.DriveTime_SS
+			&&
+			IsOperationOnlyStop == obj.IsOperationOnlyStop
+			&&
+			IsPass == obj.IsPass
+			&&
+			HasBracket == obj.HasBracket
+			&&
+			IsLastStop == obj.IsLastStop
+			&&
+			Arrive_HH == obj.Arrive_HH
+			&&
+			Arrive_MM == obj.Arrive_MM
+			&&
+			Arrive_SS == obj.Arrive_SS
+			&&
+			Arrive_Str == obj.Arrive_Str
+			&&
+			Departure_HH == obj.Departure_HH
+			&&
+			Departure_MM == obj.Departure_MM
+			&&
+			Departure_SS == obj.Departure_SS
+			&&
+			Departure_Str == obj.Departure_Str
+			&&
+			StationTrackId == obj.StationTrackId
+			&&
+			RunInLimit == obj.RunInLimit
+			&&
+			RunOutLimit == obj.RunOutLimit
+			&&
+			Remarks == obj.Remarks
+			&&
+			MarkerColorId == obj.MarkerColorId
+			&&
+			MarkerText == obj.MarkerText
+			&&
+			WorkType == obj.WorkType
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as TimetableRowData);
+
+	public override int GetHashCode()
+	{
+		HashCode hashCode = new();
+		hashCode.Add(Id);
+		hashCode.Add(TrainId);
+		hashCode.Add(StationId);
+		hashCode.Add(DriveTime_MM);
+		hashCode.Add(DriveTime_SS);
+		hashCode.Add(IsOperationOnlyStop);
+		hashCode.Add(IsPass);
+		hashCode.Add(HasBracket);
+		hashCode.Add(IsLastStop);
+		hashCode.Add(Arrive_HH);
+		hashCode.Add(Arrive_MM);
+		hashCode.Add(Arrive_SS);
+		hashCode.Add(Arrive_Str);
+		hashCode.Add(Departure_HH);
+		hashCode.Add(Departure_MM);
+		hashCode.Add(Departure_SS);
+		hashCode.Add(Departure_Str);
+		hashCode.Add(StationTrackId);
+		hashCode.Add(RunInLimit);
+		hashCode.Add(RunOutLimit);
+		hashCode.Add(Remarks);
+		hashCode.Add(MarkerColorId);
+		hashCode.Add(MarkerText);
+		hashCode.Add(WorkType);
+		return hashCode.ToHashCode();
+	}
+
+	public override string ToString()
+		=> $"TimetableRowData[{TrainId} / {Id}](StationId={StationId}, DriveTime={DriveTime_MM}:{DriveTime_SS}, IsOperationOnlyStop={IsOperationOnlyStop}, IsPass={IsPass}, HasBracket={HasBracket}, IsLastStop={IsLastStop}, Arrive={Arrive_HH}:{Arrive_MM}:{Arrive_SS}({Arrive_Str}), Departure={Departure_HH}:{Departure_MM}:{Departure_SS}({Departure_Str}), StationTrackId={StationTrackId}, RunInLimit={RunInLimit}, RunOutLimit={RunOutLimit}, Remarks='{Remarks}', MarkerColorId={MarkerColorId}, MarkerText='{MarkerText}', WorkType={WorkType})";
 }
 
 [Table("language")]
-public record Language
+public class Language : IEquatable<Language>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
 
 	[Column("language_code"), NotNull, Unique]
 	public string LanguageCode { get; set; } = string.Empty;
+
+	public bool Equals(Language? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			LanguageCode == obj.LanguageCode
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as Language);
+
+	public override int GetHashCode()
+		=> HashCode.Combine(Id, LanguageCode);
+
+	public override string ToString()
+		=> $"Language(Id={Id}, LanguageCode='{LanguageCode}')";
 }
 
 [Table("work_group_name_other_lang")]
-public record WorkGroupNameOtherLang
+public class WorkGroupNameOtherLang : IEquatable<WorkGroupNameOtherLang>
 {
 	[Column("work_group_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_workgroupnameotherlang_1", Order = 1, Unique = true)]
@@ -267,10 +611,33 @@ public record WorkGroupNameOtherLang
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;
+
+	public bool Equals(WorkGroupNameOtherLang? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			WorkGroupId == obj.WorkGroupId
+			&&
+			LanguageId == obj.LanguageId
+			&&
+			Name == obj.Name
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as WorkGroupNameOtherLang);
+
+	public override int GetHashCode()
+		=> HashCode.Combine(WorkGroupId, LanguageId, Name);
+
+	public override string ToString()
+		=> $"WorkGroupNameOtherLang[{WorkGroupId} / {LanguageId}](Name='{Name}')";
 }
 
 [Table("work_name_other_lang")]
-public record WorkNameOtherLang
+public class WorkNameOtherLang : IEquatable<WorkNameOtherLang>
 {
 	[Column("work_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_worknameotherlang_1", Order = 1, Unique = true)]
@@ -282,10 +649,33 @@ public record WorkNameOtherLang
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;
+
+	public bool Equals(WorkNameOtherLang? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			WorkId == obj.WorkId
+			&&
+			LanguageId == obj.LanguageId
+			&&
+			Name == obj.Name
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as WorkNameOtherLang);
+
+	public override int GetHashCode()
+		=> HashCode.Combine(WorkId, LanguageId, Name);
+
+	public override string ToString()
+		=> $"WorkNameOtherLang[{WorkId} / {LanguageId}](Name='{Name}')";
 }
 
 [Table("station_name_other_lang")]
-public record StationNameOtherLang
+public class StationNameOtherLang : IEquatable<StationNameOtherLang>
 {
 	[Column("station_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_stationnameotherlang_1", Order = 1, Unique = true)]
@@ -300,10 +690,35 @@ public record StationNameOtherLang
 
 	[Column("full_name")]
 	public string? FullName { get; set; }
+
+	public bool Equals(StationNameOtherLang? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			StationId == obj.StationId
+			&&
+			LanguageId == obj.LanguageId
+			&&
+			Name == obj.Name
+			&&
+			FullName == obj.FullName
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as StationNameOtherLang);
+
+	public override int GetHashCode()
+		=> HashCode.Combine(StationId, LanguageId, Name, FullName);
+
+	public override string ToString()
+		=> $"StationNameOtherLang[{StationId} / {LanguageId}](Name='{Name}', FullName='{FullName}')";
 }
 
 [Table("station_track_name_other_lang")]
-public record StationTrackNameOtherLang
+public class StationTrackNameOtherLang : IEquatable<StationTrackNameOtherLang>
 {
 	[Column("station_track_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_stationtracknameotherlang_1", Order = 1, Unique = true)]
@@ -315,10 +730,33 @@ public record StationTrackNameOtherLang
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;
+
+	public bool Equals(StationTrackNameOtherLang? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			StationTrackId == obj.StationTrackId
+			&&
+			LanguageId == obj.LanguageId
+			&&
+			Name == obj.Name
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as StationTrackNameOtherLang);
+
+	public override int GetHashCode()
+		=> HashCode.Combine(StationTrackId, LanguageId, Name);
+
+	public override string ToString()
+		=> $"StationTrackNameOtherLang[{StationTrackId} / {LanguageId}](Name='{Name}')";
 }
 
 [Table("color")]
-public record Color
+public class Color : IEquatable<Color>
 {
 	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
 	public int Id { get; set; }
@@ -328,4 +766,27 @@ public record Color
 
 	[Column("rgb"), NotNull]
 	public int RGB { get; set; }
+
+	public bool Equals(Color? obj)
+	{
+		if (obj is null)
+			return false;
+
+		return (
+			Id == obj.Id
+			&&
+			Name == obj.Name
+			&&
+			RGB == obj.RGB
+		);
+	}
+
+	public override bool Equals(object? obj)
+		=> Equals(obj as Color);
+
+	public override int GetHashCode()
+		=> HashCode.Combine(Id, Name, RGB);
+
+	public override string ToString()
+		=> $"Color[{Id}](Name='{Name}', RGB={RGB:X6})";
 }
