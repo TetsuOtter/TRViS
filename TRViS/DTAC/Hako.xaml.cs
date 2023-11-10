@@ -25,11 +25,8 @@ public partial class Hako : Grid
 	}
 	static Label GenWorkInfoLabel()
 	{
-		Label v = DTACElementStyles.AffectDateLabelStyle<Label>();
+		Label v = DTACElementStyles.HakoTabWorkInfoLabelStyle<Label>();
 
-		v.HorizontalOptions = LayoutOptions.End;
-		v.HorizontalTextAlignment = TextAlignment.End;
-		v.Text = null;
 		SetRow(v, 0);
 
 		return v;

@@ -10,7 +10,7 @@ namespace TRViS.DTAC;
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 64;
+	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;

@@ -114,9 +114,9 @@ public static class DTACElementStyles
 	{
 		T v = LabelStyle<T>();
 
-		v.Margin = new(18, 4);
-		v.LineHeight = 1.2;
-		v.FontSize = 18;
+		v.Margin = new(18, 0);
+		v.LineHeight = 1.4;
+		v.FontSize = 16;
 		v.HorizontalOptions = LayoutOptions.Start;
 		v.Text = AffectDateLabelTextPrefix;
 
@@ -125,11 +125,10 @@ public static class DTACElementStyles
 
 	public static T HakoTabWorkInfoLabelStyle<T>() where T : Label, new()
 	{
-		T v = LabelStyle<T>();
+		T v = AffectDateLabelStyle<T>();
 
-		v.Margin = new(12, 4);
-		v.LineHeight = 1.2;
 		v.FontAttributes = FontAttributes.Bold;
+		v.FontSize = DefaultTextSize;
 		v.Text = null;
 		v.HorizontalOptions = LayoutOptions.End;
 		v.HorizontalTextAlignment = TextAlignment.End;
