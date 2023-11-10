@@ -2,6 +2,7 @@
 using System.Runtime.Versioning;
 #endif
 
+using System.Runtime.CompilerServices;
 using TRViS.RootPages;
 using TRViS.ViewModels;
 
@@ -64,6 +65,23 @@ public partial class AppShell : Shell
 			FlyoutIcon = null;
 			FlyoutBehavior = FlyoutBehavior.Disabled;
 			FlyoutIsPresented = false;
+		}
+	}
+
+	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+	{
+		base.OnPropertyChanged(propertyName);
+
+		switch (propertyName)
+		{
+			case nameof(Width):
+				logger.Trace("Width: {0}", Width);
+				InstanceManager.AppViewModel.WindowWidth = Width;
+				break;
+			case nameof(Height):
+				logger.Trace("Height: {0}", Height);
+				InstanceManager.AppViewModel.WindowHeight = Height;
+				break;
 		}
 	}
 
