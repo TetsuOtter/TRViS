@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace TRViS;
 
 public static partial class Utils
@@ -30,4 +32,38 @@ public static partial class Utils
 
 	static public string ToWide(string s)
 		=> new string(s.Select(ToWide).ToArray());
+
+	static public string InsertBetweenChars(ReadOnlySpan<char> chars, string toInsert)
+	{
+		StringBuilder builder = new(chars.Length + toInsert.Length * (chars.Length - 1));
+
+		foreach (char v in chars)
+		{
+			if (builder.Length != 0)
+			{
+				builder.Append(toInsert);
+			}
+
+			builder.Append(v);
+		}
+
+		return builder.ToString();
+	}
+
+	static public string InsertBetweenChars(ReadOnlySpan<char> chars, char toInsert)
+	{
+		StringBuilder builder = new(chars.Length + (chars.Length - 1));
+
+		foreach (char v in chars)
+		{
+			if (builder.Length != 0)
+			{
+				builder.Append(toInsert);
+			}
+
+			builder.Append(v);
+		}
+
+		return builder.ToString();
+	}
 }

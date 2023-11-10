@@ -66,10 +66,13 @@
 				TargetMode="WorkAffix"/>
 		</HorizontalStackLayout>
 
-		<local:Hako
-			x:Name="HakoView"
+		<local:WithRemarksView
+			x:Name="HakoRemarksView"
 			IsVisible="False"
-			Grid.Row="2"/>
+			Grid.Row="2">
+			<local:Hako
+				x:Name="HakoView"/>
+		</local:WithRemarksView>
 
 		<local:WorkAffix
 			x:Name="WorkAffixView"
