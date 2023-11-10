@@ -22,13 +22,6 @@ public class SimpleView : Grid
 		ColumnDefinitions.Add(new(new(1, GridUnitType.Star)));
 		ColumnDefinitions.Add(new(new(STA_NAME_TIME_COLUMN_WIDTH, GridUnitType.Absolute)));
 
-		RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
-		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
-		RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
-		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
-		RowDefinitions.Add(new(new(TRAIN_NUMBER_ROW_HEIGHT, GridUnitType.Absolute)));
-		RowDefinitions.Add(new(new(TIME_ROW_HEIGHT, GridUnitType.Absolute)));
-
 		InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
 
 		OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
