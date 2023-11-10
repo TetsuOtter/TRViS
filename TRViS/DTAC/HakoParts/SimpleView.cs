@@ -54,6 +54,8 @@ public class SimpleView : Grid
 			logger.Debug("SelectedRow == row ({0}) -> reset selection", SelectedRow.TrainNumber);
 			SelectedRow.IsSelected = false;
 			SelectedRow = null;
+			InstanceManager.AppViewModel.SelectedDBTrainData = null;
+			InstanceManager.AppViewModel.SelectedTrainData = null;
 		}
 	}
 
