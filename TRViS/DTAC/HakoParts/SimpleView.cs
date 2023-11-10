@@ -68,6 +68,7 @@ public class SimpleView : Grid
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 		Clear();
+		SelectedRow = null;
 		if (newWork is null)
 		{
 			logger.Debug("newWork is null");
@@ -83,6 +84,7 @@ public class SimpleView : Grid
 
 		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
 		SetRowDefinitions(trainDataList.Count);
+		TrainData? selectedDBTrainData = InstanceManager.AppViewModel.SelectedDBTrainData;
 		for (int i = 0; i < trainDataList.Count; i++)
 		{
 			TrainData dbTrainData = trainDataList[i];
@@ -95,6 +97,12 @@ public class SimpleView : Grid
 
 			SimpleRow row = new(this, i, trainData, dbTrainData);
 			row.IsSelectedChanged += OnIsSelectedChanged;
+			if (dbTrainData == selectedDBTrainData)
+			{
+				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
+				row.IsSelected = true;
+				SelectedRow = row;
+			}
 		}
 	}
 
