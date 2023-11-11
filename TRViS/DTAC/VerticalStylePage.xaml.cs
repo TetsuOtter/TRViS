@@ -12,9 +12,9 @@ public partial class VerticalStylePage : ContentView
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_ROW_HEIGHT = 60;
+	const double TRAIN_INFO_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;
-	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
+	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 54;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 
 	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
@@ -160,6 +160,8 @@ public partial class VerticalStylePage : ContentView
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
 
+		SetDestinationString(newValue?.Destination);
+
 		int dayCount = newValue?.DayCount ?? 0;
 		this.IsNextDayLabel.IsVisible = dayCount > 0;
 	}
@@ -232,5 +234,34 @@ public partial class VerticalStylePage : ContentView
 				}
 			);
 		logger.Debug("Animation started");
+	}
+
+	string? _DestinationString = null;
+	void SetDestinationString(string? value)
+	{
+		if (_DestinationString == value)
+			return;
+
+		_DestinationString = value;
+		if (string.IsNullOrEmpty(value))
+		{
+			DestinationLabel.IsVisible = false;
+			DestinationLabel.Text = null;
+			return;
+		}
+
+		string dstStr = value;
+		switch (value.Length)
+		{
+			case 1:
+				dstStr = $"{Utils.SPACE_CHAR}{value}{Utils.SPACE_CHAR}";
+				break;
+			case 2:
+				dstStr = $"{value[0]}{Utils.SPACE_CHAR}{value[1]}";
+				break;
+		}
+
+		DestinationLabel.Text = $"（{dstStr}行）";
+		DestinationLabel.IsVisible = true;
 	}
 }

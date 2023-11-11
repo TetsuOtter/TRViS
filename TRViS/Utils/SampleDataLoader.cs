@@ -358,7 +358,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	SpeedType: null,
 	NominalTractiveCapacity: null,
 	CarCount: null,
-	Destination: null,
+	Destination: "長い駅名",
 	BeginRemarks: null,
 	AfterRemarks: "(入換)",
 	Remarks: null,

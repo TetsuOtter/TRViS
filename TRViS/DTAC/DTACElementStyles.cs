@@ -20,7 +20,7 @@ public static class DTACElementStyles
 		new(0x44, 0x99, 0xFF)
 	);
 	public static readonly AppThemeColorBindingExtension HeaderBackgroundColor = genColor(0xDD, baseDarkColor + 0x18);
-	public static readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xDD, baseDarkColor + 0x33);
+	public static readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xAA, baseDarkColor + 0x33);
 	public static readonly AppThemeColorBindingExtension DefaultBGColor = genColor(0xFF, baseDarkColor);
 	public static readonly AppThemeColorBindingExtension CarCountBGColor = genColor(0xFE, baseDarkColor + 0x11);
 	public static readonly AppThemeColorBindingExtension TabAreaBGColor = genColor(0xEE, baseDarkColor - 0x20);
@@ -93,7 +93,7 @@ public static class DTACElementStyles
 		DefaultTextColor.Apply(v, Label.TextColorProperty);
 		v.FontSize = DefaultTextSize;
 		v.FontFamily = DefaultFontFamily;
-		v.Margin = new(4);
+		v.Margin = new(4,0);
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1.1;
@@ -106,6 +106,7 @@ public static class DTACElementStyles
 		T v = LabelStyle<T>();
 
 		HeaderTextColor.Apply(v, Label.TextColorProperty);
+		v.Margin = new(1);
 
 		return v;
 	}
