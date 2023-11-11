@@ -180,6 +180,15 @@
 				HorizontalOptions="Start"
 				VerticalOptions="Center"
 				Text="{Binding BeginRemarks}"/>
+
+			<Label
+				x:Name="DestinationLabel"
+				Style="{StaticResource LabelStyle}"
+				Margin="0,8"
+				HorizontalOptions="Start"
+				VerticalOptions="Start"
+				Grid.Column="6"
+				Grid.ColumnSpan="2"/>
 		</Grid>
 
 		<dtac:TimetableHeader

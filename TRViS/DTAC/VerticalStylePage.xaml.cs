@@ -160,6 +160,8 @@ public partial class VerticalStylePage : ContentView
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
 
+		SetDestinationString(newValue?.Destination);
+
 		int dayCount = newValue?.DayCount ?? 0;
 		this.IsNextDayLabel.IsVisible = dayCount > 0;
 	}
@@ -232,5 +234,34 @@ public partial class VerticalStylePage : ContentView
 				}
 			);
 		logger.Debug("Animation started");
+	}
+
+	string? _DestinationString = null;
+	void SetDestinationString(string? value)
+	{
+		if (_DestinationString == value)
+			return;
+
+		_DestinationString = value;
+		if (string.IsNullOrEmpty(value))
+		{
+			DestinationLabel.IsVisible = false;
+			DestinationLabel.Text = null;
+			return;
+		}
+
+		string dstStr = value;
+		switch (value.Length)
+		{
+			case 1:
+				dstStr = $"{Utils.SPACE_CHAR}{value}{Utils.SPACE_CHAR}";
+				break;
+			case 2:
+				dstStr = $"{value[0]}{Utils.SPACE_CHAR}{value[1]}";
+				break;
+		}
+
+		DestinationLabel.Text = $"（{dstStr}行）";
+		DestinationLabel.IsVisible = true;
 	}
 }
