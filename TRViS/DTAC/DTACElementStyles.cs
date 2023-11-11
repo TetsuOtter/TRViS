@@ -20,7 +20,7 @@ public static class DTACElementStyles
 		new(0x44, 0x99, 0xFF)
 	);
 	public static readonly AppThemeColorBindingExtension HeaderBackgroundColor = genColor(0xDD, baseDarkColor + 0x18);
-	public static readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xDD, baseDarkColor + 0x33);
+	public static readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xAA, baseDarkColor + 0x33);
 	public static readonly AppThemeColorBindingExtension DefaultBGColor = genColor(0xFF, baseDarkColor);
 	public static readonly AppThemeColorBindingExtension CarCountBGColor = genColor(0xFE, baseDarkColor + 0x11);
 	public static readonly AppThemeColorBindingExtension TabAreaBGColor = genColor(0xEE, baseDarkColor - 0x20);
