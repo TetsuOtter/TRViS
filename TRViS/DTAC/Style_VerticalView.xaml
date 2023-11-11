@@ -29,15 +29,16 @@
 		<Setter Property="TextColor" Value="{x:Static dtac:DTACElementStyles.DefaultTextColor}"/>
 		<Setter Property="FontSize" Value="14"/>
 		<Setter Property="FontFamily" Value="Hiragino Sans"/>
-		<Setter Property="Margin" Value="1"/>
+		<Setter Property="Margin" Value="4,0"/>
 		<Setter Property="LineBreakMode" Value="CharacterWrap"/>
-		<Setter Property="LineHeight" Value="{OnPlatform Android=0.9, Default=1}"/>
+		<Setter Property="LineHeight" Value="{OnPlatform Android=0.9, Default=1.1}"/>
 	</Style>
 	<Style TargetType="Label" BasedOn="{StaticResource LabelStyle}">
 		<Setter Property="Margin" Value="4"/>
 	</Style>
 	<Style x:Key="HeaderLabel" TargetType="Label" BasedOn="{StaticResource LabelStyle}">
 		<Setter Property="TextColor" Value="{x:Static dtac:DTACElementStyles.HeaderTextColor}"/>
+		<Setter Property="Margin" Value="1"/>
 	</Style>
 	<Style x:Key="TimetableLabel" TargetType="Label" BasedOn="{StaticResource LabelStyle}">
 		<Setter Property="TextColor" Value="{x:Static dtac:DTACElementStyles.TimetableTextColor}"/>

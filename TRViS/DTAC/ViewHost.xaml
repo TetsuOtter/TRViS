@@ -11,7 +11,7 @@
 		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="{x:Static local:ViewHost.TitleViewHeight}"/>
-			<RowDefinition Height="64"/>
+			<RowDefinition Height="60"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 

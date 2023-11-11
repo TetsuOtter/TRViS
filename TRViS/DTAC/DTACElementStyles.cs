@@ -93,7 +93,7 @@ public static class DTACElementStyles
 		DefaultTextColor.Apply(v, Label.TextColorProperty);
 		v.FontSize = DefaultTextSize;
 		v.FontFamily = DefaultFontFamily;
-		v.Margin = new(4);
+		v.Margin = new(4,0);
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1.1;
@@ -106,6 +106,7 @@ public static class DTACElementStyles
 		T v = LabelStyle<T>();
 
 		HeaderTextColor.Apply(v, Label.TextColorProperty);
+		v.Margin = new(1);
 
 		return v;
 	}

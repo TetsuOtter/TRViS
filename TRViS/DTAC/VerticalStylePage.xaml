@@ -72,7 +72,7 @@
 				Style="{StaticResource LabelStyle}"
 				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
 				TextColor="{x:Static dtac:DTACElementStyles.TrainNumNextDayTextColor}"
-				FontSize="28"
+				FontSize="24"
 				FontAttributes="Bold"
 				Grid.Column="0"/>
 			<Line
