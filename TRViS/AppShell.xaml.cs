@@ -1,5 +1,9 @@
+#if IOS
 using System.Runtime.Versioning;
+#endif
 
+using System.Runtime.CompilerServices;
+using TRViS.RootPages;
 using TRViS.ViewModels;
 
 namespace TRViS;
@@ -11,6 +15,8 @@ public partial class AppShell : Shell
 	static public string AppVersionString
 		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";
 
+	readonly AppCenterSettingViewModel AppCenterSettingViewModel =  InstanceManager.AppCenterSettingViewModel;
+
 	public AppShell()
 	{
 		logger.Trace("AppShell Creating");
@@ -18,13 +24,65 @@ public partial class AppShell : Shell
 
 		EasterEggPageViewModel easterEggPageViewModel = InstanceManager.EasterEggPageViewModel;
 
+		logger.Trace("Checking AppCenter Setting");
+		if (AppCenterSettingViewModel.IsEnabled)
+		{
+			logger.Trace("AppCenter Applying...");
+			AppCenterSettingViewModel.SaveAndApplySettings(false).ConfigureAwait(false);
+		}
+
 		InitializeComponent();
+
+		if (AppCenterSettingViewModel.IsEnabled)
+		{
+			GoToAsync("//" + nameof(SelectTrainPage)).ConfigureAwait(false);
+		}
+		else
+		{
+			GoToAsync("//" + nameof(AppCenterSettingPage)).ConfigureAwait(false);
+		}
+
+		AppCenterSettingViewModel.IsEnabledChanged += ApplyFlyoutBhavior;
+		ApplyFlyoutBhavior(this, false, AppCenterSettingViewModel.IsEnabled);
 
 		SetBinding(Shell.BackgroundColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellBackgroundColor) });
 		SetBinding(Shell.TitleColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
 
 		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
 		logger.Trace("AppShell Created");
+	}
+
+	void ApplyFlyoutBhavior(object? sender, bool oldValue, bool newValue)
+	{
+		logger.Trace("{0} -> {1}", oldValue, newValue);
+		if (newValue == true)
+		{
+			FlyoutIcon = FlyoutIconImage;
+			FlyoutBehavior = FlyoutBehavior.Flyout;
+		}
+		else
+		{
+			FlyoutIcon = null;
+			FlyoutBehavior = FlyoutBehavior.Disabled;
+			FlyoutIsPresented = false;
+		}
+	}
+
+	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+	{
+		base.OnPropertyChanged(propertyName);
+
+		switch (propertyName)
+		{
+			case nameof(Width):
+				logger.Trace("Width: {0}", Width);
+				InstanceManager.AppViewModel.WindowWidth = Width;
+				break;
+			case nameof(Height):
+				logger.Trace("Height: {0}", Height);
+				InstanceManager.AppViewModel.WindowHeight = Height;
+				break;
+		}
 	}
 
 	public event ValueChangedEventHandler<Thickness>? SafeAreaMarginChanged;

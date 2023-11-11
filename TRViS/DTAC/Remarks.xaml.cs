@@ -3,7 +3,7 @@ using TRViS.IO.Models;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<bool>("IsOpen", DefaultBindingMode = DefaultBindingMode.TwoWay, IsReadOnly = true)]
+[DependencyProperty<bool>("IsOpen", DefaultBindingMode = DefaultBindingMode.TwoWay)]
 [DependencyProperty<IHasRemarksProperty>("RemarksData", DefaultBindingMode = DefaultBindingMode.TwoWay)]
 [DependencyProperty<GridLength>("ContentAreaHeight", IsReadOnly = true)]
 [DependencyProperty<double>("BottomSafeAreaHeight")]
@@ -32,6 +32,7 @@ public partial class Remarks : Grid
 	partial void OnIsOpenChanged(bool newValue)
 	{
 		logger.Info("IsOpen: {0}, BottomMargin: {1}", newValue, BottomMargin);
+		OpenCloseButton.IsOpen = newValue;
 		this.TranslateTo(0, newValue ? BottomMargin : 0, easing: Easing.SinInOut);
 	}
 

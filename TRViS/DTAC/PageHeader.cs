@@ -19,9 +19,8 @@ public partial class PageHeader : Grid
 	};
 
 	#region Affect Date Label
-	const string AffectDateLabelTextPrefix = "行路施行日\n";
 
-	readonly Label AffectDateLabel = DTACElementStyles.LabelStyle<Label>();
+	readonly Label AffectDateLabel = DTACElementStyles.AffectDateLabelStyle<Label>();
 
 	string _AffectDateLabelText = "";
 	public string AffectDateLabelText
@@ -37,7 +36,7 @@ public partial class PageHeader : Grid
 
 			_AffectDateLabelText = value;
 
-			AffectDateLabel.Text = AffectDateLabelTextPrefix + value;
+			AffectDateLabel.Text = DTACElementStyles.AffectDateLabelTextPrefix + value;
 			logger.Info("AffectDateLabelText: {0}", value);
 		}
 	}
@@ -113,11 +112,6 @@ public partial class PageHeader : Grid
 		logger.Trace("Creating...");
 
 		ColumnDefinitions = DefaultColumnDefinitions;
-
-		AffectDateLabel.Margin = new(18, 4);
-		AffectDateLabel.FontSize = 18;
-		AffectDateLabel.HorizontalOptions = LayoutOptions.Start;
-		AffectDateLabel.Text = AffectDateLabelTextPrefix;
 
 		StartEndRunButton.VerticalOptions = LayoutOptions.Center;
 		StartEndRunButton.HorizontalOptions = LayoutOptions.End;

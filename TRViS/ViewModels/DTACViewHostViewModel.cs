@@ -11,21 +11,20 @@ public partial class DTACViewHostViewModel : ObservableObject
 		WorkAffix
 	}
 
-	public AppViewModel AppViewModel { get; }
+	[ObservableProperty]
+	Mode _TabMode = Mode.Hako;
 
 	[ObservableProperty]
-	Mode _TabMode = Mode.VerticalView;
-
+	bool _IsVerticalViewMode = false;
 	[ObservableProperty]
-	bool _IsVerticalViewMode = true;
-	[ObservableProperty]
-	bool _IsHakoMode = false;
+	bool _IsHakoMode = true;
 	[ObservableProperty]
 	bool _IsWorkAffixMode = false;
+	[ObservableProperty]
+	bool _IsViewHostVisible = false;
 
-	public DTACViewHostViewModel(AppViewModel vm)
+	public DTACViewHostViewModel()
 	{
-		AppViewModel = vm;
 	}
 
 	partial void OnTabModeChanged(Mode value)

@@ -1,5 +1,7 @@
 using DependencyPropertyGenerator;
+
 using TRViS.IO.Models;
+using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
@@ -8,11 +10,11 @@ namespace TRViS.DTAC;
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-	const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
+	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_ROW_HEIGHT = 60;
+	const double TRAIN_INFO_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;
-	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
+	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 54;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 
 	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
@@ -28,10 +30,24 @@ public partial class VerticalStylePage : ContentView
 	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
 
 	VerticalTimetableView TimetableView { get; } = new();
+	DTACViewHostViewModel DTACViewHostViewModel { get; }
+	TrainData? CurrentShowingTrainData { get; set; }
 
 	public VerticalStylePage()
 	{
 		logger.Trace("Creating...");
+
+		DTACViewHostViewModel = InstanceManager.DTACViewHostViewModel;
+		DTACViewHostViewModel.PropertyChanged += (_, e) =>
+		{
+			switch (e.PropertyName)
+			{
+				case nameof(DTACViewHostViewModel.IsViewHostVisible):
+				case nameof(DTACViewHostViewModel.IsVerticalViewMode):
+					OnSelectedTrainDataChanged(SelectedTrainData);
+					break;
+			}
+		};
 
 		InitializeComponent();
 
@@ -48,6 +64,7 @@ public partial class VerticalStylePage : ContentView
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
 			logger.Info("Device is Phone or Unknown -> make it to fill-scrollable");
+			this.Content.VerticalOptions = LayoutOptions.Start;
 			Content = new ScrollView()
 			{
 				Content = this.Content,
@@ -121,6 +138,20 @@ public partial class VerticalStylePage : ContentView
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
+		if (CurrentShowingTrainData == newValue)
+		{
+			logger.Debug("CurrentShowingTrainData == newValue -> do nothing");
+			return;
+		}
+		if (!DTACViewHostViewModel.IsViewHostVisible || !DTACViewHostViewModel.IsVerticalViewMode)
+		{
+			logger.Debug("IsViewHostVisible: {0}, IsVerticalViewMode: {1} -> lazy load",
+				DTACViewHostViewModel.IsViewHostVisible,
+				DTACViewHostViewModel.IsVerticalViewMode
+			);
+			return;
+		}
+		CurrentShowingTrainData = newValue;
 		logger.Info("SelectedTrainDataChanged: {0}", newValue);
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
@@ -129,13 +160,10 @@ public partial class VerticalStylePage : ContentView
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
 
+		SetDestinationString(newValue?.Destination);
+
 		int dayCount = newValue?.DayCount ?? 0;
 		this.IsNextDayLabel.IsVisible = dayCount > 0;
-		AffectDate = (
-			newValue?.AffectDate
-			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
-		).ToString("yyyy年M月d日");
-		logger.Debug("date: {0}, dayCount: {1}, AffectDate: {2}", newValue?.AffectDate, dayCount, AffectDate);
 	}
 
 	partial void OnAffectDateChanged(string? newValue)
@@ -206,5 +234,34 @@ public partial class VerticalStylePage : ContentView
 				}
 			);
 		logger.Debug("Animation started");
+	}
+
+	string? _DestinationString = null;
+	void SetDestinationString(string? value)
+	{
+		if (_DestinationString == value)
+			return;
+
+		_DestinationString = value;
+		if (string.IsNullOrEmpty(value))
+		{
+			DestinationLabel.IsVisible = false;
+			DestinationLabel.Text = null;
+			return;
+		}
+
+		string dstStr = value;
+		switch (value.Length)
+		{
+			case 1:
+				dstStr = $"{Utils.SPACE_CHAR}{value}{Utils.SPACE_CHAR}";
+				break;
+			case 2:
+				dstStr = $"{value[0]}{Utils.SPACE_CHAR}{value[1]}";
+				break;
+		}
+
+		DestinationLabel.Text = $"（{dstStr}行）";
+		DestinationLabel.IsVisible = true;
 	}
 }

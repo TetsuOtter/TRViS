@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using TRViS.IO.Models;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -50,10 +51,15 @@ public partial class ViewHost : ContentPage
 		vm.PropertyChanged += Vm_PropertyChanged;
 		eevm.PropertyChanged += Eevm_PropertyChanged;
 
-		ViewModel = new(vm);
+		ViewModel = InstanceManager.DTACViewHostViewModel;
 		BindingContext = ViewModel;
 
 		ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+		Shell.Current.Navigated += (s, e) =>
+		{
+			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
+		};
 
 		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, new Binding()
 		{
@@ -61,6 +67,11 @@ public partial class ViewHost : ContentPage
 			Path = nameof(AppViewModel.SelectedTrainData)
 		});
 
+		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
+		{
+			Source = vm,
+			Path = nameof(AppViewModel.SelectedWork)
+		});
 		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
 		{
 			Source = vm,
@@ -76,6 +87,10 @@ public partial class ViewHost : ContentPage
 		}
 
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
+
+		OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
+		OnSelectedWorkChanged(vm.SelectedWork);
+		OnSelectedTrainChanged(vm.SelectedTrainData);
 
 		logger.Trace("Created");
 	}
@@ -128,12 +143,59 @@ public partial class ViewHost : ContentPage
 
 	private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(AppViewModel.SelectedWork))
+		if (sender is not AppViewModel vm)
+			return;
+
+		switch (e.PropertyName)
 		{
-			string title = (sender as AppViewModel)?.SelectedWork?.Name ?? "";
-			logger.Info("SelectedWork is changed to {0}", title);
-			TitleLabel.Text = title;
+			case nameof(AppViewModel.SelectedWorkGroup):
+				OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
+				break;
+
+			case nameof(AppViewModel.SelectedWork):
+				OnSelectedWorkChanged(vm.SelectedWork);
+				break;
+
+			case nameof(AppViewModel.SelectedTrainData):
+				OnSelectedTrainChanged(vm.SelectedTrainData);
+				break;
 		}
+	}
+
+	void OnSelectedWorkGroupChanged(IO.Models.DB.WorkGroup? newValue)
+	{
+		string title = newValue?.Name ?? string.Empty;
+		logger.Info("SelectedWorkGroup is changed to {0}", title);
+		HakoView.WorkSpaceName = title;
+	}
+
+	void OnSelectedWorkChanged(IO.Models.DB.Work? newValue)
+	{
+		string title = newValue?.Name ?? string.Empty;
+		logger.Info("SelectedWork is changed to {0}", title);
+		TitleLabel.Text = title;
+		Title = title;
+
+		HakoView.WorkName = title;
+	}
+
+	void OnSelectedTrainChanged(TrainData? newValue)
+	{
+		int dayCount = newValue?.DayCount ?? 0;
+		string affectDate = (
+			newValue?.AffectDate
+			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
+		).ToString("yyyy年M月d日");
+
+		logger.Debug(
+			"date: {0}, dayCount: {1}, AffectDate: {2}",
+			newValue?.AffectDate,
+			dayCount,
+			affectDate
+		);
+
+		VerticalStylePageView.AffectDate = affectDate;
+		HakoView.AffectDate = affectDate;
 	}
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -150,8 +212,17 @@ public partial class ViewHost : ContentPage
 			ViewModel.IsVerticalViewMode,
 			ViewModel.IsWorkAffixMode
 		);
-		HakoView.IsVisible = ViewModel.IsHakoMode;
+		HakoRemarksView.IsVisible = ViewModel.IsHakoMode;
 		VerticalStylePageRemarksView.IsVisible = ViewModel.IsVerticalViewMode;
 		WorkAffixView.IsVisible = ViewModel.IsWorkAffixMode;
+
+		if (!ViewModel.IsHakoMode && HakoRemarksView.IsOpen)
+		{
+			HakoRemarksView.IsOpen = false;
+		}
+		if (!ViewModel.IsVerticalViewMode && VerticalStylePageRemarksView.IsOpen)
+		{
+			VerticalStylePageRemarksView.IsOpen = false;
+		}
 	}
 }

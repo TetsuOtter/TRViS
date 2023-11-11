@@ -34,16 +34,19 @@
 		<MauiIcon
 			Include="Resources\AppIcon\appicon.svg"
 			ForegroundFile="Resources\AppIcon\appiconfg.png"
-			Color="#ccc" />
+			Color="#cfc" />
 		<!-- Splash Screen -->
 		<MauiSplashScreen
 			Include="Resources\AppIcon\appiconfg.png"
-			Color="#999" />
+			Color="#583" />
 		<MauiFont Include="Resources\Fonts\*" />
 		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset
 			Include="Resources\Raw\**"
+			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+		<MauiAsset
+			Include="..\docs\md\**"
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 	<ItemGroup>
@@ -67,6 +70,12 @@
 		<PackageReference
 			Include="NLog"
 			Version="5.2.4" />
+		<PackageReference
+			Include="Microsoft.AppCenter.Analytics"
+			Version="5.0.3" />
+		<PackageReference
+			Include="Microsoft.AppCenter.Crashes"
+			Version="5.0.3" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
