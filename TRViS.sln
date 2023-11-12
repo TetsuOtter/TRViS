@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.IO.Tests", "TRViS.IO.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.LocationService", "TRViS.LocationService\TRViS.LocationService.csproj", "{7B07663D-D68A-4CFD-823B-EE07644FEA8F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.LocationService.Tests", "TRViS.LocationService.Tests\TRViS.LocationService.Tests.csproj", "{9E965886-84FE-499E-9C30-D17F707D5EF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,10 @@ Global
 		{7B07663D-D68A-4CFD-823B-EE07644FEA8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B07663D-D68A-4CFD-823B-EE07644FEA8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B07663D-D68A-4CFD-823B-EE07644FEA8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E965886-84FE-499E-9C30-D17F707D5EF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E965886-84FE-499E-9C30-D17F707D5EF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E965886-84FE-499E-9C30-D17F707D5EF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E965886-84FE-499E-9C30-D17F707D5EF5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
