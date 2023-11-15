@@ -34,7 +34,7 @@ public class LonLatLocationService : ILocationService
 		=> ResetLocationInfo(true);
 	void ResetLocationInfo(bool invokeEvent)
 	{
-		CurrentStationIndex = StaLocationInfo is null ? CURRENT_STATION_INDEX_NOT_SET : 0;
+		CurrentStationIndex = GetNextStationIndex(StaLocationInfo ?? Array.Empty<StaLocationInfo>(), CURRENT_STATION_INDEX_NOT_SET);
 		IsRunningToNextStation = false;
 		DistanceHistoryQueue.Clear();
 
@@ -44,25 +44,67 @@ public class LonLatLocationService : ILocationService
 		}
 	}
 
+	static int GetPastStationIndex(in StaLocationInfo[] staLocationInfo, int currentStationIndex)
+	{
+		for (int i = currentStationIndex - 1; i >= 0; i--)
+		{
+			if (staLocationInfo[i].HasLonLatLocation)
+				return i;
+		}
+
+		return CURRENT_STATION_INDEX_NOT_SET;
+	}
+	static int GetNextStationIndex(in StaLocationInfo[] staLocationInfo, int currentStationIndex)
+	{
+		for (int i = currentStationIndex + 1; i < staLocationInfo.Length; i++)
+		{
+			if (staLocationInfo[i].HasLonLatLocation)
+				return i;
+		}
+
+		return CURRENT_STATION_INDEX_NOT_SET;
+	}
 	public void ForceSetLocationInfo(double lon_deg, double lat_deg)
 	{
 		ResetLocationInfo(false);
 		if (StaLocationInfo is null)
-			return;
-
-		if (StaLocationInfo.Length <= 1)
 		{
-			CurrentStationIndex = StaLocationInfo.Length - 1;
-			IsRunningToNextStation = false;
+			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			return;
 		}
 
-		double[] distanceArray = StaLocationInfo.Select(v => Utils.CalculateDistance_m(lon_deg, lat_deg, v.Location_lon_deg, v.Location_lat_deg)).ToArray();
+		CurrentStationIndex = CURRENT_STATION_INDEX_NOT_SET;
+		if (StaLocationInfo.Length <= 1)
+		{
+			if (StaLocationInfo.Length == 1 && StaLocationInfo[0].HasLonLatLocation)
+			{
+				CurrentStationIndex = 0;
+			}
 
-		int nearestStationIndex = -1;
+			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
+			return;
+		}
+
+		double[] distanceArray = StaLocationInfo.Select(
+			v =>
+				v.HasLonLatLocation
+				? Utils.CalculateDistance_m(lon_deg, lat_deg, v.Location_lon_deg, v.Location_lat_deg)
+				: double.NaN
+		).ToArray();
+
+		int nearestStationIndex = CURRENT_STATION_INDEX_NOT_SET;
+		int firstStationIndex = CURRENT_STATION_INDEX_NOT_SET;
+		int lastStationIndex = CURRENT_STATION_INDEX_NOT_SET;
 		double nearestDistance = double.MaxValue;
 		for (int i = 0; i < distanceArray.Length; i++)
 		{
+			if (double.IsNaN(distanceArray[i]))
+				continue;
+
+			if (firstStationIndex < 0)
+				firstStationIndex = i;
+			lastStationIndex = i;
+
 			if (distanceArray[i] < nearestDistance)
 			{
 				nearestStationIndex = i;
@@ -70,13 +112,29 @@ public class LonLatLocationService : ILocationService
 			}
 		}
 
-		if (nearestStationIndex == 0)
+		// 全ての駅で位置情報が設定されていない場合
+		if (nearestStationIndex < 0)
+		{
+			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
+			return;
+		}
+
+		// 有効な駅が1つしかない場合
+		if (firstStationIndex == lastStationIndex)
+		{
+			CurrentStationIndex = firstStationIndex;
+			IsRunningToNextStation = false;
+			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
+			return;
+		}
+
+		if (nearestStationIndex == firstStationIndex)
 		{
 			// 最初の駅が一番近い場合
-			CurrentStationIndex = 0;
+			CurrentStationIndex = firstStationIndex;
 			IsRunningToNextStation = Utils.IsLeaved(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]);
 		}
-		else if (nearestStationIndex == StaLocationInfo.Length - 1)
+		else if (nearestStationIndex == lastStationIndex)
 		{
 			// 最後の駅が一番近い場合
 			if (Utils.IsNearBy(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]))
@@ -86,7 +144,7 @@ public class LonLatLocationService : ILocationService
 			}
 			else
 			{
-				CurrentStationIndex = nearestStationIndex - 1;
+				CurrentStationIndex = GetPastStationIndex(StaLocationInfo, nearestStationIndex);
 				IsRunningToNextStation = true;
 			}
 		}
@@ -102,10 +160,12 @@ public class LonLatLocationService : ILocationService
 			{
 				IsRunningToNextStation = true;
 				CurrentStationIndex = nearestStationIndex;
+				int pastStationIndex = GetPastStationIndex(StaLocationInfo, nearestStationIndex);
+				int nextStationIndex = GetNextStationIndex(StaLocationInfo, nearestStationIndex);
 				// 次の駅よりも前の駅の方が近い場合、おそらく前の駅からこの駅に向かっているところである
-				if (distanceArray[nearestStationIndex - 1] < distanceArray[nearestStationIndex + 1])
+				if (distanceArray[pastStationIndex] < distanceArray[nextStationIndex])
 				{
-					CurrentStationIndex = nearestStationIndex - 1;
+					CurrentStationIndex = pastStationIndex;
 				}
 			}
 		}
@@ -134,19 +194,22 @@ public class LonLatLocationService : ILocationService
 
 		if (IsRunningToNextStation)
 		{
-			StaLocationInfo nextStation = StaLocationInfo[CurrentStationIndex + 1];
+			// LastStationであれば、RunningToNextStationはfalseであるはずである。
+			// -> 次の駅は必ず存在する
+			int nextStationIndex = GetNextStationIndex(StaLocationInfo, CurrentStationIndex);
+			StaLocationInfo nextStation = StaLocationInfo[nextStationIndex];
 			double distanceToNextStationAverage = GetDistanceToStationAverage(nextStation, lon_deg, lat_deg);
 
 			if (!double.IsNaN(distanceToNextStationAverage)
 				&& Utils.IsNearBy(nextStation, distanceToNextStationAverage))
 			{
 				DistanceHistoryQueue.Clear();
-				CurrentStationIndex++;
+				CurrentStationIndex = nextStationIndex;
 				IsRunningToNextStation = false;
 				LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			}
 		}
-		else if (CurrentStationIndex < StaLocationInfo.Length - 1)
+		else if (0 <= GetNextStationIndex(StaLocationInfo, CurrentStationIndex))
 		{
 			StaLocationInfo currentStation = StaLocationInfo[CurrentStationIndex];
 
