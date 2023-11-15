@@ -14,81 +14,46 @@ public partial class VerticalTimetableView : Grid
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged;
 	partial void OnIsLocationServiceEnabledChanged(bool newValue)
 	{
-		if (newValue)
-		{
-			logger.Info("IsLocationServiceEnabled is changed to true -> set NearbyCheckInfo");
-			SetNearbyCheckInfo(CurrentRunningRow);
-		}
-		else
-		{
-			logger.Info("IsLocationServiceEnabled is changed to false");
-		}
+		logger.Info("IsLocationServiceEnabled is changed to {0}", newValue);
 
 		LocationService.IsEnabled = newValue;
 		IsLocationServiceEnabledChanged?.Invoke(this, new(!newValue, newValue));
 	}
 
-	private void LocationService_IsNearbyChanged(object? sender, bool oldValue, bool newValue)
+	private void LocationService_LocationStateChanged(object? sender, LocationStateChangedEventArgs e)
 	{
-		if (!IsRunStarted || !IsEnabled || CurrentRunningRow is null || !LocationService.IsEnabled)
+		if (!IsLocationServiceEnabled)
 		{
-			logger.Info(
-				"!IsRunStarted: {0} || "
-				+ "!IsEnabled: {1} || "
-				+ "CurrentRunningRow is null: {2} || "
-				+ "!LocationService.IsEnabled: {3}"
-				+ "-> do nothing",
-				IsRunStarted,
-				IsEnabled,
-				CurrentRunningRow is null,
-				LocationService.IsEnabled
-			);
-
+			logger.Debug("IsLocationServiceEnabled is false -> Do nothing");
+			return;
+		}
+		if (e.NewStationIndex < 0)
+		{
+			logger.Warn("e.NewStationIndex is less than 0 -> Disable LocationService");
+			IsLocationServiceEnabled = false;
+			return;
+		}
+		if (RowViewList.Count <= e.NewStationIndex)
+		{
+			logger.Warn("RowViewList.Count is less than e.NewStationIndex -> Disable LocationService");
+			IsLocationServiceEnabled = false;
 			return;
 		}
 
-		if (newValue)
-		{
-			logger.Info("IsNearby is changed to true (= Around Current Station) -> set CurrentRunningRow to NextRunningRow({0})", NextRunningRow?.RowIndex ?? -1);
-			SetCurrentRunningRow(NextRunningRow);
-		}
-		else if (CurrentRunningRow is not null)
-		{
-			logger.Info("IsNearby is changed to false (= Running to next station)"
-			+ " -> set CurrentRunningRow.LocationState to RunningToNextStation and Update NearbyCheckInfo");
-			CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.RunningToNextStation;
-
-			SetNearbyCheckInfo(NextRunningRow);
-		}
-	}
-
-	private void SetNearbyCheckInfo(VerticalTimetableRow? nextRunningRow)
-	{
-		if (nextRunningRow?.RowData is TimetableRow nextRowData)
-		{
-			LocationService.NearbyCenter
-				= nextRowData.Location is LocationInfo
-				{
-					Latitude_deg: double lat,
-					Longitude_deg: double lon
-				}
-					? new Location(lat, lon)
-					: null;
-
-			logger.Info(
-				"Set NearbyCenter to {0}, Radius: {1}, (Row[{2}].StationName: {3})",
-				LocationService.NearbyCenter,
-				nextRowData.Location.OnStationDetectRadius_m,
-				nextRunningRow.RowIndex,
-				nextRowData.StationName
-			);
-
-			LocationService.NearbyRadius_m = nextRowData.Location.OnStationDetectRadius_m ?? LocationService.DefaultNearbyRadius_m;
-		}
-		else
-		{
-			logger.Debug("nextRunningRow is null or nextRunningRow.RowData is null -> do nothing");
-		}
+		logger.Info("LocationStateChanged: [{0}](State:{1}) Rows[{2}](IsRunningToNextStation: {3})",
+			CurrentRunningRowIndex,
+			CurrentRunningRow?.LocationState,
+			e.NewStationIndex,
+			e.IsRunningToNextStation
+		);
+		if (CurrentRunningRow is not null)
+			CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+		UpdateCurrentRunningLocationVisualizer(RowViewList[e.NewStationIndex], e.IsRunningToNextStation
+			? VerticalTimetableRow.LocationStates.RunningToNextStation
+			: VerticalTimetableRow.LocationStates.AroundThisStation
+		);
+		CurrentRunningRow = RowViewList[e.NewStationIndex];
+		CurrentRunningRowIndex = e.NewStationIndex;
 	}
 
 	public void SetCurrentRunningRow(int index)

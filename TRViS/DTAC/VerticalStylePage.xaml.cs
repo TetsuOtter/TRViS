@@ -102,11 +102,10 @@ public partial class VerticalStylePage : ContentView
 		TimetableView.IgnoreSafeArea = false;
 		TimetableView.VerticalOptions = LayoutOptions.Start;
 
-		TimetableView.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
-		{
-			Source = this.PageHeaderArea,
-			Path = nameof(PageHeader.IsRunning)
-		});
+		PageHeaderArea.IsRunningChanged += (_, e) => {
+			logger.Info("IsRunningChanged: {0}", e.NewValue);
+			TimetableView.IsRunStarted = e.NewValue;
+		};
 
 		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
 

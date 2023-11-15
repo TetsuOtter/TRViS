@@ -2,6 +2,7 @@ using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
 using TRViS.IO.Models;
+using TRViS.Services;
 
 namespace TRViS.DTAC;
 
@@ -44,7 +45,7 @@ public partial class VerticalTimetableView
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
 		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
-		LocationService.IsNearbyChanged += LocationService_IsNearbyChanged;
+		LocationService.LocationStateChanged += LocationService_LocationStateChanged;
 		LocationService.ExceptionThrown += (s, e) =>
 		{
 			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));

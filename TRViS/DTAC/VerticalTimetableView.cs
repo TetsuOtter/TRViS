@@ -27,6 +27,8 @@ public partial class VerticalTimetableView : Grid
 	{
 		logger.Trace("SelectedTrainData is changed to {0}", newValue?.TrainNumber);
 		SetRowViews(newValue, newValue?.Rows);
+		IsRunStarted = false;
+		LocationService.SetTimetableRows(newValue?.Rows);
 	}
 
 	partial void OnIsBusyChanged()
@@ -81,7 +83,7 @@ public partial class VerticalTimetableView : Grid
 
 		if (!IsRunStarted || !IsEnabled)
 		{
-			logger.Debug("IsRunStarted is false or IsEnabled is false -> do nothing");
+			logger.Debug("IsRunStarted({0}) is false or IsEnabled({1}) is false -> do nothing", IsRunStarted, IsEnabled);
 			return;
 		}
 
