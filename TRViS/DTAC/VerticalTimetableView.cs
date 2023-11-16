@@ -29,6 +29,7 @@ public partial class VerticalTimetableView : Grid
 		SetRowViews(newValue, newValue?.Rows);
 		IsRunStarted = false;
 		LocationService.SetTimetableRows(newValue?.Rows);
+		ScrollRequested?.Invoke(this, new(0));
 	}
 
 	partial void OnIsBusyChanged()

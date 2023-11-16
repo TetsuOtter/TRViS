@@ -154,6 +154,7 @@ public partial class VerticalStylePage : ContentView
 		logger.Info("SelectedTrainDataChanged: {0}", newValue);
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
+		PageHeaderArea.IsRunning = false;
 
 		TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
