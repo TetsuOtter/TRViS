@@ -106,6 +106,7 @@ public partial class LocationService : ObservableObject, IDisposable
 		return Task.Run(PositioningTask, gpsCancelation.Token);
 	}
 
+	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
 	async Task PositioningTask()
 	{
 		// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
@@ -128,6 +129,42 @@ public partial class LocationService : ObservableObject, IDisposable
 			TimeSpan timeout = Interval;
 			req.Timeout = timeout;
 
+			PermissionStatus permissionStatus = await LocationWhenInUsePermission.CheckStatusAsync();
+			logger.Trace("Location Service Current Permission Status: {0}", permissionStatus);
+			if (permissionStatus != PermissionStatus.Granted)
+			{
+				try
+				{
+					
+					permissionStatus = await MainThread.InvokeOnMainThreadAsync(LocationWhenInUsePermission.RequestAsync);
+					logger.Trace("Location Service Requested Permission Status: {0}", permissionStatus);
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "Location Service Request Permission Failed");
+					IsEnabled = false;
+					gpsCancelation?.Cancel();
+					LogView.Add(LogView.Priority.Error, "Location Service Request Permission Failed:" + ex.ToString());
+
+					if (ExceptionThrown is null)
+						throw;
+					else
+						ExceptionThrown.Invoke(this, ex);
+					return;
+				}
+			}
+			switch (permissionStatus)
+			{
+				case PermissionStatus.Disabled:
+				case PermissionStatus.Denied:
+				case PermissionStatus.Unknown:
+					logger.Error("Location Service Permission Disabled, Denied or Unknown state");
+					IsEnabled = false;
+					gpsCancelation?.Cancel();
+					ExceptionThrown?.Invoke(this, new Exception("Location Service Permission Disabled, Denied or Unknown state"));
+					return;
+			}
+			logger.Trace("Location Service Permission Granted");
 			Location? loc = null;
 
 			try
@@ -145,6 +182,7 @@ public partial class LocationService : ObservableObject, IDisposable
 					throw;
 				else
 					ExceptionThrown.Invoke(this, ex);
+				return;
 			}
 
 			if (loc is not null)
