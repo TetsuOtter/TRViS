@@ -18,7 +18,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 	static readonly List<Work> WorkList = new()
 	{
-		new(){ Id = WORK_1_1, Name = "Work1-1" },
+		new(){ Id = WORK_1_1, Name = "Work1-1", Remarks = "Sample Work Remarks\nLine 2\nLine 3" },
 	};
 
 	static readonly List<IO.Models.DB.TrainData> TrainDataList = new()
@@ -114,7 +114,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
 				DepartureTime: new(1,25,null, null),
-				TrackName: "1",
+				TrackName: """<span style="color: aqua">1</span>""",
 				RunInLimit: null,
 				RunOutLimit: null,
 				Remarks: "記事"
@@ -358,7 +358,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	SpeedType: null,
 	NominalTractiveCapacity: null,
 	CarCount: null,
-	Destination: null,
+	Destination: "長い駅名",
 	BeginRemarks: null,
 	AfterRemarks: "(入換)",
 	Remarks: null,

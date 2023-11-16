@@ -1,9 +1,11 @@
+using TRViS.Controls;
+
 namespace TRViS;
 
 public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension where T : class
 {
-	private T _Dark;
-	private T _Default;
+	private readonly T _Dark;
+	private readonly T _Default;
 	public new T Dark => base.Dark as T ?? _Dark;
 	public new T Light => base.Light as T ?? _Default;
 	public new T Default => base.Default as T ?? _Default;
@@ -21,7 +23,11 @@ public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension wher
 	}
 
 	public virtual void Apply(BindableObject? elem, BindableProperty prop)
-		=> elem?.SetAppTheme(prop, this.Light, this.Dark);
+	{
+		elem?.SetAppTheme(prop, this.Light, this.Dark);
+		if (elem is HtmlAutoDetectLabel label && prop == HtmlAutoDetectLabel.TextColorProperty)
+			label.CurrentAppThemeColorBindingExtension = this as AppThemeColorBindingExtension;
+	}
 }
 
 public class AppThemeColorBindingExtension : AppThemeGenericsBindingExtension<Color>
@@ -29,7 +35,11 @@ public class AppThemeColorBindingExtension : AppThemeGenericsBindingExtension<Co
 	public AppThemeColorBindingExtension(Color Default, Color Dark) : base(Default, Dark) { }
 
 	public override void Apply(BindableObject? elem, BindableProperty prop)
-		=> elem?.SetAppThemeColor(prop, this.Light, this.Dark);
+	{
+		elem?.SetAppThemeColor(prop, this.Light, this.Dark);
+		if (elem is HtmlAutoDetectLabel label && prop == HtmlAutoDetectLabel.TextColorProperty)
+			label.CurrentAppThemeColorBindingExtension = this;
+	}
 	
 	public AppThemeGenericsBindingExtension<Brush> ToBrushTheme()
 		=> new(new SolidColorBrush(this.Default), new SolidColorBrush(this.Dark));

@@ -1,19 +1,17 @@
 using DependencyPropertyGenerator;
-using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
 [DependencyProperty<double>("FontSize_Large")]
-[DependencyProperty<DTACMarkerViewModel>("MarkerSettings")]
 public partial class TimetableHeader : Grid
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public TimetableHeader()
 	{
-		InitializeComponent();
-	}
+		logger.Trace("Creating...");
 
-	partial void OnMarkerSettingsChanged(DTACMarkerViewModel? newValue)
-	{
-		MarkerBtn.MarkerSettings = newValue;
+		InitializeComponent();
+
+		logger.Trace("Created");
 	}
 }

@@ -1,18 +1,27 @@
 using CommunityToolkit.Maui.Views;
-using DependencyPropertyGenerator;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
 public partial class SelectMarkerPopup : Popup
 {
-	public SelectMarkerPopup()
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	public SelectMarkerPopup() : this(InstanceManager.DTACMarkerViewModel) { }
+
+	public SelectMarkerPopup(DTACMarkerViewModel viewModel)
 	{
+		logger.Trace("Creating...");
+
+		BindingContext = viewModel;
+
 		InitializeComponent();
+
+		logger.Trace("Created");
 	}
 
-	public SelectMarkerPopup(DTACMarkerViewModel vm) : this()
+	protected override void OnDismissedByTappingOutsideOfPopup()
 	{
-		BindingContext = vm;
+		logger.Trace("Processing...");
+		base.OnDismissedByTappingOutsideOfPopup();
 	}
 }

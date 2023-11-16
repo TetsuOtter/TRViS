@@ -5,7 +5,7 @@
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:converters="clr-namespace:TRViS.ValueConverters"
 	x:DataType="viewmodels:EasterEggPageViewModel"
-	x:Class="TRViS.EasterEggPage"
+	x:Class="TRViS.RootPages.EasterEggPage"
 	Title="Settings">
 	<ContentPage.Resources>
 		<ResourceDictionary>
@@ -20,11 +20,40 @@
 			<Style TargetType="Frame">
 				<Setter Property="Margin" Value="8"/>
 			</Style>
+
+			<Style TargetType="Button">
+				<Setter Property="Margin" Value="8"/>
+				<Setter Property="Padding" Value="8"/>
+				<Setter Property="LineBreakMode" Value="WordWrap" />
+			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
 
 	<ScrollView>
-		<VerticalStackLayout>
+		<VerticalStackLayout Margin="4,8">
+			<HorizontalStackLayout
+				IsVisible="false"
+				HorizontalOptions="Start">
+				<Button
+					Text="Load from..."
+					Clicked="OnLoadFromPickerClicked"
+				/>
+				<Button
+					Text="Save to..."
+					Clicked="OnSaveToPickerClicked"
+				/>
+			</HorizontalStackLayout>
+			<HorizontalStackLayout
+				HorizontalOptions="End">
+				<Button
+					Text="Reload Saved"
+					Clicked="OnReloadSavedClicked"
+				/>
+				<Button
+					Text="Save"
+					Clicked="OnSaveClicked"
+				/>
+			</HorizontalStackLayout>
 			<Frame>
 				<Grid>
 					<Grid.RowDefinitions>
@@ -69,6 +98,32 @@
 						VerticalOptions="Center"
 						Text="{Binding Color_Blue, StringFormat='{0:D3} (0x{0:X02})'}"/>
 				</Grid>
+			</Frame>
+			<Frame>
+				<VerticalStackLayout>
+					<Label
+						x:Name="LocationServiceIntervalSettingHeaderLabel"
+						Text="{Binding LocationServiceIntervalSettingHeaderLabel, Mode=OneWay}"
+						FontSize="Header"
+						/>
+					<ListView
+						VerticalScrollBarVisibility="Never"
+						ItemsSource="{Binding LocationServiceIntervalItems, Mode=OneTime}"
+						SelectedItem="{Binding LocationServiceInterval_Seconds, Mode=TwoWay}"
+					/>
+				</VerticalStackLayout>
+			</Frame>
+			<Frame>
+				<VerticalStackLayout>
+					<Label
+						Text="Log File Path"
+						FontSize="Header"
+						/>
+					<Label
+						x:Name="LogFilePathLabel"
+						FontSize="Body"
+						/>
+				</VerticalStackLayout>
 			</Frame>
 		</VerticalStackLayout>
 	</ScrollView>

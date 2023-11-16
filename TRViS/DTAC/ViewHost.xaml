@@ -6,13 +6,12 @@
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	x:Class="TRViS.DTAC.ViewHost"
 	x:DataType="viewmodels:DTACViewHostViewModel"
-	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}"
-	Title="{Binding AppViewModel.SelectedTrainData.WorkName}">
+	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}">
 	<Grid
 		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="{x:Static local:ViewHost.TitleViewHeight}"/>
-			<RowDefinition Height="64"/>
+			<RowDefinition Height="60"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 
@@ -67,10 +66,13 @@
 				TargetMode="WorkAffix"/>
 		</HorizontalStackLayout>
 
-		<local:Hako
-			x:Name="HakoView"
+		<local:WithRemarksView
+			x:Name="HakoRemarksView"
 			IsVisible="False"
-			Grid.Row="2"/>
+			Grid.Row="2">
+			<local:Hako
+				x:Name="HakoView"/>
+		</local:WithRemarksView>
 
 		<local:WorkAffix
 			x:Name="WorkAffixView"

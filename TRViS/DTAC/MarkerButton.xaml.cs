@@ -1,31 +1,34 @@
 using CommunityToolkit.Maui.Views;
-
-using DependencyPropertyGenerator;
-
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<DTACMarkerViewModel>("MarkerSettings")]
 public partial class MarkerButton : Frame
 {
+	DTACMarkerViewModel MarkerSettings { get; }
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public MarkerButton()
 	{
-		InitializeComponent();
-	}
+		logger.Trace("Creating...");
 
-	partial void OnMarkerSettingsChanged(DTACMarkerViewModel? newValue)
-	{
-		BindingContext = newValue;
+		MarkerSettings = InstanceManager.DTACMarkerViewModel;
+		BindingContext = MarkerSettings;
+		InitializeComponent();
+
+		logger.Trace("Created");
 	}
 
 	async void TapGestureRecognizer_Tapped(object sender, EventArgs e)
 	{
-		if (Shell.Current.CurrentPage is not ViewHost page || MarkerSettings is null)
+		if (Shell.Current.CurrentPage is not ViewHost page)
+		{
+			logger.Warn("Shell.Current.CurrentPage is not ViewHost");
 			return;
+		}
 
 		if (MarkerSettings.IsToggled)
 		{
+			logger.Info("MarkerSettings.IsToggled set true -> false");
 			MarkerSettings.IsToggled = false;
 			return;
 		}
@@ -37,6 +40,8 @@ public partial class MarkerButton : Frame
 			Anchor = this,
 		};
 
+		logger.Info("Showing SelectMarkerPopup");
 		await page.ShowPopupAsync(popup);
+		logger.Trace("SelectMarkerPopup Shown");
 	}
 }

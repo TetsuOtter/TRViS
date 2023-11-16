@@ -6,6 +6,7 @@ namespace TRViS.DTAC;
 
 public partial class TrainInfo_BeforeDeparture : Grid
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	static readonly RowDefinitionCollection DefaultRowDefinitions = new()
 	{
 		new RowDefinition(DTACElementStyles.BeforeDeparture_AfterArrive_Height),
@@ -18,7 +19,11 @@ public partial class TrainInfo_BeforeDeparture : Grid
 	public string TrainInfoText
 	{
 		get => TrainInfoArea.Text;
-		set => TrainInfoArea.Text = value;
+		set
+		{
+			logger.Info("TrainInfoText: {0}", value);
+			TrainInfoArea.Text = value;
+		}
 	}
 	#endregion
 
@@ -28,18 +33,28 @@ public partial class TrainInfo_BeforeDeparture : Grid
 	public string BeforeDepartureText
 	{
 		get => BeforeDeparture.Text;
-		set => BeforeDeparture.Text = value;
+		set
+		{
+			logger.Info("BeforeDepartureText: {0}", value);
+			BeforeDeparture.Text = value;
+		}
 	}
 
 	public string BeforeDepartureText_OnStationTrackColumn
 	{
 		get => BeforeDeparture.Text_OnStationTrackColumn;
-		set => BeforeDeparture.Text_OnStationTrackColumn = value;
+		set
+		{
+			logger.Info("BeforeDepartureText_OnStationTrackColumn: {0}", value);
+			BeforeDeparture.Text_OnStationTrackColumn = value;
+		}
 	}
 	#endregion
 
 	public TrainInfo_BeforeDeparture()
 	{
+		logger.Trace("Creating...");
+
 		RowDefinitions = DefaultRowDefinitions;
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
 
@@ -53,5 +68,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 
 		BeforeDeparture.AddToParent();
 		BeforeDeparture.SetRow(1);
+
+		logger.Trace("Created");
 	}
 }

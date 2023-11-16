@@ -1,15 +1,16 @@
-using Microsoft.Maui.Controls.Shapes;
-
 using TRViS.Controls;
 
 namespace TRViS.DTAC;
 
 public class BeforeAfterRemarks
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	readonly Grid Parent;
 
 	public BeforeAfterRemarks(Grid Parent)
 	{
+		logger.Trace("Creating... (Parent: {0})", Parent.GetType().Name);
+
 		this.Parent = Parent;
 
 		IsVisible = false;
@@ -17,6 +18,8 @@ public class BeforeAfterRemarks
 		Label.Margin = new(32, 0);
 		Label.HorizontalOptions = LayoutOptions.Start;
 		Label.LineHeight = 1.4;
+
+		logger.Trace("Created");
 	}
 
 	readonly HtmlAutoDetectLabel Label = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
@@ -27,9 +30,13 @@ public class BeforeAfterRemarks
 		set
 		{
 			if (Label.Text == value)
+			{
+				logger.Trace("Text is the same, skipping... ({0})", value);
 				return;
+			}
 
 			IsVisible = !string.IsNullOrWhiteSpace(value);
+			logger.Debug("Setting Text to {0}, IsVisible: {1}", value, IsVisible);
 
 			Label.Text = value;
 		}
@@ -55,6 +62,7 @@ public class BeforeAfterRemarks
 
 	public void SetRow(in int row)
 	{
+		logger.Trace("Setting Row to {0}", row);
 		Grid.SetRow(Label, row);
 	}
 }

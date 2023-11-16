@@ -1,32 +1,27 @@
 using CommunityToolkit.Maui;
-using TRViS.IO;
-using TRViS.ViewModels;
+
+using NLog;
+
+using TRViS.Services;
 
 namespace TRViS;
 
 public static class MauiProgram
 {
 	static readonly string CrashLogFilePath;
-	public static readonly DirectoryInfo CrashLogFileDirectory;
 	static readonly string CrashLogFileName;
+
+	static readonly Logger logger;
+	const string logFormat = "${longdate} [${threadid:padding=3}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
 
 	static MauiProgram()
 	{
 		CrashLogFileName = $"{DateTime.Now:yyyyMMdd_HHmmss}.crashlog.trvis.txt";
 
-		string baseDirPath;
-		if (DeviceInfo.Current.Platform == DevicePlatform.iOS)
-		{
-			baseDirPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-		}
-		else
-		{
-			baseDirPath = FileSystem.Current.AppDataDirectory;
-		}
+		CrashLogFilePath = Path.Combine(DirectoryPathProvider.CrashLogFileDirectory.FullName, CrashLogFileName);
 
-
-		CrashLogFileDirectory = new(Path.Combine(baseDirPath, "TRViS.InternalFiles", "crashlogs"));
-		CrashLogFilePath = Path.Combine(CrashLogFileDirectory.FullName, CrashLogFileName);
+		LoggerService.SetupLoggerService();
+		logger = LogManager.GetCurrentClassLogger();
 	}
 
 	public static MauiApp CreateMauiApp()
@@ -42,14 +37,6 @@ public static class MauiProgram
 				fonts.AddFont("MaterialIcons-Regular.ttf", "MaterialIconsRegular");
 			});
 
-		builder.Services
-			.AddSingleton(typeof(AppShell))
-			.AddSingleton(typeof(SelectTrainPage))
-			.AddSingleton(typeof(EasterEggPage))
-			.AddSingleton(typeof(DTAC.ViewHost))
-			.AddSingleton(typeof(EasterEggPageViewModel))
-			.AddSingleton(typeof(AppViewModel));
-
 		AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
 		return builder.Build();
@@ -60,9 +47,11 @@ public static class MauiProgram
 		if (e.ExceptionObject is not Exception ex)
 			return;
 
-		if (!CrashLogFileDirectory.Exists)
+		logger.Fatal(ex, "UnhandledException");
+
+		if (!DirectoryPathProvider.CrashLogFileDirectory.Exists)
 		{
-			CrashLogFileDirectory.Create();
+			DirectoryPathProvider.CrashLogFileDirectory.Create();
 		}
 
 		await File.AppendAllTextAsync(CrashLogFilePath, $"{DateTime.Now:[yyyy/MM/dd HH:mm:ss]} {ex.Message}\n{ex.StackTrace}\n---\n(InnerException: {ex.InnerException})\n\n");

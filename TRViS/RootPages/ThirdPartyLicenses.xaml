@@ -5,7 +5,7 @@
 	xmlns:models="clr-namespace:TRViS.Models"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	x:DataType="viewmodels:ThirdPartyLicensesViewModel"
-	x:Class="TRViS.ThirdPartyLicenses"
+	x:Class="TRViS.RootPages.ThirdPartyLicenses"
 	Title="ThirdPartyLicenses">
 	<FlexLayout
 		AlignContent="Stretch"
