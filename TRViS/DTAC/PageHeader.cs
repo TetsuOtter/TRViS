@@ -45,6 +45,12 @@ public partial class PageHeader : Grid
 	#region Start / End Run Button
 	readonly StartEndRunButton StartEndRunButton = new();
 
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsRunningChanged
+	{
+		add => StartEndRunButton.IsCheckedChanged += value;
+		remove => StartEndRunButton.IsCheckedChanged -= value;
+	}
+
 	partial void OnIsRunningChanged(bool newValue)
 	{
 		logger.Info("IsRunning: {0}", newValue);

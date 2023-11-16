@@ -131,6 +131,13 @@ public class LocationServiceButton : ToggleButton
 
 	void OnIsCheckedChanged(bool isLocationServiceEnabled)
 	{
+		if (!MainThread.IsMainThread)
+		{
+			logger.Debug("MainThread is not current thread -> invoke OnIsCheckedChanged on MainThread");
+			MainThread.BeginInvokeOnMainThread(() => OnIsCheckedChanged(isLocationServiceEnabled));
+			return;
+		}
+
 		if (isLocationServiceEnabled)
 		{
 			logger.Info("Location Service is enabled");

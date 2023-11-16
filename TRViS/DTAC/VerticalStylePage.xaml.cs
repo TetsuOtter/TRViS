@@ -102,11 +102,10 @@ public partial class VerticalStylePage : ContentView
 		TimetableView.IgnoreSafeArea = false;
 		TimetableView.VerticalOptions = LayoutOptions.Start;
 
-		TimetableView.SetBinding(VerticalTimetableView.IsRunStartedProperty, new Binding()
-		{
-			Source = this.PageHeaderArea,
-			Path = nameof(PageHeader.IsRunning)
-		});
+		PageHeaderArea.IsRunningChanged += (_, e) => {
+			logger.Info("IsRunningChanged: {0}", e.NewValue);
+			TimetableView.IsRunStarted = e.NewValue;
+		};
 
 		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
 
@@ -155,6 +154,7 @@ public partial class VerticalStylePage : ContentView
 		logger.Info("SelectedTrainDataChanged: {0}", newValue);
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
+		PageHeaderArea.IsRunning = false;
 
 		TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
