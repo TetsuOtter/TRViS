@@ -124,6 +124,13 @@ public partial class VerticalTimetableView : Grid
 
 	void UpdateCurrentRunningLocationVisualizer(VerticalTimetableRow row, VerticalTimetableRow.LocationStates states)
 	{
+		if (!MainThread.IsMainThread)
+		{
+			logger.Debug("MainThread is not current thread -> invoke UpdateCurrentRunningLocationVisualizer on MainThread");
+			MainThread.BeginInvokeOnMainThread(() => UpdateCurrentRunningLocationVisualizer(row, states));
+			return;
+		}
+
 		logger.Info("UpdateCurrentRunningLocationVisualizer: {0} ... {1}", row.RowIndex, states);
 		row.LocationState = states;
 
