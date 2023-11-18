@@ -46,6 +46,7 @@ public static class DTACElementStyles
 	);
 
 	public static readonly AppThemeColorBindingExtension ForegroundBlackWhite = genColor(0x00, 0xFF);
+	public static readonly AppThemeGenericsBindingExtension<Brush> ForegroundBlackWhiteBrush = ForegroundBlackWhite.ToBrushTheme();
 
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideFrameColor = genColor(0xFF, 0xAA);
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
@@ -409,6 +410,7 @@ public static class DTACElementStyles
 		return v;
 	}
 
+	static readonly AppThemeGenericsBindingExtension<Brush> LastStopLineBrush = TimetableTextColor.ToBrushTheme();
 	public static Line LastStopLine()
 	{
 		Line v = new()
@@ -423,6 +425,7 @@ public static class DTACElementStyles
 			HorizontalOptions = LayoutOptions.Center,
 		};
 
+		LastStopLineBrush.Apply(v, Line.FillProperty);
 		TimetableTextColor.Apply(v, Line.BackgroundColorProperty);
 
 		return v;
