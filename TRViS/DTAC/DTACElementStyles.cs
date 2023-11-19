@@ -329,9 +329,10 @@ public static class DTACElementStyles
 			_horizontalSeparatorLineStyleResource.Setters.Add(Line.VerticalOptionsProperty, LayoutOptions.End);
 			_horizontalSeparatorLineStyleResource.Setters.Add(Line.StrokeThicknessProperty, 0.5);
 			_horizontalSeparatorLineStyleResource.Setters.Add(Line.HeightRequestProperty, 0.5);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.FillProperty, SeparatorLineBrush);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.BackgroundColorProperty, SeparatorLineColor);
+			_horizontalSeparatorLineStyleResource.Setters.Add(Line.StrokeProperty, SeparatorLineBrush.Default);
 			_horizontalSeparatorLineStyleResource.Setters.Add(Grid.ColumnSpanProperty, 8);
+			_horizontalSeparatorLineStyleResource.Setters.Add(Line.X1Property, 0);
+			_horizontalSeparatorLineStyleResource.Setters.Add(Line.X2Property, 10000);
 
 			return _horizontalSeparatorLineStyleResource;
 		}
@@ -348,10 +349,11 @@ public static class DTACElementStyles
 
 			_verticalSeparatorLineStyleResource.Setters.Add(Line.HorizontalOptionsProperty, LayoutOptions.End);
 			_verticalSeparatorLineStyleResource.Setters.Add(Line.MarginProperty, new Thickness(0, 6));
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.FillProperty, SeparatorLineBrush);
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.BackgroundColorProperty, SeparatorLineColor);
+			_verticalSeparatorLineStyleResource.Setters.Add(Line.StrokeProperty, SeparatorLineBrush.Default);
 			_verticalSeparatorLineStyleResource.Setters.Add(Line.StrokeThicknessProperty, 1);
 			_verticalSeparatorLineStyleResource.Setters.Add(Line.WidthRequestProperty, 1);
+			_verticalSeparatorLineStyleResource.Setters.Add(Line.Y1Property, 0);
+			_verticalSeparatorLineStyleResource.Setters.Add(Line.Y2Property, 100);
 
 			return _verticalSeparatorLineStyleResource;
 		}
@@ -363,10 +365,9 @@ public static class DTACElementStyles
 			VerticalOptions = LayoutOptions.End,
 			StrokeThickness = 0.5,
 			HeightRequest = 0.5,
-			Fill = SeparatorLineBrush.Default,
 		};
 
-		SeparatorLineColor.Apply(v, Line.BackgroundColorProperty);
+		SeparatorLineBrush.Apply(v, Line.StrokeProperty);
 
 		return v;
 	}
@@ -425,8 +426,7 @@ public static class DTACElementStyles
 			HorizontalOptions = LayoutOptions.Center,
 		};
 
-		LastStopLineBrush.Apply(v, Line.FillProperty);
-		TimetableTextColor.Apply(v, Line.BackgroundColorProperty);
+		LastStopLineBrush.Apply(v, Line.StrokeProperty);
 
 		return v;
 	}
