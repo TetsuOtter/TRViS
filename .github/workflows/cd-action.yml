@@ -133,7 +133,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 30
     needs:
       - get-version
@@ -337,7 +337,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 30
     needs:
       - get-version
