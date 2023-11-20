@@ -51,6 +51,8 @@ public partial class TrainInfo_BeforeDeparture : Grid
 	}
 	#endregion
 
+	readonly Line Separator = DTACElementStyles.HorizontalSeparatorLineStyle();
+
 	public TrainInfo_BeforeDeparture()
 	{
 		logger.Trace("Creating...");
@@ -68,6 +70,8 @@ public partial class TrainInfo_BeforeDeparture : Grid
 
 		BeforeDeparture.AddToParent();
 		BeforeDeparture.SetRow(1);
+
+		DTACElementStyles.AddHorizontalSeparatorLineStyle(this, Separator, 0);
 
 		logger.Trace("Created");
 	}

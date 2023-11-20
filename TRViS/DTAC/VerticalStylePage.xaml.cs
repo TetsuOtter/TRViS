@@ -121,6 +121,11 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Info("Device is not Phone nor Unknown -> set TimetableView to TimetableAreaScrollView");
 			TimetableAreaScrollView.Content = TimetableView;
+			TimetableView.SetBinding(VerticalTimetableView.ScrollViewHeightProperty, new Binding()
+			{
+				Source = TimetableAreaScrollView,
+				Path = nameof(TimetableAreaScrollView.Height)
+			});
 		}
 
 		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;

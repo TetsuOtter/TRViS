@@ -326,9 +326,6 @@ public partial class VerticalTimetableRow
 			logger.Debug("Remarks is null or empty, so skipping...");
 		}
 
-		logger.Trace("Creating HorizontalSeparatorLine");
-		DTACElementStyles.AddHorizontalSeparatorLineStyle(parent, rowIndex);
-
 		logger.Trace("Creating MarkerBox");
 		MarkerBox = new()
 		{

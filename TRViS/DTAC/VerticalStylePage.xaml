@@ -116,6 +116,11 @@
 			x:Name="TrainInfo_BeforeDepartureArea"
 			Grid.Row="3"/>
 
+		<Line
+			Grid.Row="4"
+			VerticalOptions="Start"
+			Style="{x:Static dtac:DTACElementStyles.HorizontalSeparatorLineStyleResource}"/>
+
 		<Grid
 			Grid.Row="4"
 			ColumnDefinitions="{x:Static dtac:DTACElementStyles.TimetableColumnWidthCollection}"

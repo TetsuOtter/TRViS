@@ -1,3 +1,5 @@
+using Microsoft.Maui.Controls.Shapes;
+
 using TRViS.Controls;
 using TRViS.IO.Models;
 
@@ -50,6 +52,50 @@ public partial class VerticalTimetableView
 		logger.Trace("Created");
 	}
 
+	Line TopSeparatorLine { get; } = DTACElementStyles.HorizontalSeparatorLineStyle();
+	List<Line> SeparatorLines { get; } = new();
+	Task AddSeparatorLines()
+	{
+		if (!MainThread.IsMainThread)
+			return MainThread.InvokeOnMainThreadAsync(AddSeparatorLines);
+
+		logger.Trace("MainThread: Insert Separator Lines");
+
+		bool isChildrenCleared = !Children.Contains(TopSeparatorLine);
+		int initialSeparatorLinesListLength = SeparatorLines.Count;
+		for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
+		{
+			SeparatorLines.Add(DTACElementStyles.HorizontalSeparatorLineStyle());
+		}
+		for (int i = initialSeparatorLinesListLength - 1; RowDefinitions.Count <= i; i--)
+		{
+			Line line = SeparatorLines[i];
+			SeparatorLines.RemoveAt(i);
+			Children.Remove(line);
+		}
+
+		if (isChildrenCleared)
+		{
+			TopSeparatorLine.VerticalOptions = LayoutOptions.Start;
+			DTACElementStyles.AddHorizontalSeparatorLineStyle(this, TopSeparatorLine, 0);
+			for (int i = 0; i < SeparatorLines.Count; i++)
+			{
+				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
+			}
+		}
+		else
+		{
+			for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
+			{
+				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
+			}
+		}
+
+		logger.Trace("MainThread: Insert Separator Lines Complete");
+		return Task.CompletedTask;
+	}
+
+	int RowsCount = 0;
 	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
 	{
 		logger.Info("Setting RowViews... (Current RowViewList.Count: {0})", RowViewList.Count);
@@ -69,7 +115,10 @@ public partial class VerticalTimetableView
 		int newCount = newValue?.Length ?? 0;
 		logger.Debug("newCount: {0}", newCount);
 
+		RowsCount = newCount;
 		SetRowDefinitions(newCount);
+
+		await AddSeparatorLines();
 
 		AfterRemarks.SetRow(newCount);
 		AfterArrive.SetRow(newCount + 1);
@@ -168,12 +217,22 @@ public partial class VerticalTimetableView
 		if (newCount < 0)
 			throw new ArgumentOutOfRangeException(nameof(newCount), "count must be 0 or more");
 
-		// After Remarks
-		newCount += 1;
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+		{
+			// AfterRemarks & AfterArrive
+			newCount += 2;
+		}
+		else
+		{
+			int minCount = (int)Math.Floor(ScrollViewHeight / RowHeight.Value);
+			int additionalRowsCount = Math.Max(2, (int)Math.Ceiling(ScrollViewHeight / RowHeight.Value) - 2);
+			logger.Debug("additionalRowsCount: {0}", additionalRowsCount);
 
-		RowDefinitions.Remove(AfterArrive.RowDefinition);
+			newCount += additionalRowsCount;
+			newCount = Math.Max(minCount, newCount);
+		}
 
-		HeightRequest = (newCount * RowHeight.Value) + AfterArrive.RowDefinition.Height.Value;
+		HeightRequest = newCount * RowHeight.Value;
 		logger.Debug("HeightRequest: {0}", HeightRequest);
 
 		if (newCount <= 0)
@@ -188,7 +247,18 @@ public partial class VerticalTimetableView
 			for (int i = RowDefinitions.Count - 1; i >= newCount; i--)
 				RowDefinitions.RemoveAt(i);
 		}
+	}
 
-		RowDefinitions.Add(AfterArrive.RowDefinition);
+	partial void OnScrollViewHeightChanged(double newValue)
+	{
+		logger.Debug("ScrollViewHeight: {0}", newValue);
+
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+			return;
+
+		SetRowDefinitions(RowsCount);
+		AddSeparatorLines();
+
+		logger.Debug("RowDefinitions.Count changed to: {0}", RowDefinitions.Count);
 	}
 }
