@@ -353,7 +353,7 @@ public partial class VerticalTimetableRow
 		MarkerBox.Shadow.Radius = 2;
 		MarkerBox.Clicked += MarkerBoxClicked;
 
-		parent.Add(MarkerBox, 8, rowIndex);
+		parent.Add(MarkerBox, 7, rowIndex);
 
 		logger.Trace("Created");
 	}

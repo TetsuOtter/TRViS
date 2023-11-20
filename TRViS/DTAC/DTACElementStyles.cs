@@ -365,6 +365,8 @@ public static class DTACElementStyles
 			VerticalOptions = LayoutOptions.End,
 			StrokeThickness = 0.5,
 			HeightRequest = 0.5,
+			X1 = 0,
+			X2 = 10000,
 		};
 
 		SeparatorLineBrush.Apply(v, Line.StrokeProperty);
