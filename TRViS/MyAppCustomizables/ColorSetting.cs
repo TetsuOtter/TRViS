@@ -71,7 +71,7 @@ public class ColorSetting(byte red, byte green, byte blue)
 	/// <summary>
 	/// 指定した色とこの色情報が等しいかどうかを判断する
 	/// </summary>
-	/// <param name="other">比較相手</param>
+	/// <param name="obj">比較相手</param>
 	/// <returns>等しいかどうか</returns>
 	public override bool Equals(object? obj)
 	{

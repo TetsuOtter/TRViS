@@ -112,10 +112,10 @@ public partial class LocationService : ObservableObject, IDisposable
 
 	private bool disposedValue;
 
-	partial void OnIsEnabledChanged(bool newValue)
+	partial void OnIsEnabledChanged(bool value)
 	{
 		// GPS停止
-		if (!newValue)
+		if (!value)
 		{
 			logger.Info("IsEnabled is changed to false -> stop GPS");
 			gpsCancelation?.Cancel();
@@ -127,15 +127,15 @@ public partial class LocationService : ObservableObject, IDisposable
 		}
 	}
 
-	partial void OnNearbyCenterChanged(Location? newValue)
+	partial void OnNearbyCenterChanged(Location? value)
 	{
-		if (LastLocation is null || newValue is null)
+		if (LastLocation is null || value is null)
 		{
 			logger.Trace("LastLocation is null or newValue is null -> do nothing");
 			return;
 		}
 
-		logger.Info("NearbyCenter is changed to {0}", newValue);
+		logger.Info("NearbyCenter is changed to {0}", value);
 		IsNearby = false;
 		setIsNearby(LastLocation);
 	}
