@@ -70,7 +70,7 @@ public partial class WithRemarksView : Grid
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
-		logger.Trace("SafeAreaMargin is changed: {0} -> {1}", oldValue, newValue);
+		logger.Trace("SafeAreaMargin is changed: {0} -> {1}", Utils.ThicknessToString(oldValue), Utils.ThicknessToString(newValue));
 #if IOS
 		double bottomPaddingValue = newValue.Bottom;
 
@@ -84,7 +84,7 @@ public partial class WithRemarksView : Grid
 		{
 			logger.Debug("bottomPaddingValue is greater than 0 (= {0}) -> show BottomPaddingView", bottomPaddingValue);
 			BottomPaddingView.IsVisible = true;
-			RemarksAreaPaddingRowDefinition.Height = new(bottomPaddingValue / 2, GridUnitType.Absolute);
+			RemarksAreaPaddingRowDefinition.Height = new(bottomPaddingValue, GridUnitType.Absolute);
 		}
 		else
 		{
