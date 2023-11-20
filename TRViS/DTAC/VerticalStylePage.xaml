@@ -210,6 +210,7 @@
 			x:Name="TimetableViewActivityIndicatorFrame"
 			Opacity="{x:Static dtac:VerticalStylePage.TimetableViewActivityIndicatorFrameMaxOpacity}"
 			VerticalOptions="Start"
+			IsVisible="False"
 			HasShadow="True"
 			HeightRequest="50"
 			WidthRequest="50"
