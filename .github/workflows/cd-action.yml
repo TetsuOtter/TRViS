@@ -581,7 +581,6 @@ jobs:
         needs.publish-ios.result == 'success'
         || needs.publish-mac.result == 'success'
       )
-      && !failure()
 
     runs-on: ubuntu-latest
     timeout-minutes: 5
