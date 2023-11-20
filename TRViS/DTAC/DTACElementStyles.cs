@@ -299,7 +299,7 @@ public static class DTACElementStyles
 
 			_timetableDefaultNumberLabelStyleResource = new Style(typeof(Label))
 			{
-				BasedOn = TimetableLabelStyleResource
+				BasedOn = TimetableLargeNumberLabelStyleResource
 			};
 
 			_timetableDefaultNumberLabelStyleResource.Setters.Add(Label.FontSizeProperty, 16);
