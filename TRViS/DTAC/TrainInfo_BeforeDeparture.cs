@@ -71,6 +71,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		BeforeDeparture.AddToParent();
 		BeforeDeparture.SetRow(1);
 
+		Separator.Opacity = 1.0;
 		DTACElementStyles.AddHorizontalSeparatorLineStyle(this, Separator, 0);
 
 		logger.Trace("Created");
