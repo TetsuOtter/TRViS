@@ -10,7 +10,7 @@ public partial class App : Application
 
 	public App()
 	{
-		logger.Trace("App Creating");
+		logger.Trace("App Creating (URL: {0})", AppLinkUri?.ToString() ?? "(null))");
 
 		InitializeComponent();
 
@@ -43,5 +43,14 @@ public partial class App : Application
 			NLog.LogManager.Flush();
 			NLog.LogManager.Shutdown();
 		}
+	}
+
+	public static Uri? AppLinkUri { get; set; }
+	protected override void OnAppLinkRequestReceived(Uri uri)
+	{
+		base.OnAppLinkRequestReceived(uri);
+
+		AppLinkUri = uri;
+		logger.Info("AppLinkUri: {0}", uri);
 	}
 }
