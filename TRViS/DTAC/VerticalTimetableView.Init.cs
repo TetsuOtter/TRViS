@@ -52,7 +52,7 @@ public partial class VerticalTimetableView
 		logger.Trace("Created");
 	}
 
-	Line TopSeparatorLine { get; } = DTACElementStyles.HorizontalSeparatorLineStyle();
+	Line TopSeparatorLine { get; } = DTACElementStyles.TimetableRowHorizontalSeparatorLineStyle();
 	List<Line> SeparatorLines { get; } = new();
 	Task AddSeparatorLines()
 	{
@@ -65,7 +65,7 @@ public partial class VerticalTimetableView
 		int initialSeparatorLinesListLength = SeparatorLines.Count;
 		for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
 		{
-			SeparatorLines.Add(DTACElementStyles.HorizontalSeparatorLineStyle());
+			SeparatorLines.Add(DTACElementStyles.TimetableRowHorizontalSeparatorLineStyle());
 		}
 		for (int i = initialSeparatorLinesListLength - 1; RowDefinitions.Count <= i; i--)
 		{
@@ -194,7 +194,7 @@ public partial class VerticalTimetableView
 				Grid.SetColumnSpan(label, 3);
 				Add(label);
 
-				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, index);
+				DTACElementStyles.AddTimetableRowHorizontalSeparatorLineStyle(this, index);
 			}
 			else
 			{

@@ -368,7 +368,6 @@ public static class DTACElementStyles
 			VerticalOptions = LayoutOptions.End,
 			StrokeThickness = 0.5,
 			HeightRequest = 0.5,
-			Opacity = 0.5,
 			X1 = 0,
 			X2 = 10000,
 		};
@@ -377,8 +376,16 @@ public static class DTACElementStyles
 
 		return v;
 	}
-	public static void AddHorizontalSeparatorLineStyle(Grid grid, int row)
-		=> AddHorizontalSeparatorLineStyle(grid, HorizontalSeparatorLineStyle(), row);
+	public static Line TimetableRowHorizontalSeparatorLineStyle()
+	{
+		Line v = HorizontalSeparatorLineStyle();
+
+		v.Opacity = 0.5;
+
+		return v;
+	}
+	public static void AddTimetableRowHorizontalSeparatorLineStyle(Grid grid, int row)
+		=> AddHorizontalSeparatorLineStyle(grid, TimetableRowHorizontalSeparatorLineStyle(), row);
 	public static void AddHorizontalSeparatorLineStyle(Grid grid, Line line, int row)
 	{
 		Grid.SetRow(line, row);
