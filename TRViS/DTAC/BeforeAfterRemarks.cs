@@ -15,9 +15,6 @@ public class BeforeAfterRemarks
 
 		IsVisible = false;
 
-		Grid.SetColumn(Label, 2);
-		Grid.SetColumnSpan(Label, 6);
-
 		Label.Margin = new(32, 0);
 		Label.HorizontalOptions = LayoutOptions.Start;
 		Label.LineHeight = 1.4;
@@ -47,6 +44,8 @@ public class BeforeAfterRemarks
 
 	public void AddToParent()
 	{
+		Grid.SetColumn(Label, 2);
+		Grid.SetColumnSpan(Label, 6);
 		Parent.Add(Label);
 	}
 

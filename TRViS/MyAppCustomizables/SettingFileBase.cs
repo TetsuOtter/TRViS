@@ -27,7 +27,7 @@ public class SettingFileStructure
 	/// <summary>
 	/// 位置情報サービスの位置情報サービスの位置測位間隔 (秒)
 	/// </summary>
-	/// <remarks
+	/// <remarks>
 	/// この値は、0.1 (秒) 以上である必要があります。
 	/// </remarks>
 	public double LocationServiceInterval_Seconds { get; set; } = 1;

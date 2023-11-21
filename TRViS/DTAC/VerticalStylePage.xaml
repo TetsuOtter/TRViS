@@ -34,32 +34,32 @@
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.HeaderBackgroundColor}">
 			<Label
-				Style="{StaticResource HeaderLabel}"
+				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="列　車"
 				Grid.Column="0"/>
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
 			<Label
-				Style="{StaticResource HeaderLabel}"
+				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="最高速度&#xa;(Ｋｍ / ｈ)"
 				HorizontalTextAlignment="Center"
 				Grid.Column="1"/>
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
 			<Label
-				Style="{StaticResource HeaderLabel}"
+				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="速度種別"
 				Grid.Column="2"/>
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="2"/>
 
 			<Label
-				Style="{StaticResource HeaderLabel}"
+				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="けん引定数"
 				Grid.Column="3"/>
 		</Grid>
@@ -69,38 +69,38 @@
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
 			<Label
-				Style="{StaticResource LabelStyle}"
+				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
 				TextColor="{x:Static dtac:DTACElementStyles.TrainNumNextDayTextColor}"
 				FontSize="24"
 				FontAttributes="Bold"
 				Grid.Column="0"/>
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
 			<ctrls:HtmlAutoDetectLabel
-				Style="{StaticResource LabelStyle}"
+				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Text="{Binding MaxSpeed, Converter={StaticResource ToWideConverter}}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="1"/>
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
 			<ctrls:HtmlAutoDetectLabel
-				Style="{StaticResource LabelStyle}"
+				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Text="{Binding SpeedType, Converter={StaticResource ToWideConverter}}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="2"/>
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="2"/>
 
 			<ctrls:HtmlAutoDetectLabel
-				Style="{StaticResource LabelStyle}"
+				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
 				LineHeight="1"
 				HorizontalTextAlignment="End"
@@ -108,22 +108,27 @@
 				Grid.Column="3"/>
 		</Grid>
 
-		<Line
-			Grid.Row="2"
-			Style="{StaticResource TimetableSeparatorLine}"/>
-
 		<dtac:TrainInfo_BeforeDeparture
 			x:Name="TrainInfo_BeforeDepartureArea"
 			Grid.Row="3"/>
+		<Line
+			VerticalOptions="Start"
+			Grid.Row="3"
+			Style="{x:Static dtac:DTACElementStyles.HorizontalSeparatorLineStyleResource}"/>
+
 
 		<Grid
 			Grid.Row="4"
 			ColumnDefinitions="{x:Static dtac:DTACElementStyles.TimetableColumnWidthCollection}"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
+			<Line
+				VerticalOptions="Start"
+				Style="{x:Static dtac:DTACElementStyles.HorizontalSeparatorLineStyleResource}"/>
+
 			<Label
 				x:Name="IsNextDayLabel"
 				IsVisible="False"
-				Style="{StaticResource LabelStyle}"
+				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Text="(翌)"
 				FontSize="24"
 				Grid.Column="0"
@@ -132,7 +137,7 @@
 				TextColor="#33d"/>
 
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
 			<Frame
@@ -148,12 +153,12 @@
 					Margin="0"
 					Padding="4">
 					<Label
-						Style="{StaticResource TimetableLargeNumberLabel}"
+						Style="{x:Static dtac:DTACElementStyles.TimetableLargeNumberLabelStyleResource}"
 						VerticalOptions="Center"
 						Text="{Binding CarCount}"/>
 
 					<Label
-						Style="{StaticResource LabelStyle}"
+						Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 						FontSize="18"
 						VerticalOptions="End"
 						HorizontalOptions="End"
@@ -168,11 +173,11 @@
 				</Frame.Shadow>
 			</Frame>
 			<Line
-				Style="{StaticResource SeparatorLine}"
+				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
 			<ctrls:HtmlAutoDetectLabel
-				Style="{StaticResource LabelStyle}"
+				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Grid.Column="2"
 				Grid.ColumnSpan="6"
 				LineHeight="1.4"
@@ -183,7 +188,7 @@
 
 			<Label
 				x:Name="DestinationLabel"
-				Style="{StaticResource LabelStyle}"
+				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Margin="0,8"
 				HorizontalOptions="Start"
 				VerticalOptions="Start"
@@ -205,6 +210,7 @@
 			x:Name="TimetableViewActivityIndicatorFrame"
 			Opacity="{x:Static dtac:VerticalStylePage.TimetableViewActivityIndicatorFrameMaxOpacity}"
 			VerticalOptions="Start"
+			IsVisible="False"
 			HasShadow="True"
 			HeightRequest="50"
 			WidthRequest="50"

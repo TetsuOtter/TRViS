@@ -121,6 +121,7 @@ public partial class SimpleRow
 		};
 
 		DTACElementStyles.ForegroundBlackWhite.Apply(v, Line.BackgroundColorProperty);
+		DTACElementStyles.ForegroundBlackWhiteBrush.Apply(v, Line.FillProperty);
 
 		Grid.SetColumn(v, 1);
 		Grid.SetRow(v, rowIndex);

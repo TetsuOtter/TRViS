@@ -18,10 +18,4 @@ public partial class SelectMarkerPopup : Popup
 
 		logger.Trace("Created");
 	}
-
-	protected override void OnDismissedByTappingOutsideOfPopup()
-	{
-		logger.Trace("Processing...");
-		base.OnDismissedByTappingOutsideOfPopup();
-	}
 }

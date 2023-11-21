@@ -13,20 +13,20 @@
 		</ResourceDictionary>
 	</Grid.Resources>
 	<Label
-		Style="{StaticResource HeaderLabel}"
+		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="0"
 		LineBreakMode="CharacterWrap"
 		Text="運転&#xa;時分"/>
 	<Line
-		Style="{StaticResource SeparatorLine}"
+		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="0"/>
 
 	<Label
-		Style="{StaticResource HeaderLabel}"
+		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="1"
 		Text="停車場名"/>
 	<Line
-		Style="{StaticResource SeparatorLine}"
+		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="1"/>
 
 	<Frame
@@ -37,7 +37,7 @@
 		BorderColor="{x:Null}"
 		BackgroundColor="{StaticResource DarkerGreen}">
 		<Label
-			Style="{StaticResource HeaderLabel}"
+			Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 			Margin="0"
 			Padding="0"
 			HorizontalOptions="Center"
@@ -48,37 +48,37 @@
 			Text="着"/>
 	</Frame>
 	<Line
-		Style="{StaticResource SeparatorLine}"
+		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="2"/>
 
 	<Label
-		Style="{StaticResource HeaderLabel}"
+		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="3"
 		Text="発  (通)"/>
 	<Line
-		Style="{StaticResource SeparatorLine}"
+		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="3"/>
 
 	<Label
-		Style="{StaticResource HeaderLabel}"
+		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="4"
 		LineBreakMode="CharacterWrap"
 		Text="着線&#xa;発線"/>
 	<Line
-		Style="{StaticResource SeparatorLine}"
+		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="4"/>
 
 	<Label
-		Style="{StaticResource HeaderLabel}"
+		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="5"
 		LineBreakMode="CharacterWrap"
 		Text="制限&#xa;速度"/>
 	<Line
-		Style="{StaticResource SeparatorLine}"
+		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="5"/>
 
 	<Label
-		Style="{StaticResource HeaderLabel}"
+		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="6"
 		Text="記事"/>
 

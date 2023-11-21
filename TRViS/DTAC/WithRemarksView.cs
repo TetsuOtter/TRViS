@@ -13,6 +13,7 @@ public partial class WithRemarksView : Grid
 	RowDefinition RemarksAreaRowDefinition { get; } = new(new(Remarks.HEADER_HEIGHT, GridUnitType.Absolute));
 
 #if IOS
+	RowDefinition RemarksAreaPaddingRowDefinition { get; } = new(new(0, GridUnitType.Absolute));
 	BoxView BottomPaddingView { get; } = new()
 	{
 		Color = new(0x33, 0x33, 0x33),
@@ -43,7 +44,8 @@ public partial class WithRemarksView : Grid
 		}
 
 #if IOS
-		this.Add(BottomPaddingView, row: 1);
+		RowDefinitions.Add(RemarksAreaPaddingRowDefinition);
+		this.Add(BottomPaddingView, row: 2);
 		logger.Trace("Added BottomPaddingView");
 #endif
 
@@ -68,7 +70,7 @@ public partial class WithRemarksView : Grid
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
-		logger.Trace("SafeAreaMargin is changed: {0} -> {1}", oldValue, newValue);
+		logger.Trace("SafeAreaMargin is changed: {0} -> {1}", Utils.ThicknessToString(oldValue), Utils.ThicknessToString(newValue));
 #if IOS
 		double bottomPaddingValue = newValue.Bottom;
 
@@ -82,13 +84,15 @@ public partial class WithRemarksView : Grid
 		{
 			logger.Debug("bottomPaddingValue is greater than 0 (= {0}) -> show BottomPaddingView", bottomPaddingValue);
 			BottomPaddingView.IsVisible = true;
-			BottomPaddingView.Margin = new(0, 0, 0, -bottomPaddingValue);
+			RemarksAreaPaddingRowDefinition.Height = new(bottomPaddingValue, GridUnitType.Absolute);
 		}
 		else
 		{
+			RemarksAreaPaddingRowDefinition.Height = new(0, GridUnitType.Absolute);
 			logger.Debug("bottomPaddingValue is less than or equal to 0 (= {0}) -> hide BottomPaddingView", bottomPaddingValue);
 			BottomPaddingView.IsVisible = false;
 		}
+		RemarksView.ResetTextScrollViewPosition();
 
 		RemarksAreaRowDefinition.Height = Remarks.HEADER_HEIGHT - bottomPaddingValue;
 		RemarksView.BottomSafeAreaHeight = bottomPaddingValue;

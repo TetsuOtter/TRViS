@@ -7,7 +7,7 @@ namespace TRViS.DTAC;
 public partial class ViewHost : ContentPage
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-	static public readonly GridLength TitleViewHeight = new(45, GridUnitType.Absolute);
+	static public readonly double TITLE_VIEW_HEIGHT = 50;
 
 	DTACViewHostViewModel ViewModel { get; }
 
@@ -117,8 +117,9 @@ public partial class ViewHost : ContentPage
 			return;
 		}
 
-		TitleBGGradientFrame.Margin = new(-newValue.Left, -top, -newValue.Right, 30);
-		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientFrame.Margin to {0}", TitleBGGradientFrame.Margin);
+		TitleBGGradientFrame.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
+		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
+		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientFrame.Margin to {0}", Utils.ThicknessToString(TitleBGGradientFrame.Margin));
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)

@@ -1,4 +1,4 @@
-﻿using TRViS.Controls;
+using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.ValueConverters.DTAC;
 using TRViS.ViewModels;
@@ -98,8 +98,9 @@ public partial class VerticalTimetableRow
 			BindingContext = this,
 			Opacity = BG_ALPHA,
 		};
+		Grid.SetRow(BackgroundBoxView, rowIndex);
 		Grid.SetColumnSpan(BackgroundBoxView, 8);
-		parent.Add(BackgroundBoxView, row: rowIndex);
+		parent.Add(BackgroundBoxView);
 
 		#region Drive Time
 		bool isDriveTimeMMVisible = rowData.DriveTimeMM is not null and >= 0 and < 100;
@@ -325,9 +326,6 @@ public partial class VerticalTimetableRow
 			logger.Debug("Remarks is null or empty, so skipping...");
 		}
 
-		logger.Trace("Creating HorizontalSeparatorLine");
-		parent.Add(DTACElementStyles.HorizontalSeparatorLineStyle(), row: rowIndex);
-
 		logger.Trace("Creating MarkerBox");
 		MarkerBox = new()
 		{
@@ -352,7 +350,7 @@ public partial class VerticalTimetableRow
 		MarkerBox.Shadow.Radius = 2;
 		MarkerBox.Clicked += MarkerBoxClicked;
 
-		parent.Add(MarkerBox, 8, rowIndex);
+		parent.Add(MarkerBox, 7, rowIndex);
 
 		logger.Trace("Created");
 	}
