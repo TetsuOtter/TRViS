@@ -22,7 +22,7 @@ public class LoaderJson : ILoader
 		static int? toIntOrNull(in string s)
 			=> int.TryParse(s, out int v) ? v : null;
 
-		if (string.IsNullOrEmpty(timeStr) || timePatternRegex.IsMatch(timeStr))
+		if (string.IsNullOrEmpty(timeStr) || !timePatternRegex.IsMatch(timeStr))
 			return new TimeData(null, null, null, timeStr);
 
 		string[] hhmmss = timeStr.Split(':', StringSplitOptions.None);
@@ -57,11 +57,15 @@ public class LoaderJson : ILoader
 	}
 
 	public static Task<LoaderJson> InitFromFileAsync(string filePath)
-		=> InitFromFileAsync(filePath, new CancellationToken());
+		=> InitFromFileAsync(filePath, CancellationToken.None);
 	public static async Task<LoaderJson> InitFromFileAsync(string filePath, CancellationToken token)
 	{
 		using FileStream stream = File.OpenRead(filePath);
 
+		return await InitFromStreamAsync(stream, token);
+	}
+	public static async Task<LoaderJson> InitFromStreamAsync(Stream stream, CancellationToken token)
+	{
 		WorkGroupData[]? workGroups = await JsonSerializer.DeserializeAsync<WorkGroupData[]>(stream, opts, token);
 
 		return new LoaderJson(workGroups!);
