@@ -1,13 +1,11 @@
 using System.Collections.Specialized;
-using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Web;
 
 using TRViS.IO;
 
 namespace TRViS.ViewModels;
 
-enum AppLinkType
+public enum AppLinkType
 {
 	Unknown,
 	OpenFileJson,
@@ -65,7 +63,7 @@ public partial class AppViewModel
 
 		await LoadExternalFileAsync(path, appLinkType, token);
 	}
-	async Task LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
+	public async Task LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
 	{
 		try
 		{
