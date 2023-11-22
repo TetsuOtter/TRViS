@@ -57,7 +57,7 @@ public class LoaderJson : ILoader
 	}
 
 	public static Task<LoaderJson> InitFromFileAsync(string filePath)
-		=> InitFromFileAsync(filePath, new CancellationToken());
+		=> InitFromFileAsync(filePath, CancellationToken.None);
 	public static async Task<LoaderJson> InitFromFileAsync(string filePath, CancellationToken token)
 	{
 		using FileStream stream = File.OpenRead(filePath);
