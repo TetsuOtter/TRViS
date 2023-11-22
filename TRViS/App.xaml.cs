@@ -47,11 +47,61 @@ public partial class App : Application
 	}
 
 	public static Uri? AppLinkUri { get; set; }
+
+	public static void SetAppLinkUri(Uri uri)
+	{
+		logger.Info("AppLinkUri: {0}", uri);
+
+		if (Current is not App app)
+		{
+			logger.Warn("App.Current is not App");
+			AppLinkUri = uri;
+			return;
+		}
+
+		if (app.MainPage is null)
+		{
+			logger.Warn("App.Current.MainPage is null");
+			AppLinkUri = uri;
+			return;
+		}
+
+		HandleAppLinkUriAsync(uri);
+	}
+
 	protected override void OnAppLinkRequestReceived(Uri uri)
 	{
 		base.OnAppLinkRequestReceived(uri);
 
-		AppLinkUri = uri;
 		logger.Info("AppLinkUri: {0}", uri);
+
+		HandleAppLinkUriAsync(uri);
+	}
+
+	protected override void OnStart()
+	{
+		logger.Info("App Start");
+		base.OnStart();
+
+		if (AppLinkUri is not null)
+		{
+			logger.Info("AppLinkUri is not null: {0}", AppLinkUri);
+			HandleAppLinkUriAsync(AppLinkUri);
+		}
+	}
+
+	static Task HandleAppLinkUriAsync(Uri uri)
+		=> HandleAppLinkUriAsync(uri, CancellationToken.None);
+	static Task HandleAppLinkUriAsync(Uri uri, CancellationToken cancellationToken)
+	{
+		return InstanceManager.AppViewModel.HandleAppLinkUriAsync(uri, cancellationToken).ContinueWith(t =>
+		{
+			AppLinkUri = null;
+			if (t.IsFaulted)
+			{
+				logger.Error(t.Exception, "HandleAppLinkUriAsync Failed");
+				Crashes.TrackError(t.Exception);
+			}
+		}, cancellationToken);
 	}
 }
