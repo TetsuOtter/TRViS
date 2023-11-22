@@ -43,6 +43,10 @@
 			JustifyContent="End"
 			Grid.Row="1">
 			<Button
+				Text="Load Sample"
+				Margin="4"
+				Clicked="LoadSampleButton_Clicked"/>
+			<Button
 				Text="Load from Web 🌍"
 				Margin="4"
 				Clicked="LoadFromWebButton_Clicked"/>
