@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.Web;
+
 using TRViS.IO;
 using TRViS.ViewModels;
 
@@ -74,7 +75,7 @@ public partial class SelectTrainPage : ContentPage
 			return;
 		}
 
-		bool openFile = await DisplayAlert("外部ファイルを開く", $"ファイル `{path}` を開きますか?", "はい", "いいえ");
+		bool openFile = await Utils.DisplayAlert(this, "外部ファイルを開く", $"ファイル `{path}` を開きますか?", "はい", "いいえ");
 		logger.Info("Uri: {0} -> openFile: {1}", path, openFile);
 		if (!openFile)
 		{
@@ -87,8 +88,53 @@ public partial class SelectTrainPage : ContentPage
 	{
 		try
 		{
-			using HttpClient client = new();
-			using Stream stream = await client.GetStreamAsync(path, token);
+			logger.Info("checking file size and type...");
+			using HttpRequestMessage request = new(HttpMethod.Head, path);
+			using HttpResponseMessage checkResult = await InstanceManager.HttpClient.SendAsync(request, token);
+			if (!checkResult.IsSuccessStatusCode)
+			{
+				logger.Warn("File Size Check Failed with status code: {0} ({1})", checkResult.StatusCode, checkResult.Content);
+				await Utils.DisplayAlert(this, "Cannot Open File", $"File Size Check Failed: {checkResult.StatusCode}\n{checkResult.Content}", "OK");
+				return;
+			}
+
+#if DEBUG
+			// パフォーマンスとプライバシーの理由で、ヘッダーの内容はDEBUGビルドのみ表示する
+			IEnumerable<string> headerStrs = checkResult.Content.Headers.Select(x => $"{x.Key}: {string.Join(", ", x.Value)}");
+			logger.Trace("ResponseHeaders: {0}", string.Join(", ", headerStrs));
+#endif
+
+			if (checkResult.Content.Headers.ContentLength is not long contentLength)
+			{
+				logger.Warn("File Size Check Failed (Content-Length not set) -> check continue or not");
+				bool downloadContinue = await Utils.DisplayAlert(this, "Continue to download?", "ダウンロードするファイルのサイズが不明です。ダウンロードを継続しますか?", "続ける", "やめる");
+				if (!downloadContinue)
+				{
+					logger.Info("User canceled");
+					return;
+				}
+			}
+			else
+			{
+				logger.Info("File Size Check Succeeded: {0} bytes", contentLength);
+				bool downloadContinue = await Utils.DisplayAlert(this, "Continue to download?", $"ダウンロードするファイルのサイズは {contentLength} byte です。このファイルをダウンロードしますか?", "続ける", "やめる");
+				if (!downloadContinue)
+				{
+					logger.Info("User canceled");
+					return;
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "File Size Check Failed");
+			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
+			return;
+		}
+
+		try
+		{
+			using Stream stream = await InstanceManager.HttpClient.GetStreamAsync(path, token);
 
 			switch (fileType)
 			{
@@ -101,19 +147,22 @@ public partial class SelectTrainPage : ContentPage
 					logger.Debug("Loading SQLite File");
 					// 一旦ローカルに保存してから読み込む
 					logger.Error("Not Implemented");
-					await DisplayAlert("Not Implemented", "Open External SQLite file is Not Implemented", "OK");
+					await Utils.DisplayAlert(this, "Not Implemented", "Open External SQLite file is Not Implemented", "OK");
 					logger.Trace("LoaderSQL Initialized");
-					break;
+					return;
 				default:
 					logger.Warn("Uri.LocalPath is not valid: {0}", fileType);
-					break;
+					return;
 			}
 		}
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Loading File Failed");
-			await DisplayAlert("Cannot Open File", ex.ToString(), "OK");
+			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
+			return;
 		}
+
+		await Utils.DisplayAlert(this, "Success!", "外部ファイルの読み込みが完了しました", "OK");
 	}
 
 	async void Button_Clicked(object sender, EventArgs e)
@@ -150,7 +199,7 @@ public partial class SelectTrainPage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "File Selection Failed");
-			await DisplayAlert("Cannot Open File", ex.ToString(), "OK");
+			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
 		}
 
 		logger.Info("Select File Button Clicked Processing Complete");
