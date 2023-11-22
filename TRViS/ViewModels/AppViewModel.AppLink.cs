@@ -134,9 +134,25 @@ public partial class AppViewModel
 						appLinkType = AppLinkType.OpenFileSQLite;
 						break;
 					default:
-						logger.Warn("File Type is not valid: {0}", result.Content.Headers.ContentType?.MediaType);
-						await Utils.DisplayAlert("Cannot Open File", $"File Type is not valid: {result.Content.Headers.ContentType?.MediaType}", "OK");
-						return;
+						Uri? uri = new(path);
+						string? lastPathSegment = uri.Segments.LastOrDefault();
+						if (lastPathSegment?.EndsWith(".json") == true)
+						{
+							logger.Info("File Type is not valid, but file extension is `.json` -> OpenFileJson");
+							appLinkType = AppLinkType.OpenFileJson;
+						}
+						else if (lastPathSegment?.EndsWith(".sqlite") == true)
+						{
+							logger.Info("File Type is not valid, but file extension is `.sqlite` -> OpenFileSQLite");
+							appLinkType = AppLinkType.OpenFileSQLite;
+						}
+						else
+						{
+							logger.Warn("File Type is not valid: {0}", result.Content.Headers.ContentType?.MediaType);
+							await Utils.DisplayAlert("Cannot Open File", $"File Type is not valid: {result.Content.Headers.ContentType?.MediaType}", "OK");
+							return;
+						}
+						break;
 				}
 			}
 
