@@ -22,7 +22,7 @@ public class LoaderJson : ILoader
 		static int? toIntOrNull(in string s)
 			=> int.TryParse(s, out int v) ? v : null;
 
-		if (string.IsNullOrEmpty(timeStr) || timePatternRegex.IsMatch(timeStr))
+		if (string.IsNullOrEmpty(timeStr) || !timePatternRegex.IsMatch(timeStr))
 			return new TimeData(null, null, null, timeStr);
 
 		string[] hhmmss = timeStr.Split(':', StringSplitOptions.None);
