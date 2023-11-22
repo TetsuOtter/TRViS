@@ -40,6 +40,7 @@ public partial class App : Application
 
 		if (Windows.Count <= 1)
 		{
+			InstanceManager.Dispose();
 			NLog.LogManager.Flush();
 			NLog.LogManager.Shutdown();
 		}
