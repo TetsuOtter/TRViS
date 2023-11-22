@@ -21,6 +21,17 @@ public partial class SelectTrainPage : ContentPage
 		logger.Trace("Created");
 	}
 
+	protected override void OnAppearing()
+	{
+		base.OnAppearing();
+
+		if (viewModel.Loader is null)
+		{
+			logger.Info("Loader is null -> set SampleDataLoader");
+			viewModel.Loader = new SampleDataLoader();
+		}
+	}
+
 	async void LoadFromWebButton_Clicked(object sender, EventArgs e)
 	{
 		logger.Info("Load From Web Button Clicked");
