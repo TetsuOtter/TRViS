@@ -58,11 +58,11 @@ public class LoaderJson : ILoader
 
 	public static Task<LoaderJson> InitFromFileAsync(string filePath)
 		=> InitFromFileAsync(filePath, new CancellationToken());
-	public static Task<LoaderJson> InitFromFileAsync(string filePath, CancellationToken token)
+	public static async Task<LoaderJson> InitFromFileAsync(string filePath, CancellationToken token)
 	{
 		using FileStream stream = File.OpenRead(filePath);
 
-		return InitFromStreamAsync(stream, token);
+		return await InitFromStreamAsync(stream, token);
 	}
 	public static async Task<LoaderJson> InitFromStreamAsync(Stream stream, CancellationToken token)
 	{
