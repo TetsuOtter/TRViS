@@ -9,6 +9,8 @@ namespace TRViS.ViewModels;
 
 public partial class AppViewModel : ObservableObject
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 	[ObservableProperty]
 	ILoader? _Loader;
 
