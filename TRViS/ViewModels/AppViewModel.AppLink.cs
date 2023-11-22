@@ -138,7 +138,6 @@ public partial class AppViewModel
 						await Utils.DisplayAlert("Cannot Open File", $"File Type is not valid: {result.Content.Headers.ContentType?.MediaType}", "OK");
 						return;
 				}
-				return;
 			}
 
 			using Stream stream = result.Content.ReadAsStream(token);
