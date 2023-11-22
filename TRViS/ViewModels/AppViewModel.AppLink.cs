@@ -144,11 +144,13 @@ public partial class AppViewModel
 
 			using Stream stream = result.Content.ReadAsStream(token);
 
+			ILoader? lastLoader = Loader;
 			switch (appLinkType)
 			{
 				case AppLinkType.OpenFileJson:
 					logger.Debug("Loading JSON File");
 					Loader = await LoaderJson.InitFromStreamAsync(stream, token);
+					lastLoader?.Dispose();
 					logger.Trace("LoaderJson Initialized");
 					break;
 				case AppLinkType.OpenFileSQLite:
