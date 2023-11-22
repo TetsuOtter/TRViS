@@ -1,3 +1,5 @@
+using System.Collections.Specialized;
+using System.Web;
 using TRViS.IO;
 using TRViS.ViewModels;
 
@@ -59,8 +61,9 @@ public partial class SelectTrainPage : ContentPage
 			logger.Warn("Uri.Query is null or empty");
 			return;
 		}
-		Dictionary<string, string> queryParams = uri.Query[1..].Split('&').Select(x => x.Split('=')).ToDictionary(x => x[0], x => x[1]);
-		if (!queryParams.TryGetValue("path", out string? path) || string.IsNullOrEmpty(path))
+		NameValueCollection queryParams = HttpUtility.ParseQueryString(uri.Query);
+		string? path = queryParams["path"];
+		if (string.IsNullOrEmpty(path))
 		{
 			logger.Warn("Uri.Query is not valid (query[`path`] not found): {0}", uri.Query);
 			return;
