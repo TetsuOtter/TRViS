@@ -41,9 +41,10 @@ public partial class AppViewModel
 			logger.Warn("Uri.Query is not valid (query[`path`] not found): {0}", uri.Query);
 			return;
 		}
-		if (!path.StartsWith("https://"))
+		Uri pathUri = new(path);
+		if (pathUri.Scheme != "https" && pathUri.Scheme != "http")
 		{
-			logger.Warn("path is not valid (not HTTPS): {0}", path);
+			logger.Warn("path is not valid (not HTTPS nor HTTP): {0}", path);
 			return;
 		}
 
