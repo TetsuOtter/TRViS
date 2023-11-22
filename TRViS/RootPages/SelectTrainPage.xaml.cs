@@ -21,24 +21,6 @@ public partial class SelectTrainPage : ContentPage
 		logger.Trace("Created");
 	}
 
-	protected override async void OnAppearing()
-	{
-		base.OnAppearing();
-
-		if (App.AppLinkUri is not null)
-		{
-			logger.Info("AppLinkUri is not null: {0}", App.AppLinkUri);
-			CancellationTokenSource cts = new();
-			await viewModel.HandleAppLinkUriAsync(App.AppLinkUri, cts.Token);
-			App.AppLinkUri = null;
-		}
-		else
-		{
-			logger.Info("AppLinkUri is null");
-		}
-		viewModel.Loader ??= new SampleDataLoader();
-	}
-
 	async void Button_Clicked(object sender, EventArgs e)
 	{
 		logger.Info("Select File Button Clicked");

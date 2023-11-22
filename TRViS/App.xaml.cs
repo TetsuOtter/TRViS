@@ -46,7 +46,7 @@ public partial class App : Application
 		}
 	}
 
-	public static Uri? AppLinkUri { get; set; }
+	static Uri? AppLinkUri { get; set; }
 
 	public static void SetAppLinkUri(Uri uri)
 	{
