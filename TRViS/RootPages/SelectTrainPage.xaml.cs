@@ -21,7 +21,32 @@ public partial class SelectTrainPage : ContentPage
 		logger.Trace("Created");
 	}
 
-	async void Button_Clicked(object sender, EventArgs e)
+	async void LoadFromWebButton_Clicked(object sender, EventArgs e)
+	{
+		logger.Info("Load From Web Button Clicked");
+
+		try
+		{
+			string? url = await DisplayPromptAsync("Load From Web", "ファイルへのリンクを入力してください", "OK", "Cancel", "https://");
+
+			if (string.IsNullOrEmpty(url))
+			{
+				logger.Info("URL is null or empty");
+				return;
+			}
+
+			await viewModel.LoadExternalFileAsync(url, AppLinkType.Unknown, CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Load From Web Failed");
+			await Utils.DisplayAlert(this, "Cannot Load from Web", ex.ToString(), "OK");
+		}
+
+		logger.Info("Load From Web Button Clicked Processing Complete");
+	}
+
+	async void SelectDatabaseButton_Clicked(object sender, EventArgs e)
 	{
 		logger.Info("Select File Button Clicked");
 

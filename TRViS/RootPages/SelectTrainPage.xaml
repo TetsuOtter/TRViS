@@ -27,23 +27,34 @@
 		Margin="16">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="auto"/>
+			<RowDefinition Height="auto"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 		<Label
-			Margin="16,4"
-			Grid.Row="0"
+			Margin="8,4"
+			VerticalOptions="Center"
 			Text="TRViS"
 			FontSize="Title"/>
 
-		<Button
-			Text="Select Database File"
+		<FlexLayout
 			HorizontalOptions="End"
-			Grid.Row="0"
-			Margin="16,4"
-			Clicked="Button_Clicked"/>
+			Margin="8,0"
+			Wrap="Wrap"
+			JustifyContent="End"
+			Grid.Row="1">
+			<Button
+				Text="Load from Web 🌍"
+				Margin="4"
+				Clicked="LoadFromWebButton_Clicked"/>
+			<Button
+				Text="Select Database File"
+				Margin="4"
+				Clicked="SelectDatabaseButton_Clicked"/>
+		</FlexLayout>
+
 
 		<Frame
-			Grid.Row="1">
+			Grid.Row="2">
 			<ScrollView>
 				<FlexLayout
 					MinimumHeightRequest="600"
