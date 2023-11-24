@@ -9,55 +9,69 @@
 	x:DataType="vm:DTACMarkerViewModel"
 	VerticalOptions="Center"
 	HorizontalOptions="End"
-	Size="240,240">
-	<HorizontalStackLayout
-		Padding="8"
-		HorizontalOptions="Center">
-		<Frame
-			Margin="4"
-			Padding="16"
-			WidthRequest="80">
-			<ListView
-				SelectionMode="Single"
-				SeparatorVisibility="Default"
-				ios:ListView.SeparatorStyle="FullWidth"
-				ItemsSource="{Binding ColorList, Mode=OneTime}"
-				SelectedItem="{Binding SelectedMarkerInfo, Mode=TwoWay}">
-				<ListView.ItemTemplate>
-					<DataTemplate>
-						<ViewCell
-							x:DataType="vm:MarkerInfo">
-							<ContentView>
-								<Frame
-									HeightRequest="32"
-									WidthRequest="32"
-									VerticalOptions="Center"
-									HorizontalOptions="Center"
-									BackgroundColor="{Binding Color}">
-									<Label
-										Text="{Binding Name}"
-										TextColor="Black"
-										Background="#AFFF"
-										HorizontalOptions="Center"
-										VerticalOptions="Center"/>
-								</Frame>
-							</ContentView>
-						</ViewCell>
-					</DataTemplate>
-				</ListView.ItemTemplate>
-			</ListView>
-		</Frame>
+	Size="240,360">
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
 
-		<Frame
-			Margin="4"
-			Padding="16"
-			WidthRequest="128">
-			<ListView
-				SelectionMode="Single"
-				SeparatorVisibility="Default"
-				ios:ListView.SeparatorStyle="FullWidth"
-				ItemsSource="{Binding TextList, Mode=OneTime}"
-				SelectedItem="{Binding SelectedText, Mode=TwoWay}"/>
-		</Frame>
-	</HorizontalStackLayout>
+		<Button
+			Grid.Row="0"
+			Margin="0,8,8,0"
+			Text="Close"
+			HorizontalOptions="End"
+			Clicked="OnCloseButtonClicked"/>
+		<HorizontalStackLayout
+			Grid.Row="1"
+			Padding="8"
+			HorizontalOptions="Center">
+			<Frame
+				Margin="4"
+				Padding="16"
+				WidthRequest="80">
+				<ListView
+					SelectionMode="Single"
+					SeparatorVisibility="Default"
+					ios:ListView.SeparatorStyle="FullWidth"
+					ItemsSource="{Binding ColorList, Mode=OneTime}"
+					SelectedItem="{Binding SelectedMarkerInfo, Mode=TwoWay}">
+					<ListView.ItemTemplate>
+						<DataTemplate>
+							<ViewCell
+								x:DataType="vm:MarkerInfo">
+								<ContentView>
+									<Frame
+										HeightRequest="32"
+										WidthRequest="32"
+										VerticalOptions="Center"
+										HorizontalOptions="Center"
+										BackgroundColor="{Binding Color}">
+										<Label
+											Text="{Binding Name}"
+											TextColor="Black"
+											Background="#AFFF"
+											HorizontalOptions="Center"
+											VerticalOptions="Center"/>
+									</Frame>
+								</ContentView>
+							</ViewCell>
+						</DataTemplate>
+					</ListView.ItemTemplate>
+				</ListView>
+			</Frame>
+
+			<Frame
+				Margin="4"
+				Padding="16"
+				WidthRequest="128">
+				<ListView
+					SelectionMode="Single"
+					SeparatorVisibility="Default"
+					ios:ListView.SeparatorStyle="FullWidth"
+					ItemsSource="{Binding TextList, Mode=OneTime}"
+					SelectedItem="{Binding SelectedText, Mode=TwoWay}"/>
+			</Frame>
+		</HorizontalStackLayout>
+	</Grid>
 </xct:Popup>
