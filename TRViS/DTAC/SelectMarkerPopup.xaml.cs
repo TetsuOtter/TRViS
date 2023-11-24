@@ -18,4 +18,13 @@ public partial class SelectMarkerPopup : Popup
 
 		logger.Trace("Created");
 	}
+
+	async void OnCloseButtonClicked(object sender, EventArgs e)
+	{
+		logger.Trace("Closing...");
+
+		await CloseAsync();
+
+		logger.Trace("Closed");
+	}
 }
