@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Web;
 
 using TRViS.IO;
+using TRViS.Services;
 
 namespace TRViS.ViewModels;
 
@@ -14,6 +15,12 @@ public enum AppLinkType
 
 public partial class AppViewModel
 {
+	const int EXTERNAL_RESOURCE_URL_HISTORY_MAX = 32;
+	private readonly List<string> _ExternalResourceUrlHistory;
+	public IReadOnlyList<string> ExternalResourceUrlHistory => _ExternalResourceUrlHistory;
+
+	internal const int PATH_LENGTH_MAX = 1024;
+
 	const string OPEN_FILE_JSON = "/open/json";
 	const string OPEN_FILE_SQLITE = "/open/sqlite";
 	public async Task HandleAppLinkUriAsync(Uri uri, CancellationToken token)
@@ -64,18 +71,47 @@ public partial class AppViewModel
 
 		await LoadExternalFileAsync(path, appLinkType, token);
 	}
-	public async Task LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
+	public async Task<bool> LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
 	{
+		if (string.IsNullOrEmpty(path))
+		{
+			logger.Warn("path is null or empty");
+			await Utils.DisplayAlert("Cannot Open File", $"File Path is Empty", "OK");
+			return false;
+		}
+
+		string decodedUrl = HttpUtility.UrlDecode(path);
+		string encodedUrl;
+		if (path != decodedUrl)
+		{
+			logger.Trace("path: '{0}' -> decodedUrl: '{1}'", path, decodedUrl);
+			encodedUrl = path;
+		}
+		else
+		{
+			#pragma warning disable SYSLIB0013
+			encodedUrl = Uri.EscapeUriString(path);
+			#pragma warning restore SYSLIB0013
+			logger.Trace("path: '{0}' -> encodedUrl: '{1}'", path, encodedUrl);
+		}
+
+		if (PATH_LENGTH_MAX < decodedUrl.Length)
+		{
+			logger.Warn("path is too long: {0} < {1}", PATH_LENGTH_MAX, decodedUrl.Length);
+			await Utils.DisplayAlert("Cannot Open File", $"File Path is too long: {PATH_LENGTH_MAX} < {decodedUrl.Length}", "OK");
+			return false;
+		}
+
 		try
 		{
 			logger.Info("checking file size and type...");
-			using HttpRequestMessage request = new(HttpMethod.Head, path);
+			using HttpRequestMessage request = new(HttpMethod.Head, encodedUrl);
 			using HttpResponseMessage checkResult = await InstanceManager.HttpClient.SendAsync(request, token);
 			if (!checkResult.IsSuccessStatusCode)
 			{
 				logger.Warn("File Size Check Failed with status code: {0} ({1})", checkResult.StatusCode, checkResult.Content);
 				await Utils.DisplayAlert("Cannot Open File", $"File Size Check Failed: {checkResult.StatusCode}\n{checkResult.Content}", "OK");
-				return;
+				return false;
 			}
 
 #if DEBUG
@@ -91,7 +127,7 @@ public partial class AppViewModel
 				if (!downloadContinue)
 				{
 					logger.Info("User canceled");
-					return;
+					return false;
 				}
 			}
 			else
@@ -101,7 +137,7 @@ public partial class AppViewModel
 				if (!downloadContinue)
 				{
 					logger.Info("User canceled");
-					return;
+					return false;
 				}
 			}
 		}
@@ -109,18 +145,18 @@ public partial class AppViewModel
 		{
 			logger.Error(ex, "File Size Check Failed");
 			await Utils.DisplayAlert("Cannot Open File", ex.ToString(), "OK");
-			return;
+			return false;
 		}
 
 		try
 		{
-			using HttpRequestMessage request = new(HttpMethod.Get, path);
+			using HttpRequestMessage request = new(HttpMethod.Get, encodedUrl);
 			using HttpResponseMessage result = await InstanceManager.HttpClient.SendAsync(request, token);
 			if (!result.IsSuccessStatusCode)
 			{
 				logger.Warn("File Download Failed with status code: {0} ({1})", result.StatusCode, result.Content);
 				await Utils.DisplayAlert("Cannot Download File", $"File Download Failed: {result.StatusCode}\n{result.Content}", "OK");
-				return;
+				return false;
 			}
 
 			if (appLinkType == AppLinkType.Unknown)
@@ -134,7 +170,7 @@ public partial class AppViewModel
 						appLinkType = AppLinkType.OpenFileSQLite;
 						break;
 					default:
-						Uri? uri = new(path);
+						Uri? uri = new(encodedUrl);
 						string? lastPathSegment = uri.Segments.LastOrDefault();
 						if (lastPathSegment?.EndsWith(".json") == true)
 						{
@@ -150,7 +186,7 @@ public partial class AppViewModel
 						{
 							logger.Warn("File Type is not valid: {0}", result.Content.Headers.ContentType?.MediaType);
 							await Utils.DisplayAlert("Cannot Open File", $"File Type is not valid: {result.Content.Headers.ContentType?.MediaType}", "OK");
-							return;
+							return false;
 						}
 						break;
 				}
@@ -173,19 +209,31 @@ public partial class AppViewModel
 					logger.Error("Not Implemented");
 					await Utils.DisplayAlert("Not Implemented", "Open External SQLite file is Not Implemented", "OK");
 					logger.Trace("LoaderSQL Initialized");
-					return;
+					return false;
 				default:
 					logger.Warn("Uri.LocalPath is not valid: {0}", appLinkType);
-					return;
+					return false;
 			}
 		}
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Loading File Failed");
 			await Utils.DisplayAlert("Cannot Open File", ex.ToString(), "OK");
-			return;
+			return false;
 		}
 
+		// pathがListに存在しない場合は、Removeは何も実行されずに終了する
+		_ExternalResourceUrlHistory.Remove(decodedUrl);
+		if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
+		{
+			int removeCount = _ExternalResourceUrlHistory.Count - EXTERNAL_RESOURCE_URL_HISTORY_MAX + 1;
+			logger.Debug("ExternalResourceUrlHistory.Count is over EXTERNAL_RESOURCE_URL_HISTORY_MAX ({0} <= {1}) -> remove {2} items", EXTERNAL_RESOURCE_URL_HISTORY_MAX, _ExternalResourceUrlHistory.Count, removeCount);
+			_ExternalResourceUrlHistory.RemoveRange(0, removeCount);
+		}
+
+		_ExternalResourceUrlHistory.Add(decodedUrl);
+		AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory);
 		await Utils.DisplayAlert("Success!", "外部ファイルの読み込みが完了しました", "OK");
+		return true;
 	}
 }
