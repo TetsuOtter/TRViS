@@ -19,6 +19,7 @@ public partial class VerticalTimetableView
 		HorizontalOptions = LayoutOptions.Start,
 		Color = CURRENT_LOCATION_MARKER_COLOR,
 		InputTransparent = true,
+		ZIndex = 1,
 	};
 	BoxView CurrentLocationLine { get; } = new()
 	{
@@ -28,6 +29,7 @@ public partial class VerticalTimetableView
 		VerticalOptions = LayoutOptions.End,
 		Color = CURRENT_LOCATION_MARKER_COLOR,
 		InputTransparent = true,
+		ZIndex = 1,
 	};
 
 	readonly BeforeAfterRemarks AfterRemarks;
