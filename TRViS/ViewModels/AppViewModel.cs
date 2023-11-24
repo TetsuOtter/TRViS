@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.IO;
 using TRViS.IO.Models;
+using TRViS.Services;
 
 namespace TRViS.ViewModels;
 
@@ -75,6 +76,8 @@ public partial class AppViewModel : ObservableObject
 					CurrentAppTheme = e.RequestedTheme;
 			};
 		}
+
+		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson<List<string>>(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _);
 	}
 
 	partial void OnLoaderChanged(ILoader? value)

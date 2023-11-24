@@ -1,3 +1,7 @@
+using CommunityToolkit.Maui.Views;
+
+using Microsoft.AppCenter.Crashes;
+
 using TRViS.IO;
 using TRViS.ViewModels;
 
@@ -48,20 +52,13 @@ public partial class SelectTrainPage : ContentPage
 
 		try
 		{
-			string? url = await DisplayPromptAsync("Load From Web", "ファイルへのリンクを入力してください", "OK", "Cancel", "https://");
-
-			if (string.IsNullOrEmpty(url))
-			{
-				logger.Info("URL is null or empty");
-				return;
-			}
-
-			await viewModel.LoadExternalFileAsync(url, AppLinkType.Unknown, CancellationToken.None);
+			await this.ShowPopupAsync(new SelectOnlineResourcePopup());
 		}
 		catch (Exception ex)
 		{
-			logger.Error(ex, "Load From Web Failed");
-			await Utils.DisplayAlert(this, "Cannot Load from Web", ex.ToString(), "OK");
+			Crashes.TrackError(ex);
+			logger.Error(ex, "ShowPopupAsync failed");
+			await Utils.DisplayAlert(this, "Open Popup Failed", ex.ToString(), "OK");
 		}
 
 		logger.Info("Load From Web Button Clicked Processing Complete");
