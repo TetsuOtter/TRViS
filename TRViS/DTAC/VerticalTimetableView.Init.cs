@@ -46,6 +46,8 @@ public partial class VerticalTimetableView
 
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
 
+		Grid.SetColumnSpan(CurrentLocationLine, 8);
+
 		LocationService.LocationStateChanged += LocationService_LocationStateChanged;
 		LocationService.ExceptionThrown += (s, e) =>
 		{
@@ -111,7 +113,13 @@ public partial class VerticalTimetableView
 			IsBusy = true;
 
 			Children.Clear();
+
 			logger.Trace("MainThread: Clearing old RowViews Complete");
+
+			Add(CurrentLocationBoxView);
+			Add(CurrentLocationLine);
+
+			logger.Trace("MainThread: Insert CurrentLocationMarker Complete");
 		});
 		logger.Trace("ClearOldRowViews Task Complete");
 
@@ -155,10 +163,6 @@ public partial class VerticalTimetableView
 
 			AfterRemarks.AddToParent();
 			AfterArrive.AddToParent();
-
-			Add(CurrentLocationBoxView);
-			Grid.SetColumnSpan(CurrentLocationBoxView, 8);
-			Add(CurrentLocationLine);
 
 			IsBusy = false;
 
