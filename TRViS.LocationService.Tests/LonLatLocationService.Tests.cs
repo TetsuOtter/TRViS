@@ -99,4 +99,100 @@ public class Tests
 			Assert.That(service.IsRunningToNextStation, Is.False);
 		});
 	}
+
+	[Test]
+	public void ForceSetPositionTest_NearStation()
+	{
+		StaLocationInfo sta1 = new(0, 0, 0, 200);
+		StaLocationInfo sta2 = new(1, 1, 1, 200);
+		StaLocationInfo sta3 = new(2, 2, 2, 200);
+		LonLatLocationService service = new()
+		{
+			StaLocationInfo =
+			[
+				sta1,
+				sta2,
+				sta3,
+			]
+		};
+
+		// 初期状態は、駅0にいる
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(0));
+			Assert.That(service.IsRunningToNextStation, Is.False);
+		});
+
+		service.ForceSetLocationInfo(1, 1);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+			Assert.That(service.IsRunningToNextStation, Is.False);
+		});
+	}
+
+	[Test]
+	public void ForceSetPositionTest_RunningToNextStation1()
+	{
+		StaLocationInfo sta1 = new(0, 0, 0, 200);
+		StaLocationInfo sta2 = new(1, 1, 1, 200);
+		StaLocationInfo sta3 = new(2, 2, 2, 200);
+		LonLatLocationService service = new()
+		{
+			StaLocationInfo =
+			[
+				sta1,
+				sta2,
+				sta3,
+			]
+		};
+
+		// 初期状態は、駅0にいる
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(0));
+			Assert.That(service.IsRunningToNextStation, Is.False);
+		});
+
+		service.ForceSetLocationInfo(0.5, 0.5);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(0));
+			Assert.That(service.IsRunningToNextStation, Is.True);
+		});
+	}
+
+	[Test]
+	public void ForceSetPositionTest_RunningToNextStation2()
+	{
+		StaLocationInfo sta1 = new(0, 0, 0, 200);
+		StaLocationInfo sta2 = new(1, 1, 1, 200);
+		StaLocationInfo sta3 = new(2, 2, 2, 200);
+		LonLatLocationService service = new()
+		{
+			StaLocationInfo =
+			[
+				sta1,
+				sta2,
+				sta3,
+			]
+		};
+
+		// 初期状態は、駅0にいる
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(0));
+			Assert.That(service.IsRunningToNextStation, Is.False);
+		});
+
+		service.ForceSetLocationInfo(1.5, 1.5);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+			Assert.That(service.IsRunningToNextStation, Is.True);
+		});
+	}
 }
