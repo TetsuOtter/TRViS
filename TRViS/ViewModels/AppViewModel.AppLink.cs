@@ -71,13 +71,13 @@ public partial class AppViewModel
 
 		await LoadExternalFileAsync(path, appLinkType, token);
 	}
-	public async Task LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
+	public async Task<bool> LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
 	{
 		if (string.IsNullOrEmpty(path))
 		{
 			logger.Warn("path is null or empty");
 			await Utils.DisplayAlert("Cannot Open File", $"File Path is Empty", "OK");
-			return;
+			return false;
 		}
 
 		string decodedUrl = HttpUtility.UrlDecode(path);
@@ -99,7 +99,7 @@ public partial class AppViewModel
 		{
 			logger.Warn("path is too long: {0} < {1}", PATH_LENGTH_MAX, decodedUrl.Length);
 			await Utils.DisplayAlert("Cannot Open File", $"File Path is too long: {PATH_LENGTH_MAX} < {decodedUrl.Length}", "OK");
-			return;
+			return false;
 		}
 
 		try
@@ -111,7 +111,7 @@ public partial class AppViewModel
 			{
 				logger.Warn("File Size Check Failed with status code: {0} ({1})", checkResult.StatusCode, checkResult.Content);
 				await Utils.DisplayAlert("Cannot Open File", $"File Size Check Failed: {checkResult.StatusCode}\n{checkResult.Content}", "OK");
-				return;
+				return false;
 			}
 
 #if DEBUG
@@ -127,7 +127,7 @@ public partial class AppViewModel
 				if (!downloadContinue)
 				{
 					logger.Info("User canceled");
-					return;
+					return false;
 				}
 			}
 			else
@@ -137,7 +137,7 @@ public partial class AppViewModel
 				if (!downloadContinue)
 				{
 					logger.Info("User canceled");
-					return;
+					return false;
 				}
 			}
 		}
@@ -145,7 +145,7 @@ public partial class AppViewModel
 		{
 			logger.Error(ex, "File Size Check Failed");
 			await Utils.DisplayAlert("Cannot Open File", ex.ToString(), "OK");
-			return;
+			return false;
 		}
 
 		try
@@ -156,7 +156,7 @@ public partial class AppViewModel
 			{
 				logger.Warn("File Download Failed with status code: {0} ({1})", result.StatusCode, result.Content);
 				await Utils.DisplayAlert("Cannot Download File", $"File Download Failed: {result.StatusCode}\n{result.Content}", "OK");
-				return;
+				return false;
 			}
 
 			if (appLinkType == AppLinkType.Unknown)
@@ -186,7 +186,7 @@ public partial class AppViewModel
 						{
 							logger.Warn("File Type is not valid: {0}", result.Content.Headers.ContentType?.MediaType);
 							await Utils.DisplayAlert("Cannot Open File", $"File Type is not valid: {result.Content.Headers.ContentType?.MediaType}", "OK");
-							return;
+							return false;
 						}
 						break;
 				}
@@ -209,17 +209,17 @@ public partial class AppViewModel
 					logger.Error("Not Implemented");
 					await Utils.DisplayAlert("Not Implemented", "Open External SQLite file is Not Implemented", "OK");
 					logger.Trace("LoaderSQL Initialized");
-					return;
+					return false;
 				default:
 					logger.Warn("Uri.LocalPath is not valid: {0}", appLinkType);
-					return;
+					return false;
 			}
 		}
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Loading File Failed");
 			await Utils.DisplayAlert("Cannot Open File", ex.ToString(), "OK");
-			return;
+			return false;
 		}
 
 		// pathがListに存在しない場合は、Removeは何も実行されずに終了する
@@ -234,5 +234,6 @@ public partial class AppViewModel
 		_ExternalResourceUrlHistory.Add(decodedUrl);
 		AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory);
 		await Utils.DisplayAlert("Success!", "外部ファイルの読み込みが完了しました", "OK");
+		return true;
 	}
 }
