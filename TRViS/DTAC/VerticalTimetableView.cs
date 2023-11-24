@@ -28,6 +28,9 @@ public partial class VerticalTimetableView : Grid
 	{
 		logger.Trace("SelectedTrainData is changed to {0}", newValue?.TrainNumber);
 		SetRowViews(newValue, newValue?.Rows);
+		IsRunStarted = false;
+		LocationService.SetTimetableRows(newValue?.Rows);
+		ScrollRequested?.Invoke(this, new(0));
 	}
 
 	partial void OnIsBusyChanged()
@@ -37,8 +40,6 @@ public partial class VerticalTimetableView : Grid
 	}
 
 	int CurrentRunningRowIndex = -1;
-
-	VerticalTimetableRow? NextRunningRow = null;
 
 	VerticalTimetableRow? _CurrentRunningRow = null;
 	VerticalTimetableRow? CurrentRunningRow
@@ -82,7 +83,7 @@ public partial class VerticalTimetableView : Grid
 
 		if (!IsRunStarted || !IsEnabled)
 		{
-			logger.Debug("IsRunStarted is false or IsEnabled is false -> do nothing");
+			logger.Debug("IsRunStarted({0}) is false or IsEnabled({1}) is false -> do nothing", IsRunStarted, IsEnabled);
 			return;
 		}
 
@@ -104,10 +105,13 @@ public partial class VerticalTimetableView : Grid
 			logger.Trace("LocationService is not enabled");
 		}
 
-		if (IsLocationServiceEnabled)
-			logger.Info("Location Service disabled because of double tapping");
 		_lastTappInfo = null;
-		IsLocationServiceEnabled = false;
+		if (IsLocationServiceEnabled)
+		{
+			logger.Info("New LocationInfo is set because of double tapping (row:{0})", row.RowIndex);
+			LocationService.ForceSetLocationInfo(row.RowIndex, false);
+			return;
+		}
 
 		logger.Info("Tapped {0} -> set CurrentRunningRow to {0}", row.RowIndex);
 		switch (row.LocationState)
