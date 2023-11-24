@@ -47,7 +47,8 @@ public partial class LocationService : ObservableObject, IDisposable
 
 		LocationStateChanged += (sender, e) =>
 		{
-			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({LonLatLocationService.StaLocationInfo?[e.NewStationIndex].Location_lon_deg}, {LonLatLocationService.StaLocationInfo?[e.NewStationIndex].Location_lat_deg} & Radius:{LonLatLocationService.StaLocationInfo?[e.NewStationIndex].NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
+			StaLocationInfo? newStaLocationInfo = LonLatLocationService.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
+			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({newStaLocationInfo?.Location_lon_deg}, {newStaLocationInfo?.Location_lat_deg} & Radius:{newStaLocationInfo?.NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
 		};
 
 		logger.Debug("LocationService is created");
