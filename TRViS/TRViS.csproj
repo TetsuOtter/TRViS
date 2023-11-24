@@ -79,6 +79,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
+		<ProjectReference Include="..\TRViS.LocationService\TRViS.LocationService.csproj" />
 	</ItemGroup>
 	<ProjectExtensions>
 		<MonoDevelop>
