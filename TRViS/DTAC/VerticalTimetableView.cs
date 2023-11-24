@@ -107,10 +107,13 @@ public partial class VerticalTimetableView : Grid
 			logger.Trace("LocationService is not enabled");
 		}
 
-		if (IsLocationServiceEnabled)
-			logger.Info("Location Service disabled because of double tapping");
 		_lastTappInfo = null;
-		IsLocationServiceEnabled = false;
+		if (IsLocationServiceEnabled)
+		{
+			logger.Info("New LocationInfo is set because of double tapping (row:{0})", row.RowIndex);
+			LocationService.ForceSetLocationInfo(row.RowIndex, false);
+			return;
+		}
 
 		logger.Info("Tapped {0} -> set CurrentRunningRow to {0}", row.RowIndex);
 		switch (row.LocationState)

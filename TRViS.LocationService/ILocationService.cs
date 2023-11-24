@@ -49,4 +49,6 @@ public interface ILocationService
 	bool IsRunningToNextStation { get; }
 
 	void ResetLocationInfo();
+
+	void ForceSetLocationInfo(int stationIndex, bool isRunningToNextStation);
 }

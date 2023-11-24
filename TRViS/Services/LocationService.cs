@@ -112,6 +112,19 @@ public partial class LocationService : ObservableObject, IDisposable
 		return Task.Run(PositioningTask, gpsCancelation.Token);
 	}
 
+	public void ForceSetLocationInfo(int row, bool isRunningToNextStation)
+	{
+		if (!IsEnabled)
+		{
+			logger.Debug("IsEnabled is false -> do nothing");
+			return;
+		}
+
+		logger.Debug("ForceSetLocationInfo({0}, {1})", row, isRunningToNextStation);
+		LonLatLocationService.ForceSetLocationInfo(row, isRunningToNextStation);
+		logger.Debug("Done");
+	}
+
 	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
 	async Task PositioningTask()
 	{

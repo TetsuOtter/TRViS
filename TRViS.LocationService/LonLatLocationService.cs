@@ -173,6 +173,34 @@ public class LonLatLocationService : ILocationService
 		LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 	}
 
+	public void ForceSetLocationInfo(int stationIndex, bool isRunningToNextStation)
+	{
+		ResetLocationInfo(false);
+		if (StaLocationInfo is null)
+		{
+			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
+			return;
+		}
+
+		if (stationIndex < 0 || StaLocationInfo.Length <= stationIndex)
+		{
+			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
+			return;
+		}
+
+		bool isNextStationAvailable = 0 <= GetNextStationIndex(StaLocationInfo, stationIndex);
+		// 現在駅に位置情報がセットされていない場合、「IsNearby」判定ができないため、次の駅に走行中であると仮定する
+		// 但し、次の駅が存在しない場合は、次の駅のIsNearby判定ができないため、指定の駅に停車中であると仮定する
+		IsRunningToNextStation = isNextStationAvailable && isRunningToNextStation;
+		if (!StaLocationInfo[stationIndex].HasLonLatLocation)
+		{
+			IsRunningToNextStation = isNextStationAvailable;
+		}
+
+		CurrentStationIndex = stationIndex;
+		LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
+	}
+
 	double GetDistanceToStationAverage(in StaLocationInfo staLocationInfo, double lon_deg, double lat_deg)
 	{
 		double distanceToStation = Utils.CalculateDistance_m(lon_deg, lat_deg, staLocationInfo.Location_lon_deg, staLocationInfo.Location_lat_deg);
