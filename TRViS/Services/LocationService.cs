@@ -45,6 +45,11 @@ public partial class LocationService : ObservableObject, IDisposable
 		IsEnabled = false;
 		LonLatLocationService = new();
 
+		LocationStateChanged += (sender, e) =>
+		{
+			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({LonLatLocationService.StaLocationInfo?[e.NewStationIndex].Location_lon_deg}, {LonLatLocationService.StaLocationInfo?[e.NewStationIndex].Location_lat_deg} & Radius:{LonLatLocationService.StaLocationInfo?[e.NewStationIndex].NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
+		};
+
 		logger.Debug("LocationService is created");
 	}
 
@@ -190,13 +195,14 @@ public partial class LocationService : ObservableObject, IDisposable
 				if (isFirst)
 				{
 					logger.Info("Location Service First Positioning");
-					LogView.Add("Location Service Started");
+					LogView.Add($"Location Service Started with lonlat: ({loc.Longitude}, {loc.Latitude})");
 					isFirst = false;
 					LonLatLocationService.ForceSetLocationInfo(loc.Longitude, loc.Latitude);
 				}
 				else
 				{
 					LonLatLocationService.SetCurrentLocation(loc.Longitude, loc.Latitude);
+					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude})");
 				}
 				logger.Trace("Location Service Positioning Success (lon: {0}, lat: {1})", loc.Longitude, loc.Latitude);
 			}
