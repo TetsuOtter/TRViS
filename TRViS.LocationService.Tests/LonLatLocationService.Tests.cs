@@ -162,6 +162,20 @@ public class Tests
 			Assert.That(service.CurrentStationIndex, Is.EqualTo(0));
 			Assert.That(service.IsRunningToNextStation, Is.True);
 		});
+
+		service.SetCurrentLocation(1, 1);
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(0));
+			Assert.That(service.IsRunningToNextStation, Is.True);
+		});
+		service.SetCurrentLocation(1, 1);
+		service.SetCurrentLocation(1, 1);
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+			Assert.That(service.IsRunningToNextStation, Is.False);
+		});
 	}
 
 	[Test]
@@ -193,6 +207,21 @@ public class Tests
 		{
 			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
 			Assert.That(service.IsRunningToNextStation, Is.True);
+		});
+
+		service.SetCurrentLocation(2, 2);
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+			Assert.That(service.IsRunningToNextStation, Is.True);
+		});
+		service.SetCurrentLocation(2, 2);
+		service.SetCurrentLocation(2, 2);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(2));
+			Assert.That(service.IsRunningToNextStation, Is.False);
 		});
 	}
 }
