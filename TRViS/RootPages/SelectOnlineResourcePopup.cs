@@ -77,7 +77,7 @@ public class SelectOnlineResourcePopup : Popup
 
 		// 本当にiOS 15以前のみで有効なプロパティなのかは不明
 		bool isBeforeiOS15 = DeviceInfo.Platform == DevicePlatform.iOS && DeviceInfo.Version.Major < 15;
-		if (showClearButton)
+		if (!isBeforeiOS15)
 			UrlInput.ClearButtonVisibility = ClearButtonVisibility.WhileEditing;
 
 		Grid grid = new()
