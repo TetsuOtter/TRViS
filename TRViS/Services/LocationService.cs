@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.Controls;
+using TRViS.IO.Models;
 using TRViS.MyAppCustomizables;
 using TRViS.ViewModels;
 
@@ -23,94 +24,35 @@ public partial class LocationService : ObservableObject, IDisposable
 	[ObservableProperty]
 	bool _IsEnabled;
 
-	[ObservableProperty]
-	Location? _NearbyCenter;
+	readonly LonLatLocationService LonLatLocationService;
 
-	[ObservableProperty]
-	double _NearbyRadius_m = DefaultNearbyRadius_m;
+	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged
+	{
+		add => LonLatLocationService.LocationStateChanged += value;
+		remove => LonLatLocationService.LocationStateChanged -= value;
+	}
+
 	public const double DefaultNearbyRadius_m = 200;
 
-	bool _IsNearby;
-	public bool IsNearby
-	{
-		get => _IsNearby;
-		private set
-		{
-			if (_IsNearby == value)
-				return;
-
-			logger.Debug("IsNearby is changed to {0}", value);
-			this.OnPropertyChanging(nameof(IsNearby));
-			_IsNearby = value;
-			this.OnPropertyChanged(nameof(IsNearby));
-			IsNearbyChanged?.Invoke(this, !value, value);
-		}
-	}
-
-	Location? _LastLocation;
-	public Location? LastLocation
-	{
-		get => _LastLocation;
-
-		private set
-		{
-			if (
-				value == _LastLocation
-				|| (_LastLocation is not null && value?.Equals(_LastLocation) != false)
-			)
-			{
-				logger.Trace("LastLocation is already {0}, so skipping...", value);
-				return;
-			}
-
-			logger.Info("LastLocation is changing to {0}", value);
-			this.OnPropertyChanging(nameof(LastLocation));
-
-			setIsNearby(value);
-
-			Location? lastLocation = _LastLocation;
-			_LastLocation = value;
-
-			this.OnPropertyChanged(nameof(LastLocation));
-			LastLocationChanged?.Invoke(this, lastLocation, value);
-		}
-	}
-
-	void setIsNearby(in Location? location)
-	{
-		if (NearbyCenter is null || location is null)
-		{
-			logger.Trace("NearbyCenter is null or location is null -> do nothing");
-			return;
-		}
-
-		double distance = location.CalculateDistance(NearbyCenter, DistanceUnits.Kilometers) * 1000;
-
-		bool isNearby = distance <= NearbyRadius_m;
-		logger.Info("IsNearby: {0} (= distance: {1} <= NearbyRadius_m: {2})", isNearby, distance, NearbyRadius_m);
-		logger.Debug("Station Lon:{4:F5}, Lat:{5:F5}\tCurrent Lon:{0:F5}, Lat:{1:F5}",
-			NearbyCenter.Longitude,
-			NearbyCenter.Latitude,
-			location.Longitude,
-			location.Latitude
-		);
-
-		LogView.Add(
-			LogView.Priority.Info,
-
-			$"setIsNearby() Lon:{location.Longitude:F5}, Lat:{location.Latitude:F5}"
-			+ $" (Distance:{distance:F2}m/{NearbyRadius_m:F2}m from Lon:{NearbyCenter.Longitude:F5}, Lat:{NearbyCenter.Latitude:F5} -> IsNearBy:{isNearby})"
-		);
-		IsNearby = isNearby;
-	}
-
 	public event EventHandler<Exception>? ExceptionThrown;
-	public event ValueChangedEventHandler<bool>? IsNearbyChanged;
-	public event ValueChangedEventHandler<Location?>? LastLocationChanged;
 
 	CancellationTokenSource? gpsCancelation;
 
-	private bool disposedValue;
+	public LocationService()
+	{
+		logger.Trace("Creating...");
+
+		IsEnabled = false;
+		LonLatLocationService = new();
+
+		LocationStateChanged += (sender, e) =>
+		{
+			StaLocationInfo? newStaLocationInfo = LonLatLocationService.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
+			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({newStaLocationInfo?.Location_lon_deg}, {newStaLocationInfo?.Location_lat_deg} & Radius:{newStaLocationInfo?.NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
+		};
+
+		logger.Debug("LocationService is created");
+	}
 
 	partial void OnIsEnabledChanged(bool value)
 	{
@@ -127,17 +69,12 @@ public partial class LocationService : ObservableObject, IDisposable
 		}
 	}
 
-	partial void OnNearbyCenterChanged(Location? value)
+	public void SetTimetableRows(TimetableRow[]? timetableRows)
 	{
-		if (LastLocation is null || value is null)
-		{
-			logger.Trace("LastLocation is null or newValue is null -> do nothing");
-			return;
-		}
+		logger.Trace("Setting TimetableRows...");
 
-		logger.Info("NearbyCenter is changed to {0}", value);
-		IsNearby = false;
-		setIsNearby(LastLocation);
+		IsEnabled = false;
+		LonLatLocationService.StaLocationInfo = timetableRows?.Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
 	}
 
 	static EasterEggPageViewModel EasterEggPageViewModel { get; } = InstanceManager.EasterEggPageViewModel;
@@ -171,69 +108,145 @@ public partial class LocationService : ObservableObject, IDisposable
 		}
 
 		gpsCancelation = new CancellationTokenSource();
-		CancellationToken token = gpsCancelation.Token;
-		LastLocation = null;
-		_IsNearby = true;
 
-		return Task.Run(async () =>
-		{
-			// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
-			// accuracy: 30m - 500m
-			GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
-			logger.Info("Starting Location Service... (Interval: {0})", Interval);
-
-			LogView.Add("Location Service Starting...");
-			while (!token.IsCancellationRequested)
-			{
-				logger.Trace("Location Service Loop");
-				TimeSpan timeout = Interval;
-				req.Timeout = timeout;
-
-				await Task.WhenAll(new Task[]
-				{
-					CheckAndNotifyCurrentLocation(req, token),
-					Task.Delay(timeout, token),
-				});
-			}
-
-			logger.Info("Location Service Ended");
-			LogView.Add("Location Service Ended");
-		}, token);
+		return Task.Run(PositioningTask, gpsCancelation.Token);
 	}
 
-	async Task CheckAndNotifyCurrentLocation(GeolocationRequest req, CancellationToken token)
+	public void ForceSetLocationInfo(int row, bool isRunningToNextStation)
 	{
-		logger.Trace("Starting...");
-
-		try
+		if (!IsEnabled)
 		{
-			Location? loc = await Geolocation.Default.GetLocationAsync(req, token);
+			logger.Debug("IsEnabled is false -> do nothing");
+			return;
+		}
+
+		logger.Debug("ForceSetLocationInfo({0}, {1})", row, isRunningToNextStation);
+		LonLatLocationService.ForceSetLocationInfo(row, isRunningToNextStation);
+		logger.Debug("Done");
+	}
+
+	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
+	async Task PositioningTask()
+	{
+		// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
+		// accuracy: 30m - 500m
+		GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
+		logger.Info("Starting Location Service... (Interval: {0})", Interval);
+
+		if (gpsCancelation?.Token is not CancellationToken token)
+		{
+			logger.Warn("gpsCancelation is null -> do nothing");
+			return;
+		}
+
+		LogView.Add("Location Service Starting...");
+		bool isFirst = true;
+		while (!token.IsCancellationRequested)
+		{
+			logger.Trace("Location Service Loop");
+			DateTime executeStartTime = DateTime.Now;
+			TimeSpan timeout = Interval;
+			req.Timeout = timeout;
+
+			PermissionStatus permissionStatus = await LocationWhenInUsePermission.CheckStatusAsync();
+			logger.Trace("Location Service Current Permission Status: {0}", permissionStatus);
+			if (permissionStatus != PermissionStatus.Granted)
+			{
+				try
+				{
+					
+					permissionStatus = await MainThread.InvokeOnMainThreadAsync(LocationWhenInUsePermission.RequestAsync);
+					logger.Trace("Location Service Requested Permission Status: {0}", permissionStatus);
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "Location Service Request Permission Failed");
+					IsEnabled = false;
+					gpsCancelation?.Cancel();
+					LogView.Add(LogView.Priority.Error, "Location Service Request Permission Failed:" + ex.ToString());
+
+					if (ExceptionThrown is null)
+						throw;
+					else
+						ExceptionThrown.Invoke(this, ex);
+					return;
+				}
+			}
+			switch (permissionStatus)
+			{
+				case PermissionStatus.Disabled:
+				case PermissionStatus.Denied:
+				case PermissionStatus.Unknown:
+					logger.Error("Location Service Permission Disabled, Denied or Unknown state");
+					IsEnabled = false;
+					gpsCancelation?.Cancel();
+					ExceptionThrown?.Invoke(this, new Exception("Location Service Permission Disabled, Denied or Unknown state"));
+					return;
+			}
+			logger.Trace("Location Service Permission Granted");
+			Location? loc = null;
+
+			try
+			{
+				loc = await Geolocation.Default.GetLocationAsync(req, token);
+			}
+			catch (Exception ex)
+			{
+				logger.Error(ex, "GetLocationAsync failed");
+				IsEnabled = false;
+				gpsCancelation?.Cancel();
+				LogView.Add(LogView.Priority.Error, "GetLocationAsync failed:" + ex.ToString());
+
+				if (ExceptionThrown is null)
+					throw;
+				else
+					ExceptionThrown.Invoke(this, ex);
+				return;
+			}
 
 			if (loc is not null)
 			{
-				logger.Debug("CurrentLocation is {0}", loc);
-				LastLocation = loc;
+				if (isFirst)
+				{
+					logger.Info("Location Service First Positioning");
+					LogView.Add($"Location Service Started with lonlat: ({loc.Longitude}, {loc.Latitude})");
+					isFirst = false;
+					LonLatLocationService.ForceSetLocationInfo(loc.Longitude, loc.Latitude);
+				}
+				else
+				{
+					double distance = LonLatLocationService.SetCurrentLocation(loc.Longitude, loc.Latitude);
+					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude}), distance: {distance}m");
+				}
+				logger.Trace("Location Service Positioning Success (lon: {0}, lat: {1})", loc.Longitude, loc.Latitude);
 			}
 			else
 			{
-				logger.Warn("CurrentLocation is null");
-				LogView.Add("CurrentLocation is UNKNOWN (value was null)");
+				logger.Warn("Location Service Positioning Failed");
+				LogView.Add("Location Service Positioning Failed");
+			}
+
+			if (token.IsCancellationRequested)
+			{
+				logger.Debug("gpsCancelation is requested -> break");
+				break;
+			}
+			DateTime executeEndTime = DateTime.Now;
+			if (executeEndTime < (executeStartTime + timeout))
+			{
+				logger.Trace("Location Service Positioning Took {0}", executeEndTime - executeStartTime);
+				await Task.Delay(timeout - (executeEndTime - executeStartTime), token);
+			}
+			else
+			{
+				logger.Warn("Location Service Positioning Took Too Long (time: {0})", executeEndTime - executeStartTime);
 			}
 		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "GetLocationAsync failed");
-			IsEnabled = false;
-			gpsCancelation?.Cancel();
-			System.Diagnostics.Debug.WriteLine(ex);
-			LogView.Add(LogView.Priority.Error, "GetLocationAsync failed:" + ex.ToString());
 
-			if (ExceptionThrown is null)
-				throw;
-			else
-				ExceptionThrown.Invoke(this, ex);
-		}
+		logger.Info("Location Service Ended");
+		LogView.Add("Location Service Ended");
 	}
+	private bool disposedValue;
 
 	protected virtual void Dispose(bool disposing)
 	{
