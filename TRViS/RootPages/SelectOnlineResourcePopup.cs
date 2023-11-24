@@ -26,7 +26,7 @@ public class SelectOnlineResourcePopup : Popup
 	{
 		Placeholder = "https://",
 		Margin = new(4),
-		ClearButtonVisibility = ClearButtonVisibility.WhileEditing,
+		ClearButtonVisibility = ClearButtonVisibility.Never,
 		IsSpellCheckEnabled = false,
 		IsTextPredictionEnabled = false,
 		Keyboard = Keyboard.Url,
@@ -74,6 +74,11 @@ public class SelectOnlineResourcePopup : Popup
 			cell.SetBinding(TextCell.TextProperty, ".");
 			return cell;
 		});
+
+		// 本当にiOS 15以前のみで有効なプロパティなのかは不明
+		bool isBeforeiOS15 = DeviceInfo.Platform == DevicePlatform.iOS && DeviceInfo.Version.Major < 15;
+		if (showClearButton)
+			UrlInput.ClearButtonVisibility = ClearButtonVisibility.WhileEditing;
 
 		Grid grid = new()
 		{
