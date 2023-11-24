@@ -215,8 +215,8 @@ public partial class LocationService : ObservableObject, IDisposable
 				}
 				else
 				{
-					LonLatLocationService.SetCurrentLocation(loc.Longitude, loc.Latitude);
-					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude})");
+					double distance = LonLatLocationService.SetCurrentLocation(loc.Longitude, loc.Latitude);
+					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude}), distance: {distance}m");
 				}
 				logger.Trace("Location Service Positioning Success (lon: {0}, lat: {1})", loc.Longitude, loc.Latitude);
 			}

@@ -215,17 +215,26 @@ public class LonLatLocationService : ILocationService
 		return DistanceHistoryQueue.Average();
 	}
 
-	public void SetCurrentLocation(double lon_deg, double lat_deg)
+	/// <summary>
+	/// 現在の位置情報を設定し、駅到着・駅出発の判定を行う。
+	/// なお、指定回数分の平均距離にて判定を行うため、即時の判定ではない。
+	/// </summary>
+	/// <param name="lon_deg">現在の経度 [deg]</param>
+	/// <param name="lat_deg">現在の経度 [deg]</param>
+	/// <returns>判定対象の駅までの距離</returns>
+	public double SetCurrentLocation(double lon_deg, double lat_deg)
 	{
 		if (StaLocationInfo is null || CurrentStationIndex < 0 || StaLocationInfo.Length <= CurrentStationIndex)
-			return;
+			return double.NaN;
 
+		double distance = double.NaN;
 		if (IsRunningToNextStation)
 		{
 			// LastStationであれば、RunningToNextStationはfalseであるはずである。
 			// -> 次の駅は必ず存在する
 			int nextStationIndex = GetNextStationIndex(StaLocationInfo, CurrentStationIndex);
 			StaLocationInfo nextStation = StaLocationInfo[nextStationIndex];
+			distance = Utils.CalculateDistance_m(nextStation, new LocationLonLat_deg(lon_deg, lat_deg));
 			double distanceToNextStationAverage = GetDistanceToStationAverage(nextStation, lon_deg, lat_deg);
 
 			if (!double.IsNaN(distanceToNextStationAverage)
@@ -241,6 +250,7 @@ public class LonLatLocationService : ILocationService
 		{
 			StaLocationInfo currentStation = StaLocationInfo[CurrentStationIndex];
 
+			distance = Utils.CalculateDistance_m(currentStation, new LocationLonLat_deg(lon_deg, lat_deg));
 			double distanceFromCurrentStationAverage = GetDistanceToStationAverage(currentStation, lon_deg, lat_deg);
 			if (!double.IsNaN(distanceFromCurrentStationAverage)
 				&& Utils.IsLeaved(currentStation, distanceFromCurrentStationAverage))
@@ -250,5 +260,7 @@ public class LonLatLocationService : ILocationService
 				LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			}
 		}
+
+		return distance;
 	}
 }
