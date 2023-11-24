@@ -14,6 +14,8 @@ public enum AppLinkType
 
 public partial class AppViewModel
 {
+	const int PATH_LENGTH_MAX = 1024;
+
 	const string OPEN_FILE_JSON = "/open/json";
 	const string OPEN_FILE_SQLITE = "/open/sqlite";
 	public async Task HandleAppLinkUriAsync(Uri uri, CancellationToken token)
@@ -76,6 +78,13 @@ public partial class AppViewModel
 		string decodedUrl = HttpUtility.UrlDecode(path);
 		string encodedUrl = path != decodedUrl ? path : HttpUtility.UrlEncode(path);
 		logger.Trace("path: '{0}' -> decodedUrl: '{1}' -> encodedUrl: '{2}'", path, decodedUrl, encodedUrl);
+
+		if (PATH_LENGTH_MAX < decodedUrl.Length)
+		{
+			logger.Warn("path is too long: {0} < {1}", PATH_LENGTH_MAX, decodedUrl.Length);
+			await Utils.DisplayAlert("Cannot Open File", $"File Path is too long: {PATH_LENGTH_MAX} < {decodedUrl.Length}", "OK");
+			return;
+		}
 
 		try
 		{
