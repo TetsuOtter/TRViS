@@ -66,6 +66,13 @@ public partial class AppViewModel
 	}
 	public async Task LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
 	{
+		if (string.IsNullOrEmpty(path))
+		{
+			logger.Warn("path is null or empty");
+			await Utils.DisplayAlert("Cannot Open File", $"File Path is Empty", "OK");
+			return;
+		}
+
 		try
 		{
 			logger.Info("checking file size and type...");
