@@ -41,8 +41,6 @@ public partial class VerticalTimetableView : Grid
 
 	int CurrentRunningRowIndex = -1;
 
-	VerticalTimetableRow? NextRunningRow = null;
-
 	VerticalTimetableRow? _CurrentRunningRow = null;
 	VerticalTimetableRow? CurrentRunningRow
 	{

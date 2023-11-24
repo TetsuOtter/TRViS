@@ -119,12 +119,6 @@ public partial class VerticalTimetableView : Grid
 				logger.Debug("value is null -> set CurrentRunningRowIndex to -1");
 				CurrentRunningRowIndex = -1;
 			}
-
-			NextRunningRow = RowViewList.ElementAtOrDefault(index + 1);
-			logger.Debug("NextRunningRow is set to {0}: `{1}`",
-				NextRunningRow?.RowIndex,
-				NextRunningRow?.RowData.StationName
-			);
 		});
 	}
 
