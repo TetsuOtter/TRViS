@@ -122,6 +122,7 @@ public partial class VerticalTimetableView : Grid
 		});
 	}
 
+	static bool IsHapticEnabled { get; set; } = true;
 	void UpdateCurrentRunningLocationVisualizer(VerticalTimetableRow row, VerticalTimetableRow.LocationStates states)
 	{
 		if (!MainThread.IsMainThread)
@@ -147,5 +148,21 @@ public partial class VerticalTimetableView : Grid
 		CurrentLocationBoxView.Margin = row.LocationState
 			is VerticalTimetableRow.LocationStates.RunningToNextStation
 			? new(0, -(RowHeight.Value / 2)) : new(0);
+
+		try
+		{
+			if (IsHapticEnabled)
+				HapticFeedback.Default.Perform(HapticFeedbackType.Click);
+		}
+		catch (FeatureNotSupportedException)
+		{
+			logger.Warn("HapticFeedback is not supported");
+			IsHapticEnabled = false;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Failed to perform HapticFeedback");
+			IsHapticEnabled = false;
+		}
 	}
 }
