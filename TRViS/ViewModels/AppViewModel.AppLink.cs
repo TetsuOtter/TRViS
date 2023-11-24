@@ -19,7 +19,7 @@ public partial class AppViewModel
 	private readonly List<string> _ExternalResourceUrlHistory;
 	public IReadOnlyList<string> ExternalResourceUrlHistory => _ExternalResourceUrlHistory;
 
-	const int PATH_LENGTH_MAX = 1024;
+	internal const int PATH_LENGTH_MAX = 1024;
 
 	const string OPEN_FILE_JSON = "/open/json";
 	const string OPEN_FILE_SQLITE = "/open/sqlite";
