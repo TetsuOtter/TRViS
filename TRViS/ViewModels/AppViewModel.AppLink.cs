@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Web;
 
 using TRViS.IO;
+using TRViS.Services;
 
 namespace TRViS.ViewModels;
 
@@ -14,6 +15,10 @@ public enum AppLinkType
 
 public partial class AppViewModel
 {
+	const int EXTERNAL_RESOURCE_URL_HISTORY_MAX = 32;
+	private readonly List<string> _ExternalResourceUrlHistory;
+	public IReadOnlyList<string> ExternalResourceUrlHistory => _ExternalResourceUrlHistory;
+
 	const int PATH_LENGTH_MAX = 1024;
 
 	const string OPEN_FILE_JSON = "/open/json";
@@ -206,6 +211,17 @@ public partial class AppViewModel
 			return;
 		}
 
+		// pathがListに存在しない場合は、Removeは何も実行されずに終了する
+		_ExternalResourceUrlHistory.Remove(decodedUrl);
+		if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
+		{
+			int removeCount = _ExternalResourceUrlHistory.Count - EXTERNAL_RESOURCE_URL_HISTORY_MAX + 1;
+			logger.Debug("ExternalResourceUrlHistory.Count is over EXTERNAL_RESOURCE_URL_HISTORY_MAX ({0} <= {1}) -> remove {2} items", EXTERNAL_RESOURCE_URL_HISTORY_MAX, _ExternalResourceUrlHistory.Count, removeCount);
+			_ExternalResourceUrlHistory.RemoveRange(0, removeCount);
+		}
+
+		_ExternalResourceUrlHistory.Add(decodedUrl);
+		AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory);
 		await Utils.DisplayAlert("Success!", "外部ファイルの読み込みが完了しました", "OK");
 	}
 }

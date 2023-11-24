@@ -7,6 +7,7 @@ public enum AppPreferenceKeys
 	IsAppCenterEnabled,
 	IsAppCenterAnalyticsEnabled,
 	IsAppCenterLogShareEnabled,
+	ExternalResourceUrlHistory,
 }
 
 public static class AppPreferenceService
