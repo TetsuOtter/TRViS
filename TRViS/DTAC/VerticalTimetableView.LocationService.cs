@@ -56,10 +56,7 @@ public partial class VerticalTimetableView : Grid
 		_CurrentRunningRow = rowView;
 		CurrentRunningRowIndex = e.NewStationIndex;
 
-		if (rowView.LocationState != VerticalTimetableRow.LocationStates.Undefined)
-		{
-			ScrollRequested?.Invoke(this, new(Math.Max(rowView.RowIndex - 1, 0) * RowHeight.Value));
-		}
+		logger.Debug("process finished");
 	}
 
 	public void SetCurrentRunningRow(int index)
@@ -103,16 +100,6 @@ public partial class VerticalTimetableView : Grid
 			{
 				CurrentRunningRowIndex = index;
 				UpdateCurrentRunningLocationVisualizer(value, VerticalTimetableRow.LocationStates.AroundThisStation);
-
-				if (value.LocationState != VerticalTimetableRow.LocationStates.Undefined)
-				{
-					logger.Debug("value.LocationState is not Undefined -> invoke ScrollRequested");
-					ScrollRequested?.Invoke(this, new(Math.Max(value.RowIndex - 1, 0) * RowHeight.Value));
-				}
-				else
-				{
-					logger.Debug("value.LocationState is Undefined -> do nothing");
-				}
 			}
 			else
 			{
@@ -165,6 +152,16 @@ public partial class VerticalTimetableView : Grid
 		{
 			logger.Error(ex, "Failed to perform HapticFeedback");
 			IsHapticEnabled = false;
+		}
+
+		if (row.LocationState != VerticalTimetableRow.LocationStates.Undefined)
+		{
+			logger.Debug("value.LocationState is not Undefined -> invoke ScrollRequested");
+			ScrollRequested?.Invoke(this, new(Math.Max(row.RowIndex - 1, 0) * RowHeight.Value));
+		}
+		else
+		{
+			logger.Debug("value.LocationState is Undefined -> do nothing");
 		}
 	}
 }
