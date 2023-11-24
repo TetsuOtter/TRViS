@@ -55,6 +55,11 @@ public partial class VerticalTimetableView : Grid
 		);
 		_CurrentRunningRow = rowView;
 		CurrentRunningRowIndex = e.NewStationIndex;
+
+		if (rowView.LocationState != VerticalTimetableRow.LocationStates.Undefined)
+		{
+			ScrollRequested?.Invoke(this, new(Math.Max(rowView.RowIndex - 1, 0) * RowHeight.Value));
+		}
 	}
 
 	public void SetCurrentRunningRow(int index)
