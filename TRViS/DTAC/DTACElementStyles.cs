@@ -160,7 +160,7 @@ public static class DTACElementStyles
 	{
 		T v = LabelStyle<T>();
 
-		v.Margin = new(18, 0);
+		v.Margin = new(18, 0, 0, 0);
 		v.LineHeight = 1.4;
 		v.FontSize = 16;
 		v.HorizontalOptions = LayoutOptions.Start;
