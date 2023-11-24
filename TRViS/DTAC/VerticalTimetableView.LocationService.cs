@@ -132,8 +132,8 @@ public partial class VerticalTimetableView : Grid
 			return;
 		}
 
-		logger.Info("UpdateCurrentRunningLocationVisualizer: {0} ... {1}", row.RowIndex, states);
 		row.LocationState = states;
+		logger.Info("UpdateCurrentRunningLocationVisualizer: Row[{0}] ... Requested:{1}, Actual:{2}", row.RowIndex, states, row.LocationState);
 
 		int rowCount = row.RowIndex;
 
@@ -148,6 +148,8 @@ public partial class VerticalTimetableView : Grid
 		CurrentLocationBoxView.Margin = row.LocationState
 			is VerticalTimetableRow.LocationStates.RunningToNextStation
 			? new(0, -(RowHeight.Value / 2)) : new(0);
+
+		logger.Debug("CurrentLocationBoxView.IsVisible: {0}, CurrentLocationLine.IsVisible: {1}", CurrentLocationBoxView.IsVisible, CurrentLocationLine.IsVisible);
 
 		try
 		{
