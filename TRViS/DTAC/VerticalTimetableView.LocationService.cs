@@ -48,11 +48,12 @@ public partial class VerticalTimetableView : Grid
 		);
 		if (CurrentRunningRow is not null)
 			CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
-		UpdateCurrentRunningLocationVisualizer(RowViewList[e.NewStationIndex], e.IsRunningToNextStation
+		VerticalTimetableRow rowView = RowViewList[e.NewStationIndex];
+		UpdateCurrentRunningLocationVisualizer(rowView, e.IsRunningToNextStation
 			? VerticalTimetableRow.LocationStates.RunningToNextStation
 			: VerticalTimetableRow.LocationStates.AroundThisStation
 		);
-		CurrentRunningRow = RowViewList[e.NewStationIndex];
+		_CurrentRunningRow = rowView;
 		CurrentRunningRowIndex = e.NewStationIndex;
 	}
 
