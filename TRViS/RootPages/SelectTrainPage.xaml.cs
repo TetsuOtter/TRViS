@@ -1,4 +1,7 @@
 using CommunityToolkit.Maui.Views;
+
+using Microsoft.AppCenter.Crashes;
+
 using TRViS.IO;
 using TRViS.ViewModels;
 
@@ -53,6 +56,7 @@ public partial class SelectTrainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
+			Crashes.TrackError(ex);
 			logger.Error(ex, "ShowPopupAsync failed");
 			await Utils.DisplayAlert(this, "Open Popup Failed", ex.ToString(), "OK");
 		}
