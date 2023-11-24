@@ -73,10 +73,14 @@ public partial class AppViewModel
 			return;
 		}
 
+		string decodedUrl = HttpUtility.UrlDecode(path);
+		string encodedUrl = path != decodedUrl ? path : HttpUtility.UrlEncode(path);
+		logger.Trace("path: '{0}' -> decodedUrl: '{1}' -> encodedUrl: '{2}'", path, decodedUrl, encodedUrl);
+
 		try
 		{
 			logger.Info("checking file size and type...");
-			using HttpRequestMessage request = new(HttpMethod.Head, path);
+			using HttpRequestMessage request = new(HttpMethod.Head, encodedUrl);
 			using HttpResponseMessage checkResult = await InstanceManager.HttpClient.SendAsync(request, token);
 			if (!checkResult.IsSuccessStatusCode)
 			{
@@ -121,7 +125,7 @@ public partial class AppViewModel
 
 		try
 		{
-			using HttpRequestMessage request = new(HttpMethod.Get, path);
+			using HttpRequestMessage request = new(HttpMethod.Get, encodedUrl);
 			using HttpResponseMessage result = await InstanceManager.HttpClient.SendAsync(request, token);
 			if (!result.IsSuccessStatusCode)
 			{
@@ -141,7 +145,7 @@ public partial class AppViewModel
 						appLinkType = AppLinkType.OpenFileSQLite;
 						break;
 					default:
-						Uri? uri = new(path);
+						Uri? uri = new(encodedUrl);
 						string? lastPathSegment = uri.Segments.LastOrDefault();
 						if (lastPathSegment?.EndsWith(".json") == true)
 						{
