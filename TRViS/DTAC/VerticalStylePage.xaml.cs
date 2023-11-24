@@ -160,6 +160,7 @@ public partial class VerticalStylePage : ContentView
 		BindingContext = newValue;
 		TimetableView.SelectedTrainData = newValue;
 		PageHeaderArea.IsRunning = false;
+		InstanceManager.DTACMarkerViewModel.IsToggled = false;
 
 		TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
 		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
