@@ -81,8 +81,19 @@ public partial class AppViewModel
 		}
 
 		string decodedUrl = HttpUtility.UrlDecode(path);
-		string encodedUrl = path != decodedUrl ? path : HttpUtility.UrlEncode(path);
-		logger.Trace("path: '{0}' -> decodedUrl: '{1}' -> encodedUrl: '{2}'", path, decodedUrl, encodedUrl);
+		string encodedUrl;
+		if (path != decodedUrl)
+		{
+			logger.Trace("path: '{0}' -> decodedUrl: '{1}'", path, decodedUrl);
+			encodedUrl = path;
+		}
+		else
+		{
+			#pragma warning disable SYSLIB0013
+			encodedUrl = Uri.EscapeUriString(path);
+			#pragma warning restore SYSLIB0013
+			logger.Trace("path: '{0}' -> encodedUrl: '{1}'", path, encodedUrl);
+		}
 
 		if (PATH_LENGTH_MAX < decodedUrl.Length)
 		{
