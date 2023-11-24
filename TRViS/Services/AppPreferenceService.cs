@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace TRViS.Services;
 
 public enum AppPreferenceKeys
@@ -50,6 +52,12 @@ public static class AppPreferenceService
 		return value;
 	}
 
+	public static T GetFromJson<T>(in AppPreferenceKeys key, T defaultValue, out bool hasKey)
+	{
+		string result = Get(in key, string.Empty, out hasKey);
+		return string.IsNullOrEmpty(result) ? defaultValue : JsonSerializer.Deserialize<T>(result) ?? defaultValue;
+	}
+
 	public static void Set(in AppPreferenceKeys key, bool value)
 	{
 		string keyStr = ToKeyString(key);
@@ -63,4 +71,7 @@ public static class AppPreferenceService
 		logger.Trace("key: {0}, value:{1}", keyStr, value);
 		Preferences.Set(keyStr, value);
 	}
+
+	public static void SetToJson<T>(in AppPreferenceKeys key, T value)
+		=> Set(in key, JsonSerializer.Serialize(value));
 }
