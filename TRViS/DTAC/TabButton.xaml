@@ -43,6 +43,7 @@
 				HeightRequest="4"
 				VerticalOptions="End"
 				BackgroundColor="#080"
+				Fill="#080"
 				Margin="8,0"/>
 
 			<Grid.GestureRecognizers>

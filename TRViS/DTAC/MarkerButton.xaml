@@ -27,7 +27,7 @@
 	<Grid
 		Margin="{OnPlatform iOS='4,6', MacCatalyst='4,6', Default='4,0'}">
 		<Label
-			Style="{StaticResource HeaderLabel}"
+			Style="{x:Static local:DTACElementStyles.HeaderLabelStyleResource}"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
 			FontAttributes="Bold"
@@ -43,7 +43,7 @@
 		</Label>
 
 		<Label
-			Style="{StaticResource HeaderLabel}"
+			Style="{x:Static local:DTACElementStyles.HeaderLabelStyleResource}"
 			HorizontalOptions="End"
 			VerticalOptions="Center"
 			FontFamily="MaterialIconsRegular"

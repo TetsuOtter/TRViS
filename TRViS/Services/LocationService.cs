@@ -53,10 +53,10 @@ public partial class LocationService : ObservableObject, IDisposable
 		logger.Debug("LocationService is created");
 	}
 
-	partial void OnIsEnabledChanged(bool newValue)
+	partial void OnIsEnabledChanged(bool value)
 	{
 		// GPS停止
-		if (!newValue)
+		if (!value)
 		{
 			logger.Info("IsEnabled is changed to false -> stop GPS");
 			gpsCancelation?.Cancel();

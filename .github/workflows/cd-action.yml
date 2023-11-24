@@ -29,7 +29,7 @@ env:
   PKG_PATH: ./out/TRViS.pkg
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
-  SDK_VERSION: '8.0.100-preview.4.23260.5'
+  SDK_VERSION: '8.0.100'
   APP_CENTER_SECRETS_FILE_NAME: ./TRViS/AppCenterSecrets.cs
   IOS_DSYM_PATH: ./TRViS/bin/Release/net8.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
@@ -133,7 +133,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 30
     needs:
       - get-version
@@ -337,7 +337,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 30
     needs:
       - get-version
@@ -581,7 +581,6 @@ jobs:
         needs.publish-ios.result == 'success'
         || needs.publish-mac.result == 'success'
       )
-      && !failure()
 
     runs-on: ubuntu-latest
     timeout-minutes: 5

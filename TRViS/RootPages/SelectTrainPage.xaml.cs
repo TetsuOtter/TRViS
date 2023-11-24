@@ -18,12 +18,56 @@ public partial class SelectTrainPage : ContentPage
 		this.viewModel = InstanceManager.AppViewModel;
 		this.BindingContext = viewModel;
 
-		viewModel.Loader ??= new SampleDataLoader();
-
 		logger.Trace("Created");
 	}
 
-	async void Button_Clicked(object sender, EventArgs e)
+	void LoadSampleButton_Clicked(object sender, EventArgs e)
+	{
+		logger.Info("Load Sample Button Clicked");
+
+		viewModel.Loader?.Dispose();
+		viewModel.Loader = new SampleDataLoader();
+
+		logger.Info("Load Sample Button Clicked Processing Complete");
+	}
+
+	protected override void OnAppearing()
+	{
+		base.OnAppearing();
+
+		if (viewModel.Loader is null)
+		{
+			logger.Info("Loader is null -> set SampleDataLoader");
+			viewModel.Loader = new SampleDataLoader();
+		}
+	}
+
+	async void LoadFromWebButton_Clicked(object sender, EventArgs e)
+	{
+		logger.Info("Load From Web Button Clicked");
+
+		try
+		{
+			string? url = await DisplayPromptAsync("Load From Web", "ファイルへのリンクを入力してください", "OK", "Cancel", "https://");
+
+			if (string.IsNullOrEmpty(url))
+			{
+				logger.Info("URL is null or empty");
+				return;
+			}
+
+			await viewModel.LoadExternalFileAsync(url, AppLinkType.Unknown, CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Load From Web Failed");
+			await Utils.DisplayAlert(this, "Cannot Load from Web", ex.ToString(), "OK");
+		}
+
+		logger.Info("Load From Web Button Clicked Processing Complete");
+	}
+
+	async void SelectDatabaseButton_Clicked(object sender, EventArgs e)
 	{
 		logger.Info("Select File Button Clicked");
 
@@ -57,7 +101,7 @@ public partial class SelectTrainPage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "File Selection Failed");
-			await DisplayAlert("Cannot Open File", ex.ToString(), "OK");
+			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
 		}
 
 		logger.Info("Select File Button Clicked Processing Complete");

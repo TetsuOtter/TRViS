@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 using TRViS.Controls;
 
 namespace TRViS.DTAC;
@@ -58,7 +60,6 @@ public class LocationServiceButton : ToggleButton
 			HasShadow = true,
 			Shadow = DTACElementStyles.DefaultShadow,
 		};
-		Grid.SetColumnSpan(baseFrame, 2);
 
 		InitElements();
 
@@ -82,9 +83,10 @@ public class LocationServiceButton : ToggleButton
 			= Label_OFF.ScaleX
 			= 0.9;
 
-		grid.Add(baseFrame, 0);
-		grid.Add(SelectedSideBase, 0);
-		grid.Add(NotSelectedSideBase, 0);
+		Grid.SetColumnSpan(baseFrame, 2);
+		grid.Add(baseFrame);
+		grid.Add(SelectedSideBase);
+		grid.Add(NotSelectedSideBase);
 
 		grid.Add(on_group, 0);
 		grid.Add(Label_OFF, 1);
@@ -143,17 +145,37 @@ public class LocationServiceButton : ToggleButton
 			logger.Info("Location Service is enabled");
 			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
 			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
-			Label_OFF.TextColor = Colors.Black;
+			DTACElementStyles.LocationServiceNotSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
 		}
 		else
 		{
 			logger.Info("Location Service is disabled");
 			DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
-			Label_ON.TextColor = Colors.Black;
-			Label_Location.TextColor = Colors.Black;
+			DTACElementStyles.LocationServiceNotSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
+			DTACElementStyles.LocationServiceNotSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
 		}
 
 		Grid.SetColumn(SelectedSideBase, isLocationServiceEnabled ? 0 : 1);
 		Grid.SetColumn(NotSelectedSideBase, !isLocationServiceEnabled ? 0 : 1);
+	}
+
+	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+	{
+		base.OnPropertyChanged(propertyName);
+
+		if (propertyName == nameof(IsEnabled))
+		{
+			logger.Trace("IsEnabled: {0}", IsEnabled);
+			if (IsEnabled)
+			{
+				DTACElementStyles.LocationServiceSelectedSideFrameColor.Apply(SelectedSideBase, BackgroundColorProperty);
+				DTACElementStyles.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
+			}
+			else
+			{
+				DTACElementStyles.LocationServiceSelectedSideDisabledFrameColor.Apply(SelectedSideBase, BackgroundColorProperty);
+				DTACElementStyles.LocationServiceNotSelectedSideDisabledBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
+			}
+		}
 	}
 }

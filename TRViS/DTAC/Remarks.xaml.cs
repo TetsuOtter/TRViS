@@ -29,11 +29,30 @@ public partial class Remarks : Grid
 		logger.Trace("Created");
 	}
 
+	public void ResetTextScrollViewPosition(bool? isOpen = null)
+	{
+		isOpen ??= IsOpen;
+#if IOS
+		if (Shell.Current is AppShell shell)
+		{
+			double translateToY = isOpen.Value ? 0 : shell.SafeAreaMargin.Bottom;
+			logger.Trace("translateToY: {0} (isOpen: {1})", translateToY, isOpen.Value);
+			RemarksTextScrollView.TranslateTo(
+				x: 0,
+				y: translateToY,
+				length: 250 / 2,
+				easing: Easing.CubicOut
+			);
+		}
+#endif
+		this.TranslateTo(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
+	}
+
 	partial void OnIsOpenChanged(bool newValue)
 	{
 		logger.Info("IsOpen: {0}, BottomMargin: {1}", newValue, BottomMargin);
 		OpenCloseButton.IsOpen = newValue;
-		this.TranslateTo(0, newValue ? BottomMargin : 0, easing: Easing.SinInOut);
+		ResetTextScrollViewPosition(newValue);
 	}
 
 	partial void OnBottomSafeAreaHeightChanged(double newValue)

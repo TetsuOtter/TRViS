@@ -7,6 +7,7 @@ namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsBusy")]
 [DependencyProperty<TrainData>("SelectedTrainData")]
+[DependencyProperty<double>("ScrollViewHeight", DefaultValue = 0)]
 public partial class VerticalTimetableView : Grid
 {
 	public class ScrollRequestedEventArgs(double PositionY) : EventArgs

@@ -10,7 +10,8 @@
 	<Grid
 		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>
-			<RowDefinition Height="{x:Static local:ViewHost.TitleViewHeight}"/>
+			<RowDefinition x:Name="TitlePaddingViewHeight" Height="0"/>
+			<RowDefinition Height="{x:Static local:ViewHost.TITLE_VIEW_HEIGHT}"/>
 			<RowDefinition Height="60"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
@@ -18,6 +19,7 @@
 		<BoxView
 			x:Name="TitleBGBoxView"
 			Grid.Row="0"
+			Grid.RowSpan="2"
 			Margin="-100,-100,-100,0"/>
 		<Frame
 			x:Name="TitleBGGradientFrame"
@@ -25,10 +27,12 @@
 			CornerRadius="0"
 			BorderColor="{x:Null}"
 			Grid.Row="0"
+			Grid.RowSpan="2"
 			Margin="0,0,0,30"/>
 
 		<Button
 			x:Name="MenuButton"
+			Grid.Row="1"
 			Margin="4"
 			HorizontalOptions="Start"
 			VerticalOptions="Center"
@@ -40,6 +44,7 @@
 
 		<Label
 			x:Name="TitleLabel"
+			Grid.Row="1"
 			FontFamily=""
 			Margin="4"
 			HorizontalOptions="Center"
@@ -48,7 +53,7 @@
 			FontSize="Header"/>
 
 		<HorizontalStackLayout
-			Grid.Row="1"
+			Grid.Row="2"
 			Margin="0"
 			Padding="4,0"
 			BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}">
@@ -69,7 +74,7 @@
 		<local:WithRemarksView
 			x:Name="HakoRemarksView"
 			IsVisible="False"
-			Grid.Row="2">
+			Grid.Row="3">
 			<local:Hako
 				x:Name="HakoView"/>
 		</local:WithRemarksView>
@@ -77,12 +82,12 @@
 		<local:WorkAffix
 			x:Name="WorkAffixView"
 			IsVisible="False"
-			Grid.Row="2"/>
+			Grid.Row="3"/>
 
 		<local:WithRemarksView
 			x:Name="VerticalStylePageRemarksView"
 			IsVisible="False"
-			Grid.Row="2">
+			Grid.Row="3">
 			<local:VerticalStylePage
 				x:Name="VerticalStylePageView"/>
 		</local:WithRemarksView>
