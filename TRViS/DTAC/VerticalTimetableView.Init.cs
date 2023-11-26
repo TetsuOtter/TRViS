@@ -49,6 +49,7 @@ public partial class VerticalTimetableView
 		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
 		LocationService.LocationStateChanged += LocationService_LocationStateChanged;
+		LocationService.IsEnabledChanged += (_, e) => IsLocationServiceEnabled = e.NewValue;
 		LocationService.ExceptionThrown += (s, e) =>
 		{
 			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));

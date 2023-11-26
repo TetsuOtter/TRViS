@@ -23,6 +23,7 @@ public partial class LocationService : ObservableObject, IDisposable
 
 	[ObservableProperty]
 	bool _IsEnabled;
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsEnabledChanged;
 
 	readonly LonLatLocationService LonLatLocationService;
 
@@ -67,6 +68,7 @@ public partial class LocationService : ObservableObject, IDisposable
 			logger.Info("IsEnabled is changed to true -> start GPS");
 			Task.Run(StartGPS);
 		}
+		IsEnabledChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
 	}
 
 	public void SetTimetableRows(TimetableRow[]? timetableRows)
@@ -217,6 +219,10 @@ public partial class LocationService : ObservableObject, IDisposable
 				{
 					double distance = LonLatLocationService.SetCurrentLocation(loc.Longitude, loc.Latitude);
 					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude}), distance: {distance}m");
+					if (double.IsNaN(distance))
+					{
+						IsEnabled = false;
+					}
 				}
 				logger.Trace("Location Service Positioning Success (lon: {0}, lat: {1})", loc.Longitude, loc.Latitude);
 			}
