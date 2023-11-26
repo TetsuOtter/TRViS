@@ -140,14 +140,22 @@ public class SelectOnlineResourcePopup : Popup
 		logger.Debug("initialize completed");
 	}
 
+	void setInputIsEnabled(bool isEnabled)
+	{
+		UrlInput.IsEnabled = isEnabled;
+		UrlHistoryListView.IsEnabled = isEnabled;
+		LoadButton.IsEnabled = isEnabled;
+		CloseButton.IsEnabled = isEnabled;
+
+		LoadingIndicator.IsRunning = !isEnabled;
+		LoadingIndicator.IsVisible = !isEnabled;
+	}
+
 	private async void DoLoad()
 	{
 		try
 		{
-			LoadButton.IsEnabled = false;
-			CloseButton.IsEnabled = false;
-			LoadingIndicator.IsRunning = true;
-			LoadingIndicator.IsVisible = true;
+			setInputIsEnabled(false);
 			if (string.IsNullOrEmpty(UrlInput.Text))
 			{
 				logger.Info("URL is null or empty");
@@ -168,10 +176,7 @@ public class SelectOnlineResourcePopup : Popup
 		}
 		finally
 		{
-			LoadButton.IsEnabled = true;
-			CloseButton.IsEnabled = true;
-			LoadingIndicator.IsRunning = false;
-			LoadingIndicator.IsVisible = false;
+			setInputIsEnabled(true);
 		}
 	}
 }
