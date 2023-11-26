@@ -68,6 +68,7 @@ public partial class SelectTrainPage : ContentPage
 	{
 		logger.Info("Select File Button Clicked");
 
+		ILoader? lastLoader = viewModel.Loader;
 		try
 		{
 			var result = await FilePicker.Default.PickAsync();
@@ -75,7 +76,6 @@ public partial class SelectTrainPage : ContentPage
 			if (result is not null)
 			{
 				logger.Info("File Selected: {0}", result.FullPath);
-				viewModel.Loader?.Dispose();
 
 				if (result.FullPath.EndsWith(".json"))
 				{
@@ -83,11 +83,23 @@ public partial class SelectTrainPage : ContentPage
 					viewModel.Loader = await LoaderJson.InitFromFileAsync(result.FullPath);
 					logger.Trace("LoaderJson Initialized");
 				}
-				else
+				else if (result.FullPath.EndsWith(".sqlite") || result.FullPath.EndsWith(".db") || result.FullPath.EndsWith(".sqlite3"))
 				{
 					logger.Debug("Loading SQLite File");
 					viewModel.Loader = new LoaderSQL(result.FullPath);
 					logger.Trace("LoaderSQL Initialized");
+				}
+				else
+				{
+					logger.Warn("Unknown File Type");
+					await Utils.DisplayAlert(this, "Unknown File Type", "The selected file is not a supported file type.", "OK");
+				}
+
+				if (!ReferenceEquals(lastLoader, viewModel.Loader))
+				{
+					logger.Debug("Loader changed -> dispose lastLoader");
+					// どちらもnullの可能性がある
+					lastLoader?.Dispose();
 				}
 			}
 			else
@@ -97,6 +109,13 @@ public partial class SelectTrainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
+			if (!ReferenceEquals(lastLoader, viewModel.Loader))
+			{
+				logger.Debug("Loader changed -> restore lastLoader");
+				viewModel.Loader?.Dispose();
+				viewModel.Loader = lastLoader;
+			}
+
 			logger.Error(ex, "File Selection Failed");
 			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
 		}
