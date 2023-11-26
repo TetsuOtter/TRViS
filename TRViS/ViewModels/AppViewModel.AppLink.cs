@@ -1,4 +1,7 @@
 using System.Collections.Specialized;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Web;
 
 using TRViS.IO;
@@ -71,6 +74,32 @@ public partial class AppViewModel
 
 		await LoadExternalFileAsync(path, appLinkType, token);
 	}
+	static bool IsPrivateIpv4(IPAddress ip)
+	{
+		if (ip.AddressFamily != AddressFamily.InterNetwork)
+		{
+			return false;
+		}
+
+		byte[] bytes = ip.GetAddressBytes();
+		return bytes[0] switch
+		{
+			10 => true,
+			172 => 16 <= bytes[1] && bytes[1] <= 31,
+			192 => bytes[1] == 168,
+			_ => false,
+		};
+	}
+
+	static bool IsSameNetwork(byte[] remoteIp, IPAddress localIp, IPAddress subnetMask)
+		=> IsSameNetwork(remoteIp, localIp.GetAddressBytes(), subnetMask.GetAddressBytes());
+	static bool IsSameNetwork(byte[] remoteIp, byte[] localIp, byte[] subnetMask)
+	{
+		byte[] remoteNetworkAddress = remoteIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
+		byte[] localNetworkAddress = localIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
+		return remoteNetworkAddress.SequenceEqual(localNetworkAddress);
+	}
+
 	public async Task<bool> LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
 	{
 		if (string.IsNullOrEmpty(path))
@@ -100,6 +129,56 @@ public partial class AppViewModel
 			logger.Warn("path is too long: {0} < {1}", PATH_LENGTH_MAX, decodedUrl.Length);
 			await Utils.DisplayAlert("Cannot Open File", $"File Path is too long: {PATH_LENGTH_MAX} < {decodedUrl.Length}", "OK");
 			return false;
+		}
+
+		Uri uri = new(encodedUrl);
+		IPAddress? remoteIp = null;
+		bool isRemoteIpv4Ip = uri.HostNameType == UriHostNameType.IPv4
+			&& IPAddress.TryParse(uri.Host, out remoteIp);
+		bool isRemoteIpv4PrivateIp = isRemoteIpv4Ip && IsPrivateIpv4(remoteIp!);
+		logger.Trace("uri.HostNameType: {0}, uri.Host: {1}, isRemoteIpv4Ip: {2}, isRemoteIpv4PrivateIp: {3}", uri.HostNameType, uri.Host, isRemoteIpv4Ip, isRemoteIpv4PrivateIp);
+		if (isRemoteIpv4PrivateIp)
+		{
+			bool isSameNetwork = false;
+			List<IPAddress> myIpList = [];
+			byte[] remoteIpAddress = remoteIp!.GetAddressBytes();
+			foreach (NetworkInterface adapter in NetworkInterface.GetAllNetworkInterfaces())
+			{
+				logger.Trace("adapter: {0} ({1})", adapter.Name, adapter.Description);
+				foreach (UnicastIPAddressInformation unicastIPAddressInformation in adapter.GetIPProperties().UnicastAddresses)
+				{
+					logger.Trace("  unicastIPAddressInformation: {0} / {1}", unicastIPAddressInformation.Address, unicastIPAddressInformation.IPv4Mask);
+					if (unicastIPAddressInformation.Address.AddressFamily != AddressFamily.InterNetwork)
+						continue;
+
+					if (!IPAddress.IsLoopback(unicastIPAddressInformation.Address))
+						myIpList.Add(unicastIPAddressInformation.Address);
+					if (IsSameNetwork(remoteIpAddress, unicastIPAddressInformation.Address, unicastIPAddressInformation.IPv4Mask))
+					{
+						logger.Trace("    -> isSameNetwork");
+						isSameNetwork = true;
+						break;
+					}
+				}
+
+				if (isSameNetwork)
+					break;
+			}
+
+			if (!isSameNetwork)
+			{
+				logger.Warn("remoteIp is private but not same network");
+				string myIpListStr = string.Join('\n', myIpList.Select((x, i) => $"この端末[{i}]:{x}"));
+				bool continueProcessing = await Utils.DisplayAlert(
+					"Maybe Different Network",
+					$"接続先と違うネットワークに属しているため、接続に失敗する可能性があります。\nこのまま接続しますか?\n接続先:{remoteIp}\n{myIpListStr}",
+					"続ける",
+					"やめる"
+				);
+				logger.Trace("continueProcessing: {0}", continueProcessing);
+				if (!continueProcessing)
+					return false;
+			}
 		}
 
 		try
@@ -143,8 +222,19 @@ public partial class AppViewModel
 		}
 		catch (Exception ex)
 		{
+			if (isRemoteIpv4PrivateIp
+				&& ex is TaskCanceledException
+				&& ex.InnerException is TimeoutException)
+			{
+				logger.Error(ex, "File Size Check Failed (ToLocal && Timeout)");
+				await Utils.DisplayAlert(
+					"接続できませんでした",
+					"接続先が同じネットワークに属しているか、\nまたファイアウォールの例外設定がきちんと今のネットワークに行われているかを\n確認してください。",
+					"OK");
+				return false;
+			}
 			logger.Error(ex, "File Size Check Failed");
-			await Utils.DisplayAlert("Cannot Open File", ex.ToString(), "OK");
+			await Utils.DisplayAlert("Cannot Open File", ex.Message, "OK");
 			return false;
 		}
 
@@ -170,7 +260,6 @@ public partial class AppViewModel
 						appLinkType = AppLinkType.OpenFileSQLite;
 						break;
 					default:
-						Uri? uri = new(encodedUrl);
 						string? lastPathSegment = uri.Segments.LastOrDefault();
 						if (lastPathSegment?.EndsWith(".json") == true)
 						{
@@ -218,7 +307,7 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Loading File Failed");
-			await Utils.DisplayAlert("Cannot Open File", ex.ToString(), "OK");
+			await Utils.DisplayAlert("Cannot Open File", ex.Message, "OK");
 			return false;
 		}
 
