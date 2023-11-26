@@ -75,7 +75,7 @@ public partial class SelectTrainPage : ContentPage
 			if (result is not null)
 			{
 				logger.Info("File Selected: {0}", result.FullPath);
-				viewModel.Loader?.Dispose();
+				ILoader? lastLoader = viewModel.Loader;
 
 				if (result.FullPath.EndsWith(".json"))
 				{
@@ -88,6 +88,14 @@ public partial class SelectTrainPage : ContentPage
 					logger.Debug("Loading SQLite File");
 					viewModel.Loader = new LoaderSQL(result.FullPath);
 					logger.Trace("LoaderSQL Initialized");
+				}
+
+				if (!ReferenceEquals(lastLoader, viewModel.Loader))
+				{
+					logger.Debug("Loader changed -> dispose lastLoader");
+					// どちらもnullの可能性がある
+					lastLoader?.Dispose();
+					return;
 				}
 			}
 			else
