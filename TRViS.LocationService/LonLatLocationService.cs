@@ -22,7 +22,6 @@ public class LonLatLocationService : ILocationService
 
 			_staLocationInfo = value;
 			ResetLocationInfo();
-			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 		}
 	}
 
@@ -46,6 +45,9 @@ public class LonLatLocationService : ILocationService
 
 	static int GetPastStationIndex(in StaLocationInfo[] staLocationInfo, int currentStationIndex)
 	{
+		if (currentStationIndex <= 0)
+			return CURRENT_STATION_INDEX_NOT_SET;
+
 		for (int i = currentStationIndex - 1; i >= 0; i--)
 		{
 			if (staLocationInfo[i].HasLonLatLocation)
@@ -233,6 +235,11 @@ public class LonLatLocationService : ILocationService
 			// LastStationであれば、RunningToNextStationはfalseであるはずである。
 			// -> 次の駅は必ず存在する
 			int nextStationIndex = GetNextStationIndex(StaLocationInfo, CurrentStationIndex);
+			if (nextStationIndex < 0)
+			{
+				// 入るはずはないけども、念のため。
+				return double.NaN;
+			}
 			StaLocationInfo nextStation = StaLocationInfo[nextStationIndex];
 			distance = Utils.CalculateDistance_m(nextStation, new LocationLonLat_deg(lon_deg, lat_deg));
 			double distanceToNextStationAverage = GetDistanceToStationAverage(nextStation, lon_deg, lat_deg);
