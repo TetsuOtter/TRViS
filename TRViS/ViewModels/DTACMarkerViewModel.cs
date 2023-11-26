@@ -9,7 +9,7 @@ public partial class DTACMarkerViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-	public List<MarkerInfo> ColorList { get; } = new()
+	public static readonly IReadOnlyList<MarkerInfo> ColorListDefaultValue = new List<MarkerInfo>()
 	{
 		// Red
 		new("赤", new(0xF0, 0x40, 0x20)),
@@ -26,8 +26,9 @@ public partial class DTACMarkerViewModel : ObservableObject
 		// Brown
 		new("茶", new(0x80, 0x40, 0x20)),
 	};
+	public List<MarkerInfo> ColorList { get; } = new(ColorListDefaultValue);
 
-	public List<string> TextList { get; } = new()
+	public static readonly IReadOnlyList<string> TextListDefaultValue = new List<string>()
 	{
 		string.Empty,
 		"停車",
@@ -37,6 +38,7 @@ public partial class DTACMarkerViewModel : ObservableObject
 		"時変",
 		"合図",
 	};
+	public List<string> TextList { get; } = new(TextListDefaultValue);
 
 	[ObservableProperty]
 	private bool _IsToggled;
