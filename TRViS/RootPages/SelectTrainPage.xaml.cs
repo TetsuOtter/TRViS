@@ -75,7 +75,7 @@ public partial class SelectTrainPage : ContentPage
 			if (result is not null)
 			{
 				logger.Info("File Selected: {0}", result.FullPath);
-				viewModel.Loader?.Dispose();
+				ILoader? lastLoader = viewModel.Loader;
 
 				if (result.FullPath.EndsWith(".json"))
 				{
@@ -83,11 +83,24 @@ public partial class SelectTrainPage : ContentPage
 					viewModel.Loader = await LoaderJson.InitFromFileAsync(result.FullPath);
 					logger.Trace("LoaderJson Initialized");
 				}
-				else
+				else if (result.FullPath.EndsWith(".sqlite") || result.FullPath.EndsWith(".db") || result.FullPath.EndsWith(".sqlite3"))
 				{
 					logger.Debug("Loading SQLite File");
 					viewModel.Loader = new LoaderSQL(result.FullPath);
 					logger.Trace("LoaderSQL Initialized");
+				}
+				else
+				{
+					logger.Warn("Unknown File Type");
+					await Utils.DisplayAlert(this, "Unknown File Type", "The selected file is not a supported file type.", "OK");
+				}
+
+				if (!ReferenceEquals(lastLoader, viewModel.Loader))
+				{
+					logger.Debug("Loader changed -> dispose lastLoader");
+					// どちらもnullの可能性がある
+					lastLoader?.Dispose();
+					return;
 				}
 			}
 			else
