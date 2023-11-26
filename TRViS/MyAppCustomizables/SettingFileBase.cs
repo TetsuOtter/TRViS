@@ -166,14 +166,27 @@ public class SettingFileStructure
 		=> JsonSerializer.SerializeAsync(dst, this);
 	public async Task SaveToJsonFileAsync()
 	{
-		settingFileInfo.Refresh();
-		if (!settingFileInfo.Exists)
+		FileStream? jsonStream = null;
+
+		try
 		{
-			logger.Info("Creating setting file... (path: {0})", settingFileInfo.FullName);
-			settingFileInfo.Create();
+			settingFileInfo.Refresh();
+			if (!settingFileInfo.Exists)
+			{
+				logger.Info("Creating setting file... (path: {0})", settingFileInfo.FullName);
+				jsonStream = settingFileInfo.Create();
+			}
+			else
+			{
+				jsonStream = File.Open(settingFileInfo.FullName, FileMode.Truncate);
+			}
+
+			await SaveToJsonFileAsync(jsonStream);
 		}
-		using FileStream jsonStream = File.Open(settingFileInfo.FullName, FileMode.Truncate);
-		await SaveToJsonFileAsync(jsonStream);
+		finally
+		{
+			jsonStream?.Dispose();
+		}
 	}
 
 	#endregion Loaders
