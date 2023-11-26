@@ -160,6 +160,7 @@ public class SettingFileStructure
 		=> JsonSerializer.SerializeAsync(dst, this);
 	public async Task SaveToJsonFileAsync()
 	{
+		settingFileInfo.Refresh();
 		if (!settingFileInfo.Exists)
 		{
 			logger.Info("Creating setting file... (path: {0})", settingFileInfo.FullName);
