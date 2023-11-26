@@ -74,7 +74,7 @@ public partial class LocationService : ObservableObject, IDisposable
 		logger.Trace("Setting TimetableRows...");
 
 		IsEnabled = false;
-		LonLatLocationService.StaLocationInfo = timetableRows?.Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
+		LonLatLocationService.StaLocationInfo = timetableRows?.Where(v => !v.IsInfoRow).Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
 	}
 
 	static EasterEggPageViewModel EasterEggPageViewModel { get; } = InstanceManager.EasterEggPageViewModel;

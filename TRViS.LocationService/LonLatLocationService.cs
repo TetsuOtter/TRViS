@@ -22,7 +22,6 @@ public class LonLatLocationService : ILocationService
 
 			_staLocationInfo = value;
 			ResetLocationInfo();
-			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 		}
 	}
 
