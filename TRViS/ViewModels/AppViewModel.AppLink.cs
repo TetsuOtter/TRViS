@@ -91,6 +91,15 @@ public partial class AppViewModel
 		};
 	}
 
+	static bool IsSameNetwork(byte[] remoteIp, IPAddress localIp, IPAddress subnetMask)
+		=> IsSameNetwork(remoteIp, localIp.GetAddressBytes(), subnetMask.GetAddressBytes());
+	static bool IsSameNetwork(byte[] remoteIp, byte[] localIp, byte[] subnetMask)
+	{
+		byte[] remoteNetworkAddress = remoteIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
+		byte[] localNetworkAddress = localIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
+		return remoteNetworkAddress.SequenceEqual(localNetworkAddress);
+	}
+
 	public async Task<bool> LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
 	{
 		if (string.IsNullOrEmpty(path))
@@ -128,50 +137,47 @@ public partial class AppViewModel
 			&& IPAddress.TryParse(uri.Host, out remoteIp);
 		bool isRemoteIpv4PrivateIp = isRemoteIpv4Ip && IsPrivateIpv4(remoteIp!);
 		logger.Trace("uri.HostNameType: {0}, uri.Host: {1}, isRemoteIpv4Ip: {2}, isRemoteIpv4PrivateIp: {3}", uri.HostNameType, uri.Host, isRemoteIpv4Ip, isRemoteIpv4PrivateIp);
-		if (isRemoteIpv4PrivateIp
-			&& Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork) is IPAddress myIp
-		)
+		if (isRemoteIpv4PrivateIp)
 		{
-			IPAddress? subnetMask = null;
+			bool isSameNetwork = false;
+			List<IPAddress> myIpList = [];
+			byte[] remoteIpAddress = remoteIp!.GetAddressBytes();
 			foreach (NetworkInterface adapter in NetworkInterface.GetAllNetworkInterfaces())
 			{
 				logger.Trace("adapter: {0} ({1})", adapter.Name, adapter.Description);
 				foreach (UnicastIPAddressInformation unicastIPAddressInformation in adapter.GetIPProperties().UnicastAddresses)
 				{
 					logger.Trace("  unicastIPAddressInformation: {0} / {1}", unicastIPAddressInformation.Address, unicastIPAddressInformation.IPv4Mask);
-					if (unicastIPAddressInformation.Address.AddressFamily != AddressFamily.InterNetwork
-						|| unicastIPAddressInformation.IPv4Mask is null
-						|| unicastIPAddressInformation.Address.Equals(IPAddress.Loopback)
-						|| !unicastIPAddressInformation.Address.Equals(myIp))
+					if (unicastIPAddressInformation.Address.AddressFamily != AddressFamily.InterNetwork)
 						continue;
 
-					subnetMask = unicastIPAddressInformation.IPv4Mask;
-					break;
+					if (!IPAddress.IsLoopback(unicastIPAddressInformation.Address))
+						myIpList.Add(unicastIPAddressInformation.Address);
+					if (IsSameNetwork(remoteIpAddress, unicastIPAddressInformation.Address, unicastIPAddressInformation.IPv4Mask))
+					{
+						logger.Trace("    -> isSameNetwork");
+						isSameNetwork = true;
+						break;
+					}
 				}
+
+				if (isSameNetwork)
+					break;
 			}
 
-			if (subnetMask is not null)
+			if (!isSameNetwork)
 			{
-				byte[] remoteIpAddress = remoteIp!.GetAddressBytes();
-				byte[] myIpAddress = myIp.GetAddressBytes();
-				byte[] subnetMaskBytes = subnetMask.GetAddressBytes();
-
-				byte[] remoteNetworkAddress = remoteIpAddress.Select((x, i) => (byte)(x & subnetMaskBytes[i])).ToArray();
-				byte[] myNetworkAddress = myIpAddress.Select((x, i) => (byte)(x & subnetMaskBytes[i])).ToArray();
-
-				if (!remoteNetworkAddress.SequenceEqual(myNetworkAddress))
-				{
-					logger.Warn("remoteIp is private but not same network");
-					bool continueProcessing = await Utils.DisplayAlert(
-						"Maybe Different Network",
-						$"接続先と違うネットワークに属しているため、接続に失敗する可能性があります。\nこのまま接続しますか?\n接続先:{remoteIp}\nこの端末:{myIp}",
-						"続ける",
-						"やめる"
-					);
-					logger.Trace("continueProcessing: {0}", continueProcessing);
-					if (!continueProcessing)
-						return false;
-				}
+				logger.Warn("remoteIp is private but not same network");
+				string myIpListStr = string.Join('\n', myIpList.Select((x, i) => $"この端末[{i}]:{x}"));
+				bool continueProcessing = await Utils.DisplayAlert(
+					"Maybe Different Network",
+					$"接続先と違うネットワークに属しているため、接続に失敗する可能性があります。\nこのまま接続しますか?\n接続先:{remoteIp}\n{myIpListStr}",
+					"続ける",
+					"やめる"
+				);
+				logger.Trace("continueProcessing: {0}", continueProcessing);
+				if (!continueProcessing)
+					return false;
 			}
 		}
 
