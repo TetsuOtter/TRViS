@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using TRViS.ViewModels;
+
 namespace TRViS.MyAppCustomizables;
 
 /// <summary>
@@ -17,12 +19,12 @@ public class SettingFileStructure
 	/// <summary>
 	/// マーカーの色一覧
 	/// </summary>
-	public Dictionary<string, ColorSetting> MarkerColors { get; set; } = new();
+	public Dictionary<string, ColorSetting> MarkerColors { get; set; } = [];
 
 	/// <summary>
 	/// マーカーのテキスト一覧
 	/// </summary>
-	public string[] MarkerTexts { get; set; } = Array.Empty<string>();
+	public string[] MarkerTexts { get; set; } = [];
 
 	/// <summary>
 	/// 位置情報サービスの位置情報サービスの位置測位間隔 (秒)
@@ -79,7 +81,11 @@ public class SettingFileStructure
 		if (!settingFileInfo.Exists)
 		{
 			logger.Info("Creating setting file... (path: {0})", settingFileInfo.FullName);
-			SettingFileStructure setting = new();
+			SettingFileStructure setting = new()
+			{
+				MarkerTexts = [.. DTACMarkerViewModel.TextListDefaultValue],
+				MarkerColors = DTACMarkerViewModel.ColorListDefaultValue.ToDictionary(v => v.Name, v => new ColorSetting(v.Color)),
+			};
 			using FileStream jsonStream = File.Create(settingFileInfo.FullName);
 			await setting.SaveToJsonFileAsync(jsonStream);
 			return (setting, settingFileCreatedMsg);
@@ -158,15 +164,29 @@ public class SettingFileStructure
 		=> JsonSerializer.Serialize(this);
 	public Task SaveToJsonFileAsync(Stream dst)
 		=> JsonSerializer.SerializeAsync(dst, this);
-	public Task SaveToJsonFileAsync()
+	public async Task SaveToJsonFileAsync()
 	{
-		if (!settingFileInfo.Exists)
+		FileStream? jsonStream = null;
+
+		try
 		{
-			logger.Info("Creating setting file... (path: {0})", settingFileInfo.FullName);
-			settingFileInfo.Create();
+			settingFileInfo.Refresh();
+			if (!settingFileInfo.Exists)
+			{
+				logger.Info("Creating setting file... (path: {0})", settingFileInfo.FullName);
+				jsonStream = settingFileInfo.Create();
+			}
+			else
+			{
+				jsonStream = File.Open(settingFileInfo.FullName, FileMode.Truncate);
+			}
+
+			await SaveToJsonFileAsync(jsonStream);
 		}
-		using FileStream jsonStream = File.Open(settingFileInfo.FullName, FileMode.Truncate);
-		return SaveToJsonFileAsync(jsonStream);
+		finally
+		{
+			jsonStream?.Dispose();
+		}
 	}
 
 	#endregion Loaders
