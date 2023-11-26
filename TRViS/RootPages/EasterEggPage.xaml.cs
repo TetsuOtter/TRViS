@@ -32,20 +32,36 @@ public partial class EasterEggPage : ContentPage
 
 	private async void OnReloadSavedClicked(object sender, EventArgs e)
 	{
-		logger.Trace("Executing...");
+		try
+		{
+			logger.Trace("Executing...");
 
-		await ViewModel.LoadFromFileAsync();
+			await ViewModel.LoadFromFileAsync();
 
-		logger.Info("Reload Complete");
+			logger.Info("Reload Complete");
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Failed to reload");
+			await DisplayAlert("Error", "Failed to reload\n" + ex.Message, "OK");
+		}
 	}
 
 	private async void OnSaveClicked(object sender, EventArgs e)
 	{
-		logger.Trace("Executing...");
+		try
+		{
+			logger.Trace("Executing...");
 
-		await ViewModel.SaveAsync();
+			await ViewModel.SaveAsync();
 
-		logger.Info("Saved");
-		await DisplayAlert("Success!", "Successfully saved", "OK");
+			logger.Info("Saved");
+			await DisplayAlert("Success!", "Successfully saved", "OK");
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Failed to save");
+			await DisplayAlert("Error", "Failed to save\n" + ex.Message, "OK");
+		}
 	}
 }

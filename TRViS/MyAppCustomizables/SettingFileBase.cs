@@ -158,15 +158,16 @@ public class SettingFileStructure
 		=> JsonSerializer.Serialize(this);
 	public Task SaveToJsonFileAsync(Stream dst)
 		=> JsonSerializer.SerializeAsync(dst, this);
-	public Task SaveToJsonFileAsync()
+	public async Task SaveToJsonFileAsync()
 	{
+		settingFileInfo.Refresh();
 		if (!settingFileInfo.Exists)
 		{
 			logger.Info("Creating setting file... (path: {0})", settingFileInfo.FullName);
 			settingFileInfo.Create();
 		}
 		using FileStream jsonStream = File.Open(settingFileInfo.FullName, FileMode.Truncate);
-		return SaveToJsonFileAsync(jsonStream);
+		await SaveToJsonFileAsync(jsonStream);
 	}
 
 	#endregion Loaders
