@@ -68,6 +68,7 @@ public partial class SelectTrainPage : ContentPage
 	{
 		logger.Info("Select File Button Clicked");
 
+		ILoader? lastLoader = viewModel.Loader;
 		try
 		{
 			var result = await FilePicker.Default.PickAsync();
@@ -75,7 +76,6 @@ public partial class SelectTrainPage : ContentPage
 			if (result is not null)
 			{
 				logger.Info("File Selected: {0}", result.FullPath);
-				ILoader? lastLoader = viewModel.Loader;
 
 				if (result.FullPath.EndsWith(".json"))
 				{
@@ -100,7 +100,6 @@ public partial class SelectTrainPage : ContentPage
 					logger.Debug("Loader changed -> dispose lastLoader");
 					// どちらもnullの可能性がある
 					lastLoader?.Dispose();
-					return;
 				}
 			}
 			else
@@ -110,6 +109,13 @@ public partial class SelectTrainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
+			if (!ReferenceEquals(lastLoader, viewModel.Loader))
+			{
+				logger.Debug("Loader changed -> restore lastLoader");
+				viewModel.Loader?.Dispose();
+				viewModel.Loader = lastLoader;
+			}
+
 			logger.Error(ex, "File Selection Failed");
 			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
 		}
