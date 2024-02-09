@@ -33,13 +33,14 @@
 		<Button
 			x:Name="MenuButton"
 			Grid.Row="1"
-			Margin="4"
+			Margin="8,4"
+			Padding="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Center"
 			Text="&#xe241;"
 			FontFamily="MaterialIconsRegular"
 			FontSize="36"
-			BackgroundColor="{x:Null}"
+			BackgroundColor="Transparent"
 			Clicked="MenuButton_Clicked" />
 
 		<Label
