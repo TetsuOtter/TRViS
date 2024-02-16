@@ -104,7 +104,7 @@ public static class DTACElementStyles
 			_labelStyleResource.Setters.Add(Label.FontFamilyProperty, DefaultFontFamily);
 			_labelStyleResource.Setters.Add(Label.MarginProperty, new Thickness(4, 0));
 			_labelStyleResource.Setters.Add(Label.LineBreakModeProperty, LineBreakMode.CharacterWrap);
-			_labelStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1.1);
+			_labelStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1);
 
 			return _labelStyleResource;
 		}
@@ -122,7 +122,7 @@ public static class DTACElementStyles
 		v.Margin = new(4,0);
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 
-		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.9 : 1.1;
+		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1;
 
 		return v;
 	}
