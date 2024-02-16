@@ -45,7 +45,9 @@ public partial class TabButton : ContentView
 
 		int tabButtonCount = 3;
 		double calcedMaxWidth = (newValue - 8) / tabButtonCount;
-		WidthRequest = Math.Min(calcedMaxWidth, NORMAL_MODE_WIDTH);
+		double widthRequestValue = Math.Min(calcedMaxWidth, NORMAL_MODE_WIDTH);
+		logger.Trace("OnWindowWidthChanged WidthRequest newValue: {0}", widthRequestValue);
+		WidthRequest = widthRequestValue;
 	}
 
 	partial void OnCurrentModeChanged()

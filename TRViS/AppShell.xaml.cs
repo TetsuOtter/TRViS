@@ -49,6 +49,11 @@ public partial class AppShell : Shell
 		SetBinding(Shell.TitleColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
 
 		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
+
+		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
+		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
+		logger.Trace("Display Width/Height: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);
+
 		logger.Trace("AppShell Created");
 	}
 
@@ -83,6 +88,14 @@ public partial class AppShell : Shell
 				InstanceManager.AppViewModel.WindowHeight = Height;
 				break;
 		}
+	}
+
+	protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
+	{
+		InstanceManager.AppViewModel.WindowWidth = widthConstraint;
+		InstanceManager.AppViewModel.WindowHeight = heightConstraint;
+		logger.Trace("OnMeasure: {0}x{1}", widthConstraint, heightConstraint);
+		return base.OnMeasure(widthConstraint, heightConstraint);
 	}
 
 	public event ValueChangedEventHandler<Thickness>? SafeAreaMarginChanged;

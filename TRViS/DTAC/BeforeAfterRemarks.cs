@@ -17,7 +17,6 @@ public class BeforeAfterRemarks
 
 		Label.Margin = new(32, 0);
 		Label.HorizontalOptions = LayoutOptions.Start;
-		Label.LineHeight = 1.4;
 
 		logger.Trace("Created");
 	}
