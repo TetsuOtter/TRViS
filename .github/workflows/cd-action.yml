@@ -313,6 +313,7 @@ jobs:
         -o "${{ env.OUTPUT_DIR }}"
         /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
         /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+        /p:AndroidSdkDirectory=$ANDROID_HOME
 
     - name: Upload AAB
       uses: actions/upload-artifact@v3
