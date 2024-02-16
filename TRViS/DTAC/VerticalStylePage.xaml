@@ -102,7 +102,6 @@
 			<ctrls:HtmlAutoDetectLabel
 				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
-				LineHeight="1"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="3"/>
@@ -180,7 +179,6 @@
 				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				Grid.Column="2"
 				Grid.ColumnSpan="6"
-				LineHeight="1.4"
 				Margin="32,0"
 				HorizontalOptions="Start"
 				VerticalOptions="Center"

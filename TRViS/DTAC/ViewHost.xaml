@@ -21,11 +21,9 @@
 			Grid.Row="0"
 			Grid.RowSpan="2"
 			Margin="-100,-100,-100,0"/>
-		<Frame
-			x:Name="TitleBGGradientFrame"
-			HasShadow="False"
+		<BoxView
+			x:Name="TitleBGGradientBox"
 			CornerRadius="0"
-			BorderColor="{x:Null}"
 			Grid.Row="0"
 			Grid.RowSpan="2"
 			Margin="0,0,0,30"/>
@@ -33,13 +31,14 @@
 		<Button
 			x:Name="MenuButton"
 			Grid.Row="1"
-			Margin="4"
+			Margin="8,4"
+			Padding="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Center"
 			Text="&#xe241;"
 			FontFamily="MaterialIconsRegular"
 			FontSize="36"
-			BackgroundColor="{x:Null}"
+			BackgroundColor="Transparent"
 			Clicked="MenuButton_Clicked" />
 
 		<Label

@@ -36,7 +36,8 @@ public partial class ViewHost : ContentPage
 			Path = nameof(EasterEggPageViewModel.ShellBackgroundColor)
 		});
 
-		TitleBGGradientFrame.Background = new LinearGradientBrush(new GradientStopCollection()
+		TitleBGGradientBox.Color = null;
+		TitleBGGradientBox.Background = new LinearGradientBrush(new GradientStopCollection()
 		{
 			TitleBG_Top,
 			TitleBG_Middle,
@@ -117,9 +118,9 @@ public partial class ViewHost : ContentPage
 			return;
 		}
 
-		TitleBGGradientFrame.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
+		TitleBGGradientBox.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
 		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
-		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientFrame.Margin to {0}", Utils.ThicknessToString(TitleBGGradientFrame.Margin));
+		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)

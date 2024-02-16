@@ -305,6 +305,12 @@ jobs:
         echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
+    # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
+    - name: Install Android SDK Platform Tools
+      run: >
+        ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
+        --sdk_root="$ANDROID_SDK_ROOT"
+        "platform-tools"
     - name: Build
       run: >
         dotnet publish ${{ env.CSPROJ_PATH }}
