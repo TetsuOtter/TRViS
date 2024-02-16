@@ -311,6 +311,8 @@ jobs:
         ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
         --sdk_root="$ANDROID_SDK_ROOT"
         "platform-tools"
+    - name: Create Android Signing Key
+      run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > keystore.jks
     - name: Build
       run: >
         dotnet publish ${{ env.CSPROJ_PATH }}
@@ -319,6 +321,11 @@ jobs:
         -o "${{ env.OUTPUT_DIR }}"
         /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
         /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+        /p:AndroidKeyStore=true
+        /p:AndroidSigningKeyAlias='${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
+        /p:AndroidSigningKeyPass='${{ secrets.ANDROID_SIGNING_KEY_PASS }}'
+        /p:AndroidSigningKeyStore='./keystore.jks'
+        /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
     - name: Upload AAB
       uses: actions/upload-artifact@v3
