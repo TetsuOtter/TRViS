@@ -324,7 +324,7 @@ jobs:
         /p:AndroidKeyStore=true
         /p:AndroidSigningKeyAlias='${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
         /p:AndroidSigningKeyPass='${{ secrets.ANDROID_SIGNING_KEY_PASS }}'
-        /p:AndroidSigningKeyStore='./keystore.jks'
+        /p:AndroidSigningKeyStore="$(PWD)/keystore.jks"
         /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
     - name: Upload AAB
