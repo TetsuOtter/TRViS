@@ -393,7 +393,7 @@ jobs:
     - name: Setup Xcode version
       uses: maxim-lobanov/setup-xcode@v1.6.0
       with:
-        xcode-version: '14.2'
+        xcode-version: 'latest-stable'
 
     - uses: actions/setup-dotnet@v3
       with:
