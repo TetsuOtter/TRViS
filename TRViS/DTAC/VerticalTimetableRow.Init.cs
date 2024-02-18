@@ -97,6 +97,7 @@ public partial class VerticalTimetableRow
 			Color = Colors.Transparent,
 			BindingContext = this,
 			Opacity = BG_ALPHA,
+			ZIndex = 0,
 		};
 		Grid.SetRow(BackgroundBoxView, rowIndex);
 		Grid.SetColumnSpan(BackgroundBoxView, 8);

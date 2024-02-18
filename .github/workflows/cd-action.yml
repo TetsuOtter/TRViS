@@ -133,7 +133,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-13
+    runs-on: macos-14
     timeout-minutes: 30
     needs:
       - get-version
@@ -305,6 +305,14 @@ jobs:
         echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
         ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
+    # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
+    - name: Install Android SDK Platform Tools
+      run: >
+        ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
+        --sdk_root="$ANDROID_SDK_ROOT"
+        "platform-tools"
+    - name: Create Android Signing Key
+      run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > '${{ github.workspace }}/keystore.jks'
     - name: Build
       run: >
         dotnet publish ${{ env.CSPROJ_PATH }}
@@ -313,6 +321,11 @@ jobs:
         -o "${{ env.OUTPUT_DIR }}"
         /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
         /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+        /p:AndroidKeyStore=true
+        /p:AndroidSigningKeyAlias='${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
+        /p:AndroidSigningKeyPass='${{ secrets.ANDROID_SIGNING_KEY_PASS }}'
+        /p:AndroidSigningKeyStore='${{ github.workspace }}/keystore.jks'
+        /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
     - name: Upload AAB
       uses: actions/upload-artifact@v3
@@ -337,7 +350,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-13
+    runs-on: macos-14
     timeout-minutes: 30
     needs:
       - get-version
@@ -380,7 +393,7 @@ jobs:
     - name: Setup Xcode version
       uses: maxim-lobanov/setup-xcode@v1.6.0
       with:
-        xcode-version: '14.2'
+        xcode-version: 'latest-stable'
 
     - uses: actions/setup-dotnet@v3
       with:
@@ -461,7 +474,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-13
+    runs-on: macos-14
     timeout-minutes: 10
     needs:
       - build-ios
@@ -531,7 +544,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-13
+    runs-on: macos-14
     timeout-minutes: 30
     needs:
       - build-mac
