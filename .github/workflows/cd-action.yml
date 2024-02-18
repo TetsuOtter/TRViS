@@ -312,7 +312,7 @@ jobs:
         --sdk_root="$ANDROID_SDK_ROOT"
         "platform-tools"
     - name: Create Android Signing Key
-      run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > keystore.jks
+      run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > '${{ github.workspace }}/keystore.jks'
     - name: Build
       run: >
         dotnet publish ${{ env.CSPROJ_PATH }}
@@ -324,7 +324,7 @@ jobs:
         /p:AndroidKeyStore=true
         /p:AndroidSigningKeyAlias='${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
         /p:AndroidSigningKeyPass='${{ secrets.ANDROID_SIGNING_KEY_PASS }}'
-        /p:AndroidSigningKeyStore="$(PWD)/keystore.jks"
+        /p:AndroidSigningKeyStore='${{ github.workspace }}/keystore.jks'
         /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
     - name: Upload AAB
