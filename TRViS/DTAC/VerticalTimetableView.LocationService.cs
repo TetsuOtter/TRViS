@@ -10,6 +10,11 @@ namespace TRViS.DTAC;
 public partial class VerticalTimetableView : Grid
 {
 	LocationService LocationService { get; } = new();
+	public event EventHandler<bool>? CanUseLocationServiceChanged
+	{
+		add => LocationService.CanUseServiceChanged += value;
+		remove => LocationService.CanUseServiceChanged -= value;
+	}
 
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged;
 	partial void OnIsLocationServiceEnabledChanged(bool newValue)
