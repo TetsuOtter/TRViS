@@ -56,7 +56,7 @@ public partial class VerticalTimetableRow
 
 	void MarkerBoxClicked(object? sender, EventArgs e)
 	{
-		if (MarkerViewModel is null)
+		if (MarkerViewModel is null || !IsMarkingMode)
 			return;
 
 		if (MarkedColor is null)
