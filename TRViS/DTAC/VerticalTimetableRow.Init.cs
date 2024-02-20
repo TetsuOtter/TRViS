@@ -96,7 +96,7 @@ public partial class VerticalTimetableRow
 			Color = Colors.Transparent,
 			BindingContext = this,
 			Opacity = BG_ALPHA,
-			ZIndex = 0,
+			ZIndex = DTACElementStyles.TimetableRowMarkerBackgroundZIndex,
 		};
 		Grid.SetRow(BackgroundBoxView, rowIndex);
 		Grid.SetColumnSpan(BackgroundBoxView, 8);
@@ -125,7 +125,7 @@ public partial class VerticalTimetableRow
 					new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
 				},
 				InputTransparent = true,
-				ZIndex = 2,
+				ZIndex = DTACElementStyles.TimetableRowRunTimeTextZIndex,
 			};
 
 			if (isDriveTimeMMVisible)

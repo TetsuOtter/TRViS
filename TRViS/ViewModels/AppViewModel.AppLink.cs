@@ -33,8 +33,14 @@ public partial class AppViewModel
 			logger.Warn("Uri.Host is not `app`: {0}", uri.Host);
 			return;
 		}
-		// if (uri.LocalPath != OPEN_FILE_JSON && uri.LocalPath != OPEN_FILE_SQLITE)
-		if (uri.LocalPath != OPEN_FILE_JSON)
+		AppLinkType appLinkType = uri.LocalPath switch
+		{
+			OPEN_FILE_JSON => AppLinkType.OpenFileJson,
+			OPEN_FILE_SQLITE => AppLinkType.OpenFileSQLite,
+			_ => AppLinkType.Unknown,
+		};
+		// JSONのみ実装済み
+		if (appLinkType == AppLinkType.Unknown || appLinkType != AppLinkType.OpenFileJson)
 		{
 			logger.Warn("Uri.LocalPath is not valid: {0}", uri.LocalPath);
 			return;
@@ -46,33 +52,18 @@ public partial class AppViewModel
 		}
 		NameValueCollection queryParams = HttpUtility.ParseQueryString(uri.Query);
 		string? path = queryParams["path"];
-		if (string.IsNullOrEmpty(path))
+		if (!string.IsNullOrEmpty(path))
 		{
-			logger.Warn("Uri.Query is not valid (query[`path`] not found): {0}", uri.Query);
-			return;
-		}
-		Uri pathUri = new(path);
-		if (pathUri.Scheme != "https" && pathUri.Scheme != "http")
-		{
-			logger.Warn("path is not valid (not HTTPS nor HTTP): {0}", path);
+			await LoadExternalFileFromUrlAsync(uri.Query, appLinkType, token);
 			return;
 		}
 
-		bool openFile = await Utils.DisplayAlert("外部ファイルを開く", $"ファイル `{path}` を開きますか?", "はい", "いいえ");
-		logger.Info("Uri: {0} -> openFile: {1}", path, openFile);
-		if (!openFile)
+		string? data_UrlSafeBase64Str = queryParams["data"];
+		if (!string.IsNullOrEmpty(data_UrlSafeBase64Str))
 		{
+			await LoadExternalFileFromDataAsync(data_UrlSafeBase64Str, appLinkType, token);
 			return;
 		}
-
-		AppLinkType appLinkType = uri.LocalPath switch
-		{
-			OPEN_FILE_JSON => AppLinkType.OpenFileJson,
-			OPEN_FILE_SQLITE => AppLinkType.OpenFileSQLite,
-			_ => AppLinkType.Unknown,
-		};
-
-		await LoadExternalFileAsync(path, appLinkType, token);
 	}
 	static bool IsPrivateIpv4(IPAddress ip)
 	{
@@ -98,6 +89,95 @@ public partial class AppViewModel
 		byte[] remoteNetworkAddress = remoteIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
 		byte[] localNetworkAddress = localIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
 		return remoteNetworkAddress.SequenceEqual(localNetworkAddress);
+	}
+
+	public async Task<bool> LoadExternalFileFromUrlAsync(string path, AppLinkType appLinkType, CancellationToken token)
+	{
+		if (string.IsNullOrEmpty(path))
+		{
+			logger.Warn("Uri.Query is not valid (query[`path`] not found): {0}", path);
+			await Utils.DisplayAlert("Cannot Open File", $"URL is Empty", "OK");
+			return false;
+		}
+
+		Uri pathUri;
+		try
+		{
+			pathUri = new(path);
+		}
+		catch (UriFormatException ex)
+		{
+			logger.Error(ex, "UriFormatException");
+			await Utils.DisplayAlert("Cannot Open File", ex.Message, "OK");
+			return false;
+		}
+
+		if (pathUri.Scheme != "https" && pathUri.Scheme != "http")
+		{
+			logger.Warn("path is not valid (not HTTPS nor HTTP): {0}", path);
+			return false;
+		}
+
+		bool openFile = await Utils.DisplayAlert("外部ファイルを開く", $"ファイル `{path}` を開きますか?", "はい", "いいえ");
+		logger.Info("Uri: {0} -> openFile: {1}", path, openFile);
+		if (!openFile)
+		{
+			return false;
+		}
+
+		return await LoadExternalFileAsync(path, appLinkType, token);
+	}
+
+	public async Task<bool> LoadExternalFileFromDataAsync(string urlSafeBase64Str, AppLinkType appLinkType, CancellationToken token)
+	{
+		if (string.IsNullOrEmpty(urlSafeBase64Str))
+		{
+			logger.Warn("Uri.Query is not valid (query[`data`] not found): {0}", urlSafeBase64Str);
+			await Utils.DisplayAlert("Cannot Open File", $"Data is Empty", "OK");
+			return false;
+		}
+
+		byte[] dataBytes;
+		try
+		{
+			dataBytes = Utils.UrlSafeBase64Decode(urlSafeBase64Str);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "UrlSafeBase64Decode Failed");
+			await Utils.DisplayAlert("Cannot Load File", ex.Message, "OK");
+			return false;
+		}
+
+		if (dataBytes.Length == 0)
+		{
+			logger.Warn("dataBytes.Length is 0");
+			await Utils.DisplayAlert("Cannot Load File", $"Data is Empty", "OK");
+			return false;
+		}
+
+		try
+		{
+			switch (appLinkType)
+			{
+				case AppLinkType.OpenFileJson:
+					Loader = LoaderJson.InitFromBytes(dataBytes);
+					return true;
+				case AppLinkType.OpenFileSQLite:
+					logger.Error("Not Implemented");
+					await Utils.DisplayAlert("Not Implemented", "Open External SQLite file is Not Implemented", "OK");
+					return false;
+				default:
+					logger.Warn("Uri.LocalPath is not valid: {0}", appLinkType);
+					return false;
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Cannot load file");
+			await Utils.DisplayAlert("Cannot Load File", ex.Message, "OK");
+			return false;
+		}
 	}
 
 	public async Task<bool> LoadExternalFileAsync(string path, AppLinkType appLinkType, CancellationToken token)
