@@ -5,6 +5,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<bool>("IsOpen")]
 [DependencyProperty<bool>("IsRunning")]
 [DependencyProperty<bool>("IsLocationServiceEnabled")]
+[DependencyProperty<bool>("CanUseLocationService")]
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -56,7 +57,7 @@ public partial class PageHeader : Grid
 		logger.Info("IsRunning: {0}", newValue);
 		StartEndRunButton.IsChecked = newValue;
 
-		LocationServiceButton.IsEnabled = newValue;
+		LocationServiceButton.IsEnabled = CanUseLocationService && newValue;
 	}
 
 	private void StartEndRunButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
@@ -65,7 +66,7 @@ public partial class PageHeader : Grid
 
 		this.IsRunning = e.NewValue;
 
-		LocationServiceButton.IsEnabled = e.NewValue;
+		LocationServiceButton.IsEnabled = CanUseLocationService && e.NewValue;
 	}
 	#endregion
 

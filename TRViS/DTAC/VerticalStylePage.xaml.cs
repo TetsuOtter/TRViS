@@ -130,6 +130,11 @@ public partial class VerticalStylePage : ContentView
 		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 		TimetableView.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 
+		TimetableView.CanUseLocationServiceChanged += (_, canUseLocationService) => {
+			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
+			PageHeaderArea.CanUseLocationService = canUseLocationService;
+		};
+
 		logger.Trace("Created");
 	}
 

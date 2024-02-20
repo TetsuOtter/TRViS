@@ -11,6 +11,21 @@ public class LonLatLocationService : ILocationService
 	const int DISTANCE_HISTORY_QUEUE_SIZE = 3;
 	readonly Queue<double> DistanceHistoryQueue = new(DISTANCE_HISTORY_QUEUE_SIZE);
 
+	private bool _CanUseService = false;
+	public bool CanUseService
+	{
+		get => _CanUseService;
+		private set
+		{
+			if (value == _CanUseService)
+				return;
+
+			_CanUseService = value;
+			CanUseServiceChanged?.Invoke(this, value);
+		}
+	}
+	public event EventHandler<bool>? CanUseServiceChanged;
+
 	private StaLocationInfo[]? _staLocationInfo;
 	public StaLocationInfo[]? StaLocationInfo
 	{
@@ -21,6 +36,7 @@ public class LonLatLocationService : ILocationService
 				return;
 
 			_staLocationInfo = value;
+			CanUseService = _staLocationInfo?.Any(v => v.HasLonLatLocation) ?? false;
 			ResetLocationInfo();
 		}
 	}
@@ -68,6 +84,11 @@ public class LonLatLocationService : ILocationService
 	}
 	public void ForceSetLocationInfo(double lon_deg, double lat_deg)
 	{
+		if (!CanUseService)
+		{
+			return;
+		}
+
 		ResetLocationInfo(false);
 		if (StaLocationInfo is null)
 		{
@@ -177,6 +198,11 @@ public class LonLatLocationService : ILocationService
 
 	public void ForceSetLocationInfo(int stationIndex, bool isRunningToNextStation)
 	{
+		if (!CanUseService)
+		{
+			return;
+		}
+
 		ResetLocationInfo(false);
 		if (StaLocationInfo is null)
 		{
@@ -226,7 +252,7 @@ public class LonLatLocationService : ILocationService
 	/// <returns>判定対象の駅までの距離</returns>
 	public double SetCurrentLocation(double lon_deg, double lat_deg)
 	{
-		if (StaLocationInfo is null || CurrentStationIndex < 0 || StaLocationInfo.Length <= CurrentStationIndex)
+		if (!CanUseService || StaLocationInfo is null || CurrentStationIndex < 0 || StaLocationInfo.Length <= CurrentStationIndex)
 			return double.NaN;
 
 		double distance = double.NaN;
