@@ -16,7 +16,6 @@ public partial class VerticalTimetableRow
 		private set
 		{
 			MarkerBox.IsVisible = value || (MarkedColor is not null);
-			MarkerBox.IsEnabled = value;
 			_IsMarkingMode = value;
 			logger.Trace("IsMarkingMode: {0}, IsVisible: {1}, IsEnabled: {2}", value, MarkerBox.IsVisible, MarkerBox.IsEnabled);
 		}
@@ -331,7 +330,7 @@ public partial class VerticalTimetableRow
 		MarkerBox = new()
 		{
 			IsVisible = false,
-			IsEnabled = false,
+			IsEnabled = true,
 			FontFamily = "Hiragino Sans",
 			FontSize = 18,
 			FontAttributes = FontAttributes.Bold,
