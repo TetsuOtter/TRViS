@@ -70,6 +70,12 @@ public class LoaderJson : ILoader
 
 		return new LoaderJson(workGroups!);
 	}
+	public static LoaderJson InitFromBytes(ReadOnlySpan<byte> json)
+	{
+		WorkGroupData[]? workGroups = JsonSerializer.Deserialize<WorkGroupData[]>(json, opts);
+
+		return new LoaderJson(workGroups!);
+	}
 
 	public void Dispose()
 	{
