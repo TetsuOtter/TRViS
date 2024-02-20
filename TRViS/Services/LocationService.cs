@@ -25,6 +25,12 @@ public partial class LocationService : ObservableObject, IDisposable
 	bool _IsEnabled;
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsEnabledChanged;
 
+	public event EventHandler<bool>? CanUseServiceChanged
+	{
+		add => LonLatLocationService.CanUseServiceChanged += value;
+		remove => LonLatLocationService.CanUseServiceChanged -= value;
+	}
+
 	readonly LonLatLocationService LonLatLocationService;
 
 	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged

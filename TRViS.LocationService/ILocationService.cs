@@ -40,6 +40,9 @@ public class LocationStateChangedEventArgs : EventArgs, IEquatable<LocationState
 
 public interface ILocationService
 {
+	bool CanUseService { get; }
+	event EventHandler<bool>? CanUseServiceChanged;
+
 	event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 
 	StaLocationInfo[]? StaLocationInfo { get; set; }
