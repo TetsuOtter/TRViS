@@ -135,6 +135,12 @@ public partial class VerticalStylePage : ContentView
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
 		};
 
+		DTACElementStyles.DefaultTextColor.Apply(BeginRemarksLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(MaxSpeedLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(SpeedTypeLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(NominalTractiveCapacityLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(BeginRemarksLabel, Label.TextColorProperty);
+
 		logger.Trace("Created");
 	}
 
