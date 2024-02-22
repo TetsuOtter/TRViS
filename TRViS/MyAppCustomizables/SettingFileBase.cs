@@ -35,13 +35,19 @@ public class SettingFileStructure
 	public double LocationServiceInterval_Seconds { get; set; } = 1;
 	public static readonly double MinimumLocationServiceIntervalValue = 0.1;
 
+	/// <summary>
+	/// アプリのテーマ初期値 (null/Unspecifiedの場合は、システムの設定に従う)
+	/// </summary>
+	public AppTheme? InitialTheme { get; set; } = AppTheme.Unspecified;
+
 	public override string ToString()
 	{
 		return
 			$"TitleColor: {TitleColor},"
 			+ $"MarkerColors: {MarkerColors},"
 			+ $"MarkerTexts: {MarkerTexts},"
-			+ $"LocationServiceInterval: {LocationServiceInterval_Seconds}[s]"
+			+ $"LocationServiceInterval: {LocationServiceInterval_Seconds}[s],"
+			+ $"InitialTheme: {InitialTheme},"
 		;
 	}
 
@@ -55,6 +61,7 @@ public class SettingFileStructure
 			&& MarkerColors.Equals(v.MarkerColors)
 			&& MarkerTexts.Equals(v.MarkerTexts)
 			&& LocationServiceInterval_Seconds.Equals(v.LocationServiceInterval_Seconds)
+			&& InitialTheme.Equals(v.InitialTheme)
 		;
 	}
 
@@ -62,7 +69,7 @@ public class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds);
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme);
 
 	#region Loaders
 

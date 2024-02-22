@@ -14,7 +14,7 @@ public partial class VerticalStylePage : ContentView
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;
-	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 54;
+	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 
 	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
@@ -134,6 +134,12 @@ public partial class VerticalStylePage : ContentView
 			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
 		};
+
+		DTACElementStyles.DefaultTextColor.Apply(BeginRemarksLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(MaxSpeedLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(SpeedTypeLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(NominalTractiveCapacityLabel, Label.TextColorProperty);
+		DTACElementStyles.DefaultTextColor.Apply(BeginRemarksLabel, Label.TextColorProperty);
 
 		logger.Trace("Created");
 	}
