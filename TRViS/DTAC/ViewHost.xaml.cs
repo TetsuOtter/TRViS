@@ -8,6 +8,8 @@ public partial class ViewHost : ContentPage
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	static public readonly double TITLE_VIEW_HEIGHT = 50;
+	public const string CHANGE_THEME_BUTTON_TEXT_TO_LIGHT = "\xe518";
+	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\xe51c";
 
 	DTACViewHostViewModel ViewModel { get; }
 
@@ -28,7 +30,10 @@ public partial class ViewHost : ContentPage
 		InitializeComponent();
 
 		TitleLabel.Text = vm.SelectedWork?.Name;
-		TitleLabel.TextColor = MenuButton.TextColor = eevm.ShellTitleTextColor;
+		TitleLabel.TextColor
+			= MenuButton.TextColor
+			= ChangeThemeButton.TextColor
+			= eevm.ShellTitleTextColor;
 
 		TitleBGBoxView.SetBinding(BoxView.ColorProperty, new Binding()
 		{
@@ -93,6 +98,9 @@ public partial class ViewHost : ContentPage
 		OnSelectedWorkChanged(vm.SelectedWork);
 		OnSelectedTrainChanged(vm.SelectedTrainData);
 
+		ChangeChangeThemeButtonText(vm.CurrentAppTheme);
+		vm.CurrentAppThemeChanged += (s, e) => ChangeChangeThemeButtonText(e.NewValue);
+
 		logger.Trace("Created");
 	}
 
@@ -138,7 +146,10 @@ public partial class ViewHost : ContentPage
 		{
 			case nameof(EasterEggPageViewModel.ShellTitleTextColor):
 				logger.Trace("ShellTitleTextColor is changed to {0}", vm.ShellTitleTextColor);
-				TitleLabel.TextColor = MenuButton.TextColor = vm.ShellTitleTextColor;
+				TitleLabel.TextColor
+					= MenuButton.TextColor
+					= ChangeThemeButton.TextColor
+					= vm.ShellTitleTextColor;
 				break;
 		}
 	}
@@ -161,6 +172,38 @@ public partial class ViewHost : ContentPage
 			case nameof(AppViewModel.SelectedTrainData):
 				OnSelectedTrainChanged(vm.SelectedTrainData);
 				break;
+		}
+	}
+
+	private void ChangeChangeThemeButtonText(AppTheme newTheme)
+	{
+		logger.Trace("newTheme: {0}", newTheme);
+		ChangeThemeButton.Text = newTheme == AppTheme.Dark
+			? CHANGE_THEME_BUTTON_TEXT_TO_LIGHT
+			: CHANGE_THEME_BUTTON_TEXT_TO_DARK;
+	}
+	private void OnChangeThemeButtonClicked(object? sender, EventArgs e)
+	{
+		AppViewModel vm = InstanceManager.AppViewModel;
+		AppTheme newTheme = vm.CurrentAppTheme == AppTheme.Dark
+			? AppTheme.Light
+			: AppTheme.Dark;
+
+		if (Application.Current is not null)
+		{
+			logger.Info(
+				"CurrentAppTheme is changed to {0} (User: {1}, Platform: {2}, Requested: {3})",
+				newTheme,
+				Application.Current.UserAppTheme,
+				Application.Current.PlatformAppTheme,
+				Application.Current.RequestedTheme
+			);
+			vm.CurrentAppTheme = newTheme;
+			Application.Current.UserAppTheme = newTheme;
+		}
+		else
+		{
+			logger.Warn("Application.Current is null -> do nothing");
 		}
 	}
 

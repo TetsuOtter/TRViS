@@ -41,6 +41,23 @@
 			BackgroundColor="Transparent"
 			Clicked="MenuButton_Clicked" />
 
+		<HorizontalStackLayout
+			Grid.Row="1"
+			Margin="8,4"
+			Padding="0"
+			HorizontalOptions="End"
+			VerticalOptions="Center"
+			Spacing="8">
+			<Button
+				x:Name="ChangeThemeButton"
+				Margin="0"
+				Padding="0"
+				FontFamily="MaterialIconsRegular"
+				FontSize="28"
+				BackgroundColor="Transparent"
+				Clicked="OnChangeThemeButtonClicked" />
+		</HorizontalStackLayout>
+
 		<Label
 			x:Name="TitleLabel"
 			Grid.Row="1"

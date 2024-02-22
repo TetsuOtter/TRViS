@@ -127,6 +127,19 @@ public partial class EasterEggPageViewModel : ObservableObject
 		MarkerViewModel?.UpdateList(settingFile);
 
 		SetTitleTextColor();
+
+		if (settingFile.InitialTheme is AppTheme theme and not AppTheme.Unspecified)
+		{
+			InstanceManager.AppViewModel.CurrentAppTheme = theme;
+			if (Application.Current is not null)
+			{
+				MainThread.BeginInvokeOnMainThread(() =>
+				{
+					Application.Current.UserAppTheme = theme;
+				});
+			}
+		}
+
 		logger.Trace("InitAsync Completed");
 	}
 
