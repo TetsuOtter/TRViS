@@ -52,6 +52,7 @@
 		<ctrls:HtmlAutoDetectLabel
 			x:Name="RemarksLabel"
 			Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+			FontAutoScalingEnabled="True"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"/>
 	</ScrollView>
