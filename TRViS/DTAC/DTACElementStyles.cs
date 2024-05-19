@@ -180,6 +180,7 @@ public static class DTACElementStyles
 	{
 		T v = AffectDateLabelStyle<T>();
 
+		v.Margin = new(0, 0, v.Margin.Left, 0);
 		v.FontAttributes = FontAttributes.Bold;
 		v.FontSize = DefaultTextSize;
 		v.Text = null;
