@@ -47,6 +47,7 @@ public partial class OpenCloseButton : Button
 		BorderWidth = 0;
 		FontFamily = "MaterialIconsRegular";
 		FontSize = 40;
+		FontAutoScalingEnabled = false;
 		DTACElementStyles.OpenCloseButtonBGColor.Apply(this, BackgroundColorProperty);
 		DTACElementStyles.OpenCloseButtonTextColor.Apply(this, TextColorProperty);
 
