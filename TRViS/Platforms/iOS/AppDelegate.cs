@@ -12,7 +12,7 @@ public class AppDelegate : MauiUIApplicationDelegate
 	public override bool OpenUrl(UIApplication application, NSUrl url, NSDictionary options)
 	{
 		if (!string.IsNullOrEmpty(url.AbsoluteString))
-			App.SetAppLinkUri(new(url.AbsoluteString));
+			App.SetAppLinkUri(url.AbsoluteString);
 		return base.OpenUrl(application, url, options);
 	}
 }

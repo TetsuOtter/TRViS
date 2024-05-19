@@ -46,9 +46,9 @@ public partial class App : Application
 		}
 	}
 
-	static Uri? AppLinkUri { get; set; }
+	static string? AppLinkUri { get; set; }
 
-	public static void SetAppLinkUri(Uri uri)
+	public static void SetAppLinkUri(string uri)
 	{
 		logger.Info("AppLinkUri: {0}", uri);
 
@@ -75,7 +75,7 @@ public partial class App : Application
 
 		logger.Info("AppLinkUri: {0}", uri);
 
-		HandleAppLinkUriAsync(uri);
+		HandleAppLinkUriAsync(uri.ToString());
 	}
 
 	protected override void OnStart()
@@ -90,9 +90,9 @@ public partial class App : Application
 		}
 	}
 
-	static Task HandleAppLinkUriAsync(Uri uri)
+	static Task HandleAppLinkUriAsync(string uri)
 		=> HandleAppLinkUriAsync(uri, CancellationToken.None);
-	static Task HandleAppLinkUriAsync(Uri uri, CancellationToken cancellationToken)
+	static Task HandleAppLinkUriAsync(string uri, CancellationToken cancellationToken)
 	{
 		return InstanceManager.AppViewModel.HandleAppLinkUriAsync(uri, cancellationToken).ContinueWith(t =>
 		{
