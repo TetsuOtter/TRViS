@@ -1,6 +1,6 @@
 namespace TRViS.IO;
 
-internal static class Utils
+public static partial class Utils
 {
 	public static bool IsArrayEquals<T>(T[]? arr1, T[]? arr2, IEqualityComparer<T>? comparer = null)
 	{

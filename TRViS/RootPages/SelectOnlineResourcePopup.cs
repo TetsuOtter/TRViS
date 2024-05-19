@@ -1,6 +1,5 @@
 using CommunityToolkit.Maui.Views;
-
-using TRViS.ViewModels;
+using TRViS.IO.RequestInfo;
 
 namespace TRViS.RootPages;
 
@@ -30,7 +29,7 @@ public class SelectOnlineResourcePopup : Popup
 		IsSpellCheckEnabled = false,
 		IsTextPredictionEnabled = false,
 		Keyboard = Keyboard.Url,
-		MaxLength = AppViewModel.PATH_LENGTH_MAX,
+		MaxLength = 1024,
 		ReturnType = ReturnType.Go,
 	};
 
@@ -163,7 +162,12 @@ public class SelectOnlineResourcePopup : Popup
 				return;
 			}
 
-			bool execResult = await InstanceManager.AppViewModel.LoadExternalFileAsync(UrlInput.Text, AppLinkType.Unknown, CancellationToken.None);
+			AppLinkInfo appLinkInfo = new(
+				AppLinkInfo.FileType.Json,
+				Version: new(1,0),
+				ResourceUri: new(UrlInput.Text)
+			);
+			bool execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, CancellationToken.None);
 			if (execResult)
 			{
 				await CloseAsync();
