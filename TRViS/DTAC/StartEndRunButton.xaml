@@ -22,6 +22,7 @@
 				TextColor="{x:Static local:DTACElementStyles.StartEndRunButtonTextColor}"
 				FontFamily="MaterialIconsRegular"
 				FontSize="32"
+				FontAutoScalingEnabled="False"
 				VerticalOptions="Center"
 				Margin="2"
 				Padding="0">
@@ -42,6 +43,7 @@
 				TextColor="{x:Static local:DTACElementStyles.StartEndRunButtonTextColor}"
 				FontFamily="Hiragino Sans"
 				FontSize="24"
+				FontAutoScalingEnabled="False"
 				FontAttributes="Bold"
 				VerticalOptions="Center"
 				Margin="4"

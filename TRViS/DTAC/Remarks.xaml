@@ -27,6 +27,7 @@
 		Grid.Row="0"
 		FontSize="28"
 		FontFamily="Hiragino Sans W6"
+		FontAutoScalingEnabled="False"
 		Margin="16,0"
 		Text="注 意 事 項"
 		HorizontalOptions="Start"
@@ -52,6 +53,7 @@
 		<ctrls:HtmlAutoDetectLabel
 			x:Name="RemarksLabel"
 			Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+			FontAutoScalingEnabled="True"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"/>
 	</ScrollView>

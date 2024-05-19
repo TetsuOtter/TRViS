@@ -226,10 +226,12 @@ public partial class SimpleRow
 			Text = $"{value.Hour:00}:{value.Minute:00}",
 			FontAttributes = FontAttributes.Bold,
 			FontSize = baseTextSize,
+			FontAutoScalingEnabled = false,
 		});
 		fs.Spans.Add(new(){
 			Text = value.Second?.ToString("00"),
 			FontSize = TimeLabelFontSize_SS,
+			FontAutoScalingEnabled = false,
 		});
 
 		return fs;
