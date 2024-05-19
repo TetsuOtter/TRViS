@@ -109,6 +109,7 @@ public static class DTACElementStyles
 			_labelStyleResource.Setters.Add(Label.MarginProperty, new Thickness(4, 0));
 			_labelStyleResource.Setters.Add(Label.LineBreakModeProperty, LineBreakMode.CharacterWrap);
 			_labelStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1);
+			_labelStyleResource.Setters.Add(Label.FontAutoScalingEnabledProperty, false);
 
 			return _labelStyleResource;
 		}
@@ -127,6 +128,8 @@ public static class DTACElementStyles
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1;
+
+		v.FontAutoScalingEnabled = false;
 
 		return v;
 	}
@@ -177,6 +180,7 @@ public static class DTACElementStyles
 	{
 		T v = AffectDateLabelStyle<T>();
 
+		v.Margin = new(0, 0, v.Margin.Left, 0);
 		v.FontAttributes = FontAttributes.Bold;
 		v.FontSize = DefaultTextSize;
 		v.Text = null;

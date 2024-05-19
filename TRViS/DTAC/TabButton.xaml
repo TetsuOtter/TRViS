@@ -32,6 +32,7 @@
 				x:Name="ButtonLabel"
 				FontFamily="Hiragino Sans"
 				FontSize="18"
+				FontAutoScalingEnabled="False"
 				FontAttributes="Bold"
 				VerticalOptions="Center"
 				HorizontalOptions="Center"/>

@@ -333,6 +333,7 @@ public partial class VerticalTimetableRow
 			IsEnabled = true,
 			FontFamily = "Hiragino Sans",
 			FontSize = 18,
+			FontAutoScalingEnabled = false,
 			FontAttributes = FontAttributes.Bold,
 			BorderColor = Colors.Transparent,
 			CornerRadius = 4,
