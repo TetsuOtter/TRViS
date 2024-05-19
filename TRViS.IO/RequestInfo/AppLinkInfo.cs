@@ -2,19 +2,19 @@ namespace TRViS.IO.RequestInfo;
 
 public record AppLinkInfo(
   AppLinkInfo.FileType FileTypeInfo,
-  AppLinkInfo.CompressionType CompressionTypeInfo,
-  AppLinkInfo.EncryptionType EncryptionTypeInfo,
-  Uri? ResourceUri,
-  byte[]? Content,
-  byte[]? DecryptionKey,
-  Uri? RealtimeServiceUri,
-  string? RealtimeServiceToken,
-  string? RealtimeServiceVersion
+  Version Version,
+  AppLinkInfo.CompressionType CompressionTypeInfo = AppLinkInfo.CompressionType.None,
+  AppLinkInfo.EncryptionType EncryptionTypeInfo = AppLinkInfo.EncryptionType.None,
+  Uri? ResourceUri = null,
+  byte[]? Content = null,
+  byte[]? DecryptionKey = null,
+  Uri? RealtimeServiceUri = null,
+  string? RealtimeServiceToken = null,
+  Version? RealtimeServiceVersion = null
 )
 {
   public enum FileType
   {
-    Unknown,
     Sqlite,
     Json,
   };

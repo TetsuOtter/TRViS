@@ -6,6 +6,7 @@ namespace TRViS.IO;
 
 public static class OpenFile
 {
+	static readonly Version supportedMaxVersion = new(1, 0);
 	// public static Task<ILoader> OpenAppLinkAsync(
 	// 	string appLink,
 	// 	CancellationToken token
@@ -30,14 +31,19 @@ public static class OpenFile
 	{
 		// Scheme部分はチェックしない
 		Uri uri = new(appLink);
+		if (uri.Host != "app")
+		{
+			throw new ArgumentException("host is not `app`");
+		}
+
 		string path = uri.LocalPath;
-		AppLinkInfo.FileType fileType = path switch
+		AppLinkInfo.FileType? fileType = path switch
 		{
 			OPEN_FILE_JSON => AppLinkInfo.FileType.Json,
 			OPEN_FILE_SQLITE => AppLinkInfo.FileType.Sqlite,
-			_ => AppLinkInfo.FileType.Unknown,
+			_ => null,
 		};
-		if (fileType == AppLinkInfo.FileType.Unknown)
+		if (fileType is null)
 		{
 			throw new ArgumentException("Unknown file type");
 		}
@@ -50,6 +56,9 @@ public static class OpenFile
 		NameValueCollection queryParams = HttpUtility.ParseQueryString(uri.Query);
 		string? versionQuery = queryParams["ver"];
 		Version version = string.IsNullOrEmpty(versionQuery) ? new(1,0) : new(versionQuery);
+		if (supportedMaxVersion < version) {
+			throw new ArgumentException("Unsupported version");
+		}
 
 		AppLinkInfo.CompressionType compressionType = queryParams["cmp"] switch
 		{
@@ -67,7 +76,7 @@ public static class OpenFile
 		string? resourceUriQuery = queryParams["path"];
 		string? dataQuery = queryParams["data"];
 		string? decryptionKeyQuery = queryParams["key"];
-		if (encryptionType != AppLinkInfo.EncryptionType.None &&string.IsNullOrEmpty(decryptionKeyQuery))
+		if (encryptionType != AppLinkInfo.EncryptionType.None && string.IsNullOrEmpty(decryptionKeyQuery))
 		{
 			throw new ArgumentException("DecryptionKey is required when EncryptionType is not None");
 		}
@@ -79,7 +88,8 @@ public static class OpenFile
 
 		string? realtimeServiceUriQuery = queryParams["rts"];
 		string? realtimeServiceToken = queryParams["rtk"];
-		string? realtimeServiceVersion = queryParams["rtv"];
+		string? realtimeServiceVersionQuery = queryParams["rtv"];
+		Version? realtimeServiceVersion = string.IsNullOrEmpty(realtimeServiceVersionQuery) ? null : new(realtimeServiceVersionQuery);
 
 		Uri? resourceUri = string.IsNullOrEmpty(resourceUriQuery) ? null : new Uri(resourceUriQuery);
 		byte[]? content = string.IsNullOrEmpty(dataQuery) ? null : Utils.UrlSafeBase64Decode(dataQuery);
@@ -87,7 +97,8 @@ public static class OpenFile
 		Uri? realtimeServiceUri = string.IsNullOrEmpty(realtimeServiceUriQuery) ? null : new Uri(realtimeServiceUriQuery);
 
 		return new AppLinkInfo(
-			fileType,
+			fileType.Value,
+			version,
 			compressionType,
 			encryptionType,
 			resourceUri,
