@@ -124,7 +124,7 @@ public class OpenFile(HttpClient httpClient)
 
 			if (!result.IsSuccessStatusCode) {
 				throw new HttpRequestException(
-					$"HEAD request to ${uri} failed with code: {result.StatusCode}",
+					$"HEAD request to {uri} failed with code: {result.StatusCode}",
 					inner: null,
 					statusCode: result.StatusCode
 				);
@@ -142,7 +142,7 @@ public class OpenFile(HttpClient httpClient)
 			if (!result.IsSuccessStatusCode)
 			{
 				throw new HttpRequestException(
-					$"GET request to ${uri} failed with code: {result.StatusCode}",
+					$"GET request to {uri} failed with code: {result.StatusCode}",
 					inner: null,
 					statusCode: result.StatusCode
 				);
