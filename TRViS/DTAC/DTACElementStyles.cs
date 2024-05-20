@@ -1,8 +1,9 @@
+using System.Text.RegularExpressions;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace TRViS.DTAC;
 
-public static class DTACElementStyles
+public static partial class DTACElementStyles
 {
 	static Color genColor(byte value)
 		=> new(value, value, value);
@@ -57,8 +58,9 @@ public static class DTACElementStyles
 
 	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
 
-	public static readonly int DefaultTextSize = 14;
-	public static readonly int LargeTextSize = 24;
+	public static readonly double DefaultTextSize = 14;
+	public static readonly double DefaultTextSizePlus = 15;
+	public static readonly double LargeTextSize = 24;
 
 	public const int BeforeDeparture_AfterArrive_Height = 45;
 
@@ -130,6 +132,42 @@ public static class DTACElementStyles
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1;
 
 		v.FontAutoScalingEnabled = false;
+
+		return v;
+	}
+
+	static Style? _BeforeRemarksStyleResource = null;
+	public static Style BeforeRemarksStyleResource
+	{
+		get
+		{
+			if (_BeforeRemarksStyleResource is not null)
+				return _BeforeRemarksStyleResource;
+
+			_BeforeRemarksStyleResource = new Style(typeof(Label))
+			{
+				BasedOn = LabelStyleResource
+			};
+
+			_BeforeRemarksStyleResource.Setters.Add(Label.HorizontalOptionsProperty, LayoutOptions.Start);
+			_BeforeRemarksStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
+			_BeforeRemarksStyleResource.Setters.Add(Label.FontSizeProperty, DefaultTextSizePlus);
+			_BeforeRemarksStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.5);
+			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(32, 0, 0, 10));
+
+			return _BeforeRemarksStyleResource;
+		}
+	}
+	public static T AfterRemarksStyle<T>() where T : Label, new()
+	{
+		T v = LabelStyle<T>();
+
+		v.HorizontalOptions = LayoutOptions.Start;
+		v.VerticalOptions = LayoutOptions.Start;
+		v.FontSize = DefaultTextSizePlus;
+		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.6;
+		// LineHeight分だけ上に隙間が空くため、MarginTopは設定しない
+		v.Margin = new(32, 0, 0, 0);
 
 		return v;
 	}
@@ -324,6 +362,25 @@ public static class DTACElementStyles
 		v.Margin = new(1, 3);
 
 		return v;
+	}
+
+	[GeneratedRegex("<[^>]*>")]
+	private static partial Regex HtmlTagRegex();
+	[GeneratedRegex("<br[^>]*/?>")]
+	private static partial Regex HtmlBrTagRegex();
+	public static double GetTimetableTrackLabelFontSize(string trackName, double currentFontSize)
+	{
+		bool isTrackNameHtml = trackName.StartsWith('<');
+		if (isTrackNameHtml)
+		{
+			trackName = HtmlBrTagRegex().Replace(trackName, "\n");
+			trackName = HtmlTagRegex().Replace(trackName, "");
+		}
+		int maxLineLength = trackName.Split("\n", StringSplitOptions.RemoveEmptyEntries).Select(v => v.Length).Max();
+		if (maxLineLength <= 2)
+			return currentFontSize;
+		else
+			return currentFontSize * (2.0 / maxLineLength);
 	}
 
 	static readonly AppThemeGenericsBindingExtension<Brush> SeparatorLineBrush = SeparatorLineColor.ToBrushTheme();

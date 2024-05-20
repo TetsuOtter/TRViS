@@ -179,7 +179,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
 				DepartureTime: new(1,25,null, null),
-				TrackName: "1",
+				TrackName: "3文字",
 				RunInLimit: null,
 				RunOutLimit: 30,
 				Remarks: "記事"
@@ -195,7 +195,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
 				DepartureTime: new(1,25,null, null),
-				TrackName: "1",
+				TrackName: "四文字版",
 				RunInLimit: null,
 				RunOutLimit: 30,
 				Remarks: "記事"
@@ -245,7 +245,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
 				DepartureTime: new(1,25,null, null),
-				TrackName: "1",
+				TrackName: "1\n三文字",
 				RunInLimit: null,
 				RunOutLimit: 30,
 				Remarks: "記事"
@@ -261,7 +261,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
 				DepartureTime: new(1,25,null, null),
-				TrackName: "1",
+				TrackName: "1\n四文字版",
 				RunInLimit: null,
 				RunOutLimit: 30,
 				Remarks: "記事"
@@ -277,7 +277,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
 				DepartureTime: new(1,25,null, null),
-				TrackName: "1",
+				TrackName: "11\n三文字",
 				RunInLimit: null,
 				RunOutLimit: 30,
 				Remarks: "記事"
@@ -309,7 +309,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsLastStop: false,
 				ArriveTime: new(null,null,null,"↓"),
 				DepartureTime: new(null,null,null, "通過"),
-				TrackName: "1",
+				TrackName: "123\n四文字版",
 				RunInLimit: 130,
 				RunOutLimit: 30,
 				Remarks: "記事"
@@ -359,8 +359,8 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	NominalTractiveCapacity: null,
 	CarCount: null,
 	Destination: "長い駅名",
-	BeginRemarks: null,
-	AfterRemarks: "(入換)",
+	BeginRemarks: "(入換)\n(入換)",
+	AfterRemarks: "(入換)\n(入換)",
 	Remarks: null,
 	BeforeDeparture: null,
 	TrainInfo: null,

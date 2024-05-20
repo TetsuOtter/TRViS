@@ -180,12 +180,9 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="BeginRemarksLabel"
-				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.BeforeRemarksStyleResource}"
 				Grid.Column="2"
 				Grid.ColumnSpan="6"
-				Margin="32,0"
-				HorizontalOptions="Start"
-				VerticalOptions="Center"
 				Text="{Binding BeginRemarks}"/>
 
 			<Label

@@ -32,7 +32,7 @@ public partial class VerticalTimetableView
 		ZIndex = DTACElementStyles.TimetableRowLocationBoxZIndex,
 	};
 
-	readonly BeforeAfterRemarks AfterRemarks;
+	readonly AfterRemarks AfterRemarks;
 	readonly BeforeDeparture_AfterArrive AfterArrive;
 
 	readonly List<VerticalTimetableRow> RowViewList = new();
