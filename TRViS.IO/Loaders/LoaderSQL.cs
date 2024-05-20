@@ -53,7 +53,7 @@ public class LoaderSQL : ILoader, IDisposable
 				on t.WorkId equals w.Id
 				select new TrainData(
 					WorkName: w.Name,
-					AffectDate: DateOnly.TryParse(w.AffectDate, out DateOnly date) ? date : null,
+					AffectDate: Utils.StringToDateOnlyOrNull(w.AffectDate),
 					TrainNumber: t.TrainNumber,
 					MaxSpeed: t.MaxSpeed,
 					SpeedType: t.SpeedType,
