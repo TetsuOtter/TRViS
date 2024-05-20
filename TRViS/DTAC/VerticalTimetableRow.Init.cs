@@ -250,9 +250,11 @@ public partial class VerticalTimetableRow
 			HtmlAutoDetectLabel TrackName = DTACElementStyles.TimetableLabel<HtmlAutoDetectLabel>();
 			TrackName.Margin = TrackName.Padding = new(0);
 			TrackName.HorizontalOptions = TrackName.VerticalOptions = LayoutOptions.Center;
+			TrackName.HorizontalTextAlignment = TextAlignment.Center;
 			TrackName.TextColor = Colors.Red;
 			TrackName.CurrentAppThemeColorBindingExtension = null;
 			TrackName.Text = rowData.TrackName;
+			TrackName.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(rowData.TrackName, TrackName.FontSize);
 			parent.Add(TrackName, 4, rowIndex);
 		}
 		else

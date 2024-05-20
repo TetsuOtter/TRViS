@@ -2,12 +2,12 @@ using TRViS.Controls;
 
 namespace TRViS.DTAC;
 
-public class BeforeAfterRemarks
+public class AfterRemarks
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	readonly Grid Parent;
 
-	public BeforeAfterRemarks(Grid Parent)
+	public AfterRemarks(Grid Parent)
 	{
 		logger.Trace("Creating... (Parent: {0})", Parent.GetType().Name);
 
@@ -15,13 +15,10 @@ public class BeforeAfterRemarks
 
 		IsVisible = false;
 
-		Label.Margin = new(32, 0);
-		Label.HorizontalOptions = LayoutOptions.Start;
-
 		logger.Trace("Created");
 	}
 
-	readonly HtmlAutoDetectLabel Label = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
+	readonly HtmlAutoDetectLabel Label = DTACElementStyles.AfterRemarksStyle<HtmlAutoDetectLabel>();
 
 	public string Text
 	{

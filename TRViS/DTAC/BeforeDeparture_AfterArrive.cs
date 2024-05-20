@@ -38,6 +38,10 @@ public class BeforeDeparture_AfterArrive
 
 		Label.HorizontalOptions = LayoutOptions.Start;
 		Label_OnStationTrackColumn.HorizontalOptions = LayoutOptions.Start;
+		Label.VerticalOptions = LayoutOptions.Start;
+		Label_OnStationTrackColumn.VerticalOptions = LayoutOptions.Start;
+		Label.Margin = new(Label.Margin.Left);
+		Label_OnStationTrackColumn.Margin = new(Label_OnStationTrackColumn.Margin.Left);
 
 		DTACElementStyles.HeaderTextColor.Apply(HeaderLabel, Microsoft.Maui.Controls.Label.TextColorProperty);
 		DTACElementStyles.HeaderBackgroundColor.Apply(HeaderBoxView, BoxView.ColorProperty);
