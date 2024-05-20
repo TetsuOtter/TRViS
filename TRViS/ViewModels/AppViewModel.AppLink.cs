@@ -38,15 +38,10 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
-		return await HandleAppLinkUriAsync(appLinkInfo, token);
-	}
-	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
-	{
-		string? decodedUrl = null;
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
 		{
 			string path = appLinkInfo.ResourceUri.ToString();
-			decodedUrl = HttpUtility.UrlDecode(path);
+			string decodedUrl = HttpUtility.UrlDecode(path);
 
 			bool openRemoteFileCheckResult = await Utils.DisplayAlert(
 				"外部ファイルを開く",
@@ -63,6 +58,18 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
+		return await HandleAppLinkUriAsync(appLinkInfo, token);
+	}
+	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
+	{
+		string? decodedUrl = null;
+		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
+		{
+			decodedUrl = HttpUtility.UrlDecode(appLinkInfo.ResourceUri.ToString());
+		}
+
+		token.ThrowIfCancellationRequested();
+
 		OpenFile openFile = new(InstanceManager.HttpClient)
 		{
 			CanContinueWhenResourceUriContainsIp = CanContinueWhenResourceUriContainsIpHandler,
@@ -75,7 +82,7 @@ public partial class AppViewModel
 		}
 		catch (Exception ex)
 		{
-			if (ex is OperationCanceledException)
+			if (ex is OperationCanceledException && ex is not TaskCanceledException)
 			{
 				logger.Debug(ex, "Operation Canceled");
 				return false;
