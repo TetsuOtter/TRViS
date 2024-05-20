@@ -96,7 +96,7 @@ public class LoaderJson : ILoader
 
 		return new Models.TrainData(
 			WorkName: r.Work.Name,
-			AffectDate: DateOnly.TryParse(r.Work.AffectDate, out DateOnly date) ? date : null,
+			AffectDate: Utils.StringToDateOnlyOrNull(r.Work.AffectDate),
 			TrainNumber: r.Train.TrainNumber,
 			MaxSpeed: t.MaxSpeed,
 			SpeedType: t.SpeedType,
