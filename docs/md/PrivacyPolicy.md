@@ -57,5 +57,6 @@ https://www.apple.com/jp/legal/privacy/data/ja/app-analytics/
 
 ## 更新履歴
 
+- 2024年5月21日: リンクを踏めない不具合に関する注意書きを削除
 - 2023年10月26日: AppCenter導入に伴い更新 (ついでに位置情報についても明記)
 - 2022年9月16日: 作成
