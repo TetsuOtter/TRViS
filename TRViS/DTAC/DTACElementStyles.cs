@@ -1,8 +1,9 @@
+using System.Text.RegularExpressions;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace TRViS.DTAC;
 
-public static class DTACElementStyles
+public static partial class DTACElementStyles
 {
 	static Color genColor(byte value)
 		=> new(value, value, value);
@@ -324,6 +325,25 @@ public static class DTACElementStyles
 		v.Margin = new(1, 3);
 
 		return v;
+	}
+
+	[GeneratedRegex("<[^>]*>")]
+	private static partial Regex HtmlTagRegex();
+	[GeneratedRegex("<br[^>]*/?>")]
+	private static partial Regex HtmlBrTagRegex();
+	public static double GetTimetableTrackLabelFontSize(string trackName, double currentFontSize)
+	{
+		bool isTrackNameHtml = trackName.StartsWith('<');
+		if (isTrackNameHtml)
+		{
+			trackName = HtmlBrTagRegex().Replace(trackName, "\n");
+			trackName = HtmlTagRegex().Replace(trackName, "");
+		}
+		int maxLineLength = trackName.Split("\n", StringSplitOptions.RemoveEmptyEntries).Select(v => v.Length).Max();
+		if (maxLineLength <= 2)
+			return currentFontSize;
+		else
+			return currentFontSize * (2.0 / maxLineLength);
 	}
 
 	static readonly AppThemeGenericsBindingExtension<Brush> SeparatorLineBrush = SeparatorLineColor.ToBrushTheme();
