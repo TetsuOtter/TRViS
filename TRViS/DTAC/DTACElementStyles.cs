@@ -58,8 +58,9 @@ public static partial class DTACElementStyles
 
 	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
 
-	public static readonly int DefaultTextSize = 14;
-	public static readonly int LargeTextSize = 24;
+	public static readonly double DefaultTextSize = 14;
+	public static readonly double DefaultTextSizePlus = 15;
+	public static readonly double LargeTextSize = 24;
 
 	public const int BeforeDeparture_AfterArrive_Height = 45;
 
@@ -131,6 +132,42 @@ public static partial class DTACElementStyles
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1;
 
 		v.FontAutoScalingEnabled = false;
+
+		return v;
+	}
+
+	static Style? _BeforeRemarksStyleResource = null;
+	public static Style BeforeRemarksStyleResource
+	{
+		get
+		{
+			if (_BeforeRemarksStyleResource is not null)
+				return _BeforeRemarksStyleResource;
+
+			_BeforeRemarksStyleResource = new Style(typeof(Label))
+			{
+				BasedOn = LabelStyleResource
+			};
+
+			_BeforeRemarksStyleResource.Setters.Add(Label.HorizontalOptionsProperty, LayoutOptions.Start);
+			_BeforeRemarksStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
+			_BeforeRemarksStyleResource.Setters.Add(Label.FontSizeProperty, DefaultTextSizePlus);
+			_BeforeRemarksStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.5);
+			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(32, 0, 0, 10));
+
+			return _BeforeRemarksStyleResource;
+		}
+	}
+	public static T AfterRemarksStyle<T>() where T : Label, new()
+	{
+		T v = LabelStyle<T>();
+
+		v.HorizontalOptions = LayoutOptions.Start;
+		v.VerticalOptions = LayoutOptions.Start;
+		v.FontSize = DefaultTextSizePlus;
+		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.6;
+		// LineHeight分だけ上に隙間が空くため、MarginTopは設定しない
+		v.Margin = new(32, 0, 0, 0);
 
 		return v;
 	}
