@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.Controls;
 
@@ -10,85 +11,105 @@ public class HtmlAutoDetectLabel : Label
 
 	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 	{
-		base.OnPropertyChanged(propertyName);
+		try {
+			base.OnPropertyChanged(propertyName);
+		} catch (Exception ex) {
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 
 		if (propertyName == nameof(Text))
 		{
-			if (string.IsNullOrEmpty(Text))
+			try
 			{
-				logger.Debug("Text Changed -> (NullOrEmpty)");
-				TextType = TextType.Text;
+				OnTextPropertyChanged();
 			}
-			else
+			catch (Exception ex)
 			{
-				string text = Text.Trim();
-				bool isColoredString = text.Contains("color:");
-				logger.Trace("Text Changed -> {0} (isColoredString: {1})", text, isColoredString);
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
+		}
+	}
 
-				try
+	void OnTextPropertyChanged()
+	{
+		if (string.IsNullOrEmpty(Text))
+		{
+			logger.Debug("Text Changed -> (NullOrEmpty)");
+			TextType = TextType.Text;
+		}
+		else
+		{
+			string text = Text.Trim();
+			bool isColoredString = text.Contains("color:");
+			logger.Trace("Text Changed -> {0} (isColoredString: {1})", text, isColoredString);
+
+			try
+			{
+				TextType _textType = (text.StartsWith('<') && text.EndsWith('>')) ? TextType.Html : TextType.Text;
+				if (CurrentAppThemeColorBindingExtension is not null)
 				{
-					TextType _textType = (text.StartsWith('<') && text.EndsWith('>')) ? TextType.Html : TextType.Text;
-					if (CurrentAppThemeColorBindingExtension is not null)
+					if (_textType == TextType.Html && isColoredString)
 					{
-						if (_textType == TextType.Html && isColoredString)
-						{
-							logger.Trace("CurrentAppThemeColorBindingExtension is not null && TextType: Html && isColoredString: true -> AppThemeColor set to null");
-							this.SetAppThemeColor(TextColorProperty, null, null);
-						}
-						else
-						{
-							logger.Trace("CurrentAppThemeColorBindingExtension is not null"
-								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
-								+ " -> Restore AppThemeColor(Light:{2}, Dark:{3})",
-								_textType,
-								isColoredString,
-								CurrentAppThemeColorBindingExtension.Light,
-								CurrentAppThemeColorBindingExtension.Dark
-							);
-							CurrentAppThemeColorBindingExtension.Apply(this, TextColorProperty);
-						}
+						logger.Trace("CurrentAppThemeColorBindingExtension is not null && TextType: Html && isColoredString: true -> AppThemeColor set to null");
+						this.SetAppThemeColor(TextColorProperty, null, null);
 					}
 					else
 					{
-						if (_textType == TextType.Html && isColoredString)
-						{
-							logger.Trace("CurrentAppThemeColorBindingExtension is null && TextType: Html && isColoredString: true -> TextColor set to null");
-							LastTextColor = TextColor;
-							TextColor = null;
-						}
-						else if (TextColor is null && LastTextColor is not null)
-						{
-							logger.Trace("CurrentAppThemeColorBindingExtension is null"
-								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
-								+ " && TextColor is null && LastTextColor is not null"
-								+ " -> Restore TextColor({2})",
-								_textType,
-								isColoredString,
-								LastTextColor
-							);
-							TextColor = LastTextColor;
-						}
-						else
-						{
-							logger.Trace("CurrentAppThemeColorBindingExtension is null"
-								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
-								+ " && TextColor is not null"
-								+ " -> Do Nothing",
-								_textType,
-								isColoredString
-							);
-						}
+						logger.Trace("CurrentAppThemeColorBindingExtension is not null"
+							+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+							+ " -> Restore AppThemeColor(Light:{2}, Dark:{3})",
+							_textType,
+							isColoredString,
+							CurrentAppThemeColorBindingExtension.Light,
+							CurrentAppThemeColorBindingExtension.Dark
+						);
+						CurrentAppThemeColorBindingExtension.Apply(this, TextColorProperty);
 					}
-					TextType = _textType;
-
-					logger.Trace("Processing Complete -> TextType: {0}", TextType);
 				}
-				catch (Exception ex)
+				else
 				{
-					logger.Warn(ex, "Exception Occurred -> TextType set to Text");
-					Console.WriteLine(ex);
-					TextType = TextType.Text;
+					if (_textType == TextType.Html && isColoredString)
+					{
+						logger.Trace("CurrentAppThemeColorBindingExtension is null && TextType: Html && isColoredString: true -> TextColor set to null");
+						LastTextColor = TextColor;
+						TextColor = null;
+					}
+					else if (TextColor is null && LastTextColor is not null)
+					{
+						logger.Trace("CurrentAppThemeColorBindingExtension is null"
+							+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+							+ " && TextColor is null && LastTextColor is not null"
+							+ " -> Restore TextColor({2})",
+							_textType,
+							isColoredString,
+							LastTextColor
+						);
+						TextColor = LastTextColor;
+					}
+					else
+					{
+						logger.Trace("CurrentAppThemeColorBindingExtension is null"
+							+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+							+ " && TextColor is not null"
+							+ " -> Do Nothing",
+							_textType,
+							isColoredString
+						);
+					}
 				}
+				TextType = _textType;
+
+				logger.Trace("Processing Complete -> TextType: {0}", TextType);
+			}
+			catch (Exception ex)
+			{
+				logger.Warn(ex, "Exception Occurred -> TextType set to Text");
+				Console.WriteLine(ex);
+				TextType = TextType.Text;
 			}
 		}
 	}

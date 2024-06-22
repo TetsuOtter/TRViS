@@ -1,3 +1,4 @@
+using Microsoft.AppCenter.Crashes;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
@@ -125,10 +126,19 @@ public class BeforeDeparture_AfterArrive
 
 	public void SetRow(in int row)
 	{
-		Grid.SetRow(HeaderBoxView, row);
-		Grid.SetRow(HeaderLabel, row);
-		Grid.SetRow(Label, row);
-		Grid.SetRow(Label_OnStationTrackColumn, row);
+		try
+		{
+			Grid.SetRow(HeaderBoxView, row);
+			Grid.SetRow(HeaderLabel, row);
+			Grid.SetRow(Label, row);
+			Grid.SetRow(Label_OnStationTrackColumn, row);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);			
+		}
 	}
 }
 

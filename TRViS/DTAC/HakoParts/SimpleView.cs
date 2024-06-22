@@ -1,5 +1,5 @@
 using System.ComponentModel;
-
+using Microsoft.AppCenter.Crashes;
 using TRViS.IO;
 using TRViS.IO.Models.DB;
 
@@ -24,7 +24,16 @@ public class SimpleView : Grid
 
 		InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
 
-		OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+		try
+		{
+			OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 
 		logger.Debug("Created");
 	}
@@ -37,25 +46,34 @@ public class SimpleView : Grid
 			return;
 		}
 
-		if (newValue == true)
+		try
 		{
-			if (SelectedRow is not null && SelectedRow != row)
+			if (newValue == true)
 			{
-				logger.Debug("SelectedRow is not null and SelectedRow != row -> last selection ({0}) set to false", SelectedRow.TrainNumber);
-				SelectedRow.IsSelected = false;
-			}
+				if (SelectedRow is not null && SelectedRow != row)
+				{
+					logger.Debug("SelectedRow is not null and SelectedRow != row -> last selection ({0}) set to false", SelectedRow.TrainNumber);
+					SelectedRow.IsSelected = false;
+				}
 
-			logger.Debug("renew selection to {0}", row.TrainNumber);
-			SelectedRow = row;
-			InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
+				logger.Debug("renew selection to {0}", row.TrainNumber);
+				SelectedRow = row;
+				InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
+			}
+			else if (SelectedRow == row)
+			{
+				logger.Debug("SelectedRow == row ({0}) -> reset selection", SelectedRow.TrainNumber);
+				SelectedRow.IsSelected = false;
+				SelectedRow = null;
+				InstanceManager.AppViewModel.SelectedDBTrainData = null;
+				InstanceManager.AppViewModel.SelectedTrainData = null;
+			}
 		}
-		else if (SelectedRow == row)
+		catch (Exception ex)
 		{
-			logger.Debug("SelectedRow == row ({0}) -> reset selection", SelectedRow.TrainNumber);
-			SelectedRow.IsSelected = false;
-			SelectedRow = null;
-			InstanceManager.AppViewModel.SelectedDBTrainData = null;
-			InstanceManager.AppViewModel.SelectedTrainData = null;
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
 		}
 	}
 
@@ -63,7 +81,16 @@ public class SimpleView : Grid
 	{
 		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork))
 		{
-			OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+			try
+			{
+				OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
 		}
 	}
 	void OnSelectedWorkChanged(Work? newWork)

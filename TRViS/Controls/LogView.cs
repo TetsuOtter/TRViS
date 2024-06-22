@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using DependencyPropertyGenerator;
+using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.Controls;
 
@@ -55,8 +56,15 @@ public partial class LogView : ScrollView
 	static public IReadOnlyCollection<Log> Logs => _Logs;
 	static public void Add(Log log)
 	{
-		_Logs.Add(log);
-		LogAdded?.Invoke(_Logs, log);
+		try
+		{
+			_Logs.Add(log);
+			LogAdded?.Invoke(_Logs, log);
+		}
+		catch (Exception ex)
+		{
+			Crashes.TrackError(ex);
+		}
 	}
 	static public void Add(Priority priority, string text)
 		=> Add(new Log(priority, text));
@@ -91,17 +99,25 @@ public partial class LogView : ScrollView
 
 	public void Reload()
 	{
-		lock (buildberLock)
+		try
 		{
-			builder.Clear();
-			label.Text = string.Empty;
+			lock (buildberLock)
+			{
+				builder.Clear();
+				label.Text = string.Empty;
 
-			Priority priority = this.PriorityFilter;
-			if (priority != 0)
-				builder.AppendJoin('\n', _Logs.Where(v => priority.HasFlag(v.Priority)));
+				Priority priority = this.PriorityFilter;
+				if (priority != 0)
+					builder.AppendJoin('\n', _Logs.Where(v => priority.HasFlag(v.Priority)));
+			}
+
+			updateLabelText();
 		}
-
-		updateLabelText();
+		catch (Exception ex)
+		{
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	void updateLabelText()
