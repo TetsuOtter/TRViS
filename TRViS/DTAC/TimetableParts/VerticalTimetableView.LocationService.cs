@@ -1,5 +1,5 @@
 using DependencyPropertyGenerator;
-
+using Microsoft.AppCenter.Crashes;
 using TRViS.IO.Models;
 using TRViS.Services;
 
@@ -21,8 +21,17 @@ public partial class VerticalTimetableView : Grid
 	{
 		logger.Info("IsLocationServiceEnabled is changed to {0}", newValue);
 
-		LocationService.IsEnabled = newValue;
-		IsLocationServiceEnabledChanged?.Invoke(this, new(!newValue, newValue));
+		try
+		{
+			LocationService.IsEnabled = newValue;
+			IsLocationServiceEnabledChanged?.Invoke(this, new(!newValue, newValue));
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	private void LocationService_LocationStateChanged(object? sender, LocationStateChangedEventArgs e)
@@ -51,15 +60,25 @@ public partial class VerticalTimetableView : Grid
 			e.NewStationIndex,
 			e.IsRunningToNextStation
 		);
-		if (CurrentRunningRow is not null)
-			CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
-		VerticalTimetableRow rowView = RowViewList[e.NewStationIndex];
-		UpdateCurrentRunningLocationVisualizer(rowView, e.IsRunningToNextStation
-			? VerticalTimetableRow.LocationStates.RunningToNextStation
-			: VerticalTimetableRow.LocationStates.AroundThisStation
-		);
-		_CurrentRunningRow = rowView;
-		CurrentRunningRowIndex = e.NewStationIndex;
+
+		try
+		{
+			if (CurrentRunningRow is not null)
+				CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+			VerticalTimetableRow rowView = RowViewList[e.NewStationIndex];
+			UpdateCurrentRunningLocationVisualizer(rowView, e.IsRunningToNextStation
+				? VerticalTimetableRow.LocationStates.RunningToNextStation
+				: VerticalTimetableRow.LocationStates.AroundThisStation
+			);
+			_CurrentRunningRow = rowView;
+			CurrentRunningRowIndex = e.NewStationIndex;
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 
 		logger.Debug("process finished");
 	}
@@ -79,37 +98,49 @@ public partial class VerticalTimetableView : Grid
 		}
 
 		if (RowViewList.ElementAtOrDefault(index) != value)
+		{
+			logger.Error("value is not match with element at given index: {0}", index);
 			throw new ArgumentException("value is not match with element at given index", nameof(value));
+		}
 
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
-			if (_CurrentRunningRow is not null)
+			try
 			{
-				logger.Debug("CurrentRunningRow[{0}: {1}] is not null -> set LocationState to Undefined",
-					_CurrentRunningRow.RowIndex,
-					_CurrentRunningRow.RowData.StationName
+				if (_CurrentRunningRow is not null)
+				{
+					logger.Debug("CurrentRunningRow[{0}: {1}] is not null -> set LocationState to Undefined",
+						_CurrentRunningRow.RowIndex,
+						_CurrentRunningRow.RowData.StationName
+					);
+
+					_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+				}
+
+				logger.Info("CurrentRunningRow is changed from {0}: `{1}` to {2}: `{3}`",
+					CurrentRunningRow?.RowIndex,
+					CurrentRunningRow?.RowData.StationName,
+					index,
+					value?.RowData.StationName
 				);
+				_CurrentRunningRow = value;
 
-				_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+				if (value is not null)
+				{
+					CurrentRunningRowIndex = index;
+					UpdateCurrentRunningLocationVisualizer(value, VerticalTimetableRow.LocationStates.AroundThisStation);
+				}
+				else
+				{
+					logger.Debug("value is null -> set CurrentRunningRowIndex to -1");
+					CurrentRunningRowIndex = -1;
+				}
 			}
-
-			logger.Info("CurrentRunningRow is changed from {0}: `{1}` to {2}: `{3}`",
-				CurrentRunningRow?.RowIndex,
-				CurrentRunningRow?.RowData.StationName,
-				index,
-				value?.RowData.StationName
-			);
-			_CurrentRunningRow = value;
-
-			if (value is not null)
+			catch (Exception ex)
 			{
-				CurrentRunningRowIndex = index;
-				UpdateCurrentRunningLocationVisualizer(value, VerticalTimetableRow.LocationStates.AroundThisStation);
-			}
-			else
-			{
-				logger.Debug("value is null -> set CurrentRunningRowIndex to -1");
-				CurrentRunningRowIndex = -1;
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
 			}
 		});
 	}
@@ -124,24 +155,33 @@ public partial class VerticalTimetableView : Grid
 			return;
 		}
 
-		row.LocationState = states;
-		logger.Info("UpdateCurrentRunningLocationVisualizer: Row[{0}] ... Requested:{1}, Actual:{2}", row.RowIndex, states, row.LocationState);
+		try
+		{
+			row.LocationState = states;
+			logger.Info("UpdateCurrentRunningLocationVisualizer: Row[{0}] ... Requested:{1}, Actual:{2}", row.RowIndex, states, row.LocationState);
 
-		int rowCount = row.RowIndex;
+			int rowCount = row.RowIndex;
 
-		Grid.SetRow(CurrentLocationBoxView, rowCount);
-		Grid.SetRow(CurrentLocationLine, rowCount);
+			Grid.SetRow(CurrentLocationBoxView, rowCount);
+			Grid.SetRow(CurrentLocationLine, rowCount);
 
-		CurrentLocationBoxView.IsVisible = row.LocationState
-			is VerticalTimetableRow.LocationStates.AroundThisStation
-			or VerticalTimetableRow.LocationStates.RunningToNextStation;
-		CurrentLocationLine.IsVisible = row.LocationState is VerticalTimetableRow.LocationStates.RunningToNextStation;
+			CurrentLocationBoxView.IsVisible = row.LocationState
+				is VerticalTimetableRow.LocationStates.AroundThisStation
+				or VerticalTimetableRow.LocationStates.RunningToNextStation;
+			CurrentLocationLine.IsVisible = row.LocationState is VerticalTimetableRow.LocationStates.RunningToNextStation;
 
-		CurrentLocationBoxView.Margin = row.LocationState
-			is VerticalTimetableRow.LocationStates.RunningToNextStation
-			? new(0, -(RowHeight.Value / 2)) : new(0);
+			CurrentLocationBoxView.Margin = row.LocationState
+				is VerticalTimetableRow.LocationStates.RunningToNextStation
+				? new(0, -(RowHeight.Value / 2)) : new(0);
 
-		logger.Debug("CurrentLocationBoxView.IsVisible: {0}, CurrentLocationLine.IsVisible: {1}", CurrentLocationBoxView.IsVisible, CurrentLocationLine.IsVisible);
+			logger.Debug("CurrentLocationBoxView.IsVisible: {0}, CurrentLocationLine.IsVisible: {1}", CurrentLocationBoxView.IsVisible, CurrentLocationLine.IsVisible);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 
 		try
 		{
@@ -162,7 +202,16 @@ public partial class VerticalTimetableView : Grid
 		if (row.LocationState != VerticalTimetableRow.LocationStates.Undefined)
 		{
 			logger.Debug("value.LocationState is not Undefined -> invoke ScrollRequested");
-			ScrollRequested?.Invoke(this, new(Math.Max(row.RowIndex - 1, 0) * RowHeight.Value));
+			try
+			{
+				ScrollRequested?.Invoke(this, new(Math.Max(row.RowIndex - 1, 0) * RowHeight.Value));
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
 		}
 		else
 		{

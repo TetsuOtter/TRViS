@@ -1,4 +1,5 @@
 using DependencyPropertyGenerator;
+using Microsoft.AppCenter.Crashes;
 using TRViS.IO.Models;
 
 namespace TRViS.DTAC;
@@ -33,21 +34,30 @@ public partial class Remarks : Grid
 
 	public void ResetTextScrollViewPosition(bool? isOpen = null)
 	{
-		isOpen ??= IsOpen;
-#if IOS
-		if (Shell.Current is AppShell shell)
+		try
 		{
-			double translateToY = isOpen.Value ? 0 : shell.SafeAreaMargin.Bottom;
-			logger.Trace("translateToY: {0} (isOpen: {1})", translateToY, isOpen.Value);
-			RemarksTextScrollView.TranslateTo(
-				x: 0,
-				y: translateToY,
-				length: 250 / 2,
-				easing: Easing.CubicOut
-			);
-		}
+			isOpen ??= IsOpen;
+#if IOS
+			if (Shell.Current is AppShell shell)
+			{
+				double translateToY = isOpen.Value ? 0 : shell.SafeAreaMargin.Bottom;
+				logger.Trace("translateToY: {0} (isOpen: {1})", translateToY, isOpen.Value);
+				RemarksTextScrollView.TranslateTo(
+					x: 0,
+					y: translateToY,
+					length: 250 / 2,
+					easing: Easing.CubicOut
+				);
+			}
 #endif
-		this.TranslateTo(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
+			this.TranslateTo(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	partial void OnIsOpenChanged(bool newValue)
@@ -107,15 +117,33 @@ public partial class Remarks : Grid
 
 	protected override void OnSizeAllocated(double width, double height)
 	{
-		logger.Trace("width: {0}, height: {1}", width, height);
-		OnPageHeightChanged(Shell.Current.CurrentPage.Height * 0.4);
+		try
+		{
+			logger.Trace("width: {0}, height: {1}", width, height);
+			OnPageHeightChanged(Shell.Current.CurrentPage.Height * 0.4);
 
-		base.OnSizeAllocated(width, height);
+			base.OnSizeAllocated(width, height);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	void OpenCloseButton_IsOpenChanged(object sender, ValueChangedEventArgs<bool> e)
 	{
-		logger.Info("OpenCloseButton.IsOpen: {0}", e.NewValue);
-		this.IsOpen = e.NewValue;
+		try
+		{
+			logger.Info("OpenCloseButton.IsOpen: {0}", e.NewValue);
+			this.IsOpen = e.NewValue;
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 }

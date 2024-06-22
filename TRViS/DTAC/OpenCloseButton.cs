@@ -1,4 +1,5 @@
 using DependencyPropertyGenerator;
+using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.DTAC;
 
@@ -67,6 +68,15 @@ public partial class OpenCloseButton : Button
 	partial void OnIsOpenChanged(bool oldValue, bool newValue)
 	{
 		logger.Info("IsOpen changed from {0} to {1}", oldValue, newValue);
-		IsOpenChanged?.Invoke(this, new(oldValue, newValue));
+		try
+		{
+			IsOpenChanged?.Invoke(this, new(oldValue, newValue));
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 }

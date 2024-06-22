@@ -1,3 +1,4 @@
+using Microsoft.AppCenter.Crashes;
 using TRViS.Controls;
 
 namespace TRViS.DTAC;
@@ -58,8 +59,17 @@ public class AfterRemarks
 
 	public void SetRow(in int row)
 	{
-		logger.Trace("Setting Row to {0}", row);
-		Grid.SetRow(Label, row);
+		try
+		{
+			logger.Trace("Setting Row to {0}", row);
+			Grid.SetRow(Label, row);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 }
 

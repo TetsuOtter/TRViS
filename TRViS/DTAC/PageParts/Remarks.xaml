@@ -13,7 +13,7 @@
 	<Grid.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
-				<ResourceDictionary Source="Style_VerticalView.xaml" />
+				<ResourceDictionary Source="../Style_VerticalView.xaml" />
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Grid.Resources>

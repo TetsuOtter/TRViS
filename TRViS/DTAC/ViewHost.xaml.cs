@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.AppCenter.Crashes;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
@@ -159,19 +160,28 @@ public partial class ViewHost : ContentPage
 		if (sender is not AppViewModel vm)
 			return;
 
-		switch (e.PropertyName)
+		try
 		{
-			case nameof(AppViewModel.SelectedWorkGroup):
-				OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
-				break;
+			switch (e.PropertyName)
+			{
+				case nameof(AppViewModel.SelectedWorkGroup):
+					OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
+					break;
 
-			case nameof(AppViewModel.SelectedWork):
-				OnSelectedWorkChanged(vm.SelectedWork);
-				break;
+				case nameof(AppViewModel.SelectedWork):
+					OnSelectedWorkChanged(vm.SelectedWork);
+					break;
 
-			case nameof(AppViewModel.SelectedTrainData):
-				OnSelectedTrainChanged(vm.SelectedTrainData);
-				break;
+				case nameof(AppViewModel.SelectedTrainData):
+					OnSelectedTrainChanged(vm.SelectedTrainData);
+					break;
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
 		}
 	}
 

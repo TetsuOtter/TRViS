@@ -1,5 +1,5 @@
 using DependencyPropertyGenerator;
-
+using Microsoft.AppCenter.Crashes;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
@@ -40,12 +40,21 @@ public partial class VerticalStylePage : ContentView
 		DTACViewHostViewModel = InstanceManager.DTACViewHostViewModel;
 		DTACViewHostViewModel.PropertyChanged += (_, e) =>
 		{
-			switch (e.PropertyName)
+			try
 			{
-				case nameof(DTACViewHostViewModel.IsViewHostVisible):
-				case nameof(DTACViewHostViewModel.IsVerticalViewMode):
-					OnSelectedTrainDataChanged(SelectedTrainData);
-					break;
+				switch (e.PropertyName)
+				{
+					case nameof(DTACViewHostViewModel.IsViewHostVisible):
+					case nameof(DTACViewHostViewModel.IsVerticalViewMode):
+						OnSelectedTrainDataChanged(SelectedTrainData);
+						break;
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
 			}
 		};
 
@@ -79,23 +88,32 @@ public partial class VerticalStylePage : ContentView
 
 			logger.Info("IsBusyChanged: {0}", v.IsBusy);
 
-			if (v.IsBusy)
+			try
 			{
-				TimetableViewActivityIndicatorFrame.IsVisible = true;
-				TimetableViewActivityIndicatorFrame.FadeTo(TimetableViewActivityIndicatorFrameMaxOpacity);
-			}
-			else
-				TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => {
-					logger.Debug("TimetableViewActivityIndicatorFrame.FadeTo(0) completed");
-					TimetableViewActivityIndicatorFrame.IsVisible = false;
-				});
+				if (v.IsBusy)
+				{
+					TimetableViewActivityIndicatorFrame.IsVisible = true;
+					TimetableViewActivityIndicatorFrame.FadeTo(TimetableViewActivityIndicatorFrameMaxOpacity);
+				}
+				else
+					TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => {
+						logger.Debug("TimetableViewActivityIndicatorFrame.FadeTo(0) completed");
+						TimetableViewActivityIndicatorFrame.IsVisible = false;
+					});
 
-			// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
-			if (Content is ScrollView sv)
+				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
+				if (Content is ScrollView sv)
+				{
+					double heightRequest = CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, TimetableView.HeightRequest);
+					logger.Debug("set full-scrollable-ScrollView.HeightRequest -> Max(this.HeightRequest: {0}, heightRequest: {1})", this.HeightRequest, heightRequest);
+					sv.Content.HeightRequest = Math.Max(this.Height, heightRequest);
+				}
+			}
+			catch (Exception ex)
 			{
-				double heightRequest = CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, TimetableView.HeightRequest);
-				logger.Debug("set full-scrollable-ScrollView.HeightRequest -> Max(this.HeightRequest: {0}, heightRequest: {1})", this.HeightRequest, heightRequest);
-				sv.Content.HeightRequest = Math.Max(this.Height, heightRequest);
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
 			}
 		};
 
@@ -166,21 +184,31 @@ public partial class VerticalStylePage : ContentView
 			);
 			return;
 		}
-		CurrentShowingTrainData = newValue;
-		logger.Info("SelectedTrainDataChanged: {0}", newValue);
-		BindingContext = newValue;
-		TimetableView.SelectedTrainData = newValue;
-		PageHeaderArea.IsRunning = false;
-		InstanceManager.DTACMarkerViewModel.IsToggled = false;
 
-		TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
-		TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
-		TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
+		try
+		{
+			CurrentShowingTrainData = newValue;
+			logger.Info("SelectedTrainDataChanged: {0}", newValue);
+			BindingContext = newValue;
+			TimetableView.SelectedTrainData = newValue;
+			PageHeaderArea.IsRunning = false;
+			InstanceManager.DTACMarkerViewModel.IsToggled = false;
 
-		SetDestinationString(newValue?.Destination);
+			TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
+			TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
+			TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
 
-		int dayCount = newValue?.DayCount ?? 0;
-		this.IsNextDayLabel.IsVisible = dayCount > 0;
+			SetDestinationString(newValue?.Destination);
+
+			int dayCount = newValue?.DayCount ?? 0;
+			this.IsNextDayLabel.IsVisible = dayCount > 0;
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	partial void OnAffectDateChanged(string? newValue)
