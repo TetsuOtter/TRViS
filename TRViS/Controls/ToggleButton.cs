@@ -1,4 +1,5 @@
 using DependencyPropertyGenerator;
+using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.Controls;
 
@@ -15,10 +16,19 @@ public partial class ToggleButton : ContentView
 		TapGestureRecognizer gestureRecognizer = new();
 		gestureRecognizer.Tapped += (_, e) =>
 		{
-			Point? pt = e.GetPosition(this);
-			logger.Debug("Tapped (Pont: {0}, IsEnabled: {1}, IsChecked Before: {2})", pt, IsEnabled, IsChecked);
-			if (IsEnabled)
-				IsChecked = !IsChecked;
+			try
+			{
+				Point? pt = e.GetPosition(this);
+				logger.Debug("Tapped (Pont: {0}, IsEnabled: {1}, IsChecked Before: {2})", pt, IsEnabled, IsChecked);
+				if (IsEnabled)
+					IsChecked = !IsChecked;
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
 		};
 
 		this.GestureRecognizers.Add(gestureRecognizer);
@@ -27,5 +37,17 @@ public partial class ToggleButton : ContentView
 	}
 
 	partial void OnIsCheckedChanged(bool oldValue, bool newValue)
-		=> IsCheckedChanged?.Invoke(this, new(oldValue, newValue));
+	{
+		try
+		{
+			logger.Debug("OnIsCheckedChanged: {0} -> {1}", oldValue, newValue);
+			IsCheckedChanged?.Invoke(this, new(oldValue, newValue));
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
+	}
 }

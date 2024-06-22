@@ -39,4 +39,7 @@ public static partial class Utils
 		else
 			return page.DisplayAlert(title, message, accept, cancel);
 	}
+
+	public static Task ExitWithAlert(Exception ex)
+		=> DisplayAlert("エラー", "不明なエラーが発生しました。アプリを終了します。\n" + ex.Message, "OK").ContinueWith(_ => Environment.Exit(1));
 }

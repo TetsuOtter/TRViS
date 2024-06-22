@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui.Views;
+using Microsoft.AppCenter.Crashes;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -20,28 +21,37 @@ public partial class MarkerButton : Frame
 
 	async void TapGestureRecognizer_Tapped(object sender, EventArgs e)
 	{
-		if (Shell.Current.CurrentPage is not ViewHost page)
+		try
 		{
-			logger.Warn("Shell.Current.CurrentPage is not ViewHost");
-			return;
+			if (Shell.Current.CurrentPage is not ViewHost page)
+			{
+				logger.Warn("Shell.Current.CurrentPage is not ViewHost");
+				return;
+			}
+
+			if (MarkerSettings.IsToggled)
+			{
+				logger.Info("MarkerSettings.IsToggled set true -> false");
+				MarkerSettings.IsToggled = false;
+				return;
+			}
+
+			MarkerSettings.IsToggled = true;
+
+			SelectMarkerPopup popup = new(MarkerSettings)
+			{
+				Anchor = this,
+			};
+
+			logger.Info("Showing SelectMarkerPopup");
+			await page.ShowPopupAsync(popup);
+			logger.Trace("SelectMarkerPopup Shown");
 		}
-
-		if (MarkerSettings.IsToggled)
+		catch (Exception ex)
 		{
-			logger.Info("MarkerSettings.IsToggled set true -> false");
-			MarkerSettings.IsToggled = false;
-			return;
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			await Utils.ExitWithAlert(ex);
 		}
-
-		MarkerSettings.IsToggled = true;
-
-		SelectMarkerPopup popup = new(MarkerSettings)
-		{
-			Anchor = this,
-		};
-
-		logger.Info("Showing SelectMarkerPopup");
-		await page.ShowPopupAsync(popup);
-		logger.Trace("SelectMarkerPopup Shown");
 	}
 }

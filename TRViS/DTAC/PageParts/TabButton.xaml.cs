@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using DependencyPropertyGenerator;
+using Microsoft.AppCenter.Crashes;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -41,13 +42,22 @@ public partial class TabButton : ContentView
 	}
 	void OnWindowWidthChanged(double newValue)
 	{
-		logger.Trace("newValue: {0}", newValue);
+		try
+		{
+			logger.Trace("newValue: {0}", newValue);
 
-		int tabButtonCount = 3;
-		double calcedMaxWidth = (newValue - 8) / tabButtonCount;
-		double widthRequestValue = Math.Min(calcedMaxWidth, NORMAL_MODE_WIDTH);
-		logger.Trace("OnWindowWidthChanged WidthRequest newValue: {0}", widthRequestValue);
-		WidthRequest = widthRequestValue;
+			int tabButtonCount = 3;
+			double calcedMaxWidth = (newValue - 8) / tabButtonCount;
+			double widthRequestValue = Math.Min(calcedMaxWidth, NORMAL_MODE_WIDTH);
+			logger.Trace("OnWindowWidthChanged WidthRequest newValue: {0}", widthRequestValue);
+			WidthRequest = widthRequestValue;
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	partial void OnCurrentModeChanged()
@@ -94,13 +104,22 @@ public partial class TabButton : ContentView
 
 	void BaseBox_Tapped(object sender, EventArgs e)
 	{
-		if (IsSelected || !IsEnabled)
+		try
 		{
-			logger.Info("Tapped `{0}` but... IsSelected: {1}, IsEnabled: {2}", Text, IsSelected, IsEnabled);
-			return;
-		}
+			if (IsSelected || !IsEnabled)
+			{
+				logger.Info("Tapped `{0}` but... IsSelected: {1}, IsEnabled: {2}", Text, IsSelected, IsEnabled);
+				return;
+			}
 
-		logger.Info("Tapped `{0}`", Text);
-		CurrentMode = TargetMode;
+			logger.Info("Tapped `{0}`", Text);
+			CurrentMode = TargetMode;
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 }

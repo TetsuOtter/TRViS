@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.AppCenter.Crashes;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -21,34 +22,43 @@ public partial class VerticalTimetableRow
 		get => _LocationState;
 		set
 		{
-			if (_LocationState == value)
+			try
 			{
-				logger.Trace("LocationState is already {0}, so skipping...", value);
-				return;
-			}
+				if (_LocationState == value)
+				{
+					logger.Trace("LocationState is already {0}, so skipping...", value);
+					return;
+				}
 
-			if (!IsEnabled || value == LocationStates.Undefined)
+				if (!IsEnabled || value == LocationStates.Undefined)
+				{
+					logger.Info("IsEnabled is false or newValue is Undefined -> set LocationState to Undefined");
+					_LocationState = LocationStates.Undefined;
+					DTACElementStyles.TimetableTextColor.Apply(DriveTimeMM, Label.TextColorProperty);
+					DTACElementStyles.TimetableTextColor.Apply(DriveTimeSS, Label.TextColorProperty);
+					return;
+				}
+
+				DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeMM, Label.TextColorProperty);
+				DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeSS, Label.TextColorProperty);
+
+				// 最終行の場合は、次の駅に進まないようにする。
+				if (IsLastRow && value == LocationStates.RunningToNextStation)
+				{
+					logger.Info("IsLastRow is true and newValue is RunningToNextStation -> do not change LocationState");
+					return;
+				}
+
+				logger.Info("LocationState is changed to {0}", value);
+
+				_LocationState = value;
+			}
+			catch (Exception ex)
 			{
-				logger.Info("IsEnabled is false or newValue is Undefined -> set LocationState to Undefined");
-				_LocationState = LocationStates.Undefined;
-				DTACElementStyles.TimetableTextColor.Apply(DriveTimeMM, Label.TextColorProperty);
-				DTACElementStyles.TimetableTextColor.Apply(DriveTimeSS, Label.TextColorProperty);
-				return;
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
 			}
-
-			DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeMM, Label.TextColorProperty);
-			DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeSS, Label.TextColorProperty);
-
-			// 最終行の場合は、次の駅に進まないようにする。
-			if (IsLastRow && value == LocationStates.RunningToNextStation)
-			{
-				logger.Info("IsLastRow is true and newValue is RunningToNextStation -> do not change LocationState");
-				return;
-			}
-
-			logger.Info("LocationState is changed to {0}", value);
-
-			_LocationState = value;
 		}
 	}
 

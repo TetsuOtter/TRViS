@@ -1,3 +1,4 @@
+using Microsoft.AppCenter.Crashes;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
@@ -67,38 +68,48 @@ public partial class VerticalTimetableView
 
 		logger.Trace("MainThread: Insert Separator Lines");
 
-		bool isChildrenCleared = !Children.Contains(TopSeparatorLine);
-		int initialSeparatorLinesListLength = SeparatorLines.Count;
-		for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
+		try
 		{
-			SeparatorLines.Add(DTACElementStyles.TimetableRowHorizontalSeparatorLineStyle());
-		}
-		for (int i = initialSeparatorLinesListLength - 1; RowDefinitions.Count <= i; i--)
-		{
-			Line line = SeparatorLines[i];
-			SeparatorLines.RemoveAt(i);
-			Children.Remove(line);
-		}
-
-		if (isChildrenCleared)
-		{
-			TopSeparatorLine.VerticalOptions = LayoutOptions.Start;
-			DTACElementStyles.AddHorizontalSeparatorLineStyle(this, TopSeparatorLine, 0);
-			for (int i = 0; i < SeparatorLines.Count; i++)
-			{
-				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
-			}
-		}
-		else
-		{
+			bool isChildrenCleared = !Children.Contains(TopSeparatorLine);
+			int initialSeparatorLinesListLength = SeparatorLines.Count;
 			for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
 			{
-				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
+				SeparatorLines.Add(DTACElementStyles.TimetableRowHorizontalSeparatorLineStyle());
 			}
-		}
+			for (int i = initialSeparatorLinesListLength - 1; RowDefinitions.Count <= i; i--)
+			{
+				Line line = SeparatorLines[i];
+				SeparatorLines.RemoveAt(i);
+				Children.Remove(line);
+			}
 
-		logger.Trace("MainThread: Insert Separator Lines Complete");
-		return Task.CompletedTask;
+			if (isChildrenCleared)
+			{
+				TopSeparatorLine.VerticalOptions = LayoutOptions.Start;
+				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, TopSeparatorLine, 0);
+				for (int i = 0; i < SeparatorLines.Count; i++)
+				{
+					DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
+				}
+			}
+			else
+			{
+				for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
+				{
+					DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
+				}
+			}
+
+			logger.Trace("MainThread: Insert Separator Lines Complete");
+			return Task.CompletedTask;
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+			return Task.FromException(ex);
+		}
 	}
 
 	int RowsCount = 0;
@@ -110,64 +121,100 @@ public partial class VerticalTimetableView
 		logger.Trace("Starting ClearOldRowViews Task...");
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
-			logger.Trace("MainThread: Clearing old RowViews...");
-			IsBusy = true;
+			try
+			{
+				logger.Trace("MainThread: Clearing old RowViews...");
+				IsBusy = true;
 
-			Children.Clear();
+				Children.Clear();
 
-			logger.Trace("MainThread: Clearing old RowViews Complete");
+				logger.Trace("MainThread: Clearing old RowViews Complete");
 
-			Add(CurrentLocationBoxView);
-			Add(CurrentLocationLine);
+				Add(CurrentLocationBoxView);
+				Add(CurrentLocationLine);
 
-			logger.Trace("MainThread: Insert CurrentLocationMarker Complete");
+				logger.Trace("MainThread: Insert CurrentLocationMarker Complete");
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
 		});
 		logger.Trace("ClearOldRowViews Task Complete");
 
 		int newCount = newValue?.Length ?? 0;
 		logger.Debug("newCount: {0}", newCount);
+		try
+		{
+			RowsCount = newCount;
+			SetRowDefinitions(newCount);
 
-		RowsCount = newCount;
-		SetRowDefinitions(newCount);
+			await AddSeparatorLines();
 
-		await AddSeparatorLines();
+			AfterRemarks.SetRow(newCount);
+			AfterArrive.SetRow(newCount + 1);
 
-		AfterRemarks.SetRow(newCount);
-		AfterArrive.SetRow(newCount + 1);
+			logger.Trace("Starting RowViewInit Task...");
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			await Utils.ExitWithAlert(ex);
+		}
 
-		logger.Trace("Starting RowViewInit Task...");
 		await Task.Run(async () =>
 		{
-			logger.Trace("Task: Finding last Station Row...");
-			int lastTimetableRowIndex = 0;
-			for (int i = 0; i < newCount; i++)
+			try
 			{
-				if (newValue is not null && !newValue[i].IsInfoRow)
-					lastTimetableRowIndex = i;
-			}
+				logger.Trace("Task: Finding last Station Row...");
+				int lastTimetableRowIndex = 0;
+				for (int i = 0; i < newCount; i++)
+				{
+					if (newValue is not null && !newValue[i].IsInfoRow)
+						lastTimetableRowIndex = i;
+				}
 
-			logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
-			for (int i = 0; i < newCount; i++)
-				await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
-			logger.Trace("Task: RowViewInit Complete");
+				logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
+				for (int i = 0; i < newCount; i++)
+					await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
+				logger.Trace("Task: RowViewInit Complete");
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				await Utils.ExitWithAlert(ex);
+			}
 		});
 		logger.Trace("RowViewInit Task Complete");
 
 		logger.Trace("Starting FooterInsertion Task...");
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
-			logger.Trace("MainThread: Inserting Footer...");
+			try
+			{
+				logger.Trace("MainThread: Inserting Footer...");
 
-			AfterRemarks.Text = trainData?.AfterRemarks ?? string.Empty;
-			AfterArrive.Text = trainData?.AfterArrive ?? string.Empty;
-			AfterArrive.Text_OnStationTrackColumn = trainData?.AfterArriveOnStationTrackCol ?? string.Empty;
+				AfterRemarks.Text = trainData?.AfterRemarks ?? string.Empty;
+				AfterArrive.Text = trainData?.AfterArrive ?? string.Empty;
+				AfterArrive.Text_OnStationTrackColumn = trainData?.AfterArriveOnStationTrackCol ?? string.Empty;
 
-			AfterRemarks.AddToParent();
-			AfterArrive.AddToParent();
+				AfterRemarks.AddToParent();
+				AfterArrive.AddToParent();
 
-			IsBusy = false;
+				IsBusy = false;
 
-			logger.Trace("MainThread: FooterInsertion Complete");
+				logger.Trace("MainThread: FooterInsertion Complete");
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
 		});
 		logger.Trace("FooterInsertion Task Complete");
 
@@ -191,28 +238,37 @@ public partial class VerticalTimetableView
 				row.StationName
 			);
 
-			if (row.IsInfoRow)
+			try
 			{
-				HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
+				if (row.IsInfoRow)
+				{
+					HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
 
-				label.Text = row.StationName;
+					label.Text = row.StationName;
 
-				Grid.SetColumn(label, 1);
-				Grid.SetRow(label, index);
-				Grid.SetColumnSpan(label, 3);
-				Add(label);
+					Grid.SetColumn(label, 1);
+					Grid.SetRow(label, index);
+					Grid.SetColumnSpan(label, 3);
+					Add(label);
 
-				DTACElementStyles.AddTimetableRowHorizontalSeparatorLineStyle(this, index);
+					DTACElementStyles.AddTimetableRowHorizontalSeparatorLineStyle(this, index);
+				}
+				else
+				{
+					VerticalTimetableRow rowView = new(this, index, row, MarkerViewModel, isLastRow);
+
+					TapGestureRecognizer tapGestureRecognizer = new();
+					tapGestureRecognizer.Tapped += RowTapped;
+					rowView.GestureRecognizers.Add(tapGestureRecognizer);
+
+					RowViewList.Add(rowView);
+				}
 			}
-			else
+			catch (Exception ex)
 			{
-				VerticalTimetableRow rowView = new(this, index, row, MarkerViewModel, isLastRow);
-
-				TapGestureRecognizer tapGestureRecognizer = new();
-				tapGestureRecognizer.Tapped += RowTapped;
-				rowView.GestureRecognizers.Add(tapGestureRecognizer);
-
-				RowViewList.Add(rowView);
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
 			}
 		});
 	}
@@ -264,8 +320,17 @@ public partial class VerticalTimetableView
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 			return;
 
-		SetRowDefinitions(RowsCount);
-		AddSeparatorLines();
+		try
+		{
+			SetRowDefinitions(RowsCount);
+			AddSeparatorLines();
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 
 		logger.Debug("RowDefinitions.Count changed to: {0}", RowDefinitions.Count);
 	}
