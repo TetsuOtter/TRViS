@@ -5,11 +5,11 @@ namespace TRViS;
 
 public class SampleDataLoader : TRViS.IO.ILoader
 {
-	const int WORK_GROUP_1 = 1;
-	const int WORK_1_1 = 1;
-	const int TRAIN_1_1_1 = 1;
-	const int TRAIN_1_1_2 = 2;
-	const int TRAIN_1_1_3 = 3;
+	const string WORK_GROUP_1 = "1";
+	const string WORK_1_1 = "1-1";
+	const string TRAIN_1_1_1 = "1-1-1";
+	const string TRAIN_1_1_2 = "1-1-2";
+	const string TRAIN_1_1_3 = "1-1-3";
 
 	static readonly List<WorkGroup> WorkGroupList = new()
 	{
@@ -34,6 +34,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	};
 
 	static readonly IO.Models.TrainData SampleTrainData = new(
+		Id: TRAIN_1_1_1,
 		WorkName: "Work1-1",
 		AffectDate: new(2022, 9, 16),
 		TrainNumber: "試単9091",
@@ -56,6 +57,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		Rows: new[]
 		{
 			new TimetableRow(
+				Id: "1",
 				Location: new(1),
 				DriveTimeMM: 0,
 				DriveTimeSS: 0,
@@ -72,6 +74,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "2",
 				Location: new(2),
 				DriveTimeMM: 10,
 				DriveTimeSS: 50,
@@ -88,6 +91,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "<b>記事</b>"
 			),
 			new TimetableRow(
+				Id: "3",
 				Location: new(3),
 				DriveTimeMM: 100,
 				DriveTimeSS: 50,
@@ -104,6 +108,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "転線"
 			),
 			new TimetableRow(
+				Id: "4",
 				Location: new(4),
 				DriveTimeMM: 1,
 				DriveTimeSS: null,
@@ -120,6 +125,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "5",
 				Location: new(5),
 				DriveTimeMM: null,
 				DriveTimeSS: 5,
@@ -136,6 +142,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事\n任意の内容"
 			),
 			new TimetableRow(
+				Id: "6",
 				Location: new(6),
 				DriveTimeMM: 4,
 				DriveTimeSS: 30,
@@ -152,6 +159,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "7",
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
@@ -169,6 +177,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsInfoRow: true
 			),
 			new TimetableRow(
+				Id: "8",
 				Location: new(7),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
@@ -185,6 +194,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "9",
 				Location: new(8),
 				DriveTimeMM: null,
 				DriveTimeSS: 5,
@@ -201,6 +211,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "10",
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
@@ -218,6 +229,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsInfoRow: true
 			),
 			new TimetableRow(
+				Id: "11",
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
@@ -235,6 +247,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				IsInfoRow: true
 			),
 			new TimetableRow(
+				Id: "12",
 				Location: new(9),
 				DriveTimeMM: 1,
 				DriveTimeSS: null,
@@ -251,6 +264,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "13",
 				Location: new(10),
 				DriveTimeMM: 10,
 				DriveTimeSS: 0,
@@ -267,6 +281,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "14",
 				Location: new(11),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -283,6 +298,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "15",
 				Location: new(12),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -299,6 +315,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "16",
 				Location: new(13),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -315,6 +332,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "17",
 				Location: new(14),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -331,6 +349,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "18",
 				Location: new(15),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -348,25 +367,27 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 		},
 		Direction: 1
-		);
+	);
 
 	static readonly IO.Models.TrainData SampleTrainData2 = new(
-	WorkName: "Work1-1",
-	AffectDate: null,
-	TrainNumber: "試単9092",
-	MaxSpeed: null,
-	SpeedType: null,
-	NominalTractiveCapacity: null,
-	CarCount: null,
-	Destination: "長い駅名",
-	BeginRemarks: "(入換)\n(入換)",
-	AfterRemarks: "(入換)\n(入換)",
-	Remarks: null,
-	BeforeDeparture: null,
-	TrainInfo: null,
-	Rows: new[]
-	{
+		Id: TRAIN_1_1_2,
+		WorkName: "Work1-1",
+		AffectDate: null,
+		TrainNumber: "試単9092",
+		MaxSpeed: null,
+		SpeedType: null,
+		NominalTractiveCapacity: null,
+		CarCount: null,
+		Destination: "長い駅名",
+		BeginRemarks: "(入換)\n(入換)",
+		AfterRemarks: "(入換)\n(入換)",
+		Remarks: null,
+		BeforeDeparture: null,
+		TrainInfo: null,
+		Rows: new[]
+		{
 			new TimetableRow(
+				Id: "1",
 				Location: new(1),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -383,6 +404,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "2",
 				Location: new(2),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -399,6 +421,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "<b>記事</b>"
 			),
 			new TimetableRow(
+				Id: "3",
 				Location: new(3),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -415,6 +438,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "転線"
 			),
 			new TimetableRow(
+				Id: "4",
 				Location: new(4),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -431,6 +455,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "5",
 				Location: new(5),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -446,33 +471,35 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				RunOutLimit: 30,
 				Remarks: "記事\n任意の内容"
 			),
-	},
-	1
+		},
+		1
 	);
 
 	static readonly IO.Models.TrainData SampleTrainData3 = new(
-	WorkName: "Work1-1",
-	AffectDate: null,
-	TrainNumber: "試単9093",
-	MaxSpeed: null,
-	SpeedType: null,
-	NominalTractiveCapacity: null,
-	CarCount: null,
-	Destination: null,
-	BeginRemarks: null,
-	AfterRemarks: null,
-	Remarks: null,
-	BeforeDeparture: null,
-	TrainInfo: null,
+		Id: TRAIN_1_1_3,
+		WorkName: "Work1-1",
+		AffectDate: null,
+		TrainNumber: "試単9093",
+		MaxSpeed: null,
+		SpeedType: null,
+		NominalTractiveCapacity: null,
+		CarCount: null,
+		Destination: null,
+		BeginRemarks: null,
+		AfterRemarks: null,
+		Remarks: null,
+		BeforeDeparture: null,
+		TrainInfo: null,
 
-	DayCount: 1,
+		DayCount: 1,
 
-	AfterArrive: "入換   20分",
-	AfterArriveOnStationTrackCol: "入換",
+		AfterArrive: "入換   20分",
+		AfterArriveOnStationTrackCol: "入換",
 
-	Rows: new[]
-	{
+		Rows: new[]
+		{
 			new TimetableRow(
+				Id: "1",
 				Location: new(1),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -489,6 +516,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 			new TimetableRow(
+				Id: "2",
 				Location: new(2),
 				DriveTimeMM: 1,
 				DriveTimeSS: 5,
@@ -504,13 +532,13 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				RunOutLimit: 30,
 				Remarks: "<b>記事</b>"
 			),
-	},
-	Direction: 1
+		},
+		Direction: 1
 	);
 
 	public void Dispose() { }
 
-	public IO.Models.TrainData? GetTrainData(int trainId)
+	public IO.Models.TrainData? GetTrainData(string trainId)
 		=> trainId switch
 		{
 			TRAIN_1_1_1 => SampleTrainData,
@@ -522,12 +550,12 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	public IReadOnlyList<TrainDataGroup> GetTrainDataGroupList()
 		=> TrainDataGroupList;
 
-	public IReadOnlyList<IO.Models.DB.TrainData> GetTrainDataList(int workId)
+	public IReadOnlyList<IO.Models.DB.TrainData> GetTrainDataList(string workId)
 		=> TrainDataList;
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
 		=> WorkGroupList;
 
-	public IReadOnlyList<Work> GetWorkList(int workGroupId)
+	public IReadOnlyList<Work> GetWorkList(string workGroupId)
 		=> WorkList;
 }
