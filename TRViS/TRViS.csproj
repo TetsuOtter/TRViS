@@ -80,6 +80,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
 		<ProjectReference Include="..\TRViS.LocationService\TRViS.LocationService.csproj" />
+		<ProjectReference Include="..\TRViS.NetworkSyncService\TRViS.NetworkSyncService.csproj" />
 	</ItemGroup>
 	<ProjectExtensions>
 		<MonoDevelop>

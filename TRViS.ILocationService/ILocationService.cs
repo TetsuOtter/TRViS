@@ -1,3 +1,5 @@
+using System;
+
 namespace TRViS.Services;
 
 public class LocationStateChangedEventArgs : EventArgs, IEquatable<LocationStateChangedEventArgs>

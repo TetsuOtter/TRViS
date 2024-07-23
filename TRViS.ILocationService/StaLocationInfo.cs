@@ -1,3 +1,5 @@
+using System;
+
 namespace TRViS.Services;
 
 public interface ILocationLonLat_deg : IEquatable<ILocationLonLat_deg>
