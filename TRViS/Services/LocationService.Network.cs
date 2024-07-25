@@ -4,17 +4,8 @@ namespace TRViS.Services;
 
 public partial class LocationService
 {
-	async Task NetworkSyncServiceTask(ILocationService service, CancellationToken token)
+	async Task NetworkSyncServiceTask(NetworkSyncService networkService, CancellationToken token)
 	{
-		if (service is not NetworkSyncService networkService)
-		{
-			logger.Error("NetworkSyncServiceTask is called with non-NetworkSyncService");
-			IsEnabled = false;
-			serviceCancellation?.Cancel();
-			ExceptionThrown?.Invoke(this, new Exception("NetworkSyncServiceTask is called with non-NetworkSyncService"));
-			return;
-		}
-
 		while (!token.IsCancellationRequested)
 		{
 			logger.Trace("NetworkSyncServiceTask Loop");

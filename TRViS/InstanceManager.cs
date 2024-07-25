@@ -1,3 +1,4 @@
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS;
@@ -18,6 +19,8 @@ internal static class InstanceManager
 
 	private static EasterEggPageViewModel? _EasterEggPageViewModel = null;
 	public static EasterEggPageViewModel EasterEggPageViewModel { get => _EasterEggPageViewModel ??= new(); }
+	private static LocationService? _LocationService = null;
+	public static LocationService LocationService { get => _LocationService ??= new(); }
 
 	static HttpClient? _HttpClient = null;
 	public static HttpClient HttpClient

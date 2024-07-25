@@ -4,6 +4,7 @@ namespace TRViS.Services;
 
 public interface ILocationService
 {
+	bool IsEnabled { get; set; }
 	bool CanUseService { get; }
 	event EventHandler<bool>? CanUseServiceChanged;
 

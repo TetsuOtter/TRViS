@@ -8,6 +8,7 @@ namespace TRViS;
 
 public partial class NetworkSyncService : ILocationService
 {
+	public bool IsEnabled { get; set; }
 	private bool _CanUseService = false;
 	public bool CanUseService
 	{
@@ -82,7 +83,7 @@ public partial class NetworkSyncService : ILocationService
 
 	void UpdateCurrentStationWithLocation(double location_m)
 	{
-		if (StaLocationInfo is null)
+		if (StaLocationInfo is null || !IsEnabled)
 			return;
 
 		bool isIn(double threshold1, double threshold2)
