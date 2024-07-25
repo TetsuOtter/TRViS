@@ -15,6 +15,7 @@ public partial class VerticalTimetableView : Grid
 		add => LocationService.CanUseServiceChanged += value;
 		remove => LocationService.CanUseServiceChanged -= value;
 	}
+	public bool CanUseLocationService => LocationService.CanUseService;
 
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged;
 	partial void OnIsLocationServiceEnabledChanged(bool newValue)

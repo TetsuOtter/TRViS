@@ -3,9 +3,7 @@ using DependencyPropertyGenerator;
 namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsOpen")]
-[DependencyProperty<bool>("IsRunning")]
 [DependencyProperty<bool>("IsLocationServiceEnabled")]
-[DependencyProperty<bool>("CanUseLocationService")]
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -52,26 +50,43 @@ public partial class PageHeader : Grid
 		remove => StartEndRunButton.IsCheckedChanged -= value;
 	}
 
-	partial void OnIsRunningChanged(bool newValue)
+	public bool IsRunning
 	{
-		logger.Info("IsRunning: {0}", newValue);
-		StartEndRunButton.IsChecked = newValue;
-
-		LocationServiceButton.IsEnabled = CanUseLocationService && newValue;
+		get => StartEndRunButton.IsChecked;
+		set
+		{
+			// UpdateLocationServiceButtonStatus はイベントハンドラ側で行う
+			StartEndRunButton.IsChecked = value;
+			logger.Info("IsRunning: {0}", value);
+		}
 	}
 
 	private void StartEndRunButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
 		logger.Trace("newValue: {0}", e.NewValue);
 
-		this.IsRunning = e.NewValue;
-
-		LocationServiceButton.IsEnabled = CanUseLocationService && e.NewValue;
+		UpdateLocationServiceButtonStatus();
 	}
 	#endregion
 
 	#region Location Service Button
 	readonly LocationServiceButton LocationServiceButton = new();
+	private bool _CanUseLocationService = false;
+	public bool CanUseLocationService
+	{
+		get => _CanUseLocationService;
+		set
+		{
+			if (_CanUseLocationService == value)
+				return;
+			_CanUseLocationService = value;
+			UpdateLocationServiceButtonStatus();
+			if (!value)
+				LocationServiceButton.IsChecked = false;
+			logger.Info("CanUseLocationService: {0}", value);
+		}
+	}
+	void UpdateLocationServiceButtonStatus() => LocationServiceButton.IsEnabled = CanUseLocationService && IsRunning;
 
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged
 	{
@@ -123,7 +138,7 @@ public partial class PageHeader : Grid
 		StartEndRunButton.VerticalOptions = LayoutOptions.Center;
 		StartEndRunButton.HorizontalOptions = LayoutOptions.End;
 		StartEndRunButton.Margin = new(2);
-		StartEndRunButton.IsCheckedChanged += (_, e) => this.IsRunning = e.NewValue;
+		StartEndRunButton.IsCheckedChanged += StartEndRunButton_IsCheckedChanged;
 
 		LocationServiceButton.IsEnabled = false;
 		LocationServiceButton.Margin = new(4, 8);

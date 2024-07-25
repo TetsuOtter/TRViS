@@ -30,6 +30,8 @@ public partial class LocationService : ObservableObject, IDisposable
 
 	public event EventHandler<Exception>? ExceptionThrown;
 
+	public bool CanUseService => _CurrentService.CanUseService;
+
 	ILocationService _CurrentService;
 	Func<ILocationService, CancellationToken, Task> _ServiceTask;
 	CancellationTokenSource? serviceCancellation;
@@ -67,8 +69,8 @@ public partial class LocationService : ObservableObject, IDisposable
 			CancellationTokenSource nextTokenSource = new();
 			serviceCancellation = nextTokenSource;
 
-			EventHandler<bool> CanUseServiceChangedEventHandler = (object? sender, bool e) => CanUseServiceChanged?.Invoke(sender, e);
-			EventHandler<LocationStateChangedEventArgs> LocationStateChangedEventHandler = (object? sender, LocationStateChangedEventArgs e) => LocationStateChanged?.Invoke(sender, e);
+			EventHandler<bool> CanUseServiceChangedEventHandler = (object? sender, bool e) => MainThread.BeginInvokeOnMainThread(() => CanUseServiceChanged?.Invoke(sender, e));
+			EventHandler<LocationStateChangedEventArgs> LocationStateChangedEventHandler = (object? sender, LocationStateChangedEventArgs e) => MainThread.BeginInvokeOnMainThread(() => LocationStateChanged?.Invoke(sender, e));
 
 			ILocationService targetService = _CurrentService;
 			Func<ILocationService, CancellationToken, Task> serviceTask = _ServiceTask;
@@ -98,6 +100,8 @@ public partial class LocationService : ObservableObject, IDisposable
 		ILocationService service = _CurrentService;
 		_CurrentService = networkSyncService;
 		_ServiceTask = NetworkSyncServiceTask;
+		if (networkSyncService.CanUseService != service.CanUseService)
+			CanUseServiceChanged?.Invoke(this, networkSyncService.CanUseService);
 		if (service is IDisposable disposable)
 			disposable.Dispose();
 	}
