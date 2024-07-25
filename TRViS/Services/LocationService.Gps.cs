@@ -5,8 +5,17 @@ namespace TRViS.Services;
 public partial class LocationService
 {
 	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
-	async Task GpsPositioningTask(CancellationToken token)
+	async Task GpsPositioningTask(ILocationService service, CancellationToken token)
 	{
+		if (service is not LonLatLocationService gpsService)
+		{
+			logger.Error("GpsPositioningTask is called with non-LonLatLocationService");
+			IsEnabled = false;
+			serviceCancellation?.Cancel();
+			ExceptionThrown?.Invoke(this, new Exception("GpsPositioningTask is called with non-LonLatLocationService"));
+			return;
+		}
+
 		// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
 		// accuracy: 30m - 500m
 		GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
@@ -84,11 +93,11 @@ public partial class LocationService
 					logger.Info("Location Service First Positioning");
 					LogView.Add($"Location Service Started with lonlat: ({loc.Longitude}, {loc.Latitude})");
 					isFirst = false;
-					LonLatLocationService.ForceSetLocationInfo(loc.Longitude, loc.Latitude);
+					gpsService.ForceSetLocationInfo(loc.Longitude, loc.Latitude);
 				}
 				else
 				{
-					double distance = LonLatLocationService.SetCurrentLocation(loc.Longitude, loc.Latitude);
+					double distance = gpsService.SetCurrentLocation(loc.Longitude, loc.Latitude);
 					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude}), distance: {distance}m");
 					if (double.IsNaN(distance))
 					{

@@ -24,36 +24,27 @@ public partial class LocationService : ObservableObject, IDisposable
 	bool _IsEnabled;
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsEnabledChanged;
 
-	public event EventHandler<bool>? CanUseServiceChanged
-	{
-		add => LonLatLocationService.CanUseServiceChanged += value;
-		remove => LonLatLocationService.CanUseServiceChanged -= value;
-	}
+	public event EventHandler<bool>? CanUseServiceChanged;
 
-	readonly LonLatLocationService LonLatLocationService;
-
-	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged
-	{
-		add => LonLatLocationService.LocationStateChanged += value;
-		remove => LonLatLocationService.LocationStateChanged -= value;
-	}
-
-	public const double DefaultNearbyRadius_m = 200;
+	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged;
 
 	public event EventHandler<Exception>? ExceptionThrown;
 
+	ILocationService _CurrentService;
+	Func<ILocationService, CancellationToken, Task> _ServiceTask;
 	CancellationTokenSource? serviceCancellation;
 
 	public LocationService()
 	{
 		logger.Trace("Creating...");
 
+		_CurrentService = new LonLatLocationService();
+		_ServiceTask = GpsPositioningTask;
 		IsEnabled = false;
-		LonLatLocationService = new();
 
 		LocationStateChanged += (sender, e) =>
 		{
-			StaLocationInfo? newStaLocationInfo = LonLatLocationService.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
+			StaLocationInfo? newStaLocationInfo = _CurrentService?.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
 			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({newStaLocationInfo?.Location_lon_deg}, {newStaLocationInfo?.Location_lat_deg} & Radius:{newStaLocationInfo?.NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
 		};
 
@@ -70,14 +61,45 @@ public partial class LocationService : ObservableObject, IDisposable
 		}
 		else
 		{
-			logger.Info("IsEnabled is changed to true -> start LocationService");
 			serviceCancellation?.Cancel();
 			serviceCancellation?.Dispose();
+			logger.Info("IsEnabled is changed to true -> start LocationService");
 			CancellationTokenSource nextTokenSource = new();
 			serviceCancellation = nextTokenSource;
-			Task.Run(() => GpsPositioningTask(nextTokenSource.Token), nextTokenSource.Token);
+
+			EventHandler<bool> CanUseServiceChangedEventHandler = (object? sender, bool e) => CanUseServiceChanged?.Invoke(sender, e);
+			EventHandler<LocationStateChangedEventArgs> LocationStateChangedEventHandler = (object? sender, LocationStateChangedEventArgs e) => LocationStateChanged?.Invoke(sender, e);
+
+			ILocationService targetService = _CurrentService;
+			Func<ILocationService, CancellationToken, Task> serviceTask = _ServiceTask;
+
+			targetService.CanUseServiceChanged += CanUseServiceChangedEventHandler;
+			targetService.LocationStateChanged += LocationStateChangedEventHandler;
+			Task.Run(() => serviceTask(targetService, nextTokenSource.Token).ContinueWith((_) => {
+				targetService.CanUseServiceChanged -= CanUseServiceChangedEventHandler;
+				targetService.LocationStateChanged -= LocationStateChangedEventHandler;
+			}), nextTokenSource.Token);
 		}
 		IsEnabledChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
+	}
+
+	public async Task SetNetworkSyncServiceAsync(Uri uri, CancellationToken? token = null)
+	{
+		logger.Trace("Setting NetworkSyncService...");
+
+		if (IsEnabled)
+		{
+			logger.Debug("IsEnabled is true -> stop LocationService");
+			IsEnabled = false;
+		}
+
+		NetworkSyncService networkSyncService = await NetworkSyncService.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
+		networkSyncService.StaLocationInfo = _CurrentService.StaLocationInfo;
+		ILocationService service = _CurrentService;
+		_CurrentService = networkSyncService;
+		_ServiceTask = NetworkSyncServiceTask;
+		if (service is IDisposable disposable)
+			disposable.Dispose();
 	}
 
 	public void SetTimetableRows(TimetableRow[]? timetableRows)
@@ -85,7 +107,13 @@ public partial class LocationService : ObservableObject, IDisposable
 		logger.Trace("Setting TimetableRows...");
 
 		IsEnabled = false;
-		LonLatLocationService.StaLocationInfo = timetableRows?.Where(v => !v.IsInfoRow).Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
+		if (_CurrentService is null)
+		{
+			logger.Debug("_CurrentService is null -> do nothing");
+			return;
+		}
+
+		_CurrentService.StaLocationInfo = timetableRows?.Where(v => !v.IsInfoRow).Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
 	}
 
 	static EasterEggPageViewModel EasterEggPageViewModel { get; } = InstanceManager.EasterEggPageViewModel;
@@ -114,7 +142,7 @@ public partial class LocationService : ObservableObject, IDisposable
 		}
 
 		logger.Debug("ForceSetLocationInfo({0}, {1})", row, isRunningToNextStation);
-		LonLatLocationService.ForceSetLocationInfo(row, isRunningToNextStation);
+		_CurrentService?.ForceSetLocationInfo(row, isRunningToNextStation);
 		logger.Debug("Done");
 	}
 

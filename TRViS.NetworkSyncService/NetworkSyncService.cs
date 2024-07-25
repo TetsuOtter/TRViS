@@ -53,10 +53,11 @@ public partial class NetworkSyncService : ILocationService
 		_DataProvider = dataProvider;
 	}
 
-	public static async Task<NetworkSyncService> CreateFromUriAsync(Uri uri, HttpClient? httpClient = null)
+	public static async Task<NetworkSyncService> CreateFromUriAsync(Uri uri, HttpClient? httpClient = null, CancellationToken? cancellationToken = null)
 	{
+		cancellationToken ??= CancellationToken.None;
 		httpClient ??= new HttpClient();
-		HttpResponseMessage preflight = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri));
+		HttpResponseMessage preflight = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri), cancellationToken.Value);
 		if (!preflight.IsSuccessStatusCode)
 			throw new InvalidOperationException("Failed to connect to the server.");
 		return new(new HttpDataProvider(uri, httpClient));
