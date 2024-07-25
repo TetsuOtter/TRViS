@@ -140,6 +140,8 @@ public partial class ViewHost : ContentPage
 
 		TitleBGGradientBox.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
 		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
+		MenuButton.Margin = new(8 + newValue.Left, 4);
+		TimeLabel.Margin = new(0, 0, newValue.Right, 0);
 		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
@@ -147,7 +149,7 @@ public partial class ViewHost : ContentPage
 	{
 		base.LayoutChildren(x, y, width, height);
 		logger.Info("LayoutChildren({0}, {1}, {2}, {3})", x, y, width, height);
-		TimeLabel.IsVisible = TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH < width;
+		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
