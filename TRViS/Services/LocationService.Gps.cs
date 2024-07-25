@@ -4,38 +4,13 @@ namespace TRViS.Services;
 
 public partial class LocationService
 {
-	public Task StartGPS()
-	{
-		logger.Trace("Starting...");
-
-		gpsCancelation?.Cancel();
-		gpsCancelation?.Dispose();
-		gpsCancelation = null;
-
-		if (!IsEnabled)
-		{
-			logger.Debug("IsEnabled is false -> do nothing");
-			return Task.CompletedTask;
-		}
-
-		gpsCancelation = new CancellationTokenSource();
-
-		return Task.Run(PositioningTask, gpsCancelation.Token);
-	}
-
 	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
-	async Task PositioningTask()
+	async Task GpsPositioningTask(CancellationToken token)
 	{
 		// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
 		// accuracy: 30m - 500m
 		GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
 		logger.Info("Starting Location Service... (Interval: {0})", Interval);
-
-		if (gpsCancelation?.Token is not CancellationToken token)
-		{
-			logger.Warn("gpsCancelation is null -> do nothing");
-			return;
-		}
 
 		LogView.Add("Location Service Starting...");
 		bool isFirst = true;
@@ -60,7 +35,7 @@ public partial class LocationService
 				{
 					logger.Error(ex, "Location Service Request Permission Failed");
 					IsEnabled = false;
-					gpsCancelation?.Cancel();
+					serviceCancellation?.Cancel();
 					LogView.Add(LogView.Priority.Error, "Location Service Request Permission Failed:" + ex.ToString());
 
 					if (ExceptionThrown is null)
@@ -77,7 +52,7 @@ public partial class LocationService
 				case PermissionStatus.Unknown:
 					logger.Error("Location Service Permission Disabled, Denied or Unknown state");
 					IsEnabled = false;
-					gpsCancelation?.Cancel();
+					serviceCancellation?.Cancel();
 					ExceptionThrown?.Invoke(this, new Exception("Location Service Permission Disabled, Denied or Unknown state"));
 					return;
 			}
@@ -92,7 +67,7 @@ public partial class LocationService
 			{
 				logger.Error(ex, "GetLocationAsync failed");
 				IsEnabled = false;
-				gpsCancelation?.Cancel();
+				serviceCancellation?.Cancel();
 				LogView.Add(LogView.Priority.Error, "GetLocationAsync failed:" + ex.ToString());
 
 				if (ExceptionThrown is null)

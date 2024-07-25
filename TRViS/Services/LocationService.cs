@@ -42,7 +42,7 @@ public partial class LocationService : ObservableObject, IDisposable
 
 	public event EventHandler<Exception>? ExceptionThrown;
 
-	CancellationTokenSource? gpsCancelation;
+	CancellationTokenSource? serviceCancellation;
 
 	public LocationService()
 	{
@@ -65,13 +65,17 @@ public partial class LocationService : ObservableObject, IDisposable
 		// GPS停止
 		if (!value)
 		{
-			logger.Info("IsEnabled is changed to false -> stop GPS");
-			gpsCancelation?.Cancel();
+			logger.Info("IsEnabled is changed to false -> stop LocationService");
+			serviceCancellation?.Cancel();
 		}
 		else
 		{
-			logger.Info("IsEnabled is changed to true -> start GPS");
-			Task.Run(StartGPS);
+			logger.Info("IsEnabled is changed to true -> start LocationService");
+			serviceCancellation?.Cancel();
+			serviceCancellation?.Dispose();
+			CancellationTokenSource nextTokenSource = new();
+			serviceCancellation = nextTokenSource;
+			Task.Run(() => GpsPositioningTask(nextTokenSource.Token), nextTokenSource.Token);
 		}
 		IsEnabledChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
 	}
@@ -120,12 +124,12 @@ public partial class LocationService : ObservableObject, IDisposable
 	{
 		if (!disposedValue)
 		{
-			gpsCancelation?.Cancel();
+			serviceCancellation?.Cancel();
 
 			if (disposing)
 			{
-				gpsCancelation?.Dispose();
-				gpsCancelation = null;
+				serviceCancellation?.Dispose();
+				serviceCancellation = null;
 			}
 
 			disposedValue = true;
