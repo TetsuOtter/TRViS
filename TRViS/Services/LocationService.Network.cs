@@ -20,8 +20,8 @@ public partial class LocationService
 			{
 				await Task.WhenAll(
 					networkService.TickAsync(token),
-					// Network経由の場合は負荷が少ないため、Intervalの半分の時間でも問題ないはず
-					Task.Delay(Interval / 2, token)
+					// Network経由の場合は負荷が少ないため、頻度が高くても問題ないはず
+					Task.Delay(Interval / 5, token)
 				);
 			}
 			catch (TaskCanceledException)
