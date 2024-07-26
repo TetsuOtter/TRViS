@@ -37,6 +37,10 @@ public partial class NetworkSyncService : ILocationService
 		}
 	}
 
+	public string? WorkGroupId { get => _DataProvider.WorkGroupId; set => _DataProvider.WorkGroupId = value; }
+	public string? WorkId { get => _DataProvider.WorkId; set => _DataProvider.WorkId = value; }
+	public string? TrainId { get => _DataProvider.TrainId; set => _DataProvider.TrainId = value; }
+
 	public int CurrentStationIndex { get; private set; }
 
 	public bool IsRunningToNextStation { get; private set; }
@@ -58,9 +62,11 @@ public partial class NetworkSyncService : ILocationService
 	{
 		cancellationToken ??= CancellationToken.None;
 		httpClient ??= new HttpClient();
+		// 将来的にはWebSocket, BIDSも対応したい
 		HttpResponseMessage preflight = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri), cancellationToken.Value);
+		// 将来的にはNetworkSyncServiceのバージョン情報を取得して、互換性を確認する
 		if (!preflight.IsSuccessStatusCode)
-			throw new InvalidOperationException("Failed to connect to the server.");
+			throw new InvalidOperationException("Failed to connect to the NetworkSyncService server.");
 		return new(new HttpDataProvider(uri, httpClient));
 	}
 
