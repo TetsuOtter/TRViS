@@ -1,6 +1,7 @@
 namespace TRViS.IO.Models;
 
 public record TimetableRow(
+	string Id,
 	LocationInfo Location,
 	int? DriveTimeMM,
 	int? DriveTimeSS,

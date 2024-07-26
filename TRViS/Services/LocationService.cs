@@ -1,8 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-
+using System.ComponentModel;
 using TRViS.Controls;
 using TRViS.IO.Models;
-using TRViS.MyAppCustomizables;
 using TRViS.ViewModels;
 
 namespace TRViS.Services;
@@ -17,64 +15,257 @@ public class ExceptionThrownEventArgs : EventArgs
 	}
 }
 
-public partial class LocationService : ObservableObject, IDisposable
+public partial class LocationService : IDisposable
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-	[ObservableProperty]
-	bool _IsEnabled;
+	public bool IsEnabled
+	{
+		get => _CurrentService?.IsEnabled ?? false;
+		set
+		{
+			if (_CurrentService is null || _CurrentService.IsEnabled == value)
+				return;
+
+			_CurrentService.IsEnabled = value;
+			OnIsEnabledChanged(value);
+			IsEnabledChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
+		}
+	}
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsEnabledChanged;
 
-	public event EventHandler<bool>? CanUseServiceChanged
-	{
-		add => LonLatLocationService.CanUseServiceChanged += value;
-		remove => LonLatLocationService.CanUseServiceChanged -= value;
-	}
+	public event EventHandler<bool>? CanUseServiceChanged;
 
-	readonly LonLatLocationService LonLatLocationService;
+	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged;
 
-	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged
-	{
-		add => LonLatLocationService.LocationStateChanged += value;
-		remove => LonLatLocationService.LocationStateChanged -= value;
-	}
-
-	public const double DefaultNearbyRadius_m = 200;
-
+	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<Exception>? ExceptionThrown;
 
-	CancellationTokenSource? gpsCancelation;
+	public bool CanUseService => _CurrentService?.CanUseService ?? false;
+
+	ILocationService? _CurrentService;
+	CancellationTokenSource? serviceCancellation = null;
+	CancellationTokenSource? timeProviderCancellation = null;
 
 	public LocationService()
 	{
 		logger.Trace("Creating...");
 
 		IsEnabled = false;
-		LonLatLocationService = new();
+		SetLonLatLocationService();
 
 		LocationStateChanged += (sender, e) =>
 		{
-			StaLocationInfo? newStaLocationInfo = LonLatLocationService.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
+			StaLocationInfo? newStaLocationInfo = _CurrentService?.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
 			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({newStaLocationInfo?.Location_lon_deg}, {newStaLocationInfo?.Location_lat_deg} & Radius:{newStaLocationInfo?.NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
 		};
 
 		logger.Debug("LocationService is created");
 	}
 
-	partial void OnIsEnabledChanged(bool value)
+	void OnIsEnabledChanged(bool value)
 	{
-		// GPS停止
-		if (!value)
+		if (_CurrentService is null)
 		{
-			logger.Info("IsEnabled is changed to false -> stop GPS");
-			gpsCancelation?.Cancel();
+			logger.Debug("_CurrentService is null -> do nothing");
+			return;
 		}
-		else
+
+		ILocationService targetService = _CurrentService;
+		if (targetService is NetworkSyncService)
 		{
-			logger.Info("IsEnabled is changed to true -> start GPS");
-			Task.Run(StartGPS);
+			logger.Debug("NetworkSyncService is used -> do nothing");
 		}
-		IsEnabledChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
+		else if (targetService is LonLatLocationService)
+		{
+			// GPS停止
+			if (!value)
+			{
+				logger.Info("IsEnabled is changed to false -> stop LocationService");
+				serviceCancellation?.Cancel();
+			}
+			else
+			{
+				serviceCancellation?.Cancel();
+				serviceCancellation?.Dispose();
+				logger.Info("IsEnabled is changed to true -> start LocationService");
+				CancellationTokenSource nextTokenSource = new();
+				serviceCancellation = nextTokenSource;
+				Task.Run(() => GpsPositioningTask(targetService, nextTokenSource.Token));
+			}
+		}
+	}
+
+	void OnCanUseServiceChanged(object? sender, bool e)
+	{
+		logger.Debug("CanUseService is changed to {0}", e);
+		MainThread.BeginInvokeOnMainThread(() => CanUseServiceChanged?.Invoke(sender, e));
+	}
+	void OnLocationStateChanged(object? sender, LocationStateChangedEventArgs e)
+	{
+		logger.Debug("LocationStateChanged: Station[{0}] IsRunningToNextStation:{1}", e.NewStationIndex, e.IsRunningToNextStation);
+		MainThread.BeginInvokeOnMainThread(() => LocationStateChanged?.Invoke(sender, e));
+	}
+	void OnTimeChanged(object? sender, int second)
+	{
+		logger.Debug("TimeChanged: {0}", second);
+		MainThread.BeginInvokeOnMainThread(() => TimeChanged?.Invoke(sender, second));
+	}
+	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (_CurrentService is NetworkSyncService networkSyncService)
+		{
+			switch (e.PropertyName)
+			{
+				case nameof(AppViewModel.SelectedWorkGroup):
+					networkSyncService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
+					break;
+				case nameof(AppViewModel.SelectedWork):
+					networkSyncService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
+					break;
+				case nameof(AppViewModel.SelectedDBTrainData):
+					networkSyncService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+					break;
+			}
+		}
+	}
+
+	public void SetLonLatLocationService()
+	{
+		logger.Trace("Setting LonLatLocationService...");
+
+		if (IsEnabled)
+		{
+			logger.Debug("IsEnabled is true -> stop Current LocationService");
+			IsEnabled = false;
+		}
+
+		ILocationService? currentService = _CurrentService;
+		LonLatLocationService nextService = new();
+		if (currentService is not null)
+		{
+			currentService.CanUseServiceChanged -= OnCanUseServiceChanged;
+			currentService.LocationStateChanged -= OnLocationStateChanged;
+		}
+
+		nextService.CanUseServiceChanged += OnCanUseServiceChanged;
+		nextService.LocationStateChanged += OnLocationStateChanged;
+		nextService.StaLocationInfo = currentService?.StaLocationInfo;
+		_CurrentService = nextService;
+		if (nextService.CanUseService != currentService?.CanUseService)
+			CanUseServiceChanged?.Invoke(this, nextService.CanUseService);
+
+		timeProviderCancellation?.Cancel();
+		timeProviderCancellation?.Dispose();
+		timeProviderCancellation = null;
+		serviceCancellation?.Cancel();
+		serviceCancellation?.Dispose();
+		serviceCancellation = null;
+		if (currentService is NetworkSyncService networkSyncService)
+			networkSyncService.TimeChanged -= OnTimeChanged;
+		if (currentService is IDisposable disposable)
+			disposable.Dispose();
+
+		CancellationTokenSource nextTokenSource = new();
+		timeProviderCancellation = nextTokenSource;
+		// バックグラウンドで実行し続ける
+		_ = Task.Run(async () => {
+			int lastTime_s = -1;
+			while (!nextTokenSource.Token.IsCancellationRequested)
+			{
+				logger.Trace("TimeProviderTask Loop");
+
+				if (nextTokenSource.Token.IsCancellationRequested)
+				{
+					logger.Debug("Cancellation is requested -> break");
+					break;
+				}
+
+				try
+				{
+					int currentTime_s = (int)DateTime.Now.TimeOfDay.TotalSeconds;
+					if (lastTime_s != currentTime_s)
+					{
+						lastTime_s = currentTime_s;
+						OnTimeChanged(this, currentTime_s);
+					}
+					// 複雑なロジックは面倒なので、単純に100ms待つ
+					await Task.Delay(100, nextTokenSource.Token);
+				}
+				catch (TaskCanceledException)
+				{
+					logger.Debug("Task is canceled -> break");
+					break;
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "TimeProviderTask Loop Failed");
+					IsEnabled = false;
+					timeProviderCancellation?.Cancel();
+					LogView.Add(LogView.Priority.Error, "TimeProviderTask Loop Failed:" + ex.ToString());
+
+					if (ExceptionThrown is null)
+						throw;
+					else
+						ExceptionThrown.Invoke(this, ex);
+					return;
+				}
+			}
+		});
+	}
+
+	bool isIdChangedEventHandlerSet = false;
+	public async Task SetNetworkSyncServiceAsync(Uri uri, CancellationToken? token = null)
+	{
+		logger.Trace("Setting NetworkSyncService...");
+
+		if (IsEnabled)
+		{
+			logger.Debug("IsEnabled is true -> stop Current LocationService");
+			IsEnabled = false;
+		}
+
+		ILocationService? currentService = _CurrentService;
+		NetworkSyncService nextService = await NetworkSyncService.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
+		if (currentService is not null)
+		{
+			logger.Debug("CurrentService is not null -> remove EventHandlers");
+			currentService.CanUseServiceChanged -= OnCanUseServiceChanged;
+			currentService.LocationStateChanged -= OnLocationStateChanged;
+		}
+
+		nextService.CanUseServiceChanged += OnCanUseServiceChanged;
+		nextService.LocationStateChanged += OnLocationStateChanged;
+		nextService.TimeChanged += OnTimeChanged;
+		nextService.StaLocationInfo = currentService?.StaLocationInfo;
+		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
+		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
+		nextService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+		if (!isIdChangedEventHandlerSet)
+		{
+			logger.Debug("Add EventHandlers for AppViewModel.PropertyChanged");
+			InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
+			isIdChangedEventHandlerSet = true;
+		}
+		_CurrentService = nextService;
+		if (nextService.CanUseService != currentService?.CanUseService)
+			CanUseServiceChanged?.Invoke(this, nextService.CanUseService);
+
+		timeProviderCancellation?.Cancel();
+		timeProviderCancellation?.Dispose();
+		timeProviderCancellation = null;
+		serviceCancellation?.Cancel();
+		serviceCancellation?.Dispose();
+		serviceCancellation = null;
+		if (currentService is NetworkSyncService networkSyncService)
+			networkSyncService.TimeChanged -= OnTimeChanged;
+		if (currentService is IDisposable disposable)
+			disposable.Dispose();
+
+		CancellationTokenSource nextTokenSource = new();
+		serviceCancellation = nextTokenSource;
+		// バックグラウンドで実行し続ける
+		_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
 	}
 
 	public void SetTimetableRows(TimetableRow[]? timetableRows)
@@ -82,7 +273,13 @@ public partial class LocationService : ObservableObject, IDisposable
 		logger.Trace("Setting TimetableRows...");
 
 		IsEnabled = false;
-		LonLatLocationService.StaLocationInfo = timetableRows?.Where(v => !v.IsInfoRow).Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
+		if (_CurrentService is null)
+		{
+			logger.Debug("_CurrentService is null -> do nothing");
+			return;
+		}
+
+		_CurrentService.StaLocationInfo = timetableRows?.Where(v => !v.IsInfoRow).Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
 	}
 
 	static EasterEggPageViewModel EasterEggPageViewModel { get; } = InstanceManager.EasterEggPageViewModel;
@@ -101,24 +298,6 @@ public partial class LocationService : ObservableObject, IDisposable
 			return lastIntervalTimeSpan;
 		}
 	}
-	public Task StartGPS()
-	{
-		logger.Trace("Starting...");
-
-		gpsCancelation?.Cancel();
-		gpsCancelation?.Dispose();
-		gpsCancelation = null;
-
-		if (!IsEnabled)
-		{
-			logger.Debug("IsEnabled is false -> do nothing");
-			return Task.CompletedTask;
-		}
-
-		gpsCancelation = new CancellationTokenSource();
-
-		return Task.Run(PositioningTask, gpsCancelation.Token);
-	}
 
 	public void ForceSetLocationInfo(int row, bool isRunningToNextStation)
 	{
@@ -129,147 +308,27 @@ public partial class LocationService : ObservableObject, IDisposable
 		}
 
 		logger.Debug("ForceSetLocationInfo({0}, {1})", row, isRunningToNextStation);
-		LonLatLocationService.ForceSetLocationInfo(row, isRunningToNextStation);
+		_CurrentService?.ForceSetLocationInfo(row, isRunningToNextStation);
 		logger.Debug("Done");
 	}
 
-	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
-	async Task PositioningTask()
-	{
-		// ref: https://docs.microsoft.com/en-us/dotnet/maui/platform-integration/device/geolocation
-		// accuracy: 30m - 500m
-		GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
-		logger.Info("Starting Location Service... (Interval: {0})", Interval);
-
-		if (gpsCancelation?.Token is not CancellationToken token)
-		{
-			logger.Warn("gpsCancelation is null -> do nothing");
-			return;
-		}
-
-		LogView.Add("Location Service Starting...");
-		bool isFirst = true;
-		while (!token.IsCancellationRequested)
-		{
-			logger.Trace("Location Service Loop");
-			DateTime executeStartTime = DateTime.Now;
-			TimeSpan timeout = Interval;
-			req.Timeout = timeout;
-
-			PermissionStatus permissionStatus = await LocationWhenInUsePermission.CheckStatusAsync();
-			logger.Trace("Location Service Current Permission Status: {0}", permissionStatus);
-			if (permissionStatus != PermissionStatus.Granted)
-			{
-				try
-				{
-					
-					permissionStatus = await MainThread.InvokeOnMainThreadAsync(LocationWhenInUsePermission.RequestAsync);
-					logger.Trace("Location Service Requested Permission Status: {0}", permissionStatus);
-				}
-				catch (Exception ex)
-				{
-					logger.Error(ex, "Location Service Request Permission Failed");
-					IsEnabled = false;
-					gpsCancelation?.Cancel();
-					LogView.Add(LogView.Priority.Error, "Location Service Request Permission Failed:" + ex.ToString());
-
-					if (ExceptionThrown is null)
-						throw;
-					else
-						ExceptionThrown.Invoke(this, ex);
-					return;
-				}
-			}
-			switch (permissionStatus)
-			{
-				case PermissionStatus.Disabled:
-				case PermissionStatus.Denied:
-				case PermissionStatus.Unknown:
-					logger.Error("Location Service Permission Disabled, Denied or Unknown state");
-					IsEnabled = false;
-					gpsCancelation?.Cancel();
-					ExceptionThrown?.Invoke(this, new Exception("Location Service Permission Disabled, Denied or Unknown state"));
-					return;
-			}
-			logger.Trace("Location Service Permission Granted");
-			Location? loc = null;
-
-			try
-			{
-				loc = await Geolocation.Default.GetLocationAsync(req, token);
-			}
-			catch (Exception ex)
-			{
-				logger.Error(ex, "GetLocationAsync failed");
-				IsEnabled = false;
-				gpsCancelation?.Cancel();
-				LogView.Add(LogView.Priority.Error, "GetLocationAsync failed:" + ex.ToString());
-
-				if (ExceptionThrown is null)
-					throw;
-				else
-					ExceptionThrown.Invoke(this, ex);
-				return;
-			}
-
-			if (loc is not null)
-			{
-				if (isFirst)
-				{
-					logger.Info("Location Service First Positioning");
-					LogView.Add($"Location Service Started with lonlat: ({loc.Longitude}, {loc.Latitude})");
-					isFirst = false;
-					LonLatLocationService.ForceSetLocationInfo(loc.Longitude, loc.Latitude);
-				}
-				else
-				{
-					double distance = LonLatLocationService.SetCurrentLocation(loc.Longitude, loc.Latitude);
-					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude}), distance: {distance}m");
-					if (double.IsNaN(distance))
-					{
-						IsEnabled = false;
-					}
-				}
-				logger.Trace("Location Service Positioning Success (lon: {0}, lat: {1})", loc.Longitude, loc.Latitude);
-			}
-			else
-			{
-				logger.Warn("Location Service Positioning Failed");
-				LogView.Add("Location Service Positioning Failed");
-			}
-
-			if (token.IsCancellationRequested)
-			{
-				logger.Debug("gpsCancelation is requested -> break");
-				break;
-			}
-			DateTime executeEndTime = DateTime.Now;
-			if (executeEndTime < (executeStartTime + timeout))
-			{
-				logger.Trace("Location Service Positioning Took {0}", executeEndTime - executeStartTime);
-				await Task.Delay(timeout - (executeEndTime - executeStartTime), token);
-			}
-			else
-			{
-				logger.Warn("Location Service Positioning Took Too Long (time: {0})", executeEndTime - executeStartTime);
-			}
-		}
-
-		logger.Info("Location Service Ended");
-		LogView.Add("Location Service Ended");
-	}
 	private bool disposedValue;
 
 	protected virtual void Dispose(bool disposing)
 	{
 		if (!disposedValue)
 		{
-			gpsCancelation?.Cancel();
+			serviceCancellation?.Cancel();
 
 			if (disposing)
 			{
-				gpsCancelation?.Dispose();
-				gpsCancelation = null;
+				serviceCancellation?.Dispose();
+				serviceCancellation = null;
+				if (isIdChangedEventHandlerSet)
+				{
+					InstanceManager.AppViewModel.PropertyChanged -= OnAppViewModelPropertyChanged;
+					isIdChangedEventHandlerSet = false;
+				}
 			}
 
 			disposedValue = true;

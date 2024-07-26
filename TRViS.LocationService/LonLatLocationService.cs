@@ -5,6 +5,7 @@ namespace TRViS.Services;
 
 public class LonLatLocationService : ILocationService
 {
+	public bool IsEnabled { get; set; }
 	public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 
 	const int CURRENT_STATION_INDEX_NOT_SET = -1;

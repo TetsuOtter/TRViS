@@ -1,6 +1,7 @@
 ﻿namespace TRViS.IO.Models;
 
 public record TrainData(
+	string Id,
 	string? WorkName,
 	DateOnly? AffectDate,
 	string? TrainNumber,
