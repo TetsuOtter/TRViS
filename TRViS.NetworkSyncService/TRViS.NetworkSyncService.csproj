@@ -10,4 +10,8 @@
 		<ProjectReference Include="..\TRViS.ILocationService\TRViS.ILocationService.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Include="System.Text.Json" Version="8.0.4" />
+	</ItemGroup>
+
 </Project>
