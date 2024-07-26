@@ -58,7 +58,7 @@ public class SimpleView : Grid
 
 				logger.Debug("renew selection to {0}", row.TrainNumber);
 				SelectedRow = row;
-				InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
+				InstanceManager.AppViewModel.SelectedDBTrainData = row.DBTrainData;
 			}
 			else if (SelectedRow == row)
 			{
