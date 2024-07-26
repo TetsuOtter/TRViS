@@ -36,6 +36,9 @@ public partial class LocationService
 				serviceCancellation?.Cancel();
 				LogView.Add(LogView.Priority.Error, "NetworkSyncServiceTask Loop Failed:" + ex.ToString());
 
+				object? o = _CurrentService;
+				if (ReferenceEquals(o, networkService))
+						SetLonLatLocationService();
 				if (ExceptionThrown is null)
 					throw;
 				else
