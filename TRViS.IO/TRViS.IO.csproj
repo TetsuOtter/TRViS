@@ -10,7 +10,7 @@
 	<ItemGroup>
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.8" />
-		<PackageReference Include="System.Text.Json" Version="8.0.3" />
+		<PackageReference Include="System.Text.Json" Version="8.0.4" />
 		<PackageReference Include="TRViS.JsonModels" Version="1.0.1" />
 	</ItemGroup>
 </Project>
