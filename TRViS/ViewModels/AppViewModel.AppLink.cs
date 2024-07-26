@@ -131,6 +131,41 @@ public partial class AppViewModel
 			AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory);
 		}
 
+		if (appLinkInfo.RealtimeServiceUri is not null)
+		{
+			bool doConnect = true;
+			if (appLinkInfo.ResourceUri?.Host != appLinkInfo.RealtimeServiceUri.Host)
+			{
+				doConnect = await Utils.DisplayAlert(
+					"External Location Service",
+					"位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。"
+					+ '\n' +
+					"このサーバーを使用してもよろしいですか?"
+					+ "Server: " + appLinkInfo.RealtimeServiceUri,
+					"はい",
+					"いいえ"
+				);
+				logger.Debug(
+					"ResourceUri.Host: {0}, RealtimeServiceUri.Host: {1} -> doConnect: {2}",
+					appLinkInfo.ResourceUri?.Host,
+					appLinkInfo.RealtimeServiceUri.Host,
+					doConnect
+				);
+			}
+			if (doConnect)
+			{
+				try
+				{
+					await InstanceManager.LocationService.SetNetworkSyncServiceAsync(appLinkInfo.RealtimeServiceUri, token);
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "SetNetworkSyncServiceAsync Failed");
+					await Utils.DisplayAlert("Cannot Set External Location Service", "SetNetworkSyncServiceAsync Failed\n" + ex.Message, "OK");
+				}
+			}
+		}
+
 		await Utils.DisplayAlert("Success!", "ファイルの読み込みが完了しました", "OK");
 		return true;
 	}

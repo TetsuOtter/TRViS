@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
@@ -110,6 +111,24 @@ public partial class LocationService : IDisposable
 		logger.Debug("TimeChanged: {0}", second);
 		MainThread.BeginInvokeOnMainThread(() => TimeChanged?.Invoke(sender, second));
 	}
+	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (_CurrentService is NetworkSyncService networkSyncService)
+		{
+			switch (e.PropertyName)
+			{
+				case nameof(AppViewModel.SelectedWorkGroup):
+					networkSyncService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
+					break;
+				case nameof(AppViewModel.SelectedWork):
+					networkSyncService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
+					break;
+				case nameof(AppViewModel.SelectedDBTrainData):
+					networkSyncService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+					break;
+			}
+		}
+	}
 
 	public void SetLonLatLocationService()
 	{
@@ -195,6 +214,7 @@ public partial class LocationService : IDisposable
 		});
 	}
 
+	bool isIdChangedEventHandlerSet = false;
 	public async Task SetNetworkSyncServiceAsync(Uri uri, CancellationToken? token = null)
 	{
 		logger.Trace("Setting NetworkSyncService...");
@@ -209,6 +229,7 @@ public partial class LocationService : IDisposable
 		NetworkSyncService nextService = await NetworkSyncService.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
 		if (currentService is not null)
 		{
+			logger.Debug("CurrentService is not null -> remove EventHandlers");
 			currentService.CanUseServiceChanged -= OnCanUseServiceChanged;
 			currentService.LocationStateChanged -= OnLocationStateChanged;
 		}
@@ -217,6 +238,15 @@ public partial class LocationService : IDisposable
 		nextService.LocationStateChanged += OnLocationStateChanged;
 		nextService.TimeChanged += OnTimeChanged;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
+		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
+		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
+		nextService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+		if (!isIdChangedEventHandlerSet)
+		{
+			logger.Debug("Add EventHandlers for AppViewModel.PropertyChanged");
+			InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
+			isIdChangedEventHandlerSet = true;
+		}
 		_CurrentService = nextService;
 		if (nextService.CanUseService != currentService?.CanUseService)
 			CanUseServiceChanged?.Invoke(this, nextService.CanUseService);
@@ -294,6 +324,11 @@ public partial class LocationService : IDisposable
 			{
 				serviceCancellation?.Dispose();
 				serviceCancellation = null;
+				if (isIdChangedEventHandlerSet)
+				{
+					InstanceManager.AppViewModel.PropertyChanged -= OnAppViewModelPropertyChanged;
+					isIdChangedEventHandlerSet = false;
+				}
 			}
 
 			disposedValue = true;

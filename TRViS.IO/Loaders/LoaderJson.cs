@@ -48,6 +48,7 @@ public class LoaderJson : ILoader
 	static readonly JsonSerializerOptions opts = new()
 	{
 		AllowTrailingCommas = true,
+		PropertyNameCaseInsensitive = true,
 	};
 
 	private LoaderJson(WorkGroupData[] workGroups)
@@ -65,6 +66,7 @@ public class LoaderJson : ILoader
 				Name = workGroup.Name,
 				DBVersion = workGroup.DBVersion,
 			};
+			System.Diagnostics.Debug.WriteLine($"WorkGroup: {workGroupId} {workGroup.Name}");
 
 			WorkData[] workList = workGroup.Works;
 			for (int workIndex = 0; workIndex < workList.Length; workIndex++)
@@ -86,7 +88,7 @@ public class LoaderJson : ILoader
 					Remarks = workData.Remarks,
 				};
 				WorkGroupIdByWorkId[workId] = workGroupId;
-
+				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name}");
 
 				JsonModels.TrainData[] trainList = workData.Trains;
 				for (int trainIndex = 0; trainIndex < trainList.Length; trainIndex++)
@@ -144,6 +146,7 @@ public class LoaderJson : ILoader
 							DefaultMarkerText: null
 						)).ToArray()
 					);
+					System.Diagnostics.Debug.WriteLine($"\t\tTrain: {trainId} {trainData.TrainNumber}");
 					WorkIdByTrainId[trainId] = workId;
 				}
 			}
