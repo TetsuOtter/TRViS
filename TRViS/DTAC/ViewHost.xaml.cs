@@ -41,10 +41,14 @@ public partial class ViewHost : ContentPage
 
 		InstanceManager.LocationService.TimeChanged += (s, totalSeconds) =>
 		{
-			int Hour = totalSeconds / 3600;
-			int Minute = (totalSeconds % 3600) / 60;
-			int Second = totalSeconds % 60;
-			TimeLabel.Text = $"{Hour:D2}:{Minute:D2}:{Second:D2}";
+			bool isMinus = totalSeconds < 0;
+			int Hour = Math.Abs(totalSeconds / 3600);
+			int Minute = Math.Abs((totalSeconds % 3600) / 60);
+			int Second = Math.Abs(totalSeconds % 60);
+
+			string text = isMinus ? "-" : string.Empty;
+			text += $"{Hour:D2}:{Minute:D2}:{Second:D2}";
+			TimeLabel.Text = text;
 		};
 
 		TitleBGBoxView.SetBinding(BoxView.ColorProperty, new Binding()
