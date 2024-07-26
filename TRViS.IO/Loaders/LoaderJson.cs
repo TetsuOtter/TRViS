@@ -3,18 +3,18 @@ using System.Text.RegularExpressions;
 
 using TRViS.IO.Models;
 using TRViS.IO.Models.DB;
-using TRViS.IO.Models.Json;
+using TRViS.JsonModels;
 
 namespace TRViS.IO;
 
 public class LoaderJson : ILoader
 {
-	record Relation(Models.Json.WorkGroupData? Group, Models.Json.WorkData? Work, Models.Json.TrainData? Train);
+	Dictionary<string, WorkGroup> WorkGroups { get; } = [];
+	Dictionary<string, Work> WorkData { get; } = [];
+	Dictionary<string, (Models.DB.TrainData, TimetableRow[])> TrainData { get; } = [];
 
-	WorkGroupData[] WorkGroups { get; }
-
-	List<Relation> WorkList { get; }
-	List<Relation> TrainList { get; }
+	Dictionary<string, string> WorkGroupIdByWorkId { get; } = [];
+	Dictionary<string, string> WorkIdByTrainId { get; } = [];
 
 	static readonly Regex timePatternRegex = new("^[0-9]{0,2}:[0-9]{0,2}:[0-9]{0,2}$", RegexOptions.Compiled);
 	static TimeData GetTimeData(string? timeStr)
@@ -34,10 +34,21 @@ public class LoaderJson : ILoader
 			null
 		);
 	}
+	static string GenerateUniqueId<T>(IReadOnlyDictionary<string, T> dict)
+	{
+		for (int i = 0; i < 100; i++)
+		{
+			string tmpId = Guid.NewGuid().ToString();
+			if (!dict.ContainsKey(tmpId))
+				return tmpId;
+		}
+		throw new InvalidOperationException("Failed to generate a unique ID");
+	}
 
 	static readonly JsonSerializerOptions opts = new()
 	{
 		AllowTrailingCommas = true,
+		PropertyNameCaseInsensitive = true,
 	};
 
 	private LoaderJson(WorkGroupData[] workGroups)
@@ -45,15 +56,101 @@ public class LoaderJson : ILoader
 		if (workGroups is null)
 			throw new ArgumentNullException(nameof(workGroups));
 
-		WorkGroups = workGroups;
+		for (int workGroupIndex = 0; workGroupIndex < workGroups.Length; workGroupIndex++)
+		{
+			WorkGroupData workGroup = workGroups[workGroupIndex];
+			string workGroupId = workGroup.Id ?? GenerateUniqueId(WorkGroups);
+			WorkGroups[workGroupId] = new()
+			{
+				Id = workGroupId,
+				Name = workGroup.Name,
+				DBVersion = workGroup.DBVersion,
+			};
+			System.Diagnostics.Debug.WriteLine($"WorkGroup: {workGroupId} {workGroup.Name}");
 
-		WorkList = new();
-		foreach (var v in WorkGroups)
-			WorkList.AddRange(v.Works.Select(work => new Relation(v, work, null)));
+			WorkData[] workList = workGroup.Works;
+			for (int workIndex = 0; workIndex < workList.Length; workIndex++)
+			{
+				WorkData workData = workList[workIndex];
+				string workId = workData.Id ?? GenerateUniqueId(WorkData);
+				WorkData[workId] = new()
+				{
+					WorkGroupId = workGroupId,
+					Id = workId,
+					Name = workData.Name,
 
-		TrainList = new();
-		foreach (var v in WorkList)
-			TrainList.AddRange(v.Work?.Trains.Select(train => new Relation(v.Group, v.Work, train)) ?? Enumerable.Empty<Relation>());
+					AffectDate = workData.AffectDate ?? string.Empty,
+					AffixContent = null, // workData.AffixContent,
+					AffixContentType = workData.AffixContentType,
+					ETrainTimetableContent = null, // workData.ETrainTimetableContent,
+					ETrainTimetableContentType = workData.ETrainTimetableContentType,
+					HasETrainTimetable = workData.HasETrainTimetable,
+					Remarks = workData.Remarks,
+				};
+				WorkGroupIdByWorkId[workId] = workGroupId;
+				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name}");
+
+				JsonModels.TrainData[] trainList = workData.Trains;
+				for (int trainIndex = 0; trainIndex < trainList.Length; trainIndex++)
+				{
+					JsonModels.TrainData trainData = trainList[trainIndex];
+					string trainId = trainData.Id ?? GenerateUniqueId(TrainData);
+					TrainData[trainId] = (
+						new()
+						{
+							AfterArrive = trainData.AfterArrive,
+							AfterArrive_OnStationTrackCol = trainData.AfterArrive_OnStationTrackCol,
+							AfterRemarks = trainData.AfterRemarks,
+							BeforeDeparture = trainData.BeforeDeparture,
+							BeforeDeparture_OnStationTrackCol = trainData.BeforeDeparture_OnStationTrackCol,
+							BeginRemarks = trainData.BeginRemarks,
+							CarCount = trainData.CarCount,
+							ColorId = -1, // Not Implemented
+							DayCount = trainData.DayCount,
+							Destination = trainData.Destination,
+							Id = trainData.Id!,
+							Direction = trainData.Direction,
+							IsRideOnMoving = trainData.IsRideOnMoving,
+							MaxSpeed = trainData.MaxSpeed,
+							NominalTractiveCapacity = trainData.NominalTractiveCapacity,
+							Remarks = trainData.Remarks,
+							SpeedType = trainData.SpeedType,
+							TrainInfo = trainData.TrainInfo,
+							TrainNumber = trainData.TrainNumber,
+							WorkId = workId,
+							WorkType = trainData.WorkType,
+						},
+						trainData.TimetableRows.Select((v, i) => new TimetableRow(
+							Id: v.Id ?? i.ToString(),
+							Location: new(v.Location_m, v.Longitude_deg, v.Latitude_deg, v.OnStationDetectRadius_m),
+							DriveTimeMM: v.DriveTime_MM,
+							DriveTimeSS: v.DriveTime_SS,
+							StationName: v.StationName,
+							IsOperationOnlyStop: v.IsOperationOnlyStop ?? false,
+							IsPass: v.IsPass ?? false,
+							HasBracket: v.HasBracket ?? false,
+							IsLastStop: v.IsLastStop ?? false,
+							ArriveTime: GetTimeData(v.Arrive),
+							DepartureTime: GetTimeData(v.Departure),
+							TrackName: v.TrackName,
+							RunInLimit: v.RunInLimit,
+							RunOutLimit: v.RunOutLimit,
+							Remarks: v.Remarks,
+
+							IsInfoRow: v.RecordType
+								is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
+								or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
+
+							// TODO: マーカーのデフォルト設定のサポート
+							DefaultMarkerColor_RGB: null,
+							DefaultMarkerText: null
+						)).ToArray()
+					);
+					System.Diagnostics.Debug.WriteLine($"\t\tTrain: {trainId} {trainData.TrainNumber}");
+					WorkIdByTrainId[trainId] = workId;
+				}
+			}
+		}
 	}
 
 	public static Task<LoaderJson> InitFromFileAsync(string filePath)
@@ -81,23 +178,16 @@ public class LoaderJson : ILoader
 	{
 	}
 
-	public Models.TrainData? GetTrainData(int trainId)
+	public Models.TrainData? GetTrainData(string trainId)
 	{
-		if (TrainList.Count <= trainId)
-			throw new ArgumentOutOfRangeException(nameof(trainId));
-
-		Relation r = TrainList[trainId];
-
-		if (r.Work is null || r.Train is null)
-			throw new InvalidOperationException("Work or Train is not set");
-
-		WorkData w = r.Work;
-		Models.Json.TrainData t = r.Train;
+		Work w = WorkData[WorkIdByTrainId[trainId]];
+		var (t, timetableRow) = TrainData[trainId];
 
 		return new Models.TrainData(
-			WorkName: r.Work.Name,
-			AffectDate: Utils.StringToDateOnlyOrNull(r.Work.AffectDate),
-			TrainNumber: r.Train.TrainNumber,
+			Id: trainId,
+			WorkName: w.Name,
+			AffectDate: Utils.StringToDateOnlyOrNull(w.AffectDate),
+			TrainNumber: t.TrainNumber,
 			MaxSpeed: t.MaxSpeed,
 			SpeedType: t.SpeedType,
 			NominalTractiveCapacity: t.NominalTractiveCapacity,
@@ -108,30 +198,7 @@ public class LoaderJson : ILoader
 			Remarks: t.Remarks,
 			BeforeDeparture: t.BeforeDeparture,
 			TrainInfo: t.TrainInfo,
-			Rows: t.TimetableRows.Select(v => new TimetableRow(
-				Location: new(v.Location_m, v.Longitude_deg, v.Latitude_deg, v.OnStationDetectRadius_m),
-				DriveTimeMM: v.DriveTime_MM,
-				DriveTimeSS: v.DriveTime_SS,
-				StationName: v.StationName,
-				IsOperationOnlyStop: v.IsOperationOnlyStop ?? false,
-				IsPass: v.IsPass ?? false,
-				HasBracket: v.HasBracket ?? false,
-				IsLastStop: v.IsLastStop ?? false,
-				ArriveTime: GetTimeData(v.Arrive),
-				DepartureTime: GetTimeData(v.Departure),
-				TrackName: v.TrackName,
-				RunInLimit: v.RunInLimit,
-				RunOutLimit: v.RunOutLimit,
-				Remarks: v.Remarks,
-
-				IsInfoRow: v.RecordType
-					is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
-					or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
-
-				// TODO: マーカーのデフォルト設定のサポート
-				DefaultMarkerColor_RGB: null,
-				DefaultMarkerText: null
-			)).ToArray(),
+			Rows: timetableRow,
 			Direction: t.Direction,
 			AfterArrive: t.AfterArrive,
 			BeforeDepartureOnStationTrackCol: t.BeforeDeparture_OnStationTrackCol,
@@ -145,73 +212,13 @@ public class LoaderJson : ILoader
 	}
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
-		=> WorkGroups
-			.Select((v, i) => new WorkGroup()
-			{
-				Id = i,
-				Name = v.Name,
+		=> [.. WorkGroups.Values];
 
-				DBVersion = v.DBVersion,
-			})
-			.ToArray();
+	public IReadOnlyList<Work> GetWorkList(string workGroupId)
+		=> WorkData.Values.Where(v => v.WorkGroupId == workGroupId).ToArray();
 
-	public IReadOnlyList<Work> GetWorkList(int workGroupId)
-	{
-		if (WorkGroups.Length <= workGroupId)
-			throw new ArgumentOutOfRangeException(nameof(workGroupId));
-
-		return WorkGroups[workGroupId].Works
-			.Select((v) =>
-			new Work()
-			{
-				WorkGroupId = workGroupId,
-				Id = WorkList.IndexOf(new Relation(WorkGroups[workGroupId], v, null)),
-				Name = v.Name,
-
-				AffectDate = v.AffectDate ?? string.Empty,
-				AffixContent = null, // v.AffixContent,
-				AffixContentType = v.AffixContentType,
-				ETrainTimetableContent = null, // v.ETrainTimetableContent,
-				ETrainTimetableContentType = v.ETrainTimetableContentType,
-				HasETrainTimetable = v.HasETrainTimetable,
-				Remarks = v.Remarks,
-			})
-			.ToList();
-	}
-
-	public IReadOnlyList<Models.DB.TrainData> GetTrainDataList(int workId)
-	{
-		if (WorkList.Count <= workId)
-			throw new ArgumentOutOfRangeException(nameof(workId));
-
-		return WorkList[workId].Work?.Trains
-			.Select(v =>
-			new Models.DB.TrainData()
-			{
-				AfterArrive = v.AfterArrive,
-				AfterArrive_OnStationTrackCol = v.AfterArrive_OnStationTrackCol,
-				AfterRemarks = v.AfterRemarks,
-				BeforeDeparture = v.BeforeDeparture,
-				BeforeDeparture_OnStationTrackCol = v.BeforeDeparture_OnStationTrackCol,
-				BeginRemarks = v.BeginRemarks,
-				CarCount = v.CarCount,
-				ColorId = -1, // Not Implemented
-				DayCount = v.DayCount,
-				Destination = v.Destination,
-				Id = TrainList.IndexOf(WorkList[workId] with { Train = v }),
-				Direction = v.Direction,
-				IsRideOnMoving = v.IsRideOnMoving,
-				MaxSpeed = v.MaxSpeed,
-				NominalTractiveCapacity = v.NominalTractiveCapacity,
-				Remarks = v.Remarks,
-				SpeedType = v.SpeedType,
-				TrainInfo = v.TrainInfo,
-				TrainNumber = v.TrainNumber,
-				WorkId = workId,
-				WorkType = v.WorkType,
-			})
-			.ToList() ?? new List<Models.DB.TrainData>();
-	}
+	public IReadOnlyList<Models.DB.TrainData> GetTrainDataList(string workId)
+		=> TrainData.Values.Where((v) => WorkIdByTrainId[v.Item1.Id] == workId).Select(v => v.Item1).ToArray();
 
 	public IReadOnlyList<TrainDataGroup> GetTrainDataGroupList()
 	{

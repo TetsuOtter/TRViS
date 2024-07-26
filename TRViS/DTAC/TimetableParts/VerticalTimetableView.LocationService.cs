@@ -1,6 +1,5 @@
 using DependencyPropertyGenerator;
 using Microsoft.AppCenter.Crashes;
-using TRViS.IO.Models;
 using TRViS.Services;
 
 namespace TRViS.DTAC;
@@ -9,12 +8,13 @@ namespace TRViS.DTAC;
 [DependencyProperty<bool>("IsLocationServiceEnabled")]
 public partial class VerticalTimetableView : Grid
 {
-	LocationService LocationService { get; } = new();
+	readonly LocationService LocationService = InstanceManager.LocationService;
 	public event EventHandler<bool>? CanUseLocationServiceChanged
 	{
 		add => LocationService.CanUseServiceChanged += value;
 		remove => LocationService.CanUseServiceChanged -= value;
 	}
+	public bool CanUseLocationService => LocationService.CanUseService;
 
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged;
 	partial void OnIsLocationServiceEnabledChanged(bool newValue)

@@ -46,7 +46,7 @@
 			Margin="8,4"
 			Padding="0"
 			HorizontalOptions="End"
-			VerticalOptions="Center"
+			VerticalOptions="End"
 			Spacing="8">
 			<Button
 				x:Name="ChangeThemeButton"
@@ -54,19 +54,32 @@
 				Padding="0"
 				FontFamily="MaterialIconsRegular"
 				FontSize="28"
+				HorizontalOptions="Center"
+				VerticalOptions="Center"
 				BackgroundColor="Transparent"
 				Clicked="OnChangeThemeButtonClicked" />
+			<Label
+				x:Name="TimeLabel"
+				Text="12:34:56"
+				Margin="0"
+				Padding="0"
+				FontFamily="{x:Static local:DTACElementStyles.TimetableNumFontFamily}"
+				HorizontalOptions="End"
+				VerticalOptions="End"
+				VerticalTextAlignment="End"
+				FontAttributes="Bold"
+				FontSize="40" />
 		</HorizontalStackLayout>
 
 		<Label
 			x:Name="TitleLabel"
 			Grid.Row="1"
 			FontFamily=""
-			Margin="4"
+			Margin="4,8"
 			HorizontalOptions="Center"
-			VerticalOptions="Center"
+			VerticalOptions="End"
 			FontAttributes="Bold"
-			FontSize="Header"/>
+			FontSize="20" />
 
 		<HorizontalStackLayout
 			Grid.Row="2"

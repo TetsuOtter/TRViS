@@ -6,11 +6,11 @@ public interface ILoader : IDisposable
 {
 	IReadOnlyList<TrainDataGroup> GetTrainDataGroupList();
 
-	TrainData? GetTrainData(int trainId);
+	TrainData? GetTrainData(string trainId);
 
 	IReadOnlyList<Models.DB.WorkGroup> GetWorkGroupList();
 
-	IReadOnlyList<Models.DB.Work> GetWorkList(int workGroupId);
+	IReadOnlyList<Models.DB.Work> GetWorkList(string workGroupId);
 
-	IReadOnlyList<Models.DB.TrainData> GetTrainDataList(int workId);
+	IReadOnlyList<Models.DB.TrainData> GetTrainDataList(string workId);
 }

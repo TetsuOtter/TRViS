@@ -22,11 +22,11 @@ public enum StationRecordType
 [Table("work_group")]
 public class WorkGroup : IEquatable<WorkGroup>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
-	public string Name { get; set; } = "";
+	public string Name { get; set; } = string.Empty;
 
 	[Column("db_version")]
 	public int? DBVersion { get; set; } = 0;
@@ -57,17 +57,17 @@ public class WorkGroup : IEquatable<WorkGroup>
 [Table("work")]
 public class Work : IHasRemarksProperty, IEquatable<Work>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("work_group_id"), NotNull]
-	public int WorkGroupId { get; set; }
+	public string WorkGroupId { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
-	public string Name { get; set; } = "";
+	public string Name { get; set; } = string.Empty;
 
 	[Column("affect_date"), NotNull]
-	public string AffectDate { get; set; } = "";
+	public string AffectDate { get; set; } = string.Empty;
 
 	[Column("affix_content_type")]
 	public int? AffixContentType { get; set; }
@@ -147,14 +147,14 @@ public class Work : IHasRemarksProperty, IEquatable<Work>
 [Table("station")]
 public class Station : IEquatable<Station>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("work_group_id"), NotNull]
-	public int WorkGroupId { get; set; }
+	public string WorkGroupId { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
-	public string Name { get; set; } = "";
+	public string Name { get; set; } = string.Empty;
 
 	[Column("location"), NotNull]
 	public double Location { get; set; }
@@ -225,14 +225,14 @@ public class Station : IEquatable<Station>
 [Table("station_track")]
 public class StationTrack : IEquatable<StationTrack>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("station_id"), NotNull]
-	public int StationId { get; set; }
+	public string StationId { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
-	public string Name { get; set; } = "";
+	public string Name { get; set; } = string.Empty;
 
 	public bool Equals(StationTrack? obj)
 	{
@@ -261,14 +261,14 @@ public class StationTrack : IEquatable<StationTrack>
 [Table("train_data")]
 public class TrainData : IHasRemarksProperty, IEquatable<TrainData>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("work_id"), NotNull]
-	public int WorkId { get; set; }
+	public string WorkId { get; set; } = string.Empty;
 
 	[Column("train_number"), NotNull]
-	public string TrainNumber { get; set; } = "";
+	public string TrainNumber { get; set; } = string.Empty;
 
 	[Column("max_speed")]
 	public string? MaxSpeed { get; set; }
@@ -411,16 +411,16 @@ public class TrainData : IHasRemarksProperty, IEquatable<TrainData>
 [Table("timetable_row")]
 public class TimetableRowData : IEquatable<TimetableRowData>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("train_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_timetablerow_1", Order = 1, Unique = true)]
-	public int TrainId { get; set; }
+	public string TrainId { get; set; } = string.Empty;
 
 	[Column("station_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_timetablerow_1", Order = 2, Unique = true)]
-	public int StationId { get; set; }
+	public string StationId { get; set; } = string.Empty;
 
 	[Column("drive_time_mm")]
 	public int? DriveTime_MM { get; set; }
@@ -455,7 +455,7 @@ public class TimetableRowData : IEquatable<TimetableRowData>
 	public string? Departure_Str { get; set; }
 
 	[Column("station_track_id")]
-	public int? StationTrackId { get; set; }
+	public string? StationTrackId { get; set; }
 
 	[Column("run_in_limit")]
 	public int? RunInLimit { get; set; }
@@ -466,7 +466,7 @@ public class TimetableRowData : IEquatable<TimetableRowData>
 	public string? Remarks { get; set; }
 
 	[Column("marker_color_id")]
-	public int? MarkerColorId { get; set; }
+	public string? MarkerColorId { get; set; }
 
 	[Column("marker_text")]
 	public string? MarkerText { get; set; }
@@ -570,8 +570,8 @@ public class TimetableRowData : IEquatable<TimetableRowData>
 [Table("language")]
 public class Language : IEquatable<Language>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("language_code"), NotNull, Unique]
 	public string LanguageCode { get; set; } = string.Empty;
@@ -603,11 +603,11 @@ public class WorkGroupNameOtherLang : IEquatable<WorkGroupNameOtherLang>
 {
 	[Column("work_group_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_workgroupnameotherlang_1", Order = 1, Unique = true)]
-	public int WorkGroupId { get; set; }
+	public string WorkGroupId { get; set; } = string.Empty;
 
 	[Column("language_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_workgroupnameotherlang_1", Order = 2, Unique = true)]
-	public int LanguageId { get; set; }
+	public string LanguageId { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;
@@ -641,11 +641,11 @@ public class WorkNameOtherLang : IEquatable<WorkNameOtherLang>
 {
 	[Column("work_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_worknameotherlang_1", Order = 1, Unique = true)]
-	public int WorkId { get; set; }
+	public string WorkId { get; set; } = string.Empty;
 
 	[Column("language_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_worknameotherlang_1", Order = 2, Unique = true)]
-	public int LanguageId { get; set; }
+	public string LanguageId { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;
@@ -679,11 +679,11 @@ public class StationNameOtherLang : IEquatable<StationNameOtherLang>
 {
 	[Column("station_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_stationnameotherlang_1", Order = 1, Unique = true)]
-	public int StationId { get; set; }
+	public string StationId { get; set; } = string.Empty;
 
 	[Column("language_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_stationnameotherlang_1", Order = 2, Unique = true)]
-	public int LanguageId { get; set; }
+	public string LanguageId { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;
@@ -722,11 +722,11 @@ public class StationTrackNameOtherLang : IEquatable<StationTrackNameOtherLang>
 {
 	[Column("station_track_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_stationtracknameotherlang_1", Order = 1, Unique = true)]
-	public int StationTrackId { get; set; }
+	public string StationTrackId { get; set; } = string.Empty;
 
 	[Column("language_id"), NotNull]
 	[Indexed(Name = "sqlite_autoindex_stationtracknameotherlang_1", Order = 2, Unique = true)]
-	public int LanguageId { get; set; }
+	public string LanguageId { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;
@@ -758,8 +758,8 @@ public class StationTrackNameOtherLang : IEquatable<StationTrackNameOtherLang>
 [Table("color")]
 public class Color : IEquatable<Color>
 {
-	[PrimaryKey, AutoIncrement, Column("id"), NotNull, Unique]
-	public int Id { get; set; }
+	[PrimaryKey, Column("id"), NotNull, Unique]
+	public string Id { get; set; } = string.Empty;
 
 	[Column("name"), NotNull]
 	public string Name { get; set; } = string.Empty;

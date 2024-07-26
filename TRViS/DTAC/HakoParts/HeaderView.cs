@@ -21,6 +21,7 @@ public class HeaderView : Grid
 
     DTACElementStyles.HeaderBackgroundColor.Apply(backgroundBoxView, BoxView.ColorProperty);
     Grid.SetColumnSpan(backgroundBoxView, 3);
+    backgroundBoxView.Margin = new(-100, 0);
     backgroundBoxView.Shadow = new()
     {
       Brush = Colors.Black,

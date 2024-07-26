@@ -152,6 +152,7 @@ public partial class VerticalStylePage : ContentView
 			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
 		};
+		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
 
 		DTACElementStyles.DefaultTextColor.Apply(BeginRemarksLabel, Label.TextColorProperty);
 		DTACElementStyles.DefaultTextColor.Apply(MaxSpeedLabel, Label.TextColorProperty);
