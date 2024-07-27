@@ -52,7 +52,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="8.0.40" />
+			Version="8.0.70" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.2.2" />
@@ -63,23 +63,24 @@
 			ExcludeAssets="runtime" />
 		<PackageReference
 			Include="System.Text.Json"
-			Version="8.0.3" />
+			Version="8.0.4" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="9.0.0" />
+			Version="9.0.2" />
 		<PackageReference
 			Include="NLog"
 			Version="5.3.2" />
 		<PackageReference
 			Include="Microsoft.AppCenter.Analytics"
-			Version="5.0.3" />
+			Version="5.0.5" />
 		<PackageReference
 			Include="Microsoft.AppCenter.Crashes"
-			Version="5.0.3" />
+			Version="5.0.5" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
 		<ProjectReference Include="..\TRViS.LocationService\TRViS.LocationService.csproj" />
+		<ProjectReference Include="..\TRViS.NetworkSyncService\TRViS.NetworkSyncService.csproj" />
 	</ItemGroup>
 	<ProjectExtensions>
 		<MonoDevelop>

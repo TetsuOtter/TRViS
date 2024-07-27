@@ -12,7 +12,30 @@ public class SimpleView : Grid
 	public const double STA_NAME_TIME_COLUMN_WIDTH = 120;
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;
 	const double TIME_ROW_HEIGHT = 20;
-	SimpleRow? SelectedRow = null;
+	SimpleRow? _SelectedRow = null;
+	SimpleRow? SelectedRow
+	{
+		get => _SelectedRow;
+		set
+		{
+			if (_SelectedRow == value)
+			{
+				logger.Debug("_SelectedRow == value");
+				return;
+			}
+
+			if (_SelectedRow is not null)
+			{
+				_SelectedRow.IsSelected = false;
+			}
+
+			_SelectedRow = value;
+			if (value is not null)
+			{
+				value.IsSelected = true;
+			}
+		}
+	}
 
 	public SimpleView()
 	{
@@ -46,24 +69,16 @@ public class SimpleView : Grid
 			return;
 		}
 
+
 		try
 		{
-			if (newValue == true)
+			if (newValue)
 			{
-				if (SelectedRow is not null && SelectedRow != row)
-				{
-					logger.Debug("SelectedRow is not null and SelectedRow != row -> last selection ({0}) set to false", SelectedRow.TrainNumber);
-					SelectedRow.IsSelected = false;
-				}
-
-				logger.Debug("renew selection to {0}", row.TrainNumber);
 				SelectedRow = row;
-				InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
+				InstanceManager.AppViewModel.SelectedDBTrainData = row.DBTrainData;
 			}
 			else if (SelectedRow == row)
 			{
-				logger.Debug("SelectedRow == row ({0}) -> reset selection", SelectedRow.TrainNumber);
-				SelectedRow.IsSelected = false;
 				SelectedRow = null;
 				InstanceManager.AppViewModel.SelectedDBTrainData = null;
 				InstanceManager.AppViewModel.SelectedTrainData = null;

@@ -11,6 +11,8 @@ public partial class ViewHost : ContentPage
 	static public readonly double TITLE_VIEW_HEIGHT = 50;
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_LIGHT = "\xe518";
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\xe51c";
+	// 時刻表示が160px、残りはアイコンとWorkName分
+	const int TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH = (160 + 90) * 2;
 
 	DTACViewHostViewModel ViewModel { get; }
 
@@ -34,7 +36,20 @@ public partial class ViewHost : ContentPage
 		TitleLabel.TextColor
 			= MenuButton.TextColor
 			= ChangeThemeButton.TextColor
+			= TimeLabel.TextColor
 			= eevm.ShellTitleTextColor;
+
+		InstanceManager.LocationService.TimeChanged += (s, totalSeconds) =>
+		{
+			bool isMinus = totalSeconds < 0;
+			int Hour = Math.Abs(totalSeconds / 3600);
+			int Minute = Math.Abs((totalSeconds % 3600) / 60);
+			int Second = Math.Abs(totalSeconds % 60);
+
+			string text = isMinus ? "-" : string.Empty;
+			text += $"{Hour:D2}:{Minute:D2}:{Second:D2}";
+			TimeLabel.Text = text;
+		};
 
 		TitleBGBoxView.SetBinding(BoxView.ColorProperty, new Binding()
 		{
@@ -129,7 +144,16 @@ public partial class ViewHost : ContentPage
 
 		TitleBGGradientBox.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
 		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
+		MenuButton.Margin = new(8 + newValue.Left, 4);
+		TimeLabel.Margin = new(0, 0, newValue.Right, 0);
 		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
+	}
+
+	protected override void LayoutChildren(double x, double y, double width, double height)
+	{
+		base.LayoutChildren(x, y, width, height);
+		logger.Info("LayoutChildren({0}, {1}, {2}, {3})", x, y, width, height);
+		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
@@ -150,6 +174,7 @@ public partial class ViewHost : ContentPage
 				TitleLabel.TextColor
 					= MenuButton.TextColor
 					= ChangeThemeButton.TextColor
+					= TimeLabel.TextColor
 					= vm.ShellTitleTextColor;
 				break;
 		}
