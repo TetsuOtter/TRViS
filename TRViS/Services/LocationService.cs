@@ -123,8 +123,8 @@ public partial class LocationService : IDisposable
 				case nameof(AppViewModel.SelectedWork):
 					networkSyncService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
 					break;
-				case nameof(AppViewModel.SelectedDBTrainData):
-					networkSyncService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+				case nameof(AppViewModel.SelectedTrainData):
+					networkSyncService.TrainId = InstanceManager.AppViewModel.SelectedTrainData?.Id;
 					break;
 			}
 		}
@@ -173,7 +173,7 @@ public partial class LocationService : IDisposable
 			int lastTime_s = -1;
 			while (!nextTokenSource.Token.IsCancellationRequested)
 			{
-				logger.Trace("TimeProviderTask Loop");
+				// logger.Trace("TimeProviderTask Loop");
 
 				if (nextTokenSource.Token.IsCancellationRequested)
 				{
@@ -240,7 +240,7 @@ public partial class LocationService : IDisposable
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
 		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
-		nextService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+		nextService.TrainId = InstanceManager.AppViewModel.SelectedTrainData?.Id;
 		if (!isIdChangedEventHandlerSet)
 		{
 			logger.Debug("Add EventHandlers for AppViewModel.PropertyChanged");
