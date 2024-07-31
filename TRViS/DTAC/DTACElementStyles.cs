@@ -165,6 +165,7 @@ public static partial class DTACElementStyles
 		v.HorizontalOptions = LayoutOptions.Start;
 		v.VerticalOptions = LayoutOptions.Start;
 		v.FontSize = DefaultTextSizePlus;
+		v.FontAttributes = FontAttributes.Bold;
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.6;
 		// LineHeight分だけ上に隙間が空くため、MarginTopは設定しない
 		v.Margin = new(32, 0, 0, 0);
