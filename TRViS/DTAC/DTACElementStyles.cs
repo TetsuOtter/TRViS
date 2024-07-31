@@ -41,6 +41,10 @@ public static partial class DTACElementStyles
 		new(0x00, 0x80, 0x00),
 		new(0x00, 0x80, 0x00)
 	);
+	public static readonly AppThemeColorBindingExtension SemiDarkGreen = new(
+		new(0x00, 0x77, 0x00),
+		new(0x00, 0x77, 0x00)
+	);
 	public static readonly AppThemeColorBindingExtension DarkGreen = new(
 		new(0x00, 0x44, 0x00),
 		new(0x00, 0x33, 0x00)
@@ -61,6 +65,8 @@ public static partial class DTACElementStyles
 	public static readonly double DefaultTextSize = 14;
 	public static readonly double DefaultTextSizePlus = 15;
 	public static readonly double LargeTextSize = 24;
+	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 24 : 22;
 
 	public const int BeforeDeparture_AfterArrive_Height = 45;
 
@@ -165,6 +171,7 @@ public static partial class DTACElementStyles
 		v.HorizontalOptions = LayoutOptions.Start;
 		v.VerticalOptions = LayoutOptions.Start;
 		v.FontSize = DefaultTextSizePlus;
+		v.FontAttributes = FontAttributes.Bold;
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.6;
 		// LineHeight分だけ上に隙間が空くため、MarginTopは設定しない
 		v.Margin = new(32, 0, 0, 0);
@@ -251,7 +258,7 @@ public static partial class DTACElementStyles
 			};
 
 			_timetableLabelStyleResource.Setters.Add(Label.TextColorProperty, TimetableTextColor);
-			_timetableLabelStyleResource.Setters.Add(Label.FontSizeProperty, DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26);
+			_timetableLabelStyleResource.Setters.Add(Label.FontSizeProperty, TimetableFontSize);
 			_timetableLabelStyleResource.Setters.Add(Label.FontAttributesProperty, FontAttributes.Bold);
 			_timetableLabelStyleResource.Setters.Add(Label.InputTransparentProperty, true);
 
@@ -263,7 +270,7 @@ public static partial class DTACElementStyles
 		T v = LabelStyle<T>();
 
 		TimetableTextColor.Apply(v, Label.TextColorProperty);
-		v.FontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+		v.FontSize = TimetableFontSize;
 		v.FontAttributes = FontAttributes.Bold;
 		v.InputTransparent = true;
 
@@ -305,7 +312,7 @@ public static partial class DTACElementStyles
 	{
 		T v = TimetableLargeNumberLabel<T>();
 
-		v.FontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 24 : 22;
+		v.FontSize = TimetableRunLimitFontSize;
 		v.Margin = v.Padding = new(0);
 		v.VerticalOptions = LayoutOptions.Center;
 
