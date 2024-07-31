@@ -116,33 +116,6 @@
 							</ListView>
 						</Grid>
 					</Frame>
-
-					<Frame>
-						<Grid>
-							<Grid.RowDefinitions>
-								<RowDefinition Height="40"/>
-								<RowDefinition Height="*"/>
-							</Grid.RowDefinitions>
-							<Label
-								Grid.Row="0"
-								FontSize="Subtitle"
-								Text="Train"/>
-							<ListView
-								Grid.Row="1"
-								ItemsSource="{Binding DBTrainDataList}"
-								SelectedItem="{Binding SelectedDBTrainData, Mode=TwoWay}">
-								<ListView.ItemTemplate>
-									<DataTemplate
-										x:DataType="models:TrainData">
-										<TextCell
-											TextColor="{x:Static local:RootStyles.TableTextColor}"
-											DetailColor="{x:Static local:RootStyles.TableDetailColor}"
-											Text="{Binding TrainNumber}"/>
-									</DataTemplate>
-								</ListView.ItemTemplate>
-							</ListView>
-						</Grid>
-					</Frame>
 				</FlexLayout>
 			</ScrollView>
 		</Frame>

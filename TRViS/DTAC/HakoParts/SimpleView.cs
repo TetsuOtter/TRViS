@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Microsoft.AppCenter.Crashes;
 using TRViS.IO;
-using TRViS.IO.Models.DB;
+using TRViS.IO.Models;
 
 namespace TRViS.DTAC.HakoParts;
 
@@ -69,18 +69,16 @@ public class SimpleView : Grid
 			return;
 		}
 
-
 		try
 		{
 			if (newValue)
 			{
 				SelectedRow = row;
-				InstanceManager.AppViewModel.SelectedDBTrainData = row.DBTrainData;
+				InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
 			}
 			else if (SelectedRow == row)
 			{
 				SelectedRow = null;
-				InstanceManager.AppViewModel.SelectedDBTrainData = null;
 				InstanceManager.AppViewModel.SelectedTrainData = null;
 			}
 		}
@@ -108,7 +106,7 @@ public class SimpleView : Grid
 			}
 		}
 	}
-	void OnSelectedWorkChanged(Work? newWork)
+	void OnSelectedWorkChanged(IO.Models.DB.Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 		Clear();
@@ -126,22 +124,22 @@ public class SimpleView : Grid
 			return;
 		}
 
-		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
+		IReadOnlyList<IO.Models.DB.TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
 		SetRowDefinitions(trainDataList.Count);
-		TrainData? selectedDBTrainData = InstanceManager.AppViewModel.SelectedDBTrainData;
+		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
 		for (int i = 0; i < trainDataList.Count; i++)
 		{
-			TrainData dbTrainData = trainDataList[i];
-			IO.Models.TrainData? trainData = loader.GetTrainData(dbTrainData.Id);
+			string trainId = trainDataList[i].Id;
+			IO.Models.TrainData? trainData = loader.GetTrainData(trainId);
 			if (trainData is null)
 			{
 				logger.Debug("trainData is null");
 				continue;
 			}
 
-			SimpleRow row = new(this, i, trainData, dbTrainData);
+			SimpleRow row = new(this, i, trainData);
 			row.IsSelectedChanged += OnIsSelectedChanged;
-			if (dbTrainData == selectedDBTrainData)
+			if (trainId == selectedTrainData?.Id)
 			{
 				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
 				row.IsSelected = true;
