@@ -41,6 +41,10 @@ public static partial class DTACElementStyles
 		new(0x00, 0x80, 0x00),
 		new(0x00, 0x80, 0x00)
 	);
+	public static readonly AppThemeColorBindingExtension SemiDarkGreen = new(
+		new(0x00, 0x77, 0x00),
+		new(0x00, 0x77, 0x00)
+	);
 	public static readonly AppThemeColorBindingExtension DarkGreen = new(
 		new(0x00, 0x44, 0x00),
 		new(0x00, 0x33, 0x00)
