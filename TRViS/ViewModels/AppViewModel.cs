@@ -28,8 +28,6 @@ public partial class AppViewModel : ObservableObject
 	TRViS.IO.Models.DB.WorkGroup? _SelectedWorkGroup;
 	[ObservableProperty]
 	TRViS.IO.Models.DB.Work? _SelectedWork;
-	[ObservableProperty]
-	TRViS.IO.Models.DB.TrainData? _SelectedDBTrainData;
 
 	[ObservableProperty]
 	TrainData? _SelectedTrainData;
@@ -103,15 +101,13 @@ public partial class AppViewModel : ObservableObject
 	partial void OnSelectedWorkChanged(IO.Models.DB.Work? value)
 	{
 		DBTrainDataList = null;
-		SelectedDBTrainData = null;
 
 		if (value is not null)
 		{
+
 			DBTrainDataList = Loader?.GetTrainDataList(value.Id);
-			SelectedDBTrainData = DBTrainDataList?.FirstOrDefault();
+			string? trainId = DBTrainDataList?.FirstOrDefault()?.Id;
+			SelectedTrainData = trainId is null ? null : Loader?.GetTrainData(trainId);
 		}
 	}
-
-	partial void OnSelectedDBTrainDataChanged(IO.Models.DB.TrainData? value)
-		=> SelectedTrainData = value is null ? null : Loader?.GetTrainData(value.Id);
 }

@@ -324,6 +324,9 @@ public class TrainData : IHasRemarksProperty, IEquatable<TrainData>
 	[Column("color_id")]
 	public int? ColorId { get; set; }
 
+	[Column("next_train_id")]
+	public string? NextTrainId { get; set; }
+
 	public bool Equals(TrainData? obj)
 	{
 		if (obj is null)
@@ -371,6 +374,8 @@ public class TrainData : IHasRemarksProperty, IEquatable<TrainData>
 			IsRideOnMoving == obj.IsRideOnMoving
 			&&
 			ColorId == obj.ColorId
+			&&
+			NextTrainId == obj.NextTrainId
 		);
 	}
 	
@@ -401,11 +406,12 @@ public class TrainData : IHasRemarksProperty, IEquatable<TrainData>
 		hashCode.Add(DayCount);
 		hashCode.Add(IsRideOnMoving);
 		hashCode.Add(ColorId);
+		hashCode.Add(NextTrainId);
 		return hashCode.ToHashCode();
 	}
 
 	public override string ToString()
-		=> $"TrainData[{WorkId} / {Id}](TrainNumber='{TrainNumber}', MaxSpeed='{MaxSpeed}', SpeedType='{SpeedType}', NominalTractiveCapacity='{NominalTractiveCapacity}', CarCount={CarCount}, Destination='{Destination}', BeginRemarks='{BeginRemarks}', AfterRemarks='{AfterRemarks}', Remarks='{Remarks}', BeforeDeparture='{BeforeDeparture}', TrainInfo='{TrainInfo}', Direction={Direction}, WorkType={WorkType}, AfterArrive='{AfterArrive}', BeforeDeparture_OnStationTrackCol='{BeforeDeparture_OnStationTrackCol}', AfterArrive_OnStationTrackCol='{AfterArrive_OnStationTrackCol}', DayCount={DayCount}, IsRideOnMoving={IsRideOnMoving}, ColorId={ColorId})";
+		=> $"TrainData[{WorkId} / {Id}](TrainNumber='{TrainNumber}', MaxSpeed='{MaxSpeed}', SpeedType='{SpeedType}', NominalTractiveCapacity='{NominalTractiveCapacity}', CarCount={CarCount}, Destination='{Destination}', BeginRemarks='{BeginRemarks}', AfterRemarks='{AfterRemarks}', Remarks='{Remarks}', BeforeDeparture='{BeforeDeparture}', TrainInfo='{TrainInfo}', Direction={Direction}, WorkType={WorkType}, AfterArrive='{AfterArrive}', BeforeDeparture_OnStationTrackCol='{BeforeDeparture_OnStationTrackCol}', AfterArrive_OnStationTrackCol='{AfterArrive_OnStationTrackCol}', DayCount={DayCount}, IsRideOnMoving={IsRideOnMoving}, ColorId={ColorId}, NextTrainId={NextTrainId})";
 }
 
 [Table("timetable_row")]

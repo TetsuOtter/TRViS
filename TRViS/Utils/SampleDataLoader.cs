@@ -54,6 +54,8 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		AfterArrive: "入換   20分",
 		AfterArriveOnStationTrackCol: "入換",
 
+		NextTrainId: TRAIN_1_1_2,
+
 		Rows: new[]
 		{
 			new TimetableRow(
@@ -384,6 +386,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		Remarks: null,
 		BeforeDeparture: null,
 		TrainInfo: null,
+		NextTrainId: TRAIN_1_1_3,
 		Rows: new[]
 		{
 			new TimetableRow(
@@ -472,7 +475,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事\n任意の内容"
 			),
 		},
-		1
+		Direction: 1
 	);
 
 	static readonly IO.Models.TrainData SampleTrainData3 = new(
