@@ -54,12 +54,6 @@ public partial class LocationService : IDisposable
 		IsEnabled = false;
 		SetLonLatLocationService();
 
-		LocationStateChanged += (sender, e) =>
-		{
-			StaLocationInfo? newStaLocationInfo = _CurrentService?.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
-			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({newStaLocationInfo?.Location_lon_deg}, {newStaLocationInfo?.Location_lat_deg} & Radius:{newStaLocationInfo?.NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
-		};
-
 		logger.Debug("LocationService is created");
 	}
 
@@ -202,7 +196,6 @@ public partial class LocationService : IDisposable
 					logger.Error(ex, "TimeProviderTask Loop Failed");
 					IsEnabled = false;
 					timeProviderCancellation?.Cancel();
-					LogView.Add(LogView.Priority.Error, "TimeProviderTask Loop Failed:" + ex.ToString());
 
 					if (ExceptionThrown is null)
 						throw;
