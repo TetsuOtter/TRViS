@@ -34,7 +34,6 @@ public partial class LocationService
 				logger.Error(ex, "NetworkSyncServiceTask Loop Failed");
 				IsEnabled = false;
 				serviceCancellation?.Cancel();
-				LogView.Add(LogView.Priority.Error, "NetworkSyncServiceTask Loop Failed:" + ex.ToString());
 
 				object? o = _CurrentService;
 				if (ReferenceEquals(o, networkService))
