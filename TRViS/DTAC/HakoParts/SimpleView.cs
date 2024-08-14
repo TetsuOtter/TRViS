@@ -12,6 +12,7 @@ public class SimpleView : Grid
 	public const double STA_NAME_TIME_COLUMN_WIDTH = 120;
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;
 	const double TIME_ROW_HEIGHT = 20;
+	List<SimpleRow> Rows { get; } = new();
 	SimpleRow? _SelectedRow = null;
 	SimpleRow? SelectedRow
 	{
@@ -105,6 +106,19 @@ public class SimpleView : Grid
 				Utils.ExitWithAlert(ex);
 			}
 		}
+		else if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedTrainData))
+		{
+			try
+			{
+				OnSelectedTrainChanged(InstanceManager.AppViewModel.SelectedTrainData);
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
+		}
 	}
 	void OnSelectedWorkChanged(IO.Models.DB.Work? newWork)
 	{
@@ -124,6 +138,7 @@ public class SimpleView : Grid
 			return;
 		}
 
+		Rows.Clear();
 		IReadOnlyList<IO.Models.DB.TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
 		SetRowDefinitions(trainDataList.Count);
 		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
@@ -138,6 +153,7 @@ public class SimpleView : Grid
 			}
 
 			SimpleRow row = new(this, i, trainData);
+			Rows.Add(row);
 			row.IsSelectedChanged += OnIsSelectedChanged;
 			if (trainId == selectedTrainData?.Id)
 			{
@@ -146,6 +162,24 @@ public class SimpleView : Grid
 				SelectedRow = row;
 			}
 		}
+	}
+
+	void OnSelectedTrainChanged(TrainData? newTrainData)
+	{
+		logger.Debug("newTrainData: {0}", newTrainData?.TrainNumber ?? "null");
+		if (newTrainData is null)
+		{
+			SelectedRow = null;
+			return;
+		}
+
+		if (SelectedRow?.TrainData.Id == newTrainData.Id)
+		{
+			logger.Debug("SelectedRow.TrainData.Id == newTrainData.Id ({0})", newTrainData.TrainNumber);
+			return;
+		}
+
+		SelectedRow = Rows.FirstOrDefault(v => v.TrainData.Id == newTrainData.Id);
 	}
 
 	void SetRowDefinitions(int workCount)
