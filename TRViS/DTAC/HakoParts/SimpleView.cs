@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Microsoft.AppCenter.Crashes;
 using TRViS.IO;
-using TRViS.IO.Models.DB;
+using TRViS.IO.Models;
 
 namespace TRViS.DTAC.HakoParts;
 
@@ -12,6 +12,7 @@ public class SimpleView : Grid
 	public const double STA_NAME_TIME_COLUMN_WIDTH = 120;
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;
 	const double TIME_ROW_HEIGHT = 20;
+	List<SimpleRow> Rows { get; } = new();
 	SimpleRow? _SelectedRow = null;
 	SimpleRow? SelectedRow
 	{
@@ -69,18 +70,16 @@ public class SimpleView : Grid
 			return;
 		}
 
-
 		try
 		{
 			if (newValue)
 			{
 				SelectedRow = row;
-				InstanceManager.AppViewModel.SelectedDBTrainData = row.DBTrainData;
+				InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
 			}
 			else if (SelectedRow == row)
 			{
 				SelectedRow = null;
-				InstanceManager.AppViewModel.SelectedDBTrainData = null;
 				InstanceManager.AppViewModel.SelectedTrainData = null;
 			}
 		}
@@ -107,8 +106,21 @@ public class SimpleView : Grid
 				Utils.ExitWithAlert(ex);
 			}
 		}
+		else if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedTrainData))
+		{
+			try
+			{
+				OnSelectedTrainChanged(InstanceManager.AppViewModel.SelectedTrainData);
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				Crashes.TrackError(ex);
+				Utils.ExitWithAlert(ex);
+			}
+		}
 	}
-	void OnSelectedWorkChanged(Work? newWork)
+	void OnSelectedWorkChanged(IO.Models.DB.Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 		Clear();
@@ -126,28 +138,48 @@ public class SimpleView : Grid
 			return;
 		}
 
-		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
+		Rows.Clear();
+		IReadOnlyList<IO.Models.DB.TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
 		SetRowDefinitions(trainDataList.Count);
-		TrainData? selectedDBTrainData = InstanceManager.AppViewModel.SelectedDBTrainData;
+		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
 		for (int i = 0; i < trainDataList.Count; i++)
 		{
-			TrainData dbTrainData = trainDataList[i];
-			IO.Models.TrainData? trainData = loader.GetTrainData(dbTrainData.Id);
+			string trainId = trainDataList[i].Id;
+			IO.Models.TrainData? trainData = loader.GetTrainData(trainId);
 			if (trainData is null)
 			{
 				logger.Debug("trainData is null");
 				continue;
 			}
 
-			SimpleRow row = new(this, i, trainData, dbTrainData);
+			SimpleRow row = new(this, i, trainData);
+			Rows.Add(row);
 			row.IsSelectedChanged += OnIsSelectedChanged;
-			if (dbTrainData == selectedDBTrainData)
+			if (trainId == selectedTrainData?.Id)
 			{
 				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
 				row.IsSelected = true;
 				SelectedRow = row;
 			}
 		}
+	}
+
+	void OnSelectedTrainChanged(TrainData? newTrainData)
+	{
+		logger.Debug("newTrainData: {0}", newTrainData?.TrainNumber ?? "null");
+		if (newTrainData is null)
+		{
+			SelectedRow = null;
+			return;
+		}
+
+		if (SelectedRow?.TrainData.Id == newTrainData.Id)
+		{
+			logger.Debug("SelectedRow.TrainData.Id == newTrainData.Id ({0})", newTrainData.TrainNumber);
+			return;
+		}
+
+		SelectedRow = Rows.FirstOrDefault(v => v.TrainData.Id == newTrainData.Id);
 	}
 
 	void SetRowDefinitions(int workCount)
