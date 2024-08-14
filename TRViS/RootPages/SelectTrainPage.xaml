@@ -15,11 +15,10 @@
 				<Setter Property="HasShadow" Value="True"/>
 				<Setter Property="BorderColor" Value="{x:Static local:RootStyles.FrameBorderColor}"/>
 				<Setter Property="BackgroundColor" Value="{x:Static local:RootStyles.BackgroundColor}"/>
-				<Setter Property="Margin" Value="8"/>
+				<Setter Property="Margin" Value="4"/>
 				<Setter Property="Padding" Value="8"/>
 				<Setter Property="FlexLayout.Basis" Value="350"/>
 				<Setter Property="FlexLayout.Grow" Value="1"/>
-				<Setter Property="MinimumHeightRequest" Value="500"/>
 			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
@@ -61,7 +60,6 @@
 			Grid.Row="2">
 			<ScrollView>
 				<FlexLayout
-					MinimumHeightRequest="600"
 					Wrap="Wrap">
 					<Frame>
 						<Grid>
