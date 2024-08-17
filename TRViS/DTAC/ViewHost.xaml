@@ -96,6 +96,7 @@
 				TargetMode="VerticalView"/>
 			<local:TabButton
 				Text="行路添付"
+				IsEnabled="False"
 				CurrentMode="{Binding TabMode}"
 				TargetMode="WorkAffix"/>
 		</HorizontalStackLayout>
