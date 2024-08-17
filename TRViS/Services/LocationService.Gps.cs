@@ -21,7 +21,6 @@ public partial class LocationService
 		GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
 		logger.Info("Starting Location Service... (Interval: {0})", Interval);
 
-		LogView.Add("Location Service Starting...");
 		bool isFirst = true;
 		while (!token.IsCancellationRequested)
 		{
@@ -45,7 +44,6 @@ public partial class LocationService
 					logger.Error(ex, "Location Service Request Permission Failed");
 					IsEnabled = false;
 					serviceCancellation?.Cancel();
-					LogView.Add(LogView.Priority.Error, "Location Service Request Permission Failed:" + ex.ToString());
 
 					if (ExceptionThrown is null)
 						throw;
@@ -77,7 +75,6 @@ public partial class LocationService
 				logger.Error(ex, "GetLocationAsync failed");
 				IsEnabled = false;
 				serviceCancellation?.Cancel();
-				LogView.Add(LogView.Priority.Error, "GetLocationAsync failed:" + ex.ToString());
 
 				if (ExceptionThrown is null)
 					throw;
@@ -91,14 +88,12 @@ public partial class LocationService
 				if (isFirst)
 				{
 					logger.Info("Location Service First Positioning");
-					LogView.Add($"Location Service Started with lonlat: ({loc.Longitude}, {loc.Latitude})");
 					isFirst = false;
 					gpsService.ForceSetLocationInfo(loc.Longitude, loc.Latitude);
 				}
 				else
 				{
 					double distance = gpsService.SetCurrentLocation(loc.Longitude, loc.Latitude);
-					LogView.Add($"lonlat: ({loc.Longitude}, {loc.Latitude}), distance: {distance}m");
 					if (double.IsNaN(distance))
 					{
 						IsEnabled = false;
@@ -109,7 +104,6 @@ public partial class LocationService
 			else
 			{
 				logger.Warn("Location Service Positioning Failed");
-				LogView.Add("Location Service Positioning Failed");
 			}
 
 			if (token.IsCancellationRequested)
@@ -130,6 +124,5 @@ public partial class LocationService
 		}
 
 		logger.Info("Location Service Ended");
-		LogView.Add("Location Service Ended");
 	}
 }

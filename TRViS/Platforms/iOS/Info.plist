@@ -47,5 +47,10 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Check whether you are near a station or not.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

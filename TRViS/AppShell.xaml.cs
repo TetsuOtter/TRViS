@@ -5,6 +5,7 @@ using System.Runtime.Versioning;
 using System.Runtime.CompilerServices;
 using TRViS.RootPages;
 using TRViS.ViewModels;
+using TRViS.IO.RequestInfo;
 
 namespace TRViS;
 
@@ -53,6 +54,13 @@ public partial class AppShell : Shell
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
 		logger.Trace("Display Width/Height: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);
+
+		Task.Run(() => InstanceManager.AppViewModel.HandleAppLinkUriAsync(new AppLinkInfo(
+			AppLinkInfo.FileType.Json,
+			new(1,0,0),
+			ResourceUri: new("http://twr.railway-fan-club.com/api/v1/trvis/timetable.json"),
+			RealtimeServiceUri: new("http://twr.railway-fan-club.com/api/v1/trvis/state")
+		), CancellationToken.None));
 
 		logger.Trace("AppShell Created");
 	}
