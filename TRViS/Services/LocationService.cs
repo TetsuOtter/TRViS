@@ -242,7 +242,7 @@ public partial class LocationService : IDisposable
 		}
 		_CurrentService = nextService;
 		if (nextService.CanUseService != currentService?.CanUseService)
-			CanUseServiceChanged?.Invoke(this, nextService.CanUseService);
+			await MainThread.InvokeOnMainThreadAsync(() => CanUseServiceChanged?.Invoke(this, nextService.CanUseService));
 
 		timeProviderCancellation?.Cancel();
 		timeProviderCancellation?.Dispose();
