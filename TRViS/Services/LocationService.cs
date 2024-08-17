@@ -36,7 +36,7 @@ public partial class LocationService : IDisposable
 
 	public event EventHandler<bool>? CanUseServiceChanged;
 
-	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged;
+	public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<Exception>? ExceptionThrown;
