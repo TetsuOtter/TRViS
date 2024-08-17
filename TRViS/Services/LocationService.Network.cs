@@ -43,6 +43,8 @@ public partial class LocationService
 					continue;
 				}
 
+				IsEnabled = false;
+				serviceCancellation?.Cancel();
 				logger.Warn("Switching to GpsPositioningTask");
 				SetLonLatLocationService();
 				ExceptionThrown?.Invoke(this, exTask);
@@ -51,8 +53,6 @@ public partial class LocationService
 			catch (Exception ex)
 			{
 				logger.Error(ex, "NetworkSyncServiceTask Loop Failed");
-				IsEnabled = false;
-				serviceCancellation?.Cancel();
 
 				if (exceptionCounter++ <= EXCEPTION_MAX)
 				{
@@ -60,6 +60,8 @@ public partial class LocationService
 					await Task.Delay(Interval, token);
 					continue;
 				}
+				IsEnabled = false;
+				serviceCancellation?.Cancel();
 				logger.Warn("Switching to GpsPositioningTask");
 				SetLonLatLocationService();
 				ExceptionThrown?.Invoke(this, ex);
