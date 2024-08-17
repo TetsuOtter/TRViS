@@ -36,7 +36,7 @@ public partial class LocationService : IDisposable
 
 	public event EventHandler<bool>? CanUseServiceChanged;
 
-	public event EventHandler<LocationStateChangedEventArgs> LocationStateChanged;
+	public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<Exception>? ExceptionThrown;
@@ -53,12 +53,6 @@ public partial class LocationService : IDisposable
 
 		IsEnabled = false;
 		SetLonLatLocationService();
-
-		LocationStateChanged += (sender, e) =>
-		{
-			StaLocationInfo? newStaLocationInfo = _CurrentService?.StaLocationInfo?.ElementAtOrDefault(e.NewStationIndex);
-			LogView.Add($"LocationStateChanged: Station[{e.NewStationIndex}]@({newStaLocationInfo?.Location_lon_deg}, {newStaLocationInfo?.Location_lat_deg} & Radius:{newStaLocationInfo?.NearbyRadius_m}) IsRunningToNextStation:{e.IsRunningToNextStation}");
-		};
 
 		logger.Debug("LocationService is created");
 	}
@@ -123,8 +117,8 @@ public partial class LocationService : IDisposable
 				case nameof(AppViewModel.SelectedWork):
 					networkSyncService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
 					break;
-				case nameof(AppViewModel.SelectedDBTrainData):
-					networkSyncService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+				case nameof(AppViewModel.SelectedTrainData):
+					networkSyncService.TrainId = InstanceManager.AppViewModel.SelectedTrainData?.Id;
 					break;
 			}
 		}
@@ -173,7 +167,7 @@ public partial class LocationService : IDisposable
 			int lastTime_s = -1;
 			while (!nextTokenSource.Token.IsCancellationRequested)
 			{
-				logger.Trace("TimeProviderTask Loop");
+				// logger.Trace("TimeProviderTask Loop");
 
 				if (nextTokenSource.Token.IsCancellationRequested)
 				{
@@ -202,7 +196,6 @@ public partial class LocationService : IDisposable
 					logger.Error(ex, "TimeProviderTask Loop Failed");
 					IsEnabled = false;
 					timeProviderCancellation?.Cancel();
-					LogView.Add(LogView.Priority.Error, "TimeProviderTask Loop Failed:" + ex.ToString());
 
 					if (ExceptionThrown is null)
 						throw;
@@ -240,7 +233,7 @@ public partial class LocationService : IDisposable
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
 		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
-		nextService.TrainId = InstanceManager.AppViewModel.SelectedDBTrainData?.Id;
+		nextService.TrainId = InstanceManager.AppViewModel.SelectedTrainData?.Id;
 		if (!isIdChangedEventHandlerSet)
 		{
 			logger.Debug("Add EventHandlers for AppViewModel.PropertyChanged");
