@@ -64,24 +64,16 @@ public class SimpleView : Grid
 
 	void OnIsSelectedChanged(object? sender, bool oldValue, bool newValue)
 	{
-		if (sender is not SimpleRow row)
+		if (sender is not SimpleRow row || newValue != true)
 		{
-			logger.Debug("sender is not SimpleRow");
+			logger.Debug("sender is not SimpleRow / newValue != true");
 			return;
 		}
 
 		try
 		{
-			if (newValue)
-			{
-				SelectedRow = row;
-				InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
-			}
-			else if (SelectedRow == row)
-			{
-				SelectedRow = null;
-				InstanceManager.AppViewModel.SelectedTrainData = null;
-			}
+			SelectedRow = row;
+			InstanceManager.AppViewModel.SelectedTrainData = row.TrainData;
 		}
 		catch (Exception ex)
 		{

@@ -79,12 +79,13 @@ public partial class SimpleRow
 		return v;
 	}
 
-	readonly ToggleButton SelectTrainButton = new();
+	readonly ToggleButton SelectTrainButton;
 	static ToggleButton GenSelectTrainButton(Frame SelectTrainButtonFrame, EventHandler<ValueChangedEventArgs<bool>> IsSelectedChanged, int rowIndex)
 	{
 		ToggleButton v = new()
 		{
 			Content = SelectTrainButtonFrame,
+			IsRadio = true,
 		};
 
 		Grid.SetColumn(v, 1);
