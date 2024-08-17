@@ -119,6 +119,8 @@ public class LoaderJson : ILoader
 							TrainNumber = trainData.TrainNumber,
 							WorkId = workId,
 							WorkType = trainData.WorkType,
+							// TODO: JSONでのNextTrainIdのサポート
+							NextTrainId = trainIndex != trainList.Length - 1 ? trainList[trainIndex + 1].Id : null
 						},
 						trainData.TimetableRows.Select((v, i) => new TimetableRow(
 							Id: v.Id ?? i.ToString(),
@@ -207,7 +209,8 @@ public class LoaderJson : ILoader
 			IsRideOnMoving: t.IsRideOnMoving,
 
 			// TODO: E電時刻表用の線色設定のサポート
-			LineColor_RGB: null
+			LineColor_RGB: null,
+			NextTrainId: t.NextTrainId
 		);
 	}
 

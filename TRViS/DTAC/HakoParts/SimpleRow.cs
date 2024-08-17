@@ -79,12 +79,13 @@ public partial class SimpleRow
 		return v;
 	}
 
-	readonly ToggleButton SelectTrainButton = new();
+	readonly ToggleButton SelectTrainButton;
 	static ToggleButton GenSelectTrainButton(Frame SelectTrainButtonFrame, EventHandler<ValueChangedEventArgs<bool>> IsSelectedChanged, int rowIndex)
 	{
 		ToggleButton v = new()
 		{
 			Content = SelectTrainButtonFrame,
+			IsRadio = true,
 		};
 
 		Grid.SetColumn(v, 1);
@@ -130,25 +131,20 @@ public partial class SimpleRow
 	}
 
 	public TrainData TrainData { get; }
-	public IO.Models.DB.TrainData DBTrainData { get; }
 	public TimetableRow? FirstRow { get; } = null;
 	public TimetableRow? LastRow { get; } = null;
 
-	readonly Grid ParentGrid;
-
-	public SimpleRow(Grid parentGrid, int dataIndex, TrainData TrainData, IO.Models.DB.TrainData DBTrainData)
+	public SimpleRow(Grid parentGrid, int dataIndex, TrainData TrainData)
 	{
 		logger.Debug("Creating");
 
 		this.TrainData = TrainData;
-		this.DBTrainData = DBTrainData;
+
 		if (TrainData.Rows is not null)
 		{
 			FirstRow = TrainData.Rows.FirstOrDefault(v => !v.IsInfoRow);
 			LastRow = TrainData.Rows.LastOrDefault(v => !v.IsInfoRow);
 		}
-
-		ParentGrid = parentGrid;
 
 		int rowIndex_StaName_SelectBtn = dataIndex * 2;
 		int rowIndex_time = rowIndex_StaName_SelectBtn + 1;
@@ -177,7 +173,7 @@ public partial class SimpleRow
 		parentGrid.Add(RouteLine);
 		parentGrid.Add(ToTimeLabel);
 
-		SelectTrainButton.IsChecked = InstanceManager.AppViewModel.SelectedDBTrainData?.Id == DBTrainData.Id;
+		SelectTrainButton.IsChecked = InstanceManager.AppViewModel.SelectedTrainData?.Id == TrainData.Id;
 		SetTrainNumberButtonState();
 
 		logger.Debug("Created");
