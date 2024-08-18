@@ -119,7 +119,11 @@ public partial class NetworkSyncService
 			double location_m = double.NaN;
 			try
 			{
-				location_m = root.GetProperty(LOCATION_M_JSON_KEY).GetDouble();
+				JsonElement location_m_element = root.GetProperty(LOCATION_M_JSON_KEY);
+				if (location_m_element.ValueKind == JsonValueKind.Null)
+					location_m = double.NaN;
+				else
+					location_m = location_m_element.GetDouble();
 			}
 			catch (KeyNotFoundException) {}
 			catch (FormatException) {}
