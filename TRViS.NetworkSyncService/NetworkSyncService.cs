@@ -89,7 +89,7 @@ public partial class NetworkSyncService : ILocationService
 
 	void UpdateCurrentStationWithLocation(double location_m)
 	{
-		if (StaLocationInfo is null || !IsEnabled)
+		if (StaLocationInfo is null || !IsEnabled || double.IsNaN(location_m))
 			return;
 
 		bool isIn(double threshold1, double threshold2)

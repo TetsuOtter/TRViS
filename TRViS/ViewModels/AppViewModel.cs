@@ -22,14 +22,9 @@ public partial class AppViewModel : ObservableObject
 	IReadOnlyList<TRViS.IO.Models.DB.Work>? _WorkList;
 
 	[ObservableProperty]
-	IReadOnlyList<TRViS.IO.Models.DB.TrainData>? _DBTrainDataList;
-
-	[ObservableProperty]
 	TRViS.IO.Models.DB.WorkGroup? _SelectedWorkGroup;
 	[ObservableProperty]
 	TRViS.IO.Models.DB.Work? _SelectedWork;
-	[ObservableProperty]
-	TRViS.IO.Models.DB.TrainData? _SelectedDBTrainData;
 
 	[ObservableProperty]
 	TrainData? _SelectedTrainData;
@@ -102,16 +97,18 @@ public partial class AppViewModel : ObservableObject
 
 	partial void OnSelectedWorkChanged(IO.Models.DB.Work? value)
 	{
-		DBTrainDataList = null;
-		SelectedDBTrainData = null;
-
+		logger.Debug("Work: {0}", value?.Id ?? "null");
 		if (value is not null)
 		{
-			DBTrainDataList = Loader?.GetTrainDataList(value.Id);
-			SelectedDBTrainData = DBTrainDataList?.FirstOrDefault();
+			string? trainId = Loader?.GetTrainDataList(value.Id)?.FirstOrDefault()?.Id;
+			logger.Debug("FirstTrainId: {0}", trainId ?? "null");
+			var selectedTrainData = trainId is null ? null : Loader?.GetTrainData(trainId);
+			SelectedTrainData = selectedTrainData;
+			logger.Debug("SelectedTrainData: {0} ({1})", SelectedTrainData?.Id ?? "null", selectedTrainData?.Id ?? "null");
+		}
+		else
+		{
+			SelectedTrainData = null;
 		}
 	}
-
-	partial void OnSelectedDBTrainDataChanged(IO.Models.DB.TrainData? value)
-		=> SelectedTrainData = value is null ? null : Loader?.GetTrainData(value.Id);
 }
