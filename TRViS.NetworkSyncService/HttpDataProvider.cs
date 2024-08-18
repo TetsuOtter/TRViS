@@ -95,6 +95,7 @@ public partial class NetworkSyncService
 		public async Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
 		{
 			using HttpResponseMessage response = await _HttpClient.GetAsync(nextUri, token);
+			System.Diagnostics.Debug.WriteLine($"Uri: {nextUri}");
 			// 接続に失敗等しない限り、成功として扱う
 			// (ログ出力は今後検討)
 			if (!response.IsSuccessStatusCode)
