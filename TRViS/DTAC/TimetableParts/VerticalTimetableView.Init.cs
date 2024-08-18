@@ -2,6 +2,7 @@ using Microsoft.AppCenter.Crashes;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
+using TRViS.DTAC.TimetableParts;
 using TRViS.IO.Models;
 using TRViS.Services;
 
@@ -35,6 +36,7 @@ public partial class VerticalTimetableView
 
 	readonly AfterRemarks AfterRemarks;
 	readonly BeforeDeparture_AfterArrive AfterArrive;
+	readonly NextTrainButton NextTrainButton = new();
 
 	readonly List<VerticalTimetableRow> RowViewList = new();
 
@@ -44,6 +46,8 @@ public partial class VerticalTimetableView
 
 		AfterArrive = new(this, "着後");
 		AfterRemarks = new(this);
+
+		Grid.SetColumnSpan(NextTrainButton, 8);
 
 		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
 
@@ -145,16 +149,22 @@ public partial class VerticalTimetableView
 		logger.Trace("ClearOldRowViews Task Complete");
 
 		int newCount = newValue?.Length ?? 0;
-		logger.Debug("newCount: {0}", newCount);
+		bool hasAfterArrive = trainData?.AfterArrive is not null;
+		bool hasNextTrainButton = trainData?.NextTrainId is not null;
+		logger.Debug("newCount: {0}, hasAfterArrive: {1}, hasNextTrainButton: {2}", newCount, hasAfterArrive, hasNextTrainButton);
 		try
 		{
 			RowsCount = newCount;
-			SetRowDefinitions(newCount);
+			SetRowDefinitions(newCount, hasAfterArrive, hasNextTrainButton);
 
 			await AddSeparatorLines();
 
 			AfterRemarks.SetRow(newCount);
 			AfterArrive.SetRow(newCount + 1);
+			if (hasAfterArrive)
+				Grid.SetRow(NextTrainButton, newCount + 2);
+			else
+				Grid.SetRow(NextTrainButton, newCount + 1);
 
 			logger.Trace("Starting RowViewInit Task...");
 		}
@@ -198,12 +208,25 @@ public partial class VerticalTimetableView
 			{
 				logger.Trace("MainThread: Inserting Footer...");
 
-				AfterRemarks.Text = trainData?.AfterRemarks ?? string.Empty;
-				AfterArrive.Text = trainData?.AfterArrive ?? string.Empty;
-				AfterArrive.Text_OnStationTrackColumn = trainData?.AfterArriveOnStationTrackCol ?? string.Empty;
+				if (trainData?.AfterRemarks is not null)
+				{
+					AfterRemarks.Text = trainData.AfterRemarks;
+					AfterRemarks.AddToParent();
+				}
 
-				AfterRemarks.AddToParent();
-				AfterArrive.AddToParent();
+				if (trainData?.AfterArrive is not null)
+				{
+					AfterArrive.Text = trainData.AfterArrive;
+					AfterArrive.Text_OnStationTrackColumn = trainData.AfterArriveOnStationTrackCol ?? string.Empty;
+					AfterArrive.AddToParent();
+				}
+
+				if (trainData?.NextTrainId is not null)
+				{
+					NextTrainButton.NextTrainId = trainData.NextTrainId;
+					this.Children.Add(NextTrainButton);
+				}
+				logger.Trace("NextTrainId: {0}", trainData?.NextTrainId);
 
 				IsBusy = false;
 
@@ -273,7 +296,7 @@ public partial class VerticalTimetableView
 		});
 	}
 
-	void SetRowDefinitions(int newCount)
+	void SetRowDefinitions(int newCount, bool hasAfterArrive = false, bool hasNextTrainButton = false)
 	{
 		int currentCount = RowDefinitions.Count;
 		logger.Debug("Count {0} -> {1}", currentCount, newCount);
@@ -283,8 +306,12 @@ public partial class VerticalTimetableView
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
-			// AfterRemarks & AfterArrive
-			newCount += 2;
+			// AfterRemarks
+			newCount += 1;
+			if (hasAfterArrive)
+				newCount += 1;
+			if (hasNextTrainButton)
+				newCount += 1;
 		}
 		else
 		{

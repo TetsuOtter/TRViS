@@ -4,6 +4,7 @@ using Microsoft.AppCenter.Crashes;
 namespace TRViS.Controls;
 
 [DependencyProperty<bool>("IsChecked", DefaultBindingMode = DefaultBindingMode.TwoWay)]
+[DependencyProperty<bool>("IsRadio", DefaultBindingMode = DefaultBindingMode.OneWay)]
 public partial class ToggleButton : ContentView
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -21,7 +22,7 @@ public partial class ToggleButton : ContentView
 				Point? pt = e.GetPosition(this);
 				logger.Debug("Tapped (Pont: {0}, IsEnabled: {1}, IsChecked Before: {2})", pt, IsEnabled, IsChecked);
 				if (IsEnabled)
-					IsChecked = !IsChecked;
+					IsChecked = IsRadio || !IsChecked;
 			}
 			catch (Exception ex)
 			{

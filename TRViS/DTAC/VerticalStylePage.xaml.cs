@@ -151,6 +151,13 @@ public partial class VerticalStylePage : ContentView
 		TimetableView.CanUseLocationServiceChanged += (_, canUseLocationService) => {
 			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
+
+			if (!canUseLocationService && CurrentShowingTrainData?.NextTrainId is not null)
+			{
+				logger.Info("Can't use LocationService -> try to load NextTrainData");
+				InstanceManager.AppViewModel.SelectedTrainData = InstanceManager.AppViewModel.Loader?.GetTrainData(CurrentShowingTrainData.NextTrainId);
+			}
+			PageHeaderArea.IsRunning = PageHeaderArea.IsLocationServiceEnabled = TimetableView.IsLocationServiceEnabled = canUseLocationService;
 		};
 		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
 
@@ -188,6 +195,7 @@ public partial class VerticalStylePage : ContentView
 
 		try
 		{
+			VerticalTimetableView_ScrollRequested(this, new(0));
 			CurrentShowingTrainData = newValue;
 			logger.Info("SelectedTrainDataChanged: {0}", newValue);
 			BindingContext = newValue;
