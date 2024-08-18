@@ -52,7 +52,7 @@ public partial class LocationService : IDisposable
 		logger.Trace("Creating...");
 
 		IsEnabled = false;
-		SetLonLatLocationService();
+		SetNetworkSyncServiceAsync(new Uri("http://twr.railway-fan-club.com/api/v1/trvis/state"));
 
 		logger.Debug("LocationService is created");
 	}
