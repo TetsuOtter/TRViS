@@ -188,6 +188,7 @@ public partial class VerticalStylePage : ContentView
 
 		try
 		{
+			VerticalTimetableView_ScrollRequested(this, new(0));
 			CurrentShowingTrainData = newValue;
 			logger.Info("SelectedTrainDataChanged: {0}", newValue);
 			BindingContext = newValue;

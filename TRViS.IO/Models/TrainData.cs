@@ -22,5 +22,6 @@ public record TrainData(
 	string? AfterArriveOnStationTrackCol = null,
 	int DayCount = 0,
 	bool? IsRideOnMoving = null,
-	int? LineColor_RGB = null
+	int? LineColor_RGB = null,
+	string? NextTrainId = null
 ) : IHasRemarksProperty;
