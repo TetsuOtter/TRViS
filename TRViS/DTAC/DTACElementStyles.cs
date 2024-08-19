@@ -375,6 +375,8 @@ public static partial class DTACElementStyles
 	private static partial Regex HtmlTagRegex();
 	[GeneratedRegex("<br[^>]*/?>")]
 	private static partial Regex HtmlBrTagRegex();
+	[GeneratedRegex("&[^;]+;")]
+	private static partial Regex XmlEscapedStrRegex();
 	public static double GetTimetableTrackLabelFontSize(string trackName, double currentFontSize)
 	{
 		bool isTrackNameHtml = trackName.StartsWith('<');
@@ -382,8 +384,9 @@ public static partial class DTACElementStyles
 		{
 			trackName = HtmlBrTagRegex().Replace(trackName, "\n");
 			trackName = HtmlTagRegex().Replace(trackName, "");
+			trackName = XmlEscapedStrRegex().Replace(trackName, "");
 		}
-		int maxLineLength = trackName.Split("\n", StringSplitOptions.RemoveEmptyEntries).Select(v => v.Length).Max();
+		int maxLineLength = trackName.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Select(v => v.Length).Max();
 		if (maxLineLength <= 2)
 			return currentFontSize;
 		else
