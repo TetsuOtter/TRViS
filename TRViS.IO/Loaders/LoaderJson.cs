@@ -44,6 +44,16 @@ public class LoaderJson : ILoader
 		}
 		throw new InvalidOperationException("Failed to generate a unique ID");
 	}
+	static string GenerateUniqueId(IReadOnlyList<string> idList)
+	{
+		for (int i = 0; i < 100; i++)
+		{
+			string tmpId = Guid.NewGuid().ToString();
+			if (!idList.Contains(tmpId))
+				return tmpId;
+		}
+		throw new InvalidOperationException("Failed to generate a unique ID");
+	}
 
 	static readonly JsonSerializerOptions opts = new()
 	{
@@ -55,11 +65,37 @@ public class LoaderJson : ILoader
 	{
 		if (workGroups is null)
 			throw new ArgumentNullException(nameof(workGroups));
+		
+		string[] workGroupIdArray = new string[workGroups.Length];
+		List<string> workIdList = [];
+		List<string> trainIdList = [];
+		for (int i = 0; i < workGroups.Length; i++)
+		{
+			string? id = workGroups[i].Id;
+			workGroupIdArray[i] = string.IsNullOrEmpty(id) ? GenerateUniqueId(workGroupIdArray) : id;
 
+			workIdList.EnsureCapacity(workIdList.Count + workGroups[i].Works.Length);
+			for (int j = 0; j < workGroups[i].Works.Length; j++)
+			{
+				string? workId = workGroups[i].Works[j].Id;
+				workIdList.Add(string.IsNullOrEmpty(workId) ? GenerateUniqueId(workIdList) : workId);
+
+				for (int k = 0; k < workGroups[i].Works[j].Trains.Length; k++)
+				{
+					string? trainId = workGroups[i].Works[j].Trains[k].Id;
+					trainIdList.Add(string.IsNullOrEmpty(trainId) ? GenerateUniqueId(trainIdList) : trainId);
+
+					// TimetableRowIdは内部で使用しないため、ここでの生成は不要
+				}
+			}
+		}
+
+		int workIdIndex = 0;
+		int trainIdIndex = 0;
 		for (int workGroupIndex = 0; workGroupIndex < workGroups.Length; workGroupIndex++)
 		{
 			WorkGroupData workGroup = workGroups[workGroupIndex];
-			string workGroupId = workGroup.Id ?? GenerateUniqueId(WorkGroups);
+			string workGroupId = workGroupIdArray[workGroupIndex];
 			WorkGroups[workGroupId] = new()
 			{
 				Id = workGroupId,
@@ -72,7 +108,7 @@ public class LoaderJson : ILoader
 			for (int workIndex = 0; workIndex < workList.Length; workIndex++)
 			{
 				WorkData workData = workList[workIndex];
-				string workId = workData.Id ?? GenerateUniqueId(WorkData);
+				string workId = workIdList[workIdIndex++];
 				WorkData[workId] = new()
 				{
 					WorkGroupId = workGroupId,
@@ -94,7 +130,7 @@ public class LoaderJson : ILoader
 				for (int trainIndex = 0; trainIndex < trainList.Length; trainIndex++)
 				{
 					JsonModels.TrainData trainData = trainList[trainIndex];
-					string trainId = trainData.Id ?? GenerateUniqueId(TrainData);
+					string trainId = trainIdList[trainIdIndex++];
 					TrainData[trainId] = (
 						new()
 						{
@@ -108,7 +144,7 @@ public class LoaderJson : ILoader
 							ColorId = -1, // Not Implemented
 							DayCount = trainData.DayCount,
 							Destination = trainData.Destination,
-							Id = trainData.Id!,
+							Id = trainId,
 							Direction = trainData.Direction,
 							IsRideOnMoving = trainData.IsRideOnMoving,
 							MaxSpeed = trainData.MaxSpeed,
@@ -120,7 +156,7 @@ public class LoaderJson : ILoader
 							WorkId = workId,
 							WorkType = trainData.WorkType,
 							// TODO: JSONでのNextTrainIdのサポート
-							NextTrainId = trainIndex != trainList.Length - 1 ? trainList[trainIndex + 1].Id : null
+							NextTrainId = trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null
 						},
 						trainData.TimetableRows.Select((v, i) => new TimetableRow(
 							Id: v.Id ?? i.ToString(),
