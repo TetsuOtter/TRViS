@@ -71,13 +71,14 @@ public class LoaderSQLV0Tests
 		using LoaderSQL loader = new(DB_FILE_PATH);
 		TimetableRow[] emptyArr = Array.Empty<TimetableRow>();
 
-		var all = loader.GetTrainData(1);
+		var all = loader.GetTrainData("1");
 
-		TrainData? actual = loader.GetTrainData(1);
+		TrainData? actual = loader.GetTrainData("1");
 		Assert.That(actual, Is.Not.Null);
 
 		Assert.That(actual, Is.EqualTo(
 			new TrainData(
+				"1",
 				"Work01",
 				new(2022, 9, 15),
 				"T9910X",
@@ -98,8 +99,8 @@ public class LoaderSQLV0Tests
 
 		Assert.That(actual.Rows, Is.EquivalentTo(new TimetableRow[]
 		{
-			new(new(1), 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc"),
-			new(new(2), 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null)
+			new("1", new(1), 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc"),
+			new("2", new(2), 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null)
 		}));
 	}
 
@@ -112,7 +113,7 @@ public class LoaderSQLV0Tests
 
 		Assert.That(actual, Has.Member(new Models.DB.WorkGroup()
 		{
-			Id = 1,
+			Id = "1",
 			Name = "Group01"
 		}));
 	}
@@ -122,14 +123,14 @@ public class LoaderSQLV0Tests
 	{
 		using LoaderSQL loader = new(DB_FILE_PATH);
 
-		var actual = loader.GetWorkList(1);
+		var actual = loader.GetWorkList("1");
 
 		for (int i = 1; i <= 3; i++)
 		{
 			Assert.That(actual, Has.Member(new Models.DB.Work()
 			{
-				Id = i,
-				WorkGroupId = 1,
+				Id = i.ToString(),
+				WorkGroupId = "1",
 				Name = $"Work0{i}",
 				AffectDate = "2022-09-15"
 			}));
@@ -141,12 +142,12 @@ public class LoaderSQLV0Tests
 	{
 		using LoaderSQL loader = new(DB_FILE_PATH);
 
-		var actual = loader.GetTrainDataList(1);
+		var actual = loader.GetTrainDataList("1");
 
 		Assert.That(actual, Has.Member(new Models.DB.TrainData()
 		{
-			Id = 1,
-			WorkId = 1,
+			Id = "1",
+			WorkId = "1",
 			TrainNumber = "T9910X",
 			MaxSpeed = "95",
 			SpeedType = "高速特定",
