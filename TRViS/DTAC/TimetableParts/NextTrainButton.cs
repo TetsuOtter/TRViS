@@ -1,10 +1,11 @@
+using Microsoft.AppCenter.Crashes;
 using TRViS.IO.Models;
-using TRViS.ValueConverters.DTAC;
 
 namespace TRViS.DTAC.TimetableParts;
 
 public class NextTrainButton : Grid
 {
+	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	readonly Button _NextTrainButton = new()
 	{
 		FontFamily = DTACElementStyles.DefaultFontFamily,
@@ -36,10 +37,23 @@ public class NextTrainButton : Grid
 		get => _NextTrainId;
 		set
 		{
-			if (_NextTrainId == value)
+			TrainData? nextTrainData;
+			try
+			{
+				nextTrainData = InstanceManager.AppViewModel.Loader?.GetTrainData(value);
+			}
+			catch (Exception ex)
+			{
+				this.IsVisible = false;
+				string msg = "Cannot get the timetable of the next train.\n"
+					+ $"WorkGroupID: {InstanceManager.AppViewModel.SelectedWorkGroup?.Id}\n"
+					+ $"WorkID: {InstanceManager.AppViewModel.SelectedWork?.Id}\n"
+					+ $"TrainID: {InstanceManager.AppViewModel.SelectedTrainData?.Id}\n"
+					+ $"CurrentNextTrainID: {_NextTrainId}\n"
+					+ $"GivenNextTrainID: {value}";
+				logger.Error(ex, msg);
 				return;
-
-			TrainData? nextTrainData = InstanceManager.AppViewModel.Loader?.GetTrainData(value);
+			}
 			if (nextTrainData is null)
 			{
 				throw new KeyNotFoundException($"Next TrainData not found (id: {value})");
@@ -50,6 +64,7 @@ public class NextTrainButton : Grid
 			}
 
 			_NextTrainId = value;
+			this.IsVisible = true;
 
 			string trainNumberToShow = Utils.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, Utils.THIN_SPACE);
 			_NextTrainButton.Text = $"{trainNumberToShow}の時刻表へ";
@@ -61,6 +76,20 @@ public class NextTrainButton : Grid
 		if (string.IsNullOrEmpty(_NextTrainId))
 			return;
 
-		InstanceManager.AppViewModel.SelectedTrainData = InstanceManager.AppViewModel.Loader?.GetTrainData(_NextTrainId);
+		try
+		{
+			InstanceManager.AppViewModel.SelectedTrainData = InstanceManager.AppViewModel.Loader?.GetTrainData(_NextTrainId);
+		}
+		catch (Exception ex)
+		{
+			string msg = "次の列車の時刻表を取得できませんでした。\n"
+				+ $"WorkGroupID: {InstanceManager.AppViewModel.SelectedWorkGroup?.Id}\n"
+				+ $"WorkID: {InstanceManager.AppViewModel.SelectedWork?.Id}\n"
+				+ $"TrainID: {InstanceManager.AppViewModel.SelectedTrainData?.Id}\n"
+				+ $"NextTrainID: {_NextTrainId}";
+			logger.Error(ex, "Unknown Exception: " + msg);
+			Crashes.TrackError(ex);
+			Utils.DisplayAlert("エラー", msg, "OK");
+		}
 	}
 }
