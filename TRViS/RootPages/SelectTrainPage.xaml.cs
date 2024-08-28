@@ -116,6 +116,7 @@ public partial class SelectTrainPage : ContentPage
 				viewModel.Loader = lastLoader;
 			}
 
+			Crashes.TrackError(ex);
 			logger.Error(ex, "File Selection Failed");
 			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
 		}
