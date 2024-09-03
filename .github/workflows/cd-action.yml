@@ -494,7 +494,7 @@ jobs:
         TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Download IPA
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
       with:
         name: ipa
         path: ${{ env.OUTPUT_DIR }}
@@ -518,7 +518,7 @@ jobs:
         --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
     - name: Download dSYM
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
       with:
         name: dSYM
         path: .
@@ -564,7 +564,7 @@ jobs:
         TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Download PKG
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
       with:
         name: pkg
         path: ${{ env.OUTPUT_DIR }}
@@ -653,7 +653,7 @@ jobs:
 
     steps:
     - name: Download APK
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
       with:
         name: apk
         path: ${{ env.OUTPUT_DIR }}
