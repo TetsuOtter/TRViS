@@ -179,7 +179,7 @@ jobs:
       with:
         xcode-version: 15
 
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -231,7 +231,7 @@ jobs:
         /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
 
     - name: Upload IPA
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ipa
         path: ${{ env.IPA_PATH }}
@@ -240,7 +240,7 @@ jobs:
     - name: tar dSYM
       run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
     - name: Upload dSYM
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dSYM
         path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
@@ -267,7 +267,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -329,14 +329,14 @@ jobs:
         /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
     - name: Upload AAB
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: aab
         path: ${{ env.AAB_PATH }}
         retention-days: 3
 
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: apk
         path: ${{ env.APK_PATH }}
@@ -397,7 +397,7 @@ jobs:
       with:
         xcode-version: 15
 
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -457,7 +457,7 @@ jobs:
         ${{ env.PKG_PATH }}
 
     - name: Upload PKG
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pkg
         path: ${{ env.PKG_PATH }}
@@ -496,7 +496,7 @@ jobs:
         TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Download IPA
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ipa
         path: ${{ env.OUTPUT_DIR }}
@@ -520,7 +520,7 @@ jobs:
         --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
     - name: Download dSYM
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dSYM
         path: .
@@ -566,7 +566,7 @@ jobs:
         TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Download PKG
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: pkg
         path: ${{ env.OUTPUT_DIR }}
@@ -655,7 +655,7 @@ jobs:
 
     steps:
     - name: Download APK
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: apk
         path: ${{ env.OUTPUT_DIR }}
