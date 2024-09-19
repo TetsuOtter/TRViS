@@ -35,6 +35,7 @@
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon
+			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'ios'"
 			Include="Resources\AppIcon\appicon.svg"
 			ForegroundFile="Resources\AppIcon\appiconfg.png"
 			Color="#cfc" />
@@ -54,6 +55,9 @@
 		<MauiAsset
 			Include="..\docs\md\**"
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+	  <BundleResource Include="Platforms\iOS\CustomAssets.xcassets\**\*" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference
