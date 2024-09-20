@@ -30,6 +30,8 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Platforms/iOS/CustomAssets.xcassets/AppIcon.appiconset</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>
