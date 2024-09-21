@@ -29,7 +29,9 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>XSAppIconAssets</key>
-	<string>Assets.xcassets/appicon.appiconset</string>
+	<string>Platforms/iOS/CustomAssets.xcassets/AppIcon.appiconset</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>

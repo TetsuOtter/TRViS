@@ -49,6 +49,9 @@
 			Include="..\docs\md\**"
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+	  <BundleResource Include="Platforms\iOS\CustomAssets.xcassets\**\*" />
+	</ItemGroup>
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
