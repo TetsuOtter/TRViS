@@ -32,12 +32,12 @@
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon
-			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'ios'"
-			Include="Resources\AppIcon\appicon.png"
+			Include="Resources\AppIcon\appicon.svg"
+			ForegroundFile="Resources\AppIcon\appiconfg.png"
 			Color="#cfc" />
 		<!-- Splash Screen -->
 		<MauiSplashScreen
-			Include="Resources\AppIcon\appicon.png"
+			Include="Resources\AppIcon\appiconfg.png"
 			Color="#583" />
 		<MauiFont Include="Resources\Fonts\*" />
 		<MauiImage Include="Resources\Images\*" />
