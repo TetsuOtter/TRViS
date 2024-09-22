@@ -56,67 +56,63 @@
 		</FlexLayout>
 
 
-		<Frame
-			Grid.Row="2">
-			<ScrollView>
-				<FlexLayout
-					Wrap="Wrap">
-					<Frame>
-						<Grid>
-							<Grid.RowDefinitions>
-								<RowDefinition Height="40"/>
-								<RowDefinition Height="*"/>
-							</Grid.RowDefinitions>
-							<Label
-								Grid.Row="0"
-								FontSize="Subtitle"
-								Text="Work Group"/>
-							<ListView
-								Grid.Row="1"
-								ItemsSource="{Binding WorkGroupList}"
-								SelectedItem="{Binding SelectedWorkGroup, Mode=TwoWay}">
-								<ListView.ItemTemplate>
-									<DataTemplate
-										x:DataType="models:WorkGroup">
-										<TextCell
-											TextColor="{x:Static local:RootStyles.TableTextColor}"
-											DetailColor="{x:Static local:RootStyles.TableDetailColor}"
-											Text="{Binding Name}"/>
-									</DataTemplate>
-								</ListView.ItemTemplate>
-							</ListView>
-						</Grid>
-					</Frame>
+		<FlexLayout
+			Grid.Row="2"
+			Wrap="Wrap">
+			<Frame>
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="40"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+					<Label
+						Grid.Row="0"
+						FontSize="Subtitle"
+						Text="Work Group"/>
+					<ListView
+						Grid.Row="1"
+						ItemsSource="{Binding WorkGroupList}"
+						SelectedItem="{Binding SelectedWorkGroup, Mode=TwoWay}">
+						<ListView.ItemTemplate>
+							<DataTemplate
+								x:DataType="models:WorkGroup">
+								<TextCell
+									TextColor="{x:Static local:RootStyles.TableTextColor}"
+									DetailColor="{x:Static local:RootStyles.TableDetailColor}"
+									Text="{Binding Name}"/>
+							</DataTemplate>
+						</ListView.ItemTemplate>
+					</ListView>
+				</Grid>
+			</Frame>
 
-					<Frame>
-						<Grid>
-							<Grid.RowDefinitions>
-								<RowDefinition Height="40"/>
-								<RowDefinition Height="*"/>
-							</Grid.RowDefinitions>
-							<Label
-								Grid.Row="0"
-								FontSize="Subtitle"
-								Text="Work"/>
-							<ListView
-								Grid.Row="1"
-								ItemsSource="{Binding WorkList}"
-								SelectedItem="{Binding SelectedWork, Mode=TwoWay}">
-								<ListView.ItemTemplate>
-									<DataTemplate
-										x:DataType="models:Work">
-										<TextCell
-											TextColor="{x:Static local:RootStyles.TableTextColor}"
-											DetailColor="{x:Static local:RootStyles.TableDetailColor}"
-											Text="{Binding Name}"/>
-									</DataTemplate>
-								</ListView.ItemTemplate>
-							</ListView>
-						</Grid>
-					</Frame>
-				</FlexLayout>
-			</ScrollView>
-		</Frame>
+			<Frame>
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="40"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+					<Label
+						Grid.Row="0"
+						FontSize="Subtitle"
+						Text="Work"/>
+					<ListView
+						Grid.Row="1"
+						ItemsSource="{Binding WorkList}"
+						SelectedItem="{Binding SelectedWork, Mode=TwoWay}">
+						<ListView.ItemTemplate>
+							<DataTemplate
+								x:DataType="models:Work">
+								<TextCell
+									TextColor="{x:Static local:RootStyles.TableTextColor}"
+									DetailColor="{x:Static local:RootStyles.TableDetailColor}"
+									Text="{Binding Name}"/>
+							</DataTemplate>
+						</ListView.ItemTemplate>
+					</ListView>
+				</Grid>
+			</Frame>
+		</FlexLayout>
 
 	</Grid>
 </ContentPage>

@@ -179,7 +179,7 @@ public static class LoggerService
 			#elif ANDROID
 			report.AndroidDetails,
 			#else
-			report.Exception,
+			"(No Detail)",
 			#endif
 			report.StackTrace
 		);
