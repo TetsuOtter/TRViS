@@ -52,7 +52,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="8.0.70" />
+			Version="8.0.90" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.2.2" />
@@ -66,10 +66,10 @@
 			Version="8.0.4" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="9.0.2" />
+			Version="9.0.3" />
 		<PackageReference
 			Include="NLog"
-			Version="5.3.2" />
+			Version="5.3.4" />
 		<PackageReference
 			Include="Microsoft.AppCenter.Analytics"
 			Version="5.0.5" />
