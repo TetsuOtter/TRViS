@@ -743,10 +743,13 @@ jobs:
 
   set-tag:
     if: |
-      needs.generate-bundle-version.result == 'success'
+      always()
+      && needs.generate-bundle-version.result == 'success'
       && (
         needs.publish-ios.result == 'success'
         || needs.publish-mac.result == 'success'
+        || needs.build-android.result == 'success'
+        || needs.build-windows.result == 'success'
       )
 
     runs-on: ubuntu-latest
@@ -755,7 +758,9 @@ jobs:
       - generate-bundle-version
       - publish-ios
       - publish-mac
-    
+      - build-android
+      - build-windows
+
     outputs:
       tag-name: ${{ steps.tag-name.outputs.tag-name }}
 
