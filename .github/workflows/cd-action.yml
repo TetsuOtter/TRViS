@@ -24,12 +24,19 @@ env:
   TARGET_FRAMEWORK_MAC: net8.0-maccatalyst
   TARGET_RUNTIME_MAC: osx
   TARGET_FRAMEWORK_ANDROID: net8.0-android
+  TARGET_FRAMEWORK_WIN: net8.0-windows10.0.19041.0
+  TARGET_RUNTIME_WINX64: win10-x64
+  TARGET_RUNTIME_WINX86: win10-x86
   OUTPUT_DIR: ./out
   IPA_PATH: ./out/TRViS.ipa
   PKG_PATH: ./out/TRViS.pkg
   AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
   APK_PATH: ./out/dev.t0r.trvis-Signed.apk
-  SDK_VERSION: '8.0.100'
+  ASSET_NAME_WIN_X64: TRViS-win-x64
+  ASSET_NAME_WIN_X86: TRViS-win-x86
+  ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
+  ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
+  SDK_VERSION: '8.0.401'
   APP_CENTER_SECRETS_FILE_NAME: ./TRViS/AppCenterSecrets.cs
   IOS_DSYM_PATH: ./TRViS/bin/Release/net8.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
@@ -160,6 +167,7 @@ jobs:
     
     # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
     - name: Build keychain
+      id: import-code-sign-cert
       run: |
         echo "${{ secrets.P12_FILE_BASE64 }}" | base64 --decode > certificate.p12
         security create-keychain -p "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
@@ -176,9 +184,9 @@ jobs:
     - name: Setup Xcode version
       uses: maxim-lobanov/setup-xcode@v1.6.0
       with:
-        xcode-version: latest-stable
+        xcode-version: 15
 
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -187,7 +195,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     - name: Prapare Python Package
@@ -230,7 +238,7 @@ jobs:
         /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
 
     - name: Upload IPA
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ipa
         path: ${{ env.IPA_PATH }}
@@ -239,7 +247,7 @@ jobs:
     - name: tar dSYM
       run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
     - name: Upload dSYM
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dSYM
         path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
@@ -266,7 +274,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -275,7 +283,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore ${{ env.CSPROJ_PATH }}
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     - name: Prapare Python Package
@@ -328,14 +336,14 @@ jobs:
         /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
     - name: Upload AAB
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: aab
         path: ${{ env.AAB_PATH }}
         retention-days: 3
 
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: apk
         path: ${{ env.APK_PATH }}
@@ -377,6 +385,7 @@ jobs:
     
     # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
     - name: Build keychain
+      id: import-code-sign-cert
       run: |
         echo "${{ secrets.P12_FILE_MAC_BASE64 }}" | base64 --decode > certificate.p12
         security create-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
@@ -393,9 +402,9 @@ jobs:
     - name: Setup Xcode version
       uses: maxim-lobanov/setup-xcode@v1.6.0
       with:
-        xcode-version: 'latest-stable'
+        xcode-version: 15
 
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.SDK_VERSION }}
     - name: Install dotnet workloads
@@ -404,7 +413,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME_MAC }}
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     - name: Prapare Python Package
@@ -455,7 +464,7 @@ jobs:
         ${{ env.PKG_PATH }}
 
     - name: Upload PKG
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pkg
         path: ${{ env.PKG_PATH }}
@@ -464,6 +473,151 @@ jobs:
     - name: Post 'Import Code Sign Certificates'
       if: always() && steps.import-code-sign-cert.conclusion == 'success'
       run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+
+  build-windows:
+    if: |
+      !failure()
+      && !cancelled()
+      && (
+        github.event_name != 'pull_request'
+        || github.event.pull_request.draft == false
+      )
+
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs:
+      - get-version
+
+    env:
+      WITHOUT_ANDROID: true
+  
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.SDK_VERSION }}
+    - name: Install dotnet workloads
+      run: dotnet workload install maui-windows
+
+    - name: Install dependencies
+      run: dotnet restore ${{ env.CSPROJ_PATH }}
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Prapare Python Package
+      run: |
+        python --version
+        python -m pip install aiofiles aiohttp
+    - name: Dump Third Party License Info
+      id: dump-third-party-license-info
+      continue-on-error: true
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Dump Third Party License Info (Retry)
+      if: steps.dump-third-party-license-info.outcome == 'failure'
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+    - name: Print Third Party License Info Files
+      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+    - name: Add AppCenterSecrets.cs
+      run: |
+        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo 'public const string WINDOWS = "${{ secrets.APP_CENTER_SECRET_WINDOWS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+
+    - name: Build x64
+      run: >
+        dotnet publish ${{ env.CSPROJ_PATH }}
+        -f ${{ env.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ env.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX64 }}
+        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+
+    - name: Upload x64
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X64 }}
+        path: ${{ env.OUTPUT_DIR }}
+        retention-days: 3
+
+    - name: Clear Output Directory
+      run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
+
+    - name: Build x64 Self Contained
+      run: >
+        dotnet publish ${{ env.CSPROJ_PATH }}
+        -f ${{ env.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ env.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:WindowsAppSDKSelfContained=true
+        --self-contained
+        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX64 }}
+        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+
+    - name: Upload x64 Self Contained
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+        path: ${{ env.OUTPUT_DIR }}
+        retention-days: 3
+
+    - name: Clear Output Directory
+      run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
+
+    - name: Build x86
+      run: >
+        dotnet publish ${{ env.CSPROJ_PATH }}
+        -f ${{ env.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ env.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX86 }}
+        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+
+    - name: Upload x86
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X86 }}
+        path: ${{ env.OUTPUT_DIR }}
+        retention-days: 3
+
+    - name: Clear Output Directory
+      run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
+
+    - name: Build x86 Self Contained
+      run: >
+        dotnet publish ${{ env.CSPROJ_PATH }}
+        -f ${{ env.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ env.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:WindowsAppSDKSelfContained=true
+        --self-contained
+        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX86 }}
+        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+
+    - name: Upload x86 Self Contained
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+        path: ${{ env.OUTPUT_DIR }}
+        retention-days: 3
+
 
   publish-ios:
     if: |
@@ -494,7 +648,7 @@ jobs:
         TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Download IPA
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ipa
         path: ${{ env.OUTPUT_DIR }}
@@ -518,7 +672,7 @@ jobs:
         --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
     - name: Download dSYM
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dSYM
         path: .
@@ -564,7 +718,7 @@ jobs:
         TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
     - name: Download PKG
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: pkg
         path: ${{ env.OUTPUT_DIR }}
@@ -589,10 +743,13 @@ jobs:
 
   set-tag:
     if: |
-      needs.generate-bundle-version.result == 'success'
+      always()
+      && needs.generate-bundle-version.result == 'success'
       && (
         needs.publish-ios.result == 'success'
         || needs.publish-mac.result == 'success'
+        || needs.build-android.result == 'success'
+        || needs.build-windows.result == 'success'
       )
 
     runs-on: ubuntu-latest
@@ -601,7 +758,9 @@ jobs:
       - generate-bundle-version
       - publish-ios
       - publish-mac
-    
+      - build-android
+      - build-windows
+
     outputs:
       tag-name: ${{ steps.tag-name.outputs.tag-name }}
 
@@ -636,7 +795,7 @@ jobs:
       run: >
         echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
         ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-        ' (Publish Status iOS: ${{ needs.publish-ios.result }} / macOS: ${{ needs.publish-mac.result }})'
+        ' (Publish Status iOS: ${{ needs.publish-ios.result }} / macOS: ${{ needs.publish-mac.result }} / Android: ${{ needs.build-android.result }} / Windows: ${{ needs.build-windows.result }})'
         | gh pr comment ${{ github.event.number }} -F -
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -650,13 +809,51 @@ jobs:
     needs:
       - set-tag
       - build-android
+      - build-windows
 
     steps:
     - name: Download APK
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: apk
         path: ${{ env.OUTPUT_DIR }}
+    - name: Download windows asset (x64)
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X64 }}
+        path: ${{ env.ASSET_NAME_WIN_X64 }}
+    - name: Download windows asset (x86)
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X86 }}
+        path: ${{ env.ASSET_NAME_WIN_X86 }}
+    - name: Download windows asset (x64 self-contained)
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+        path: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+    - name: Download windows asset (x86 self-contained)
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+        path: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+
+    - name: pack win-x64
+      run: |
+        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.zip ${{ env.ASSET_NAME_WIN_X64 }}
+        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.7z ${{ env.ASSET_NAME_WIN_X64 }}
+    - name: pack win-x86
+      run: |
+        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.zip ${{ env.ASSET_NAME_WIN_X86 }}
+        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.7z ${{ env.ASSET_NAME_WIN_X86 }}
+    - name: pack win-x64-self-contained
+      run: |
+        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+    - name: pack win-x86-self-contained
+      run: |
+        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
 
     - name: Create Release
       run: >
@@ -664,6 +861,8 @@ jobs:
         --draft
         --generate-notes
         ${{ env.OUTPUT_DIR }}/*.apk
+        ${{ env.OUTPUT_DIR }}/*.zip
+        ${{ env.OUTPUT_DIR }}/*.7z
         --repo ${{ github.repository }}
         --notes 'This release is automatically created by actions ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}'
       env:

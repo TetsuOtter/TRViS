@@ -110,7 +110,7 @@ public static class AppCenterService
 					#elif ANDROID
 					crashReport.AndroidDetails,
 					#else
-					crashReport.Exception,
+					"(No Detail)",
 					#endif
 					crashReport.StackTrace
 				);
@@ -203,7 +203,7 @@ public static class AppCenterService
 					#elif ANDROID
 					crashReport.AndroidDetails,
 					#else
-					crashReport.Exception,
+					"(No Detail)",
 					#endif
 					crashReport.StackTrace
 				);
