@@ -42,19 +42,12 @@ public static class MauiProgram
 		return builder.Build();
 	}
 
-	private static async void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+	private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
 	{
 		if (e.ExceptionObject is not Exception ex)
 			return;
 
 		logger.Fatal(ex, "UnhandledException");
-
-		if (!DirectoryPathProvider.CrashLogFileDirectory.Exists)
-		{
-			DirectoryPathProvider.CrashLogFileDirectory.Create();
-		}
-
-		await File.AppendAllTextAsync(CrashLogFilePath, $"{DateTime.Now:[yyyy/MM/dd HH:mm:ss]} {ex.Message}\n{ex.StackTrace}\n---\n(InnerException: {ex.InnerException})\n\n");
 	}
 }
 

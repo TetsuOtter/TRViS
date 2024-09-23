@@ -42,6 +42,10 @@ public partial class TabButton : ContentView
 	}
 	void OnWindowWidthChanged(double newValue)
 	{
+		if (newValue == 0)
+		{
+			return;
+		}
 		try
 		{
 			logger.Trace("newValue: {0}", newValue);

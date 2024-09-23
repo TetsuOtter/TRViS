@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net8.0-android;</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
 		<UseMauiNuGets>true</UseMauiNuGets>
 		<OutputType>Exe</OutputType>
@@ -25,6 +25,9 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+	</PropertyGroup>
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
+		<RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 		<WarningLevel>4</WarningLevel>
@@ -52,7 +55,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="8.0.70" />
+			Version="8.0.90" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.2.2" />
@@ -66,10 +69,10 @@
 			Version="8.0.4" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="9.0.2" />
+			Version="9.0.3" />
 		<PackageReference
 			Include="NLog"
-			Version="5.3.2" />
+			Version="5.3.4" />
 		<PackageReference
 			Include="Microsoft.AppCenter.Analytics"
 			Version="5.0.5" />
