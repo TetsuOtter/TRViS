@@ -488,6 +488,9 @@ jobs:
     needs:
       - get-version
 
+    env:
+      WITHOUT_ANDROID: true
+  
     steps:
     - uses: actions/checkout@v4
 
