@@ -160,6 +160,7 @@ jobs:
     
     # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
     - name: Build keychain
+      id: import-code-sign-cert
       run: |
         echo "${{ secrets.P12_FILE_BASE64 }}" | base64 --decode > certificate.p12
         security create-keychain -p "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
@@ -377,6 +378,7 @@ jobs:
     
     # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
     - name: Build keychain
+      id: import-code-sign-cert
       run: |
         echo "${{ secrets.P12_FILE_MAC_BASE64 }}" | base64 --decode > certificate.p12
         security create-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
