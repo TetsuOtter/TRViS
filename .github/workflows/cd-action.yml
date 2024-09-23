@@ -795,7 +795,7 @@ jobs:
       run: >
         echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
         ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-        ' (Publish Status iOS: ${{ needs.publish-ios.result }} / macOS: ${{ needs.publish-mac.result }})'
+        ' (Publish Status iOS: ${{ needs.publish-ios.result }} / macOS: ${{ needs.publish-mac.result }} / Android: ${{ needs.build-android.result }} / Windows: ${{ needs.build-windows.result }})'
         | gh pr comment ${{ github.event.number }} -F -
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
