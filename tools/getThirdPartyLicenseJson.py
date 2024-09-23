@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 import json
-from os import makedirs
+from os import makedirs, name as osName
 from shutil import copyfile
 from subprocess import PIPE, Popen
 from os.path import dirname, basename, exists, join as joinPath
@@ -16,6 +16,8 @@ from hashlib import sha256
 CSPROJ_PATH = dirname(__file__) + "/../TRViS/TRViS.csproj"
 TIMEOUT_SEC = 2
 ENC = "utf-8"
+DOTNET_ENCODING = 'utf-8-sig' if osName == 'nt' else 'utf-8'
+
 IGNORE_NS = "TRViS"
 
 LICENSE_INFO_LIST_FILE_NAME = "license_list.json"
@@ -51,11 +53,11 @@ def getNugetGlobalPackagesDir() -> str:
 
 async def getLicenseInfo(globalPackagesDir: str, packageInfo: PackageInfo) -> LicenseInfo:
   packageNameLower = str.lower(packageInfo.PackageName)
-  resourcePath = f'{globalPackagesDir}{packageNameLower}/{packageInfo.ResolvedVersion}/{packageNameLower}.nuspec'
+  resourcePath = joinPath(globalPackagesDir, packageNameLower, packageInfo.ResolvedVersion, f'{packageNameLower}.nuspec')
 
   metadata: ElementTree.Element = None
   NUSPEC_XML_NAMESPACE = {}
-  async with aio_open(resourcePath, 'r') as stream:
+  async with aio_open(resourcePath, 'r', encoding=DOTNET_ENCODING) as stream:
     root = ElementTree.fromstring(await stream.read())
     if root is None:
       return None
@@ -100,18 +102,17 @@ def getAndTrySetUniqueKey(dic: Dict[str, str], key: str) -> str:
   return hashStr
 
 async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str):
-  async with aio_open(targetPath, 'w') as f:
-    text = ''
-    async with session.get(srcUrl) as result:
-      if not result.ok:
-        raise EOFError(f'GET Request to {srcUrl} failed')
+  async with session.get(srcUrl) as result:
+    if not result.ok:
+      raise EOFError(f'GET Request to {srcUrl} failed')
 
-      text = await result.text()
+    async with aio_open(targetPath, 'wb') as f:
+      async for chunk in result.content.iter_chunked(4096):
+        await f.write(chunk)
 
-      result.close()
-      if not result.closed:
-        await result.wait_for_close()
-    await f.write(text)
+    result.close()
+    if not result.closed:
+      await result.wait_for_close()
 
 async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str]):
   url = licenseInfo.licenseUrl
@@ -145,7 +146,7 @@ async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: s
   await getAndWriteFile(session, url, licenseFilePath)
 
 async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licenseInfo: LicenseInfo, targetDir: str):
-  licenseList = [str(v) for v in re.split("\(|\)| ", licenseInfo.license) if (v != '' or v.isspace()) and v != "OR" and v != "AND"]
+  licenseList = [str(v) for v in re.split(r"\(|\)| ", licenseInfo.license) if (v != '' or v.isspace()) and v != "OR" and v != "AND"]
   for licenseId in licenseList:
     licenseFilePath = joinPath(targetDir, licenseId)
     if exists(licenseFilePath):
@@ -176,7 +177,7 @@ def getFrameworkVersion(platform: str) -> str:
   with Popen(["dotnet", "list", CSPROJ_PATH, "package"], stdout=PIPE) as p:
     for line in p.stdout.readlines():
       lineStr = line.decode(ENC)
-      frameworkVersionCheckResult = re.search(r"\[net\d+\.\d+-" + platform + r"\d+.\d+\]", lineStr)
+      frameworkVersionCheckResult = re.search(r"\[net\d+\.\d+-" + platform + r"\d+(.\d)+\]", lineStr)
       
       if not frameworkVersionCheckResult:
         continue
@@ -203,7 +204,7 @@ async def main(platform: str, targetDir: str) -> int:
       continue
     packages.append(PackageInfo(v[1].decode(ENC), v[-1].decode(ENC)))
 
-  globalPackagesDir = getNugetGlobalPackagesDir()
+  globalPackagesDir = getNugetGlobalPackagesDir().strip()
   packageInfoList = await asyncio.gather(*[getLicenseInfo(globalPackagesDir, v) for v in packages if not v.PackageName.startswith(IGNORE_NS)])
 
   urlDic = {}
