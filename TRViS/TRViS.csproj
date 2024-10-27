@@ -46,7 +46,10 @@
 		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset
-			Include="Resources\Raw\**"
+			Include="Resources\AppIcon\appiconfg.png"
+			LogicalName="appiconfg.png" />
+		<MauiAsset
+			Include="..\docs\md\**"
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 		<MauiAsset
 			Include="..\docs\md\**"
@@ -55,10 +58,10 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="8.0.90" />
+			Version="8.0.92" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
-			Version="8.2.2" />
+			Version="8.3.2" />
 		<PackageReference
 			Include="DependencyPropertyGenerator"
 			Version="1.4.0"
@@ -66,19 +69,19 @@
 			ExcludeAssets="runtime" />
 		<PackageReference
 			Include="System.Text.Json"
-			Version="8.0.4" />
+			Version="8.0.5" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="9.0.3" />
+			Version="9.1.0" />
 		<PackageReference
 			Include="NLog"
 			Version="5.3.4" />
 		<PackageReference
 			Include="Microsoft.AppCenter.Analytics"
-			Version="5.0.5" />
+			Version="5.0.6" />
 		<PackageReference
 			Include="Microsoft.AppCenter.Crashes"
-			Version="5.0.5" />
+			Version="5.0.6" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
