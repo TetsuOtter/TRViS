@@ -14,6 +14,7 @@
 
 	<Image
 		Style="{x:Static local:DTACElementStyles.AppIconStyleResource}"
+		Opacity="{x:Static local:DTACElementStyles.AppIconOpacity}"
 		Grid.Row="2"/>
 
 	<ScrollView

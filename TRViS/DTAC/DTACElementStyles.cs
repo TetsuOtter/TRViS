@@ -100,6 +100,7 @@ public static partial class DTACElementStyles
 		new(new(64))
 		);
 
+	public static readonly AppThemeGenericsValueTypeBindingExtension<double> AppIconOpacity = new(0.1, 0.05);
 	static Style? _appIconStyleResource = null;
 	public static Style AppIconStyleResource
 	{
@@ -115,7 +116,7 @@ public static partial class DTACElementStyles
 					new Setter { Property = Image.SourceProperty, Value = "appiconfg.png" },
 					new Setter { Property = Image.AspectProperty, Value = Aspect.AspectFit },
 					new Setter { Property = Image.MarginProperty, Value = new Thickness(8) },
-					new Setter { Property = Image.OpacityProperty, Value = 0.05 },
+					// なぜかここでAppThemeBindingでOpacityを設定しても反映されない
 				}
 			};
 

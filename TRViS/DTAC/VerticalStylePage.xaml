@@ -203,6 +203,7 @@
 
 		<Image
 			Style="{x:Static dtac:DTACElementStyles.AppIconStyleResource}"
+			Opacity="{x:Static dtac:DTACElementStyles.AppIconOpacity}"
 			Grid.Row="6"/>
 
 		<ScrollView
