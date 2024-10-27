@@ -46,7 +46,10 @@
 		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset
-			Include="Resources\Raw\**"
+			Include="Resources\AppIcon\appiconfg.png"
+			LogicalName="appiconfg.png" />
+		<MauiAsset
+			Include="..\docs\md\**"
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 		<MauiAsset
 			Include="..\docs\md\**"

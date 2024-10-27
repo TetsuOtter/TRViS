@@ -12,6 +12,10 @@
 		<RowDefinition Height="*" />
 	</Grid.RowDefinitions>
 
+	<Image
+		Style="{x:Static local:DTACElementStyles.AppIconStyleResource}"
+		Grid.Row="2"/>
+
 	<ScrollView
 		x:Name="SimpleViewScrollView"
 		Grid.Row="2"

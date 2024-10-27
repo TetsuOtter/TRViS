@@ -100,6 +100,29 @@ public static partial class DTACElementStyles
 		new(new(64))
 		);
 
+	static Style? _appIconStyleResource = null;
+	public static Style AppIconStyleResource
+	{
+		get
+		{
+			if (_appIconStyleResource is not null)
+				return _appIconStyleResource;
+
+			_appIconStyleResource = new Style(typeof(Image))
+			{
+				Setters =
+				{
+					new Setter { Property = Image.SourceProperty, Value = "appiconfg.png" },
+					new Setter { Property = Image.AspectProperty, Value = Aspect.AspectFit },
+					new Setter { Property = Image.MarginProperty, Value = new Thickness(8) },
+					new Setter { Property = Image.OpacityProperty, Value = 0.05 },
+				}
+			};
+
+			return _appIconStyleResource;
+		}
+	}
+
 	static Style? _labelStyleResource = null;
 	public static Style LabelStyleResource
 	{
