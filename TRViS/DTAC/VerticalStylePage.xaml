@@ -2,6 +2,7 @@
 <ContentView
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:root="clr-namespace:TRViS"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
@@ -200,6 +201,12 @@
 			BackgroundColor="{x:Static dtac:DTACElementStyles.HeaderBackgroundColor}"
 			FontSize_Large="28"
 			Grid.Row="5"/>
+
+		<Image
+			Style="{x:Static dtac:DTACElementStyles.AppIconStyleResource}"
+			IsVisible="{Binding IsBgAppIconVisible, Source={x:Static root:InstanceManager.AppViewModel}}"
+			Opacity="{x:Static dtac:DTACElementStyles.AppIconOpacity}"
+			Grid.Row="6"/>
 
 		<ScrollView
 			x:Name="TimetableAreaScrollView"

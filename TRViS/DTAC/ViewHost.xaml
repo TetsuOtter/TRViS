@@ -48,14 +48,24 @@
 			HorizontalOptions="End"
 			VerticalOptions="End"
 			Spacing="8">
+			<ImageButton
+				Aspect="AspectFill"
+				Margin="0,8"
+				HeightRequest="30"
+				WidthRequest="30"
+				Padding="0"
+				CornerRadius="7"
+				Source="{x:Static local:DTACElementStyles.AppIconSource}"
+				BackgroundColor="{x:Static local:DTACElementStyles.AppIconBgColor}"
+				Clicked="OnToggleBgAppIconButtonClicked" />
 			<Button
 				x:Name="ChangeThemeButton"
-				Margin="0"
+				Margin="0,6"
 				Padding="0"
 				FontFamily="MaterialIconsRegular"
 				FontSize="28"
 				HorizontalOptions="Center"
-				VerticalOptions="Center"
+				VerticalOptions="End"
 				BackgroundColor="Transparent"
 				Clicked="OnChangeThemeButtonClicked" />
 			<Label

@@ -30,6 +30,9 @@ public partial class AppViewModel : ObservableObject
 	TrainData? _SelectedTrainData;
 
 	[ObservableProperty]
+	bool _IsBgAppIconVisible = true;
+
+	[ObservableProperty]
 	double _WindowHeight;
 
 	[ObservableProperty]
