@@ -30,6 +30,12 @@ public static class MauiProgram
 		builder
 			.UseMauiApp<App>()
 			.UseMauiCommunityToolkit()
+			#if IOS
+			.ConfigureMauiHandlers(handlers =>
+			{
+				handlers.AddHandler<Shell, HideShellTabRenderer>();
+			})
+			#endif
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

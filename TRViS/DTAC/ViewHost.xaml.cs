@@ -162,6 +162,24 @@ public partial class ViewHost : ContentPage
 		logger.Debug("FlyoutIsPresented is changed to {0}", Shell.Current.FlyoutIsPresented);
 	}
 
+	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)
+	{
+		bool newState = !InstanceManager.AppViewModel.IsBgAppIconVisible;
+		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
+		logger.Debug("IsBgAppIconVisible is changed to {0}", newState);
+		if (sender is VisualElement button)
+		{
+			if (newState)
+			{
+				DTACElementStyles.AppIconBgColor.Apply(button, BackgroundColorProperty);
+			}
+			else
+			{
+				button.BackgroundColor = Colors.Transparent;
+			}
+		}
+	}
+
 	private void Eevm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
 		if (sender is not EasterEggPageViewModel vm)
