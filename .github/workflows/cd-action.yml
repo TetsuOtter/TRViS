@@ -140,7 +140,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     needs:
       - get-version
@@ -184,7 +184,7 @@ jobs:
     - name: Setup Xcode version
       uses: maxim-lobanov/setup-xcode@v1.6.0
       with:
-        xcode-version: 15
+        xcode-version: 16
 
     - uses: actions/setup-dotnet@v4
       with:
@@ -358,7 +358,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     needs:
       - get-version
@@ -402,7 +402,7 @@ jobs:
     - name: Setup Xcode version
       uses: maxim-lobanov/setup-xcode@v1.6.0
       with:
-        xcode-version: 15
+        xcode-version: 16
 
     - uses: actions/setup-dotnet@v4
       with:
@@ -628,7 +628,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 10
     needs:
       - build-ios
@@ -698,7 +698,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     needs:
       - build-mac

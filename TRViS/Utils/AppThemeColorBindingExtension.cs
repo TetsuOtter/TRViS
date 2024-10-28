@@ -30,6 +30,24 @@ public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension wher
 	}
 }
 
+public class AppThemeGenericsValueTypeBindingExtension<T> : AppThemeBindingExtension
+{
+	public AppThemeGenericsValueTypeBindingExtension(T Default, T Dark)
+	{
+		base.Default
+			= base.Light
+			= Default
+			;
+
+		base.Dark = Dark;
+	}
+
+	public virtual void Apply(BindableObject? elem, BindableProperty prop)
+	{
+		elem?.SetAppTheme(prop, this.Light, this.Dark);
+	}
+}
+
 public class AppThemeColorBindingExtension : AppThemeGenericsBindingExtension<Color>
 {
 	public AppThemeColorBindingExtension(Color Default, Color Dark) : base(Default, Dark) { }

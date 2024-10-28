@@ -50,12 +50,12 @@
 			Spacing="8">
 			<Button
 				x:Name="ChangeThemeButton"
-				Margin="0"
+				Margin="0,6"
 				Padding="0"
 				FontFamily="MaterialIconsRegular"
 				FontSize="28"
 				HorizontalOptions="Center"
-				VerticalOptions="Center"
+				VerticalOptions="End"
 				BackgroundColor="Transparent"
 				Clicked="OnChangeThemeButtonClicked" />
 			<Label

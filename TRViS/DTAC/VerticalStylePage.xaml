@@ -201,6 +201,11 @@
 			FontSize_Large="28"
 			Grid.Row="5"/>
 
+		<Image
+			Style="{x:Static dtac:DTACElementStyles.AppIconStyleResource}"
+			Opacity="{x:Static dtac:DTACElementStyles.AppIconOpacity}"
+			Grid.Row="6"/>
+
 		<ScrollView
 			x:Name="TimetableAreaScrollView"
 			Grid.Row="6"/>
