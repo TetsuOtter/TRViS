@@ -32,6 +32,7 @@
 				<Label.Triggers>
 					<DataTrigger
 						TargetType="Label"
+						x:DataType="local:StartEndRunButton"
 						Binding="{Binding IsChecked, Source={x:Reference this}}"
 						Value="True">
 						<Setter
@@ -54,6 +55,7 @@
 				<Label.Triggers>
 					<DataTrigger
 						TargetType="Label"
+						x:DataType="local:StartEndRunButton"
 						Binding="{Binding IsChecked, Source={x:Reference this}}"
 						Value="True">
 						<Setter

@@ -44,6 +44,7 @@
 			Padding="0"
 			HorizontalOptions="Center"
 			VerticalOptions="Center"
+			x:DataType="dtac:TimetableHeader"
 			FontSize="{Binding FontSize_Large, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimetableHeader}}}"
 			FontAttributes="Bold"
 			TextColor="White"
