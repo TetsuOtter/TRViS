@@ -12,7 +12,17 @@ public partial class App : Application
 	{
 		logger.Trace("App Creating (URL: {0})", AppLinkUri?.ToString() ?? "(null))");
 
+	try
+	{
 		InitializeComponent();
+	}
+	catch (Exception ex)
+	{
+		logger.Error(ex, "App Initialize Failed");
+		NLog.LogManager.Flush();
+		NLog.LogManager.Shutdown();
+		System.Environment.Exit(1);
+	}
 
 		logger.Trace("App Created");
 	}
