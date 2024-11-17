@@ -62,7 +62,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="8.0.92" />
+			Version="9.0.10" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.3.2" />
@@ -73,10 +73,10 @@
 			ExcludeAssets="runtime" />
 		<PackageReference
 			Include="System.Text.Json"
-			Version="8.0.5" />
+			Version="9.0.0" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="9.1.0" />
+			Version="9.1.1" />
 		<PackageReference
 			Include="NLog"
 			Version="5.3.4" />
