@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-
+using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.IO;
@@ -74,6 +74,12 @@ public partial class AppViewModel : ObservableObject
 		}
 	}
 
+	[JsonSourceGenerationOptions(WriteIndented = false)]
+	[JsonSerializable(typeof(List<string>))]
+	internal partial class StringListJsonSourceGenerationContext : JsonSerializerContext
+	{
+	}
+
 	public AppViewModel()
 	{
 		if (Application.Current is not null)
@@ -91,7 +97,7 @@ public partial class AppViewModel : ObservableObject
 			};
 		}
 
-		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson<List<string>>(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _);
+		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _, StringListJsonSourceGenerationContext.Default.ListString);
 	}
 
 	partial void OnLoaderChanged(ILoader? value)
