@@ -149,11 +149,12 @@ public partial class ViewHost : ContentPage
 		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
-	protected override void LayoutChildren(double x, double y, double width, double height)
+	protected override Size ArrangeOverride(Rect bounds)
 	{
-		base.LayoutChildren(x, y, width, height);
-		logger.Info("LayoutChildren({0}, {1}, {2}, {3})", x, y, width, height);
-		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
+		Size ret = base.ArrangeOverride(bounds);
+		logger.Info("ArrangeOverride(X:{0}, Y:{1}, W:{2}, H:{3})", bounds.X, bounds.Y, bounds.Width, bounds.Height);
+		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < bounds.Width;
+		return ret;
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
@@ -165,6 +166,13 @@ public partial class ViewHost : ContentPage
 	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)
 	{
 		bool newState = !InstanceManager.AppViewModel.IsBgAppIconVisible;
+		if (InstanceManager.AppViewModel.CurrentAppTheme == AppTheme.Light
+			&& newState == false)
+		{
+			logger.Warn("IsBgAppIconVisible is not changed to false because CurrentAppTheme is Light");
+			Utils.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
+			return;
+		}
 		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
 		logger.Debug("IsBgAppIconVisible is changed to {0}", newState);
 		if (sender is VisualElement button)

@@ -90,12 +90,12 @@ public partial class AppShell : Shell
 		}
 	}
 
-	protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
+	protected override Size MeasureOverride(double widthConstraint, double heightConstraint)
 	{
 		InstanceManager.AppViewModel.WindowWidth = widthConstraint;
 		InstanceManager.AppViewModel.WindowHeight = heightConstraint;
-		logger.Trace("OnMeasure: {0}x{1}", widthConstraint, heightConstraint);
-		return base.OnMeasure(widthConstraint, heightConstraint);
+		logger.Trace("MeasureOverride: {0}x{1}", widthConstraint, heightConstraint);
+		return base.MeasureOverride(widthConstraint, heightConstraint);
 	}
 
 	public event ValueChangedEventHandler<Thickness>? SafeAreaMarginChanged;

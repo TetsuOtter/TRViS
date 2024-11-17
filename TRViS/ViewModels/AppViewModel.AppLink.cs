@@ -128,7 +128,7 @@ public partial class AppViewModel
 			}
 
 			_ExternalResourceUrlHistory.Add(decodedUrl);
-			AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory);
+			AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 		}
 
 		if (appLinkInfo.RealtimeServiceUri is not null)

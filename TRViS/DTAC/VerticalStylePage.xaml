@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:root="clr-namespace:TRViS"
+	xmlns:vm="clr-namespace:TRViS.ViewModels"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
@@ -143,15 +144,16 @@
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
-			<Frame
+			<Border
 				IsVisible="{Binding CarCount, Converter={x:Static conv:IsOneOrMoreIntConverter.Default}}"
 				Grid.Column="1"
 				BackgroundColor="{x:Static dtac:DTACElementStyles.CarCountBGColor}"
-				BorderColor="Transparent"
-				CornerRadius="4"
+				Stroke="Transparent"
 				Padding="0"
-				Margin="16,6"
-				HasShadow="True">
+				Margin="16,6">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="4"/>
+				</Border.StrokeShape>
 				<Grid
 					Margin="0"
 					Padding="4">
@@ -167,14 +169,14 @@
 						HorizontalOptions="End"
 						Text="両"/>
 				</Grid>
-				<Frame.Shadow>
+				<Border.Shadow>
 					<Shadow
 						Brush="Black"
 						Offset="2,2"
 						Radius="2"
 						Opacity="0.2" />
-				</Frame.Shadow>
-			</Frame>
+				</Border.Shadow>
+			</Border>
 			<Line
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
@@ -204,6 +206,7 @@
 
 		<Image
 			Style="{x:Static dtac:DTACElementStyles.AppIconStyleResource}"
+			x:DataType="vm:AppViewModel"
 			IsVisible="{Binding IsBgAppIconVisible, Source={x:Static root:InstanceManager.AppViewModel}}"
 			Opacity="{x:Static dtac:DTACElementStyles.AppIconOpacity}"
 			Grid.Row="6"/>
@@ -212,19 +215,27 @@
 			x:Name="TimetableAreaScrollView"
 			Grid.Row="6"/>
 
-		<Frame
-			x:Name="TimetableViewActivityIndicatorFrame"
-			Opacity="{x:Static dtac:VerticalStylePage.TimetableViewActivityIndicatorFrameMaxOpacity}"
+		<Border
+			x:Name="TimetableViewActivityIndicatorBorder"
+			Opacity="{x:Static dtac:VerticalStylePage.TimetableViewActivityIndicatorBorderMaxOpacity}"
 			VerticalOptions="Start"
 			IsVisible="False"
-			HasShadow="True"
 			HeightRequest="50"
 			WidthRequest="50"
 			Margin="8"
-			CornerRadius="25"
 			Grid.Row="6">
+			<Border.Shadow>
+				<Shadow
+					Brush="Black"
+					Offset="2,2"
+					Radius="2"
+					Opacity="0.2" />
+			</Border.Shadow>
+			<Border.StrokeShape>
+				<RoundRectangle CornerRadius="25"/>
+			</Border.StrokeShape>
 			<ActivityIndicator
 				IsRunning="True"/>
-		</Frame>
+		</Border>
 	</Grid>
 </ContentView>

@@ -4,7 +4,7 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-public partial class MarkerButton : Frame
+public partial class MarkerButton : Border
 {
 	DTACMarkerViewModel MarkerSettings { get; }
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();

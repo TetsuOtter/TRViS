@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TRViS.Controls;
 using TRViS.Models;
 using TRViS.ViewModels;
@@ -79,6 +80,10 @@ public partial class ThirdPartyLicenses : ContentPage
 		logger.Info("License List Loaded");
 	}
 
+	[JsonSourceGenerationOptions]
+	[JsonSerializable(typeof(LicenseData[]))]
+	internal partial class LicenseDataArrayJsonSourceGenerationContext : JsonSerializerContext { }
+
 	static async Task<LicenseData[]> LoadLicenseList(string fileName)
 	{
 		logger.Info("Loading License List from {0}", fileName);
@@ -89,7 +94,7 @@ public partial class ThirdPartyLicenses : ContentPage
 		if (await FileSystem.AppPackageFileExistsAsync(path))
 		{
 			using Stream stream = await FileSystem.OpenAppPackageFileAsync(path);
-			result = await JsonSerializer.DeserializeAsync<LicenseData[]>(stream);
+			result = await JsonSerializer.DeserializeAsync<LicenseData[]>(stream, LicenseDataArrayJsonSourceGenerationContext.Default.LicenseDataArray);
 			logger.Debug("License List Loaded from App Package (Length: {0})", result?.Length ?? 0);
 		}
 

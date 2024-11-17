@@ -53,8 +53,8 @@ public static partial class DTACElementStyles
 	public static readonly AppThemeColorBindingExtension ForegroundBlackWhite = genColor(0x00, 0xFF);
 	public static readonly AppThemeGenericsBindingExtension<Brush> ForegroundBlackWhiteBrush = ForegroundBlackWhite.ToBrushTheme();
 
-	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideFrameColor = genColor(0xFF, 0xAA);
-	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideDisabledFrameColor = genColor(0xDD, 0x99);
+	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideBorderColor = genColor(0xFF, 0xAA);
+	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideDisabledBorderColor = genColor(0xDD, 0x99);
 	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
 	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideTextColor = genColor(0x00, 0x00);
 	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xDD);
