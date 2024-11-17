@@ -166,6 +166,13 @@ public partial class ViewHost : ContentPage
 	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)
 	{
 		bool newState = !InstanceManager.AppViewModel.IsBgAppIconVisible;
+		if (InstanceManager.AppViewModel.CurrentAppTheme == AppTheme.Light
+			&& newState == false)
+		{
+			logger.Warn("IsBgAppIconVisible is not changed to false because CurrentAppTheme is Light");
+			Utils.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
+			return;
+		}
 		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
 		logger.Debug("IsBgAppIconVisible is changed to {0}", newState);
 		if (sender is VisualElement button)
