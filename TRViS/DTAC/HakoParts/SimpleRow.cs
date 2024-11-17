@@ -51,40 +51,50 @@ public partial class SimpleRow
 		return v;
 	}
 
-	readonly Frame SelectTrainButtonFrame;
-	static readonly Color SelectTrainButtonFrameBorderColor = new(0.6f);
-	static readonly Shadow SelectTrainButtonFrameShadow = new()
+	readonly Border SelectTrainButtonBorder;
+	static readonly Color SelectTrainButtonBorderStrokeColor = new(0.6f);
+	static readonly Shadow SelectTrainButtonShadow = new()
 	{
 		Brush = Colors.Black,
 		Offset = new(0, 0),
 		Radius = 4,
 		Opacity = 0.4f,
 	};
-	static Frame GenSelectTrainButtonFrame(Label TrainNumberLabel)
+	static readonly Shadow SelectTrainButtonEmptyShadow = new()
 	{
-		Frame v = new()
+		Brush = Colors.Transparent,
+		Offset = new(0, 0),
+		Radius = 4,
+		Opacity = 0,
+	};
+	static Border GenSelectTrainButtonBorder(Label TrainNumberLabel)
+	{
+		Border v = new()
 		{
 			Margin = StaNameTrainNumButtonMargin,
 			Padding = TrainNumButtonPadding,
 			VerticalOptions = LayoutOptions.End,
 			HorizontalOptions = LayoutOptions.Center,
 			MinimumWidthRequest = 120,
-			HasShadow = true,
-			Shadow = SelectTrainButtonFrameShadow,
-			BorderColor = SelectTrainButtonFrameBorderColor,
+			Shadow = SelectTrainButtonEmptyShadow,
+			Stroke = SelectTrainButtonBorderStrokeColor,
+			StrokeShape = new RoundRectangle()
+			{
+				CornerRadius = 8,
+			},
 		};
-		DTACElementStyles.DefaultBGColor.Apply(v, Frame.BackgroundColorProperty);
+		DTACElementStyles.DefaultBGColor.Apply(v, Border.BackgroundColorProperty);
 		v.Content = TrainNumberLabel;
 
 		return v;
 	}
 
 	readonly ToggleButton SelectTrainButton;
-	static ToggleButton GenSelectTrainButton(Frame SelectTrainButtonFrame, EventHandler<ValueChangedEventArgs<bool>> IsSelectedChanged, int rowIndex)
+	static ToggleButton GenSelectTrainButton(Border SelectTrainButtonBorder, EventHandler<ValueChangedEventArgs<bool>> IsSelectedChanged, int rowIndex)
 	{
 		ToggleButton v = new()
 		{
-			Content = SelectTrainButtonFrame,
+			Content = SelectTrainButtonBorder,
 			IsRadio = true,
 		};
 
@@ -150,8 +160,8 @@ public partial class SimpleRow
 		int rowIndex_time = rowIndex_StaName_SelectBtn + 1;
 
 		TrainNumberLabel = GenTrainNumberLabel(TrainData);
-		SelectTrainButtonFrame = GenSelectTrainButtonFrame(TrainNumberLabel);
-		SelectTrainButton = GenSelectTrainButton(SelectTrainButtonFrame, (sender, e) =>
+		SelectTrainButtonBorder = GenSelectTrainButtonBorder(TrainNumberLabel);
+		SelectTrainButton = GenSelectTrainButton(SelectTrainButtonBorder, (sender, e) =>
 		{
 			IsSelectedChanged?.Invoke(this, e.OldValue, e.NewValue);
 			SetTrainNumberButtonState();
@@ -183,13 +193,13 @@ public partial class SimpleRow
 	{
 		if (SelectTrainButton.IsEnabled && SelectTrainButton.IsChecked)
 		{
-			DTACElementStyles.DefaultGreen.Apply(SelectTrainButtonFrame, Frame.BorderColorProperty);
-			SelectTrainButtonFrame.HasShadow = false;
+			DTACElementStyles.DefaultGreen.Apply(SelectTrainButtonBorder, Border.StrokeProperty);
+			SelectTrainButtonBorder.Shadow = SelectTrainButtonEmptyShadow;
 		}
 		else
 		{
-			SelectTrainButtonFrame.BorderColor = SelectTrainButtonFrameBorderColor;
-			SelectTrainButtonFrame.HasShadow = true;
+			SelectTrainButtonBorder.Stroke = SelectTrainButtonBorderStrokeColor;
+			SelectTrainButtonBorder.Shadow = SelectTrainButtonShadow;
 		}
 	}
 

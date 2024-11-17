@@ -149,11 +149,12 @@ public partial class ViewHost : ContentPage
 		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
-	protected override void LayoutChildren(double x, double y, double width, double height)
+	protected override Size ArrangeOverride(Rect bounds)
 	{
-		base.LayoutChildren(x, y, width, height);
-		logger.Info("LayoutChildren({0}, {1}, {2}, {3})", x, y, width, height);
-		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
+		Size ret = base.ArrangeOverride(bounds);
+		logger.Info("ArrangeOverride(X:{0}, Y:{1}, W:{2}, H:{3})", bounds.X, bounds.Y, bounds.Width, bounds.Height);
+		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < bounds.Width;
+		return ret;
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)

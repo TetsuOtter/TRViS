@@ -14,14 +14,12 @@ public partial class App : Application
 
 		InitializeComponent();
 
-		MainPage = new AppShell();
-
 		logger.Trace("App Created");
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		Window window = base.CreateWindow(activationState);
+		Window window = new(new AppShell());
 
 		logger.Info("Window Created");
 
@@ -59,9 +57,9 @@ public partial class App : Application
 			return;
 		}
 
-		if (app.MainPage is null)
+		if (app.Windows.Count == 0)
 		{
-			logger.Warn("App.Current.MainPage is null");
+			logger.Warn("app.Windows is Empty");
 			AppLinkUri = uri;
 			return;
 		}

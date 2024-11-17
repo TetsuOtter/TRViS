@@ -6,13 +6,16 @@
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	xmlns:local="clr-namespace:TRViS.DTAC"
 	x:Class="TRViS.DTAC.StartEndRunButton">
-	<Frame
-		x:Name="BaseFrame"
-		CornerRadius="6"
+	<Border
+		x:Name="BaseBorder"
 		Margin="0"
 		Padding="4"
+		Stroke="Transparent"
 		VerticalOptions="Center"
 		HorizontalOptions="Center">
+		<Border.StrokeShape>
+			<RoundRectangle CornerRadius="8"/>
+		</Border.StrokeShape>
 		<HorizontalStackLayout
 			ScaleY="0.95"
 			HorizontalOptions="Center"
@@ -60,7 +63,7 @@
 				</Label.Triggers>
 			</Label>
 		</HorizontalStackLayout>
-	</Frame>
+	</Border>
 
 	<ctrls:ToggleButton.Shadow>
 		<Shadow

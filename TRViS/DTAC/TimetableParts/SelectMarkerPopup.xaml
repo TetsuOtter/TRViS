@@ -27,7 +27,7 @@
 			Grid.Row="1"
 			Padding="8"
 			HorizontalOptions="Center">
-			<Frame
+			<Border
 				Margin="4"
 				Padding="16"
 				BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}"
@@ -43,7 +43,7 @@
 							<ViewCell
 								x:DataType="vm:MarkerInfo">
 								<ContentView>
-									<Frame
+									<Border
 										HeightRequest="32"
 										WidthRequest="32"
 										VerticalOptions="Center"
@@ -52,18 +52,18 @@
 										<Label
 											Text="{Binding Name}"
 											TextColor="Black"
-											Background="#AFFF"
+											Background="#AAFFFFFF"
 											HorizontalOptions="Center"
 											VerticalOptions="Center"/>
-									</Frame>
+									</Border>
 								</ContentView>
 							</ViewCell>
 						</DataTemplate>
 					</ListView.ItemTemplate>
 				</ListView>
-			</Frame>
+			</Border>
 
-			<Frame
+			<Border
 				Margin="4"
 				Padding="16"
 				BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}"
@@ -74,7 +74,7 @@
 					ios:ListView.SeparatorStyle="FullWidth"
 					ItemsSource="{Binding TextList, Mode=OneTime}"
 					SelectedItem="{Binding SelectedText, Mode=TwoWay}"/>
-			</Frame>
+			</Border>
 		</HorizontalStackLayout>
 	</Grid>
 </xct:Popup>

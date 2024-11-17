@@ -29,13 +29,15 @@
 		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="1"/>
 
-	<Frame
+	<Border
 		Grid.Column="2"
 		Margin="16,4"
 		Padding="0"
-		HasShadow="False"
-		BorderColor="{x:Null}"
+		Stroke="Transparent"
 		BackgroundColor="{StaticResource DarkerGreen}">
+		<Border.StrokeShape>
+			<RoundRectangle CornerRadius="8"/>
+		</Border.StrokeShape>
 		<Label
 			Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 			Margin="0"
@@ -46,7 +48,7 @@
 			FontAttributes="Bold"
 			TextColor="White"
 			Text="着"/>
-	</Frame>
+	</Border>
 	<Line
 		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="2"/>

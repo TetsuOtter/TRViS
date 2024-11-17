@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Microsoft.AppCenter.Crashes;
+using Microsoft.Maui.Controls.Shapes;
 using TRViS.Controls;
 
 namespace TRViS.DTAC;
@@ -16,23 +17,28 @@ public class LocationServiceButton : ToggleButton
 	readonly Label Label_ON = DTACElementStyles.LabelStyle<Label>();
 	readonly Label Label_OFF = DTACElementStyles.LabelStyle<Label>();
 
-	readonly Frame SelectedSideBase = new()
+	readonly Border SelectedSideBase = new()
 	{
 		Margin = new(SelectedRectMargin),
 		Padding = new(0),
-		CornerRadius = CornerRadius - SelectedRectMargin,
-		BorderColor = Colors.Transparent,
-		HasShadow = false,
+		Stroke = Colors.Transparent,
+		StrokeShape = new RoundRectangle()
+		{
+			CornerRadius = new(CornerRadius - SelectedRectMargin),
+		},
 		Content = new BoxView()
 		{
 			Margin = new(SelectedRectThickness),
 			CornerRadius = CornerRadius - SelectedRectMargin - SelectedRectThickness,
 		}
 	};
-	readonly Frame NotSelectedSideBase = new()
+	readonly Border NotSelectedSideBase = new()
 	{
 		Margin = new(NotSelectedRectMargin),
-		CornerRadius = CornerRadius - NotSelectedRectMargin,
+		StrokeShape = new RoundRectangle()
+		{
+			CornerRadius = new(CornerRadius - NotSelectedRectMargin),
+		},
 		Shadow = DTACElementStyles.DefaultShadow,
 	};
 
@@ -51,21 +57,23 @@ public class LocationServiceButton : ToggleButton
 			}
 		};
 
-		Frame baseFrame = new()
+		Border baseBorder = new()
 		{
 			Margin = new(0),
 			Padding = new(0),
-			CornerRadius = CornerRadius,
-			BorderColor = Colors.Transparent,
-			HasShadow = true,
+			Stroke = Colors.Transparent,
+			StrokeShape = new RoundRectangle()
+			{
+				CornerRadius = new(CornerRadius),
+			},
 			Shadow = DTACElementStyles.DefaultShadow,
 		};
 
 		InitElements();
 
-		DTACElementStyles.DarkGreen.Apply(baseFrame, BackgroundColorProperty);
+		DTACElementStyles.DarkGreen.Apply(baseBorder, BackgroundColorProperty);
 		DTACElementStyles.DarkGreen.Apply(SelectedSideBase.Content, BoxView.ColorProperty);
-		DTACElementStyles.LocationServiceSelectedSideFrameColor.Apply(SelectedSideBase, BackgroundColorProperty);
+		DTACElementStyles.LocationServiceSelectedSideBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
 		DTACElementStyles.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
 
 		HorizontalStackLayout on_group = new()
@@ -83,8 +91,8 @@ public class LocationServiceButton : ToggleButton
 			= Label_OFF.ScaleX
 			= 0.9;
 
-		Grid.SetColumnSpan(baseFrame, 2);
-		grid.Add(baseFrame);
+		Grid.SetColumnSpan(baseBorder, 2);
+		grid.Add(baseBorder);
 		grid.Add(SelectedSideBase);
 		grid.Add(NotSelectedSideBase);
 
@@ -191,12 +199,12 @@ public class LocationServiceButton : ToggleButton
 		logger.Trace("IsEnabled: {0}", newValue);
 		if (newValue)
 		{
-			DTACElementStyles.LocationServiceSelectedSideFrameColor.Apply(SelectedSideBase, BackgroundColorProperty);
+			DTACElementStyles.LocationServiceSelectedSideBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
 			DTACElementStyles.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
 		}
 		else
 		{
-			DTACElementStyles.LocationServiceSelectedSideDisabledFrameColor.Apply(SelectedSideBase, BackgroundColorProperty);
+			DTACElementStyles.LocationServiceSelectedSideDisabledBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
 			DTACElementStyles.LocationServiceNotSelectedSideDisabledBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
 		}
 	}

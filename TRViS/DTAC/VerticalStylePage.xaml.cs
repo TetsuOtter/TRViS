@@ -27,7 +27,7 @@ public partial class VerticalStylePage : ContentView
 		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
 		+ TIMETABLE_HEADER_ROW_HEIGHT;
 
-	public static double TimetableViewActivityIndicatorFrameMaxOpacity { get; } = 0.6;
+	public static double TimetableViewActivityIndicatorBorderMaxOpacity { get; } = 0.6;
 
 	VerticalTimetableView TimetableView { get; } = new();
 	DTACViewHostViewModel DTACViewHostViewModel { get; }
@@ -92,13 +92,13 @@ public partial class VerticalStylePage : ContentView
 			{
 				if (v.IsBusy)
 				{
-					TimetableViewActivityIndicatorFrame.IsVisible = true;
-					TimetableViewActivityIndicatorFrame.FadeTo(TimetableViewActivityIndicatorFrameMaxOpacity);
+					TimetableViewActivityIndicatorBorder.IsVisible = true;
+					TimetableViewActivityIndicatorBorder.FadeTo(TimetableViewActivityIndicatorBorderMaxOpacity);
 				}
 				else
-					TimetableViewActivityIndicatorFrame.FadeTo(0).ContinueWith((_) => {
-						logger.Debug("TimetableViewActivityIndicatorFrame.FadeTo(0) completed");
-						TimetableViewActivityIndicatorFrame.IsVisible = false;
+					TimetableViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) => {
+						logger.Debug("TimetableViewActivityIndicatorBorder.FadeTo(0) completed");
+						TimetableViewActivityIndicatorBorder.IsVisible = false;
 					});
 
 				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
