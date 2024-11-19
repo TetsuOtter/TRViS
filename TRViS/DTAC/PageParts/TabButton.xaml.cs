@@ -123,12 +123,10 @@ public partial class TabButton : ContentView
 	{
 		if (newValue)
 		{
-			DTACElementStyles.TabButtonBGColor.Apply(BaseBox, BoxView.ColorProperty);
 			ButtonLabel.Opacity = 1;
 		}
 		else
 		{
-			BaseBox.BackgroundColor = BASE_COLOR_DISABLED;
 			ButtonLabel.Opacity = 0.5;
 			if (IsSelected)
 			{
