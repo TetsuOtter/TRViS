@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using DependencyPropertyGenerator;
 using Microsoft.AppCenter.Crashes;
 using TRViS.ViewModels;
@@ -28,6 +29,8 @@ public partial class TabButton : ContentView
 		InstanceManager.AppViewModel.PropertyChanged += AppViewModel_PropertyChanged;
 		OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
 
+		OnIsEnabledChanged(IsEnabled);
+
 		logger.Trace("Created");
 	}
 
@@ -37,6 +40,16 @@ public partial class TabButton : ContentView
 		{
 			case nameof(AppViewModel.WindowWidth):
 				OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
+				break;
+		}
+	}
+	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+	{
+		base.OnPropertyChanged(propertyName);
+		switch (propertyName)
+		{
+			case nameof(IsEnabled):
+				OnIsEnabledChanged(IsEnabled);
 				break;
 		}
 	}
@@ -103,6 +116,24 @@ public partial class TabButton : ContentView
 			DTACElementStyles.TabButtonBGColor.Apply(BaseBox, BoxView.ColorProperty);
 			BaseBox.Shadow.Opacity = 0;
 			logger.Info("Tab `{0}` unselected", Text);
+		}
+	}
+
+	private void OnIsEnabledChanged(bool newValue)
+	{
+		if (newValue)
+		{
+			DTACElementStyles.TabButtonBGColor.Apply(BaseBox, BoxView.ColorProperty);
+			ButtonLabel.Opacity = 1;
+		}
+		else
+		{
+			BaseBox.BackgroundColor = BASE_COLOR_DISABLED;
+			ButtonLabel.Opacity = 0.5;
+			if (IsSelected)
+			{
+				InstanceManager.DTACViewHostViewModel.TabMode = DTACViewHostViewModel.Mode.Hako;
+			}
 		}
 	}
 
