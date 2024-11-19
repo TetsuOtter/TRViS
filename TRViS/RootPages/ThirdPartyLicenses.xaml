@@ -13,7 +13,7 @@
 		Wrap="Wrap">
 		<Border
 			FlexLayout.Grow="1"
-			FlexLayout.Basis="400"
+			FlexLayout.Basis="200"
 			Margin="4">
 			<ListView
 				SelectionMode="Single"
@@ -34,8 +34,9 @@
 
 		<Border
 			Margin="4"
+			Padding="4"
 			FlexLayout.Grow="2"
-			FlexLayout.Basis="600">
+			FlexLayout.Basis="400">
 			<Grid>
 				<Grid.RowDefinitions>
 					<RowDefinition Height="40"/>

@@ -22,6 +22,21 @@ public partial class ThirdPartyLicenses : ContentPage
 		BindingContext = viewModel;
 
 		viewModel.PropertyChanged += ViewModel_PropertyChanged;
+		LicenseTextArea.PropertyChanged += (_, e) => {
+			if (e.PropertyName == nameof(Width))
+			{
+				if (LicenseTextArea.Content is not VerticalStackLayout licenses)
+					return;
+
+				foreach (var v in licenses.Children)
+				{
+					if (v is not HtmlAutoDetectLabel label)
+						continue;
+
+					label.WidthRequest = LicenseTextArea.Width;
+				}
+			}
+		};
 
 		logger.Trace("Creating Task to Load License List");
 		Task.Run(LoadLicenseList);
@@ -44,7 +59,11 @@ public partial class ThirdPartyLicenses : ContentPage
 			{
 				licenses.Children.Add(new HtmlAutoDetectLabel()
 				{
-					Text = v.Value
+					Text = v.Value,
+					FontAutoScalingEnabled = true,
+					LineBreakMode = LineBreakMode.WordWrap,
+					Padding = new(4),
+					WidthRequest = LicenseTextArea.Width,
 				});
 				licenses.Children.Add(new BoxView()
 				{
