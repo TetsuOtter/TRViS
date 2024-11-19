@@ -1,5 +1,5 @@
 using System.Text.Json;
-
+using System.Text.Json.Serialization;
 using TRViS.ViewModels;
 
 namespace TRViS.MyAppCustomizables;
@@ -7,8 +7,11 @@ namespace TRViS.MyAppCustomizables;
 /// <summary>
 /// カスタマイズ設定ファイルの構造が定義されたクラスです。
 /// </summary>
-public class SettingFileStructure
+public partial class SettingFileStructure
 {
+	[JsonSourceGenerationOptions(WriteIndented = true)]
+	[JsonSerializable(typeof(SettingFileStructure))]
+	internal partial class SourceGenerationContext : JsonSerializerContext {}
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
 	/// <summary>
@@ -91,7 +94,7 @@ public class SettingFileStructure
 			SettingFileStructure setting = new()
 			{
 				MarkerTexts = [.. DTACMarkerViewModel.TextListDefaultValue],
-				MarkerColors = DTACMarkerViewModel.ColorListDefaultValue.ToDictionary(v => v.Name, v => new ColorSetting(v.Color)),
+				MarkerColors = DTACMarkerViewModel.ColorListDefaultValue.ToDictionary(static v => v.Name, static v => new ColorSetting(v.Color)),
 			};
 			using FileStream jsonStream = File.Create(settingFileInfo.FullName);
 			await setting.SaveToJsonFileAsync(jsonStream);
@@ -118,7 +121,7 @@ public class SettingFileStructure
 		try
 		{
 			logger.Info("Loading setting file...");
-			settingFileStructure = await JsonSerializer.DeserializeAsync<SettingFileStructure>(jsonStream);
+			settingFileStructure = await JsonSerializer.DeserializeAsync(jsonStream, SourceGenerationContext.Default.SettingFileStructure);
 			logger.Trace("Loaded setting file.");
 		}
 		catch (Exception ex)
@@ -149,7 +152,7 @@ public class SettingFileStructure
 		try
 		{
 			logger.Info("Loading setting file...");
-			settingFileStructure = JsonSerializer.Deserialize<SettingFileStructure>(jsonString);
+			settingFileStructure = JsonSerializer.Deserialize(jsonString, SourceGenerationContext.Default.SettingFileStructure);
 			logger.Trace("Loaded setting file.");
 		}
 		catch (Exception ex)
@@ -168,9 +171,9 @@ public class SettingFileStructure
 	}
 
 	public string ToJsonString()
-		=> JsonSerializer.Serialize(this);
+		=> JsonSerializer.Serialize(this, SourceGenerationContext.Default.SettingFileStructure);
 	public Task SaveToJsonFileAsync(Stream dst)
-		=> JsonSerializer.SerializeAsync(dst, this);
+		=> JsonSerializer.SerializeAsync(dst, this, SourceGenerationContext.Default.SettingFileStructure);
 	public async Task SaveToJsonFileAsync()
 	{
 		FileStream? jsonStream = null;

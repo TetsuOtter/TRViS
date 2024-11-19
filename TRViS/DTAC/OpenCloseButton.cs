@@ -15,34 +15,7 @@ public partial class OpenCloseButton : Button
 	{
 		logger.Trace("Creating...");
 
-		this.SetBinding(TextProperty, new Binding()
-		{
-			Source = this,
-			Path = nameof(TextWhenClosed)
-		});
-
-		DataTrigger dataTrigger = new(typeof(OpenCloseButton))
-		{
-			Binding = new Binding()
-			{
-				Source = this,
-				Path = nameof(IsOpen)
-			},
-			Value = true,
-		};
-
-		dataTrigger.Setters.Add(new()
-		{
-			Property = TextProperty,
-			Value = new Binding()
-			{
-				Source = this,
-				Path = nameof(TextWhenOpen)
-			}
-		});
-
-		Triggers.Add(dataTrigger);
-
+		Text = IsOpen ? TextWhenOpen : TextWhenClosed;
 		CornerRadius = 4;
 		Padding = 0;
 		BorderWidth = 0;
@@ -71,12 +44,28 @@ public partial class OpenCloseButton : Button
 		try
 		{
 			IsOpenChanged?.Invoke(this, new(oldValue, newValue));
+			Text = newValue ? TextWhenOpen : TextWhenClosed;
 		}
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			Crashes.TrackError(ex);
 			Utils.ExitWithAlert(ex);
+		}
+	}
+
+	partial void OnTextWhenOpenChanged(string? newValue)
+	{
+		if (IsOpen)
+		{
+			Text = newValue;
+		}
+	}
+	partial void OnTextWhenClosedChanged(string? newValue)
+	{
+		if (!IsOpen)
+		{
+			Text = newValue;
 		}
 	}
 }

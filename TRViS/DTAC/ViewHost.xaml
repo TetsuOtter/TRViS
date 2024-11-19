@@ -50,7 +50,7 @@
 			Spacing="8">
 			<ImageButton
 				Aspect="AspectFill"
-				Margin="0,8"
+				Margin="12,8"
 				HeightRequest="30"
 				WidthRequest="30"
 				Padding="0"

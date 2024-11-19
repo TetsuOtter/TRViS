@@ -45,10 +45,12 @@ public partial class AppShell : Shell
 		AppCenterSettingViewModel.IsEnabledChanged += ApplyFlyoutBhavior;
 		ApplyFlyoutBhavior(this, false, AppCenterSettingViewModel.IsEnabled);
 
-		SetBinding(Shell.BackgroundColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellBackgroundColor) });
-		SetBinding(Shell.TitleColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
+		this.BindingContext = easterEggPageViewModel;
+		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
+		this.SetBinding(TitleColorProperty, static (EasterEggPageViewModel vm) => vm.ShellTitleTextColor);
 
-		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, new Binding() { Source = easterEggPageViewModel, Path = nameof(EasterEggPageViewModel.ShellTitleTextColor) });
+		FlyoutIconImage.BindingContext = easterEggPageViewModel;
+		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, static (EasterEggPageViewModel vm) => vm.ShellTitleTextColor);
 
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
@@ -90,12 +92,12 @@ public partial class AppShell : Shell
 		}
 	}
 
-	protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
+	protected override Size MeasureOverride(double widthConstraint, double heightConstraint)
 	{
 		InstanceManager.AppViewModel.WindowWidth = widthConstraint;
 		InstanceManager.AppViewModel.WindowHeight = heightConstraint;
-		logger.Trace("OnMeasure: {0}x{1}", widthConstraint, heightConstraint);
-		return base.OnMeasure(widthConstraint, heightConstraint);
+		logger.Trace("MeasureOverride: {0}x{1}", widthConstraint, heightConstraint);
+		return base.MeasureOverride(widthConstraint, heightConstraint);
 	}
 
 	public event ValueChangedEventHandler<Thickness>? SafeAreaMarginChanged;

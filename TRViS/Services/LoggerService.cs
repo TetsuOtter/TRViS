@@ -70,7 +70,7 @@ public static class LoggerService
 				ARCHIVE_LOG_FILE_NAME_PATTERN,
 				SearchOption.TopDirectoryOnly
 			)
-				.OrderByDescending(fileInfo => fileInfo.LastWriteTime)
+				.OrderByDescending(static fileInfo => fileInfo.LastWriteTime)
 				.Skip(MAX_ARCHIVE_LOG_FILE_COUNT);
 
 			foreach (FileInfo oldLogFile in oldLogFiles)
@@ -196,7 +196,7 @@ public static class LoggerService
 				ARCHIVE_LOG_FILE_NAME_PATTERN,
 				SearchOption.TopDirectoryOnly
 			)
-				.OrderByDescending(fileInfo => fileInfo.LastWriteTime)
+				.OrderByDescending(static fileInfo => fileInfo.LastWriteTime)
 				.FirstOrDefault()
 				?.FullName;
 			if (string.IsNullOrEmpty(lastLogFilePath))

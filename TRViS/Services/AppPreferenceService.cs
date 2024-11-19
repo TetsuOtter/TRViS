@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace TRViS.Services;
 
@@ -53,10 +55,10 @@ public static class AppPreferenceService
 		return value;
 	}
 
-	public static T GetFromJson<T>(in AppPreferenceKeys key, T defaultValue, out bool hasKey)
+	public static T GetFromJson<T>(in AppPreferenceKeys key, T defaultValue, out bool hasKey, JsonTypeInfo<T> jsonTypeInfo)
 	{
 		string result = Get(in key, string.Empty, out hasKey);
-		return string.IsNullOrEmpty(result) ? defaultValue : JsonSerializer.Deserialize<T>(result) ?? defaultValue;
+		return string.IsNullOrEmpty(result) ? defaultValue : JsonSerializer.Deserialize(result, jsonTypeInfo) ?? defaultValue;
 	}
 
 	public static void Set(in AppPreferenceKeys key, bool value)
@@ -73,6 +75,6 @@ public static class AppPreferenceService
 		Preferences.Set(keyStr, value);
 	}
 
-	public static void SetToJson<T>(in AppPreferenceKeys key, T value)
-		=> Set(in key, JsonSerializer.Serialize(value));
+	public static void SetToJson<T>(in AppPreferenceKeys key, T value, JsonTypeInfo<T> jsonTypeInfo)
+		=> Set(in key, JsonSerializer.Serialize(value, jsonTypeInfo));
 }

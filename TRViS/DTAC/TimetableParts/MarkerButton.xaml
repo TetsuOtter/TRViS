@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<Frame
+<Border
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
@@ -7,22 +7,23 @@
 	x:Class="TRViS.DTAC.MarkerButton"
 	x:DataType="vm:DTACMarkerViewModel"
 	x:Name="this"
-	CornerRadius="4"
 	Padding="0"
 	WidthRequest="56"
 	HeightRequest="44"
 	HorizontalOptions="Center"
 	VerticalOptions="Center"
-	BorderColor="{x:Null}"
-	HasShadow="False"
+	Stroke="Transparent"
 	BackgroundColor="{x:Static local:DTACElementStyles.OpenCloseButtonBGColor}">
-	<Frame.Resources>
+	<Border.StrokeShape>
+		<RoundRectangle CornerRadius="4"/>
+	</Border.StrokeShape>
+	<Border.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceDictionary Source="../Style_VerticalView.xaml" />
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
-	</Frame.Resources>
+	</Border.Resources>
 
 	<Grid
 		Margin="{OnPlatform iOS='4,6', MacCatalyst='4,6', Default='4,0'}">
@@ -63,17 +64,17 @@
 		</Label>
 	</Grid>
 
-	<Frame.GestureRecognizers>
+	<Border.GestureRecognizers>
 		<TapGestureRecognizer
 			Tapped="TapGestureRecognizer_Tapped"/>
-	</Frame.GestureRecognizers>
+	</Border.GestureRecognizers>
 
-	<Frame.Triggers>
+	<Border.Triggers>
 		<DataTrigger
-			TargetType="Frame"
+			TargetType="Border"
 			Binding="{Binding IsToggled}"
 			Value="True">
 			<Setter Property="BackgroundColor" Value="{StaticResource DarkerGreen}"/>
 		</DataTrigger>
-	</Frame.Triggers>
-</Frame>
+	</Border.Triggers>
+</Border>

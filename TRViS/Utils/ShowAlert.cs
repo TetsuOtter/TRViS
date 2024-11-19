@@ -4,7 +4,7 @@ public static partial class Utils
 {
 	public static Task DisplayAlert(string title, string message, string cancel)
 	{
-		Page? page = Application.Current?.MainPage;
+		Page? page = 0 < Application.Current?.Windows.Count ? Application.Current?.Windows[0].Page : null;
 
 		if (page is null)
 		{
@@ -23,7 +23,7 @@ public static partial class Utils
 
 	public static Task<bool> DisplayAlert(string title, string message, string accept, string cancel)
 	{
-		Page? page = Application.Current?.MainPage;
+		Page? page = 0 < Application.Current?.Windows.Count ? Application.Current?.Windows[0].Page : null;
 
 		if (page is null)
 		{
@@ -41,5 +41,5 @@ public static partial class Utils
 	}
 
 	public static Task ExitWithAlert(Exception ex)
-		=> DisplayAlert("エラー", "不明なエラーが発生しました。アプリを終了します。\n" + ex.Message, "OK").ContinueWith(_ => Environment.Exit(1));
+		=> DisplayAlert("エラー", "不明なエラーが発生しました。アプリを終了します。\n" + ex.Message, "OK").ContinueWith(static _ => Environment.Exit(1));
 }

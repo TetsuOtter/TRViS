@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TRViS.MyAppCustomizables;
 
@@ -7,11 +8,27 @@ public partial class EasterEggPageViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-	[ObservableProperty]
 	Color _ShellBackgroundColor = Colors.Black;
+	public Color ShellBackgroundColor
+	{
+		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
+		get => _ShellBackgroundColor;
+		set
+		{
+			if (SetProperty(ref _ShellBackgroundColor, value))
+			{
+				SetTitleTextColor();
+			}
+		}
+	}
 
-	[ObservableProperty]
 	Color _ShellTitleTextColor = Colors.White;
+	public Color ShellTitleTextColor
+	{
+		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
+		get => _ShellTitleTextColor;
+		set => SetProperty(ref _ShellTitleTextColor, value);
+	}
 
 	[ObservableProperty]
 	int _Color_Red;
@@ -155,14 +172,6 @@ public partial class EasterEggPageViewModel : ObservableObject
 		MarkerViewModel?.SetToSettings(settingFile);
 
 		await settingFile.SaveToJsonFileAsync();
-	}
-
-	partial void OnShellBackgroundColorChanged(Color value)
-	{
-		if (value is not null)
-		{
-			SetTitleTextColor();
-		}
 	}
 
 	void SetTitleTextColor()

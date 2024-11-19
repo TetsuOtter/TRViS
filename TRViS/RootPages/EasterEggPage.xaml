@@ -17,8 +17,10 @@
 				<Setter Property="Margin" Value="4"/>
 			</Style>
 
-			<Style TargetType="Frame">
+			<Style TargetType="Border">
 				<Setter Property="Margin" Value="8"/>
+				<Setter Property="Padding" Value="8"/>
+				<Setter Property="Stroke" Value="{AppThemeBinding Default=Black,Dark=White}"/>
 			</Style>
 
 			<Style TargetType="Button">
@@ -54,7 +56,7 @@
 					Clicked="OnSaveClicked"
 				/>
 			</HorizontalStackLayout>
-			<Frame>
+			<Border>
 				<Grid>
 					<Grid.RowDefinitions>
 						<RowDefinition Height="*"/>
@@ -98,8 +100,8 @@
 						VerticalOptions="Center"
 						Text="{Binding Color_Blue, StringFormat='{0:D3} (0x{0:X02})'}"/>
 				</Grid>
-			</Frame>
-			<Frame>
+			</Border>
+			<Border>
 				<VerticalStackLayout>
 					<Label
 						x:Name="LocationServiceIntervalSettingHeaderLabel"
@@ -112,8 +114,8 @@
 						SelectedItem="{Binding LocationServiceInterval_Seconds, Mode=TwoWay}"
 					/>
 				</VerticalStackLayout>
-			</Frame>
-			<Frame>
+			</Border>
+			<Border>
 				<VerticalStackLayout>
 					<Label
 						Text="Log File Path"
@@ -124,7 +126,7 @@
 						FontSize="Body"
 						/>
 				</VerticalStackLayout>
-			</Frame>
+			</Border>
 		</VerticalStackLayout>
 	</ScrollView>
 </ContentPage>
