@@ -19,6 +19,8 @@
 
 			<Style TargetType="Border">
 				<Setter Property="Margin" Value="8"/>
+				<Setter Property="Padding" Value="8"/>
+				<Setter Property="Stroke" Value="{AppThemeBinding Default=Black,Dark=White}"/>
 			</Style>
 
 			<Style TargetType="Button">
