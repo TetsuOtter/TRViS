@@ -51,11 +51,7 @@ public partial class ViewHost : ContentPage
 			TimeLabel.Text = text;
 		};
 
-		TitleBGBoxView.SetBinding(BoxView.ColorProperty, new Binding()
-		{
-			Source = eevm,
-			Path = nameof(EasterEggPageViewModel.ShellBackgroundColor)
-		});
+		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
 
 		TitleBGGradientBox.Color = null;
 		TitleBGGradientBox.Background = new LinearGradientBrush(new GradientStopCollection()
@@ -83,22 +79,9 @@ public partial class ViewHost : ContentPage
 			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
 		};
 
-		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, new Binding()
-		{
-			Source = vm,
-			Path = nameof(AppViewModel.SelectedTrainData)
-		});
-
-		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
-		{
-			Source = vm,
-			Path = nameof(AppViewModel.SelectedWork)
-		});
-		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
-		{
-			Source = vm,
-			Path = nameof(AppViewModel.SelectedTrainData)
-		});
+		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
+		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
+		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
 		UpdateContent();
 

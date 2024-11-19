@@ -23,11 +23,25 @@ public partial class AppViewModel : ObservableObject
 
 	[ObservableProperty]
 	TRViS.IO.Models.DB.WorkGroup? _SelectedWorkGroup;
-	[ObservableProperty]
 	TRViS.IO.Models.DB.Work? _SelectedWork;
+	public TRViS.IO.Models.DB.Work? SelectedWork
+	{
+		get => _SelectedWork;
+		set
+		{
+			if (SetProperty(ref _SelectedWork, value))
+			{
+				OnSelectedWorkChanged(value);
+			}
+		}
+	}
 
-	[ObservableProperty]
 	TrainData? _SelectedTrainData;
+	public TrainData? SelectedTrainData
+	{
+		get => _SelectedTrainData;
+		set => SetProperty(ref _SelectedTrainData, value);
+	}
 
 	bool _IsBgAppIconVisible = true;
 	public bool IsBgAppIconVisible
@@ -120,7 +134,7 @@ public partial class AppViewModel : ObservableObject
 		}
 	}
 
-	partial void OnSelectedWorkChanged(IO.Models.DB.Work? value)
+	void OnSelectedWorkChanged(IO.Models.DB.Work? value)
 	{
 		logger.Debug("Work: {0}", value?.Id ?? "null");
 		if (value is not null)

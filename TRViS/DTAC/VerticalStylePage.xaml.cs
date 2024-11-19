@@ -138,11 +138,15 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Info("Device is not Phone nor Unknown -> set TimetableView to TimetableAreaScrollView");
 			TimetableAreaScrollView.Content = TimetableView;
-			TimetableView.SetBinding(VerticalTimetableView.ScrollViewHeightProperty, new Binding()
+			TimetableAreaScrollView.PropertyChanged += (_, e) =>
 			{
-				Source = TimetableAreaScrollView,
-				Path = nameof(TimetableAreaScrollView.Height)
-			});
+				// Bindingに失敗するため、代わり。
+				if (e.PropertyName == nameof(TimetableView.Height))
+				{
+					logger.Debug("TimetableView.Height: {0}", TimetableView.HeightRequest);
+					TimetableView.ScrollViewHeight = TimetableAreaScrollView.Height;
+				}
+			};
 		}
 
 		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
