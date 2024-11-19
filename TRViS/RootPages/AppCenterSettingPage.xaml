@@ -46,7 +46,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 			<Border.StrokeShape>
 				<RoundRectangle CornerRadius="4"/>
 			</Border.StrokeShape>
-			<Grid>
+			<Grid RowSpacing="4">
 				<Grid.RowDefinitions>
 					<RowDefinition Height="*"/>
 					<RowDefinition Height="*"/>
