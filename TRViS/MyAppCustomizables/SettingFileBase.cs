@@ -94,7 +94,7 @@ public partial class SettingFileStructure
 			SettingFileStructure setting = new()
 			{
 				MarkerTexts = [.. DTACMarkerViewModel.TextListDefaultValue],
-				MarkerColors = DTACMarkerViewModel.ColorListDefaultValue.ToDictionary(v => v.Name, v => new ColorSetting(v.Color)),
+				MarkerColors = DTACMarkerViewModel.ColorListDefaultValue.ToDictionary(static v => v.Name, static v => new ColorSetting(v.Color)),
 			};
 			using FileStream jsonStream = File.Create(settingFileInfo.FullName);
 			await setting.SaveToJsonFileAsync(jsonStream);

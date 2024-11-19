@@ -45,7 +45,7 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 
 				foreach (string fileName in
 					Regex.Split(value.license, @"\(|\)| ")
-						.Where(v => !string.IsNullOrWhiteSpace(v) && v != "AND" && v != "OR")
+						.Where(static v => !string.IsNullOrWhiteSpace(v) && v != "AND" && v != "OR")
 				)
 				{
 					list.Add(await LoadLicenseText(value.license));

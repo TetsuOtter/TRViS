@@ -41,5 +41,5 @@ public static partial class Utils
 	}
 
 	public static Task ExitWithAlert(Exception ex)
-		=> DisplayAlert("エラー", "不明なエラーが発生しました。アプリを終了します。\n" + ex.Message, "OK").ContinueWith(_ => Environment.Exit(1));
+		=> DisplayAlert("エラー", "不明なエラーが発生しました。アプリを終了します。\n" + ex.Message, "OK").ContinueWith(static _ => Environment.Exit(1));
 }

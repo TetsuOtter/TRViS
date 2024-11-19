@@ -415,7 +415,7 @@ public static partial class DTACElementStyles
 			trackName = HtmlTagRegex().Replace(trackName, "");
 			trackName = XmlEscapedStrRegex().Replace(trackName, "");
 		}
-		int maxLineLength = trackName.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Select(v => v.Length).Max();
+		int maxLineLength = trackName.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Select(static v => v.Length).Max();
 		if (maxLineLength <= 2)
 			return currentFontSize;
 		else

@@ -152,8 +152,8 @@ public partial class SimpleRow
 
 		if (TrainData.Rows is not null)
 		{
-			FirstRow = TrainData.Rows.FirstOrDefault(v => !v.IsInfoRow);
-			LastRow = TrainData.Rows.LastOrDefault(v => !v.IsInfoRow);
+			FirstRow = TrainData.Rows.FirstOrDefault(static v => !v.IsInfoRow);
+			LastRow = TrainData.Rows.LastOrDefault(static v => !v.IsInfoRow);
 		}
 
 		int rowIndex_StaName_SelectBtn = dataIndex * 2;

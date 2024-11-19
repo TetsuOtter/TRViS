@@ -74,7 +74,7 @@ public partial class ThirdPartyLicenses : ContentPage
 			.Concat(await LoadLicenseList("license_list_custom.json"))
 			.ToList();
 
-		list.Sort((v1, v2) => string.Compare(v1.id, v2.id));
+		list.Sort(static (v1, v2) => string.Compare(v1.id, v2.id));
 
 		viewModel.LicenseDataArray = list;
 		logger.Info("License List Loaded");
