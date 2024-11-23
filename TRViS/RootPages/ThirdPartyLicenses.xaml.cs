@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TRViS.Controls;
 using TRViS.Models;
 using TRViS.ViewModels;
@@ -21,6 +22,21 @@ public partial class ThirdPartyLicenses : ContentPage
 		BindingContext = viewModel;
 
 		viewModel.PropertyChanged += ViewModel_PropertyChanged;
+		LicenseTextArea.PropertyChanged += (_, e) => {
+			if (e.PropertyName == nameof(Width))
+			{
+				if (LicenseTextArea.Content is not VerticalStackLayout licenses)
+					return;
+
+				foreach (var v in licenses.Children)
+				{
+					if (v is not HtmlAutoDetectLabel label)
+						continue;
+
+					label.WidthRequest = LicenseTextArea.Width;
+				}
+			}
+		};
 
 		logger.Trace("Creating Task to Load License List");
 		Task.Run(LoadLicenseList);
@@ -43,7 +59,11 @@ public partial class ThirdPartyLicenses : ContentPage
 			{
 				licenses.Children.Add(new HtmlAutoDetectLabel()
 				{
-					Text = v.Value
+					Text = v.Value,
+					FontAutoScalingEnabled = true,
+					LineBreakMode = LineBreakMode.WordWrap,
+					Padding = new(4),
+					WidthRequest = LicenseTextArea.Width,
 				});
 				licenses.Children.Add(new BoxView()
 				{
@@ -73,11 +93,15 @@ public partial class ThirdPartyLicenses : ContentPage
 			.Concat(await LoadLicenseList("license_list_custom.json"))
 			.ToList();
 
-		list.Sort((v1, v2) => string.Compare(v1.id, v2.id));
+		list.Sort(static (v1, v2) => string.Compare(v1.id, v2.id));
 
 		viewModel.LicenseDataArray = list;
 		logger.Info("License List Loaded");
 	}
+
+	[JsonSourceGenerationOptions]
+	[JsonSerializable(typeof(LicenseData[]))]
+	internal partial class LicenseDataArrayJsonSourceGenerationContext : JsonSerializerContext { }
 
 	static async Task<LicenseData[]> LoadLicenseList(string fileName)
 	{
@@ -89,7 +113,7 @@ public partial class ThirdPartyLicenses : ContentPage
 		if (await FileSystem.AppPackageFileExistsAsync(path))
 		{
 			using Stream stream = await FileSystem.OpenAppPackageFileAsync(path);
-			result = await JsonSerializer.DeserializeAsync<LicenseData[]>(stream);
+			result = await JsonSerializer.DeserializeAsync<LicenseData[]>(stream, LicenseDataArrayJsonSourceGenerationContext.Default.LicenseDataArray);
 			logger.Debug("License List Loaded from App Package (Length: {0})", result?.Length ?? 0);
 		}
 

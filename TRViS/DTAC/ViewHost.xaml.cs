@@ -51,11 +51,7 @@ public partial class ViewHost : ContentPage
 			TimeLabel.Text = text;
 		};
 
-		TitleBGBoxView.SetBinding(BoxView.ColorProperty, new Binding()
-		{
-			Source = eevm,
-			Path = nameof(EasterEggPageViewModel.ShellBackgroundColor)
-		});
+		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
 
 		TitleBGGradientBox.Color = null;
 		TitleBGGradientBox.Background = new LinearGradientBrush(new GradientStopCollection()
@@ -83,22 +79,9 @@ public partial class ViewHost : ContentPage
 			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
 		};
 
-		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, new Binding()
-		{
-			Source = vm,
-			Path = nameof(AppViewModel.SelectedTrainData)
-		});
-
-		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
-		{
-			Source = vm,
-			Path = nameof(AppViewModel.SelectedWork)
-		});
-		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, new Binding()
-		{
-			Source = vm,
-			Path = nameof(AppViewModel.SelectedTrainData)
-		});
+		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
+		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
+		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
 		UpdateContent();
 
@@ -149,11 +132,21 @@ public partial class ViewHost : ContentPage
 		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
-	protected override void LayoutChildren(double x, double y, double width, double height)
+	protected override void OnSizeAllocated(double width, double height)
 	{
-		base.LayoutChildren(x, y, width, height);
-		logger.Info("LayoutChildren({0}, {1}, {2}, {3})", x, y, width, height);
-		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
+		try
+		{
+			logger.Trace("width: {0}, height: {1}", width, height);
+			TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
+
+			base.OnSizeAllocated(width, height);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
@@ -165,6 +158,13 @@ public partial class ViewHost : ContentPage
 	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)
 	{
 		bool newState = !InstanceManager.AppViewModel.IsBgAppIconVisible;
+		if (InstanceManager.AppViewModel.CurrentAppTheme == AppTheme.Light
+			&& newState == false)
+		{
+			logger.Warn("IsBgAppIconVisible is not changed to false because CurrentAppTheme is Light");
+			Utils.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
+			return;
+		}
 		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
 		logger.Debug("IsBgAppIconVisible is changed to {0}", newState);
 		if (sender is VisualElement button)

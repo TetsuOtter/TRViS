@@ -25,6 +25,7 @@
 		Grid.Column="0"
 		HorizontalOptions="End"
 		Margin="0"
+		x:DataType="dtac:TimeCell"
 		TextColor="{Binding TextColor, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
 		Text="{Binding HHMM, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"/>
 
@@ -32,6 +33,7 @@
 		Style="{x:Static dtac:DTACElementStyles.TimetableDefaultNumberLabelStyleResource}"
 		Grid.Column="1"
 		HorizontalOptions="Start"
+		x:DataType="dtac:TimeCell"
 		TextColor="{Binding TextColor, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
 		Text="{Binding TimeData.Second, StringFormat='{0:D02}', Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"/>
 
@@ -42,11 +44,13 @@
 		VerticalOptions="Center"
 		Padding="2"
 		Grid.ColumnSpan="2"
+		x:DataType="dtac:TimeCell"
 		TextColor="{Binding TextColor, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
 		Text="{Binding TimeData.Text, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
 		FontAttributes="Bold"/>
 
 	<Image
+		x:DataType="dtac:TimeCell"
 		IsVisible="{Binding IsArrowVisible, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
 		Aspect="AspectFit"
 		HeightRequest="22"

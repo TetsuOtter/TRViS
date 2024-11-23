@@ -52,12 +52,7 @@ public partial class Hako : Grid
 
 		SimpleView.SetBinding(
 			WidthRequestProperty,
-			new Binding()
-			{
-				Source = SimpleViewScrollView,
-				Path = nameof(headerView.Width),
-				Mode = BindingMode.OneWay,
-			}
+			BindingBase.Create(static (ScrollView x) => x.Width, BindingMode.OneWay, source: headerView)
 		);
 
 		logger.Trace("Created");

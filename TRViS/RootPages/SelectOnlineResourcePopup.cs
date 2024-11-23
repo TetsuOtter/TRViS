@@ -74,7 +74,7 @@ public class SelectOnlineResourcePopup : Popup
 		UrlHistoryListView.ItemTemplate = new DataTemplate(() => {
 			TextCell cell = new();
 			RootStyles.TableTextColor.Apply(cell, TextCell.TextColorProperty);
-			cell.SetBinding(TextCell.TextProperty, ".");
+			cell.SetBinding(TextCell.TextProperty, static (string? v) => v);
 			return cell;
 		});
 

@@ -11,9 +11,8 @@
 	Title="Select Train">
 	<ContentPage.Resources>
 		<ResourceDictionary>
-			<Style TargetType="Frame">
-				<Setter Property="HasShadow" Value="True"/>
-				<Setter Property="BorderColor" Value="{x:Static local:RootStyles.FrameBorderColor}"/>
+			<Style TargetType="Border">
+				<Setter Property="Stroke" Value="{x:Static local:RootStyles.BorderStrokeColor}"/>
 				<Setter Property="BackgroundColor" Value="{x:Static local:RootStyles.BackgroundColor}"/>
 				<Setter Property="Margin" Value="4"/>
 				<Setter Property="Padding" Value="8"/>
@@ -59,7 +58,7 @@
 		<FlexLayout
 			Grid.Row="2"
 			Wrap="Wrap">
-			<Frame>
+			<Border>
 				<Grid>
 					<Grid.RowDefinitions>
 						<RowDefinition Height="40"/>
@@ -84,9 +83,9 @@
 						</ListView.ItemTemplate>
 					</ListView>
 				</Grid>
-			</Frame>
+			</Border>
 
-			<Frame>
+			<Border>
 				<Grid>
 					<Grid.RowDefinitions>
 						<RowDefinition Height="40"/>
@@ -111,7 +110,7 @@
 						</ListView.ItemTemplate>
 					</ListView>
 				</Grid>
-			</Frame>
+			</Border>
 		</FlexLayout>
 
 	</Grid>

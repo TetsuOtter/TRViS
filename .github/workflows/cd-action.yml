@@ -19,12 +19,12 @@ env:
   CSPROJ_PATH: ./TRViS/TRViS.csproj
   THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
   THIRD_PARTY_LICENSE_LIST_NAME: license_list
-  TARGET_FRAMEWORK: net8.0-ios
+  TARGET_FRAMEWORK: net9.0-ios
   TARGET_RUNTIME: ios-arm64
-  TARGET_FRAMEWORK_MAC: net8.0-maccatalyst
+  TARGET_FRAMEWORK_MAC: net9.0-maccatalyst
   TARGET_RUNTIME_MAC: osx
-  TARGET_FRAMEWORK_ANDROID: net8.0-android
-  TARGET_FRAMEWORK_WIN: net8.0-windows10.0.19041.0
+  TARGET_FRAMEWORK_ANDROID: net9.0-android
+  TARGET_FRAMEWORK_WIN: net9.0-windows10.0.19041.0
   TARGET_RUNTIME_WINX64: win10-x64
   TARGET_RUNTIME_WINX86: win10-x86
   OUTPUT_DIR: ./out
@@ -36,9 +36,9 @@ env:
   ASSET_NAME_WIN_X86: TRViS-win-x86
   ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
   ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
-  SDK_VERSION: '8.0.401'
+  SDK_VERSION: '9.0.100'
   APP_CENTER_SECRETS_FILE_NAME: ./TRViS/AppCenterSecrets.cs
-  IOS_DSYM_PATH: ./TRViS/bin/Release/net8.0-ios/ios-arm64
+  IOS_DSYM_PATH: ./TRViS/bin/Release/net9.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
 
 jobs:

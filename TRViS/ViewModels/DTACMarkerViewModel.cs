@@ -79,7 +79,7 @@ public partial class DTACMarkerViewModel : ObservableObject
 		);
 
 		ColorList.Clear();
-		ColorList.AddRange(settingFile.MarkerColors.Select(v => new MarkerInfo(v.Key, v.Value.ToColor())));
+		ColorList.AddRange(settingFile.MarkerColors.Select(static v => new MarkerInfo(v.Key, v.Value.ToColor())));
 		if (SelectedMarkerInfo is not null && !ColorList.Contains(SelectedMarkerInfo))
 		{
 			logger.Debug("Current SelectedMarkerInfo is not in ColorList");
@@ -122,7 +122,7 @@ public partial class DTACMarkerViewModel : ObservableObject
 	{
 		logger.Trace("Executing...");
 
-		settingFile.MarkerColors = ColorList.ToDictionary(v => v.Name, v => new ColorSetting(v.Color));
+		settingFile.MarkerColors = ColorList.ToDictionary(static v => v.Name, static v => new ColorSetting(v.Color));
 		settingFile.MarkerTexts = TextList.ToArray();
 
 		logger.Trace("Completed");

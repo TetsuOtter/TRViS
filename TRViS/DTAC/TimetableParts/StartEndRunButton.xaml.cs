@@ -45,7 +45,7 @@ public partial class StartEndRunButton : ToggleButton
 		brush.GradientStops.Add(gradientStop_Up);
 		brush.GradientStops.Add(gradientStop_Down);
 
-		BaseFrame.Background = brush;
+		BaseBorder.Background = brush;
 
 		logger.Trace("Created");
 	}

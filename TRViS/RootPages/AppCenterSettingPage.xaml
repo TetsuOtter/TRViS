@@ -29,24 +29,24 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 			</Label>
 		</VerticalStackLayout>
 
-		<Frame
+		<Border
 			Grid.Row="1"
 			Margin="4"
-			Padding="4"
-			CornerRadius="0"
-			HasShadow="False">
+			Padding="4">
 			<ctrls:SimpleMarkdownView
 				FileName="PrivacyPolicy_md"/>
-		</Frame>
+		</Border>
 
-		<Frame
+		<Border
 			Grid.Row="2"
-			CornerRadius="4"
 			HorizontalOptions="Center"
-			HasShadow="True"
+			Padding="8"
 			Margin="8"
 		>
-			<Grid>
+			<Border.StrokeShape>
+				<RoundRectangle CornerRadius="4"/>
+			</Border.StrokeShape>
+			<Grid RowSpacing="4">
 				<Grid.RowDefinitions>
 					<RowDefinition Height="*"/>
 					<RowDefinition Height="*"/>
@@ -91,7 +91,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					IsToggled="{Binding IsAnalyticsEnabled}"/>
 
 				<Button
-					Padding="16,32"
+					Padding="16"
 					Grid.Row="4"
 					Grid.Column="0"
 					Grid.ColumnSpan="2"
@@ -99,7 +99,7 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					Clicked="OnResetButtonClicked"
 					Text="保存値を復元"/>
 				<Button
-					Padding="16,32"
+					Padding="16"
 					Grid.Row="4"
 					Grid.Column="0"
 					Grid.ColumnSpan="2"
@@ -107,6 +107,6 @@ TRViSでは、アプリの品質向上のため、アプリのクラッシュや
 					Clicked="OnSaveButtonClicked"
 					Text="保存"/>
 			</Grid>
-		</Frame>
+		</Border>
 	</Grid>
 </ContentPage>

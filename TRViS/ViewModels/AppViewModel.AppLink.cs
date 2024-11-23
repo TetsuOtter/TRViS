@@ -128,7 +128,7 @@ public partial class AppViewModel
 			}
 
 			_ExternalResourceUrlHistory.Add(decodedUrl);
-			AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory);
+			AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 		}
 
 		if (appLinkInfo.RealtimeServiceUri is not null)
@@ -211,7 +211,7 @@ public partial class AppViewModel
 		token.ThrowIfCancellationRequested();
 
 		logger.Warn("remoteIp is private but not same network");
-		string myIpListStr = string.Join('\n', myIpList.Select((x, i) => $"この端末[{i}]:{x}"));
+		string myIpListStr = string.Join('\n', myIpList.Select(static (x, i) => $"この端末[{i}]:{x}"));
 		bool continueProcessing = await Utils.DisplayAlert(
 			"Maybe Different Network",
 			$"接続先と違うネットワークに属しているため、接続に失敗する可能性があります。\nこのまま接続しますか?\n接続先:{remoteIp}\n{myIpListStr}",
@@ -240,7 +240,7 @@ public partial class AppViewModel
 
 #if DEBUG
 		// パフォーマンスとプライバシーの理由で、ヘッダーの内容はDEBUGビルドのみ表示する
-		IEnumerable<string> headerStrEnumerable = response.Content.Headers.Select(x => $"{x.Key}: {string.Join(", ", x.Value)}");
+		IEnumerable<string> headerStrEnumerable = response.Content.Headers.Select(static x => $"{x.Key}: {string.Join(", ", x.Value)}");
 		logger.Trace("ResponseHeaders: {0}", string.Join(", ", headerStrEnumerable));
 #endif
 
