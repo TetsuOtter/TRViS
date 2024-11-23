@@ -132,12 +132,21 @@ public partial class ViewHost : ContentPage
 		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
-	protected override Size ArrangeOverride(Rect bounds)
+	protected override void OnSizeAllocated(double width, double height)
 	{
-		Size ret = base.ArrangeOverride(bounds);
-		logger.Info("ArrangeOverride(X:{0}, Y:{1}, W:{2}, H:{3})", bounds.X, bounds.Y, bounds.Width, bounds.Height);
-		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < bounds.Width;
-		return ret;
+		try
+		{
+			logger.Trace("width: {0}, height: {1}", width, height);
+			TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
+
+			base.OnSizeAllocated(width, height);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			Crashes.TrackError(ex);
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
