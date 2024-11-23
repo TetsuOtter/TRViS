@@ -158,7 +158,7 @@ public class LoaderJson : ILoader
 							// TODO: JSONでのNextTrainIdのサポート
 							NextTrainId = trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null
 						},
-						trainData.TimetableRows.Select((v, i) => new TimetableRow(
+						trainData.TimetableRows.Select(static (v, i) => new TimetableRow(
 							Id: v.Id ?? i.ToString(),
 							Location: new(v.Location_m, v.Longitude_deg, v.Latitude_deg, v.OnStationDetectRadius_m),
 							DriveTimeMM: v.DriveTime_MM,
@@ -257,7 +257,7 @@ public class LoaderJson : ILoader
 		=> WorkData.Values.Where(v => v.WorkGroupId == workGroupId).ToArray();
 
 	public IReadOnlyList<Models.DB.TrainData> GetTrainDataList(string workId)
-		=> TrainData.Values.Where((v) => WorkIdByTrainId[v.Item1.Id] == workId).Select(v => v.Item1).ToArray();
+		=> TrainData.Values.Where((v) => WorkIdByTrainId[v.Item1.Id] == workId).Select(static v => v.Item1).ToArray();
 
 	public IReadOnlyList<TrainDataGroup> GetTrainDataGroupList()
 	{

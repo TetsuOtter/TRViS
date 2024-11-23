@@ -32,7 +32,7 @@ public class LoaderSQL : ILoader, IDisposable
 				TrainNumber = t.TrainNumber
 			};
 
-		foreach (var group in res.GroupBy(v => v.GroupId))
+		foreach (var group in res.GroupBy(static v => v.GroupId))
 		{
 			List<TrainDataFileInfo> fileInfo = new();
 			foreach (var work in group)

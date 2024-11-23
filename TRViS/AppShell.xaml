@@ -18,15 +18,15 @@
 	<Shell.FlyoutFooter>
 		<VerticalStackLayout
 			Margin="4">
-			<Frame
+			<Border
 				BackgroundColor="{AppThemeBinding Default=White, Dark=Black}"
-				BorderColor="{AppThemeBinding Default=#333, Dark=#CCC}"
+				Stroke="{AppThemeBinding Default=#333, Dark=#CCC}"
 				HorizontalOptions="Center"
 				Margin="8"
 				Padding="8">
 				<Label
 					Text="{x:Static local:AppShell.AppVersionString}"/>
-			</Frame>
+			</Border>
 		</VerticalStackLayout>
 	</Shell.FlyoutFooter>
 

@@ -37,7 +37,7 @@ public class LonLatLocationService : ILocationService
 				return;
 
 			_staLocationInfo = value;
-			CanUseService = _staLocationInfo?.Any(v => v.HasLonLatLocation) ?? false;
+			CanUseService = _staLocationInfo?.Any(static v => v.HasLonLatLocation) ?? false;
 			ResetLocationInfo();
 		}
 	}

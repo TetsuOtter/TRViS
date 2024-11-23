@@ -272,7 +272,7 @@ public partial class LocationService : IDisposable
 			return;
 		}
 
-		_CurrentService.StaLocationInfo = timetableRows?.Where(v => !v.IsInfoRow).Select(v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
+		_CurrentService.StaLocationInfo = timetableRows?.Where(static v => !v.IsInfoRow).Select(static v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
 	}
 
 	static EasterEggPageViewModel EasterEggPageViewModel { get; } = InstanceManager.EasterEggPageViewModel;
