@@ -59,29 +59,29 @@
 			LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
-	  <BundleResource Include="Platforms\iOS\CustomAssets.xcassets\**\*" />
+		<BundleResource Include="Platforms\iOS\CustomAssets.xcassets\**\*" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="9.0.10" />
+			Version="9.0.40" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
-			Version="8.3.2" />
+			Version="8.4.0" />
 		<PackageReference
 			Include="DependencyPropertyGenerator"
-			Version="1.4.0"
+			Version="1.5.0"
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
 		<PackageReference
 			Include="System.Text.Json"
-			Version="9.0.0" />
+			Version="9.0.2" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="9.1.1" />
+			Version="11.1.0" />
 		<PackageReference
 			Include="NLog"
-			Version="5.3.4" />
+			Version="5.4.0" />
 		<PackageReference
 			Include="Microsoft.AppCenter.Analytics"
 			Version="5.0.6" />
