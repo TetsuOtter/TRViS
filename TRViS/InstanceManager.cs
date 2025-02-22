@@ -1,3 +1,4 @@
+using TRViS.FirebaseWrapper;
 using TRViS.Services;
 using TRViS.ViewModels;
 
@@ -8,8 +9,8 @@ internal static class InstanceManager
 	private static AppViewModel? _AppViewModel = null;
 	public static AppViewModel AppViewModel { get => _AppViewModel ??= new(); }
 
-	private static AppCenterSettingViewModel? _AppCenterSettingViewModel = null;
-	public static AppCenterSettingViewModel AppCenterSettingViewModel { get => _AppCenterSettingViewModel ??= new(); }
+	private static FirebaseSettingViewModel? _FirebaseSettingViewModel = null;
+	public static FirebaseSettingViewModel FirebaseSettingViewModel { get => _FirebaseSettingViewModel ??= new(); }
 
 	private static DTACMarkerViewModel? _DTACMarkerViewModel = null;
 	public static DTACMarkerViewModel DTACMarkerViewModel { get => _DTACMarkerViewModel ??= new(); }
@@ -21,6 +22,11 @@ internal static class InstanceManager
 	public static EasterEggPageViewModel EasterEggPageViewModel { get => _EasterEggPageViewModel ??= new(); }
 	private static LocationService? _LocationService = null;
 	public static LocationService LocationService { get => _LocationService ??= new(); }
+
+	private static CrashlyticsWrapper? _CrashlyticsWrapper = null;
+	public static ICrashlyticsWrapper CrashlyticsWrapper => _CrashlyticsWrapper ??= new();
+	private static AnalyticsWrapper? _AnalyticsWrapper = null;
+	public static IAnalyticsWrapper AnalyticsWrapper => _AnalyticsWrapper ??= new();
 
 	static HttpClient? _HttpClient = null;
 	public static HttpClient HttpClient

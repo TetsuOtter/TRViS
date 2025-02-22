@@ -18,16 +18,16 @@
 
 ## 利用状況の収集
 
-本アプリでは、利用状況を収集するために、Microsoftが提供する Visual Studio App Center (以下 AppCenter) を利用しています。
-AppCenterを用いて利用状況を収集する機能については、無効化することができます。
+本アプリでは、利用状況を収集するために、Google が提供する Google Analytics を利用しています。
+Google Analytics を用いて利用状況を送信する機能については、無効化することができます。
 
-AppCenterのセキュリティとコンプライアンスについては、以下のリンクをご確認ください。
+Google のプライバシーポリシーについては、以下のリンクをご確認ください。
 
-https://learn.microsoft.com/ja-jp/appcenter/general/app-center-security
+https://policies.google.com/privacy
 
-### iOS版 / iPadOS版 / macOS版
+### iOS 版 / iPadOS 版 / macOS 版
 
-Apple系の端末では、AppCenterの他に、Appleが提供するApp Store等のサービスを使用しています。
+Apple 系の端末では、AppCenter の他に、Apple が提供する App Store 等のサービスを使用しています。
 
 これらのサービスのプライバシーポリシーについては、以下のリンクをご確認ください。
 
@@ -35,18 +35,17 @@ https://www.apple.com/jp/legal/privacy/data/
 
 ## クラッシュログの収集
 
-本アプリでは、クラッシュログを収集するために、Microsoftが提供する Visual Studio App Center (以下 AppCenter) を利用しています。
+本アプリでは、クラッシュログを収集するために、Google が提供する Firebase Crashlytics (以下 Crashlytics) を利用しています。
 
-AppCenterを用いてクラッシュログを収集する機能は無効にできません。品質向上にご協力ください。
-但し、クラッシュした際の実行ログを送信するかしないかは、ユーザが選択できます。
+Crashlytics を用いてクラッシュログを収集する機能は無効にできません。品質向上にご協力ください。
 
-AppCenterのセキュリティとコンプライアンスについては、以下のリンクをご確認ください。
+Firebase のプライバシーとセキュリティについては、以下のリンクをご確認ください。
 
-https://learn.microsoft.com/ja-jp/appcenter/general/app-center-security
+https://firebase.google.com/support/privacy
 
-### iOS版 / iPadOS版 / macOS版
+### iOS 版 / iPadOS 版 / macOS 版
 
-Apple系の端末では、AppCenterの他に、Appleが提供するアプリ解析サービスを使用しています。
+Apple 系の端末では、AppCenter の他に、Apple が提供するアプリ解析サービスを使用しています。
 
 このサービスでは、アプリがクラッシュした際に、「クラッシュした」という事実と、任意でクラッシュログの送信を行うことができます。
 これらの収集は、「設定」アプリから無効化することができます。
@@ -57,6 +56,7 @@ https://www.apple.com/jp/legal/privacy/data/ja/app-analytics/
 
 ## 更新履歴
 
-- 2024年5月21日: リンクを踏めない不具合に関する注意書きを削除
-- 2023年10月26日: AppCenter導入に伴い更新 (ついでに位置情報についても明記)
-- 2022年9月16日: 作成
+- 2025 年 2 月 22 日: 情報収集サービスを Google Analytics / Firebase Crashlytics に乗り換えたことによる改訂
+- 2024 年 5 月 21 日: リンクを踏めない不具合に関する注意書きを削除
+- 2023 年 10 月 26 日: AppCenter 導入に伴い更新 (ついでに位置情報についても明記)
+- 2022 年 9 月 16 日: 作成

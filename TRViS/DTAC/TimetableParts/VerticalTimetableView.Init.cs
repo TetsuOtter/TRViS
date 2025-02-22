@@ -1,4 +1,3 @@
-using Microsoft.AppCenter.Crashes;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
@@ -110,7 +109,7 @@ public partial class VerticalTimetableView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.AddSeparatorLines");
 			Utils.ExitWithAlert(ex);
 			return Task.FromException(ex);
 		}
@@ -142,7 +141,7 @@ public partial class VerticalTimetableView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews");
 				Utils.ExitWithAlert(ex);
 			}
 		});
@@ -171,7 +170,7 @@ public partial class VerticalTimetableView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (SetRowDefinitions etc failed)");
 			await Utils.ExitWithAlert(ex);
 		}
 
@@ -195,7 +194,7 @@ public partial class VerticalTimetableView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (AddNewRow failed)");
 				await Utils.ExitWithAlert(ex);
 			}
 		});
@@ -235,7 +234,7 @@ public partial class VerticalTimetableView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (FooterInsertion failed)");
 				Utils.ExitWithAlert(ex);
 			}
 		});
@@ -290,7 +289,7 @@ public partial class VerticalTimetableView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.AddNewRow");
 				Utils.ExitWithAlert(ex);
 			}
 		});
@@ -355,7 +354,7 @@ public partial class VerticalTimetableView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnScrollViewHeightChanged");
 			Utils.ExitWithAlert(ex);
 		}
 

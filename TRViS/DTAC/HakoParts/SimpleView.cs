@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using Microsoft.AppCenter.Crashes;
+
 using TRViS.IO;
 using TRViS.IO.Models;
 
@@ -55,7 +55,7 @@ public class SimpleView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
 			Utils.ExitWithAlert(ex);
 		}
 
@@ -78,7 +78,7 @@ public class SimpleView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnIsSelectedChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -94,7 +94,7 @@ public class SimpleView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
 				Utils.ExitWithAlert(ex);
 			}
 		}
@@ -107,7 +107,7 @@ public class SimpleView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedTrainChanged");
 				Utils.ExitWithAlert(ex);
 			}
 		}

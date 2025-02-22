@@ -1,5 +1,5 @@
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
+
 using TRViS.Services;
 
 namespace TRViS.DTAC;
@@ -29,7 +29,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnIsLocationServiceEnabledChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -76,7 +76,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.LocationService_LocationStateChanged");
 			Utils.ExitWithAlert(ex);
 		}
 
@@ -139,7 +139,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetCurrentRunningRow");
 				Utils.ExitWithAlert(ex);
 			}
 		});
@@ -179,7 +179,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.UpdateCurrentRunningLocationVisualizer");
 			Utils.ExitWithAlert(ex);
 		}
 
@@ -209,7 +209,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.UpdateCurrentRunningLocationVisualizer.ScrollRequested");
 				Utils.ExitWithAlert(ex);
 			}
 		}

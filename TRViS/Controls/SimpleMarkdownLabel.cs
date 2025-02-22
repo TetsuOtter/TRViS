@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.Controls;
 
@@ -47,7 +47,8 @@ public partial class SimpleMarkdownLabel : Label
 			}
 			else
 			{
-				MainThread.BeginInvokeOnMainThread(() => {
+				MainThread.BeginInvokeOnMainThread(() =>
+				{
 					try
 					{
 						FormattedText = formattedString;
@@ -56,7 +57,7 @@ public partial class SimpleMarkdownLabel : Label
 					catch (Exception ex)
 					{
 						logger.Warn(ex, "Unknown Exception");
-						Crashes.TrackError(ex);
+						InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleMarkdownLabel.OnMarkdownFileContentChanged (set FormattedText)");
 					}
 				});
 			}
@@ -64,7 +65,7 @@ public partial class SimpleMarkdownLabel : Label
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -79,7 +80,7 @@ public partial class SimpleMarkdownLabel : Label
 			{
 				if (sb.Length == 0)
 					return new Span();
-				
+
 				logger.Trace(">> 0 < sb.Length");
 				Span span = new()
 				{
@@ -162,7 +163,7 @@ public partial class SimpleMarkdownLabel : Label
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleMarkdownLabel.SetMarkdownSpanList");
 			Utils.ExitWithAlert(ex);
 		}
 	}

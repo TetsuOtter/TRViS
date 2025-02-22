@@ -1,7 +1,5 @@
 using System.Text;
 
-using Microsoft.AppCenter.Crashes;
-
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -127,11 +125,11 @@ public static class LoggerService
 		};
 		LoggingRule fileLoggingRule = new(
 			"*",
-			#if DEBUG
+#if DEBUG
 			LogLevel.Trace,
-			#else
+#else
 			LogLevel.Info,
-			#endif
+#endif
 			fileAsyncTargetWrapper
 		);
 
@@ -162,74 +160,5 @@ public static class LoggerService
 			_logger.Error(exceptionOnDeleteOldLogFiles, "DeleteOldLogFiles Failed");
 
 		return _logger;
-	}
-
-	// AppCenter側で7MBまでの制限があるので、余裕をもってこの値を設定する
-	const int MAX_LOG_LENGTH_TO_ATTACH = 6 * 1024 * 1024;
-	// このCallbackは、Crash直後ではなく、Crash Logの送信直前に呼び出される。
-	// つまり、次回起動時の実行になってしまう。
-	public static ErrorAttachmentLog[] GetErrorAttachmentsCallback(ErrorReport report)
-	{
-		logger.Debug("called with report: Id:{0}, AppStart:{1}, AppCrash:{2}, Details:{3}, StackTrace:{4}",
-			report.Id,
-			report.AppStartTime,
-			report.AppErrorTime,
-			#if IOS || MACCATALYST
-			report.AppleDetails,
-			#elif ANDROID
-			report.AndroidDetails,
-			#else
-			"(No Detail)",
-			#endif
-			report.StackTrace
-		);
-
-		if (!InstanceManager.AppCenterSettingViewModel.IsLogShareEnabled)
-		{
-			logger.Info("LogShare is disabled, so skipping...");
-			return Array.Empty<ErrorAttachmentLog>();
-		}
-
-		try
-		{
-			string? lastLogFilePath = LOG_FILE_DIRECTORY_INFO.EnumerateFiles(
-				ARCHIVE_LOG_FILE_NAME_PATTERN,
-				SearchOption.TopDirectoryOnly
-			)
-				.OrderByDescending(static fileInfo => fileInfo.LastWriteTime)
-				.FirstOrDefault()
-				?.FullName;
-			if (string.IsNullOrEmpty(lastLogFilePath))
-			{
-				logger.Warn("lastLogFilePath is null or empty");
-				return Array.Empty<ErrorAttachmentLog>();
-			}
-
-			logger.Debug("lastLogFilePath: {0}", lastLogFilePath);
-
-			byte[] logFileContent = File.ReadAllBytes(lastLogFilePath);
-			logger.Info("logFileContent.Length: {0}", logFileContent.Length);
-
-			if (MAX_LOG_LENGTH_TO_ATTACH < logFileContent.Length)
-			{
-				logFileContent = logFileContent[^MAX_LOG_LENGTH_TO_ATTACH..];
-				logger.Info("logFileContent.Length: trimmed to {0}", logFileContent.Length);
-			}
-
-			var attachments = new ErrorAttachmentLog[]
-			{
-				ErrorAttachmentLog.AttachmentWithBinary(
-					logFileContent,
-					CURRENT_LOG_FILE_NAME,
-					"text/plain"
-				),
-			};
-			return attachments;
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "GetErrorAttachmentsCallback Failed");
-			return Array.Empty<ErrorAttachmentLog>();
-		}
 	}
 }

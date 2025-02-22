@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using Microsoft.AppCenter.Crashes;
+
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
@@ -144,7 +144,7 @@ public partial class ViewHost : ContentPage
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.OnSizeAllocated");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -223,7 +223,7 @@ public partial class ViewHost : ContentPage
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.Vm_PropertyChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}

@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using Microsoft.AppCenter.Crashes;
+
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -56,7 +56,7 @@ public partial class VerticalTimetableRow
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableRow.LocationState");
 				Utils.ExitWithAlert(ex);
 			}
 		}
