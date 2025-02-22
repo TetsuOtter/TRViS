@@ -1,7 +1,3 @@
-using Microsoft.AppCenter;
-using Microsoft.AppCenter.Analytics;
-using Microsoft.AppCenter.Crashes;
-
 namespace TRViS;
 
 public partial class App : Application
@@ -12,17 +8,17 @@ public partial class App : Application
 	{
 		logger.Trace("App Creating (URL: {0})", AppLinkUri?.ToString() ?? "(null))");
 
-	try
-	{
-		InitializeComponent();
-	}
-	catch (Exception ex)
-	{
-		logger.Error(ex, "App Initialize Failed");
-		NLog.LogManager.Flush();
-		NLog.LogManager.Shutdown();
-		System.Environment.Exit(1);
-	}
+		try
+		{
+			InitializeComponent();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "App Initialize Failed");
+			NLog.LogManager.Flush();
+			NLog.LogManager.Shutdown();
+			System.Environment.Exit(1);
+		}
 
 		logger.Trace("App Created");
 	}
@@ -108,7 +104,10 @@ public partial class App : Application
 			if (t.IsFaulted)
 			{
 				logger.Error(t.Exception, "HandleAppLinkUriAsync Failed");
-				Crashes.TrackError(t.Exception);
+				if (t.Exception is not null)
+				{
+					InstanceManager.CrashlyticsWrapper.Log(t.Exception);
+				}
 			}
 		}, cancellationToken);
 	}

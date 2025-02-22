@@ -9,6 +9,8 @@ public enum AppPreferenceKeys
 	IsAppCenterEnabled,
 	IsAppCenterAnalyticsEnabled,
 	IsAppCenterLogShareEnabled,
+	LastAcceptedPrivacyPolicyRevision,
+	InstallId,
 	ExternalResourceUrlHistory,
 }
 

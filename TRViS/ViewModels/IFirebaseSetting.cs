@@ -1,6 +1,6 @@
 namespace TRViS.ViewModels;
 
-public interface IAppCenterSetting
+public interface IFirebaseSetting
 {
 	bool IsEnabled { get; set; }
 
@@ -9,4 +9,6 @@ public interface IAppCenterSetting
 	bool IsAnalyticsEnabled { get; set; }
 
 	string InstallId { get; }
+
+	string LastAcceptedPrivacyPolicyRevision { get; set; }
 }

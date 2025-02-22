@@ -1,7 +1,5 @@
 using CommunityToolkit.Maui.Views;
 
-using Microsoft.AppCenter.Crashes;
-
 using TRViS.IO;
 using TRViS.ViewModels;
 
@@ -56,7 +54,7 @@ public partial class SelectTrainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.LoadFromWebButton_Clicked (ShowPopupAsync failed)");
 			logger.Error(ex, "ShowPopupAsync failed");
 			await Utils.DisplayAlert(this, "Open Popup Failed", ex.ToString(), "OK");
 		}
@@ -116,7 +114,7 @@ public partial class SelectTrainPage : ContentPage
 				viewModel.Loader = lastLoader;
 			}
 
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.SelectDatabaseButton_Clicked (PickAsync failed)");
 			logger.Error(ex, "File Selection Failed");
 			await Utils.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
 		}
