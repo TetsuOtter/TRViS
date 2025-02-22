@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
+
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -72,7 +73,7 @@ public partial class TabButton : ContentView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "TabButton.OnWindowWidthChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -151,7 +152,7 @@ public partial class TabButton : ContentView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "TabButton.BaseBox_Tapped");
 			Utils.ExitWithAlert(ex);
 		}
 	}

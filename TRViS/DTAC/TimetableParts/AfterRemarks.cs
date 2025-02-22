@@ -1,4 +1,3 @@
-using Microsoft.AppCenter.Crashes;
 using TRViS.Controls;
 
 namespace TRViS.DTAC;
@@ -67,7 +66,7 @@ public class AfterRemarks
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "AfterRemarks.SetRow");
 			Utils.ExitWithAlert(ex);
 		}
 	}

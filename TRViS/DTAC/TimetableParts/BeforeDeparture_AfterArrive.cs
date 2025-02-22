@@ -1,4 +1,3 @@
-using Microsoft.AppCenter.Crashes;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
@@ -86,7 +85,7 @@ public class BeforeDeparture_AfterArrive
 
 			logger.Debug("Setting Text_OnStationTrackColumn to {0}", value);
 			Label_OnStationTrackColumn.Text = value;
-		} 
+		}
 	}
 
 	public void AddToParent()
@@ -136,8 +135,8 @@ public class BeforeDeparture_AfterArrive
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
-			Utils.ExitWithAlert(ex);			
+			InstanceManager.CrashlyticsWrapper.Log(ex, "BeforeDeparture_AfterArrive.SetRow");
+			Utils.ExitWithAlert(ex);
 		}
 	}
 }

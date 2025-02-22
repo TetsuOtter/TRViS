@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.Controls;
 
@@ -7,15 +6,18 @@ public class HtmlAutoDetectLabel : Label
 {
 	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 	public AppThemeColorBindingExtension? CurrentAppThemeColorBindingExtension { get; set; }
-	public Color? LastTextColor {get; private set; }
+	public Color? LastTextColor { get; private set; }
 
 	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 	{
-		try {
+		try
+		{
 			base.OnPropertyChanged(propertyName);
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (base)");
 			Utils.ExitWithAlert(ex);
 		}
 
@@ -28,7 +30,7 @@ public class HtmlAutoDetectLabel : Label
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (Text)");
 				Utils.ExitWithAlert(ex);
 			}
 		}

@@ -1,5 +1,4 @@
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.Controls;
 
@@ -27,7 +26,7 @@ public partial class ToggleButton : ContentView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "ToggleButton.TapGestureRecognized");
 				Utils.ExitWithAlert(ex);
 			}
 		};
@@ -47,7 +46,7 @@ public partial class ToggleButton : ContentView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ToggleButton.OnIsCheckedChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}

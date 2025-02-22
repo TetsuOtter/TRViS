@@ -1,5 +1,5 @@
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
+
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
@@ -53,7 +53,7 @@ public partial class VerticalStylePage : ContentView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.DTACViewHostViewModel.PropertyChanged");
 				Utils.ExitWithAlert(ex);
 			}
 		};
@@ -96,7 +96,8 @@ public partial class VerticalStylePage : ContentView
 					TimetableViewActivityIndicatorBorder.FadeTo(TimetableViewActivityIndicatorBorderMaxOpacity);
 				}
 				else
-					TimetableViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) => {
+					TimetableViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
+					{
 						logger.Debug("TimetableViewActivityIndicatorBorder.FadeTo(0) completed");
 						TimetableViewActivityIndicatorBorder.IsVisible = false;
 					});
@@ -112,7 +113,7 @@ public partial class VerticalStylePage : ContentView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.TimetableView.IsBusyChanged");
 				Utils.ExitWithAlert(ex);
 			}
 		};
@@ -120,7 +121,8 @@ public partial class VerticalStylePage : ContentView
 		TimetableView.IgnoreSafeArea = false;
 		TimetableView.VerticalOptions = LayoutOptions.Start;
 
-		PageHeaderArea.IsRunningChanged += (_, e) => {
+		PageHeaderArea.IsRunningChanged += (_, e) =>
+		{
 			logger.Info("IsRunningChanged: {0}", e.NewValue);
 			TimetableView.IsRunStarted = e.NewValue;
 		};
@@ -152,7 +154,8 @@ public partial class VerticalStylePage : ContentView
 		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 		TimetableView.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 
-		TimetableView.CanUseLocationServiceChanged += (_, canUseLocationService) => {
+		TimetableView.CanUseLocationServiceChanged += (_, canUseLocationService) =>
+		{
 			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
 		};
@@ -212,7 +215,7 @@ public partial class VerticalStylePage : ContentView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.OnSelectedTrainDataChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -255,7 +258,8 @@ public partial class VerticalStylePage : ContentView
 			this.AbortAnimation(DateAndStartButton_AnimationName);
 		}
 		new Animation(
-			v => {
+			v =>
+			{
 				if (!TrainInfo_BeforeDepartureArea.IsVisible)
 				{
 					logger.Debug("TrainInfo_BeforeDepartureArea.IsVisible set to true");
@@ -272,7 +276,8 @@ public partial class VerticalStylePage : ContentView
 			.Commit(
 				this,
 				DateAndStartButton_AnimationName,
-				finished: (_, canceled) => {
+				finished: (_, canceled) =>
+				{
 					if (!isToOpen && !canceled)
 					{
 						logger.Debug("Animation Successfully finished to close");

@@ -1,5 +1,5 @@
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
+
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
@@ -37,7 +37,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnSelectedTrainDataChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -52,7 +52,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnIsBusyChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
@@ -79,7 +79,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				Crashes.TrackError(ex);
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.CurrentRunningRow");
 				Utils.ExitWithAlert(ex);
 			}
 		}
@@ -162,7 +162,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.RowTapped");
 			Utils.ExitWithAlert(ex);
 		}
 	}

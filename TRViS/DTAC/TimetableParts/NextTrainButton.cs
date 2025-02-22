@@ -1,4 +1,3 @@
-using Microsoft.AppCenter.Crashes;
 using TRViS.IO.Models;
 
 namespace TRViS.DTAC.TimetableParts;
@@ -88,7 +87,7 @@ public class NextTrainButton : Grid
 				+ $"TrainID: {InstanceManager.AppViewModel.SelectedTrainData?.Id}\n"
 				+ $"NextTrainID: {_NextTrainId}";
 			logger.Error(ex, "Unknown Exception: " + msg);
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "NextTrainButton.Click");
 			Utils.DisplayAlert("エラー", msg, "OK");
 		}
 	}

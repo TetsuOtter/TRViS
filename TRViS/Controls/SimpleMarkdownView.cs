@@ -1,5 +1,4 @@
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.Controls;
 
@@ -37,7 +36,7 @@ public partial class SimpleMarkdownView : ContentView
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Open file failed: '{0}'", fileName);
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleMarkdownView.LoadMarkdownFile");
 		}
 	}
 
