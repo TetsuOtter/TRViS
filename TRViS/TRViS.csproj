@@ -27,6 +27,7 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
 		<IsAotCompatible>true</IsAotCompatible>
+		<DefineConstants>$(DefineConstans);DISABLE_FIREBASE</DefineConstants>
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
 		<RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
@@ -82,12 +83,16 @@
 		<PackageReference
 			Include="NLog"
 			Version="5.4.0" />
-		<PackageReference
-			Include="Microsoft.AppCenter.Analytics"
-			Version="5.0.6" />
-		<PackageReference
-			Include="Microsoft.AppCenter.Crashes"
-			Version="5.0.6" />
+	</ItemGroup>
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+		<!-- <BundleResource Include="GoogleService-Info.plist" />
+		<PackageReference Include="AdamE.Firebase.iOS.Analytics" Version="11.8.0" />
+		<PackageReference Include="AdamE.Firebase.iOS.Crashlytics" Version="11.8.0" /> -->
+	</ItemGroup>
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<!-- <GoogleServicesJson Include="Google-services.json" />
+		<PackageReference Include="Xamarin.Firebase.Analytics" Version="122.2.0" />
+		<PackageReference Include="Xamarin.Firebase.Crashlytics" Version="119.4.0" /> -->
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />

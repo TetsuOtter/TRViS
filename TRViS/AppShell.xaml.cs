@@ -3,6 +3,8 @@ using System.Runtime.Versioning;
 #endif
 
 using System.Runtime.CompilerServices;
+
+using TRViS.FirebaseWrapper;
 using TRViS.RootPages;
 using TRViS.ViewModels;
 
@@ -15,7 +17,7 @@ public partial class AppShell : Shell
 	static public string AppVersionString
 		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";
 
-	readonly AppCenterSettingViewModel AppCenterSettingViewModel =  InstanceManager.AppCenterSettingViewModel;
+	readonly FirebaseSettingViewModel FirebaseSettingViewModel = InstanceManager.FirebaseSettingViewModel;
 
 	public AppShell()
 	{
@@ -24,26 +26,27 @@ public partial class AppShell : Shell
 
 		EasterEggPageViewModel easterEggPageViewModel = InstanceManager.EasterEggPageViewModel;
 
-		logger.Trace("Checking AppCenter Setting");
-		if (AppCenterSettingViewModel.IsEnabled)
+		logger.Trace("Checking Firebase Setting");
+		if (FirebaseSettingViewModel.IsEnabled)
 		{
-			logger.Trace("AppCenter Applying...");
-			AppCenterSettingViewModel.SaveAndApplySettings(false).ConfigureAwait(false);
+			logger.Trace("Firebase Applying...");
+			FirebaseSettingViewModel.SaveAndApplySettings(false);
 		}
 
 		InitializeComponent();
 
-		if (AppCenterSettingViewModel.IsEnabled)
+		if (FirebaseSettingViewModel.IsEnabled)
 		{
 			GoToAsync("//" + nameof(SelectTrainPage)).ConfigureAwait(false);
 		}
 		else
 		{
-			GoToAsync("//" + nameof(AppCenterSettingPage)).ConfigureAwait(false);
+			GoToAsync("//" + nameof(FirebaseSettingPage)).ConfigureAwait(false);
 		}
+		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
-		AppCenterSettingViewModel.IsEnabledChanged += ApplyFlyoutBhavior;
-		ApplyFlyoutBhavior(this, false, AppCenterSettingViewModel.IsEnabled);
+		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBhavior;
+		ApplyFlyoutBhavior(this, false, FirebaseSettingViewModel.IsEnabled);
 
 		this.BindingContext = easterEggPageViewModel;
 		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);

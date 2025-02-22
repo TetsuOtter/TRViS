@@ -30,32 +30,35 @@
 		</VerticalStackLayout>
 	</Shell.FlyoutFooter>
 
-	<FlyoutItem Title="Select Train" Route="{x:Static pages:SelectTrainPage.NameOfThisClass}">
-		<ShellContent ContentTemplate="{DataTemplate pages:SelectTrainPage}" />
+	<FlyoutItem
+		Title="Select Train"
+		Route="{x:Static pages:SelectTrainPage.NameOfThisClass}">
+		<ShellContent ContentTemplate="{DataTemplate pages:SelectTrainPage}"/>
 	</FlyoutItem>
 	<FlyoutItem Title="D-TAC">
-		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}" />
+		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
 	</FlyoutItem>
 	<FlyoutItem Title="Third Party Licenses">
-		<ShellContent ContentTemplate="{DataTemplate pages:ThirdPartyLicenses}" />
+		<ShellContent ContentTemplate="{DataTemplate pages:ThirdPartyLicenses}"/>
 	</FlyoutItem>
 	<FlyoutItem Title="Settings">
-		<ShellContent ContentTemplate="{DataTemplate pages:EasterEggPage}" />
+		<ShellContent ContentTemplate="{DataTemplate pages:EasterEggPage}"/>
 	</FlyoutItem>
-	<FlyoutItem Title="AppCenter Setting" Route="{x:Static pages:AppCenterSettingPage.NameOfThisClass}">
-		<ShellContent ContentTemplate="{DataTemplate pages:AppCenterSettingPage}" />
+	<FlyoutItem
+		Title="Firebase Setting"
+		Route="{x:Static pages:FirebaseSettingPage.NameOfThisClass}">
+		<ShellContent ContentTemplate="{DataTemplate pages:FirebaseSettingPage}"/>
 	</FlyoutItem>
 	<FlyoutItem Title="Privacy Policy">
 		<ShellContent>
 			<pages:ShowMarkdownPage
 				FileName="PrivacyPolicy_md"
-				Title="Privacy Policy"
-			/>
+				Title="Privacy Policy"/>
 		</ShellContent>
 	</FlyoutItem>
 
 	<MenuItem
 		Text="Privacy Policy (online)"
 		Command="{x:Static local:Utils.OpenUrlCommand}"
-		CommandParameter="https://github.com/TetsuOtter/TRViS/blob/main/docs/md/PrivacyPolicy.md" />
+		CommandParameter="https://github.com/TetsuOtter/TRViS/blob/main/docs/md/PrivacyPolicy.md"/>
 </Shell>

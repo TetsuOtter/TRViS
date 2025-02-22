@@ -1,5 +1,4 @@
 using DependencyPropertyGenerator;
-using Microsoft.AppCenter.Crashes;
 
 namespace TRViS.DTAC;
 
@@ -49,7 +48,7 @@ public partial class OpenCloseButton : Button
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Crashes.TrackError(ex);
+			InstanceManager.CrashlyticsWrapper.Log(ex, "OpenCloseButton.OnIsOpenChanged");
 			Utils.ExitWithAlert(ex);
 		}
 	}
