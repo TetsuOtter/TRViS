@@ -5,15 +5,14 @@ on:
     branches:
       - main
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+-.[0-9]+'
+      - "v[0-9]+.[0-9]+.[0-9]+-.[0-9]+"
   pull_request:
     types:
       - opened
       - synchronize
   workflow_dispatch:
 
-concurrency:
-  cd-action-${{ github.ref }}
+concurrency: cd-action-${{ github.ref }}
 
 env:
   CSPROJ_PATH: ./TRViS/TRViS.csproj
@@ -36,7 +35,7 @@ env:
   ASSET_NAME_WIN_X86: TRViS-win-x86
   ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
   ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
-  SDK_VERSION: '9.0.100'
+  SDK_VERSION: "9.0.100"
   APP_CENTER_SECRETS_FILE_NAME: ./TRViS/AppCenterSecrets.cs
   IOS_DSYM_PATH: ./TRViS/bin/Release/net9.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
@@ -59,47 +58,47 @@ jobs:
       build_number: ${{ steps.build_number.outputs.version }}
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        ref: ${{github.head_ref}}
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{github.head_ref}}
 
-    - name: Get all tags from remote
-      run: git fetch --all --tags
+      - name: Get all tags from remote
+        run: git fetch --all --tags
 
-    - name: generate bundle version pattern (Trigger:Push to main)
-      if: ${{ github.event_name == 'push' }}
-      run: grep -oP '(?<=<ApplicationDisplayVersion>).*?(?=</ApplicationDisplayVersion>)' ${{ env.CSPROJ_PATH }} > DISP_VERSION
+      - name: generate bundle version pattern (Trigger:Push to main)
+        if: ${{ github.event_name == 'push' }}
+        run: grep -oP '(?<=<ApplicationDisplayVersion>).*?(?=</ApplicationDisplayVersion>)' ${{ env.CSPROJ_PATH }} > DISP_VERSION
 
-    - name: generate bundle version pattern (Trigger:PullRequest)
-      if: ${{ github.event_name == 'pull_request' }}
-      run: echo "0.0.${{ github.event.number }}" > DISP_VERSION
+      - name: generate bundle version pattern (Trigger:PullRequest)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "0.0.${{ github.event.number }}" > DISP_VERSION
 
-    - name: generate bundle version pattern (Trigger:WorkflowDispatch)
-      if: ${{ github.event_name == 'workflow_dispatch' }}
-      run: echo "0.0.0" > DISP_VERSION
+      - name: generate bundle version pattern (Trigger:WorkflowDispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: echo "0.0.0" > DISP_VERSION
 
-    - name: set display version to variable
-      id: set_display_version
-      run: |
-        echo "disp-version=$(cat DISP_VERSION)" >> $GITHUB_OUTPUT
+      - name: set display version to variable
+        id: set_display_version
+        run: |
+          echo "disp-version=$(cat DISP_VERSION)" >> $GITHUB_OUTPUT
 
-    - name: Get all tags reachable from current commit
-      run: |
-        git tag -l "v${{ steps.set_display_version.outputs.disp-version }}-[0-9]*" > VERSION_TAGS
-        cat VERSION_TAGS
+      - name: Get all tags reachable from current commit
+        run: |
+          git tag -l "v${{ steps.set_display_version.outputs.disp-version }}-[0-9]*" > VERSION_TAGS
+          cat VERSION_TAGS
 
-    - name: Generate new patch build number
-      id: build_number
-      run: |
-        if [ `cat VERSION_TAGS | wc -l` -eq 0 ]; then
-          BUILD_NUMBER=1
-        else
-          BUILD_NUMBER=`sort -rV VERSION_TAGS | head -n 1 | awk -F '-' '{print $2 + 1}'`
-        fi
-        echo "version=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+      - name: Generate new patch build number
+        id: build_number
+        run: |
+          if [ `cat VERSION_TAGS | wc -l` -eq 0 ]; then
+            BUILD_NUMBER=1
+          else
+            BUILD_NUMBER=`sort -rV VERSION_TAGS | head -n 1 | awk -F '-' '{print $2 + 1}'`
+          fi
+          echo "version=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
-    - name: print new version number
-      run: echo "VersionNumber ... ${{ steps.set_display_version.outputs.disp-version }}-${{ steps.build_number.outputs.version }}"
+      - name: print new version number
+        run: echo "VersionNumber ... ${{ steps.set_display_version.outputs.disp-version }}-${{ steps.build_number.outputs.version }}"
 
   get-version:
     if: |
@@ -116,20 +115,19 @@ jobs:
     outputs:
       display_version: ${{ steps.get-version.outputs.display_version }}
       build_number: ${{ steps.get-version.outputs.build_number }}
-    
-    steps:
-    - name: get version
-      id: get-version
-      run: |
-        if [ '${{ startsWith(github.ref, 'refs/tags/v') }}' == 'true' ]; then
-          VERSION=`echo '${{ github.ref }}' | tr -d 'refs/tags/v'`
-          echo "display_version=$(echo $VERSION | awk -F '-' '{print $1}')" >> $GITHUB_OUTPUT
-          echo "build_number=$(echo $VERSION | awk -F '-' '{print $2}')" >> $GITHUB_OUTPUT
-        else
-          echo "display_version=${{ needs.generate-bundle-version.outputs.display_version }}" >> $GITHUB_OUTPUT
-          echo "build_number=${{ needs.generate-bundle-version.outputs.build_number }}" >> $GITHUB_OUTPUT
-        fi
 
+    steps:
+      - name: get version
+        id: get-version
+        run: |
+          if [ '${{ startsWith(github.ref, 'refs/tags/v') }}' == 'true' ]; then
+            VERSION=`echo '${{ github.ref }}' | tr -d 'refs/tags/v'`
+            echo "display_version=$(echo $VERSION | awk -F '-' '{print $1}')" >> $GITHUB_OUTPUT
+            echo "build_number=$(echo $VERSION | awk -F '-' '{print $2}')" >> $GITHUB_OUTPUT
+          else
+            echo "display_version=${{ needs.generate-bundle-version.outputs.display_version }}" >> $GITHUB_OUTPUT
+            echo "build_number=${{ needs.generate-bundle-version.outputs.build_number }}" >> $GITHUB_OUTPUT
+          fi
 
   build-ios:
     if: |
@@ -144,118 +142,118 @@ jobs:
     timeout-minutes: 30
     needs:
       - get-version
-    
+
     env:
       WITHOUT_ANDROID: true
 
     steps:
-    - name: Import Provisioning Profile
-      run: |
-        mkdir -p ${{ env.TARGET_DIR }}
+      - name: Import Provisioning Profile
+        run: |
+          mkdir -p ${{ env.TARGET_DIR }}
 
-        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
-          echo -n ${{ secrets.PROVISIONING_PROFILE }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-        fi
-      env:
-        TARGET_DIR: ~/Library/MobileDevice/Provisioning\ Profiles
-        TARGET_FILE: distribution.mobileprovision
+          if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+            echo -n ${{ secrets.PROVISIONING_PROFILE }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+            ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          fi
+        env:
+          TARGET_DIR: ~/Library/MobileDevice/Provisioning\ Profiles
+          TARGET_FILE: distribution.mobileprovision
 
-    - name: Generate Keychain Name
-      id: gen-keychain-name
-      run: echo "keychain-name=${{ github.run_id }}_${{ github.run_attempt }}" >> $GITHUB_OUTPUT
-    
-    # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
-    - name: Build keychain
-      id: import-code-sign-cert
-      run: |
-        echo "${{ secrets.P12_FILE_BASE64 }}" | base64 --decode > certificate.p12
-        security create-keychain -p "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
-        security default-keychain -s "${{ env.KEYCHAIN_NAME }}"
-        security unlock-keychain -p "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
-        security set-keychain-settings -lut 21600 "${{ env.KEYCHAIN_NAME }}"
-        security import certificate.p12 -k "${{ env.KEYCHAIN_NAME }}" -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/xcrun
-        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
-      env:
-        KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+      - name: Generate Keychain Name
+        id: gen-keychain-name
+        run: echo "keychain-name=${{ github.run_id }}_${{ github.run_attempt }}" >> $GITHUB_OUTPUT
 
-    - uses: actions/checkout@v4
+      # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
+      - name: Build keychain
+        id: import-code-sign-cert
+        run: |
+          echo "${{ secrets.P12_FILE_BASE64 }}" | base64 --decode > certificate.p12
+          security create-keychain -p "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
+          security default-keychain -s "${{ env.KEYCHAIN_NAME }}"
+          security unlock-keychain -p "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
+          security set-keychain-settings -lut 21600 "${{ env.KEYCHAIN_NAME }}"
+          security import certificate.p12 -k "${{ env.KEYCHAIN_NAME }}" -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/xcrun
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${{ secrets.P12_PASSWORD }}" "${{ env.KEYCHAIN_NAME }}"
+        env:
+          KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
-    - name: Setup Xcode version
-      uses: maxim-lobanov/setup-xcode@v1.6.0
-      with:
-        xcode-version: 16
+      - uses: actions/checkout@v4
 
-    - uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.SDK_VERSION }}
-    - name: Install dotnet workloads
-      run: dotnet workload install maui-ios maccatalyst
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: 16
 
-    - name: Install dependencies
-      run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-ios maccatalyst
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - name: Prapare Python Package
-      run: |
-        python --version
-        python -m pip install aiofiles aiohttp
-    - name: Dump Third Party License Info
-      id: dump-third-party-license-info
-      continue-on-error: true
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Dump Third Party License Info (Retry)
-      if: steps.dump-third-party-license-info.outcome == 'failure'
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Print Third Party License Info Files
-      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+      - name: Install dependencies
+        run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
 
-    - name: Add AppCenterSecrets.cs
-      run: |
-        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo 'public const string IOS = "${{ secrets.APP_CENTER_SECRET_IOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Prapare Python Package
+        run: |
+          python --version
+          python -m pip install aiofiles aiohttp
+      - name: Dump Third Party License Info
+        id: dump-third-party-license-info
+        continue-on-error: true
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Dump Third Party License Info (Retry)
+        if: steps.dump-third-party-license-info.outcome == 'failure'
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Print Third Party License Info Files
+        run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
-    - name: Build
-      run: >
-        dotnet publish ${{ env.CSPROJ_PATH }}
-        -f ${{ env.TARGET_FRAMEWORK }}
-        -r ${{ env.TARGET_RUNTIME }}
-        -c Release
-        -o "${{ env.OUTPUT_DIR }}"
-        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
-        /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_IOS }}"
-        /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
+      - name: Add AppCenterSecrets.cs
+        run: |
+          echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo 'public const string IOS = "${{ secrets.APP_CENTER_SECRET_IOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
-    - name: Upload IPA
-      uses: actions/upload-artifact@v4
-      with:
-        name: ipa
-        path: ${{ env.IPA_PATH }}
-        retention-days: 3
+      - name: Build
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK }}
+          -r ${{ env.TARGET_RUNTIME }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+          /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+          /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_IOS }}"
+          /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
 
-    - name: tar dSYM
-      run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
-    - name: Upload dSYM
-      uses: actions/upload-artifact@v4
-      with:
-        name: dSYM
-        path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
-        retention-days: 3
-  
-    - name: Post 'Import Code Sign Certificates'
-      if: always() && steps.import-code-sign-cert.conclusion == 'success'
-      run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipa
+          path: ${{ env.IPA_PATH }}
+          retention-days: 3
+
+      - name: tar dSYM
+        run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
+      - name: Upload dSYM
+        uses: actions/upload-artifact@v4
+        with:
+          name: dSYM
+          path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
+          retention-days: 3
+
+      - name: Post 'Import Code Sign Certificates'
+        if: always() && steps.import-code-sign-cert.conclusion == 'success'
+        run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
   build-android:
     if: |
@@ -272,82 +270,82 @@ jobs:
       - get-version
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.SDK_VERSION }}
-    - name: Install dotnet workloads
-      run: dotnet workload install maui-android
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-android
 
-    - name: Install dependencies
-      run: dotnet restore ${{ env.CSPROJ_PATH }}
+      - name: Install dependencies
+        run: dotnet restore ${{ env.CSPROJ_PATH }}
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - name: Prapare Python Package
-      run: |
-        python --version
-        python -m pip install aiofiles aiohttp
-    - name: Dump Third Party License Info
-      id: dump-third-party-license-info
-      continue-on-error: true
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Dump Third Party License Info (Retry)
-      if: steps.dump-third-party-license-info.outcome == 'failure'
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Print Third Party License Info Files
-      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Prapare Python Package
+        run: |
+          python --version
+          python -m pip install aiofiles aiohttp
+      - name: Dump Third Party License Info
+        id: dump-third-party-license-info
+        continue-on-error: true
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Dump Third Party License Info (Retry)
+        if: steps.dump-third-party-license-info.outcome == 'failure'
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Print Third Party License Info Files
+        run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
-    - name: Add AppCenterSecrets.cs
-      run: |
-        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo 'public const string ANDROID = "${{ secrets.APP_CENTER_SECRET_ANDROID }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+      - name: Add AppCenterSecrets.cs
+        run: |
+          echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo 'public const string ANDROID = "${{ secrets.APP_CENTER_SECRET_ANDROID }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
-    # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
-    - name: Install Android SDK Platform Tools
-      run: >
-        ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
-        --sdk_root="$ANDROID_SDK_ROOT"
-        "platform-tools"
-    - name: Create Android Signing Key
-      run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > '${{ github.workspace }}/keystore.jks'
-    - name: Build
-      run: >
-        dotnet publish ${{ env.CSPROJ_PATH }}
-        -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
-        -c Release
-        -o "${{ env.OUTPUT_DIR }}"
-        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
-        /p:AndroidKeyStore=true
-        /p:AndroidSigningKeyAlias='${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
-        /p:AndroidSigningKeyPass='${{ secrets.ANDROID_SIGNING_KEY_PASS }}'
-        /p:AndroidSigningKeyStore='${{ github.workspace }}/keystore.jks'
-        /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
+      # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
+      - name: Install Android SDK Platform Tools
+        run: >
+          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
+          --sdk_root="$ANDROID_SDK_ROOT"
+          "platform-tools"
+      - name: Create Android Signing Key
+        run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > '${{ github.workspace }}/keystore.jks'
+      - name: Build
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+          /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+          /p:AndroidKeyStore=true
+          /p:AndroidSigningKeyAlias='${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
+          /p:AndroidSigningKeyPass='${{ secrets.ANDROID_SIGNING_KEY_PASS }}'
+          /p:AndroidSigningKeyStore='${{ github.workspace }}/keystore.jks'
+          /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
-    - name: Upload AAB
-      uses: actions/upload-artifact@v4
-      with:
-        name: aab
-        path: ${{ env.AAB_PATH }}
-        retention-days: 3
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: aab
+          path: ${{ env.AAB_PATH }}
+          retention-days: 3
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk
-        path: ${{ env.APK_PATH }}
-        retention-days: 3
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: ${{ env.APK_PATH }}
+          retention-days: 3
 
   build-mac:
     if: |
@@ -362,117 +360,117 @@ jobs:
     timeout-minutes: 30
     needs:
       - get-version
-    
+
     env:
       WITHOUT_ANDROID: true
 
     steps:
-    - name: Import Provisioning Profile
-      run: |
-        mkdir -p ${{ env.TARGET_DIR }}
+      - name: Import Provisioning Profile
+        run: |
+          mkdir -p ${{ env.TARGET_DIR }}
 
-        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
-          echo -n ${{ secrets.PROVISIONING_PROFILE_MAC }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-        fi
-      env:
-        TARGET_DIR: ~/Library/MobileDevice/Provisioning\ Profiles
-        TARGET_FILE: distribution.provisionprofile
+          if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+            echo -n ${{ secrets.PROVISIONING_PROFILE_MAC }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+            ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          fi
+        env:
+          TARGET_DIR: ~/Library/MobileDevice/Provisioning\ Profiles
+          TARGET_FILE: distribution.provisionprofile
 
-    - name: Generate Keychain Name
-      id: gen-keychain-name
-      run: echo "keychain-name=${{ github.run_id }}_${{ github.run_attempt }}" >> $GITHUB_OUTPUT
-    
-    # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
-    - name: Build keychain
-      id: import-code-sign-cert
-      run: |
-        echo "${{ secrets.P12_FILE_MAC_BASE64 }}" | base64 --decode > certificate.p12
-        security create-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
-        security default-keychain -d user -s "${{ env.KEYCHAIN_NAME }}"
-        security unlock-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
-        security set-keychain-settings -lut 21600 "${{ env.KEYCHAIN_NAME }}"
-        security import certificate.p12 -k "${{ env.KEYCHAIN_NAME }}" -P '${{ secrets.P12_PASSWORD_MAC }}' -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/xcrun
-        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
-      env:
-        KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+      - name: Generate Keychain Name
+        id: gen-keychain-name
+        run: echo "keychain-name=${{ github.run_id }}_${{ github.run_attempt }}" >> $GITHUB_OUTPUT
 
-    - uses: actions/checkout@v4
+      # ref: https://github.com/Apple-Actions/import-codesign-certs/pull/27#issuecomment-1298231619
+      - name: Build keychain
+        id: import-code-sign-cert
+        run: |
+          echo "${{ secrets.P12_FILE_MAC_BASE64 }}" | base64 --decode > certificate.p12
+          security create-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
+          security default-keychain -d user -s "${{ env.KEYCHAIN_NAME }}"
+          security unlock-keychain -p '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
+          security set-keychain-settings -lut 21600 "${{ env.KEYCHAIN_NAME }}"
+          security import certificate.p12 -k "${{ env.KEYCHAIN_NAME }}" -P '${{ secrets.P12_PASSWORD_MAC }}' -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/xcrun
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '${{ secrets.P12_PASSWORD_MAC }}' "${{ env.KEYCHAIN_NAME }}"
+        env:
+          KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
-    - name: Setup Xcode version
-      uses: maxim-lobanov/setup-xcode@v1.6.0
-      with:
-        xcode-version: 16
+      - uses: actions/checkout@v4
 
-    - uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.SDK_VERSION }}
-    - name: Install dotnet workloads
-      run: dotnet workload install maui-ios maccatalyst
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: 16
 
-    - name: Install dependencies
-      run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME_MAC }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-ios maccatalyst
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - name: Prapare Python Package
-      run: |
-        python --version
-        python -m pip install aiofiles aiohttp
-    - name: Dump Third Party License Info
-      id: dump-third-party-license-info
-      continue-on-error: true
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Dump Third Party License Info (Retry)
-      if: steps.dump-third-party-license-info.outcome == 'failure'
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Print Third Party License Info Files
-      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+      - name: Install dependencies
+        run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME_MAC }}
 
-    - name: Add AppCenterSecrets.cs
-      run: |
-        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo 'public const string MACOS = "${{ secrets.APP_CENTER_SECRET_MACOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Prapare Python Package
+        run: |
+          python --version
+          python -m pip install aiofiles aiohttp
+      - name: Dump Third Party License Info
+        id: dump-third-party-license-info
+        continue-on-error: true
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Dump Third Party License Info (Retry)
+        if: steps.dump-third-party-license-info.outcome == 'failure'
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Print Third Party License Info Files
+        run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
-    - name: Build
-      run: >
-        dotnet publish ${{ env.CSPROJ_PATH }}
-        -f ${{ env.TARGET_FRAMEWORK_MAC }}
-        -c Release
-        -o "${{ env.OUTPUT_DIR }}"
-        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
-        /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_MAC }}"
-        /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_MAC }}"
-        /p:EnablePackageSigning=true
-        /p:PackageSigningKey='${{ secrets.PACKAGE_SIGN_KEY_NAME_MAC }}'
-        /p:CodesignEntitlements='Platforms/MacCatalyst/Entitlements.plist'
+      - name: Add AppCenterSecrets.cs
+        run: |
+          echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo 'public const string MACOS = "${{ secrets.APP_CENTER_SECRET_MACOS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
-    - name: Change pkg file name
-      run: >
-        mv
-        ${{ env.OUTPUT_DIR }}/TRViS-${{ needs.get-version.outputs.display_version }}.pkg
-        ${{ env.PKG_PATH }}
+      - name: Build
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_MAC }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+          /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+          /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_MAC }}"
+          /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_MAC }}"
+          /p:EnablePackageSigning=true
+          /p:PackageSigningKey='${{ secrets.PACKAGE_SIGN_KEY_NAME_MAC }}'
+          /p:CodesignEntitlements='Platforms/MacCatalyst/Entitlements.plist'
 
-    - name: Upload PKG
-      uses: actions/upload-artifact@v4
-      with:
-        name: pkg
-        path: ${{ env.PKG_PATH }}
-        retention-days: 3
+      - name: Change pkg file name
+        run: >
+          mv
+          ${{ env.OUTPUT_DIR }}/TRViS-${{ needs.get-version.outputs.display_version }}.pkg
+          ${{ env.PKG_PATH }}
 
-    - name: Post 'Import Code Sign Certificates'
-      if: always() && steps.import-code-sign-cert.conclusion == 'success'
-      run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
+      - name: Upload PKG
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg
+          path: ${{ env.PKG_PATH }}
+          retention-days: 3
+
+      - name: Post 'Import Code Sign Certificates'
+        if: always() && steps.import-code-sign-cert.conclusion == 'success'
+        run: /usr/bin/security delete-keychain ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
   build-windows:
     if: |
@@ -490,134 +488,133 @@ jobs:
 
     env:
       WITHOUT_ANDROID: true
-  
+
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.SDK_VERSION }}
-    - name: Install dotnet workloads
-      run: dotnet workload install maui-windows
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-windows
 
-    - name: Install dependencies
-      run: dotnet restore ${{ env.CSPROJ_PATH }}
+      - name: Install dependencies
+        run: dotnet restore ${{ env.CSPROJ_PATH }}
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - name: Prapare Python Package
-      run: |
-        python --version
-        python -m pip install aiofiles aiohttp
-    - name: Dump Third Party License Info
-      id: dump-third-party-license-info
-      continue-on-error: true
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Dump Third Party License Info (Retry)
-      if: steps.dump-third-party-license-info.outcome == 'failure'
-      run: |
-        python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-        ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-    - name: Print Third Party License Info Files
-      run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Prapare Python Package
+        run: |
+          python --version
+          python -m pip install aiofiles aiohttp
+      - name: Dump Third Party License Info
+        id: dump-third-party-license-info
+        continue-on-error: true
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Dump Third Party License Info (Retry)
+        if: steps.dump-third-party-license-info.outcome == 'failure'
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Print Third Party License Info Files
+        run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
-    - name: Add AppCenterSecrets.cs
-      run: |
-        echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo 'public const string WINDOWS = "${{ secrets.APP_CENTER_SECRET_WINDOWS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
-        ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+      - name: Add AppCenterSecrets.cs
+        run: |
+          echo "namespace TRViS;" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "class AppCenterSecrets" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "{" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo 'public const string WINDOWS = "${{ secrets.APP_CENTER_SECRET_WINDOWS }}";' >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          echo "}" >> ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
+          ls -l ${{ env.APP_CENTER_SECRETS_FILE_NAME }}
 
-    - name: Build x64
-      run: >
-        dotnet publish ${{ env.CSPROJ_PATH }}
-        -f ${{ env.TARGET_FRAMEWORK_WIN }}
-        -c Release
-        -o "${{ env.OUTPUT_DIR }}"
-        /p:WindowsPackageType=None
-        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX64 }}
-        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+      - name: Build x64
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_WIN }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:WindowsPackageType=None
+          /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX64 }}
+          /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+          /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
-    - name: Upload x64
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X64 }}
-        path: ${{ env.OUTPUT_DIR }}
-        retention-days: 3
+      - name: Upload x64
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X64 }}
+          path: ${{ env.OUTPUT_DIR }}
+          retention-days: 3
 
-    - name: Clear Output Directory
-      run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
+      - name: Clear Output Directory
+        run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
 
-    - name: Build x64 Self Contained
-      run: >
-        dotnet publish ${{ env.CSPROJ_PATH }}
-        -f ${{ env.TARGET_FRAMEWORK_WIN }}
-        -c Release
-        -o "${{ env.OUTPUT_DIR }}"
-        /p:WindowsPackageType=None
-        /p:WindowsAppSDKSelfContained=true
-        --self-contained
-        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX64 }}
-        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+      - name: Build x64 Self Contained
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_WIN }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:WindowsPackageType=None
+          /p:WindowsAppSDKSelfContained=true
+          --self-contained
+          /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX64 }}
+          /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+          /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
-    - name: Upload x64 Self Contained
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
-        path: ${{ env.OUTPUT_DIR }}
-        retention-days: 3
+      - name: Upload x64 Self Contained
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+          path: ${{ env.OUTPUT_DIR }}
+          retention-days: 3
 
-    - name: Clear Output Directory
-      run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
+      - name: Clear Output Directory
+        run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
 
-    - name: Build x86
-      run: >
-        dotnet publish ${{ env.CSPROJ_PATH }}
-        -f ${{ env.TARGET_FRAMEWORK_WIN }}
-        -c Release
-        -o "${{ env.OUTPUT_DIR }}"
-        /p:WindowsPackageType=None
-        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX86 }}
-        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+      - name: Build x86
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_WIN }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:WindowsPackageType=None
+          /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX86 }}
+          /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+          /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
-    - name: Upload x86
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X86 }}
-        path: ${{ env.OUTPUT_DIR }}
-        retention-days: 3
+      - name: Upload x86
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X86 }}
+          path: ${{ env.OUTPUT_DIR }}
+          retention-days: 3
 
-    - name: Clear Output Directory
-      run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
+      - name: Clear Output Directory
+        run: Remove-Item -Recurse -Force -Path ${{ env.OUTPUT_DIR }}
 
-    - name: Build x86 Self Contained
-      run: >
-        dotnet publish ${{ env.CSPROJ_PATH }}
-        -f ${{ env.TARGET_FRAMEWORK_WIN }}
-        -c Release
-        -o "${{ env.OUTPUT_DIR }}"
-        /p:WindowsPackageType=None
-        /p:WindowsAppSDKSelfContained=true
-        --self-contained
-        /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX86 }}
-        /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
-        /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
+      - name: Build x86 Self Contained
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_WIN }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:WindowsPackageType=None
+          /p:WindowsAppSDKSelfContained=true
+          --self-contained
+          /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WINX86 }}
+          /p:ApplicationDisplayVersion=${{ needs.get-version.outputs.display_version }}
+          /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
-    - name: Upload x86 Self Contained
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
-        path: ${{ env.OUTPUT_DIR }}
-        retention-days: 3
-
+      - name: Upload x86 Self Contained
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+          path: ${{ env.OUTPUT_DIR }}
+          retention-days: 3
 
   publish-ios:
     if: |
@@ -634,60 +631,60 @@ jobs:
       - build-ios
 
     steps:
-    - name: Import App Store Connect API Private Key
-      run: |
-        mkdir -p ${{ env.TARGET_DIR }}
+      - name: Import App Store Connect API Private Key
+        run: |
+          mkdir -p ${{ env.TARGET_DIR }}
 
-        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
-          echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-        fi
-      env:
-        TARGET_DIR: ~/.appstoreconnect/private_keys
-        TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
+          if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+            echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+            chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+            ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          fi
+        env:
+          TARGET_DIR: ~/.appstoreconnect/private_keys
+          TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
-    - name: Download IPA
-      uses: actions/download-artifact@v4
-      with:
-        name: ipa
-        path: ${{ env.OUTPUT_DIR }}
+      - name: Download IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: ipa
+          path: ${{ env.OUTPUT_DIR }}
 
-    - name: validate
-      run: >
-        xcrun altool
-        --validate-app
-        --type ios
-        -f ${{ env.IPA_PATH }}
-        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
-        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+      - name: validate
+        run: >
+          xcrun altool
+          --validate-app
+          --type ios
+          -f ${{ env.IPA_PATH }}
+          --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+          --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
-    - name: upload
-      run: >
-        xcrun altool
-        --upload-app
-        --type ios
-        -f ${{ env.IPA_PATH }}
-        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
-        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+      - name: upload
+        run: >
+          xcrun altool
+          --upload-app
+          --type ios
+          -f ${{ env.IPA_PATH }}
+          --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+          --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
-    - name: Download dSYM
-      uses: actions/download-artifact@v4
-      with:
-        name: dSYM
-        path: .
-    - name: extract dSYM
-      run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
-    - name: Check dSYM
-      run: dwarfdump -u ${{ env.IOS_DSYM_FILENAME }}
-    - name: Install AppCenter CLI
-      run: npm install -g appcenter-cli
-    - name: upload dSYM to AppCenter
-      run: >
-        appcenter crashes upload-symbols
-        --token ${{ secrets.APPCENTER_ACCESS_TOKEN_IOS }}
-        --app 'Tetsu_Otter/TRViS-iOS-Beta'
-        --symbol ${{ env.IOS_DSYM_FILENAME }}
+      - name: Download dSYM
+        uses: actions/download-artifact@v4
+        with:
+          name: dSYM
+          path: .
+      - name: extract dSYM
+        run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
+      - name: Check dSYM
+        run: dwarfdump -u ${{ env.IOS_DSYM_FILENAME }}
+      - name: Install AppCenter CLI
+        run: npm install -g appcenter-cli
+      - name: upload dSYM to AppCenter
+        run: >
+          appcenter crashes upload-symbols
+          --token ${{ secrets.APPCENTER_ACCESS_TOKEN_IOS }}
+          --app 'Tetsu_Otter/TRViS-iOS-Beta'
+          --symbol ${{ env.IOS_DSYM_FILENAME }}
 
   publish-mac:
     if: |
@@ -704,42 +701,42 @@ jobs:
       - build-mac
 
     steps:
-    - name: Import App Store Connect API Private Key
-      run: |
-        mkdir -p ${{ env.TARGET_DIR }}
+      - name: Import App Store Connect API Private Key
+        run: |
+          mkdir -p ${{ env.TARGET_DIR }}
 
-        if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
-          echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-          ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
-        fi
-      env:
-        TARGET_DIR: ~/.appstoreconnect/private_keys
-        TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
+          if [ ! -f ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }} ]; then
+            echo -n ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }} | base64 -d > ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+            chmod 400 ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+            ls -l ${{ env.TARGET_DIR }}/${{ env.TARGET_FILE }}
+          fi
+        env:
+          TARGET_DIR: ~/.appstoreconnect/private_keys
+          TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
-    - name: Download PKG
-      uses: actions/download-artifact@v4
-      with:
-        name: pkg
-        path: ${{ env.OUTPUT_DIR }}
+      - name: Download PKG
+        uses: actions/download-artifact@v4
+        with:
+          name: pkg
+          path: ${{ env.OUTPUT_DIR }}
 
-    - name: validate
-      run: >
-        xcrun altool
-        --validate-app
-        --type mac
-        -f ${{ env.PKG_PATH }}
-        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
-        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+      - name: validate
+        run: >
+          xcrun altool
+          --validate-app
+          --type mac
+          -f ${{ env.PKG_PATH }}
+          --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+          --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
-    - name: upload
-      run: >
-        xcrun altool
-        --upload-app
-        --type mac
-        -f ${{ env.PKG_PATH }}
-        --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
-        --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
+      - name: upload
+        run: >
+          xcrun altool
+          --upload-app
+          --type mac
+          -f ${{ env.PKG_PATH }}
+          --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
+          --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
   set-tag:
     if: |
@@ -765,40 +762,40 @@ jobs:
       tag-name: ${{ steps.tag-name.outputs.tag-name }}
 
     steps:
-    - uses: actions/checkout@v4
-    - name: fetch all history to assign tag
-      if: ${{ github.event_name == 'pull_request' }}
-      run: git fetch --unshallow --no-tags --no-recurse-submodules origin +${{ github.sha }}:${{ github.ref }}
+      - uses: actions/checkout@v4
+      - name: fetch all history to assign tag
+        if: ${{ github.event_name == 'pull_request' }}
+        run: git fetch --unshallow --no-tags --no-recurse-submodules origin +${{ github.sha }}:${{ github.ref }}
 
-    - name: Setup github-actions[bot] account
-      run: |
-        git config user.name 'github-actions[bot]'
-        git config user.email 'github-actions[bot]@users.noreply.github.com'
+      - name: Setup github-actions[bot] account
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
 
-    - name: set PR number
-      id: pr-num
-      if: ${{ github.event_name == 'pull_request' }}
-      run: echo "str=#${{ github.event.number }}" >> $GITHUB_OUTPUT
+      - name: set PR number
+        id: pr-num
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "str=#${{ github.event.number }}" >> $GITHUB_OUTPUT
 
-    - name: generate tag name
-      id: tag-name
-      run: echo "tag-name=v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}" >> $GITHUB_OUTPUT
+      - name: generate tag name
+        id: tag-name
+        run: echo "tag-name=v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}" >> $GITHUB_OUTPUT
 
-    - name: tagging new tag
-      run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
+      - name: tagging new tag
+        run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
 
-    - name: push new tag
-      run: git push origin ${{ steps.tag-name.outputs.tag-name }}
+      - name: push new tag
+        run: git push origin ${{ steps.tag-name.outputs.tag-name }}
 
-    - name: Comment TagName and Actions-Run URL to PR
-      if: ${{ github.event_name == 'pull_request' }}
-      run: >
-        echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
-        ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-        ' (Publish Status iOS: ${{ needs.publish-ios.result }} / macOS: ${{ needs.publish-mac.result }} / Android: ${{ needs.build-android.result }} / Windows: ${{ needs.build-windows.result }})'
-        | gh pr comment ${{ github.event.number }} -F -
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Comment TagName and Actions-Run URL to PR
+        if: ${{ github.event_name == 'pull_request' }}
+        run: >
+          echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
+          ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
+          ' (Publish Status iOS: ${{ needs.publish-ios.result }} / macOS: ${{ needs.publish-mac.result }} / Android: ${{ needs.build-android.result }} / Windows: ${{ needs.build-windows.result }})'
+          | gh pr comment ${{ github.event.number }} -F -
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   create-release:
     runs-on: ubuntu-latest
@@ -812,58 +809,58 @@ jobs:
       - build-windows
 
     steps:
-    - name: Download APK
-      uses: actions/download-artifact@v4
-      with:
-        name: apk
-        path: ${{ env.OUTPUT_DIR }}
-    - name: Download windows asset (x64)
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X64 }}
-        path: ${{ env.ASSET_NAME_WIN_X64 }}
-    - name: Download windows asset (x86)
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X86 }}
-        path: ${{ env.ASSET_NAME_WIN_X86 }}
-    - name: Download windows asset (x64 self-contained)
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
-        path: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
-    - name: Download windows asset (x86 self-contained)
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
-        path: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: ${{ env.OUTPUT_DIR }}
+      - name: Download windows asset (x64)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X64 }}
+          path: ${{ env.ASSET_NAME_WIN_X64 }}
+      - name: Download windows asset (x86)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X86 }}
+          path: ${{ env.ASSET_NAME_WIN_X86 }}
+      - name: Download windows asset (x64 self-contained)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+          path: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+      - name: Download windows asset (x86 self-contained)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+          path: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
 
-    - name: pack win-x64
-      run: |
-        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.zip ${{ env.ASSET_NAME_WIN_X64 }}
-        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.7z ${{ env.ASSET_NAME_WIN_X64 }}
-    - name: pack win-x86
-      run: |
-        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.zip ${{ env.ASSET_NAME_WIN_X86 }}
-        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.7z ${{ env.ASSET_NAME_WIN_X86 }}
-    - name: pack win-x64-self-contained
-      run: |
-        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
-        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
-    - name: pack win-x86-self-contained
-      run: |
-        7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
-        7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+      - name: pack win-x64
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.zip ${{ env.ASSET_NAME_WIN_X64 }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.7z ${{ env.ASSET_NAME_WIN_X64 }}
+      - name: pack win-x86
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.zip ${{ env.ASSET_NAME_WIN_X86 }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.7z ${{ env.ASSET_NAME_WIN_X86 }}
+      - name: pack win-x64-self-contained
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+      - name: pack win-x86-self-contained
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
 
-    - name: Create Release
-      run: >
-        gh release create ${{ needs.set-tag.outputs.tag-name }}
-        --draft
-        --generate-notes
-        ${{ env.OUTPUT_DIR }}/*.apk
-        ${{ env.OUTPUT_DIR }}/*.zip
-        ${{ env.OUTPUT_DIR }}/*.7z
-        --repo ${{ github.repository }}
-        --notes 'This release is automatically created by actions ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        run: >
+          gh release create ${{ needs.set-tag.outputs.tag-name }}
+          --draft
+          --generate-notes
+          ${{ env.OUTPUT_DIR }}/*.apk
+          ${{ env.OUTPUT_DIR }}/*.zip
+          ${{ env.OUTPUT_DIR }}/*.7z
+          --repo ${{ github.repository }}
+          --notes 'This release is automatically created by actions ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
