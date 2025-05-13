@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 
 using NLog;
@@ -10,111 +11,97 @@ namespace TRViS.Services;
 public static class LoggerService
 {
 	static readonly Logger logger;
-	const string logFormat = "${longdate} [${threadid:padding=3}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
+	const string LOG_FORMAT = "${longdate} [${threadid:padding=3}] [${uppercase:${level:padding=-5}}] ${callsite}() ${message} ${exception:format=tostring}";
 
-	static readonly DirectoryInfo LOG_FILE_DIRECTORY_INFO = DirectoryPathProvider.NormalLogFileDirectory;
-	static readonly string LOG_FILE_DIRECTORY_PATH = LOG_FILE_DIRECTORY_INFO.FullName;
-	const string CURRENT_LOG_FILE_NAME = "logs_current.trvis.log";
-	const string ARCHIVE_LOG_FILE_NAME_FORMAT = "logs.{0}.trvis.log";
-	const string ARCHIVE_LOG_FILE_NAME_PATTERN = "logs.*.trvis.log";
-
-	static string CurrentLogFilePath => Path.Combine(LOG_FILE_DIRECTORY_PATH, CURRENT_LOG_FILE_NAME);
-	const int MAX_ARCHIVE_LOG_FILE_COUNT = 14;
+	private static readonly LogFileManager GeneralLogFileManager = new(
+		DirectoryPathProvider.GeneralLogFileDirectory,
+		"logs"
+	);
+	private static readonly LogFileManager LocationLogFileManager = new(
+		DirectoryPathProvider.LocationServiceLogFileDirectory,
+		"loc-logs"
+	);
 
 	static LoggerService()
 	{
 		logger = SetupLogger();
 	}
 
-	static public void SetupLoggerService()
+	public static void SetupLoggerService()
 	{
 		logger.Debug("LoggerService Created");
 	}
 
-	static Exception? ArchiveLastLogFile()
-	{
-		Console.WriteLine("ArchiveLastLogFile");
-		try
-		{
-			FileInfo lastLogFile = new(CurrentLogFilePath);
-			if (!lastLogFile.Exists)
-			{
-				Console.WriteLine("lastLogFile not exists");
-				return null;
-			}
-
-			string archiveLogFileName = string.Format(
-				ARCHIVE_LOG_FILE_NAME_FORMAT,
-				lastLogFile.CreationTime.ToUniversalTime().ToString("yyyyMMdd.HHmmss")
-			);
-			string archiveLogFilePath = Path.Combine(LOG_FILE_DIRECTORY_PATH, archiveLogFileName);
-
-			Console.WriteLine("lastLogFile: {0} -> {1}", lastLogFile.FullName, archiveLogFilePath);
-			File.Move(lastLogFile.FullName, archiveLogFilePath);
-			return null;
-		}
-		catch (Exception ex)
-		{
-			return ex;
-		}
-	}
-
-	static Exception? DeleteOldLogFiles(Logger _logger)
-	{
-		_logger.Trace("Executing...");
-		try
-		{
-			IEnumerable<FileInfo> oldLogFiles = LOG_FILE_DIRECTORY_INFO.EnumerateFiles(
-				ARCHIVE_LOG_FILE_NAME_PATTERN,
-				SearchOption.TopDirectoryOnly
-			)
-				.OrderByDescending(static fileInfo => fileInfo.LastWriteTime)
-				.Skip(MAX_ARCHIVE_LOG_FILE_COUNT);
-
-			foreach (FileInfo oldLogFile in oldLogFiles)
-			{
-				_logger.Info("Deleting oldLogFile: {0}", oldLogFile.FullName);
-				oldLogFile.Delete();
-			}
-
-			return null;
-		}
-		catch (Exception ex)
-		{
-			return ex;
-		}
-	}
-
 	static Logger SetupLogger()
 	{
-		bool isNormalLogFileDirectoryExists = LOG_FILE_DIRECTORY_INFO.Exists;
-		if (!isNormalLogFileDirectoryExists)
-		{
-			LOG_FILE_DIRECTORY_INFO.Create();
-		}
+		bool isGeneralLogFileDirectoryExisting = GeneralLogFileManager.CreateLogFileDirectoryIfNotExists();
+		bool isLocationLogFileDirectoryExisting = LocationLogFileManager.CreateLogFileDirectoryIfNotExists();
 
-		Exception? exceptionOnArchiveLastLogFile = ArchiveLastLogFile();
+		Exception? exceptionOnArchiveLastGeneralLogFile = GeneralLogFileManager.ArchiveLastLogFile();
+		Exception? exceptionOnArchiveLastLocationLogFile = LocationLogFileManager.ArchiveLastLogFile();
 
 #if DEBUG
 		ConsoleTarget consoleTarget = new("console")
 		{
-			Layout = logFormat,
+			Layout = LOG_FORMAT,
 			Encoding = Encoding.UTF8,
 		};
 		LoggingRule consoleLoggingRule = new("*", LogLevel.Trace, consoleTarget);
 #endif
 
+		LoggingConfiguration loggingConfiguration = new()
+		{
+			LoggingRules =
+			{
+#if DEBUG
+				consoleLoggingRule
+#endif
+			},
+		};
+		if (isGeneralLogFileDirectoryExisting)
+		{
+			loggingConfiguration.AddRule(GetFileLoggingRule(GeneralLogFileManager));
+		}
+
+		if (isLocationLogFileDirectoryExisting)
+		{
+			loggingConfiguration.AddRule(GetFileLoggingRule(LocationLogFileManager));
+		}
+
+		LogManager
+			.Setup()
+			.LoadConfiguration(loggingConfiguration);
+
+		Logger _logger = GetGeneralLogger();
+		_logger.Info("TRViS Starting... (isGeneralLogFileDirectoryExisting: {0}, isLocationLogFileDirectoryExisting: {1})", isGeneralLogFileDirectoryExisting, isLocationLogFileDirectoryExisting);
+
+		if (exceptionOnArchiveLastGeneralLogFile is not null)
+			_logger.Error(exceptionOnArchiveLastGeneralLogFile, "ArchiveLastGeneralLogFile Failed");
+		if (exceptionOnArchiveLastLocationLogFile is not null)
+			_logger.Error(exceptionOnArchiveLastLocationLogFile, "ArchiveLastLocationLogFile Failed");
+
+		GeneralLogFileManager.DeleteOldLogFiles(_logger);
+		LocationLogFileManager.DeleteOldLogFiles(_logger);
+		_logger.Info("LoggerService SetupLogger Completed");
+
+		return _logger;
+	}
+
+	private static LoggingRule GetFileLoggingRule(
+		LogFileManager logFileManager
+	)
+	{
 		FileTarget fileTarget = new("file")
 		{
-			FileName = CurrentLogFilePath,
+			FileName = logFileManager.CurrentLogFilePath,
 			ArchiveEvery = FileArchivePeriod.None,
-			MaxArchiveFiles = 14,
+			MaxArchiveFiles = LogFileManager.MAX_ARCHIVE_LOG_FILE_COUNT,
 
 			Encoding = Encoding.UTF8,
 			LineEnding = LineEndingMode.LF,
 			WriteBom = false,
 			CreateDirs = false,
-			Layout = logFormat,
+			Layout = LOG_FORMAT,
 		};
 		AsyncTargetWrapper fileAsyncTargetWrapper = new("async", fileTarget)
 		{
@@ -123,8 +110,8 @@ public static class LoggerService
 			BatchSize = 100,
 			TimeToSleepBetweenBatches = 100,
 		};
-		LoggingRule fileLoggingRule = new(
-			"*",
+		return new(
+			$"{logFileManager.LogCategory}.*",
 #if DEBUG
 			LogLevel.Trace,
 #else
@@ -132,33 +119,17 @@ public static class LoggerService
 #endif
 			fileAsyncTargetWrapper
 		);
-
-		LoggingConfiguration loggingConfiguration = new()
-		{
-			LoggingRules =
-			{
-#if DEBUG
-				consoleLoggingRule,
-#endif
-
-				fileLoggingRule,
-			},
-		};
-
-		LogManager
-			.Setup()
-			.LoadConfiguration(loggingConfiguration);
-
-		Logger _logger = LogManager.GetCurrentClassLogger();
-		_logger.Info("TRViS Starting... (isNormalLogFileDirectoryExists: {0})", isNormalLogFileDirectoryExists);
-
-		if (exceptionOnArchiveLastLogFile is not null)
-			_logger.Error(exceptionOnArchiveLastLogFile, "ArchiveLastLogFile Failed");
-
-		Exception? exceptionOnDeleteOldLogFiles = DeleteOldLogFiles(_logger);
-		if (exceptionOnDeleteOldLogFiles is not null)
-			_logger.Error(exceptionOnDeleteOldLogFiles, "DeleteOldLogFiles Failed");
-
-		return _logger;
 	}
+
+	private static string GetCallerClassName()
+	{
+		StackTrace stackTrace = new();
+		StackFrame? stackFrame = stackTrace.GetFrame(2);
+		string className = stackFrame?.GetMethod()?.DeclaringType?.FullName ?? nameof(TRViS);
+		return className;
+	}
+	public static Logger GetGeneralLogger()
+		=> LogManager.GetLogger($"{GeneralLogFileManager.LogCategory}.{GetCallerClassName()}");
+	public static Logger GetLocationServiceLogger()
+		=> LogManager.GetLogger($"{LocationLogFileManager.LogCategory}.{GetCallerClassName()}");
 }

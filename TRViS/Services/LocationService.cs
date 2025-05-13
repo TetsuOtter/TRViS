@@ -1,4 +1,5 @@
 using System.ComponentModel;
+
 using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
@@ -17,7 +18,7 @@ public class ExceptionThrownEventArgs : EventArgs
 
 public partial class LocationService : IDisposable
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	public bool IsEnabled
 	{
@@ -163,7 +164,8 @@ public partial class LocationService : IDisposable
 		CancellationTokenSource nextTokenSource = new();
 		timeProviderCancellation = nextTokenSource;
 		// バックグラウンドで実行し続ける
-		_ = Task.Run(async () => {
+		_ = Task.Run(async () =>
+		{
 			int lastTime_s = -1;
 			while (!nextTokenSource.Token.IsCancellationRequested)
 			{
