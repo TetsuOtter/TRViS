@@ -8,7 +8,7 @@ namespace TRViS.DTAC;
 
 public class LocationServiceButton : ToggleButton
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	const float CornerRadius = 5;
 	const float SelectedRectMargin = 2;
 	const float SelectedRectThickness = 1;

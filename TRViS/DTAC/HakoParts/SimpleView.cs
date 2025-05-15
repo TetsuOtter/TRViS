@@ -7,7 +7,7 @@ namespace TRViS.DTAC.HakoParts;
 
 public class SimpleView : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	public const double STA_NAME_TIME_COLUMN_WIDTH = 120;
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;

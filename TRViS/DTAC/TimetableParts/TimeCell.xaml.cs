@@ -1,4 +1,5 @@
 using DependencyPropertyGenerator;
+
 using TRViS.IO.Models;
 
 namespace TRViS.DTAC;
@@ -11,7 +12,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("HHMM", IsReadOnly = true)]
 public partial class TimeCell : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	public TimeCell()
 	{

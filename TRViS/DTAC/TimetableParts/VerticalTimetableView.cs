@@ -15,7 +15,7 @@ public partial class VerticalTimetableView : Grid
 		public double PositionY { get; } = PositionY;
 	}
 
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	static public readonly GridLength RowHeight = new(60);
 
 	public event EventHandler? IsBusyChanged;

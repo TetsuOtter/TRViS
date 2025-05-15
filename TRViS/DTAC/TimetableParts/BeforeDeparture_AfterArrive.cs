@@ -6,7 +6,7 @@ namespace TRViS.DTAC;
 
 public class BeforeDeparture_AfterArrive
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public readonly RowDefinition RowDefinition = new(DTACElementStyles.BeforeDeparture_AfterArrive_Height);
 
 	readonly BoxView HeaderBoxView = new()

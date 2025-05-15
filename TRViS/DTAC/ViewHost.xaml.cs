@@ -7,7 +7,7 @@ namespace TRViS.DTAC;
 
 public partial class ViewHost : ContentPage
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	static public readonly double TITLE_VIEW_HEIGHT = 50;
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_LIGHT = "\xe518";
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\xe51c";

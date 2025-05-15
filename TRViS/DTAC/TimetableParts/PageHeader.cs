@@ -6,7 +6,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<bool>("IsLocationServiceEnabled")]
 public partial class PageHeader : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	static readonly ColumnDefinitionCollection DefaultColumnDefinitions = new()
 	{
 		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
@@ -120,7 +120,7 @@ public partial class PageHeader : Grid
 	{
 		logger.Info("OpenCloseButton.IsOpen: {0}", newValue);
 		OpenCloseButton.IsOpen = newValue;
-	} 
+	}
 
 	private void OpenCloseButton_IsOpenChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{

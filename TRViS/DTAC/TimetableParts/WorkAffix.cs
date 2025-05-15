@@ -4,7 +4,7 @@ namespace TRViS.DTAC;
 
 public class WorkAffix : ContentView
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public WorkAffix()
 	{
 		logger.Trace("Creating...");

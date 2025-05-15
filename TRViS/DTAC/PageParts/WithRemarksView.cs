@@ -1,4 +1,5 @@
 ﻿using DependencyPropertyGenerator;
+
 using TRViS.IO.Models;
 
 namespace TRViS.DTAC;
@@ -8,7 +9,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<IHasRemarksProperty>("RemarksData")]
 public partial class WithRemarksView : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	Remarks RemarksView { get; } = new();
 	RowDefinition RemarksAreaRowDefinition { get; } = new(new(Remarks.HEADER_HEIGHT, GridUnitType.Absolute));
 

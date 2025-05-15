@@ -4,7 +4,7 @@ namespace TRViS.RootPages;
 
 public partial class EasterEggPage : ContentPage
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	EasterEggPageViewModel ViewModel { get; }
 
 	public EasterEggPage()
@@ -16,7 +16,7 @@ public partial class EasterEggPage : ContentPage
 		ViewModel = InstanceManager.EasterEggPageViewModel;
 		BindingContext = ViewModel;
 
-		LogFilePathLabel.Text = DirectoryPathProvider.NormalLogFileDirectory.FullName;
+		LogFilePathLabel.Text = DirectoryPathProvider.GeneralLogFileDirectory.FullName;
 
 		logger.Trace("EasterEggPage Created");
 	}

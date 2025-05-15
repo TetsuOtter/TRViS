@@ -10,7 +10,7 @@ public interface ICrashlyticsWrapper
 
 public class CrashlyticsWrapper : ICrashlyticsWrapper
 {
-	static readonly Logger logger = LogManager.GetCurrentClassLogger();
+	static readonly Logger logger = LoggerService.GetGeneralLogger();
 
 	public void Log(Exception ex, string? message)
 	{

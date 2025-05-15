@@ -9,7 +9,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("AffectDate")]
 public partial class VerticalStylePage : ContentView
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
 	const double TRAIN_INFO_ROW_HEIGHT = 54;

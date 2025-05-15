@@ -4,7 +4,7 @@ namespace TRViS.Controls;
 
 public class HtmlAutoDetectLabel : Label
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public AppThemeColorBindingExtension? CurrentAppThemeColorBindingExtension { get; set; }
 	public Color? LastTextColor { get; private set; }
 

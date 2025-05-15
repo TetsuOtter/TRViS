@@ -2,7 +2,7 @@ namespace TRViS.DTAC.HakoParts;
 
 public class HeaderView : Grid
 {
-  private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+  private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
   readonly ColumnDefinition EdgeColumnDefinition = new(0);
 

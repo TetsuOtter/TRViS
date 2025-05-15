@@ -9,7 +9,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("WorkSpaceName")]
 public partial class Hako : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	readonly HeaderView headerView = new();
 

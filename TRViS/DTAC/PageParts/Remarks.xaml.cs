@@ -10,7 +10,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<double>("BottomSafeAreaHeight")]
 public partial class Remarks : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public const double HEADER_HEIGHT = 64;
 	const double DEFAULT_CONTENT_AREA_HEIGHT = 256;
 	double BottomMargin

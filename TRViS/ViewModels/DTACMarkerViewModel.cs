@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+
 using TRViS.MyAppCustomizables;
 
 namespace TRViS.ViewModels;
@@ -7,7 +8,7 @@ public record MarkerInfo(string Name, Color Color);
 
 public partial class DTACMarkerViewModel : ObservableObject
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	public static readonly IReadOnlyList<MarkerInfo> ColorListDefaultValue = new List<MarkerInfo>()
 	{

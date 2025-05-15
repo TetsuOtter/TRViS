@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using TRViS.ViewModels;
 
 namespace TRViS.MyAppCustomizables;
@@ -11,8 +12,8 @@ public partial class SettingFileStructure
 {
 	[JsonSourceGenerationOptions(WriteIndented = true)]
 	[JsonSerializable(typeof(SettingFileStructure))]
-	internal partial class SourceGenerationContext : JsonSerializerContext {}
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	internal partial class SourceGenerationContext : JsonSerializerContext { }
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	/// <summary>
 	/// タイトルバーの背景色

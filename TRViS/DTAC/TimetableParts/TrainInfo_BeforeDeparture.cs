@@ -6,7 +6,7 @@ namespace TRViS.DTAC;
 
 public partial class TrainInfo_BeforeDeparture : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	static readonly RowDefinitionCollection DefaultRowDefinitions = new()
 	{
 		new RowDefinition(DTACElementStyles.BeforeDeparture_AfterArrive_Height),

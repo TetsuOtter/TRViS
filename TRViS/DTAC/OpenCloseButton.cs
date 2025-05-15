@@ -7,7 +7,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("TextWhenClosed")]
 public partial class OpenCloseButton : Button
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public event EventHandler<ValueChangedEventArgs<bool>>? IsOpenChanged;
 
 	public OpenCloseButton()

@@ -1,12 +1,14 @@
 using System.ComponentModel;
+
 using CommunityToolkit.Mvvm.ComponentModel;
+
 using TRViS.MyAppCustomizables;
 
 namespace TRViS.ViewModels;
 
 public partial class EasterEggPageViewModel : ObservableObject
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	Color _ShellBackgroundColor = Colors.Black;
 	public Color ShellBackgroundColor
@@ -64,7 +66,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		LocationServiceIntervalSettingHeaderLabel = $"Location Service Interval: {value:F2} [s]";
 	}
 
-    public DTACMarkerViewModel MarkerViewModel { get; }
+	public DTACMarkerViewModel MarkerViewModel { get; }
 
 	public EasterEggPageViewModel()
 	{

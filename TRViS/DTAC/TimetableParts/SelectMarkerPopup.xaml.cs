@@ -1,11 +1,12 @@
 using CommunityToolkit.Maui.Views;
+
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
 public partial class SelectMarkerPopup : Popup
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public SelectMarkerPopup() : this(InstanceManager.DTACMarkerViewModel) { }
 
 	public SelectMarkerPopup(DTACMarkerViewModel viewModel)

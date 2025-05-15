@@ -2,7 +2,7 @@ namespace TRViS;
 
 public class ResourceManager
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public static ResourceManager Current { get; } = new();
 
 	public enum AssetName

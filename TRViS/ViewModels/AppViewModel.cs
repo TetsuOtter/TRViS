@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.IO;
@@ -10,7 +11,7 @@ namespace TRViS.ViewModels;
 
 public partial class AppViewModel : ObservableObject
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	[ObservableProperty]
 	ILoader? _Loader;

@@ -1,11 +1,12 @@
 using CommunityToolkit.Maui.Views;
+
 using TRViS.IO.RequestInfo;
 
 namespace TRViS.RootPages;
 
 public class SelectOnlineResourcePopup : Popup
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	readonly Button CloseButton = new()
 	{
@@ -71,7 +72,8 @@ public class SelectOnlineResourcePopup : Popup
 
 		RootStyles.TableTextColor.Apply(AdviceLabel, Label.TextColorProperty);
 
-		UrlHistoryListView.ItemTemplate = new DataTemplate(() => {
+		UrlHistoryListView.ItemTemplate = new DataTemplate(() =>
+		{
 			TextCell cell = new();
 			RootStyles.TableTextColor.Apply(cell, TextCell.TextColorProperty);
 			cell.SetBinding(TextCell.TextProperty, static (string? v) => v);
@@ -106,13 +108,15 @@ public class SelectOnlineResourcePopup : Popup
 		UrlInput.ReturnCommand = DoLoadCommand;
 		LoadButton.Command = DoLoadCommand;
 
-		UrlHistoryListView.ItemTapped += (_, e) => {
+		UrlHistoryListView.ItemTapped += (_, e) =>
+		{
 			logger.Debug("UrlHistoryListView.ItemTapped");
 			UrlInput.Text = e.Item as string;
 			logger.Trace("UrlInput.Text = {0}", UrlInput.Text);
 		};
 
-		UrlInput.TextChanged += (_, e) => {
+		UrlInput.TextChanged += (_, e) =>
+		{
 			logger.Debug("UrlInput.TextChanged -> set UrlHistoryListView.SelectedItem = {0}", e.NewTextValue);
 			UrlHistoryListView.SelectedItem = e.NewTextValue;
 		};
@@ -170,7 +174,7 @@ public class SelectOnlineResourcePopup : Popup
 				? AppLinkInfo.FromAppLink(UrlInput.Text)
 				: new(
 					AppLinkInfo.FileType.Json,
-					Version: new(1,0),
+					Version: new(1, 0),
 					ResourceUri: new(UrlInput.Text)
 				);
 			bool execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, CancellationToken.None);
