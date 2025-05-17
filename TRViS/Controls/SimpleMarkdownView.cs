@@ -1,5 +1,7 @@
 using DependencyPropertyGenerator;
 
+using TRViS.Services;
+
 namespace TRViS.Controls;
 
 [DependencyProperty<ResourceManager.AssetName>("FileName", DefaultValue = ResourceManager.AssetName.UNKNOWN)]

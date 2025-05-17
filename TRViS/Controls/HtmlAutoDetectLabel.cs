@@ -1,5 +1,7 @@
 using System.Runtime.CompilerServices;
 
+using TRViS.Services;
+
 namespace TRViS.Controls;
 
 public class HtmlAutoDetectLabel : Label

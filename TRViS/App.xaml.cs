@@ -1,3 +1,5 @@
+using TRViS.Services;
+
 namespace TRViS;
 
 public partial class App : Application

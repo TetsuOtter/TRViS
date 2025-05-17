@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 using TRViS.FirebaseWrapper;
 using TRViS.RootPages;
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS;

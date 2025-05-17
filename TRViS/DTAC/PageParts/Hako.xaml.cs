@@ -1,6 +1,7 @@
 using DependencyPropertyGenerator;
 
 using TRViS.DTAC.HakoParts;
+using TRViS.Services;
 
 namespace TRViS.DTAC;
 

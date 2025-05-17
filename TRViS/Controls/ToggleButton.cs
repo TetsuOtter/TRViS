@@ -1,5 +1,7 @@
 using DependencyPropertyGenerator;
 
+using TRViS.Services;
+
 namespace TRViS.Controls;
 
 [DependencyProperty<bool>("IsChecked", DefaultBindingMode = DefaultBindingMode.TwoWay)]

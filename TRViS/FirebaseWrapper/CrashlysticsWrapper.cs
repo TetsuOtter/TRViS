@@ -1,5 +1,7 @@
 using NLog;
 
+using TRViS.Services;
+
 namespace TRViS.FirebaseWrapper;
 
 public interface ICrashlyticsWrapper

@@ -1,7 +1,8 @@
-using System.Runtime.CompilerServices;
 using System.Text;
 
 using DependencyPropertyGenerator;
+
+using TRViS.Services;
 
 namespace TRViS.Controls;
 

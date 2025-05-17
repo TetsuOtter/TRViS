@@ -1,5 +1,7 @@
 using DependencyPropertyGenerator;
 
+using TRViS.Services;
+
 namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsOpen")]

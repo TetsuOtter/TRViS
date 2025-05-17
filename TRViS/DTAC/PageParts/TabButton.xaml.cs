@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 using DependencyPropertyGenerator;
 
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
