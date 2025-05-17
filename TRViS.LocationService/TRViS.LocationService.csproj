@@ -10,5 +10,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.ILocationService\TRViS.ILocationService.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="NLog" Version="5.4.0" />
+	</ItemGroup>
 
 </Project>

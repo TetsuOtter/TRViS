@@ -1,6 +1,5 @@
 using System.ComponentModel;
 
-using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
@@ -19,6 +18,8 @@ public class ExceptionThrownEventArgs : EventArgs
 public partial class LocationService : IDisposable
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+	private static readonly NLog.Logger locationServiceLogger = LoggerService.GetLocationServiceLogger();
+	private static readonly NLog.Logger lonLatLocationServiceLogger = LoggerService.GetLocationServiceLoggerT<LonLatLocationService>();
 
 	public bool IsEnabled
 	{
@@ -128,6 +129,7 @@ public partial class LocationService : IDisposable
 	public void SetLonLatLocationService()
 	{
 		logger.Trace("Setting LonLatLocationService...");
+		locationServiceLogger.Info("Setting LonLatLocationService...");
 
 		if (IsEnabled)
 		{
@@ -136,7 +138,7 @@ public partial class LocationService : IDisposable
 		}
 
 		ILocationService? currentService = _CurrentService;
-		LonLatLocationService nextService = new();
+		LonLatLocationService nextService = new(lonLatLocationServiceLogger);
 		if (currentService is not null)
 		{
 			currentService.CanUseServiceChanged -= OnCanUseServiceChanged;

@@ -75,7 +75,5 @@ public class StaLocationInfo : ILocationLonLat_deg, IEquatable<StaLocationInfo>
 		=> HashCode.Combine(Location_m, Location_lon_deg, Location_lat_deg, NearbyRadius_m);
 
 	public override string ToString()
-	{
-		return $"{nameof(StaLocationInfo)} {{ {nameof(Location_m)}: {Location_m}, {nameof(Location_lon_deg)}: {Location_lon_deg}, {nameof(Location_lat_deg)}: {Location_lat_deg}, {nameof(NearbyRadius_m)}: {NearbyRadius_m} }}";
-	}
+		=> $"{nameof(StaLocationInfo)} {{ {nameof(Location_m)}: {Location_m}, {nameof(Location_lon_deg)}: {Location_lon_deg}, {nameof(Location_lat_deg)}: {Location_lat_deg}, {nameof(NearbyRadius_m)}: {NearbyRadius_m} }}";
 }
