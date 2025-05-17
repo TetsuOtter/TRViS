@@ -37,6 +37,7 @@ public static class MauiProgram
 			{
 				handlers.AddHandler<Shell, HideShellTabRenderer>();
 			})
+			.UseMauiMaps()
 #endif
 			.ConfigureFonts(static fonts =>
 			{

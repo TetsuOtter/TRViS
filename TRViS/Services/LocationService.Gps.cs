@@ -3,6 +3,7 @@ namespace TRViS.Services;
 public partial class LocationService
 {
 	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
+	public event EventHandler<Location?>? OnGpsLocationUpdated;
 	async Task GpsPositioningTask(ILocationService service, CancellationToken token)
 	{
 		if (service is not LonLatLocationService gpsService)
@@ -69,6 +70,7 @@ public partial class LocationService
 			{
 				loc = await Geolocation.Default.GetLocationAsync(req, token);
 				locationServiceLogger.Info("Location Service Positioning Success (lon: {0}, lat: {1})", loc?.Longitude, loc?.Latitude);
+				OnGpsLocationUpdated?.Invoke(this, loc);
 			}
 			catch (Exception ex)
 			{

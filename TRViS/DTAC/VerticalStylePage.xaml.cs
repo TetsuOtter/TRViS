@@ -1,5 +1,6 @@
 using DependencyPropertyGenerator;
 
+using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -19,6 +20,8 @@ public partial class VerticalStylePage : ContentView
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 
 	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
+	ColumnDefinition MainColumnDefinition { get; } = new(new(1, GridUnitType.Star));
+	ColumnDefinition DebugMapColumnDefinition { get; } = new(0);
 
 	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
 		= DATE_AND_START_BUTTON_ROW_HEIGHT
@@ -31,6 +34,8 @@ public partial class VerticalStylePage : ContentView
 	public static double TimetableViewActivityIndicatorBorderMaxOpacity { get; } = 0.6;
 
 	VerticalTimetableView TimetableView { get; } = new();
+	MyMap? DebugMap = null;
+
 	DTACViewHostViewModel DTACViewHostViewModel { get; }
 	TrainData? CurrentShowingTrainData { get; set; }
 
@@ -70,6 +75,42 @@ public partial class VerticalStylePage : ContentView
 			new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
 			new(new(1, GridUnitType.Star))
 		);
+		MainGrid.ColumnDefinitions = new(
+			MainColumnDefinition,
+			DebugMapColumnDefinition
+		);
+		EasterEggPageViewModel eevm = InstanceManager.EasterEggPageViewModel;
+		eevm.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName == nameof(EasterEggPageViewModel.ShowMapWhenLandscape))
+			{
+				MainThread.BeginInvokeOnMainThread(OnMayChangeDebugMapVisible);
+			}
+		};
+
+		DeviceDisplay.Current.MainDisplayInfoChanged += (_, e) =>
+		{
+			logger.Debug("MainDisplayInfoChanged: {0}", e.DisplayInfo);
+			OnMayChangeDebugMapVisible();
+		};
+
+		TimetableView.IsLocationServiceEnabledChanged += (_, e) =>
+		{
+			logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
+			PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
+		};
+
+		InstanceManager.LocationService.OnGpsLocationUpdated += (_, e) =>
+		{
+			if (DebugMap is null || e is null)
+			{
+				return;
+			}
+			logger.Debug("OnGpsLocationUpdated: {0}", e);
+			DebugMap.SetCurrentLocation(e.Latitude, e.Longitude, e.Accuracy ?? 20);
+		};
+
+		OnMayChangeDebugMapVisible();
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
@@ -176,6 +217,7 @@ public partial class VerticalStylePage : ContentView
 		logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
 		PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
 		TimetableView.IsLocationServiceEnabled = e.NewValue;
+		DebugMap?.SetIsLocationServiceEnabled(e.NewValue);
 	}
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
@@ -201,6 +243,10 @@ public partial class VerticalStylePage : ContentView
 			logger.Info("SelectedTrainDataChanged: {0}", newValue);
 			BindingContext = newValue;
 			TimetableView.SelectedTrainData = newValue;
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				DebugMap?.SetTimetableRowList(newValue?.Rows);
+			});
 			PageHeaderArea.IsRunning = false;
 			InstanceManager.DTACMarkerViewModel.IsToggled = false;
 
@@ -320,5 +366,41 @@ public partial class VerticalStylePage : ContentView
 
 		DestinationLabel.Text = $"（{dstStr}行）";
 		DestinationLabel.IsVisible = true;
+	}
+
+	private void OnMayChangeDebugMapVisible()
+	{
+		bool isEnabled = InstanceManager.EasterEggPageViewModel.ShowMapWhenLandscape;
+		bool isLandscape = DeviceDisplay.Current.MainDisplayInfo.Orientation == DisplayOrientation.Landscape;
+		bool isVisible = isEnabled && isLandscape;
+		logger.Debug("isEnabled: {0}, isLandscape: {1}, isVisible: {2}", isEnabled, isLandscape, isVisible);
+		if (isVisible)
+		{
+			if (DebugMap is not null)
+			{
+				return;
+			}
+		}
+		else
+		{
+			if (DebugMap is not null)
+			{
+				DebugMap.IsEnabled = false;
+				DebugMapColumnDefinition.Width = new(0);
+				MainColumnDefinition.Width = new(1, GridUnitType.Star);
+				MainGrid.Remove(DebugMap);
+				DebugMap = null;
+				logger.Debug("DebugMap removed");
+			}
+			return;
+		}
+		DebugMap = new MyMap();
+		DebugMap.SetTimetableRowList(TimetableView.SelectedTrainData?.Rows);
+		DebugMap.SetIsLocationServiceEnabled(PageHeaderArea.IsLocationServiceEnabled);
+		double mainWidth = 768;
+		MainColumnDefinition.Width = new(mainWidth);
+		DebugMapColumnDefinition.Width = new(1, GridUnitType.Star);
+		MainGrid.Add(DebugMap, 1, 0);
+		MainGrid.SetRowSpan(DebugMap, MainGrid.RowDefinitions.Count);
 	}
 }
