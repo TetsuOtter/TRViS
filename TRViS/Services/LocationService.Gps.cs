@@ -69,7 +69,24 @@ public partial class LocationService
 			try
 			{
 				loc = await Geolocation.Default.GetLocationAsync(req, token);
-				locationServiceLogger.Info("Location Service Positioning Success (lon: {0}, lat: {1})", loc?.Longitude, loc?.Latitude);
+				if (loc is null)
+				{
+					locationServiceLogger.Warn("Location Service Positioning Failed");
+				}
+				else
+				{
+					locationServiceLogger.Info(
+						"Location Service Positioning Success (lon: {0}, lat: {1}, alt:{2}({3}), accuracy: {4}(alt: {5}), time: {6}, course: {7})",
+						loc.Longitude,
+						loc.Latitude,
+						loc.Altitude,
+						loc.AltitudeReferenceSystem,
+						loc.Accuracy,
+						loc.VerticalAccuracy,
+						loc.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+						loc.Course
+					);
+				}
 				OnGpsLocationUpdated?.Invoke(this, loc);
 			}
 			catch (Exception ex)
