@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using NLog;
@@ -125,11 +126,28 @@ public static class LoggerService
 	{
 		StackTrace stackTrace = new();
 		StackFrame? stackFrame = stackTrace.GetFrame(2);
-		string className = stackFrame?.GetMethod()?.DeclaringType?.FullName ?? nameof(TRViS);
-		return className;
+		if (stackFrame is null)
+		{
+			return nameof(TRViS);
+		}
+		return DiagnosticMethodInfo.Create(stackFrame)?.DeclaringTypeName ?? nameof(TRViS);
 	}
+
 	public static Logger GetGeneralLogger()
-		=> LogManager.GetLogger($"{GeneralLogFileManager.LogCategory}.{GetCallerClassName()}");
+		=> GetGeneralLogger(GetCallerClassName());
+	public static Logger GetGeneralLogger(Type type)
+		=> GetGeneralLogger(type.FullName ?? nameof(TRViS));
+	public static Logger GetGeneralLoggerT<T>()
+		=> GetGeneralLogger(typeof(T));
+	public static Logger GetGeneralLogger(string className)
+		=> LogManager.GetLogger($"{GeneralLogFileManager.LogCategory}.{className}");
+
 	public static Logger GetLocationServiceLogger()
-		=> LogManager.GetLogger($"{LocationLogFileManager.LogCategory}.{GetCallerClassName()}");
+		=> GetLocationServiceLogger(GetCallerClassName());
+	public static Logger GetLocationServiceLogger(Type type)
+		=> GetLocationServiceLogger(type.FullName ?? nameof(TRViS));
+	public static Logger GetLocationServiceLoggerT<T>()
+		=> GetLocationServiceLogger(typeof(T));
+	public static Logger GetLocationServiceLogger(string className)
+		=> LogManager.GetLogger($"{LocationLogFileManager.LogCategory}.{className}");
 }
