@@ -41,6 +41,9 @@ public partial class EasterEggPageViewModel : ObservableObject
 	[ObservableProperty]
 	double _LocationServiceInterval_Seconds = 1;
 
+	[ObservableProperty]
+	bool _ShowMapWhenLandscape = false;
+
 	public IReadOnlyList<double> LocationServiceIntervalItems { get; } = new List<double>()
 	{
 		0.1,
@@ -141,6 +144,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		Color_Green = settingFile.TitleColor.Green;
 		Color_Blue = settingFile.TitleColor.Blue;
 		LocationServiceInterval_Seconds = settingFile.LocationServiceInterval_Seconds;
+		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 
 		MarkerViewModel?.UpdateList(settingFile);
 
@@ -167,7 +171,8 @@ public partial class EasterEggPageViewModel : ObservableObject
 		SettingFileStructure settingFile = new()
 		{
 			TitleColor = new(ShellBackgroundColor),
-			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds
+			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds,
+			ShowMapWhenLandscape = ShowMapWhenLandscape,
 		};
 
 		MarkerViewModel?.SetToSettings(settingFile);

@@ -19,6 +19,14 @@ public partial class EasterEggPage : ContentPage
 
 		LogFilePathLabel.Text = DirectoryPathProvider.GeneralLogFileDirectory.FullName;
 
+#if IOS || MACCATALYST
+		ShowMapWhenLandscapeHeaderLabel.IsVisible = DeviceInfo.Idiom != DeviceIdiom.Phone;
+#else
+		ShowMapWhenLandscapeHeaderLabel.IsVisible = false;
+#endif
+
+		AdvancedSettingsBorder.IsVisible = ShowMapWhenLandscapeHeaderLabel.IsVisible;
+
 		logger.Trace("EasterEggPage Created");
 	}
 
