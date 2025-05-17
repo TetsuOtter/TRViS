@@ -1,12 +1,13 @@
-using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+
 using TRViS.MyAppCustomizables;
+using TRViS.Services;
 
 namespace TRViS.ViewModels;
 
 public partial class EasterEggPageViewModel : ObservableObject
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	Color _ShellBackgroundColor = Colors.Black;
 	public Color ShellBackgroundColor
@@ -40,6 +41,9 @@ public partial class EasterEggPageViewModel : ObservableObject
 	[ObservableProperty]
 	double _LocationServiceInterval_Seconds = 1;
 
+	[ObservableProperty]
+	bool _ShowMapWhenLandscape = false;
+
 	public IReadOnlyList<double> LocationServiceIntervalItems { get; } = new List<double>()
 	{
 		0.1,
@@ -64,7 +68,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		LocationServiceIntervalSettingHeaderLabel = $"Location Service Interval: {value:F2} [s]";
 	}
 
-    public DTACMarkerViewModel MarkerViewModel { get; }
+	public DTACMarkerViewModel MarkerViewModel { get; }
 
 	public EasterEggPageViewModel()
 	{
@@ -140,6 +144,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		Color_Green = settingFile.TitleColor.Green;
 		Color_Blue = settingFile.TitleColor.Blue;
 		LocationServiceInterval_Seconds = settingFile.LocationServiceInterval_Seconds;
+		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 
 		MarkerViewModel?.UpdateList(settingFile);
 
@@ -166,7 +171,8 @@ public partial class EasterEggPageViewModel : ObservableObject
 		SettingFileStructure settingFile = new()
 		{
 			TitleColor = new(ShellBackgroundColor),
-			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds
+			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds,
+			ShowMapWhenLandscape = ShowMapWhenLandscape,
 		};
 
 		MarkerViewModel?.SetToSettings(settingFile);

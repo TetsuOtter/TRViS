@@ -5,6 +5,7 @@ namespace TRViS.Services;
 
 public class LonLatLocationService : ILocationService
 {
+	private readonly NLog.Logger locationServiceLogger;
 	public bool IsEnabled { get; set; }
 	public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 
@@ -12,12 +13,19 @@ public class LonLatLocationService : ILocationService
 	const int DISTANCE_HISTORY_QUEUE_SIZE = 3;
 	readonly Queue<double> DistanceHistoryQueue = new(DISTANCE_HISTORY_QUEUE_SIZE);
 
+	public LonLatLocationService(NLog.Logger logger)
+	{
+		locationServiceLogger = logger;
+		locationServiceLogger.Info("LonLatLocationService Created");
+	}
+
 	private bool _CanUseService = false;
 	public bool CanUseService
 	{
 		get => _CanUseService;
 		private set
 		{
+			locationServiceLogger.Info("CanUseService Set to: {0}", CanUseService);
 			if (value == _CanUseService)
 				return;
 
@@ -37,6 +45,18 @@ public class LonLatLocationService : ILocationService
 				return;
 
 			_staLocationInfo = value;
+			if (value is null)
+			{
+				locationServiceLogger.Info("StaLocationInfo Changed to: null");
+			}
+			else
+			{
+				locationServiceLogger.Info("StaLocationInfo Changed to length: {0}", value.Length);
+				for (int i = 0; i < value.Length; i++)
+				{
+					locationServiceLogger.Info("StaLocationInfo[{0}]: {1}", i, _staLocationInfo?[i]);
+				}
+			}
 			CanUseService = _staLocationInfo?.Any(static v => v.HasLonLatLocation) ?? false;
 			ResetLocationInfo();
 		}
@@ -53,6 +73,8 @@ public class LonLatLocationService : ILocationService
 		CurrentStationIndex = GetNextStationIndex(StaLocationInfo ?? Array.Empty<StaLocationInfo>(), CURRENT_STATION_INDEX_NOT_SET);
 		IsRunningToNextStation = false;
 		DistanceHistoryQueue.Clear();
+
+		locationServiceLogger.Info("ResetLocationInfo: CurrentStationIndex: {0}, IsRunningToNextStation: {1}", CurrentStationIndex, IsRunningToNextStation);
 
 		if (invokeEvent)
 		{
@@ -87,12 +109,14 @@ public class LonLatLocationService : ILocationService
 	{
 		if (!CanUseService)
 		{
+			locationServiceLogger.Error("ForceSetLocationInfo({0}, {1}): CanUseService is false", lat_deg, lon_deg);
 			return;
 		}
 
 		ResetLocationInfo(false);
 		if (StaLocationInfo is null)
 		{
+			locationServiceLogger.Error("ForceSetLocationInfo({0}, {1}): StaLocationInfo is null", lat_deg, lon_deg);
 			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			return;
 		}
@@ -105,6 +129,7 @@ public class LonLatLocationService : ILocationService
 				CurrentStationIndex = 0;
 			}
 
+			locationServiceLogger.Error("ForceSetLocationInfo({0}, {1}): StaLocationInfo.Length <= 1", lat_deg, lon_deg);
 			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			return;
 		}
@@ -115,6 +140,8 @@ public class LonLatLocationService : ILocationService
 				? Utils.CalculateDistance_m(lon_deg, lat_deg, v.Location_lon_deg, v.Location_lat_deg)
 				: double.NaN
 		).ToArray();
+
+		locationServiceLogger.Info("ForceSetLocationInfo({0}, {1}): distanceArray: {2}", lat_deg, lon_deg, string.Join(", ", distanceArray));
 
 		int nearestStationIndex = CURRENT_STATION_INDEX_NOT_SET;
 		int firstStationIndex = CURRENT_STATION_INDEX_NOT_SET;
@@ -139,6 +166,7 @@ public class LonLatLocationService : ILocationService
 		// 全ての駅で位置情報が設定されていない場合
 		if (nearestStationIndex < 0)
 		{
+			locationServiceLogger.Error("ForceSetLocationInfo({0}, {1}): All stations have no location information", lat_deg, lon_deg);
 			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			return;
 		}
@@ -146,6 +174,7 @@ public class LonLatLocationService : ILocationService
 		// 有効な駅が1つしかない場合
 		if (firstStationIndex == lastStationIndex)
 		{
+			locationServiceLogger.Warn("ForceSetLocationInfo({0}, {1}): Only one station has location information", lat_deg, lon_deg);
 			CurrentStationIndex = firstStationIndex;
 			IsRunningToNextStation = false;
 			LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
@@ -194,11 +223,13 @@ public class LonLatLocationService : ILocationService
 			}
 		}
 
+		locationServiceLogger.Info("ForceSetLocationInfo({0}, {1}) COMPLETE: CurrentStationIndex: {2}, IsRunningToNextStation: {3}", lat_deg, lon_deg, CurrentStationIndex, IsRunningToNextStation);
 		LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 	}
 
 	public void ForceSetLocationInfo(int stationIndex, bool isRunningToNextStation)
 	{
+		locationServiceLogger.Info("ForceSetLocationInfo(stationIndex: {0}, isRunningToNextStation: {1})", stationIndex, isRunningToNextStation);
 		if (!CanUseService)
 		{
 			return;
@@ -230,16 +261,17 @@ public class LonLatLocationService : ILocationService
 		LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 	}
 
-	double GetDistanceToStationAverage(in StaLocationInfo staLocationInfo, double lon_deg, double lat_deg)
+	double GetDistanceToStationAverage(double distanceToStation)
 	{
-		double distanceToStation = Utils.CalculateDistance_m(lon_deg, lat_deg, staLocationInfo.Location_lon_deg, staLocationInfo.Location_lat_deg);
-
 		if (DistanceHistoryQueue.Count == DISTANCE_HISTORY_QUEUE_SIZE)
 			DistanceHistoryQueue.Dequeue();
 		DistanceHistoryQueue.Enqueue(distanceToStation);
 
 		if (DistanceHistoryQueue.Count < DISTANCE_HISTORY_QUEUE_SIZE)
+		{
+			locationServiceLogger.Debug("GetDistanceToStationAverage({0}): DistanceHistoryQueue.Count < {1}", distanceToStation, DISTANCE_HISTORY_QUEUE_SIZE);
 			return double.NaN;
+		}
 
 		return DistanceHistoryQueue.Average();
 	}
@@ -254,7 +286,10 @@ public class LonLatLocationService : ILocationService
 	public double SetCurrentLocation(double lon_deg, double lat_deg)
 	{
 		if (!CanUseService || StaLocationInfo is null || CurrentStationIndex < 0 || StaLocationInfo.Length <= CurrentStationIndex)
+		{
+			locationServiceLogger.Error("SetCurrentLocation({0}, {1}): CanUseService is false or StaLocationInfo is null or CurrentStationIndex is invalid", lat_deg, lon_deg);
 			return double.NaN;
+		}
 
 		double distance = double.NaN;
 		if (IsRunningToNextStation)
@@ -264,12 +299,14 @@ public class LonLatLocationService : ILocationService
 			int nextStationIndex = GetNextStationIndex(StaLocationInfo, CurrentStationIndex);
 			if (nextStationIndex < 0)
 			{
+				locationServiceLogger.Error("SetCurrentLocation({0}, {1}): IsRunningToNextStation=true: Next station index is invalid", lat_deg, lon_deg);
 				// 入るはずはないけども、念のため。
 				return double.NaN;
 			}
 			StaLocationInfo nextStation = StaLocationInfo[nextStationIndex];
 			distance = Utils.CalculateDistance_m(nextStation, new LocationLonLat_deg(lon_deg, lat_deg));
-			double distanceToNextStationAverage = GetDistanceToStationAverage(nextStation, lon_deg, lat_deg);
+			double distanceToNextStationAverage = GetDistanceToStationAverage(distance);
+			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=true: nextStation={2}, distance={3}, distanceToNextStationAverage={4}", lat_deg, lon_deg, nextStation, distance, distanceToNextStationAverage);
 
 			if (!double.IsNaN(distanceToNextStationAverage)
 				&& Utils.IsNearBy(nextStation, distanceToNextStationAverage))
@@ -277,6 +314,7 @@ public class LonLatLocationService : ILocationService
 				DistanceHistoryQueue.Clear();
 				CurrentStationIndex = nextStationIndex;
 				IsRunningToNextStation = false;
+				locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=true: Arrived at next station: CurrentStationIndex={2}", lat_deg, lon_deg, CurrentStationIndex);
 				LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			}
 		}
@@ -285,12 +323,14 @@ public class LonLatLocationService : ILocationService
 			StaLocationInfo currentStation = StaLocationInfo[CurrentStationIndex];
 
 			distance = Utils.CalculateDistance_m(currentStation, new LocationLonLat_deg(lon_deg, lat_deg));
-			double distanceFromCurrentStationAverage = GetDistanceToStationAverage(currentStation, lon_deg, lat_deg);
+			double distanceFromCurrentStationAverage = GetDistanceToStationAverage(distance);
+			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=false: currentStation={2}, distance={3}, distanceFromCurrentStationAverage={4}", lat_deg, lon_deg, currentStation, distance, distanceFromCurrentStationAverage);
 			if (!double.IsNaN(distanceFromCurrentStationAverage)
 				&& Utils.IsLeaved(currentStation, distanceFromCurrentStationAverage))
 			{
 				DistanceHistoryQueue.Clear();
 				IsRunningToNextStation = true;
+				locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=false: Departed from current station: CurrentStationIndex={2}", lat_deg, lon_deg, CurrentStationIndex);
 				LocationStateChanged?.Invoke(this, new(CurrentStationIndex, IsRunningToNextStation));
 			}
 		}

@@ -1,8 +1,10 @@
+using TRViS.Services;
+
 namespace TRViS;
 
 public partial class App : Application
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	public App()
 	{

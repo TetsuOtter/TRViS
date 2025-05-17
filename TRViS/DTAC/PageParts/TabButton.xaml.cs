@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 using DependencyPropertyGenerator;
 
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -13,7 +14,7 @@ namespace TRViS.DTAC;
 [DependencyProperty<string>("Text")]
 public partial class TabButton : ContentView
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public static readonly Color BASE_COLOR_DISABLED = new(0xDD, 0xDD, 0xDD);
 
 	public static readonly double NORMAL_MODE_WIDTH = 152;

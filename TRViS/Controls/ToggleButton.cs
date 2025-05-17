@@ -1,12 +1,14 @@
 using DependencyPropertyGenerator;
 
+using TRViS.Services;
+
 namespace TRViS.Controls;
 
 [DependencyProperty<bool>("IsChecked", DefaultBindingMode = DefaultBindingMode.TwoWay)]
 [DependencyProperty<bool>("IsRadio", DefaultBindingMode = DefaultBindingMode.OneWay)]
 public partial class ToggleButton : ContentView
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public EventHandler<ValueChangedEventArgs<bool>>? IsCheckedChanged;
 
 	public ToggleButton()

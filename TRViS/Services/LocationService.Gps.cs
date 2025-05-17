@@ -1,10 +1,9 @@
-using TRViS.Controls;
-
 namespace TRViS.Services;
 
 public partial class LocationService
 {
 	static Permissions.LocationWhenInUse LocationWhenInUsePermission { get; } = new();
+	public event EventHandler<Location?>? OnGpsLocationUpdated;
 	async Task GpsPositioningTask(ILocationService service, CancellationToken token)
 	{
 		if (service is not LonLatLocationService gpsService)
@@ -20,6 +19,7 @@ public partial class LocationService
 		// accuracy: 30m - 500m
 		GeolocationRequest req = new(GeolocationAccuracy.Default, Interval);
 		logger.Info("Starting Location Service... (Interval: {0})", Interval);
+		locationServiceLogger.Info("Starting Location Service... (Interval: {0})", Interval);
 
 		bool isFirst = true;
 		while (!token.IsCancellationRequested)
@@ -35,7 +35,6 @@ public partial class LocationService
 			{
 				try
 				{
-					
 					permissionStatus = await MainThread.InvokeOnMainThreadAsync(LocationWhenInUsePermission.RequestAsync);
 					logger.Trace("Location Service Requested Permission Status: {0}", permissionStatus);
 				}
@@ -58,6 +57,7 @@ public partial class LocationService
 				case PermissionStatus.Denied:
 				case PermissionStatus.Unknown:
 					logger.Error("Location Service Permission Disabled, Denied or Unknown state");
+					locationServiceLogger.Error("Location Service Permission Disabled, Denied or Unknown state");
 					IsEnabled = false;
 					serviceCancellation?.Cancel();
 					ExceptionThrown?.Invoke(this, new Exception("Location Service Permission Disabled, Denied or Unknown state"));
@@ -69,10 +69,30 @@ public partial class LocationService
 			try
 			{
 				loc = await Geolocation.Default.GetLocationAsync(req, token);
+				if (loc is null)
+				{
+					locationServiceLogger.Warn("Location Service Positioning Failed");
+				}
+				else
+				{
+					locationServiceLogger.Info(
+						"Location Service Positioning Success (lon: {0}, lat: {1}, alt:{2}({3}), accuracy: {4}(alt: {5}), time: {6}, course: {7})",
+						loc.Longitude,
+						loc.Latitude,
+						loc.Altitude,
+						loc.AltitudeReferenceSystem,
+						loc.Accuracy,
+						loc.VerticalAccuracy,
+						loc.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+						loc.Course
+					);
+				}
+				OnGpsLocationUpdated?.Invoke(this, loc);
 			}
 			catch (Exception ex)
 			{
 				logger.Error(ex, "GetLocationAsync failed");
+				locationServiceLogger.Error(ex, "GetLocationAsync failed");
 				IsEnabled = false;
 				serviceCancellation?.Cancel();
 
@@ -115,6 +135,7 @@ public partial class LocationService
 			if (executeEndTime < (executeStartTime + timeout))
 			{
 				logger.Trace("Location Service Positioning Took {0}", executeEndTime - executeStartTime);
+				locationServiceLogger.Info("Location Service Positioning Took {0}", executeEndTime - executeStartTime);
 				await Task.Delay(timeout - (executeEndTime - executeStartTime), token);
 			}
 			else
