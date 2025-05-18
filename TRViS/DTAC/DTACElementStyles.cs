@@ -134,7 +134,7 @@ public static partial class DTACElementStyles
 		};
 	}
 
-	public static readonly AppThemeGenericsValueTypeBindingExtension<double> AppIconOpacity = new(0.05, 0.025);
+	public static readonly AppThemeGenericsValueTypeBindingExtension<double> AppIconOpacity = new(0.075, 0.025);
 	public static readonly AppThemeColorBindingExtension AppIconBgColor = new(
 		new(0xCC, 0xFF, 0xCC),
 		new(0xA3, 0xCC, 0xA3)
