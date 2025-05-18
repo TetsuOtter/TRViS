@@ -14,6 +14,8 @@ public partial class TimetableHeader : Grid
 
 		InitializeComponent();
 
+		DTACElementStyles.SetTimetableColumnWidthCollection(this);
+
 		logger.Trace("Created");
 	}
 }

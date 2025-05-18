@@ -59,7 +59,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		logger.Trace("Creating...");
 
 		RowDefinitions = DefaultRowDefinitions;
-		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
+		DTACElementStyles.SetTimetableColumnWidthCollection(this);
 
 		TrainInfoArea.HorizontalOptions = LayoutOptions.Start;
 
