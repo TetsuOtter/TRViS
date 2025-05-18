@@ -25,7 +25,7 @@ public class LonLatLocationService : ILocationService
 		get => _CanUseService;
 		private set
 		{
-			locationServiceLogger.Info("CanUseService Set to: {0}", CanUseService);
+			locationServiceLogger.Info("CanUseService Set to: {0}", value);
 			if (value == _CanUseService)
 				return;
 
