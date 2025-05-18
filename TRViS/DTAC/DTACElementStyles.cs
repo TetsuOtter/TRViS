@@ -1,10 +1,15 @@
 using System.Text.RegularExpressions;
+
 using Microsoft.Maui.Controls.Shapes;
+
+using TRViS.Services;
 
 namespace TRViS.DTAC;
 
 public static partial class DTACElementStyles
 {
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+
 	static Color genColor(byte value)
 		=> new(value, value, value);
 	static AppThemeColorBindingExtension genColor(byte defaultColorValue, byte darkColorValue)
@@ -89,16 +94,45 @@ public static partial class DTACElementStyles
 	};
 
 	public const double RUN_TIME_COLUMN_WIDTH = 60;
-	static public ColumnDefinitionCollection TimetableColumnWidthCollection => new(
-		new(new(RUN_TIME_COLUMN_WIDTH)),
-		new(new(140)),
-		new(new(140)),
-		new(new(140)),
-		new(new(60)),
-		new(new(60)),
-		new(new(1, GridUnitType.Star)),
-		new(new(64))
-		);
+	private const int DEFAULT_TIME_COLUMN_WIDTH = 140;
+	private const int NARROW_TIME_COLUMN_WIDTH = 134;
+	public static void SetTimetableColumnWidthCollection(Grid grid)
+	{
+		ColumnDefinition runTimeColumn = new(new(RUN_TIME_COLUMN_WIDTH));
+		ColumnDefinition trackNameColumn = new(new(140));
+		ColumnDefinition arrivalDepartureTimeColumn = new(new(140));
+		ColumnDefinition trackNumberColumn = new(new(60));
+		ColumnDefinition speedLimitColumn = new(new(60));
+		ColumnDefinition remarksColumn = new(new(1, GridUnitType.Star));
+		ColumnDefinition markerColumn = new(new(64));
+		grid.ColumnDefinitions = [
+			runTimeColumn,
+			trackNameColumn,
+			arrivalDepartureTimeColumn,
+			arrivalDepartureTimeColumn,
+			trackNumberColumn,
+			speedLimitColumn,
+			remarksColumn,
+			markerColumn
+		];
+		grid.SizeChanged += (s, e) =>
+		{
+			logger.Debug("TimetableColumnWidthCollection SizeChanged (height={0}, width={1})", grid.Height, grid.Width);
+			if (0 < grid.Width && grid.Width < 768)
+			{
+				if (arrivalDepartureTimeColumn.Width.Value != NARROW_TIME_COLUMN_WIDTH)
+				{
+					arrivalDepartureTimeColumn.Width = new(NARROW_TIME_COLUMN_WIDTH);
+					logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: NARROW_TIME_COLUMN_WIDTH");
+				}
+			}
+			else if (arrivalDepartureTimeColumn.Width.Value != DEFAULT_TIME_COLUMN_WIDTH)
+			{
+				arrivalDepartureTimeColumn.Width = new(DEFAULT_TIME_COLUMN_WIDTH);
+				logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: DEFAULT_TIME_COLUMN_WIDTH");
+			}
+		};
+	}
 
 	public static readonly AppThemeGenericsValueTypeBindingExtension<double> AppIconOpacity = new(0.05, 0.025);
 	public static readonly AppThemeColorBindingExtension AppIconBgColor = new(
@@ -161,7 +195,7 @@ public static partial class DTACElementStyles
 		DefaultTextColor.Apply(v, Label.TextColorProperty);
 		v.FontSize = DefaultTextSize;
 		v.FontFamily = DefaultFontFamily;
-		v.Margin = new(4,0);
+		v.Margin = new(4, 0);
 		v.LineBreakMode = LineBreakMode.CharacterWrap;
 
 		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1;
@@ -218,7 +252,7 @@ public static partial class DTACElementStyles
 
 			_headerLabelStyleResource = new Style(typeof(Label))
 			{
-					BasedOn = LabelStyleResource
+				BasedOn = LabelStyleResource
 			};
 
 			_headerLabelStyleResource.Setters.Add(Label.TextColorProperty, HeaderTextColor);

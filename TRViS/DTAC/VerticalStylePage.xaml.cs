@@ -66,6 +66,8 @@ public partial class VerticalStylePage : ContentView
 
 		InitializeComponent();
 
+		DTACElementStyles.SetTimetableColumnWidthCollection(TrainBeforeRemarksArea);
+
 		MainGrid.RowDefinitions = new(
 			new(DATE_AND_START_BUTTON_ROW_HEIGHT),
 			new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),

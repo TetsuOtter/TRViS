@@ -13,7 +13,7 @@ public partial class Remarks : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public const double HEADER_HEIGHT = 64;
-	const double DEFAULT_CONTENT_AREA_HEIGHT = 256;
+	const double DEFAULT_CONTENT_AREA_HEIGHT = 160;
 	double BottomMargin
 		=> -ContentAreaHeight.Value - BottomSafeAreaHeight;
 
@@ -121,7 +121,7 @@ public partial class Remarks : Grid
 		try
 		{
 			logger.Trace("width: {0}, height: {1}", width, height);
-			OnPageHeightChanged(Shell.Current.CurrentPage.Height * 0.4);
+			OnPageHeightChanged(Shell.Current.CurrentPage.Height * 0.25);
 
 			base.OnSizeAllocated(width, height);
 		}

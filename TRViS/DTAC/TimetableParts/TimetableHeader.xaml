@@ -3,12 +3,11 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
-	x:Class="TRViS.DTAC.TimetableHeader"
-	ColumnDefinitions="{x:Static dtac:DTACElementStyles.TimetableColumnWidthCollection}">
+	x:Class="TRViS.DTAC.TimetableHeader">
 	<Grid.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
-				<ResourceDictionary Source="../Style_VerticalView.xaml" />
+				<ResourceDictionary Source="../Style_VerticalView.xaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Grid.Resources>
