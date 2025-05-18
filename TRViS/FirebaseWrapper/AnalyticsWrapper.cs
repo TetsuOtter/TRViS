@@ -1,5 +1,7 @@
 using NLog;
 
+using TRViS.Services;
+
 namespace TRViS.FirebaseWrapper;
 
 public interface IAnalyticsWrapper
@@ -14,7 +16,7 @@ public interface IAnalyticsWrapper
 // ref: https://learn.microsoft.com/en-au/answers/questions/2125319/firebase-analytics-not-logging-events-in-maui-net9
 public class AnalyticsWrapper : IAnalyticsWrapper
 {
-	static readonly Logger logger = LogManager.GetCurrentClassLogger();
+	static readonly Logger logger = LoggerService.GetGeneralLogger();
 
 	public void SetIsEnabled(bool isEnabled)
 	{

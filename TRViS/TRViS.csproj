@@ -84,6 +84,11 @@
 			Include="NLog"
 			Version="5.4.0" />
 	</ItemGroup>
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+		<PackageReference
+			Include="Microsoft.Maui.Controls.Maps"
+			Version="9.0.40" />
+	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<!-- <BundleResource Include="GoogleService-Info.plist" />
 		<PackageReference Include="AdamE.Firebase.iOS.Analytics" Version="11.8.0" />

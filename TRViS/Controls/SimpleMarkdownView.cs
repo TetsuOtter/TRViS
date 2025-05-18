@@ -1,11 +1,13 @@
 using DependencyPropertyGenerator;
 
+using TRViS.Services;
+
 namespace TRViS.Controls;
 
 [DependencyProperty<ResourceManager.AssetName>("FileName", DefaultValue = ResourceManager.AssetName.UNKNOWN)]
 public partial class SimpleMarkdownView : ContentView
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	readonly SimpleMarkdownLabel markdownLabel;
 
 	ResourceManager.AssetName currentFileName = ResourceManager.AssetName.UNKNOWN;

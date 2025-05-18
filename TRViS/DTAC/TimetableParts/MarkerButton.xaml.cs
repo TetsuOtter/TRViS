@@ -1,5 +1,6 @@
 using CommunityToolkit.Maui.Views;
 
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -7,7 +8,7 @@ namespace TRViS.DTAC;
 public partial class MarkerButton : Border
 {
 	DTACMarkerViewModel MarkerSettings { get; }
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public MarkerButton()
 	{
 		logger.Trace("Creating...");

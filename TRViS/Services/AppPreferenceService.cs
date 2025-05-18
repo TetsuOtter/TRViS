@@ -16,7 +16,7 @@ public enum AppPreferenceKeys
 
 public static class AppPreferenceService
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	static string ToKeyString(in AppPreferenceKeys key)
 	{
