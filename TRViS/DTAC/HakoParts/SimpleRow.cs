@@ -2,12 +2,13 @@ using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
 using TRViS.IO.Models;
+using TRViS.Services;
 
 namespace TRViS.DTAC.HakoParts;
 
 public partial class SimpleRow
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	static readonly Thickness StaNameTrainNumButtonMargin = new(0, 4);
 	static readonly Thickness TrainNumButtonPadding = new(32, 4);
@@ -228,13 +229,15 @@ public partial class SimpleRow
 		FormattedString fs = new();
 
 		double baseTextSize = TimeLabelFontSize_HHMM;
-		fs.Spans.Add(new(){
+		fs.Spans.Add(new()
+		{
 			Text = $"{value.Hour:00}:{value.Minute:00}",
 			FontAttributes = FontAttributes.Bold,
 			FontSize = baseTextSize,
 			FontAutoScalingEnabled = false,
 		});
-		fs.Spans.Add(new(){
+		fs.Spans.Add(new()
+		{
 			Text = value.Second?.ToString("00"),
 			FontSize = TimeLabelFontSize_SS,
 			FontAutoScalingEnabled = false,

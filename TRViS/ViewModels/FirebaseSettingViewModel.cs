@@ -6,7 +6,7 @@ namespace TRViS.ViewModels;
 
 public partial class FirebaseSettingViewModel : ObservableObject, IFirebaseSetting
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	[ObservableProperty]
 	public partial bool IsEnabled { get; set; }

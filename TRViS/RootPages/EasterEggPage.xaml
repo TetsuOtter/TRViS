@@ -12,21 +12,39 @@
 			<converters:DoubleToIntConverter x:Key="DoubleToIntConverter"/>
 
 			<Style TargetType="Slider">
-				<Setter Property="Minimum" Value="0"/>
-				<Setter Property="Maximum" Value="255"/>
-				<Setter Property="Margin" Value="4"/>
+				<Setter
+					Property="Minimum"
+					Value="0"/>
+				<Setter
+					Property="Maximum"
+					Value="255"/>
+				<Setter
+					Property="Margin"
+					Value="4"/>
 			</Style>
 
 			<Style TargetType="Border">
-				<Setter Property="Margin" Value="8"/>
-				<Setter Property="Padding" Value="8"/>
-				<Setter Property="Stroke" Value="{AppThemeBinding Default=Black,Dark=White}"/>
+				<Setter
+					Property="Margin"
+					Value="8"/>
+				<Setter
+					Property="Padding"
+					Value="8"/>
+				<Setter
+					Property="Stroke"
+					Value="{AppThemeBinding Default=Black,Dark=White}"/>
 			</Style>
 
 			<Style TargetType="Button">
-				<Setter Property="Margin" Value="8"/>
-				<Setter Property="Padding" Value="8"/>
-				<Setter Property="LineBreakMode" Value="WordWrap" />
+				<Setter
+					Property="Margin"
+					Value="8"/>
+				<Setter
+					Property="Padding"
+					Value="8"/>
+				<Setter
+					Property="LineBreakMode"
+					Value="WordWrap"/>
 			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
@@ -38,23 +56,19 @@
 				HorizontalOptions="Start">
 				<Button
 					Text="Load from..."
-					Clicked="OnLoadFromPickerClicked"
-				/>
+					Clicked="OnLoadFromPickerClicked"/>
 				<Button
 					Text="Save to..."
-					Clicked="OnSaveToPickerClicked"
-				/>
+					Clicked="OnSaveToPickerClicked"/>
 			</HorizontalStackLayout>
 			<HorizontalStackLayout
 				HorizontalOptions="End">
 				<Button
 					Text="Reload Saved"
-					Clicked="OnReloadSavedClicked"
-				/>
+					Clicked="OnReloadSavedClicked"/>
 				<Button
 					Text="Save"
-					Clicked="OnSaveClicked"
-				/>
+					Clicked="OnSaveClicked"/>
 			</HorizontalStackLayout>
 			<Border>
 				<Grid>
@@ -102,29 +116,47 @@
 				</Grid>
 			</Border>
 			<Border>
-				<VerticalStackLayout>
+				<VerticalStackLayout Spacing="8">
+					<Label
+						Text="位置情報の取得間隔"
+						FontSize="Header"/>
 					<Label
 						x:Name="LocationServiceIntervalSettingHeaderLabel"
 						Text="{Binding LocationServiceIntervalSettingHeaderLabel, Mode=OneWay}"
-						FontSize="Header"
-						/>
+						FontSize="Header"/>
 					<ListView
 						VerticalScrollBarVisibility="Never"
 						ItemsSource="{Binding LocationServiceIntervalItems, Mode=OneTime}"
-						SelectedItem="{Binding LocationServiceInterval_Seconds, Mode=TwoWay}"
-					/>
+						SelectedItem="{Binding LocationServiceInterval_Seconds, Mode=TwoWay}"/>
+				</VerticalStackLayout>
+			</Border>
+			<Border x:Name="AdvancedSettingsBorder">
+				<VerticalStackLayout Spacing="8">
+					<Label
+						Text="高度な設定"
+						FontSize="Header"/>
+					<HorizontalStackLayout
+						x:Name="ShowMapWhenLandscapeHeaderLabel"
+						HorizontalOptions="End">
+						<Label
+							Text="横向きにした際に、横に地図を表示する"
+							Margin="0,0,8,0"
+							VerticalOptions="Center"/>
+						<Switch
+							OnColor="GreenYellow"
+							VerticalOptions="Center"
+							IsToggled="{Binding ShowMapWhenLandscape}"/>
+					</HorizontalStackLayout>
 				</VerticalStackLayout>
 			</Border>
 			<Border>
 				<VerticalStackLayout>
 					<Label
 						Text="Log File Path"
-						FontSize="Header"
-						/>
+						FontSize="Header"/>
 					<Label
 						x:Name="LogFilePathLabel"
-						FontSize="Body"
-						/>
+						FontSize="Body"/>
 				</VerticalStackLayout>
 			</Border>
 		</VerticalStackLayout>

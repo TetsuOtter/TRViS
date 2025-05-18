@@ -23,7 +23,7 @@ public static class MauiProgram
 		CrashLogFilePath = Path.Combine(DirectoryPathProvider.CrashLogFileDirectory.FullName, CrashLogFileName);
 
 		LoggerService.SetupLoggerService();
-		logger = LogManager.GetCurrentClassLogger();
+		logger = LoggerService.GetGeneralLogger();
 	}
 
 	public static MauiApp CreateMauiApp()
@@ -37,6 +37,7 @@ public static class MauiProgram
 			{
 				handlers.AddHandler<Shell, HideShellTabRenderer>();
 			})
+			.UseMauiMaps()
 #endif
 			.ConfigureFonts(static fonts =>
 			{

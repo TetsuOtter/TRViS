@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui.Views;
 
 using TRViS.IO;
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.RootPages;
@@ -8,7 +9,7 @@ namespace TRViS.RootPages;
 public partial class SelectTrainPage : ContentPage
 {
 	public static readonly string NameOfThisClass = nameof(SelectTrainPage);
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	AppViewModel viewModel { get; }
 
 	public SelectTrainPage()

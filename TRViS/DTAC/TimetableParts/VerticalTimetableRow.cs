@@ -1,12 +1,13 @@
 using System.ComponentModel;
 
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
 public partial class VerticalTimetableRow
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	const float BG_ALPHA = 0.3f;
 
 	public enum LocationStates

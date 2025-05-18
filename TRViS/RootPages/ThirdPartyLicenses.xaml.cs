@@ -1,15 +1,17 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using TRViS.Controls;
 using TRViS.Models;
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.RootPages;
 
 public partial class ThirdPartyLicenses : ContentPage
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	ThirdPartyLicensesViewModel viewModel { get; }
 	public ThirdPartyLicenses()
 	{
@@ -22,7 +24,8 @@ public partial class ThirdPartyLicenses : ContentPage
 		BindingContext = viewModel;
 
 		viewModel.PropertyChanged += ViewModel_PropertyChanged;
-		LicenseTextArea.PropertyChanged += (_, e) => {
+		LicenseTextArea.PropertyChanged += (_, e) =>
+		{
 			if (e.PropertyName == nameof(Width))
 			{
 				if (LicenseTextArea.Content is not VerticalStackLayout licenses)
