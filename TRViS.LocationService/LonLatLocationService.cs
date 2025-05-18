@@ -282,8 +282,9 @@ public class LonLatLocationService : ILocationService
 	/// </summary>
 	/// <param name="lon_deg">現在の経度 [deg]</param>
 	/// <param name="lat_deg">現在の経度 [deg]</param>
+	/// <param name="useAverageDistance">平均距離を使用するかどうか</param>
 	/// <returns>判定対象の駅までの距離</returns>
-	public double SetCurrentLocation(double lon_deg, double lat_deg)
+	public double SetCurrentLocation(double lon_deg, double lat_deg, bool useAverageDistance = true)
 	{
 		if (!CanUseService || StaLocationInfo is null || CurrentStationIndex < 0 || StaLocationInfo.Length <= CurrentStationIndex)
 		{
@@ -306,7 +307,11 @@ public class LonLatLocationService : ILocationService
 			StaLocationInfo nextStation = StaLocationInfo[nextStationIndex];
 			distance = Utils.CalculateDistance_m(nextStation, new LocationLonLat_deg(lon_deg, lat_deg));
 			double distanceToNextStationAverage = GetDistanceToStationAverage(distance);
-			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=true: nextStation={2}, distance={3}, distanceToNextStationAverage={4}", lat_deg, lon_deg, nextStation, distance, distanceToNextStationAverage);
+			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=true: nextStation={2}, distance={3}, distanceToNextStationAverage={4}, useAverageDistance={5}", lat_deg, lon_deg, nextStation, distance, distanceToNextStationAverage, useAverageDistance);
+			if (!useAverageDistance)
+			{
+				distanceToNextStationAverage = distance;
+			}
 
 			if (!double.IsNaN(distanceToNextStationAverage)
 				&& Utils.IsNearBy(nextStation, distanceToNextStationAverage))
@@ -324,7 +329,11 @@ public class LonLatLocationService : ILocationService
 
 			distance = Utils.CalculateDistance_m(currentStation, new LocationLonLat_deg(lon_deg, lat_deg));
 			double distanceFromCurrentStationAverage = GetDistanceToStationAverage(distance);
-			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=false: currentStation={2}, distance={3}, distanceFromCurrentStationAverage={4}", lat_deg, lon_deg, currentStation, distance, distanceFromCurrentStationAverage);
+			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=false: currentStation={2}, distance={3}, distanceFromCurrentStationAverage={4}, useAverageDistance={5}", lat_deg, lon_deg, currentStation, distance, distanceFromCurrentStationAverage, useAverageDistance);
+			if (!useAverageDistance)
+			{
+				distanceFromCurrentStationAverage = distance;
+			}
 			if (!double.IsNaN(distanceFromCurrentStationAverage)
 				&& Utils.IsLeaved(currentStation, distanceFromCurrentStationAverage))
 			{
