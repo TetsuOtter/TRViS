@@ -1,10 +1,11 @@
 using TRViS.Controls;
+using TRViS.Services;
 
 namespace TRViS.DTAC;
 
 public class AfterRemarks
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	readonly Grid Parent;
 
 	public AfterRemarks(Grid Parent)

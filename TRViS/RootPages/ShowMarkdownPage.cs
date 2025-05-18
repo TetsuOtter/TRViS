@@ -1,13 +1,14 @@
 using DependencyPropertyGenerator;
 
 using TRViS.Controls;
+using TRViS.Services;
 
 namespace TRViS.RootPages;
 
 [DependencyProperty<ResourceManager.AssetName>("FileName", DefaultValue = ResourceManager.AssetName.UNKNOWN)]
 public partial class ShowMarkdownPage : ContentPage
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	readonly SimpleMarkdownView markdownView;
 
 	public ShowMarkdownPage()
@@ -21,7 +22,8 @@ public partial class ShowMarkdownPage : ContentPage
 		scrollView.Content = markdownView;
 		Content = scrollView;
 
-		NavigatedTo += (_, _) => {
+		NavigatedTo += (_, _) =>
+		{
 			logger.Info("NavigatedTo executing with FileName: '{0}'", FileName);
 			markdownView.FileName = FileName;
 		};

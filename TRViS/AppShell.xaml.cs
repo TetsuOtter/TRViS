@@ -6,13 +6,14 @@ using System.Runtime.CompilerServices;
 
 using TRViS.FirebaseWrapper;
 using TRViS.RootPages;
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS;
 
 public partial class AppShell : Shell
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	static public string AppVersionString
 		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";

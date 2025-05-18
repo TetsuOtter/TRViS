@@ -1,14 +1,15 @@
-using System.Runtime.CompilerServices;
 using System.Text;
 
 using DependencyPropertyGenerator;
+
+using TRViS.Services;
 
 namespace TRViS.Controls;
 
 [DependencyProperty<string>("MarkdownFileContent")]
 public partial class SimpleMarkdownLabel : Label
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	const int H0_FONT_SIZE = 28;
 	const int HEADER_FONT_SIZE_STEP = 3;

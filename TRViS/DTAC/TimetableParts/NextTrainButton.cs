@@ -1,10 +1,11 @@
 using TRViS.IO.Models;
+using TRViS.Services;
 
 namespace TRViS.DTAC.TimetableParts;
 
 public class NextTrainButton : Grid
 {
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	readonly Button _NextTrainButton = new()
 	{
 		FontFamily = DTACElementStyles.DefaultFontFamily,

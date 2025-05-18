@@ -1,4 +1,5 @@
 using TRViS.FirebaseWrapper;
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.RootPages;
@@ -6,7 +7,7 @@ namespace TRViS.RootPages;
 public partial class FirebaseSettingPage : ContentPage
 {
 	public static readonly string NameOfThisClass = nameof(FirebaseSettingPage);
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	FirebaseSettingViewModel FirebaseSettingViewModel { get; }
 	public FirebaseSettingPage()

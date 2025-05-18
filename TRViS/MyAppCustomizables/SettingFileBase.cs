@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
+using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.MyAppCustomizables;
@@ -11,8 +13,8 @@ public partial class SettingFileStructure
 {
 	[JsonSourceGenerationOptions(WriteIndented = true)]
 	[JsonSerializable(typeof(SettingFileStructure))]
-	internal partial class SourceGenerationContext : JsonSerializerContext {}
-	private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+	internal partial class SourceGenerationContext : JsonSerializerContext { }
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	/// <summary>
 	/// タイトルバーの背景色
@@ -43,6 +45,11 @@ public partial class SettingFileStructure
 	/// </summary>
 	public AppTheme? InitialTheme { get; set; } = AppTheme.Unspecified;
 
+	/// <summary>
+	/// 端末を横向きにした際に地図を表示するかどうか (位置情報デバッグ用)
+	/// </summary>
+	public bool ShowMapWhenLandscape { get; set; } = false;
+
 	public override string ToString()
 	{
 		return
@@ -51,6 +58,7 @@ public partial class SettingFileStructure
 			+ $"MarkerTexts: {MarkerTexts},"
 			+ $"LocationServiceInterval: {LocationServiceInterval_Seconds}[s],"
 			+ $"InitialTheme: {InitialTheme},"
+			+ $"ShowMapWhenLandscape: {ShowMapWhenLandscape}"
 		;
 	}
 
@@ -65,6 +73,7 @@ public partial class SettingFileStructure
 			&& MarkerTexts.Equals(v.MarkerTexts)
 			&& LocationServiceInterval_Seconds.Equals(v.LocationServiceInterval_Seconds)
 			&& InitialTheme.Equals(v.InitialTheme)
+			&& ShowMapWhenLandscape.Equals(v.ShowMapWhenLandscape)
 		;
 	}
 
@@ -72,7 +81,7 @@ public partial class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme);
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape);
 
 	#region Loaders
 
