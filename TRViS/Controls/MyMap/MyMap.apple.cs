@@ -15,6 +15,7 @@ public class MyMap : MyMapBase
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	readonly Microsoft.Maui.Controls.Maps.Map map;
+	readonly Label infoLabel;
 
 	public MyMap()
 	{
@@ -27,12 +28,27 @@ public class MyMap : MyMapBase
 			MapType = MapType.Street,
 		};
 
+		infoLabel = new()
+		{
+			Text = "LocationService Not Started",
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.End,
+			TextColor = Colors.Black,
+			BackgroundColor = Colors.White,
+			Opacity = 0.8f,
+			Padding = new Thickness(4),
+			Margin = new Thickness(4),
+		};
+
 		// ボタン等を追加する準備
 		AbsoluteLayout views = [
 			map,
+			infoLabel,
 		];
 		AbsoluteLayout.SetLayoutFlags(map, AbsoluteLayoutFlags.All);
 		AbsoluteLayout.SetLayoutBounds(map, new Rect(0, 0, 1, 1));
+		AbsoluteLayout.SetLayoutFlags(infoLabel, AbsoluteLayoutFlags.PositionProportional);
+		AbsoluteLayout.SetLayoutBounds(infoLabel, new Rect(1, 1, AbsoluteLayout.AutoSize, AbsoluteLayout.AutoSize));
 		Content = views;
 		ZIndex = 1;
 
@@ -54,6 +70,8 @@ public class MyMap : MyMapBase
 			currentLocationCircle.Center = new Location(latitude, longitude);
 			currentLocationCircle.Radius = Distance.FromMeters(accuracy_m);
 			map.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(latitude, longitude), map.VisibleRegion?.Radius ?? Distance.FromMeters(500)));
+
+			infoLabel.Text = $"{DateTime.Now}\nlat: {latitude:F6}\nlon: {longitude:F6}\nacc: {accuracy_m:F1} m";
 		});
 	}
 
@@ -82,6 +100,7 @@ public class MyMap : MyMapBase
 			{
 				map.MapElements.Remove(currentLocationCircle);
 				currentLocationCircle = null;
+				infoLabel.Text = "(Location Service Disabled)";
 			}
 		}
 	}
@@ -130,7 +149,7 @@ public class MyMap : MyMapBase
 				Label = row.StationName,
 				Address = sb.ToString(),
 				Location = location,
-				Type = PinType.Place,
+				Type = PinType.Generic,
 			};
 			map.Pins.Add(pin);
 
