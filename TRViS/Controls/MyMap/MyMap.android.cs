@@ -1,4 +1,6 @@
 #if ANDROID
+using TRViS.IO.Models;
+
 namespace TRViS.Controls;
 
 public class MyMap : MyMapBase
