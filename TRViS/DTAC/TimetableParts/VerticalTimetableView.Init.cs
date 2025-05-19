@@ -48,7 +48,7 @@ public partial class VerticalTimetableView
 
 		Grid.SetColumnSpan(NextTrainButton, 8);
 
-		ColumnDefinitions = DTACElementStyles.TimetableColumnWidthCollection;
+		DTACElementStyles.SetTimetableColumnWidthCollection(this);
 
 		Grid.SetColumnSpan(CurrentLocationLine, 8);
 

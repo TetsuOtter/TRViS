@@ -14,7 +14,7 @@
 	<ContentView.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
-				<ResourceDictionary Source="Style_VerticalView.xaml" />
+				<ResourceDictionary Source="Style_VerticalView.xaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</ContentView.Resources>
@@ -122,8 +122,8 @@
 
 
 		<Grid
+			x:Name="TrainBeforeRemarksArea"
 			Grid.Row="4"
-			ColumnDefinitions="{x:Static dtac:DTACElementStyles.TimetableColumnWidthCollection}"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
 			<Line
 				VerticalOptions="Start"
@@ -174,7 +174,7 @@
 						Brush="Black"
 						Offset="2,2"
 						Radius="2"
-						Opacity="0.2" />
+						Opacity="0.2"/>
 				</Border.Shadow>
 			</Border>
 			<Line
@@ -229,7 +229,7 @@
 					Brush="Black"
 					Offset="2,2"
 					Radius="2"
-					Opacity="0.2" />
+					Opacity="0.2"/>
 			</Border.Shadow>
 			<Border.StrokeShape>
 				<RoundRectangle CornerRadius="25"/>

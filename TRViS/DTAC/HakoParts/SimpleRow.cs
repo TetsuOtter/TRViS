@@ -16,6 +16,9 @@ public partial class SimpleRow
 	static readonly double TimeLabelFontSize_SS = TimeLabelFontSize_HHMM * 0.7;
 	static readonly double TrainNumberLabelTextSize = DTACElementStyles.LargeTextSize * 0.8;
 
+	const int SELECTED_STROKE_THICKNESS = 4;
+	const int UNSELECTED_STROKE_THICKNESS = 1;
+
 	public event ValueChangedEventHandler<bool>? IsSelectedChanged;
 
 	readonly Label FromStationNameLabel;
@@ -79,6 +82,7 @@ public partial class SimpleRow
 			MinimumWidthRequest = 120,
 			Shadow = SelectTrainButtonEmptyShadow,
 			Stroke = SelectTrainButtonBorderStrokeColor,
+			StrokeThickness = UNSELECTED_STROKE_THICKNESS,
 			StrokeShape = new RoundRectangle()
 			{
 				CornerRadius = 8,
@@ -195,11 +199,13 @@ public partial class SimpleRow
 		if (SelectTrainButton.IsEnabled && SelectTrainButton.IsChecked)
 		{
 			DTACElementStyles.DefaultGreen.Apply(SelectTrainButtonBorder, Border.StrokeProperty);
+			SelectTrainButtonBorder.StrokeThickness = SELECTED_STROKE_THICKNESS;
 			SelectTrainButtonBorder.Shadow = SelectTrainButtonEmptyShadow;
 		}
 		else
 		{
 			SelectTrainButtonBorder.Stroke = SelectTrainButtonBorderStrokeColor;
+			SelectTrainButtonBorder.StrokeThickness = UNSELECTED_STROKE_THICKNESS;
 			SelectTrainButtonBorder.Shadow = SelectTrainButtonShadow;
 		}
 	}
