@@ -83,6 +83,9 @@
 		<PackageReference
 			Include="NLog"
 			Version="5.4.0" />
+		<PackageReference
+			Include="TR.BBCodeLabel.Maui"
+			Version="0.1.1.2" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
 		<PackageReference
