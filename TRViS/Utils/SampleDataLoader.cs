@@ -18,7 +18,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 	static readonly List<Work> WorkList = new()
 	{
-		new(){ Id = WORK_1_1, Name = "Work1-1", Remarks = "Sample Work Remarks\nLine 2\nLine 3" },
+		new(){ Id = WORK_1_1, Name = "Work1-1", Remarks = "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3" },
 	};
 
 	static readonly List<IO.Models.DB.TrainData> TrainDataList = new()
