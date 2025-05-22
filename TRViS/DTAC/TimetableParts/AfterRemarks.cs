@@ -23,7 +23,7 @@ public class AfterRemarks
 
 	public string Text
 	{
-		get => Label.Text;
+		get => Label.Text ?? string.Empty;
 		set
 		{
 			if (Label.Text == value)

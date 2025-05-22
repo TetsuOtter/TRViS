@@ -28,7 +28,7 @@ public partial class Remarks : Grid
 		ContentAreaHeight = new(DEFAULT_CONTENT_AREA_HEIGHT);
 
 		DTACElementStyles.DefaultBGColor.Apply(RemarksTextScrollView, BackgroundColorProperty);
-		DTACElementStyles.DefaultTextColor.Apply(RemarksLabel, Label.TextColorProperty);
+		RemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 
 		logger.Trace("Created");
 	}

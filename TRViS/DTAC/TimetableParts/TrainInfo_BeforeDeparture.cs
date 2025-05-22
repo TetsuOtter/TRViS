@@ -15,11 +15,11 @@ public partial class TrainInfo_BeforeDeparture : Grid
 	};
 
 	#region TrainInfo Area
-	readonly HtmlAutoDetectLabel TrainInfoArea = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
+	readonly HtmlAutoDetectLabel TrainInfoArea = DTACElementStyles.LargeHtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
 
 	public string TrainInfoText
 	{
-		get => TrainInfoArea.Text;
+		get => TrainInfoArea.Text ?? string.Empty;
 		set
 		{
 			logger.Info("TrainInfoText: {0}", value);
@@ -38,16 +38,6 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		{
 			logger.Info("BeforeDepartureText: {0}", value);
 			BeforeDeparture.Text = value;
-		}
-	}
-
-	public string BeforeDepartureText_OnStationTrackColumn
-	{
-		get => BeforeDeparture.Text_OnStationTrackColumn;
-		set
-		{
-			logger.Info("BeforeDepartureText_OnStationTrackColumn: {0}", value);
-			BeforeDeparture.Text_OnStationTrackColumn = value;
 		}
 	}
 	#endregion
