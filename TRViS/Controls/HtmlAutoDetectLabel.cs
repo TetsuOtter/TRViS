@@ -1,119 +1,269 @@
 using System.Runtime.CompilerServices;
 
+using TR.BBCodeLabel.Maui;
+
 using TRViS.Services;
 
 namespace TRViS.Controls;
 
-public class HtmlAutoDetectLabel : Label
+public class HtmlAutoDetectLabel : ContentView
 {
-	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	public AppThemeColorBindingExtension? CurrentAppThemeColorBindingExtension { get; set; }
-	public Color? LastTextColor { get; private set; }
+	private readonly HtmlAutoDetectLabelImpl htmlAutoDetectLabelImpl = new();
+	private readonly BBCodeLabel bbCodeLabel = new();
 
-	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+	public static readonly BindableProperty TextProperty =
+		BindableProperty.Create(nameof(Text), typeof(string), typeof(HtmlAutoDetectLabel), default(string),
+			propertyChanged: OnTextPropertyChanged);
+
+	private static void OnTextPropertyChanged(BindableObject bindable, object oldValue, object newValue)
 	{
-		try
+		if (bindable is HtmlAutoDetectLabel label)
 		{
-			base.OnPropertyChanged(propertyName);
+			label.OnChangeText();
 		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (base)");
-			Utils.ExitWithAlert(ex);
-		}
+	}
 
-		if (propertyName == nameof(Text))
+	string? _text = string.Empty;
+	public string? Text
+	{
+		get => _text;
+		set
+		{
+			if (_text == value)
+				return;
+			_text = value;
+			OnChangeText();
+		}
+	}
+
+	[Obsolete("Use LabelStyle property instead.", true)]
+	public new Style? Style => base.Style;
+
+	public Style? LabelStyle
+	{
+		get => htmlAutoDetectLabelImpl.Style;
+		set
+		{
+			htmlAutoDetectLabelImpl.Style = value;
+			bbCodeLabel.Style = value;
+		}
+	}
+
+	public AppThemeColorBindingExtension? CurrentAppThemeColorBindingExtension
+	{
+		get => htmlAutoDetectLabelImpl.CurrentAppThemeColorBindingExtension;
+		set
+		{
+			htmlAutoDetectLabelImpl.CurrentAppThemeColorBindingExtension = value;
+			bbCodeLabel.DefaultLightThemeTextColor = value?.Light;
+			bbCodeLabel.DefaultDarkThemeTextColor = value?.Dark;
+		}
+	}
+
+	public Color TextColor
+	{
+		get => htmlAutoDetectLabelImpl.TextColor;
+		set
+		{
+			htmlAutoDetectLabelImpl.TextColor = value;
+			bbCodeLabel.TextColor = value;
+		}
+	}
+	public double FontSize
+	{
+		get => htmlAutoDetectLabelImpl.FontSize;
+		set
+		{
+			htmlAutoDetectLabelImpl.FontSize = value;
+			bbCodeLabel.FontSize = value;
+		}
+	}
+	public string FontFamily
+	{
+		get => htmlAutoDetectLabelImpl.FontFamily;
+		set
+		{
+			htmlAutoDetectLabelImpl.FontFamily = value;
+			bbCodeLabel.FontFamily = value;
+		}
+	}
+	public LineBreakMode LineBreakMode
+	{
+		get => htmlAutoDetectLabelImpl.LineBreakMode;
+		set
+		{
+			htmlAutoDetectLabelImpl.LineBreakMode = value;
+			bbCodeLabel.LineBreakMode = value;
+		}
+	}
+	public double LineHeight
+	{
+		get => htmlAutoDetectLabelImpl.LineHeight;
+		set
+		{
+			htmlAutoDetectLabelImpl.LineHeight = value;
+			bbCodeLabel.LineHeight = value;
+		}
+	}
+	public bool FontAutoScalingEnabled
+	{
+		get => htmlAutoDetectLabelImpl.FontAutoScalingEnabled;
+		set
+		{
+			htmlAutoDetectLabelImpl.FontAutoScalingEnabled = value;
+			bbCodeLabel.FontAutoScalingEnabled = value;
+		}
+	}
+	public FontAttributes FontAttributes
+	{
+		get => htmlAutoDetectLabelImpl.FontAttributes;
+		set
+		{
+			htmlAutoDetectLabelImpl.FontAttributes = value;
+			bbCodeLabel.FontAttributes = value;
+		}
+	}
+	public TextAlignment HorizontalTextAlignment
+	{
+		get => htmlAutoDetectLabelImpl.HorizontalTextAlignment;
+		set
+		{
+			htmlAutoDetectLabelImpl.HorizontalTextAlignment = value;
+			bbCodeLabel.HorizontalTextAlignment = value;
+		}
+	}
+
+	private void OnChangeText()
+	{
+		if (string.IsNullOrEmpty(Text))
+		{
+			Content = null;
+			return;
+		}
+		string trimmedText = Text.Trim();
+		if (trimmedText.StartsWith('<') && trimmedText.EndsWith('>'))
+		{
+			Content = htmlAutoDetectLabelImpl;
+			htmlAutoDetectLabelImpl.Text = Text;
+		}
+		else
+		{
+			Content = bbCodeLabel;
+			bbCodeLabel.BBCodeText = Text;
+		}
+	}
+
+	private class HtmlAutoDetectLabelImpl : Label
+	{
+		private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+		public AppThemeColorBindingExtension? CurrentAppThemeColorBindingExtension { get; set; }
+		public Color? LastTextColor { get; private set; }
+
+		protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 		{
 			try
 			{
-				OnTextPropertyChanged();
+				base.OnPropertyChanged(propertyName);
 			}
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (Text)");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (base)");
 				Utils.ExitWithAlert(ex);
 			}
-		}
-	}
 
-	void OnTextPropertyChanged()
-	{
-		if (string.IsNullOrEmpty(Text))
-		{
-			logger.Debug("Text Changed -> (NullOrEmpty)");
-			TextType = TextType.Text;
-		}
-		else
-		{
-			string text = Text.Trim();
-			bool isColoredString = text.Contains("color:");
-			logger.Trace("Text Changed -> {0} (isColoredString: {1})", text, isColoredString);
-
-			try
+			if (propertyName == nameof(Text))
 			{
-				TextType _textType = (text.StartsWith('<') && text.EndsWith('>')) ? TextType.Html : TextType.Text;
-				if (CurrentAppThemeColorBindingExtension is not null)
+				try
 				{
-					if (_textType == TextType.Html && isColoredString)
-					{
-						logger.Trace("CurrentAppThemeColorBindingExtension is not null && TextType: Html && isColoredString: true -> AppThemeColor set to null");
-						this.SetAppThemeColor(TextColorProperty, null, null);
-					}
-					else
-					{
-						logger.Trace("CurrentAppThemeColorBindingExtension is not null"
-							+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
-							+ " -> Restore AppThemeColor(Light:{2}, Dark:{3})",
-							_textType,
-							isColoredString,
-							CurrentAppThemeColorBindingExtension.Light,
-							CurrentAppThemeColorBindingExtension.Dark
-						);
-						CurrentAppThemeColorBindingExtension.Apply(this, TextColorProperty);
-					}
+					OnTextPropertyChanged();
 				}
-				else
+				catch (Exception ex)
 				{
-					if (_textType == TextType.Html && isColoredString)
-					{
-						logger.Trace("CurrentAppThemeColorBindingExtension is null && TextType: Html && isColoredString: true -> TextColor set to null");
-						LastTextColor = TextColor;
-						TextColor = null;
-					}
-					else if (TextColor is null && LastTextColor is not null)
-					{
-						logger.Trace("CurrentAppThemeColorBindingExtension is null"
-							+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
-							+ " && TextColor is null && LastTextColor is not null"
-							+ " -> Restore TextColor({2})",
-							_textType,
-							isColoredString,
-							LastTextColor
-						);
-						TextColor = LastTextColor;
-					}
-					else
-					{
-						logger.Trace("CurrentAppThemeColorBindingExtension is null"
-							+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
-							+ " && TextColor is not null"
-							+ " -> Do Nothing",
-							_textType,
-							isColoredString
-						);
-					}
+					logger.Fatal(ex, "Unknown Exception");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (Text)");
+					Utils.ExitWithAlert(ex);
 				}
-				TextType = _textType;
-
-				logger.Trace("Processing Complete -> TextType: {0}", TextType);
 			}
-			catch (Exception ex)
+		}
+
+		void OnTextPropertyChanged()
+		{
+			if (string.IsNullOrEmpty(Text))
 			{
-				logger.Warn(ex, "Exception Occurred -> TextType set to Text");
-				Console.WriteLine(ex);
+				logger.Debug("Text Changed -> (NullOrEmpty)");
 				TextType = TextType.Text;
+			}
+			else
+			{
+				string text = Text.Trim();
+				bool isColoredString = text.Contains("color:");
+				logger.Trace("Text Changed -> {0} (isColoredString: {1})", text, isColoredString);
+
+				try
+				{
+					TextType _textType = (text.StartsWith('<') && text.EndsWith('>')) ? TextType.Html : TextType.Text;
+					if (CurrentAppThemeColorBindingExtension is not null)
+					{
+						if (_textType == TextType.Html && isColoredString)
+						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is not null && TextType: Html && isColoredString: true -> AppThemeColor set to null");
+							this.SetAppThemeColor(TextColorProperty, null, null);
+						}
+						else
+						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is not null"
+								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+								+ " -> Restore AppThemeColor(Light:{2}, Dark:{3})",
+								_textType,
+								isColoredString,
+								CurrentAppThemeColorBindingExtension.Light,
+								CurrentAppThemeColorBindingExtension.Dark
+							);
+							CurrentAppThemeColorBindingExtension.Apply(this, TextColorProperty);
+						}
+					}
+					else
+					{
+						if (_textType == TextType.Html && isColoredString)
+						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is null && TextType: Html && isColoredString: true -> TextColor set to null");
+							LastTextColor = TextColor;
+							TextColor = null;
+						}
+						else if (TextColor is null && LastTextColor is not null)
+						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is null"
+								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+								+ " && TextColor is null && LastTextColor is not null"
+								+ " -> Restore TextColor({2})",
+								_textType,
+								isColoredString,
+								LastTextColor
+							);
+							TextColor = LastTextColor;
+						}
+						else
+						{
+							logger.Trace("CurrentAppThemeColorBindingExtension is null"
+								+ " && (TextType:{0} (not Html) || isColoredString: {1} (not true))"
+								+ " && TextColor is not null"
+								+ " -> Do Nothing",
+								_textType,
+								isColoredString
+							);
+						}
+					}
+					TextType = _textType;
+
+					logger.Trace("Processing Complete -> TextType: {0}", TextType);
+				}
+				catch (Exception ex)
+				{
+					logger.Warn(ex, "Exception Occurred -> TextType set to Text");
+					Console.WriteLine(ex);
+					TextType = TextType.Text;
+				}
 			}
 		}
 	}
