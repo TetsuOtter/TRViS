@@ -157,7 +157,7 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.StationName))
 		{
 			logger.Debug("Creating StationName");
-			HtmlAutoDetectLabel StationName = DTACElementStyles.TimetableLabel<HtmlAutoDetectLabel>();
+			HtmlAutoDetectLabel StationName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			StationName.Margin = new(0);
 			StationName.Text = StationNameConverter.Convert(rowData.StationName);
 			parent.Add(StationName, 1, rowIndex);
@@ -247,14 +247,14 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.TrackName))
 		{
 			logger.Debug("Creating TrackName");
-			HtmlAutoDetectLabel TrackName = DTACElementStyles.TimetableLabel<HtmlAutoDetectLabel>();
+			HtmlAutoDetectLabel TrackName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			TrackName.Margin = TrackName.Padding = new(0);
 			TrackName.HorizontalOptions = TrackName.VerticalOptions = LayoutOptions.Center;
 			TrackName.HorizontalTextAlignment = TextAlignment.Center;
 			TrackName.TextColor = Colors.Red;
 			TrackName.CurrentAppThemeColorBindingExtension = null;
-			TrackName.Text = rowData.TrackName;
 			TrackName.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(rowData.TrackName, TrackName.FontSize);
+			TrackName.Text = rowData.TrackName;
 			parent.Add(TrackName, 4, rowIndex);
 		}
 		else
@@ -316,7 +316,7 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.Remarks))
 		{
 			logger.Debug("Creating Remarks");
-			HtmlAutoDetectLabel Remarks = DTACElementStyles.TimetableLabel<HtmlAutoDetectLabel>();
+			HtmlAutoDetectLabel Remarks = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			Remarks.FontAttributes = FontAttributes.None;
 			Remarks.HorizontalOptions = LayoutOptions.Start;
 			Remarks.FontSize = 16;

@@ -15,8 +15,7 @@ public class BeforeDeparture_AfterArrive
 	};
 	readonly Label HeaderLabel = DTACElementStyles.HeaderLabelStyle<Label>();
 
-	readonly HtmlAutoDetectLabel Label = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
-	readonly HtmlAutoDetectLabel Label_OnStationTrackColumn = DTACElementStyles.LabelStyle<HtmlAutoDetectLabel>();
+	readonly HtmlAutoDetectLabel Label = DTACElementStyles.HtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
 
 	Grid Parent { get; }
 	bool AlwaysShow { get; }
@@ -36,11 +35,8 @@ public class BeforeDeparture_AfterArrive
 		this.AlwaysShow = AlwaysShow;
 
 		Label.HorizontalOptions = LayoutOptions.Start;
-		Label_OnStationTrackColumn.HorizontalOptions = LayoutOptions.Start;
 		Label.VerticalOptions = LayoutOptions.Start;
-		Label_OnStationTrackColumn.VerticalOptions = LayoutOptions.Start;
 		Label.Margin = new(Label.Margin.Left);
-		Label_OnStationTrackColumn.Margin = new(Label_OnStationTrackColumn.Margin.Left);
 
 		DTACElementStyles.HeaderTextColor.Apply(HeaderLabel, Microsoft.Maui.Controls.Label.TextColorProperty);
 		DTACElementStyles.HeaderBackgroundColor.Apply(HeaderBoxView, BoxView.ColorProperty);
@@ -54,7 +50,7 @@ public class BeforeDeparture_AfterArrive
 
 	public string Text
 	{
-		get => Label.Text;
+		get => Label.Text ?? string.Empty;
 		set
 		{
 			if (Label.Text == value)
@@ -71,32 +67,13 @@ public class BeforeDeparture_AfterArrive
 		}
 	}
 
-	public string Text_OnStationTrackColumn
-	{
-		get => Label_OnStationTrackColumn.Text;
-		set
-		{
-			if (Label_OnStationTrackColumn.Text == value)
-			{
-				logger.Trace("Text is the same, skipping... ({0})", value);
-				return;
-			}
-
-			logger.Debug("Setting Text_OnStationTrackColumn to {0}", value);
-			Label_OnStationTrackColumn.Text = value;
-		}
-	}
-
 	public void AddToParent()
 	{
 		Parent.Add(HeaderBoxView);
 		Parent.Add(HeaderLabel);
 		Grid.SetColumn(Label, 1);
-		Grid.SetColumn(Label_OnStationTrackColumn, 4);
 		Grid.SetColumnSpan(Label, 7);
-		Grid.SetColumnSpan(Label_OnStationTrackColumn, 4);
 		Parent.Add(Label);
-		Parent.Add(Label_OnStationTrackColumn);
 	}
 
 	bool _IsVisible = false;
@@ -117,7 +94,6 @@ public class BeforeDeparture_AfterArrive
 			HeaderBoxView.IsVisible
 				= HeaderLabel.IsVisible
 				= Label.IsVisible
-				= Label_OnStationTrackColumn.IsVisible
 				= value;
 		}
 	}
@@ -129,7 +105,6 @@ public class BeforeDeparture_AfterArrive
 			Grid.SetRow(HeaderBoxView, row);
 			Grid.SetRow(HeaderLabel, row);
 			Grid.SetRow(Label, row);
-			Grid.SetRow(Label_OnStationTrackColumn, row);
 		}
 		catch (Exception ex)
 		{
