@@ -60,13 +60,14 @@ public partial class ThirdPartyLicenses : ContentPage
 			logger.Debug("LicenseTextList Length: {0}", viewModel.LicenseTextList.Count);
 			foreach (var v in viewModel.LicenseTextList)
 			{
-				licenses.Children.Add(new HtmlAutoDetectLabel()
+				licenses.Children.Add(new Label()
 				{
 					Text = v.Value,
 					FontAutoScalingEnabled = true,
 					LineBreakMode = LineBreakMode.WordWrap,
 					Padding = new(4),
 					WidthRequest = LicenseTextArea.Width,
+					TextType = v.Value.StartsWith("<") && v.Value.EndsWith(">") ? TextType.Html : TextType.Text,
 				});
 				licenses.Children.Add(new BoxView()
 				{

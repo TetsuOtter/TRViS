@@ -3,6 +3,7 @@ using DependencyPropertyGenerator;
 using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.ValueConverters;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -205,11 +206,10 @@ public partial class VerticalStylePage : ContentView
 		};
 		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
 
-		DTACElementStyles.DefaultTextColor.Apply(BeginRemarksLabel, Label.TextColorProperty);
-		DTACElementStyles.DefaultTextColor.Apply(MaxSpeedLabel, Label.TextColorProperty);
-		DTACElementStyles.DefaultTextColor.Apply(SpeedTypeLabel, Label.TextColorProperty);
-		DTACElementStyles.DefaultTextColor.Apply(NominalTractiveCapacityLabel, Label.TextColorProperty);
-		DTACElementStyles.DefaultTextColor.Apply(BeginRemarksLabel, Label.TextColorProperty);
+		MaxSpeedLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
+		SpeedTypeLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
+		NominalTractiveCapacityLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
+		BeginRemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 
 		logger.Trace("Created");
 	}
@@ -252,9 +252,13 @@ public partial class VerticalStylePage : ContentView
 			PageHeaderArea.IsRunning = false;
 			InstanceManager.DTACMarkerViewModel.IsToggled = false;
 
+			MaxSpeedLabel.Text = ToWideConverter.Convert(newValue?.MaxSpeed);
+			SpeedTypeLabel.Text = ToWideConverter.Convert(newValue?.SpeedType);
+			NominalTractiveCapacityLabel.Text = ToWideConverter.Convert(newValue?.NominalTractiveCapacity);
 			TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
 			TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
-			TrainInfo_BeforeDepartureArea.BeforeDepartureText_OnStationTrackColumn = newValue?.BeforeDepartureOnStationTrackCol ?? "";
+
+			BeginRemarksLabel.Text = newValue?.BeginRemarks ?? "";
 
 			SetDestinationString(newValue?.Destination);
 

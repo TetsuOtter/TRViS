@@ -216,7 +216,6 @@ public partial class VerticalTimetableView
 				if (trainData?.AfterArrive is not null)
 				{
 					AfterArrive.Text = trainData.AfterArrive;
-					AfterArrive.Text_OnStationTrackColumn = trainData.AfterArriveOnStationTrackCol ?? string.Empty;
 					AfterArrive.AddToParent();
 				}
 
@@ -264,7 +263,7 @@ public partial class VerticalTimetableView
 			{
 				if (row.IsInfoRow)
 				{
-					HtmlAutoDetectLabel label = DTACElementStyles.LargeLabelStyle<HtmlAutoDetectLabel>();
+					HtmlAutoDetectLabel label = DTACElementStyles.LargeHtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
 
 					label.Text = row.StationName;
 

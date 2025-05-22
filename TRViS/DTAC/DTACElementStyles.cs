@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 
 using Microsoft.Maui.Controls.Shapes;
 
+using TRViS.Controls;
 using TRViS.Services;
 
 namespace TRViS.DTAC;
@@ -204,6 +205,24 @@ public static partial class DTACElementStyles
 
 		return v;
 	}
+	public static T HtmlAutoDetectLabelStyle<T>() where T : HtmlAutoDetectLabel, new()
+	{
+		T v = new();
+
+		v.HorizontalOptions = LayoutOptions.Center;
+		v.VerticalOptions = LayoutOptions.Center;
+		v.CurrentAppThemeColorBindingExtension = DefaultTextColor;
+		v.FontSize = DefaultTextSize;
+		v.FontFamily = DefaultFontFamily;
+		v.Margin = new(4, 0);
+		v.LineBreakMode = LineBreakMode.CharacterWrap;
+
+		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1;
+
+		v.FontAutoScalingEnabled = false;
+
+		return v;
+	}
 
 	static Style? _BeforeRemarksStyleResource = null;
 	public static Style BeforeRemarksStyleResource
@@ -227,9 +246,9 @@ public static partial class DTACElementStyles
 			return _BeforeRemarksStyleResource;
 		}
 	}
-	public static T AfterRemarksStyle<T>() where T : Label, new()
+	public static T AfterRemarksStyle<T>() where T : HtmlAutoDetectLabel, new()
 	{
-		T v = LabelStyle<T>();
+		T v = HtmlAutoDetectLabelStyle<T>();
 
 		v.HorizontalOptions = LayoutOptions.Start;
 		v.VerticalOptions = LayoutOptions.Start;
@@ -306,6 +325,14 @@ public static partial class DTACElementStyles
 
 		return v;
 	}
+	public static T LargeHtmlAutoDetectLabelStyle<T>() where T : HtmlAutoDetectLabel, new()
+	{
+		T v = HtmlAutoDetectLabelStyle<T>();
+
+		v.FontSize = LargeTextSize;
+
+		return v;
+	}
 
 	static Style? _timetableLabelStyleResource = null;
 	public static Style TimetableLabelStyleResource
@@ -333,6 +360,17 @@ public static partial class DTACElementStyles
 		T v = LabelStyle<T>();
 
 		TimetableTextColor.Apply(v, Label.TextColorProperty);
+		v.FontSize = TimetableFontSize;
+		v.FontAttributes = FontAttributes.Bold;
+		v.InputTransparent = true;
+
+		return v;
+	}
+	public static T TimetableHtmlAutoDetectLabel<T>() where T : HtmlAutoDetectLabel, new()
+	{
+		T v = HtmlAutoDetectLabelStyle<T>();
+
+		v.CurrentAppThemeColorBindingExtension = TimetableTextColor;
 		v.FontSize = TimetableFontSize;
 		v.FontAttributes = FontAttributes.Bold;
 		v.InputTransparent = true;

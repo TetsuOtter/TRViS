@@ -83,8 +83,7 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="MaxSpeedLabel"
-				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
-				Text="{Binding MaxSpeed, Converter={StaticResource ToWideConverter}}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="1"/>
@@ -94,8 +93,7 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="SpeedTypeLabel"
-				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
-				Text="{Binding SpeedType, Converter={StaticResource ToWideConverter}}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="2"/>
@@ -105,8 +103,7 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="NominalTractiveCapacityLabel"
-				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
-				Text="{Binding NominalTractiveCapacity, Converter={StaticResource ToWideConverter}}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="3"/>
@@ -183,10 +180,9 @@
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="BeginRemarksLabel"
-				Style="{x:Static dtac:DTACElementStyles.BeforeRemarksStyleResource}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.BeforeRemarksStyleResource}"
 				Grid.Column="2"
-				Grid.ColumnSpan="6"
-				Text="{Binding BeginRemarks}"/>
+				Grid.ColumnSpan="6"/>
 
 			<Label
 				x:Name="DestinationLabel"
