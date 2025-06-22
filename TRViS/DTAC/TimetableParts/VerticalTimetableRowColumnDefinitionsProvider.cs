@@ -135,11 +135,7 @@ public class VerticalTimetableRowColumnDefinitionsProvider
 		in ViewWidthMode currentMode
 	)
 	{
-		if (!GetIsRemarksColumnVisible(currentMode))
-		{
-			columnDefinition.Width = new(1, GridUnitType.Star);
-		}
-		else if (GetIsRunTimeColumnVisible(currentMode))
+		if (GetIsRunTimeColumnVisible(currentMode))
 		{
 			columnDefinition.Width = RUN_TIME_COLUMN_WIDTH;
 		}
@@ -153,14 +149,16 @@ public class VerticalTimetableRowColumnDefinitionsProvider
 		in ViewWidthMode currentMode
 	)
 	{
+		double width;
 		if (GetIsStaNameColumnNarrow(currentMode))
 		{
-			columnDefinition.Width = STA_NAME_COLUMN_WIDTH_NARROW;
+			width = STA_NAME_COLUMN_WIDTH_NARROW;
 		}
 		else
 		{
-			columnDefinition.Width = STA_NAME_COLUMN_WIDTH;
+			width = STA_NAME_COLUMN_WIDTH;
 		}
+		columnDefinition.Width = new(width, GetIsRemarksColumnVisible(currentMode) ? GridUnitType.Absolute : GridUnitType.Star);
 	}
 	private static void UpdateArrDepTimeColumnDefinition(
 		ColumnDefinition columnDefinition,
@@ -195,14 +193,16 @@ public class VerticalTimetableRowColumnDefinitionsProvider
 		in ViewWidthMode currentMode
 	)
 	{
+		double width;
 		if (GetIsTrackNameColumnNarrow(currentMode))
 		{
-			columnDefinition.Width = TRACK_NUMBER_COLUMN_WIDTH_NARROW;
+			width = TRACK_NUMBER_COLUMN_WIDTH_NARROW;
 		}
 		else
 		{
-			columnDefinition.Width = TRACK_NUMBER_COLUMN_WIDTH;
+			width = TRACK_NUMBER_COLUMN_WIDTH;
 		}
+		columnDefinition.Width = new(width, GetIsSpeedLimitColumnVisible(currentMode) ? GridUnitType.Absolute : GridUnitType.Star);
 	}
 	private static void UpdateSpeedLimitColumnDefinition(
 		ColumnDefinition columnDefinition,

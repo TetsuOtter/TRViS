@@ -53,6 +53,17 @@ public partial class VerticalStylePage : ContentView
 		InitializeComponent();
 
 		TrainBeforeRemarksArea.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TimetableRowColumnDefinitions;
+		InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.ViewWidthModeChanged += (_, e) =>
+		{
+			if (InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.IsStaNameColumnNarrow)
+			{
+				CarCountBorder.Margin = new(8, 4);
+			}
+			else
+			{
+				CarCountBorder.Margin = new(16, 6);
+			}
+		};
 
 		MainGrid.RowDefinitions = InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.VerticalStylePageRowDefinitions;
 		MainGrid.ColumnDefinitions = new(

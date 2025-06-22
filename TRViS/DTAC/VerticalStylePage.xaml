@@ -141,6 +141,7 @@
 				Grid.Column="0"/>
 
 			<Border
+				x:Name="CarCountBorder"
 				IsVisible="{Binding CarCount, Converter={x:Static conv:IsOneOrMoreIntConverter.Default}}"
 				Grid.Column="1"
 				BackgroundColor="{x:Static dtac:DTACElementStyles.CarCountBGColor}"
@@ -153,12 +154,19 @@
 				<Grid
 					Margin="0"
 					Padding="4">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
+					</Grid.ColumnDefinitions>
 					<Label
 						Style="{x:Static dtac:DTACElementStyles.TimetableLargeNumberLabelStyleResource}"
 						VerticalOptions="Center"
-						Text="{Binding CarCount}"/>
+						Text="{Binding CarCount}"
+						Padding="18,0,8,0"
+						HorizontalTextAlignment="End"/>
 
 					<Label
+						Grid.Column="1"
 						Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
 						FontSize="18"
 						VerticalOptions="End"
