@@ -1,4 +1,5 @@
 using TRViS.Controls;
+using TRViS.DTAC.TimetableParts;
 using TRViS.IO.Models;
 using TRViS.ValueConverters.DTAC;
 using TRViS.ViewModels;
@@ -15,7 +16,7 @@ public partial class VerticalTimetableRow
 		get => _IsMarkingMode;
 		private set
 		{
-			MarkerBox.IsVisible = value || (MarkedColor is not null);
+			MarkerBox.IsVisible = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.IsMarkerColumnVisible && (value || (MarkedColor is not null));
 			_IsMarkingMode = value;
 			logger.Trace("IsMarkingMode: {0}, IsVisible: {1}, IsEnabled: {2}", value, MarkerBox.IsVisible, MarkerBox.IsEnabled);
 		}
@@ -71,6 +72,12 @@ public partial class VerticalTimetableRow
 
 	public IList<IGestureRecognizer> GestureRecognizers => BackgroundBoxView.GestureRecognizers;
 
+	readonly Grid? DriveTimeGrid;
+	readonly HtmlAutoDetectLabel? StationName;
+	readonly HtmlAutoDetectLabel? TrackName;
+	readonly Grid? RunInOutLimitGrid;
+	readonly HtmlAutoDetectLabel? Remarks;
+
 	public VerticalTimetableRow(Grid parent, int rowIndex, TimetableRow rowData, DTACMarkerViewModel? markerViewModel = null, bool isLastRow = false)
 	{
 		logger.Debug("Creating VerticalTimetableRow (RowIndex: {0}, RowData: {1}, MarkerViewModel: {2}, IsLastRow: {3})",
@@ -115,7 +122,7 @@ public partial class VerticalTimetableRow
 		if (isDriveTimeMMVisible || isDriveTimeSSVisible)
 		{
 			logger.Trace("Creating DriveTimeGrid");
-			Grid DriveTimeGrid = new()
+			DriveTimeGrid = new()
 			{
 				Margin = new(2, 0),
 				VerticalOptions = LayoutOptions.End,
@@ -157,9 +164,8 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.StationName))
 		{
 			logger.Debug("Creating StationName");
-			HtmlAutoDetectLabel StationName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
+			StationName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			StationName.Margin = new(0);
-			StationName.Text = StationNameConverter.Convert(rowData.StationName);
 			parent.Add(StationName, 1, rowIndex);
 		}
 		else
@@ -247,13 +253,12 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.TrackName))
 		{
 			logger.Debug("Creating TrackName");
-			HtmlAutoDetectLabel TrackName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
+			TrackName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			TrackName.Margin = TrackName.Padding = new(0);
 			TrackName.HorizontalOptions = TrackName.VerticalOptions = LayoutOptions.Center;
 			TrackName.HorizontalTextAlignment = TextAlignment.Center;
 			TrackName.TextColor = Colors.Red;
 			TrackName.CurrentAppThemeColorBindingExtension = null;
-			TrackName.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(rowData.TrackName, TrackName.FontSize);
 			TrackName.Text = rowData.TrackName;
 			parent.Add(TrackName, 4, rowIndex);
 		}
@@ -275,7 +280,7 @@ public partial class VerticalTimetableRow
 		if (isRunInLimitVisible || isRunOutLimitVisible)
 		{
 			logger.Trace("Creating RunInOutLimitGrid");
-			Grid RunInOutLimitGrid = new()
+			RunInOutLimitGrid = new()
 			{
 				Margin = new(10, 4),
 				Padding = new(0),
@@ -316,7 +321,7 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.Remarks))
 		{
 			logger.Debug("Creating Remarks");
-			HtmlAutoDetectLabel Remarks = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
+			Remarks = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			Remarks.FontAttributes = FontAttributes.None;
 			Remarks.HorizontalOptions = LayoutOptions.Start;
 			Remarks.FontSize = 16;
@@ -355,7 +360,32 @@ public partial class VerticalTimetableRow
 
 		parent.Add(MarkerBox, 7, rowIndex);
 
+		OnViewWidthModeChanged();
+
 		logger.Trace("Created");
+	}
+
+	public void OnViewWidthModeChanged()
+	{
+		VerticalTimetableRowColumnDefinitionsProvider provider = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider;
+		DriveTimeGrid?.IsVisible = provider.IsRunTimeColumnVisible;
+		RunInOutLimitGrid?.IsVisible = provider.IsSpeedLimitColumnVisible;
+		Remarks?.IsVisible = provider.IsRemarksColumnVisible;
+		MarkerBox.IsVisible = provider.IsMarkerColumnVisible && IsMarkingMode;
+		if (!string.IsNullOrEmpty(RowData.StationName) && StationName is not null)
+		{
+			StationName.Text = StationNameConverter.Convert(RowData.StationName, provider.IsStaNameColumnNarrow);
+			StationName.FontSize = provider.IsStaNameColumnNarrow
+				? DTACElementStyles.TimetableFontSizeNarrow
+				: DTACElementStyles.TimetableFontSize;
+		}
+		if (!string.IsNullOrEmpty(RowData.TrackName) && DriveTimeGrid is not null)
+		{
+			double baseFontSize = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.IsTrackNameColumnNarrow
+				? DTACElementStyles.TimetableFontSizeNarrow
+				: DTACElementStyles.TimetableFontSize;
+			TrackName.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(RowData.TrackName, baseFontSize);
+		}
 	}
 }
 

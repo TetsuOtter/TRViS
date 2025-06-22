@@ -14,10 +14,9 @@ public partial class VerticalTimetableView
 	{
 		IsVisible = false,
 		HeightRequest = RowHeight.Value,
-		WidthRequest = DTACElementStyles.RUN_TIME_COLUMN_WIDTH,
 		Margin = new(0),
 		VerticalOptions = LayoutOptions.End,
-		HorizontalOptions = LayoutOptions.Start,
+		HorizontalOptions = LayoutOptions.Fill,
 		Color = CURRENT_LOCATION_MARKER_COLOR,
 		InputTransparent = true,
 		ZIndex = DTACElementStyles.TimetableRowLocationBoxZIndex,
@@ -34,7 +33,8 @@ public partial class VerticalTimetableView
 	};
 
 	readonly AfterRemarks AfterRemarks;
-	readonly BeforeDeparture_AfterArrive AfterArrive;
+	readonly Grid AfterArriveGrid = [];
+	readonly BeforeDeparture_AfterArrive AfterArriveContent;
 	readonly NextTrainButton NextTrainButton = new();
 
 	readonly List<VerticalTimetableRow> RowViewList = new();
@@ -43,12 +43,18 @@ public partial class VerticalTimetableView
 	{
 		logger.Trace("Creating...");
 
-		AfterArrive = new(this, "着後");
+		AfterArriveGrid.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TrainInfoBeforeDepartureColumnDefinitions;
+		AfterArriveContent = new(AfterArriveGrid, "着後");
 		AfterRemarks = new(this);
 
 		Grid.SetColumnSpan(NextTrainButton, 8);
 
-		DTACElementStyles.SetTimetableColumnWidthCollection(this);
+		this.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TimetableRowColumnDefinitions;
+		InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.ViewWidthModeChanged += (sender, e) =>
+		{
+			OnViewWidthModeChanged();
+		};
+		OnViewWidthModeChanged();
 
 		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
@@ -159,7 +165,7 @@ public partial class VerticalTimetableView
 			await AddSeparatorLines();
 
 			AfterRemarks.SetRow(newCount);
-			AfterArrive.SetRow(newCount + 1);
+			Grid.SetRow(AfterArriveGrid, newCount + 1);
 			if (hasAfterArrive)
 				Grid.SetRow(NextTrainButton, newCount + 2);
 			else
@@ -215,8 +221,8 @@ public partial class VerticalTimetableView
 
 				if (trainData?.AfterArrive is not null)
 				{
-					AfterArrive.Text = trainData.AfterArrive;
-					AfterArrive.AddToParent();
+					AfterArriveContent.Text = trainData.AfterArrive;
+					AfterArriveContent.AddToParent();
 				}
 
 				if (trainData?.NextTrainId is not null)
@@ -359,4 +365,13 @@ public partial class VerticalTimetableView
 
 		logger.Debug("RowDefinitions.Count changed to: {0}", RowDefinitions.Count);
 	}
+
+	private void OnViewWidthModeChanged()
+	{
+		foreach (VerticalTimetableRow rowView in RowViewList)
+		{
+			rowView.OnViewWidthModeChanged();
+		}
+	}
+
 }

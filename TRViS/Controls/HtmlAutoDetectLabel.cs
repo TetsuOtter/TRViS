@@ -150,6 +150,11 @@ public class HtmlAutoDetectLabel : ContentView
 		{
 			Content = bbCodeLabel;
 			bbCodeLabel.BBCodeText = Text;
+			// TODO: BBCode側に実装を移動させる
+			foreach (var span in bbCodeLabel.FormattedText.Spans)
+			{
+				span.FontAutoScalingEnabled = FontAutoScalingEnabled;
+			}
 		}
 	}
 

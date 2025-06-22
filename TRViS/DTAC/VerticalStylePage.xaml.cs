@@ -52,7 +52,7 @@ public partial class VerticalStylePage : ContentView
 
 		InitializeComponent();
 
-		DTACElementStyles.SetTimetableColumnWidthCollection(TrainBeforeRemarksArea);
+		TrainBeforeRemarksArea.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TimetableRowColumnDefinitions;
 
 		MainGrid.RowDefinitions = InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.VerticalStylePageRowDefinitions;
 		MainGrid.ColumnDefinitions = new(

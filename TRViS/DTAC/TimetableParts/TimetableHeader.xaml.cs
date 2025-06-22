@@ -1,5 +1,6 @@
 using DependencyPropertyGenerator;
 
+using TRViS.DTAC.TimetableParts;
 using TRViS.Services;
 
 namespace TRViS.DTAC;
@@ -14,8 +15,22 @@ public partial class TimetableHeader : Grid
 
 		InitializeComponent();
 
-		DTACElementStyles.SetTimetableColumnWidthCollection(this);
+		ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TimetableRowColumnDefinitions;
+		InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.ViewWidthModeChanged += (sender, e) =>
+		{
+			OnViewWidthModeChanged();
+		};
+		OnViewWidthModeChanged();
 
 		logger.Trace("Created");
+	}
+
+	private void OnViewWidthModeChanged()
+	{
+		VerticalTimetableRowColumnDefinitionsProvider provider = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider;
+		RunTimeLabel.IsVisible = provider.IsRunTimeColumnVisible;
+		LimitLabel.IsVisible = LimitSeparator.IsVisible = provider.IsSpeedLimitColumnVisible;
+		RemarksLabel.IsVisible = provider.IsRemarksColumnVisible;
+		MarkerBtn.IsVisible = provider.IsMarkerColumnVisible;
 	}
 }

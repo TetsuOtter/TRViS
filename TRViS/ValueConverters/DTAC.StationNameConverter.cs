@@ -12,13 +12,13 @@ public class StationNameConverter : IValueConverter
 		return StationNameConverter.Convert(s);
 	}
 
-	public static string Convert(string s)
+	public static string Convert(string s, bool isNarrowMode = false)
 		=> s.Length switch
 		{
 			2 => Utils.InsertCharBetweenCharAndMakeWide(s, $"{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}"),
 			3 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.SPACE_CHAR),
 #if IOS
-			4 => DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Tablet
+			4 => !isNarrowMode && (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Tablet)
 				? Utils.InsertCharBetweenCharAndMakeWide(s, Utils.THIN_SPACE)
 				: s,
 #endif

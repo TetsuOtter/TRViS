@@ -49,14 +49,13 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		logger.Trace("Creating...");
 
 		RowDefinitions = DefaultRowDefinitions;
-		DTACElementStyles.SetTimetableColumnWidthCollection(this);
+		ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TrainInfoBeforeDepartureColumnDefinitions;
 
 		TrainInfoArea.HorizontalOptions = LayoutOptions.Start;
 
 		// BeforeDepartureArea
 		BeforeDeparture = new(this, "発前", true);
 
-		Grid.SetColumnSpan(TrainInfoArea, 8);
 		Add(TrainInfoArea);
 
 		BeforeDeparture.AddToParent();

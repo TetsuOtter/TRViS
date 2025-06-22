@@ -72,6 +72,7 @@ public static partial class DTACElementStyles
 	public static readonly double DefaultTextSizePlus = 15;
 	public static readonly double LargeTextSize = 24;
 	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+	public static readonly double TimetableFontSizeNarrow = TimetableFontSize - 4;
 	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 24 : 22;
 
 	public const int BeforeDeparture_AfterArrive_Height = 45;
@@ -93,47 +94,6 @@ public static partial class DTACElementStyles
 		Radius = 3,
 		Opacity = 0.2f
 	};
-
-	public const double RUN_TIME_COLUMN_WIDTH = 60;
-	private const int DEFAULT_TIME_COLUMN_WIDTH = 140;
-	private const int NARROW_TIME_COLUMN_WIDTH = 134;
-	public static void SetTimetableColumnWidthCollection(Grid grid)
-	{
-		ColumnDefinition runTimeColumn = new(new(RUN_TIME_COLUMN_WIDTH));
-		ColumnDefinition trackNameColumn = new(new(140));
-		ColumnDefinition arrivalDepartureTimeColumn = new(new(140));
-		ColumnDefinition trackNumberColumn = new(new(60));
-		ColumnDefinition speedLimitColumn = new(new(60));
-		ColumnDefinition remarksColumn = new(new(1, GridUnitType.Star));
-		ColumnDefinition markerColumn = new(new(64));
-		grid.ColumnDefinitions = [
-			runTimeColumn,
-			trackNameColumn,
-			arrivalDepartureTimeColumn,
-			arrivalDepartureTimeColumn,
-			trackNumberColumn,
-			speedLimitColumn,
-			remarksColumn,
-			markerColumn
-		];
-		grid.SizeChanged += (s, e) =>
-		{
-			logger.Debug("TimetableColumnWidthCollection SizeChanged (height={0}, width={1})", grid.Height, grid.Width);
-			if (0 < grid.Width && grid.Width < 768)
-			{
-				if (arrivalDepartureTimeColumn.Width.Value != NARROW_TIME_COLUMN_WIDTH)
-				{
-					arrivalDepartureTimeColumn.Width = new(NARROW_TIME_COLUMN_WIDTH);
-					logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: NARROW_TIME_COLUMN_WIDTH");
-				}
-			}
-			else if (arrivalDepartureTimeColumn.Width.Value != DEFAULT_TIME_COLUMN_WIDTH)
-			{
-				arrivalDepartureTimeColumn.Width = new(DEFAULT_TIME_COLUMN_WIDTH);
-				logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: DEFAULT_TIME_COLUMN_WIDTH");
-			}
-		};
-	}
 
 	public static readonly AppThemeGenericsValueTypeBindingExtension<double> AppIconOpacity = new(0.075, 0.025);
 	public static readonly AppThemeColorBindingExtension AppIconBgColor = new(
