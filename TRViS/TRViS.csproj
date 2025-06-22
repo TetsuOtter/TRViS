@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net9.0-android;</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net10.0-android;</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 		<UseMauiNuGets>true</UseMauiNuGets>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>TRViS</RootNamespace>
@@ -65,7 +65,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="9.0.70" />
+			Version="10.0.0-preview.5.25306.5" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.4.0" />
