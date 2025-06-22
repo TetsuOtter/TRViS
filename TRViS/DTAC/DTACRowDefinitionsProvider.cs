@@ -81,7 +81,7 @@ public class DTACRowDefinitionsProvider
 
 		ViewHeightMode nextMode = viewHeight switch
 		{
-			< 480 => ViewHeightMode.Low,
+			< 800 => ViewHeightMode.Low,
 			_ => ViewHeightMode.Normal,
 		};
 		if (CurrentViewHeightMode == nextMode)
@@ -93,8 +93,6 @@ public class DTACRowDefinitionsProvider
 		logger.Debug("ViewHeightMode is changed from {0} to {1} ({2}px)", CurrentViewHeightMode, nextMode, viewHeight);
 		double DateAndStartButtonRowHeight = DATE_AND_START_BUTTON_ROW_HEIGHT;
 		double TrainInfoHeaderRowHeight = TRAIN_INFO_HEADER_ROW_HEIGHT;
-		double TrainInfoRowHeight = TRAIN_INFO_ROW_HEIGHT;
-		// double TrainInfo_BeforeDeparture_RowHeight = TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT;
 		double CarCountAndBeforeRemarksRowHeight = CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT;
 		double TimetableHeaderRowHeight = TIMETABLE_HEADER_ROW_HEIGHT;
 		double HakoPageHeaderRowHeight = HAKO_PAGE_HEADER_ROW_HEIGHT;
@@ -102,12 +100,9 @@ public class DTACRowDefinitionsProvider
 		{
 			case ViewHeightMode.Low:
 				DateAndStartButtonRowHeight = DATE_AND_START_BUTTON_ROW_HEIGHT - 6;
-				TrainInfoHeaderRowHeight = TRAIN_INFO_HEADER_ROW_HEIGHT - 12;
-				TrainInfoRowHeight = TRAIN_INFO_ROW_HEIGHT - 6;
-				// TrainInfo_BeforeDepartureは高さ調整が面倒なため、高さを変更しない
-				// TrainInfo_BeforeDeparture_RowHeight = TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT;
-				CarCountAndBeforeRemarksRowHeight = CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT - 6;
-				TimetableHeaderRowHeight = TIMETABLE_HEADER_ROW_HEIGHT - 12;
+				TrainInfoHeaderRowHeight = TRAIN_INFO_HEADER_ROW_HEIGHT - 18;
+				CarCountAndBeforeRemarksRowHeight = CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT - 12;
+				TimetableHeaderRowHeight = TIMETABLE_HEADER_ROW_HEIGHT - 18;
 				HakoPageHeaderRowHeight = HAKO_PAGE_HEADER_ROW_HEIGHT - 12;
 				break;
 			case ViewHeightMode.Normal:
@@ -120,12 +115,6 @@ public class DTACRowDefinitionsProvider
 
 		DateAndStartButtonRowDefinition.Height = new(DateAndStartButtonRowHeight);
 		TrainInfoHeaderRowDefinition.Height = new(TrainInfoHeaderRowHeight);
-		TrainInfoRowDefinition.Height = new(TrainInfoRowHeight);
-		// if (TrainInfo_BeforeDeparture_RowDefinition.Height.Value == this.TrainInfo_beforeDeparture_RowHeight)
-		// {
-		// 	TrainInfo_BeforeDeparture_RowDefinition.Height = new(TrainInfo_BeforeDeparture_RowHeight);
-		// 	TrainInfo_BeforeDepartureArea.HeightRequest = TrainInfo_BeforeDeparture_RowHeight;
-		// }
 		CarCountAndBeforeRemarksRowDefinition.Height = new(CarCountAndBeforeRemarksRowHeight);
 		TimetableHeaderRowDefinition.Height = new(TimetableHeaderRowHeight);
 		HakoPageHeaderRowDefinition.Height = new(HakoPageHeaderRowHeight);
