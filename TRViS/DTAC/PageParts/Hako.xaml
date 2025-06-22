@@ -8,12 +8,6 @@
 	xmlns:HakoParts="clr-namespace:TRViS.DTAC.HakoParts"
 	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}"
 	x:Class="TRViS.DTAC.Hako">
-	<Grid.RowDefinitions>
-		<RowDefinition Height="{x:Static local:VerticalStylePage.DATE_AND_START_BUTTON_ROW_HEIGHT}" />
-		<RowDefinition Height="80" />
-		<RowDefinition Height="*" />
-	</Grid.RowDefinitions>
-
 	<Image
 		Style="{x:Static local:DTACElementStyles.AppIconStyleResource}"
 		x:DataType="vm:AppViewModel"
@@ -23,10 +17,8 @@
 
 	<ScrollView
 		x:Name="SimpleViewScrollView"
-		Grid.Row="2"
-	>
+		Grid.Row="2">
 		<HakoParts:SimpleView
-			x:Name="SimpleView"
-		/>
+			x:Name="SimpleView"/>
 	</ScrollView>
 </Grid>

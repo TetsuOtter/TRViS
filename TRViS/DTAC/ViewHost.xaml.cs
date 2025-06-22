@@ -141,6 +141,11 @@ public partial class ViewHost : ContentPage
 			TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
 
 			base.OnSizeAllocated(width, height);
+
+			// 厳密な値である必要はないため、SafeAreaMarginを考慮しない
+			InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.OnViewHeightChanged(
+				height - TITLE_VIEW_HEIGHT - 60
+			);
 		}
 		catch (Exception ex)
 		{

@@ -37,6 +37,8 @@ public partial class Hako : Grid
 	{
 		logger.Trace("Creating...");
 
+		RowDefinitions = InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.HakoPageRowDefinitions;
+
 		InitializeComponent();
 
 		Grid.SetRow(headerView, 1);

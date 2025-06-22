@@ -13,24 +13,9 @@ namespace TRViS.DTAC;
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
-	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;
-	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
-	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
 
-	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
 	ColumnDefinition MainColumnDefinition { get; } = new(new(1, GridUnitType.Star));
 	ColumnDefinition DebugMapColumnDefinition { get; } = new(0);
-
-	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
-		= DATE_AND_START_BUTTON_ROW_HEIGHT
-		+ TRAIN_INFO_HEADER_ROW_HEIGHT
-		+ TRAIN_INFO_ROW_HEIGHT
-		+ TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT
-		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
-		+ TIMETABLE_HEADER_ROW_HEIGHT;
 
 	public static double TimetableViewActivityIndicatorBorderMaxOpacity { get; } = 0.6;
 
@@ -69,15 +54,7 @@ public partial class VerticalStylePage : ContentView
 
 		DTACElementStyles.SetTimetableColumnWidthCollection(TrainBeforeRemarksArea);
 
-		MainGrid.RowDefinitions = new(
-			new(DATE_AND_START_BUTTON_ROW_HEIGHT),
-			new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
-			new(new(TRAIN_INFO_ROW_HEIGHT)),
-			TrainInfo_BeforeDepature_RowDefinition,
-			new(new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT)),
-			new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
-			new(new(1, GridUnitType.Star))
-		);
+		MainGrid.RowDefinitions = InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.VerticalStylePageRowDefinitions;
 		MainGrid.ColumnDefinitions = new(
 			MainColumnDefinition,
 			DebugMapColumnDefinition
@@ -150,7 +127,7 @@ public partial class VerticalStylePage : ContentView
 				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
 				if (Content is ScrollView sv)
 				{
-					double heightRequest = CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, TimetableView.HeightRequest);
+					double heightRequest = InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.ContentOtherThanTimetableHeight + Math.Max(0, TimetableView.HeightRequest);
 					logger.Debug("set full-scrollable-ScrollView.HeightRequest -> Max(this.HeightRequest: {0}, heightRequest: {1})", this.HeightRequest, heightRequest);
 					sv.Content.HeightRequest = Math.Max(this.Height, heightRequest);
 				}
@@ -291,59 +268,8 @@ public partial class VerticalStylePage : ContentView
 		}
 	}
 
-	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
-	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
-	{
-		bool isToOpen = e.NewValue;
-		(double start, double end) = isToOpen
-			? (TrainInfo_BeforeDepature_RowDefinition.Height.Value, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT)
-			: (TrainInfo_BeforeDepature_RowDefinition.Height.Value, 0d);
-		logger.Info("BeforeRemarks_TrainInfo_OpenCloseChanged: {0} -> {1} / pos {2} -> {3}",
-			e.OldValue,
-			e.NewValue,
-			start,
-			end
-		);
-
-		if (this.AnimationIsRunning(DateAndStartButton_AnimationName))
-		{
-			logger.Debug("AbortAnimation({0})", DateAndStartButton_AnimationName);
-			this.AbortAnimation(DateAndStartButton_AnimationName);
-		}
-		new Animation(
-			v =>
-			{
-				if (!TrainInfo_BeforeDepartureArea.IsVisible)
-				{
-					logger.Debug("TrainInfo_BeforeDepartureArea.IsVisible set to true");
-					TrainInfo_BeforeDepartureArea.IsVisible = true;
-				}
-				TrainInfo_BeforeDepature_RowDefinition.Height = v;
-				TrainInfo_BeforeDepartureArea.HeightRequest = v;
-				logger.Trace("v: {0}", v);
-			},
-			start,
-			end,
-			Easing.SinInOut
-		)
-			.Commit(
-				this,
-				DateAndStartButton_AnimationName,
-				finished: (_, canceled) =>
-				{
-					if (!isToOpen && !canceled)
-					{
-						logger.Debug("Animation Successfully finished to close");
-						TrainInfo_BeforeDepartureArea.IsVisible = false;
-					}
-					else
-					{
-						logger.Debug("Animation Successfully finished to open or canceled");
-					}
-				}
-			);
-		logger.Debug("Animation started");
-	}
+	void BeforeRemarks_TrainInfo_OpenCloseChanged(object _, ValueChangedEventArgs<bool> e)
+		=> InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.BeforeRemarks_TrainInfo_OpenCloseChanged(this, TrainInfo_BeforeDepartureArea, e);
 
 	string? _DestinationString = null;
 	void SetDestinationString(string? value)

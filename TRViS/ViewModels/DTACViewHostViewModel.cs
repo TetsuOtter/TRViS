@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using TRViS.DTAC;
+
 namespace TRViS.ViewModels;
 
 public partial class DTACViewHostViewModel : ObservableObject
@@ -22,6 +24,8 @@ public partial class DTACViewHostViewModel : ObservableObject
 	bool _IsWorkAffixMode = false;
 	[ObservableProperty]
 	bool _IsViewHostVisible = false;
+
+	public DTACRowDefinitionsProvider RowDefinitionsProvider { get; } = new();
 
 	public DTACViewHostViewModel()
 	{
