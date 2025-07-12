@@ -1,8 +1,8 @@
 using TRViS.Services;
 
-namespace TRViS.DTAC.TimetableParts;
+namespace TRViS.DTAC;
 
-public class VerticalTimetableRowColumnDefinitionsProvider
+public class DTACColumnDefinitionsProvider
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
@@ -39,7 +39,7 @@ public class VerticalTimetableRowColumnDefinitionsProvider
 	public bool IsRemarksColumnVisible => GetIsRemarksColumnVisible(viewWidthMode);
 	public bool IsMarkerColumnVisible => GetIsMarkerColumnVisible(viewWidthMode);
 
-	public VerticalTimetableRowColumnDefinitionsProvider()
+	public DTACColumnDefinitionsProvider()
 	{
 		TrainInfoBeforeDepartureColumnDefinitions =
 		[

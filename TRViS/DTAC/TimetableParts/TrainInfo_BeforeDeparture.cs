@@ -49,7 +49,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		logger.Trace("Creating...");
 
 		RowDefinitions = DefaultRowDefinitions;
-		ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TrainInfoBeforeDepartureColumnDefinitions;
+		ColumnDefinitions = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.TrainInfoBeforeDepartureColumnDefinitions;
 
 		TrainInfoArea.HorizontalOptions = LayoutOptions.Start;
 

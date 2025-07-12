@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.DTAC;
-using TRViS.DTAC.TimetableParts;
 
 namespace TRViS.ViewModels;
 
@@ -27,7 +26,7 @@ public partial class DTACViewHostViewModel : ObservableObject
 	bool _IsViewHostVisible = false;
 
 	public DTACRowDefinitionsProvider RowDefinitionsProvider { get; } = new();
-	public VerticalTimetableRowColumnDefinitionsProvider VerticalStyleColumnDefinitionsProvider { get; } = new();
+	public DTACColumnDefinitionsProvider ColumnDefinitionsProvider { get; } = new();
 
 	public DTACViewHostViewModel()
 	{

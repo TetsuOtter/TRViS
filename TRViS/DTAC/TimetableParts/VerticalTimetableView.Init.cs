@@ -43,14 +43,14 @@ public partial class VerticalTimetableView
 	{
 		logger.Trace("Creating...");
 
-		AfterArriveGrid.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TrainInfoBeforeDepartureColumnDefinitions;
+		AfterArriveGrid.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.TrainInfoBeforeDepartureColumnDefinitions;
 		AfterArriveContent = new(AfterArriveGrid, "着後");
 		AfterRemarks = new(this);
 
 		Grid.SetColumnSpan(NextTrainButton, 8);
 
-		this.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TimetableRowColumnDefinitions;
-		InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.ViewWidthModeChanged += (sender, e) =>
+		this.ColumnDefinitions = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.TimetableRowColumnDefinitions;
+		InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.ViewWidthModeChanged += (sender, e) =>
 		{
 			OnViewWidthModeChanged();
 		};

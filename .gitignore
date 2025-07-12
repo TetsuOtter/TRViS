@@ -1,4 +1,5 @@
 TRViS/Resources/Raw/licenses/*
+.vscode/launch.json
 
 # globs
 Makefile.in

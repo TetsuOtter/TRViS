@@ -146,7 +146,7 @@ public partial class ViewHost : ContentPage
 			InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.OnViewHeightChanged(
 				height - TITLE_VIEW_HEIGHT - 60
 			);
-			InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.OnViewWidthChanged(width);
+			InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.OnViewWidthChanged(width);
 		}
 		catch (Exception ex)
 		{

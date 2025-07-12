@@ -16,7 +16,7 @@ public partial class VerticalTimetableRow
 		get => _IsMarkingMode;
 		private set
 		{
-			MarkerBox.IsVisible = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.IsMarkerColumnVisible && (value || (MarkedColor is not null));
+			MarkerBox.IsVisible = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.IsMarkerColumnVisible && (value || (MarkedColor is not null));
 			_IsMarkingMode = value;
 			logger.Trace("IsMarkingMode: {0}, IsVisible: {1}, IsEnabled: {2}", value, MarkerBox.IsVisible, MarkerBox.IsEnabled);
 		}
@@ -367,7 +367,7 @@ public partial class VerticalTimetableRow
 
 	public void OnViewWidthModeChanged()
 	{
-		VerticalTimetableRowColumnDefinitionsProvider provider = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider;
+		DTACColumnDefinitionsProvider provider = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider;
 		DriveTimeGrid?.IsVisible = provider.IsRunTimeColumnVisible;
 		RunInOutLimitGrid?.IsVisible = provider.IsSpeedLimitColumnVisible;
 		Remarks?.IsVisible = provider.IsRemarksColumnVisible;
@@ -381,7 +381,7 @@ public partial class VerticalTimetableRow
 		}
 		if (!string.IsNullOrEmpty(RowData.TrackName) && DriveTimeGrid is not null)
 		{
-			double baseFontSize = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.IsTrackNameColumnNarrow
+			double baseFontSize = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.IsTrackNameColumnNarrow
 				? DTACElementStyles.TimetableFontSizeNarrow
 				: DTACElementStyles.TimetableFontSize;
 			TrackName.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(RowData.TrackName, baseFontSize);

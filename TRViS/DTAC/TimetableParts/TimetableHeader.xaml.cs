@@ -15,8 +15,8 @@ public partial class TimetableHeader : Grid
 
 		InitializeComponent();
 
-		ColumnDefinitions = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.TimetableRowColumnDefinitions;
-		InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider.ViewWidthModeChanged += (sender, e) =>
+		ColumnDefinitions = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.TimetableRowColumnDefinitions;
+		InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.ViewWidthModeChanged += (sender, e) =>
 		{
 			OnViewWidthModeChanged();
 		};
@@ -27,7 +27,7 @@ public partial class TimetableHeader : Grid
 
 	private void OnViewWidthModeChanged()
 	{
-		VerticalTimetableRowColumnDefinitionsProvider provider = InstanceManager.DTACViewHostViewModel.VerticalStyleColumnDefinitionsProvider;
+		DTACColumnDefinitionsProvider provider = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider;
 		RunTimeLabel.IsVisible = provider.IsRunTimeColumnVisible;
 		LimitLabel.IsVisible = LimitSeparator.IsVisible = provider.IsSpeedLimitColumnVisible;
 		RemarksLabel.IsVisible = provider.IsRemarksColumnVisible;
