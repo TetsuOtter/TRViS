@@ -26,10 +26,17 @@ public partial class FirebaseSettingViewModel : ObservableObject, IFirebaseSetti
 	public FirebaseSettingViewModel()
 	{
 		logger.Trace("Creating");
+#if DEBUG
+		IsEnabled = true;
+		IsAnalyticsEnabled = true;
+		IsLogShareEnabled = true;
+		LastAcceptedPrivacyPolicyRevision = Constants.PRIVACY_POLICY_REVISION;
+#else
 		IsEnabled = AppPreferenceService.Get(AppPreferenceKeys.IsAppCenterEnabled, false, out _);
 		IsAnalyticsEnabled = AppPreferenceService.Get(AppPreferenceKeys.IsAppCenterAnalyticsEnabled, false, out _);
 		IsLogShareEnabled = AppPreferenceService.Get(AppPreferenceKeys.IsAppCenterLogShareEnabled, false, out _);
 		LastAcceptedPrivacyPolicyRevision = AppPreferenceService.Get(AppPreferenceKeys.LastAcceptedPrivacyPolicyRevision, string.Empty, out _);
+#endif
 		InstallId = AppPreferenceService.Get(AppPreferenceKeys.InstallId, string.Empty, out _);
 
 		logger.Trace("Created (IsEnabled: {0}, IsAnalyticsEnabled: {1}, IsLogShareEnabled: {2}, InstallId: {3}, LastAcceptedPrivacyPolicyRevision: {4})",

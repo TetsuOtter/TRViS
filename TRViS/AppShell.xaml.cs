@@ -36,6 +36,8 @@ public partial class AppShell : Shell
 
 		InitializeComponent();
 
+		FlyoutIcon.AutomationId = "MenuButton";
+
 		if (FirebaseSettingViewModel.IsEnabled)
 		{
 			GoToAsync("//" + nameof(SelectTrainPage)).ConfigureAwait(false);

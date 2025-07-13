@@ -44,6 +44,7 @@ public partial class ViewHost : ContentPage
 
 	public ViewHost()
 	{
+		this.AutomationId = "DTACPage";
 		logger.Trace("Creating...");
 
 		AppViewModel vm = InstanceManager.AppViewModel;

@@ -1,0 +1,18 @@
+iPhone SE (1st generation)|com.apple.CoreSimulator.SimDeviceType.iPhone-SE|15.5
+iPhone SE (3rd generation)|com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation|18.5
+iPhone 13 mini|com.apple.CoreSimulator.SimDeviceType.iPhone-13-mini|18.5
+iPhone 16|com.apple.CoreSimulator.SimDeviceType.iPhone-16|18.5
+iPhone 16 Plus|com.apple.CoreSimulator.SimDeviceType.iPhone-16-Plus|18.5
+iPhone 16 Pro|com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro|18.5
+iPhone 16 Pro Max|com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro-Max|18.5
+iPad mini (5th generation)|com.apple.CoreSimulator.SimDeviceType.iPad-mini--5th-generation-|15.5
+iPad mini (A17 Pro)|com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro|18.5
+iPad (9th generation)|com.apple.CoreSimulator.SimDeviceType.iPad-9th-generation|18.5
+iPad (A16)|com.apple.CoreSimulator.SimDeviceType.iPad-A16|18.5
+iPad Air 2|com.apple.CoreSimulator.SimDeviceType.iPad-Air-2|15.5
+iPad Air 11-inch (M3)|com.apple.CoreSimulator.SimDeviceType.iPad-Air-11-inch-M3|18.5
+iPad Air 13-inch (M3)|com.apple.CoreSimulator.SimDeviceType.iPad-Air-13-inch-M3|18.5
+iPad Pro (11-inch) (4th generation)|com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-4th-generation-8GB|18.5
+iPad Pro (12.9-inch) (6th generation)|com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-6th-generation-8GB|18.5
+iPad Pro 11-inch (M4)|com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M4-8GB|18.5
+iPad Pro 13-inch (M4)|com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M4-8GB|18.5

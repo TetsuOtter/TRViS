@@ -1,0 +1,62 @@
+name: iOS UI Tests
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/support-smartphone
+
+jobs:
+  ios-uitest:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        device:
+          - iPhone SE (1st generation)
+          - iPhone SE (3rd generation)
+          - iPhone 13 mini
+          - iPhone 15
+          - iPhone 15 Plus
+          - iPhone 16 Pro
+          - iPhone 16 Pro Max
+          - iPad mini (5th generation)
+          - iPad mini (7th generation)
+          - iPad (9th generation)
+          - iPad (10th generation)
+          - iPad Air 2
+          - iPad Air 11-inch
+          - iPad Air 13-inch
+          - iPad Pro 11-inch
+          - iPad Pro 12.9-inch
+          - iPad Pro 11-inch (M4)
+          - iPad Pro 13-inch (M4)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Install MAUI Workload
+        run: dotnet workload install maui
+      - name: Install Appium
+        run: npm install -g appium
+      - name: Start Appium Server
+        run: nohup appium &
+      - name: Build iOS App
+        run: dotnet build TRViS/TRViS.csproj -c Debug -f net10.0-ios
+      - name: Run UI Test
+        env:
+          UITEST_DEVICE: ${{ matrix.device }}
+        run: |
+          dotnet test TRViS.UITests/TRViS.UITests.csproj --logger "trx;LogFileName=uitest_${{ matrix.device }}.trx"
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.device }}
+          path: TRViS.UITests/TestResults/**/dtac_screenshot.png
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        with:
+          name: UITest Results (${{ matrix.device }})
+          path: TRViS.UITests/TestResults/**/*.trx
+          reporter: dotnet-trx
