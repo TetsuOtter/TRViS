@@ -29,6 +29,7 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
+#pragma warning disable CA1416
 		builder
 			.UseMauiApp<App>()
 			.UseMauiCommunityToolkit()
@@ -46,6 +47,7 @@ public static class MauiProgram
 				fonts.AddFont("MaterialIcons-Regular.ttf", "MaterialIconsRegular");
 			})
 			.ConfigureFirebase();
+#pragma warning restore CA1416
 
 		AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
@@ -101,7 +103,7 @@ public static class MauiProgram
 		Firebase.Crashlytics.Crashlytics.SharedInstance.SendUnsentReports();
 #endif
 #elif ANDROID
-		ConfigureFirebase(Platform.CurrentActivity);
+		ConfigureFirebase(Platform.CurrentActivity!);
 #else
 		logger.Warn("Firebase Unsupported platform");
 #endif

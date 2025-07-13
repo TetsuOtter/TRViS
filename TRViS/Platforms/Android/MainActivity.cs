@@ -2,6 +2,7 @@ using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.Views;
+
 using AndroidX.Core.View;
 
 namespace TRViS;
@@ -35,7 +36,7 @@ public class MainActivity : MauiAppCompatActivity
 				| SystemUiFlags.Fullscreen;
 
 #pragma warning disable CA1416, CA1422
-			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(int)flags;
+			Window.DecorView.SystemUiFlags = flags;
 #pragma warning restore
 		}
 	}

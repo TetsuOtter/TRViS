@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 
 using DependencyPropertyGenerator;
 
+using Microsoft.Maui.Controls.Shapes;
+
 using TRViS.Services;
 using TRViS.ViewModels;
 
@@ -19,14 +21,76 @@ public partial class TabButton : ContentView
 
 	public static readonly double NORMAL_MODE_WIDTH = 152;
 
+	private readonly Grid rootGrid;
+	private readonly Grid innerGrid;
+	private readonly BoxView baseBox;
+	private readonly Label buttonLabel;
+	private readonly Line bottomLine;
+
 	public TabButton()
 	{
 		logger.Trace("Creating...");
 
-		InitializeComponent();
+		WidthRequest = 152;
+
+		rootGrid = new Grid
+		{
+			Margin = new Thickness(8, 0)
+		};
+		rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Star });
+		rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(2, GridUnitType.Star) });
+
+		innerGrid = new Grid();
+		Grid.SetRow(innerGrid, 1);
+
+		baseBox = new BoxView
+		{
+			Color = BASE_COLOR_DISABLED,
+			CornerRadius = 4,
+			Margin = new Thickness(0, -4),
+			Shadow = new Shadow
+			{
+				Brush = Brush.Black,
+				Offset = new Point(2, 2),
+				Radius = 2,
+				Opacity = 0
+			}
+		};
+
+		buttonLabel = new Label
+		{
+			FontFamily = "Hiragino Sans",
+			FontSize = 18,
+			FontAutoScalingEnabled = false,
+			FontAttributes = FontAttributes.Bold,
+			VerticalOptions = LayoutOptions.Center,
+			HorizontalOptions = LayoutOptions.Center
+		};
+
+		bottomLine = new Line
+		{
+			IsVisible = false,
+			HeightRequest = 4,
+			VerticalOptions = LayoutOptions.End,
+			BackgroundColor = Color.FromArgb("#080"),
+			Fill = Brush.Green,
+			Margin = new Thickness(8, 0)
+		};
+		Grid.SetRow(bottomLine, 1);
+
+		var tapGestureRecognizer = new TapGestureRecognizer();
+		tapGestureRecognizer.Tapped += BaseBox_Tapped;
+		innerGrid.GestureRecognizers.Add(tapGestureRecognizer);
+
+		innerGrid.Children.Add(baseBox);
+		innerGrid.Children.Add(buttonLabel);
+		innerGrid.Children.Add(bottomLine);
+		rootGrid.Children.Add(innerGrid);
+
+		Content = rootGrid;
 
 		UpdateIsSelectedProperty();
-		DTACElementStyles.Instance.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
+		DTACElementStyles.Instance.TimetableTextColor.Apply(buttonLabel, Label.TextColorProperty);
 
 		InstanceManager.AppViewModel.PropertyChanged += AppViewModel_PropertyChanged;
 		OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
@@ -99,24 +163,24 @@ public partial class TabButton : ContentView
 	partial void OnTextChanged(string? newValue)
 	{
 		logger.Trace("newValue: {0}", newValue);
-		ButtonLabel.Text = newValue;
+		buttonLabel.Text = newValue;
 	}
 
 	partial void OnIsSelectedChanged(bool newValue)
 	{
 		logger.Trace("newValue: {0}", newValue);
-		BottomLine.IsVisible = newValue;
+		bottomLine.IsVisible = newValue;
 
 		if (newValue)
 		{
-			DTACElementStyles.Instance.DefaultBGColor.Apply(BaseBox, BoxView.ColorProperty);
-			BaseBox.Shadow.Opacity = 0.2f;
+			DTACElementStyles.Instance.DefaultBGColor.Apply(baseBox, BoxView.ColorProperty);
+			baseBox.Shadow.Opacity = 0.2f;
 			logger.Info("Tab `{0}` selected", Text);
 		}
 		else
 		{
-			DTACElementStyles.Instance.TabButtonBGColor.Apply(BaseBox, BoxView.ColorProperty);
-			BaseBox.Shadow.Opacity = 0;
+			DTACElementStyles.Instance.TabButtonBGColor.Apply(baseBox, BoxView.ColorProperty);
+			baseBox.Shadow.Opacity = 0;
 			logger.Info("Tab `{0}` unselected", Text);
 		}
 	}
@@ -125,11 +189,11 @@ public partial class TabButton : ContentView
 	{
 		if (newValue)
 		{
-			ButtonLabel.Opacity = 1;
+			buttonLabel.Opacity = 1;
 		}
 		else
 		{
-			ButtonLabel.Opacity = 0.5;
+			buttonLabel.Opacity = 0.5;
 			if (IsSelected)
 			{
 				InstanceManager.DTACViewHostViewModel.TabMode = DTACViewHostViewModel.Mode.Hako;
@@ -137,7 +201,7 @@ public partial class TabButton : ContentView
 		}
 	}
 
-	void BaseBox_Tapped(object sender, EventArgs e)
+	void BaseBox_Tapped(object? sender, TappedEventArgs e)
 	{
 		try
 		{

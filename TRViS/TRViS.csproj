@@ -75,9 +75,6 @@
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
 		<PackageReference
-			Include="System.Text.Json"
-			Version="9.0.5" />
-		<PackageReference
 			Include="CommunityToolkit.Maui"
 			Version="11.2.0" />
 		<PackageReference

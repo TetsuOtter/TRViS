@@ -6,6 +6,11 @@ public class DTACColumnDefinitionsProvider
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
+	private const double TRAIN_INFO_HEADER_TRAIN_NUMBER_COLUMN_WIDTH = 270;
+	private const double TRAIN_INFO_HEADER_SPEED_LIMIT_COLUMN_WIDTH = 120;
+	private const double TRAIN_INFO_HEADER_SPEED_TYPE_COLUMN_WIDTH = 210;
+	private const double TRAIN_INFO_HEADER_TRAIN_CONSTANT_COLUMN_WIDTH = 168;
+
 	private const double TRAIN_INFO_BEFORE_DEPARTURE_HEADER_COLUMN_WIDTH_NARROW = 48;
 	private const double RUN_TIME_COLUMN_WIDTH_NARROW = 4;
 	private const double RUN_TIME_COLUMN_WIDTH = 60;
@@ -20,6 +25,11 @@ public class DTACColumnDefinitionsProvider
 	// private const double REMARKS_COLUMN_WIDTH = 104;
 	private const double MARKER_COLUMN_WIDTH = 64;
 
+	private ColumnDefinition TrainInfoHeaderTrainNumberColumnDefinition { get; } = new(TRAIN_INFO_HEADER_TRAIN_NUMBER_COLUMN_WIDTH);
+	private ColumnDefinition TrainInfoHeaderSpeedLimitColumnDefinition { get; } = new(TRAIN_INFO_HEADER_SPEED_LIMIT_COLUMN_WIDTH);
+	private ColumnDefinition TrainInfoHeaderSpeedTypeColumnDefinition { get; } = new(new(1, GridUnitType.Star));
+	private ColumnDefinition TrainInfoHeaderTrainConstantColumnDefinition { get; } = new(TRAIN_INFO_HEADER_TRAIN_CONSTANT_COLUMN_WIDTH);
+
 	private ColumnDefinition TrainInfoBeforeDepartureHeaderColumnDefinition { get; } = new(RUN_TIME_COLUMN_WIDTH);
 	private ColumnDefinition RunTimeColumnDefinition { get; } = new(RUN_TIME_COLUMN_WIDTH);
 	private ColumnDefinition StationNameColumnDefinition { get; } = new(STA_NAME_COLUMN_WIDTH);
@@ -29,6 +39,7 @@ public class DTACColumnDefinitionsProvider
 	private ColumnDefinition RemarksColumnDefinition { get; } = new(new(1, GridUnitType.Star));
 	private ColumnDefinition MarkerColumnDefinition { get; } = new(MARKER_COLUMN_WIDTH);
 
+	public ColumnDefinitionCollection TrainInfoHeaderColumnDefinitions { get; }
 	public ColumnDefinitionCollection TrainInfoBeforeDepartureColumnDefinitions { get; }
 	public ColumnDefinitionCollection TimetableRowColumnDefinitions { get; }
 
@@ -41,6 +52,13 @@ public class DTACColumnDefinitionsProvider
 
 	public DTACColumnDefinitionsProvider()
 	{
+		TrainInfoHeaderColumnDefinitions =
+		[
+			TrainInfoHeaderTrainNumberColumnDefinition,
+			TrainInfoHeaderSpeedLimitColumnDefinition,
+			TrainInfoHeaderSpeedTypeColumnDefinition,
+			TrainInfoHeaderTrainConstantColumnDefinition
+		];
 		TrainInfoBeforeDepartureColumnDefinitions =
 		[
 			TrainInfoBeforeDepartureHeaderColumnDefinition,

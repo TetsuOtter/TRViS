@@ -16,9 +16,9 @@ public static partial class Utils
 	public static Task DisplayAlert(Page page, string title, string message, string cancel)
 	{
 		if (!MainThread.IsMainThread)
-			return MainThread.InvokeOnMainThreadAsync(() => page.DisplayAlert(title, message, cancel));
+			return MainThread.InvokeOnMainThreadAsync(() => page.DisplayAlertAsync(title, message, cancel));
 		else
-			return page.DisplayAlert(title, message, cancel);
+			return page.DisplayAlertAsync(title, message, cancel);
 	}
 
 	public static Task<bool> DisplayAlert(string title, string message, string accept, string cancel)
@@ -35,9 +35,9 @@ public static partial class Utils
 	public static Task<bool> DisplayAlert(Page page, string title, string message, string accept, string cancel)
 	{
 		if (!MainThread.IsMainThread)
-			return MainThread.InvokeOnMainThreadAsync(() => page.DisplayAlert(title, message, accept, cancel));
+			return MainThread.InvokeOnMainThreadAsync(() => page.DisplayAlertAsync(title, message, accept, cancel));
 		else
-			return page.DisplayAlert(title, message, accept, cancel);
+			return page.DisplayAlertAsync(title, message, accept, cancel);
 	}
 
 	public static Task ExitWithAlert(Exception ex)

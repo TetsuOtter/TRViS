@@ -13,6 +13,9 @@ public partial class Hako : Grid
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	readonly HeaderView headerView = new();
+	readonly Image backgroundImage = DTACElementStyles.Instance.BackgroundAppIconImage();
+	readonly ScrollView simpleViewScrollView = new();
+	readonly SimpleView simpleView = new();
 
 	readonly Label AffectDateLabel;
 	readonly Label WorkInfoLabel;
@@ -37,9 +40,16 @@ public partial class Hako : Grid
 	{
 		logger.Trace("Creating...");
 
+		DTACElementStyles.Instance.DefaultBGColor.Apply(this, BackgroundColorProperty);
+
 		RowDefinitions = InstanceManager.DTACViewHostViewModel.RowDefinitionsProvider.HakoPageRowDefinitions;
 
-		InitializeComponent();
+		Grid.SetRow(backgroundImage, 2);
+		Children.Add(backgroundImage);
+
+		simpleViewScrollView.Content = simpleView;
+		Grid.SetRow(simpleViewScrollView, 2);
+		Children.Add(simpleViewScrollView);
 
 		Grid.SetRow(headerView, 1);
 		headerView.EdgeWidth = SimpleView.STA_NAME_TIME_COLUMN_WIDTH;
@@ -53,7 +63,7 @@ public partial class Hako : Grid
 		WorkInfoLabel = GenWorkInfoLabel();
 		Children.Add(WorkInfoLabel);
 
-		SimpleView.SetBinding(
+		simpleView.SetBinding(
 			WidthRequestProperty,
 			BindingBase.Create(static (ScrollView x) => x.Width, BindingMode.OneWay, source: headerView)
 		);

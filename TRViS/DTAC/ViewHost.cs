@@ -17,10 +17,30 @@ public partial class ViewHost : ContentPage
 
 	DTACViewHostViewModel ViewModel { get; }
 
+	readonly RowDefinition TitlePaddingViewHeight = new(0);
+
 	readonly GradientStop TitleBG_Top = new(Colors.White.WithAlpha(0.8f), 0);
 	readonly GradientStop TitleBG_Middle = new(Colors.White.WithAlpha(0.5f), 0.5f);
 	readonly GradientStop TitleBG_MidBottom = new(Colors.White.WithAlpha(0.1f), 0.8f);
 	readonly GradientStop TitleBG_Bottom = new(Colors.White.WithAlpha(0), 1);
+
+	readonly BoxView TitleBGBoxView;
+	readonly BoxView TitleBGGradientBox;
+	readonly Button MenuButton;
+	readonly Label TitleLabel;
+	readonly Button ChangeThemeButton;
+	readonly Label TimeLabel;
+	readonly Hako HakoView;
+	readonly VerticalStylePage VerticalStylePageView;
+	readonly Grid MainContentGrid;
+	readonly HorizontalStackLayout TabButtonStack;
+	readonly TabButton HakoTabButton;
+	readonly TabButton VerticalViewTabButton;
+	readonly TabButton WorkAffixTabButton;
+	readonly WithRemarksView HakoRemarksView;
+	readonly WithRemarksView VerticalStylePageRemarksView;
+	readonly WorkAffix WorkAffixView;
+	readonly ImageButton AppIconButton;
 
 	public ViewHost()
 	{
@@ -31,7 +51,179 @@ public partial class ViewHost : ContentPage
 
 		Shell.SetNavBarIsVisible(this, false);
 
-		InitializeComponent();
+		MainContentGrid = new()
+		{
+			IgnoreSafeArea = true,
+			RowDefinitions = [
+				TitlePaddingViewHeight,
+				new RowDefinition(TITLE_VIEW_HEIGHT),
+				new RowDefinition(60),
+				new RowDefinition(GridLength.Star)
+			],
+		};
+
+		TitleBGBoxView = new()
+		{
+			Margin = new(-100, -100, -100, 0),
+		};
+		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
+		Grid.SetRowSpan(TitleBGBoxView, 2);
+		MainContentGrid.Add(TitleBGBoxView, row: 0);
+
+		TitleBGGradientBox = new()
+		{
+			Margin = new(0, 0, 0, 30),
+			CornerRadius = 0,
+			Color = null,
+			Background = new LinearGradientBrush(
+				[
+					TitleBG_Top,
+					TitleBG_Middle,
+					TitleBG_MidBottom,
+					TitleBG_Bottom,
+				],
+				new Point(0, 0),
+				new Point(0, 1)
+			),
+		};
+		Grid.SetRow(TitleBGGradientBox, 0);
+		Grid.SetRowSpan(TitleBGGradientBox, 2);
+		MainContentGrid.Add(TitleBGGradientBox, row: 0);
+
+		MenuButton = new()
+		{
+			AutomationId = "MenuButton",
+			Margin = new(8, 4),
+			Padding = 0,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Center,
+			Text = "\xe241",
+			FontFamily = "MaterialIconsRegular",
+			FontSize = 36,
+			BackgroundColor = Colors.Transparent,
+		};
+		MenuButton.Clicked += MenuButton_Clicked;
+		MainContentGrid.Add(MenuButton, row: 1);
+
+		var rightStack = new HorizontalStackLayout
+		{
+			Margin = new(8, 4),
+			Padding = 0,
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.End,
+			Spacing = 8,
+		};
+		AppIconButton = new ImageButton
+		{
+			AutomationId = "AppIconButton",
+			Aspect = Aspect.AspectFill,
+			Margin = new(12, 8),
+			HeightRequest = 30,
+			WidthRequest = 30,
+			Padding = 0,
+			CornerRadius = 7,
+			Source = DTACElementStyles.Instance.AppIconSource
+		};
+		DTACElementStyles.Instance.AppIconBgColor.Apply(AppIconButton, BackgroundColorProperty);
+		AppIconButton.Clicked += OnToggleBgAppIconButtonClicked;
+		ChangeThemeButton = new Button
+		{
+			AutomationId = "ChangeThemeButton",
+			Margin = new(0, 6),
+			Padding = 0,
+			FontFamily = "MaterialIconsRegular",
+			FontSize = 28,
+			HorizontalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.End,
+			BackgroundColor = Colors.Transparent,
+		};
+		TimeLabel = new Label
+		{
+			Margin = 0,
+			Padding = 0,
+			FontFamily = DTACElementStyles.TimetableNumFontFamily,
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.End,
+			VerticalTextAlignment = TextAlignment.End,
+			FontAttributes = FontAttributes.Bold,
+			FontSize = 40,
+		};
+		rightStack.Add(AppIconButton);
+		rightStack.Add(ChangeThemeButton);
+		rightStack.Add(TimeLabel);
+		MainContentGrid.Add(rightStack, row: 1);
+
+		TitleLabel = new Label
+		{
+			AutomationId = "TitleLabel",
+			Margin = new(4, 8),
+			HorizontalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.End,
+			FontAttributes = FontAttributes.Bold,
+			FontSize = 20,
+		};
+		MainContentGrid.Add(TitleLabel, row: 1);
+
+		TabButtonStack = new HorizontalStackLayout
+		{
+			AutomationId = "TabButtonStack",
+			Margin = 0,
+			Padding = new(4, 0),
+		};
+		DTACElementStyles.Instance.TabAreaBGColor.Apply(TabButtonStack, BackgroundColorProperty);
+		HakoTabButton = new()
+		{
+			AutomationId = "HakoTabButton",
+			Text = "ハ　コ",
+			TargetMode = DTACViewHostViewModel.Mode.Hako,
+		};
+		HakoTabButton.SetBinding(TabButton.CurrentModeProperty, new Binding("TabMode", source: ViewModel));
+		VerticalViewTabButton = new()
+		{
+			AutomationId = "VerticalViewTabButton",
+			Text = "時刻表",
+			TargetMode = DTACViewHostViewModel.Mode.VerticalView,
+		};
+		VerticalViewTabButton.SetBinding(TabButton.CurrentModeProperty, new Binding("TabMode", source: ViewModel));
+		WorkAffixTabButton = new()
+		{
+			AutomationId = "WorkAffixTabButton",
+			Text = "行路添付",
+			IsEnabled = false,
+			TargetMode = DTACViewHostViewModel.Mode.WorkAffix,
+		};
+		WorkAffixTabButton.SetBinding(TabButton.CurrentModeProperty, new Binding("TabMode", source: ViewModel));
+		TabButtonStack.Add(HakoTabButton);
+		TabButtonStack.Add(VerticalViewTabButton);
+		TabButtonStack.Add(WorkAffixTabButton);
+		MainContentGrid.Add(TabButtonStack, row: 2);
+
+		HakoRemarksView = new()
+		{
+			IsVisible = false,
+		};
+		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
+		HakoView = [];
+		HakoRemarksView.Add(HakoView);
+		MainContentGrid.Add(HakoRemarksView, row: 3);
+
+		VerticalStylePageRemarksView = new()
+		{
+			IsVisible = false,
+		};
+		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
+		VerticalStylePageView = new();
+		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
+		VerticalStylePageRemarksView.Add(VerticalStylePageView);
+		MainContentGrid.Add(VerticalStylePageRemarksView, row: 3);
+
+		WorkAffixView = new()
+		{
+			IsVisible = false,
+		};
+		MainContentGrid.Add(WorkAffixView, row: 3);
+
+		Content = MainContentGrid;
 
 		TitleLabel.Text = vm.SelectedWork?.Name;
 		TitleLabel.TextColor
@@ -52,19 +244,6 @@ public partial class ViewHost : ContentPage
 			TimeLabel.Text = text;
 		};
 
-		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
-
-		TitleBGGradientBox.Color = null;
-		TitleBGGradientBox.Background = new LinearGradientBrush(new GradientStopCollection()
-		{
-			TitleBG_Top,
-			TitleBG_Middle,
-			TitleBG_MidBottom,
-			TitleBG_Bottom,
-		},
-		new Point(0, 0),
-		new Point(0, 1));
-
 		vm.CurrentAppThemeChanged += (s, e) => SetTitleBGGradientColor(e.NewValue);
 		SetTitleBGGradientColor(vm.CurrentAppTheme);
 		vm.PropertyChanged += Vm_PropertyChanged;
@@ -79,10 +258,6 @@ public partial class ViewHost : ContentPage
 		{
 			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
 		};
-
-		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
-		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
-		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
 		UpdateContent();
 
@@ -305,8 +480,21 @@ public partial class ViewHost : ContentPage
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(DTACViewHostViewModel.TabMode))
-			UpdateContent();
+		try
+		{
+			switch (e.PropertyName)
+			{
+				case nameof(DTACViewHostViewModel.TabMode):
+					UpdateContent();
+					break;
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.ViewModel_PropertyChanged");
+			Utils.ExitWithAlert(ex);
+		}
 	}
 
 	void UpdateContent()
@@ -317,6 +505,7 @@ public partial class ViewHost : ContentPage
 			ViewModel.IsVerticalViewMode,
 			ViewModel.IsWorkAffixMode
 		);
+
 		HakoRemarksView.IsVisible = ViewModel.IsHakoMode;
 		VerticalStylePageRemarksView.IsVisible = ViewModel.IsVerticalViewMode;
 		WorkAffixView.IsVisible = ViewModel.IsWorkAffixMode;

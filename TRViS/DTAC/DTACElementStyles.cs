@@ -56,6 +56,7 @@ public partial class DTACElementStyles
 		new(0x00, 0x44, 0x00),
 		new(0x00, 0x33, 0x00)
 	);
+	public readonly Color DarkerGreen = Color.FromArgb("#151");
 
 	public readonly AppThemeColorBindingExtension ForegroundBlackWhite = genColor(0x00, 0xFF);
 	public readonly AppThemeGenericsBindingExtension<Brush> ForegroundBlackWhiteBrush;
@@ -102,50 +103,17 @@ public partial class DTACElementStyles
 		new(0xA3, 0xCC, 0xA3)
 	);
 	public readonly string AppIconSource = "appiconfg.png";
-	private Style? _appIconStyleResource = null;
-	public Style AppIconStyleResource
+	public Image BackgroundAppIconImage()
 	{
-		get
+		Image v = new()
 		{
-			if (_appIconStyleResource is not null)
-				return _appIconStyleResource;
-
-			_appIconStyleResource = new Style(typeof(Image))
-			{
-				Setters =
-				{
-					new Setter { Property = Image.SourceProperty, Value = AppIconSource },
-					new Setter { Property = Image.AspectProperty, Value = Aspect.AspectFit },
-					new Setter { Property = Image.MarginProperty, Value = new Thickness(8) },
-					// なぜかここでAppThemeBindingでOpacityを設定しても反映されない
-				}
-			};
-
-			return _appIconStyleResource;
-		}
-	}
-
-	private Style? _labelStyleResource = null;
-	public Style LabelStyleResource
-	{
-		get
-		{
-			if (_labelStyleResource is not null)
-				return _labelStyleResource;
-
-			_labelStyleResource = new Style(typeof(Label));
-			_labelStyleResource.Setters.Add(Label.HorizontalOptionsProperty, LayoutOptions.Center);
-			_labelStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.Center);
-			_labelStyleResource.Setters.Add(Label.TextColorProperty, DefaultTextColor);
-			_labelStyleResource.Setters.Add(Label.FontSizeProperty, DefaultTextSize);
-			_labelStyleResource.Setters.Add(Label.FontFamilyProperty, DefaultFontFamily);
-			_labelStyleResource.Setters.Add(Label.MarginProperty, new Thickness(4, 0));
-			_labelStyleResource.Setters.Add(Label.LineBreakModeProperty, LineBreakMode.CharacterWrap);
-			_labelStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 0.75 : 1.1);
-			_labelStyleResource.Setters.Add(Label.FontAutoScalingEnabledProperty, false);
-
-			return _labelStyleResource;
-		}
+			Source = AppIconSource,
+			Aspect = Aspect.AspectFit,
+			Margin = new Thickness(8)
+		};
+		AppIconOpacity.Apply(v, Image.OpacityProperty);
+		v.SetBinding(Image.IsVisibleProperty, new Binding("IsBgAppIconVisible", source: InstanceManager.AppViewModel));
+		return v;
 	}
 
 	public T LabelStyle<T>() where T : Label, new()
@@ -185,28 +153,6 @@ public partial class DTACElementStyles
 		return v;
 	}
 
-	private Style? _BeforeRemarksStyleResource = null;
-	public Style BeforeRemarksStyleResource
-	{
-		get
-		{
-			if (_BeforeRemarksStyleResource is not null)
-				return _BeforeRemarksStyleResource;
-
-			_BeforeRemarksStyleResource = new Style(typeof(Label))
-			{
-				BasedOn = LabelStyleResource
-			};
-
-			_BeforeRemarksStyleResource.Setters.Add(Label.HorizontalOptionsProperty, LayoutOptions.Start);
-			_BeforeRemarksStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
-			_BeforeRemarksStyleResource.Setters.Add(Label.FontSizeProperty, DefaultTextSizePlus);
-			_BeforeRemarksStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.5);
-			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(32, 0, 0, 10));
-
-			return _BeforeRemarksStyleResource;
-		}
-	}
 	public T AfterRemarksStyle<T>() where T : HtmlAutoDetectLabel, new()
 	{
 		T v = HtmlAutoDetectLabelStyle<T>();
@@ -222,25 +168,6 @@ public partial class DTACElementStyles
 		return v;
 	}
 
-	private Style? _headerLabelStyleResource = null;
-	public Style HeaderLabelStyleResource
-	{
-		get
-		{
-			if (_headerLabelStyleResource is not null)
-				return _headerLabelStyleResource;
-
-			_headerLabelStyleResource = new Style(typeof(Label))
-			{
-				BasedOn = LabelStyleResource
-			};
-
-			_headerLabelStyleResource.Setters.Add(Label.TextColorProperty, HeaderTextColor);
-			_headerLabelStyleResource.Setters.Add(Label.MarginProperty, new Thickness(1));
-
-			return _headerLabelStyleResource;
-		}
-	}
 	public T HeaderLabelStyle<T>() where T : Label, new()
 	{
 		T v = LabelStyle<T>();
@@ -295,27 +222,6 @@ public partial class DTACElementStyles
 		return v;
 	}
 
-	private Style? _timetableLabelStyleResource = null;
-	public Style TimetableLabelStyleResource
-	{
-		get
-		{
-			if (_timetableLabelStyleResource is not null)
-				return _timetableLabelStyleResource;
-
-			_timetableLabelStyleResource = new Style(typeof(Label))
-			{
-				BasedOn = LabelStyleResource
-			};
-
-			_timetableLabelStyleResource.Setters.Add(Label.TextColorProperty, TimetableTextColor);
-			_timetableLabelStyleResource.Setters.Add(Label.FontSizeProperty, TimetableFontSize);
-			_timetableLabelStyleResource.Setters.Add(Label.FontAttributesProperty, FontAttributes.Bold);
-			_timetableLabelStyleResource.Setters.Add(Label.InputTransparentProperty, true);
-
-			return _timetableLabelStyleResource;
-		}
-	}
 	public T TimetableLabel<T>() where T : Label, new()
 	{
 		T v = LabelStyle<T>();
@@ -339,26 +245,6 @@ public partial class DTACElementStyles
 		return v;
 	}
 
-	private Style? _timetableLargeNumberLabelStyleResource = null;
-	public Style TimetableLargeNumberLabelStyleResource
-	{
-		get
-		{
-			if (_timetableLargeNumberLabelStyleResource is not null)
-				return _timetableLargeNumberLabelStyleResource;
-
-			_timetableLargeNumberLabelStyleResource = new Style(typeof(Label))
-			{
-				BasedOn = TimetableLabelStyleResource
-			};
-
-			_timetableLargeNumberLabelStyleResource.Setters.Add(Label.FontFamilyProperty, TimetableNumFontFamily);
-			_timetableLargeNumberLabelStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
-			_timetableLargeNumberLabelStyleResource.Setters.Add(Label.LineBreakModeProperty, LineBreakMode.NoWrap);
-
-			return _timetableLargeNumberLabelStyleResource;
-		}
-	}
 	public T TimetableLargeNumberLabel<T>() where T : Label, new()
 	{
 		T v = TimetableLabel<T>();
@@ -404,25 +290,6 @@ public partial class DTACElementStyles
 		return v;
 	}
 
-	private Style? _timetableDefaultNumberLabelStyleResource = null;
-	public Style TimetableDefaultNumberLabelStyleResource
-	{
-		get
-		{
-			if (_timetableDefaultNumberLabelStyleResource is not null)
-				return _timetableDefaultNumberLabelStyleResource;
-
-			_timetableDefaultNumberLabelStyleResource = new Style(typeof(Label))
-			{
-				BasedOn = TimetableLargeNumberLabelStyleResource
-			};
-
-			_timetableDefaultNumberLabelStyleResource.Setters.Add(Label.FontSizeProperty, 16);
-			_timetableDefaultNumberLabelStyleResource.Setters.Add(Label.MarginProperty, new Thickness(1, 3));
-
-			return _timetableDefaultNumberLabelStyleResource;
-		}
-	}
 	public T TimetableDefaultNumberLabel<T>() where T : Label, new()
 	{
 		T v = TimetableLabel<T>();
@@ -456,48 +323,6 @@ public partial class DTACElementStyles
 	}
 
 	private readonly AppThemeGenericsBindingExtension<Brush> SeparatorLineBrush;
-	private Style? _horizontalSeparatorLineStyleResource = null;
-	public Style HorizontalSeparatorLineStyleResource
-	{
-		get
-		{
-			if (_horizontalSeparatorLineStyleResource is not null)
-				return _horizontalSeparatorLineStyleResource;
-
-			_horizontalSeparatorLineStyleResource = new Style(typeof(Line));
-
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.VerticalOptionsProperty, LayoutOptions.End);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.StrokeThicknessProperty, 0.5);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.HeightRequestProperty, 0.5);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.StrokeProperty, SeparatorLineBrush.Default);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Grid.ColumnSpanProperty, 8);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.X1Property, 0);
-			_horizontalSeparatorLineStyleResource.Setters.Add(Line.X2Property, 10000);
-
-			return _horizontalSeparatorLineStyleResource;
-		}
-	}
-	private Style? _verticalSeparatorLineStyleResource = null;
-	public Style VerticalSeparatorLineStyleResource
-	{
-		get
-		{
-			if (_verticalSeparatorLineStyleResource is not null)
-				return _verticalSeparatorLineStyleResource;
-
-			_verticalSeparatorLineStyleResource = new Style(typeof(Line));
-
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.HorizontalOptionsProperty, LayoutOptions.End);
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.MarginProperty, new Thickness(0, 6));
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.StrokeProperty, SeparatorLineBrush.Default);
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.StrokeThicknessProperty, 1);
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.WidthRequestProperty, 1);
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.Y1Property, 0);
-			_verticalSeparatorLineStyleResource.Setters.Add(Line.Y2Property, 100);
-
-			return _verticalSeparatorLineStyleResource;
-		}
-	}
 	public Line HorizontalSeparatorLineStyle()
 	{
 		Line v = new()
@@ -528,6 +353,23 @@ public partial class DTACElementStyles
 		Grid.SetRow(line, row);
 		Grid.SetColumnSpan(line, 8);
 		grid.Add(line);
+	}
+
+	public Line VerticalSeparatorLineStyle()
+	{
+		Line v = new()
+		{
+			HorizontalOptions = LayoutOptions.End,
+			Margin = new Thickness(0, 6),
+			StrokeThickness = 1,
+			WidthRequest = 1,
+			Y1 = 0,
+			Y2 = 100
+		};
+
+		SeparatorLineBrush.Apply(v, Line.StrokeProperty);
+
+		return v;
 	}
 
 	public TimeCell TimeCell()

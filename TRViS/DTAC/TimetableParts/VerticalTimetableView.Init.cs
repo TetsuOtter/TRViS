@@ -62,7 +62,7 @@ public partial class VerticalTimetableView
 		LocationService.IsEnabledChanged += (_, e) => IsLocationServiceEnabled = e.NewValue;
 		LocationService.ExceptionThrown += (s, e) =>
 		{
-			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
+			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlertAsync("Location Service Error", e.ToString(), "OK"));
 		};
 
 		logger.Trace("Created");

@@ -35,7 +35,7 @@ public class SelectOnlineResourcePopup : Popup
 		ReturnType = ReturnType.Go,
 	};
 
-	readonly ListView UrlHistoryListView = new()
+	readonly CollectionView UrlHistoryCollectionView = new()
 	{
 		Margin = new(4),
 	};
@@ -69,16 +69,18 @@ public class SelectOnlineResourcePopup : Popup
 		RootStyles.BackgroundBlackWhite.Apply(UrlInput, Button.BackgroundColorProperty);
 		RootStyles.TableTextColor.Apply(UrlInput, Button.TextColorProperty);
 
-		RootStyles.BackgroundBlackWhite.ToBrushTheme().Apply(UrlHistoryListView, ListView.BackgroundProperty);
+		RootStyles.BackgroundBlackWhite.ToBrushTheme().Apply(UrlHistoryCollectionView, CollectionView.BackgroundProperty);
 
 		RootStyles.TableTextColor.Apply(AdviceLabel, Label.TextColorProperty);
 
-		UrlHistoryListView.ItemTemplate = new DataTemplate(() =>
+		UrlHistoryCollectionView.ItemTemplate = new DataTemplate(() =>
 		{
-			TextCell cell = new();
-			RootStyles.TableTextColor.Apply(cell, TextCell.TextColorProperty);
-			cell.SetBinding(TextCell.TextProperty, static (string? v) => v);
-			return cell;
+			Label label = new();
+			RootStyles.TableTextColor.Apply(label, Label.TextColorProperty);
+			label.SetBinding(Label.TextProperty, static (string? v) => v);
+			label.Padding = new Thickness(8);
+			label.VerticalOptions = LayoutOptions.Center;
+			return label;
 		});
 
 		// 本当にiOS 15以前のみで有効なプロパティなのかは不明
@@ -109,23 +111,26 @@ public class SelectOnlineResourcePopup : Popup
 		UrlInput.ReturnCommand = DoLoadCommand;
 		LoadButton.Command = DoLoadCommand;
 
-		UrlHistoryListView.ItemTapped += (_, e) =>
+		UrlHistoryCollectionView.SelectionChanged += (_, e) =>
 		{
-			logger.Debug("UrlHistoryListView.ItemTapped");
-			UrlInput.Text = e.Item as string;
-			logger.Trace("UrlInput.Text = {0}", UrlInput.Text);
+			logger.Debug("UrlHistoryCollectionView.SelectionChanged");
+			if (e.CurrentSelection.FirstOrDefault() is string selectedUrl)
+			{
+				UrlInput.Text = selectedUrl;
+				logger.Trace("UrlInput.Text = {0}", UrlInput.Text);
+			}
 		};
 
 		UrlInput.TextChanged += (_, e) =>
 		{
-			logger.Debug("UrlInput.TextChanged -> set UrlHistoryListView.SelectedItem = {0}", e.NewTextValue);
-			UrlHistoryListView.SelectedItem = e.NewTextValue;
+			logger.Debug("UrlInput.TextChanged -> set UrlHistoryCollectionView.SelectedItem = {0}", e.NewTextValue);
+			UrlHistoryCollectionView.SelectedItem = e.NewTextValue;
 		};
 
 		grid.Add(CloseButton, column: 1);
-		Grid.SetColumnSpan(UrlHistoryListView, 2);
-		Grid.SetRow(UrlHistoryListView, 1);
-		grid.Add(UrlHistoryListView);
+		Grid.SetColumnSpan(UrlHistoryCollectionView, 2);
+		Grid.SetRow(UrlHistoryCollectionView, 1);
+		grid.Add(UrlHistoryCollectionView);
 		Grid.SetColumnSpan(UrlInput, 2);
 		Grid.SetRow(UrlInput, 2);
 		grid.Add(UrlInput);
@@ -138,7 +143,7 @@ public class SelectOnlineResourcePopup : Popup
 		Opened += (_, _) =>
 		{
 			logger.Debug("SelectOnlineResourcePopup.Opened");
-			UrlHistoryListView.ItemsSource = InstanceManager.AppViewModel.ExternalResourceUrlHistory.Reverse();
+			UrlHistoryCollectionView.ItemsSource = InstanceManager.AppViewModel.ExternalResourceUrlHistory.Reverse();
 		};
 		Closed += (_, _) =>
 		{
@@ -151,7 +156,7 @@ public class SelectOnlineResourcePopup : Popup
 	void setInputIsEnabled(bool isEnabled)
 	{
 		UrlInput.IsEnabled = isEnabled;
-		UrlHistoryListView.IsEnabled = isEnabled;
+		UrlHistoryCollectionView.IsEnabled = isEnabled;
 		LoadButton.IsEnabled = isEnabled;
 		CloseButton.IsEnabled = isEnabled;
 

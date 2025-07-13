@@ -1,5 +1,6 @@
 using DependencyPropertyGenerator;
 
+using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.Services;
 
@@ -17,18 +18,70 @@ public partial class Remarks : Grid
 	double BottomMargin
 		=> -ContentAreaHeight.Value - BottomSafeAreaHeight;
 
+	private readonly Label titleLabel;
+	private readonly OpenCloseButton openCloseButton;
+	private readonly ScrollView remarksTextScrollView;
+	private readonly HtmlAutoDetectLabel remarksLabel;
+
 	public Remarks()
 	{
 		logger.Trace("Creating...");
 
-		InitializeComponent();
+		BackgroundColor = Color.FromArgb("#333");
+		HeightRequest = 320;
+		VerticalOptions = LayoutOptions.End;
+
+		RowDefinitions.Add(new RowDefinition(64));
+		RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+		titleLabel = new Label
+		{
+			FontSize = 28,
+			FontFamily = "Hiragino Sans W6",
+			FontAutoScalingEnabled = false,
+			Margin = new Thickness(16, 0),
+			Text = "注 意 事 項",
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Center,
+			TextColor = Colors.White
+		};
+		Grid.SetRow(titleLabel, 0);
+
+		openCloseButton = new OpenCloseButton
+		{
+			TextWhenOpen = "\ue5cf",
+			TextWhenClosed = "\ue5ce",
+			Margin = new Thickness(16, 0),
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.Center
+		};
+		openCloseButton.IsOpenChanged += OpenCloseButton_IsOpenChanged;
+		Grid.SetRow(openCloseButton, 0);
+
+		remarksLabel = DTACElementStyles.Instance.HtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
+		remarksLabel.FontAutoScalingEnabled = true;
+		remarksLabel.HorizontalOptions = LayoutOptions.Start;
+		remarksLabel.VerticalOptions = LayoutOptions.Start;
+
+		remarksTextScrollView = new ScrollView
+		{
+			Padding = new Thickness(2),
+			Margin = new Thickness(8, 0, 8, 8),
+			Content = remarksLabel
+		};
+		DTACElementStyles.Instance.DefaultBGColor.Apply(remarksTextScrollView, BackgroundColorProperty);
+		Grid.SetRow(remarksTextScrollView, 1);
+
+		Children.Add(titleLabel);
+		Children.Add(openCloseButton);
+		Children.Add(remarksTextScrollView);
 
 		BindingContext = this;
 
 		ContentAreaHeight = new(DEFAULT_CONTENT_AREA_HEIGHT);
 
-		DTACElementStyles.Instance.DefaultBGColor.Apply(RemarksTextScrollView, BackgroundColorProperty);
-		RemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.Instance.DefaultTextColor;
+		DTACElementStyles.Instance.DefaultBGColor.Apply(remarksTextScrollView, BackgroundColorProperty);
+		remarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.Instance.DefaultTextColor;
 
 		logger.Trace("Created");
 	}
@@ -43,7 +96,7 @@ public partial class Remarks : Grid
 			{
 				double translateToY = isOpen.Value ? 0 : shell.SafeAreaMargin.Bottom;
 				logger.Trace("translateToY: {0} (isOpen: {1})", translateToY, isOpen.Value);
-				RemarksTextScrollView.TranslateTo(
+				_ = remarksTextScrollView.TranslateToAsync(
 					x: 0,
 					y: translateToY,
 					length: 250 / 2,
@@ -51,7 +104,7 @@ public partial class Remarks : Grid
 				);
 			}
 #endif
-			this.TranslateTo(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
+			_ = this.TranslateToAsync(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
 		}
 		catch (Exception ex)
 		{
@@ -64,7 +117,7 @@ public partial class Remarks : Grid
 	partial void OnIsOpenChanged(bool newValue)
 	{
 		logger.Info("IsOpen: {0}, BottomMargin: {1}", newValue, BottomMargin);
-		OpenCloseButton.IsOpen = newValue;
+		openCloseButton.IsOpen = newValue;
 		ResetTextScrollViewPosition(newValue);
 	}
 
@@ -88,7 +141,7 @@ public partial class Remarks : Grid
 			logger.Info("newValue: {0}", newValue.Remarks);
 		}
 
-		RemarksLabel.Text = newValue?.Remarks;
+		remarksLabel.Text = newValue?.Remarks;
 	}
 
 	void HeightChanged(in double contentAreaHeight)
@@ -133,7 +186,7 @@ public partial class Remarks : Grid
 		}
 	}
 
-	void OpenCloseButton_IsOpenChanged(object sender, ValueChangedEventArgs<bool> e)
+	void OpenCloseButton_IsOpenChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
 		try
 		{

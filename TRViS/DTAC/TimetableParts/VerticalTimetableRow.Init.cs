@@ -379,7 +379,7 @@ public partial class VerticalTimetableRow
 				? DTACElementStyles.Instance.TimetableFontSizeNarrow
 				: DTACElementStyles.Instance.TimetableFontSize;
 		}
-		if (!string.IsNullOrEmpty(RowData.TrackName) && DriveTimeGrid is not null)
+		if (!string.IsNullOrEmpty(RowData.TrackName) && TrackName is not null)
 		{
 			double baseFontSize = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.IsTrackNameColumnNarrow
 				? DTACElementStyles.Instance.TimetableFontSizeNarrow
