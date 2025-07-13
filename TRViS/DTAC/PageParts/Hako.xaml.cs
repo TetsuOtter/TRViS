@@ -18,7 +18,7 @@ public partial class Hako : Grid
 	readonly Label WorkInfoLabel;
 	static Label GenAffectDateLabel()
 	{
-		Label v = DTACElementStyles.AffectDateLabelStyle<Label>();
+		Label v = DTACElementStyles.Instance.AffectDateLabelStyle<Label>();
 
 		SetRow(v, 0);
 
@@ -26,7 +26,7 @@ public partial class Hako : Grid
 	}
 	static Label GenWorkInfoLabel()
 	{
-		Label v = DTACElementStyles.HakoTabWorkInfoLabelStyle<Label>();
+		Label v = DTACElementStyles.Instance.HakoTabWorkInfoLabelStyle<Label>();
 
 		SetRow(v, 0);
 

@@ -10,7 +10,7 @@
 	<Grid.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
-				<ResourceDictionary Source="../Style_VerticalView.xaml" />
+				<ResourceDictionary Source="../Style_VerticalView.xaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Grid.Resources>
@@ -21,7 +21,7 @@
 	</Grid.ColumnDefinitions>
 
 	<Label
-		Style="{x:Static dtac:DTACElementStyles.TimetableLargeNumberLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.TimetableLargeNumberLabelStyleResource}"
 		Grid.Column="0"
 		HorizontalOptions="End"
 		Margin="0"
@@ -30,7 +30,7 @@
 		Text="{Binding HHMM, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"/>
 
 	<Label
-		Style="{x:Static dtac:DTACElementStyles.TimetableDefaultNumberLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.TimetableDefaultNumberLabelStyleResource}"
 		Grid.Column="1"
 		HorizontalOptions="Start"
 		x:DataType="dtac:TimeCell"
@@ -39,7 +39,7 @@
 
 	<Label
 		IsVisible="{Binding IsStringVisible, Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type dtac:TimeCell}}}"
-		Style="{x:Static dtac:DTACElementStyles.TimetableLargeNumberLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.TimetableLargeNumberLabelStyleResource}"
 		HorizontalOptions="Center"
 		VerticalOptions="Center"
 		Padding="2"

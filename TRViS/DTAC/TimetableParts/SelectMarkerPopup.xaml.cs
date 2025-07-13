@@ -18,7 +18,7 @@ public partial class SelectMarkerPopup : Popup
 
 		InitializeComponent();
 
-		DTACElementStyles.DefaultBGColor.Apply(this, ColorProperty);
+		DTACElementStyles.Instance.DefaultBGColor.Apply(this, ColorProperty);
 
 		logger.Trace("Created");
 	}

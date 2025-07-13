@@ -12,9 +12,9 @@ public partial class SimpleRow
 
 	static readonly Thickness StaNameTrainNumButtonMargin = new(0, 4);
 	static readonly Thickness TrainNumButtonPadding = new(32, 4);
-	static readonly double TimeLabelFontSize_HHMM = DTACElementStyles.LargeTextSize * 0.8;
+	static readonly double TimeLabelFontSize_HHMM = DTACElementStyles.Instance.LargeTextSize * 0.8;
 	static readonly double TimeLabelFontSize_SS = TimeLabelFontSize_HHMM * 0.7;
-	static readonly double TrainNumberLabelTextSize = DTACElementStyles.LargeTextSize * 0.8;
+	static readonly double TrainNumberLabelTextSize = DTACElementStyles.Instance.LargeTextSize * 0.8;
 
 	const int SELECTED_STROKE_THICKNESS = 4;
 	const int UNSELECTED_STROKE_THICKNESS = 1;
@@ -27,7 +27,7 @@ public partial class SimpleRow
 	readonly Label ToTimeLabel;
 	static Label GenStationNameLabel(int rowIndex, int colIndex, TimetableRow? row)
 	{
-		Label v = DTACElementStyles.LargeLabelStyle<Label>();
+		Label v = DTACElementStyles.Instance.LargeLabelStyle<Label>();
 		v.VerticalOptions = LayoutOptions.End;
 		v.HorizontalOptions = LayoutOptions.Center;
 		v.Margin = StaNameTrainNumButtonMargin;
@@ -40,7 +40,7 @@ public partial class SimpleRow
 	}
 	static Label GenTimeLabel(int rowIndex, int colIndex, TimeData? time)
 	{
-		Label v = DTACElementStyles.LabelStyle<Label>();
+		Label v = DTACElementStyles.Instance.LabelStyle<Label>();
 		v.VerticalOptions = LayoutOptions.Center;
 		v.HorizontalOptions = LayoutOptions.Center;
 
@@ -88,7 +88,7 @@ public partial class SimpleRow
 				CornerRadius = 8,
 			},
 		};
-		DTACElementStyles.DefaultBGColor.Apply(v, Border.BackgroundColorProperty);
+		DTACElementStyles.Instance.DefaultBGColor.Apply(v, Border.BackgroundColorProperty);
 		v.Content = TrainNumberLabel;
 
 		return v;
@@ -113,7 +113,7 @@ public partial class SimpleRow
 	readonly Label TrainNumberLabel;
 	static Label GenTrainNumberLabel(TrainData trainData)
 	{
-		Label v = DTACElementStyles.LargeLabelStyle<Label>();
+		Label v = DTACElementStyles.Instance.LargeLabelStyle<Label>();
 
 		v.FontSize = TrainNumberLabelTextSize;
 		v.Text = trainData.TrainNumber;
@@ -136,8 +136,8 @@ public partial class SimpleRow
 			HorizontalOptions = LayoutOptions.Fill,
 		};
 
-		DTACElementStyles.ForegroundBlackWhite.Apply(v, Line.BackgroundColorProperty);
-		DTACElementStyles.ForegroundBlackWhiteBrush.Apply(v, Line.FillProperty);
+		DTACElementStyles.Instance.ForegroundBlackWhite.Apply(v, Line.BackgroundColorProperty);
+		DTACElementStyles.Instance.ForegroundBlackWhiteBrush.Apply(v, Line.FillProperty);
 
 		Grid.SetColumn(v, 1);
 		Grid.SetRow(v, rowIndex);
@@ -198,7 +198,7 @@ public partial class SimpleRow
 	{
 		if (SelectTrainButton.IsEnabled && SelectTrainButton.IsChecked)
 		{
-			DTACElementStyles.DefaultGreen.Apply(SelectTrainButtonBorder, Border.StrokeProperty);
+			DTACElementStyles.Instance.DefaultGreen.Apply(SelectTrainButtonBorder, Border.StrokeProperty);
 			SelectTrainButtonBorder.StrokeThickness = SELECTED_STROKE_THICKNESS;
 			SelectTrainButtonBorder.Shadow = SelectTrainButtonEmptyShadow;
 		}

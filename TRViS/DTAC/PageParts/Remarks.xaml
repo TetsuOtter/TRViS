@@ -46,13 +46,13 @@
 
 	<ScrollView
 		x:Name="RemarksTextScrollView"
-		BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}"
+		BackgroundColor="{x:Static dtac:DTACElementStyles.Instance.DefaultBGColor}"
 		Grid.Row="1"
 		Padding="2"
 		Margin="8,0,8,8">
 		<ctrls:HtmlAutoDetectLabel
 			x:Name="RemarksLabel"
-			LabelStyle="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+			LabelStyle="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 			FontAutoScalingEnabled="True"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"/>

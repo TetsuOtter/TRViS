@@ -9,19 +9,19 @@ public class NextTrainButton : Grid
 	readonly Button _NextTrainButton = new()
 	{
 		FontFamily = DTACElementStyles.DefaultFontFamily,
-		FontSize = DTACElementStyles.LargeTextSize,
+		FontSize = DTACElementStyles.Instance.LargeTextSize,
 		TextColor = Colors.White,
 		FontAttributes = FontAttributes.Bold,
 		Margin = new(32, 8),
 		MinimumWidthRequest = 400,
 		CornerRadius = 4,
-		Shadow = DTACElementStyles.DefaultShadow,
+		Shadow = DTACElementStyles.Instance.DefaultShadow,
 		FontAutoScalingEnabled = false,
 	};
 
 	public NextTrainButton()
 	{
-		DTACElementStyles.SemiDarkGreen.Apply(_NextTrainButton, BackgroundColorProperty);
+		DTACElementStyles.Instance.SemiDarkGreen.Apply(_NextTrainButton, BackgroundColorProperty);
 		_NextTrainButton.Clicked += NextTrainButton_Click;
 
 		ColumnDefinitions.Add(new(new(1, GridUnitType.Star)));

@@ -13,14 +13,14 @@
 	HorizontalOptions="Center"
 	VerticalOptions="Center"
 	Stroke="Transparent"
-	BackgroundColor="{x:Static local:DTACElementStyles.OpenCloseButtonBGColor}">
+	BackgroundColor="{x:Static local:DTACElementStyles.Instance.OpenCloseButtonBGColor}">
 	<Border.StrokeShape>
 		<RoundRectangle CornerRadius="4"/>
 	</Border.StrokeShape>
 	<Border.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
-				<ResourceDictionary Source="../Style_VerticalView.xaml" />
+				<ResourceDictionary Source="../Style_VerticalView.xaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Border.Resources>
@@ -28,37 +28,39 @@
 	<Grid
 		Margin="{OnPlatform iOS='4,6', MacCatalyst='4,6', Default='4,0'}">
 		<Label
-			Style="{x:Static local:DTACElementStyles.HeaderLabelStyleResource}"
+			Style="{x:Static local:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
 			FontAttributes="Bold"
 			Text="ﾏｰｶｰ">
 			<Label.Triggers>
 				<DataTrigger
-						TargetType="Label"
-						Binding="{Binding IsToggled}"
-						Value="True">
-					<Setter Property="TextColor" Value="White"/>
+					TargetType="Label"
+					Binding="{Binding IsToggled}"
+					Value="True">
+					<Setter Property="TextColor"
+							Value="White"/>
 				</DataTrigger>
 			</Label.Triggers>
 		</Label>
 
 		<Label
-			Style="{x:Static local:DTACElementStyles.HeaderLabelStyleResource}"
+			Style="{x:Static local:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 			HorizontalOptions="End"
 			VerticalOptions="Center"
 			FontFamily="MaterialIconsRegular"
 			FontSize="44"
 			ScaleX="0.5"
 			AnchorX="1"
-			TextColor="{x:Static local:DTACElementStyles.MarkerButtonIconColor}"
+			TextColor="{x:Static local:DTACElementStyles.Instance.MarkerButtonIconColor}"
 			Text="&#xe9a2;">
 			<Label.Triggers>
 				<DataTrigger
-						TargetType="Label"
-						Binding="{Binding IsToggled}"
-						Value="True">
-					<Setter Property="TextColor" Value="White"/>
+					TargetType="Label"
+					Binding="{Binding IsToggled}"
+					Value="True">
+					<Setter Property="TextColor"
+							Value="White"/>
 				</DataTrigger>
 			</Label.Triggers>
 		</Label>
@@ -74,7 +76,8 @@
 			TargetType="Border"
 			Binding="{Binding IsToggled}"
 			Value="True">
-			<Setter Property="BackgroundColor" Value="{StaticResource DarkerGreen}"/>
+			<Setter Property="BackgroundColor"
+					Value="{StaticResource DarkerGreen}"/>
 		</DataTrigger>
 	</Border.Triggers>
 </Border>

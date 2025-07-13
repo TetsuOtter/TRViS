@@ -92,7 +92,7 @@ public partial class ViewHost : ContentPage
 			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
 		}
 
-		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
+		DTACElementStyles.Instance.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
 		OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
 		OnSelectedWorkChanged(vm.SelectedWork);
@@ -178,7 +178,7 @@ public partial class ViewHost : ContentPage
 		{
 			if (newState)
 			{
-				DTACElementStyles.AppIconBgColor.Apply(button, BackgroundColorProperty);
+				DTACElementStyles.Instance.AppIconBgColor.Apply(button, BackgroundColorProperty);
 			}
 			else
 			{

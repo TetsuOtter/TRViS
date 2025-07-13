@@ -23,7 +23,7 @@ public partial class VerticalTimetableRow
 	}
 
 	void setMarkerBoxDefaultColor()
-		=> DTACElementStyles.MarkerMarkButtonBGColorBrush.Apply(MarkerBox, VisualElement.BackgroundProperty);
+		=> DTACElementStyles.Instance.MarkerMarkButtonBGColorBrush.Apply(MarkerBox, VisualElement.BackgroundProperty);
 
 	Color? _MarkedColor = null;
 	public Color? MarkedColor
@@ -138,7 +138,7 @@ public partial class VerticalTimetableRow
 			if (isDriveTimeMMVisible)
 			{
 				logger.Trace("Creating DriveTimeMM");
-				DriveTimeMM = DTACElementStyles.TimetableDriveTimeMMLabel<Label>();
+				DriveTimeMM = DTACElementStyles.Instance.TimetableDriveTimeMMLabel<Label>();
 				DriveTimeMM.Text = rowData.DriveTimeMM.ToString();
 				DriveTimeGrid.Add(DriveTimeMM, column: 0);
 			}
@@ -146,7 +146,7 @@ public partial class VerticalTimetableRow
 			if (isDriveTimeSSVisible)
 			{
 				logger.Trace("Creating DriveTimeSS");
-				DriveTimeSS = DTACElementStyles.TimetableDriveTimeSSLabel<Label>();
+				DriveTimeSS = DTACElementStyles.Instance.TimetableDriveTimeSSLabel<Label>();
 				string? text = rowData.DriveTimeSS.ToString();
 				if (text is not null and { Length: 1 })
 				{
@@ -164,7 +164,7 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.StationName))
 		{
 			logger.Debug("Creating StationName");
-			StationName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
+			StationName = DTACElementStyles.Instance.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			StationName.Margin = new(0);
 			parent.Add(StationName, 1, rowIndex);
 		}
@@ -177,7 +177,7 @@ public partial class VerticalTimetableRow
 		if (rowData.ArriveTime is not null)
 		{
 			logger.Debug("Creating ArriveTime");
-			TimeCell ArriveTime = DTACElementStyles.TimeCell();
+			TimeCell ArriveTime = DTACElementStyles.Instance.TimeCell();
 			ArriveTime.TimeData = rowData.ArriveTime;
 			ArriveTime.IsPass = rowData.IsPass;
 			parent.Add(ArriveTime, 2, rowIndex);
@@ -189,13 +189,13 @@ public partial class VerticalTimetableRow
 		if (rowData.HasBracket)
 		{
 			logger.Debug("Creating Bracket");
-			Label OpenBracket = DTACElementStyles.TimetableLabel<Label>();
+			Label OpenBracket = DTACElementStyles.Instance.TimetableLabel<Label>();
 			OpenBracket.HorizontalOptions = LayoutOptions.Start;
 			OpenBracket.Text = "(";
 			parent.Add(OpenBracket, 2, rowIndex);
 
 			logger.Trace("Creating CloseBracket");
-			Label CloseBracket = DTACElementStyles.TimetableLabel<Label>();
+			Label CloseBracket = DTACElementStyles.Instance.TimetableLabel<Label>();
 			CloseBracket.HorizontalOptions = LayoutOptions.End;
 			CloseBracket.Text = ")";
 			parent.Add(CloseBracket, 2, rowIndex);
@@ -208,7 +208,7 @@ public partial class VerticalTimetableRow
 		if (rowData.DepartureTime is not null)
 		{
 			logger.Debug("Creating DepartureTime");
-			TimeCell DepartureTime = DTACElementStyles.TimeCell();
+			TimeCell DepartureTime = DTACElementStyles.Instance.TimeCell();
 			DepartureTime.TimeData = rowData.DepartureTime;
 			DepartureTime.IsPass = rowData.IsPass;
 			parent.Add(DepartureTime, 3, rowIndex);
@@ -221,7 +221,7 @@ public partial class VerticalTimetableRow
 		if (rowData.IsLastStop)
 		{
 			logger.Debug("Creating LastStopLine");
-			Grid LastStopLine = DTACElementStyles.LastStopLineGrid();
+			Grid LastStopLine = DTACElementStyles.Instance.LastStopLineGrid();
 
 			parent.Add(LastStopLine, 3, rowIndex);
 		}
@@ -233,13 +233,13 @@ public partial class VerticalTimetableRow
 		if (rowData.IsOperationOnlyStop)
 		{
 			logger.Debug("Creating OperationOnlyStop Bracket");
-			Label OpOnlyStopOpenBracket = DTACElementStyles.TimetableLabel<Label>();
+			Label OpOnlyStopOpenBracket = DTACElementStyles.Instance.TimetableLabel<Label>();
 			OpOnlyStopOpenBracket.HorizontalOptions = LayoutOptions.Start;
 			OpOnlyStopOpenBracket.Text = "[";
 			parent.Add(OpOnlyStopOpenBracket, 2, rowIndex);
 
 			logger.Trace("Creating OperationOnlyStop CloseBracket");
-			Label OpOnlyStopCloseBracket = DTACElementStyles.TimetableLabel<Label>();
+			Label OpOnlyStopCloseBracket = DTACElementStyles.Instance.TimetableLabel<Label>();
 			OpOnlyStopCloseBracket.HorizontalOptions = LayoutOptions.End;
 			OpOnlyStopCloseBracket.Text = "]";
 			parent.Add(OpOnlyStopCloseBracket, 3, rowIndex);
@@ -253,7 +253,7 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.TrackName))
 		{
 			logger.Debug("Creating TrackName");
-			TrackName = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
+			TrackName = DTACElementStyles.Instance.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			TrackName.Margin = TrackName.Padding = new(0);
 			TrackName.HorizontalOptions = TrackName.VerticalOptions = LayoutOptions.Center;
 			TrackName.HorizontalTextAlignment = TextAlignment.Center;
@@ -295,7 +295,7 @@ public partial class VerticalTimetableRow
 			if (isRunInLimitVisible)
 			{
 				logger.Trace("Creating RunInLimit");
-				Label RunInLimit = DTACElementStyles.TimetableRunLimitLabel<Label>();
+				Label RunInLimit = DTACElementStyles.Instance.TimetableRunLimitLabel<Label>();
 				RunInLimit.HorizontalOptions = LayoutOptions.Start;
 				RunInLimit.Text = rowData.RunInLimit.ToString();
 				RunInOutLimitGrid.Add(RunInLimit, row: 0);
@@ -304,7 +304,7 @@ public partial class VerticalTimetableRow
 			if (isRunOutLimitVisible)
 			{
 				logger.Trace("Creating RunOutLimit");
-				Label RunOutLimit = DTACElementStyles.TimetableRunLimitLabel<Label>();
+				Label RunOutLimit = DTACElementStyles.Instance.TimetableRunLimitLabel<Label>();
 				RunOutLimit.HorizontalOptions = LayoutOptions.End;
 				RunOutLimit.Text = rowData.RunOutLimit.ToString();
 				RunInOutLimitGrid.Add(RunOutLimit, row: 1);
@@ -321,7 +321,7 @@ public partial class VerticalTimetableRow
 		if (!string.IsNullOrEmpty(rowData.Remarks))
 		{
 			logger.Debug("Creating Remarks");
-			Remarks = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
+			Remarks = DTACElementStyles.Instance.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 			Remarks.FontAttributes = FontAttributes.None;
 			Remarks.HorizontalOptions = LayoutOptions.Start;
 			Remarks.FontSize = 16;
@@ -350,7 +350,7 @@ public partial class VerticalTimetableRow
 			VerticalOptions = LayoutOptions.Center,
 			HeightRequest = 40,
 			WidthRequest = 40,
-			Shadow = DTACElementStyles.DefaultShadow,
+			Shadow = DTACElementStyles.Instance.DefaultShadow,
 			Opacity = 0.9,
 		};
 		setMarkerBoxDefaultColor();
@@ -376,15 +376,15 @@ public partial class VerticalTimetableRow
 		{
 			StationName.Text = StationNameConverter.Convert(RowData.StationName, provider.IsStaNameColumnNarrow);
 			StationName.FontSize = provider.IsStaNameColumnNarrow
-				? DTACElementStyles.TimetableFontSizeNarrow
-				: DTACElementStyles.TimetableFontSize;
+				? DTACElementStyles.Instance.TimetableFontSizeNarrow
+				: DTACElementStyles.Instance.TimetableFontSize;
 		}
 		if (!string.IsNullOrEmpty(RowData.TrackName) && DriveTimeGrid is not null)
 		{
 			double baseFontSize = InstanceManager.DTACViewHostViewModel.ColumnDefinitionsProvider.IsTrackNameColumnNarrow
-				? DTACElementStyles.TimetableFontSizeNarrow
-				: DTACElementStyles.TimetableFontSize;
-			TrackName.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(RowData.TrackName, baseFontSize);
+				? DTACElementStyles.Instance.TimetableFontSizeNarrow
+				: DTACElementStyles.Instance.TimetableFontSize;
+			TrackName.FontSize = DTACElementStyles.Instance.GetTimetableTrackLabelFontSize(RowData.TrackName, baseFontSize);
 		}
 	}
 }

@@ -23,8 +23,8 @@ public partial class OpenCloseButton : Button
 		FontFamily = "MaterialIconsRegular";
 		FontSize = 40;
 		FontAutoScalingEnabled = false;
-		DTACElementStyles.OpenCloseButtonBGColor.Apply(this, BackgroundColorProperty);
-		DTACElementStyles.OpenCloseButtonTextColor.Apply(this, TextColorProperty);
+		DTACElementStyles.Instance.OpenCloseButtonBGColor.Apply(this, BackgroundColorProperty);
+		DTACElementStyles.Instance.OpenCloseButtonTextColor.Apply(this, TextColorProperty);
 
 		Shadow = new()
 		{

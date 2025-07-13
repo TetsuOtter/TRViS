@@ -13,20 +13,20 @@
 	</Grid.Resources>
 	<Label
 		x:Name="RunTimeLabel"
-		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 		Grid.Column="0"
 		LineBreakMode="CharacterWrap"
 		Text="運転&#xa;時分"/>
 	<Line
-		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 		Grid.Column="0"/>
 
 	<Label
-		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 		Grid.Column="1"
 		Text="停車場名"/>
 	<Line
-		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 		Grid.Column="1"/>
 
 	<Border
@@ -39,7 +39,7 @@
 			<RoundRectangle CornerRadius="8"/>
 		</Border.StrokeShape>
 		<Label
-			Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+			Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 			Margin="0"
 			Padding="0"
 			HorizontalOptions="Center"
@@ -51,40 +51,40 @@
 			Text="着"/>
 	</Border>
 	<Line
-		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 		Grid.Column="2"/>
 
 	<Label
-		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 		Grid.Column="3"
 		Text="発  (通)"/>
 	<Line
-		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 		Grid.Column="3"/>
 
 	<Label
-		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 		Grid.Column="4"
 		LineBreakMode="CharacterWrap"
 		Text="着線&#xa;発線"/>
 	<Line
-		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 		Grid.Column="4"/>
 
 	<Label
 		x:Name="LimitLabel"
-		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 		Grid.Column="5"
 		LineBreakMode="CharacterWrap"
 		Text="制限&#xa;速度"/>
 	<Line
 		x:Name="LimitSeparator"
-		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 		Grid.Column="5"/>
 
 	<Label
 		x:Name="RemarksLabel"
-		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+		Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 		Grid.Column="6"
 		Text="記事"/>
 

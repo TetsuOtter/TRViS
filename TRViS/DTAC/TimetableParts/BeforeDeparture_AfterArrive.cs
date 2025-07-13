@@ -13,9 +13,9 @@ public class BeforeDeparture_AfterArrive
 		IsVisible = false,
 		Margin = new(0),
 	};
-	readonly Label HeaderLabel = DTACElementStyles.HeaderLabelStyle<Label>();
+	readonly Label HeaderLabel = DTACElementStyles.Instance.HeaderLabelStyle<Label>();
 
-	readonly HtmlAutoDetectLabel Label = DTACElementStyles.HtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
+	readonly HtmlAutoDetectLabel Label = DTACElementStyles.Instance.HtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
 
 	Grid Parent { get; }
 	bool AlwaysShow { get; }
@@ -38,8 +38,8 @@ public class BeforeDeparture_AfterArrive
 		Label.VerticalOptions = LayoutOptions.Start;
 		Label.Margin = new(Label.Margin.Left);
 
-		DTACElementStyles.HeaderTextColor.Apply(HeaderLabel, Microsoft.Maui.Controls.Label.TextColorProperty);
-		DTACElementStyles.HeaderBackgroundColor.Apply(HeaderBoxView, BoxView.ColorProperty);
+		DTACElementStyles.Instance.HeaderTextColor.Apply(HeaderLabel, Microsoft.Maui.Controls.Label.TextColorProperty);
+		DTACElementStyles.Instance.HeaderBackgroundColor.Apply(HeaderBoxView, BoxView.ColorProperty);
 
 		HeaderLabel.Text = HeaderLabelText;
 

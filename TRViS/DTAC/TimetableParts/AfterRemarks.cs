@@ -19,7 +19,7 @@ public class AfterRemarks
 		logger.Trace("Created");
 	}
 
-	readonly HtmlAutoDetectLabel Label = DTACElementStyles.AfterRemarksStyle<HtmlAutoDetectLabel>();
+	readonly HtmlAutoDetectLabel Label = DTACElementStyles.Instance.AfterRemarksStyle<HtmlAutoDetectLabel>();
 
 	public string Text
 	{

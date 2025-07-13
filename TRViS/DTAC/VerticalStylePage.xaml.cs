@@ -111,7 +111,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				Content = this.Content,
 			};
-			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);
+			DTACElementStyles.Instance.DefaultBGColor.Apply(Content, BackgroundColorProperty);
 		}
 
 		TimetableView.IsBusyChanged += (s, _) =>
@@ -194,10 +194,10 @@ public partial class VerticalStylePage : ContentView
 		};
 		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
 
-		MaxSpeedLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
-		SpeedTypeLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
-		NominalTractiveCapacityLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
-		BeginRemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
+		MaxSpeedLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.Instance.DefaultTextColor;
+		SpeedTypeLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.Instance.DefaultTextColor;
+		NominalTractiveCapacityLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.Instance.DefaultTextColor;
+		BeginRemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.Instance.DefaultTextColor;
 
 		logger.Trace("Created");
 	}

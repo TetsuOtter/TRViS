@@ -21,7 +21,7 @@ public partial class PageHeader : Grid
 
 	#region Affect Date Label
 
-	readonly Label AffectDateLabel = DTACElementStyles.AffectDateLabelStyle<Label>();
+	readonly Label AffectDateLabel = DTACElementStyles.Instance.AffectDateLabelStyle<Label>();
 
 	string _AffectDateLabelText = "";
 	public string AffectDateLabelText

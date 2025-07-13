@@ -6,13 +6,13 @@
 	xmlns:root="clr-namespace:TRViS"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
 	xmlns:HakoParts="clr-namespace:TRViS.DTAC.HakoParts"
-	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}"
+	BackgroundColor="{x:Static local:DTACElementStyles.Instance.DefaultBGColor}"
 	x:Class="TRViS.DTAC.Hako">
 	<Image
-		Style="{x:Static local:DTACElementStyles.AppIconStyleResource}"
+		Style="{x:Static local:DTACElementStyles.Instance.AppIconStyleResource}"
 		x:DataType="vm:AppViewModel"
 		IsVisible="{Binding IsBgAppIconVisible, Source={x:Static root:InstanceManager.AppViewModel}}"
-		Opacity="{x:Static local:DTACElementStyles.AppIconOpacity}"
+		Opacity="{x:Static local:DTACElementStyles.Instance.AppIconOpacity}"
 		Grid.Row="2"/>
 
 	<ScrollView

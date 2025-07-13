@@ -10,8 +10,8 @@ public class HeaderView : Grid
 
 	readonly BoxView backgroundBoxView = new();
 
-	readonly Label leftEdgeLabel = DTACElementStyles.HeaderLabelStyle<Label>();
-	readonly Label rightEdgeLabel = DTACElementStyles.HeaderLabelStyle<Label>();
+	readonly Label leftEdgeLabel = DTACElementStyles.Instance.HeaderLabelStyle<Label>();
+	readonly Label rightEdgeLabel = DTACElementStyles.Instance.HeaderLabelStyle<Label>();
 
 	public HeaderView()
 	{
@@ -21,7 +21,7 @@ public class HeaderView : Grid
 		ColumnDefinitions.Add(new(new(1, GridUnitType.Star)));
 		ColumnDefinitions.Add(EdgeColumnDefinition);
 
-		DTACElementStyles.HeaderBackgroundColor.Apply(backgroundBoxView, BoxView.ColorProperty);
+		DTACElementStyles.Instance.HeaderBackgroundColor.Apply(backgroundBoxView, BoxView.ColorProperty);
 		Grid.SetColumnSpan(backgroundBoxView, 3);
 		backgroundBoxView.Margin = new(-100, 0);
 		backgroundBoxView.Shadow = new()

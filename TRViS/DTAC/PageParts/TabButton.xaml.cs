@@ -26,7 +26,7 @@ public partial class TabButton : ContentView
 		InitializeComponent();
 
 		UpdateIsSelectedProperty();
-		DTACElementStyles.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
+		DTACElementStyles.Instance.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
 
 		InstanceManager.AppViewModel.PropertyChanged += AppViewModel_PropertyChanged;
 		OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
@@ -109,13 +109,13 @@ public partial class TabButton : ContentView
 
 		if (newValue)
 		{
-			DTACElementStyles.DefaultBGColor.Apply(BaseBox, BoxView.ColorProperty);
+			DTACElementStyles.Instance.DefaultBGColor.Apply(BaseBox, BoxView.ColorProperty);
 			BaseBox.Shadow.Opacity = 0.2f;
 			logger.Info("Tab `{0}` selected", Text);
 		}
 		else
 		{
-			DTACElementStyles.TabButtonBGColor.Apply(BaseBox, BoxView.ColorProperty);
+			DTACElementStyles.Instance.TabButtonBGColor.Apply(BaseBox, BoxView.ColorProperty);
 			BaseBox.Shadow.Opacity = 0;
 			logger.Info("Tab `{0}` unselected", Text);
 		}

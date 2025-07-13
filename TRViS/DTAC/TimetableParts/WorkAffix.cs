@@ -11,7 +11,7 @@ public class WorkAffix : ContentView
 
 		BackgroundColor = Colors.White;
 
-		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
+		DTACElementStyles.Instance.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
 		logger.Trace("Created");
 	}

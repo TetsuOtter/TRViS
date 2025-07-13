@@ -23,7 +23,9 @@
 		<ColumnDefinition Width="168"/>
 	</ColumnDefinitionCollection>
 
-	<Style TargetType="Label" BasedOn="{x:Static dtac:DTACElementStyles.LabelStyleResource}">
-		<Setter Property="Margin" Value="4"/>
+	<Style TargetType="Label"
+			BasedOn="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}">
+		<Setter Property="Margin"
+				Value="4"/>
 	</Style>
 </ResourceDictionary>

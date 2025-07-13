@@ -7,9 +7,11 @@ using TRViS.Services;
 
 namespace TRViS.DTAC;
 
-public static partial class DTACElementStyles
+public partial class DTACElementStyles
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+
+	public static readonly DTACElementStyles Instance = new();
 
 	static Color genColor(byte value)
 		=> new(value, value, value);
@@ -18,62 +20,61 @@ public static partial class DTACElementStyles
 
 	const byte baseDarkColor = 0x25;
 
-	public static readonly AppThemeColorBindingExtension DefaultTextColor = genColor(0x33, 0xFF);
-	public static readonly AppThemeColorBindingExtension HeaderTextColor = genColor(0x55, 0xFF);
-	public static readonly AppThemeColorBindingExtension TimetableTextColor = genColor(0x00, 0xDD);
-	public static readonly AppThemeColorBindingExtension TimetableTextInvColor = genColor(0xFF, 0xFF);
-	public static readonly AppThemeColorBindingExtension TrainNumNextDayTextColor = new(
+	public readonly AppThemeColorBindingExtension DefaultTextColor = genColor(0x33, 0xFF);
+	public readonly AppThemeColorBindingExtension HeaderTextColor = genColor(0x55, 0xFF);
+	public readonly AppThemeColorBindingExtension TimetableTextColor = genColor(0x00, 0xDD);
+	public readonly AppThemeColorBindingExtension TimetableTextInvColor = genColor(0xFF, 0xFF);
+	public readonly AppThemeColorBindingExtension TrainNumNextDayTextColor = new(
 		new(0x33, 0x33, 0xDD),
 		new(0x44, 0x99, 0xFF)
 	);
-	public static readonly AppThemeColorBindingExtension HeaderBackgroundColor = genColor(0xDD, baseDarkColor + 0x18);
-	public static readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xAA, baseDarkColor + 0x33);
-	public static readonly AppThemeColorBindingExtension DefaultBGColor = genColor(0xFF, baseDarkColor);
-	public static readonly AppThemeColorBindingExtension CarCountBGColor = genColor(0xFE, baseDarkColor + 0x11);
-	public static readonly AppThemeColorBindingExtension TabAreaBGColor = genColor(0xEE, baseDarkColor - 0x20);
-	public static readonly AppThemeColorBindingExtension TabButtonBGColor = genColor(0xDD, baseDarkColor - 0x11);
+	public readonly AppThemeColorBindingExtension HeaderBackgroundColor = genColor(0xDD, baseDarkColor + 0x18);
+	public readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xAA, baseDarkColor + 0x33);
+	public readonly AppThemeColorBindingExtension DefaultBGColor = genColor(0xFF, baseDarkColor);
+	public readonly AppThemeColorBindingExtension CarCountBGColor = genColor(0xFE, baseDarkColor + 0x11);
+	public readonly AppThemeColorBindingExtension TabAreaBGColor = genColor(0xEE, baseDarkColor - 0x20);
+	public readonly AppThemeColorBindingExtension TabButtonBGColor = genColor(0xDD, baseDarkColor - 0x11);
 
-	public static readonly AppThemeColorBindingExtension OpenCloseButtonBGColor = genColor(0xFE, 0x4A);
-	public static readonly AppThemeColorBindingExtension OpenCloseButtonTextColor = genColor(0xAA, 0x99);
-	public static readonly AppThemeColorBindingExtension MarkerButtonIconColor = new(
+	public readonly AppThemeColorBindingExtension OpenCloseButtonBGColor = genColor(0xFE, 0x4A);
+	public readonly AppThemeColorBindingExtension OpenCloseButtonTextColor = genColor(0xAA, 0x99);
+	public readonly AppThemeColorBindingExtension MarkerButtonIconColor = new(
 		new(0x00, 0x44, 0x00),
 		new(0x00, 0x99, 0x00)
 	);
-	public static readonly AppThemeColorBindingExtension MarkerMarkButtonBGColor = genColor(0xFA, 0x4A);
-	public static readonly AppThemeGenericsBindingExtension<Brush> MarkerMarkButtonBGColorBrush
-		= MarkerMarkButtonBGColor.ToBrushTheme();
+	public readonly AppThemeColorBindingExtension MarkerMarkButtonBGColor = genColor(0xFA, 0x4A);
+	public readonly AppThemeGenericsBindingExtension<Brush> MarkerMarkButtonBGColorBrush;
 
-	public static readonly AppThemeColorBindingExtension DefaultGreen = new(
+	public readonly AppThemeColorBindingExtension DefaultGreen = new(
 		new(0x00, 0x80, 0x00),
 		new(0x00, 0x80, 0x00)
 	);
-	public static readonly AppThemeColorBindingExtension SemiDarkGreen = new(
+	public readonly AppThemeColorBindingExtension SemiDarkGreen = new(
 		new(0x00, 0x77, 0x00),
 		new(0x00, 0x77, 0x00)
 	);
-	public static readonly AppThemeColorBindingExtension DarkGreen = new(
+	public readonly AppThemeColorBindingExtension DarkGreen = new(
 		new(0x00, 0x44, 0x00),
 		new(0x00, 0x33, 0x00)
 	);
 
-	public static readonly AppThemeColorBindingExtension ForegroundBlackWhite = genColor(0x00, 0xFF);
-	public static readonly AppThemeGenericsBindingExtension<Brush> ForegroundBlackWhiteBrush = ForegroundBlackWhite.ToBrushTheme();
+	public readonly AppThemeColorBindingExtension ForegroundBlackWhite = genColor(0x00, 0xFF);
+	public readonly AppThemeGenericsBindingExtension<Brush> ForegroundBlackWhiteBrush;
 
-	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideBorderColor = genColor(0xFF, 0xAA);
-	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideDisabledBorderColor = genColor(0xDD, 0x99);
-	public static readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
-	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideTextColor = genColor(0x00, 0x00);
-	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xDD);
-	public static readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideDisabledBaseColor = genColor(0xDD, 0x99);
+	public readonly AppThemeColorBindingExtension LocationServiceSelectedSideBorderColor = genColor(0xFF, 0xAA);
+	public readonly AppThemeColorBindingExtension LocationServiceSelectedSideDisabledBorderColor = genColor(0xDD, 0x99);
+	public readonly AppThemeColorBindingExtension LocationServiceSelectedSideTextColor = genColor(0xFF, 0xDD);
+	public readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideTextColor = genColor(0x00, 0x00);
+	public readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideBaseColor = genColor(0xFF, 0xDD);
+	public readonly AppThemeColorBindingExtension LocationServiceNotSelectedSideDisabledBaseColor = genColor(0xDD, 0x99);
 
-	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
+	public readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
 
-	public static readonly double DefaultTextSize = 14;
-	public static readonly double DefaultTextSizePlus = 15;
-	public static readonly double LargeTextSize = 24;
-	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
-	public static readonly double TimetableFontSizeNarrow = TimetableFontSize - 4;
-	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 24 : 22;
+	public readonly double DefaultTextSize = 14;
+	public readonly double DefaultTextSizePlus = 15;
+	public readonly double LargeTextSize = 24;
+	public readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+	public readonly double TimetableFontSizeNarrow;
+	public readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 24 : 22;
 
 	public const int BeforeDeparture_AfterArrive_Height = 45;
 
@@ -87,7 +88,7 @@ public static partial class DTACElementStyles
 
 	public const string AffectDateLabelTextPrefix = "行路施行日\n";
 
-	public static readonly Shadow DefaultShadow = new()
+	public readonly Shadow DefaultShadow = new()
 	{
 		Brush = Colors.Black,
 		Offset = new(3, 3),
@@ -95,14 +96,14 @@ public static partial class DTACElementStyles
 		Opacity = 0.2f
 	};
 
-	public static readonly AppThemeGenericsValueTypeBindingExtension<double> AppIconOpacity = new(0.075, 0.025);
-	public static readonly AppThemeColorBindingExtension AppIconBgColor = new(
+	public readonly AppThemeGenericsValueTypeBindingExtension<double> AppIconOpacity = new(0.075, 0.025);
+	public readonly AppThemeColorBindingExtension AppIconBgColor = new(
 		new(0xCC, 0xFF, 0xCC),
 		new(0xA3, 0xCC, 0xA3)
 	);
-	public static readonly string AppIconSource = "appiconfg.png";
-	static Style? _appIconStyleResource = null;
-	public static Style AppIconStyleResource
+	public readonly string AppIconSource = "appiconfg.png";
+	private Style? _appIconStyleResource = null;
+	public Style AppIconStyleResource
 	{
 		get
 		{
@@ -124,8 +125,8 @@ public static partial class DTACElementStyles
 		}
 	}
 
-	static Style? _labelStyleResource = null;
-	public static Style LabelStyleResource
+	private Style? _labelStyleResource = null;
+	public Style LabelStyleResource
 	{
 		get
 		{
@@ -147,7 +148,7 @@ public static partial class DTACElementStyles
 		}
 	}
 
-	public static T LabelStyle<T>() where T : Label, new()
+	public T LabelStyle<T>() where T : Label, new()
 	{
 		T v = new();
 
@@ -165,7 +166,7 @@ public static partial class DTACElementStyles
 
 		return v;
 	}
-	public static T HtmlAutoDetectLabelStyle<T>() where T : HtmlAutoDetectLabel, new()
+	public T HtmlAutoDetectLabelStyle<T>() where T : HtmlAutoDetectLabel, new()
 	{
 		T v = new();
 
@@ -184,8 +185,8 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	static Style? _BeforeRemarksStyleResource = null;
-	public static Style BeforeRemarksStyleResource
+	private Style? _BeforeRemarksStyleResource = null;
+	public Style BeforeRemarksStyleResource
 	{
 		get
 		{
@@ -206,7 +207,7 @@ public static partial class DTACElementStyles
 			return _BeforeRemarksStyleResource;
 		}
 	}
-	public static T AfterRemarksStyle<T>() where T : HtmlAutoDetectLabel, new()
+	public T AfterRemarksStyle<T>() where T : HtmlAutoDetectLabel, new()
 	{
 		T v = HtmlAutoDetectLabelStyle<T>();
 
@@ -221,8 +222,8 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	static Style? _headerLabelStyleResource = null;
-	public static Style HeaderLabelStyleResource
+	private Style? _headerLabelStyleResource = null;
+	public Style HeaderLabelStyleResource
 	{
 		get
 		{
@@ -240,7 +241,7 @@ public static partial class DTACElementStyles
 			return _headerLabelStyleResource;
 		}
 	}
-	public static T HeaderLabelStyle<T>() where T : Label, new()
+	public T HeaderLabelStyle<T>() where T : Label, new()
 	{
 		T v = LabelStyle<T>();
 
@@ -250,7 +251,7 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	public static T AffectDateLabelStyle<T>() where T : Label, new()
+	public T AffectDateLabelStyle<T>() where T : Label, new()
 	{
 		T v = LabelStyle<T>();
 
@@ -263,7 +264,7 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	public static T HakoTabWorkInfoLabelStyle<T>() where T : Label, new()
+	public T HakoTabWorkInfoLabelStyle<T>() where T : Label, new()
 	{
 		T v = AffectDateLabelStyle<T>();
 
@@ -277,7 +278,7 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	public static T LargeLabelStyle<T>() where T : Label, new()
+	public T LargeLabelStyle<T>() where T : Label, new()
 	{
 		T v = LabelStyle<T>();
 
@@ -285,7 +286,7 @@ public static partial class DTACElementStyles
 
 		return v;
 	}
-	public static T LargeHtmlAutoDetectLabelStyle<T>() where T : HtmlAutoDetectLabel, new()
+	public T LargeHtmlAutoDetectLabelStyle<T>() where T : HtmlAutoDetectLabel, new()
 	{
 		T v = HtmlAutoDetectLabelStyle<T>();
 
@@ -294,8 +295,8 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	static Style? _timetableLabelStyleResource = null;
-	public static Style TimetableLabelStyleResource
+	private Style? _timetableLabelStyleResource = null;
+	public Style TimetableLabelStyleResource
 	{
 		get
 		{
@@ -315,7 +316,7 @@ public static partial class DTACElementStyles
 			return _timetableLabelStyleResource;
 		}
 	}
-	public static T TimetableLabel<T>() where T : Label, new()
+	public T TimetableLabel<T>() where T : Label, new()
 	{
 		T v = LabelStyle<T>();
 
@@ -326,7 +327,7 @@ public static partial class DTACElementStyles
 
 		return v;
 	}
-	public static T TimetableHtmlAutoDetectLabel<T>() where T : HtmlAutoDetectLabel, new()
+	public T TimetableHtmlAutoDetectLabel<T>() where T : HtmlAutoDetectLabel, new()
 	{
 		T v = HtmlAutoDetectLabelStyle<T>();
 
@@ -338,8 +339,8 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	static Style? _timetableLargeNumberLabelStyleResource = null;
-	public static Style TimetableLargeNumberLabelStyleResource
+	private Style? _timetableLargeNumberLabelStyleResource = null;
+	public Style TimetableLargeNumberLabelStyleResource
 	{
 		get
 		{
@@ -358,7 +359,7 @@ public static partial class DTACElementStyles
 			return _timetableLargeNumberLabelStyleResource;
 		}
 	}
-	public static T TimetableLargeNumberLabel<T>() where T : Label, new()
+	public T TimetableLargeNumberLabel<T>() where T : Label, new()
 	{
 		T v = TimetableLabel<T>();
 
@@ -369,7 +370,7 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	public static T TimetableRunLimitLabel<T>() where T : Label, new()
+	public T TimetableRunLimitLabel<T>() where T : Label, new()
 	{
 		T v = TimetableLargeNumberLabel<T>();
 
@@ -380,7 +381,7 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	public static T TimetableDriveTimeMMLabel<T>() where T : Label, new()
+	public T TimetableDriveTimeMMLabel<T>() where T : Label, new()
 	{
 		T v = TimetableLargeNumberLabel<T>();
 
@@ -391,7 +392,7 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	public static T TimetableDriveTimeSSLabel<T>() where T : Label, new()
+	public T TimetableDriveTimeSSLabel<T>() where T : Label, new()
 	{
 		T v = TimetableLargeNumberLabel<T>();
 
@@ -403,8 +404,8 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	static Style? _timetableDefaultNumberLabelStyleResource = null;
-	public static Style TimetableDefaultNumberLabelStyleResource
+	private Style? _timetableDefaultNumberLabelStyleResource = null;
+	public Style TimetableDefaultNumberLabelStyleResource
 	{
 		get
 		{
@@ -422,7 +423,7 @@ public static partial class DTACElementStyles
 			return _timetableDefaultNumberLabelStyleResource;
 		}
 	}
-	public static T TimetableDefaultNumberLabel<T>() where T : Label, new()
+	public T TimetableDefaultNumberLabel<T>() where T : Label, new()
 	{
 		T v = TimetableLabel<T>();
 
@@ -438,7 +439,7 @@ public static partial class DTACElementStyles
 	private static partial Regex HtmlBrTagRegex();
 	[GeneratedRegex("&[^;]+;")]
 	private static partial Regex XmlEscapedStrRegex();
-	public static double GetTimetableTrackLabelFontSize(string trackName, double currentFontSize)
+	public double GetTimetableTrackLabelFontSize(string trackName, double currentFontSize)
 	{
 		bool isTrackNameHtml = trackName.StartsWith('<');
 		if (isTrackNameHtml)
@@ -454,9 +455,9 @@ public static partial class DTACElementStyles
 			return currentFontSize * (2.0 / maxLineLength);
 	}
 
-	static readonly AppThemeGenericsBindingExtension<Brush> SeparatorLineBrush = SeparatorLineColor.ToBrushTheme();
-	static Style? _horizontalSeparatorLineStyleResource = null;
-	public static Style HorizontalSeparatorLineStyleResource
+	private readonly AppThemeGenericsBindingExtension<Brush> SeparatorLineBrush;
+	private Style? _horizontalSeparatorLineStyleResource = null;
+	public Style HorizontalSeparatorLineStyleResource
 	{
 		get
 		{
@@ -476,8 +477,8 @@ public static partial class DTACElementStyles
 			return _horizontalSeparatorLineStyleResource;
 		}
 	}
-	static Style? _verticalSeparatorLineStyleResource = null;
-	public static Style VerticalSeparatorLineStyleResource
+	private Style? _verticalSeparatorLineStyleResource = null;
+	public Style VerticalSeparatorLineStyleResource
 	{
 		get
 		{
@@ -497,7 +498,7 @@ public static partial class DTACElementStyles
 			return _verticalSeparatorLineStyleResource;
 		}
 	}
-	public static Line HorizontalSeparatorLineStyle()
+	public Line HorizontalSeparatorLineStyle()
 	{
 		Line v = new()
 		{
@@ -512,7 +513,7 @@ public static partial class DTACElementStyles
 
 		return v;
 	}
-	public static Line TimetableRowHorizontalSeparatorLineStyle()
+	public Line TimetableRowHorizontalSeparatorLineStyle()
 	{
 		Line v = HorizontalSeparatorLineStyle();
 
@@ -520,16 +521,16 @@ public static partial class DTACElementStyles
 
 		return v;
 	}
-	public static void AddTimetableRowHorizontalSeparatorLineStyle(Grid grid, int row)
+	public void AddTimetableRowHorizontalSeparatorLineStyle(Grid grid, int row)
 		=> AddHorizontalSeparatorLineStyle(grid, TimetableRowHorizontalSeparatorLineStyle(), row);
-	public static void AddHorizontalSeparatorLineStyle(Grid grid, Line line, int row)
+	public void AddHorizontalSeparatorLineStyle(Grid grid, Line line, int row)
 	{
 		Grid.SetRow(line, row);
 		Grid.SetColumnSpan(line, 8);
 		grid.Add(line);
 	}
 
-	public static TimeCell TimeCell()
+	public TimeCell TimeCell()
 	{
 		TimeCell v = new();
 
@@ -540,7 +541,7 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	public static Grid LastStopLineGrid()
+	public Grid LastStopLineGrid()
 	{
 		Grid v = new()
 		{
@@ -560,8 +561,8 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
-	static readonly AppThemeGenericsBindingExtension<Brush> LastStopLineBrush = TimetableTextColor.ToBrushTheme();
-	public static Line LastStopLine()
+	private readonly AppThemeGenericsBindingExtension<Brush> LastStopLineBrush;
+	public Line LastStopLine()
 	{
 		Line v = new()
 		{
@@ -578,5 +579,14 @@ public static partial class DTACElementStyles
 		LastStopLineBrush.Apply(v, Line.StrokeProperty);
 
 		return v;
+	}
+
+	private DTACElementStyles()
+	{
+		ForegroundBlackWhiteBrush = ForegroundBlackWhite.ToBrushTheme();
+		MarkerMarkButtonBGColorBrush = MarkerMarkButtonBGColor.ToBrushTheme();
+		TimetableFontSizeNarrow = TimetableFontSize - 4;
+		SeparatorLineBrush = SeparatorLineColor.ToBrushTheme();
+		LastStopLineBrush = TimetableTextColor.ToBrushTheme();
 	}
 }

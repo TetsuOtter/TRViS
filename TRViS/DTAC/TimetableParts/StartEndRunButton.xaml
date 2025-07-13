@@ -22,7 +22,7 @@
 			VerticalOptions="Center">
 			<Label
 				Text="&#xe039;"
-				TextColor="{x:Static local:DTACElementStyles.StartEndRunButtonTextColor}"
+				TextColor="{x:Static local:DTACElementStyles.Instance.StartEndRunButtonTextColor}"
 				FontFamily="MaterialIconsRegular"
 				FontSize="32"
 				FontAutoScalingEnabled="False"
@@ -44,7 +44,7 @@
 
 			<Label
 				Text="運行開始"
-				TextColor="{x:Static local:DTACElementStyles.StartEndRunButtonTextColor}"
+				TextColor="{x:Static local:DTACElementStyles.Instance.StartEndRunButtonTextColor}"
 				FontFamily="Hiragino Sans"
 				FontSize="24"
 				FontAutoScalingEnabled="False"

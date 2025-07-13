@@ -15,7 +15,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 	};
 
 	#region TrainInfo Area
-	readonly HtmlAutoDetectLabel TrainInfoArea = DTACElementStyles.LargeHtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
+	readonly HtmlAutoDetectLabel TrainInfoArea = DTACElementStyles.Instance.LargeHtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
 
 	public string TrainInfoText
 	{
@@ -42,7 +42,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 	}
 	#endregion
 
-	readonly Line Separator = DTACElementStyles.HorizontalSeparatorLineStyle();
+	readonly Line Separator = DTACElementStyles.Instance.HorizontalSeparatorLineStyle();
 
 	public TrainInfo_BeforeDeparture()
 	{
@@ -61,7 +61,7 @@ public partial class TrainInfo_BeforeDeparture : Grid
 		BeforeDeparture.AddToParent();
 		BeforeDeparture.SetRow(1);
 
-		DTACElementStyles.AddHorizontalSeparatorLineStyle(this, Separator, 0);
+		DTACElementStyles.Instance.AddHorizontalSeparatorLineStyle(this, Separator, 0);
 
 		logger.Trace("Created");
 	}

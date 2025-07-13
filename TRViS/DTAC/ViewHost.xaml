@@ -6,11 +6,12 @@
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	x:Class="TRViS.DTAC.ViewHost"
 	x:DataType="viewmodels:DTACViewHostViewModel"
-	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}">
+	BackgroundColor="{x:Static local:DTACElementStyles.Instance.DefaultBGColor}">
 	<Grid
 		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>
-			<RowDefinition x:Name="TitlePaddingViewHeight" Height="0"/>
+			<RowDefinition x:Name="TitlePaddingViewHeight"
+					Height="0"/>
 			<RowDefinition Height="{x:Static local:ViewHost.TITLE_VIEW_HEIGHT}"/>
 			<RowDefinition Height="60"/>
 			<RowDefinition Height="*"/>
@@ -39,7 +40,7 @@
 			FontFamily="MaterialIconsRegular"
 			FontSize="36"
 			BackgroundColor="Transparent"
-			Clicked="MenuButton_Clicked" />
+			Clicked="MenuButton_Clicked"/>
 
 		<HorizontalStackLayout
 			Grid.Row="1"
@@ -55,9 +56,9 @@
 				WidthRequest="30"
 				Padding="0"
 				CornerRadius="7"
-				Source="{x:Static local:DTACElementStyles.AppIconSource}"
-				BackgroundColor="{x:Static local:DTACElementStyles.AppIconBgColor}"
-				Clicked="OnToggleBgAppIconButtonClicked" />
+				Source="{x:Static local:DTACElementStyles.Instance.AppIconSource}"
+				BackgroundColor="{x:Static local:DTACElementStyles.Instance.AppIconBgColor}"
+				Clicked="OnToggleBgAppIconButtonClicked"/>
 			<Button
 				x:Name="ChangeThemeButton"
 				Margin="0,6"
@@ -67,18 +68,18 @@
 				HorizontalOptions="Center"
 				VerticalOptions="End"
 				BackgroundColor="Transparent"
-				Clicked="OnChangeThemeButtonClicked" />
+				Clicked="OnChangeThemeButtonClicked"/>
 			<Label
 				x:Name="TimeLabel"
 				Text="12:34:56"
 				Margin="0"
 				Padding="0"
-				FontFamily="{x:Static local:DTACElementStyles.TimetableNumFontFamily}"
+				FontFamily="{x:Static local:DTACElementStyles.Instance.TimetableNumFontFamily}"
 				HorizontalOptions="End"
 				VerticalOptions="End"
 				VerticalTextAlignment="End"
 				FontAttributes="Bold"
-				FontSize="40" />
+				FontSize="40"/>
 		</HorizontalStackLayout>
 
 		<Label
@@ -89,13 +90,13 @@
 			HorizontalOptions="Center"
 			VerticalOptions="End"
 			FontAttributes="Bold"
-			FontSize="20" />
+			FontSize="20"/>
 
 		<HorizontalStackLayout
 			Grid.Row="2"
 			Margin="0"
 			Padding="4,0"
-			BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}">
+			BackgroundColor="{x:Static local:DTACElementStyles.Instance.TabAreaBGColor}">
 			<local:TabButton
 				Text="ハ　コ"
 				CurrentMode="{Binding TabMode}"

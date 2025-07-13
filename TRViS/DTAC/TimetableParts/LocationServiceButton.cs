@@ -15,9 +15,9 @@ public class LocationServiceButton : ToggleButton
 	const float SelectedRectThickness = 1;
 	const float NotSelectedRectMargin = 1;
 
-	readonly Label Label_Location = DTACElementStyles.LargeLabelStyle<Label>();
-	readonly Label Label_ON = DTACElementStyles.LabelStyle<Label>();
-	readonly Label Label_OFF = DTACElementStyles.LabelStyle<Label>();
+	readonly Label Label_Location = DTACElementStyles.Instance.LargeLabelStyle<Label>();
+	readonly Label Label_ON = DTACElementStyles.Instance.LabelStyle<Label>();
+	readonly Label Label_OFF = DTACElementStyles.Instance.LabelStyle<Label>();
 
 	readonly Border SelectedSideBase = new()
 	{
@@ -41,7 +41,7 @@ public class LocationServiceButton : ToggleButton
 		{
 			CornerRadius = new(CornerRadius - NotSelectedRectMargin),
 		},
-		Shadow = DTACElementStyles.DefaultShadow,
+		Shadow = DTACElementStyles.Instance.DefaultShadow,
 	};
 
 	public LocationServiceButton()
@@ -68,15 +68,15 @@ public class LocationServiceButton : ToggleButton
 			{
 				CornerRadius = new(CornerRadius),
 			},
-			Shadow = DTACElementStyles.DefaultShadow,
+			Shadow = DTACElementStyles.Instance.DefaultShadow,
 		};
 
 		InitElements();
 
-		DTACElementStyles.DarkGreen.Apply(baseBorder, BackgroundColorProperty);
-		DTACElementStyles.DarkGreen.Apply(SelectedSideBase.Content, BoxView.ColorProperty);
-		DTACElementStyles.LocationServiceSelectedSideBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
-		DTACElementStyles.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
+		DTACElementStyles.Instance.DarkGreen.Apply(baseBorder, BackgroundColorProperty);
+		DTACElementStyles.Instance.DarkGreen.Apply(SelectedSideBase.Content, BoxView.ColorProperty);
+		DTACElementStyles.Instance.LocationServiceSelectedSideBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
+		DTACElementStyles.Instance.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
 
 		HorizontalStackLayout on_group = new()
 		{
@@ -123,7 +123,7 @@ public class LocationServiceButton : ToggleButton
 
 		Label_ON.FontSize
 			= Label_OFF.FontSize
-			= DTACElementStyles.DefaultTextSize + 2;
+			= DTACElementStyles.Instance.DefaultTextSize + 2;
 
 		Label_Location.FontFamily = DTACElementStyles.MaterialIconFontFamily;
 
@@ -155,16 +155,16 @@ public class LocationServiceButton : ToggleButton
 			if (isLocationServiceEnabled)
 			{
 				logger.Info("Location Service is enabled");
-				DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
-				DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
-				DTACElementStyles.LocationServiceNotSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
+				DTACElementStyles.Instance.LocationServiceSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
+				DTACElementStyles.Instance.LocationServiceSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
+				DTACElementStyles.Instance.LocationServiceNotSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
 			}
 			else
 			{
 				logger.Info("Location Service is disabled");
-				DTACElementStyles.LocationServiceSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
-				DTACElementStyles.LocationServiceNotSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
-				DTACElementStyles.LocationServiceNotSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
+				DTACElementStyles.Instance.LocationServiceSelectedSideTextColor.Apply(Label_OFF, Label.TextColorProperty);
+				DTACElementStyles.Instance.LocationServiceNotSelectedSideTextColor.Apply(Label_ON, Label.TextColorProperty);
+				DTACElementStyles.Instance.LocationServiceNotSelectedSideTextColor.Apply(Label_Location, Label.TextColorProperty);
 			}
 
 			Grid.SetColumn(SelectedSideBase, isLocationServiceEnabled ? 0 : 1);
@@ -201,13 +201,13 @@ public class LocationServiceButton : ToggleButton
 		logger.Trace("IsEnabled: {0}", newValue);
 		if (newValue)
 		{
-			DTACElementStyles.LocationServiceSelectedSideBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
-			DTACElementStyles.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
+			DTACElementStyles.Instance.LocationServiceSelectedSideBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
+			DTACElementStyles.Instance.LocationServiceNotSelectedSideBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
 		}
 		else
 		{
-			DTACElementStyles.LocationServiceSelectedSideDisabledBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
-			DTACElementStyles.LocationServiceNotSelectedSideDisabledBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
+			DTACElementStyles.Instance.LocationServiceSelectedSideDisabledBorderColor.Apply(SelectedSideBase, BackgroundColorProperty);
+			DTACElementStyles.Instance.LocationServiceNotSelectedSideDisabledBaseColor.Apply(NotSelectedSideBase, BackgroundColorProperty);
 		}
 	}
 }

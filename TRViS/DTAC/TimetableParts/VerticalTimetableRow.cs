@@ -35,13 +35,13 @@ public partial class VerticalTimetableRow
 				{
 					logger.Info("IsEnabled is false or newValue is Undefined -> set LocationState to Undefined");
 					_LocationState = LocationStates.Undefined;
-					DTACElementStyles.TimetableTextColor.Apply(DriveTimeMM, Label.TextColorProperty);
-					DTACElementStyles.TimetableTextColor.Apply(DriveTimeSS, Label.TextColorProperty);
+					DTACElementStyles.Instance.TimetableTextColor.Apply(DriveTimeMM, Label.TextColorProperty);
+					DTACElementStyles.Instance.TimetableTextColor.Apply(DriveTimeSS, Label.TextColorProperty);
 					return;
 				}
 
-				DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeMM, Label.TextColorProperty);
-				DTACElementStyles.TimetableTextInvColor.Apply(DriveTimeSS, Label.TextColorProperty);
+				DTACElementStyles.Instance.TimetableTextInvColor.Apply(DriveTimeMM, Label.TextColorProperty);
+				DTACElementStyles.Instance.TimetableTextInvColor.Apply(DriveTimeSS, Label.TextColorProperty);
 
 				// 最終行の場合は、次の駅に進まないようにする。
 				if (IsLastRow && value == LocationStates.RunningToNextStation)

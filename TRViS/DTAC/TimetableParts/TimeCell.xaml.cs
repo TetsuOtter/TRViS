@@ -38,7 +38,7 @@ public partial class TimeCell : Grid
 		else
 		{
 			logger.Trace("newValue: {0} -> Color set to default", newValue);
-			DTACElementStyles.TimetableTextColor.Apply(this, TextColorPropertyKey.BindableProperty);
+			DTACElementStyles.Instance.TimetableTextColor.Apply(this, TextColorPropertyKey.BindableProperty);
 		}
 	}
 

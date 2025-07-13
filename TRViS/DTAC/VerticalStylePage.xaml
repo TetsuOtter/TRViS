@@ -28,39 +28,39 @@
 			Grid.Row="0"
 			IsOpen="False"
 			IsOpenChanged="BeforeRemarks_TrainInfo_OpenCloseChanged"
-			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}"/>
+			BackgroundColor="{x:Static dtac:DTACElementStyles.Instance.DefaultBGColor}"/>
 
 		<Grid
 			Grid.Row="1"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
-			BackgroundColor="{x:Static dtac:DTACElementStyles.HeaderBackgroundColor}">
+			BackgroundColor="{x:Static dtac:DTACElementStyles.Instance.HeaderBackgroundColor}">
 			<Label
-				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 				Text="列　車"
 				Grid.Column="0"/>
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
 			<Label
-				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 				Text="最高速度&#xa;(Ｋｍ / ｈ)"
 				HorizontalTextAlignment="Center"
 				Grid.Column="1"/>
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
 			<Label
-				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 				Text="速度種別"
 				Grid.Column="2"/>
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="2"/>
 
 			<Label
-				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.HeaderLabelStyleResource}"
 				Text="けん引定数"
 				Grid.Column="3"/>
 		</Grid>
@@ -68,41 +68,41 @@
 		<Grid
 			Grid.Row="2"
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
-			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
+			BackgroundColor="{x:Static dtac:DTACElementStyles.Instance.DefaultBGColor}">
 			<Label
-				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
-				TextColor="{x:Static dtac:DTACElementStyles.TrainNumNextDayTextColor}"
+				TextColor="{x:Static dtac:DTACElementStyles.Instance.TrainNumNextDayTextColor}"
 				FontSize="24"
 				FontAttributes="Bold"
 				Grid.Column="0"/>
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="MaxSpeedLabel"
-				LabelStyle="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="1"/>
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="SpeedTypeLabel"
-				LabelStyle="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="2"/>
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="2"/>
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="NominalTractiveCapacityLabel"
-				LabelStyle="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 				HorizontalTextAlignment="End"
 				HorizontalOptions="End"
 				Grid.Column="3"/>
@@ -114,21 +114,21 @@
 		<Line
 			VerticalOptions="Start"
 			Grid.Row="3"
-			Style="{x:Static dtac:DTACElementStyles.HorizontalSeparatorLineStyleResource}"/>
+			Style="{x:Static dtac:DTACElementStyles.Instance.HorizontalSeparatorLineStyleResource}"/>
 
 
 		<Grid
 			x:Name="TrainBeforeRemarksArea"
 			Grid.Row="4"
-			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
+			BackgroundColor="{x:Static dtac:DTACElementStyles.Instance.DefaultBGColor}">
 			<Line
 				VerticalOptions="Start"
-				Style="{x:Static dtac:DTACElementStyles.HorizontalSeparatorLineStyleResource}"/>
+				Style="{x:Static dtac:DTACElementStyles.Instance.HorizontalSeparatorLineStyleResource}"/>
 
 			<Label
 				x:Name="IsNextDayLabel"
 				IsVisible="False"
-				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 				Text="(翌)"
 				FontSize="24"
 				Grid.Column="0"
@@ -137,14 +137,14 @@
 				TextColor="#33d"/>
 
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
 			<Border
 				x:Name="CarCountBorder"
 				IsVisible="{Binding CarCount, Converter={x:Static conv:IsOneOrMoreIntConverter.Default}}"
 				Grid.Column="1"
-				BackgroundColor="{x:Static dtac:DTACElementStyles.CarCountBGColor}"
+				BackgroundColor="{x:Static dtac:DTACElementStyles.Instance.CarCountBGColor}"
 				Stroke="Transparent"
 				Padding="0"
 				Margin="16,6">
@@ -159,7 +159,7 @@
 						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
 					<Label
-						Style="{x:Static dtac:DTACElementStyles.TimetableLargeNumberLabelStyleResource}"
+						Style="{x:Static dtac:DTACElementStyles.Instance.TimetableLargeNumberLabelStyleResource}"
 						VerticalOptions="Center"
 						Text="{Binding CarCount}"
 						Padding="18,0,8,0"
@@ -167,7 +167,7 @@
 
 					<Label
 						Grid.Column="1"
-						Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+						Style="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 						FontSize="18"
 						VerticalOptions="End"
 						HorizontalOptions="End"
@@ -182,18 +182,18 @@
 				</Border.Shadow>
 			</Border>
 			<Line
-				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
 			<ctrls:HtmlAutoDetectLabel
 				x:Name="BeginRemarksLabel"
-				LabelStyle="{x:Static dtac:DTACElementStyles.BeforeRemarksStyleResource}"
+				LabelStyle="{x:Static dtac:DTACElementStyles.Instance.BeforeRemarksStyleResource}"
 				Grid.Column="2"
 				Grid.ColumnSpan="6"/>
 
 			<Label
 				x:Name="DestinationLabel"
-				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
+				Style="{x:Static dtac:DTACElementStyles.Instance.LabelStyleResource}"
 				Margin="0,8"
 				HorizontalOptions="Start"
 				VerticalOptions="Start"
@@ -203,15 +203,15 @@
 
 		<dtac:TimetableHeader
 			x:Name="TimetableHeader"
-			BackgroundColor="{x:Static dtac:DTACElementStyles.HeaderBackgroundColor}"
+			BackgroundColor="{x:Static dtac:DTACElementStyles.Instance.HeaderBackgroundColor}"
 			FontSize_Large="28"
 			Grid.Row="5"/>
 
 		<Image
-			Style="{x:Static dtac:DTACElementStyles.AppIconStyleResource}"
+			Style="{x:Static dtac:DTACElementStyles.Instance.AppIconStyleResource}"
 			x:DataType="vm:AppViewModel"
 			IsVisible="{Binding IsBgAppIconVisible, Source={x:Static root:InstanceManager.AppViewModel}}"
-			Opacity="{x:Static dtac:DTACElementStyles.AppIconOpacity}"
+			Opacity="{x:Static dtac:DTACElementStyles.Instance.AppIconOpacity}"
 			Grid.Row="6"/>
 
 		<ScrollView
