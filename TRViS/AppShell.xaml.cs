@@ -128,7 +128,11 @@ public partial class AppShell : Shell
 			if (_SafeAreaMargin == value)
 				return;
 
-			logger.Info("SafeAreaMargin Changed: {0} -> {1}", _SafeAreaMargin, value);
+			static string FormatThickness(Thickness t)
+			{
+				return $"(Left:{t.Left}, Top:{t.Top}, Right:{t.Right}, Bottom:{t.Bottom})";
+			}
+			logger.Info("SafeAreaMargin Changed: {0} -> {1}", FormatThickness(_SafeAreaMargin), FormatThickness(value));
 			Thickness tmp = _SafeAreaMargin;
 			_SafeAreaMargin = value;
 			SafeAreaMarginChanged?.Invoke(this, tmp, value);
