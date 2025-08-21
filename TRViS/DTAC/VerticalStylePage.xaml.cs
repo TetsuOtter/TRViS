@@ -64,7 +64,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.DTACViewHostViewModel.PropertyChanged");
-				Util.ExitWithAlert(ex);
+				Util.ExitWithAlertAsync(ex);
 			}
 		};
 
@@ -149,14 +149,19 @@ public partial class VerticalStylePage : ContentView
 				if (isBusy)
 				{
 					TimetableViewActivityIndicatorBorder.IsVisible = true;
-					TimetableViewActivityIndicatorBorder.FadeTo(TimetableViewActivityIndicatorBorderMaxOpacity);
+					TimetableViewActivityIndicatorBorder.FadeToAsync(TimetableViewActivityIndicatorBorderMaxOpacity);
 				}
 				else
-					TimetableViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
+				{
+					TimetableViewActivityIndicatorBorder.FadeToAsync(0).ContinueWith((_) =>
 					{
-						logger.Debug("TimetableViewActivityIndicatorBorder.FadeTo(0) completed");
-						TimetableViewActivityIndicatorBorder.IsVisible = false;
+						MainThread.BeginInvokeOnMainThread(() =>
+						{
+							logger.Debug("TimetableViewActivityIndicatorBorder.FadeToAsync(0) completed");
+							TimetableViewActivityIndicatorBorder.IsVisible = false;
+						});
 					});
+				}
 
 				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
 				if (Content is ScrollView sv)
@@ -170,11 +175,11 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.TimetableView.IsBusyChanged");
-				Util.ExitWithAlert(ex);
+				Util.ExitWithAlertAsync(ex);
 			}
 		};
 
-		TimetableView.IgnoreSafeArea = false;
+		TimetableView.SafeAreaEdges = SafeAreaEdges.Default;
 		TimetableView.VerticalOptions = LayoutOptions.Start;
 
 		PageHeaderArea.IsRunningChanged += (_, e) =>
@@ -334,7 +339,7 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.OnSelectedTrainDataChanged");
-			Util.ExitWithAlert(ex);
+			Util.ExitWithAlertAsync(ex);
 		}
 	}
 
