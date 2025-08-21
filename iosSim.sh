@@ -3,7 +3,7 @@
 cd `dirname $0`
 
 TARGET_PROJ="TRViS/TRViS.csproj"
-TARGET_FRAMEWORK="net9.0-ios"
+TARGET_FRAMEWORK="net10.0-ios"
 
 UDID_PATTERN="[[:alnum:]]{8}-[[:alnum:]]{4}-[[:alnum:]]{4}-[[:alnum:]]{4}-[[:alnum:]]{12}"
 
@@ -96,5 +96,6 @@ else
 fi
 
 if [ ! -z "$DeviceName" ]; then
+  dotnet build $TARGET_PROJ -f $TARGET_FRAMEWORK -r $RUNTIME_IDENTIFIER --self-contained --nologo ${ARGS[@]}
   dotnet build -t:Run $TARGET_PROJ -f $TARGET_FRAMEWORK -r $RUNTIME_IDENTIFIER --self-contained --nologo "/p:_DeviceName=$DeviceName" ${ARGS[@]}
 fi
