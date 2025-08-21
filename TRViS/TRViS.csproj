@@ -76,7 +76,7 @@
 			ExcludeAssets="runtime" />
 		<PackageReference
 			Include="CommunityToolkit.Maui"
-			Version="12.2.0" />
+			Version="11.2.0" />
 		<PackageReference
 			Include="NLog"
 			Version="6.0.3" />
