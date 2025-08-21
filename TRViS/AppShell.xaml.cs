@@ -46,8 +46,8 @@ public partial class AppShell : Shell
 		}
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
-		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBhavior;
-		ApplyFlyoutBhavior(this, false, FirebaseSettingViewModel.IsEnabled);
+		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBehavior;
+		ApplyFlyoutBehavior(this, false, FirebaseSettingViewModel.IsEnabled);
 
 		this.BindingContext = easterEggPageViewModel;
 		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
@@ -63,7 +63,7 @@ public partial class AppShell : Shell
 		logger.Trace("AppShell Created");
 	}
 
-	void ApplyFlyoutBhavior(object? sender, bool oldValue, bool newValue)
+	void ApplyFlyoutBehavior(object? sender, bool oldValue, bool newValue)
 	{
 		logger.Trace("{0} -> {1}", oldValue, newValue);
 		if (newValue == true)
