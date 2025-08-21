@@ -4,7 +4,6 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS.DTAC"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
-	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
 	x:Class="TRViS.DTAC.SelectMarkerPopup"
 	x:DataType="vm:DTACMarkerViewModel">
 	<Grid>
@@ -25,51 +24,54 @@
 			HorizontalOptions="Center">
 			<Border
 				Margin="4"
-				Padding="16"
+				Padding="8"
 				BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}"
 				WidthRequest="80">
-				<ListView
+				<CollectionView
 					SelectionMode="Single"
-					SeparatorVisibility="Default"
-					ios:ListView.SeparatorStyle="FullWidth"
 					ItemsSource="{Binding ColorList, Mode=OneTime}"
 					SelectedItem="{Binding SelectedMarkerInfo, Mode=TwoWay}">
-					<ListView.ItemTemplate>
-						<DataTemplate>
-							<ViewCell
-								x:DataType="vm:MarkerInfo">
-								<ContentView>
-									<Border
-										HeightRequest="32"
-										WidthRequest="32"
-										VerticalOptions="Center"
+					<CollectionView.ItemTemplate>
+						<DataTemplate x:DataType="vm:MarkerInfo">
+							<ContentView>
+								<Border
+									HeightRequest="32"
+									WidthRequest="32"
+									VerticalOptions="Center"
+									HorizontalOptions="Center"
+									BackgroundColor="{Binding Color}">
+									<Label
+										Text="{Binding Name}"
+										TextColor="Black"
+										Background="#AAFFFFFF"
 										HorizontalOptions="Center"
-										BackgroundColor="{Binding Color}">
-										<Label
-											Text="{Binding Name}"
-											TextColor="Black"
-											Background="#AAFFFFFF"
-											HorizontalOptions="Center"
-											VerticalOptions="Center"/>
-									</Border>
-								</ContentView>
-							</ViewCell>
+										VerticalOptions="Center"/>
+								</Border>
+							</ContentView>
 						</DataTemplate>
-					</ListView.ItemTemplate>
-				</ListView>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
 			</Border>
 
 			<Border
 				Margin="4"
-				Padding="16"
+				Padding="8"
 				BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}"
 				WidthRequest="128">
-				<ListView
+				<CollectionView
 					SelectionMode="Single"
-					SeparatorVisibility="Default"
-					ios:ListView.SeparatorStyle="FullWidth"
 					ItemsSource="{Binding TextList, Mode=OneTime}"
-					SelectedItem="{Binding SelectedText, Mode=TwoWay}"/>
+					SelectedItem="{Binding SelectedText, Mode=TwoWay}">
+					<CollectionView.ItemTemplate>
+						<DataTemplate x:DataType="x:String">
+							<Label
+								Text="{Binding}"
+								Padding="8"
+								VerticalOptions="Center"
+								HorizontalOptions="Start"/>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
 			</Border>
 		</HorizontalStackLayout>
 	</Grid>

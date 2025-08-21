@@ -163,7 +163,7 @@ public partial class ViewHost : ContentPage
 			&& newState == false)
 		{
 			logger.Warn("IsBgAppIconVisible is not changed to false because CurrentAppTheme is Light");
-			Utils.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
+			Utils.DisplayAlertAsync("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
 			return;
 		}
 		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
