@@ -65,7 +65,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="9.0.120" />
+			Version="10.0.0-preview.7.25406.3" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.4.0" />
@@ -75,14 +75,11 @@
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
 		<PackageReference
-			Include="System.Text.Json"
-			Version="9.0.5" />
-		<PackageReference
 			Include="TR.Maui.AnchorPopover"
 			Version="1.0.0.2" />
 		<PackageReference
 			Include="NLog"
-			Version="5.4.0" />
+			Version="6.0.3" />
 		<PackageReference
 			Include="TR.BBCodeLabel.Maui"
 			Version="0.1.1.2" />
@@ -90,7 +87,7 @@
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
 		<PackageReference
 			Include="Microsoft.Maui.Controls.Maps"
-			Version="9.0.70" />
+			Version="10.0.0-preview.7.25406.3" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<!-- <BundleResource Include="GoogleService-Info.plist" />
