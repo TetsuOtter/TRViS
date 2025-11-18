@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "maui: Build",
+			"command": "dotnet",
+			"type": "process",
+			"args": ["build", "${workspaceFolder}/TRViS/TRViS.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+			"problemMatcher": "$msCompile"
+		}
+	]
+}
