@@ -10,6 +10,9 @@ on:
       - synchronize
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   SDK_VERSION: "9.0.300"
 
@@ -18,6 +21,8 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +54,8 @@ jobs:
     name: iOS UI Tests
     runs-on: macos-15
     timeout-minutes: 30
+    permissions:
+      contents: read
 
     env:
       WITHOUT_ANDROID: true
@@ -97,6 +104,8 @@ jobs:
     name: macOS UI Tests
     runs-on: macos-15
     timeout-minutes: 30
+    permissions:
+      contents: read
 
     env:
       WITHOUT_ANDROID: true
@@ -145,6 +154,8 @@ jobs:
     name: Android UI Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -185,6 +196,8 @@ jobs:
     name: Windows UI Tests
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
 
     env:
       WITHOUT_ANDROID: true
