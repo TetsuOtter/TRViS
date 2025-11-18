@@ -27,17 +27,22 @@ jobs:
           dotnet-version: ${{ env.SDK_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore TRViS.IO.Tests/TRViS.IO.Tests.csproj
+        run: |
+          dotnet restore TRViS.IO.Tests/TRViS.IO.Tests.csproj
+          dotnet restore TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj
 
       - name: Run IO Tests
         run: dotnet test TRViS.IO.Tests/TRViS.IO.Tests.csproj --no-restore --verbosity normal --logger "trx;LogFileName=io-test-results.trx"
+
+      - name: Run LocationService Tests
+        run: dotnet test TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj --no-restore --verbosity normal --logger "trx;LogFileName=location-test-results.trx"
 
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
-          path: "**/*.trx"
+          path: "**/*-test-results.trx"
           retention-days: 7
 
   test-ios:
@@ -63,28 +68,30 @@ jobs:
       - name: Install dotnet workloads
         run: dotnet workload install maui-ios
 
-      - name: Restore dependencies
-        run: dotnet restore TRViS.UITests/TRViS.UITests.csproj
-
-      - name: List available simulators
-        run: xcrun xctrace list devices
-
-      - name: Boot simulator
+      - name: Restore and Build TRViS app
         run: |
-          SIMULATOR_ID=$(xcrun xctrace list devices 2>&1 | grep -m 1 "iPhone" | grep -oE "\([0-9A-F-]{36}\)" | tr -d "()")
-          echo "Booting simulator with ID: $SIMULATOR_ID"
-          xcrun simctl boot "$SIMULATOR_ID" || true
-          xcrun simctl list | grep Booted
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-ios -c Debug --no-restore
 
-      - name: Build and Run iOS UI Tests
+      - name: Find TRViS assembly
+        id: find-assembly
         run: |
-          SIMULATOR_ID=$(xcrun xctrace list devices 2>&1 | grep -m 1 "iPhone" | grep -oE "\([0-9A-F-]{36}\)" | tr -d "()")
-          echo "Running tests on simulator: $SIMULATOR_ID"
-          dotnet build TRViS.UITests/TRViS.UITests.csproj -f net9.0-ios -c Release -p:RuntimeIdentifier=iossimulator-x64 -p:_DeviceName=:v2:udid=$SIMULATOR_ID
+          ASSEMBLY_PATH=$(find TRViS/bin/Debug/net9.0-ios -name "TRViS.dll" | head -n 1)
+          echo "assembly_path=$ASSEMBLY_PATH" >> $GITHUB_OUTPUT
+          echo "Found assembly at: $ASSEMBLY_PATH"
 
-      - name: Shutdown simulator
+      - name: Run UI Tests
+        run: |
+          export TRVIS_ASSEMBLY_PATH="${{ steps.find-assembly.outputs.assembly_path }}"
+          dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=ios-ui-test-results.trx"
+
+      - name: Upload Test Results
         if: always()
-        run: xcrun simctl shutdown all || true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ui-test-results
+          path: "**/*-test-results.trx"
+          retention-days: 7
 
   test-macos:
     name: macOS UI Tests
@@ -109,12 +116,30 @@ jobs:
       - name: Install dotnet workloads
         run: dotnet workload install maccatalyst
 
-      - name: Restore dependencies
-        run: dotnet restore TRViS.UITests/TRViS.UITests.csproj
-
-      - name: Build and Run macOS UI Tests
+      - name: Restore and Build TRViS app
         run: |
-          dotnet build TRViS.UITests/TRViS.UITests.csproj -f net9.0-maccatalyst -c Release
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-maccatalyst -c Debug --no-restore
+
+      - name: Find TRViS assembly
+        id: find-assembly
+        run: |
+          ASSEMBLY_PATH=$(find TRViS/bin/Debug/net9.0-maccatalyst -name "TRViS.dll" | head -n 1)
+          echo "assembly_path=$ASSEMBLY_PATH" >> $GITHUB_OUTPUT
+          echo "Found assembly at: $ASSEMBLY_PATH"
+
+      - name: Run UI Tests
+        run: |
+          export TRVIS_ASSEMBLY_PATH="${{ steps.find-assembly.outputs.assembly_path }}"
+          dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=macos-ui-test-results.trx"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-ui-test-results
+          path: "**/*-test-results.trx"
+          retention-days: 7
 
   test-android:
     name: Android UI Tests
@@ -131,12 +156,30 @@ jobs:
       - name: Install dotnet workloads
         run: dotnet workload install maui-android
 
-      - name: Restore dependencies
-        run: dotnet restore TRViS.UITests/TRViS.UITests.csproj
-
-      - name: Build Android UI Tests
+      - name: Restore and Build TRViS app
         run: |
-          dotnet build TRViS.UITests/TRViS.UITests.csproj -f net9.0-android -c Release
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-android -c Debug --no-restore
+
+      - name: Find TRViS assembly
+        id: find-assembly
+        run: |
+          ASSEMBLY_PATH=$(find TRViS/bin/Debug/net9.0-android -name "TRViS.dll" | head -n 1)
+          echo "assembly_path=$ASSEMBLY_PATH" >> $GITHUB_OUTPUT
+          echo "Found assembly at: $ASSEMBLY_PATH"
+
+      - name: Run UI Tests
+        run: |
+          export TRVIS_ASSEMBLY_PATH="${{ steps.find-assembly.outputs.assembly_path }}"
+          dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=android-ui-test-results.trx"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ui-test-results
+          path: "**/*-test-results.trx"
+          retention-days: 7
 
   test-windows:
     name: Windows UI Tests
@@ -156,9 +199,29 @@ jobs:
       - name: Install dotnet workloads
         run: dotnet workload install maui-windows
 
-      - name: Restore dependencies
-        run: dotnet restore TRViS.UITests/TRViS.UITests.csproj
-
-      - name: Build Windows UI Tests
+      - name: Restore and Build TRViS app
         run: |
-          dotnet build TRViS.UITests/TRViS.UITests.csproj -f net9.0-windows10.0.19041.0 -c Release
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-windows10.0.19041.0 -c Debug --no-restore
+
+      - name: Find TRViS assembly
+        id: find-assembly
+        shell: pwsh
+        run: |
+          $ASSEMBLY_PATH = (Get-ChildItem -Path "TRViS\bin\Debug\net9.0-windows10.0.19041.0" -Filter "TRViS.dll" -Recurse | Select-Object -First 1).FullName
+          echo "assembly_path=$ASSEMBLY_PATH" >> $env:GITHUB_OUTPUT
+          echo "Found assembly at: $ASSEMBLY_PATH"
+
+      - name: Run UI Tests
+        shell: pwsh
+        run: |
+          $env:TRVIS_ASSEMBLY_PATH = "${{ steps.find-assembly.outputs.assembly_path }}"
+          dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=windows-ui-test-results.trx"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-ui-test-results
+          path: "**/*-test-results.trx"
+          retention-days: 7
