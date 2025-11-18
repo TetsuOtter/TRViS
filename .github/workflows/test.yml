@@ -73,7 +73,7 @@ jobs:
           dotnet-version: ${{ env.SDK_VERSION }}
 
       - name: Install dotnet workloads
-        run: dotnet workload install maui-ios
+        run: dotnet workload install maui-ios maccatalyst
 
       - name: Restore and Build TRViS app
         run: |
@@ -123,7 +123,7 @@ jobs:
           dotnet-version: ${{ env.SDK_VERSION }}
 
       - name: Install dotnet workloads
-        run: dotnet workload install maccatalyst
+        run: dotnet workload install maui-ios maccatalyst
 
       - name: Restore and Build TRViS app
         run: |
