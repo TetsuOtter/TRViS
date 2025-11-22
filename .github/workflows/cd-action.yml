@@ -11,6 +11,11 @@ on:
       - opened
       - synchronize
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g., 1.2.3)"
+        required: false
+        type: string
 
 concurrency: cd-action-${{ github.ref }}
 
@@ -59,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{github.head_ref}}
+          ref: ${{ github.event_name == 'push' && github.head_ref || github.event_name == 'pull_request' && github.head_ref || '' }}
 
       - name: Get all tags from remote
         run: git fetch --all --tags
@@ -74,7 +79,12 @@ jobs:
 
       - name: generate bundle version pattern (Trigger:WorkflowDispatch)
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: echo "0.0.0" > DISP_VERSION
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "${{ github.event.inputs.version }}" > DISP_VERSION
+          else
+            echo "0.0.0" > DISP_VERSION
+          fi
 
       - name: set display version to variable
         id: set_display_version
@@ -181,7 +191,7 @@ jobs:
       - name: Setup Xcode version
         uses: maxim-lobanov/setup-xcode@v1.6.0
         with:
-          xcode-version: 16
+          xcode-version: "26.0"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -391,7 +401,7 @@ jobs:
       - name: Setup Xcode version
         uses: maxim-lobanov/setup-xcode@v1.6.0
         with:
-          xcode-version: 16
+          xcode-version: "26.0"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -721,6 +731,10 @@ jobs:
         || needs.build-android.result == 'success'
         || needs.build-windows.result == 'success'
       )
+      && (
+        github.event_name != 'workflow_dispatch'
+        || github.event.inputs.version != ''
+      )
 
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -737,7 +751,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: fetch all history to assign tag
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
         run: git fetch --unshallow --no-tags --no-recurse-submodules origin +${{ github.sha }}:${{ github.ref }}
 
       - name: Setup github-actions[bot] account
@@ -747,8 +761,12 @@ jobs:
 
       - name: set PR number
         id: pr-num
-        if: ${{ github.event_name == 'pull_request' }}
-        run: echo "str=#${{ github.event.number }}" >> $GITHUB_OUTPUT
+        run: |
+          if [ '${{ github.event_name }}' == 'pull_request' ]; then
+            echo "str=#${{ github.event.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "str=" >> $GITHUB_OUTPUT
+          fi
 
       - name: generate tag name
         id: tag-name
@@ -773,8 +791,14 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'push'
-      && github.ref_name == 'main'
+      (
+        github.event_name == 'push'
+        && github.ref_name == 'main'
+      )
+      || (
+        github.event_name == 'workflow_dispatch'
+        && github.event.inputs.version != ''
+      )
     timeout-minutes: 5
     needs:
       - set-tag
