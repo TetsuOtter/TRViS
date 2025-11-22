@@ -52,7 +52,7 @@ public partial class EasterEggPage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to reload");
-			await DisplayAlert("Error", "Failed to reload\n" + ex.Message, "OK");
+			await DisplayAlertAsync("Error", "Failed to reload\n" + ex.Message, "OK");
 		}
 	}
 
@@ -65,12 +65,12 @@ public partial class EasterEggPage : ContentPage
 			await ViewModel.SaveAsync();
 
 			logger.Info("Saved");
-			await DisplayAlert("Success!", "Successfully saved", "OK");
+			await DisplayAlertAsync("Success!", "Successfully saved", "OK");
 		}
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to save");
-			await DisplayAlert("Error", "Failed to save\n" + ex.Message, "OK");
+			await DisplayAlertAsync("Error", "Failed to save\n" + ex.Message, "OK");
 		}
 	}
 }

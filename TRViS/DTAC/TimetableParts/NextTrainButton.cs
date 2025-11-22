@@ -89,7 +89,7 @@ public class NextTrainButton : Grid
 				+ $"NextTrainID: {_NextTrainId}";
 			logger.Error(ex, "Unknown Exception: " + msg);
 			InstanceManager.CrashlyticsWrapper.Log(ex, "NextTrainButton.Click");
-			Utils.DisplayAlert("エラー", msg, "OK");
+			Utils.DisplayAlertAsync("エラー", msg, "OK");
 		}
 	}
 }
