@@ -230,6 +230,8 @@ jobs:
           ls -l TRViS/GoogleService-Info.plist
 
       - name: Build
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.1.1.app/Contents/Developer
         run: >
           dotnet publish ${{ env.CSPROJ_PATH }}
           -f ${{ env.TARGET_FRAMEWORK }}
@@ -240,6 +242,10 @@ jobs:
           /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
           /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_IOS }}"
           /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
+          /p:_RequireCodeSigning=true
+          /p:BuildIpa=true
+          /p:IPhoneResourcePrefix=Resources
+          /p:_CanOutputAppBundle=true
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
