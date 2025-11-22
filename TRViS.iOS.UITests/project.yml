@@ -1,0 +1,20 @@
+name: TRViS.iOS.UITests
+options:
+  bundleIdPrefix: dev.t0r.trvis
+targets:
+  TRViS.iOS.UITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "12.2"
+    sources:
+      - TRViS.iOS.UITests
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: dev.t0r.trvis.uitests
+schemes:
+  TRViS.iOS.UITests:
+    build:
+      targets:
+        TRViS.iOS.UITests: all
+    test:
+      targets:
+        - TRViS.iOS.UITests
