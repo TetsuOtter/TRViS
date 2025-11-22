@@ -8,7 +8,7 @@ from sys import argv, stderr
 from typing import Dict, List
 from xml.etree import ElementTree
 from aiofiles import open as aio_open
-from aiohttp import ClientSession, TCPConnector
+from aiohttp import ClientSession, TCPConnector, ClientError
 import asyncio
 import re
 from hashlib import sha256
@@ -28,6 +28,7 @@ LICENSE_TYPE_FILE = 'file'
 # licenseUrlから取得したものについては、ハッシュにてファイルを管理する。
 # Type:HASHは、そのハッシュ値が記録されていることを示す。
 LICENSE_TYPE_HASH = 'hash'
+LICENSE_TYPE_URL = 'url'
 
 @dataclass
 class PackageInfo:
@@ -104,7 +105,7 @@ def getAndTrySetUniqueKey(dic: Dict[str, str], key: str) -> str:
 async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str):
   async with session.get(srcUrl) as result:
     if not result.ok:
-      raise EOFError(f'GET Request to {srcUrl} failed')
+      raise EOFError(f'GET Request to {srcUrl} failed (status={result.status})')
 
     async with aio_open(targetPath, 'wb') as f:
       async for chunk in result.content.iter_chunked(4096):
@@ -117,6 +118,10 @@ async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str):
 async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str]):
   url = licenseInfo.licenseUrl
 
+  if not url:
+    # nothing to do when there is no licenseUrl
+    return
+
   hashStr = getAndTrySetUniqueKey(urlDic, url)
   licenseFilePath = joinPath(targetDir, hashStr)
   licenseInfo.license = hashStr
@@ -124,16 +129,52 @@ async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: s
   if exists(licenseFilePath):
     return
 
-  async with session.head(url, allow_redirects=True) as result:
-    result.close()
-    if not result.closed:
-      await result.wait_for_close()
+  # Try HEAD first to resolve redirects and check availability. If HEAD
+  # is not allowed (405, 501, etc.) or fails for any reason, fall back to GET.
+  final_url = None
+  head_content_type = None
+  try:
+    async with session.head(url, allow_redirects=True) as result:
+      # Keep headers to decide whether we should download the content
+      head_content_type = (result.headers.get('content-type') or '').lower()
+      result.close()
+      if not result.closed:
+        await result.wait_for_close()
 
-    if not result.ok:
-      raise EOFError(f"HEAD request to {url} failed")
+      # If the server accepts HEAD and it's OK, we have the final URL.
+      if result.ok:
+        final_url = result.url.human_repr()
+      else:
+        # Non-OK status from HEAD; fallback to GET below.
+        final_url = None
+  except ClientError:
+    # Head failed (e.g. method not allowed, connection problems). We'll
+    # attempt a GET and let that determine the final URL.
+    final_url = None
+    print(f"HEAD request to {url} failed - falling back to GET", file=stderr)
 
-    url = result.url.human_repr()
+  get_content_type = None
+  get_result = None
+  if final_url is None:
+    async with session.get(url, allow_redirects=True) as result:
+      get_content_type = (result.headers.get('content-type') or '').lower()
+      if not result.ok:
+        print(f"GET request to {url} failed with status {result.status}; writing placeholder file", file=stderr)
+        # create placeholder file so UI can show something instead of failing
+        async with aio_open(licenseFilePath, 'w', encoding=ENC) as f:
+          await f.write(f"(Cannot download license text from {url} (status={result.status}))")
+        licenseInfo.licenseDataType = LICENSE_TYPE_HASH
+        licenseInfo.license = hashStr
+        return
 
+      final_url = result.url.human_repr()
+      # Keep the result content for writing if we determine to download
+      # We need to read the content later in getAndWriteFile (which issues another GET),
+      # so we don't reuse the 'result' here.
+
+  url = final_url
+
+  # Convert GitHub repository URLs to raw URLs which contain the license text
   if url.startswith("https://github.com/"):
     dirs = url.removeprefix("https://github.com/").split('/')
     userName = dirs[0]
@@ -143,7 +184,57 @@ async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: s
     for v in dirs[4:]:
       path = '/' + v
     url = f"https://raw.githubusercontent.com/{userName}/{repoName}/{refName}{path}"
-  await getAndWriteFile(session, url, licenseFilePath)
+  try:
+    # Decide whether to download the license text or treat the URL as an external link
+    # Decide whether to treat this URL as a direct license text (downloadable) or an external page
+    def content_indicates_download(content_type: str) -> bool:
+      if not content_type:
+        return False
+      c = content_type.lower()
+      # text/plain, text/* (not HTML), application/json or xml are considered download
+      if c.startswith('text/') and 'html' not in c:
+        return True
+      if 'json' in c or 'xml' in c:
+        return True
+      return False
+
+    lower_url = url.lower()
+    likely_raw = (
+      url.startswith("https://raw.githubusercontent.com/") or
+      lower_url.endswith('.txt') or
+      lower_url.endswith('.md') or
+      'licenses.nuget.org' in lower_url or
+      'raw.githubusercontent.com' in lower_url
+    )
+
+    # If any of HEAD/GET indicated a downloadable content type or the URL seems raw, download.
+    content_type_to_check = get_content_type or head_content_type or ''
+    should_download = content_indicates_download(content_type_to_check) or likely_raw
+
+    if not should_download:
+      # Treat as URL (external page)
+      licenseInfo.licenseDataType = LICENSE_TYPE_URL
+      licenseInfo.license = url
+      return
+
+    try:
+      await getAndWriteFile(session, url, licenseFilePath)
+    except EOFError as e:
+      print(f"Failed to GET {url}: {e}", file=stderr)
+      # Create a placeholder file so the app can display something instead of failing
+      async with aio_open(licenseFilePath, 'w', encoding=ENC) as f:
+        await f.write(f"(Cannot download license text from {url})")
+      # record as a hash-based license file so the UI will load the placeholder
+      licenseInfo.licenseDataType = LICENSE_TYPE_HASH
+      licenseInfo.license = hashStr
+  except EOFError as e:
+    print(f"Failed to GET {url}: {e}", file=stderr)
+    # Create a placeholder file so the app can display something instead of failing
+    async with aio_open(licenseFilePath, 'w', encoding=ENC) as f:
+      await f.write(f"(Cannot download license text from {url})")
+    # record as a hash-based license file so the UI will load the placeholder
+    licenseInfo.licenseDataType = LICENSE_TYPE_HASH
+    licenseInfo.license = hashStr
 
 async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licenseInfo: LicenseInfo, targetDir: str):
   licenseList = [str(v) for v in re.split(r"\(|\)| ", licenseInfo.license) if (v != '' or v.isspace()) and v != "OR" and v != "AND"]
@@ -178,7 +269,7 @@ def getFrameworkVersion(platform: str) -> str:
     for line in p.stdout.readlines():
       lineStr = line.decode(ENC)
       frameworkVersionCheckResult = re.search(r"\[net\d+\.\d+-" + platform + r"\d+(.\d)+\]", lineStr)
-      
+
       if not frameworkVersionCheckResult:
         continue
 
@@ -208,7 +299,10 @@ async def main(platform: str, targetDir: str) -> int:
   packageInfoList = await asyncio.gather(*[getLicenseInfo(globalPackagesDir, v) for v in packages if not v.PackageName.startswith(IGNORE_NS)])
 
   urlDic = {}
-  async with ClientSession(connector = TCPConnector(limit = 2, force_close = True)) as session:
+  headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  }
+  async with ClientSession(connector = TCPConnector(limit = 2, force_close = True), headers = headers) as session:
     await asyncio.gather(*[dumpLicenseTextFile(session, targetDir, globalPackagesDir, v, urlDic) for v in packageInfoList])
 
   with open(f'{targetDir}/{LICENSE_INFO_LIST_FILE_NAME}', 'w') as f:
