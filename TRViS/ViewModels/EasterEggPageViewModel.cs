@@ -116,7 +116,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 
 		if (!isNewlyCreated && errorMsg is not null)
 		{
-			await Shell.Current.DisplayAlert(
+			await Shell.Current.DisplayAlertAsync(
 				"Failed to load setting file",
 				errorMsg,
 				"OK"
@@ -130,7 +130,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 			logger.Warn("Setting LocationServiceInterval({0}) to default value (value: {1})", settingFile.LocationServiceInterval_Seconds, SettingFileStructure.MinimumLocationServiceIntervalValue);
 
 			// ここでは上書き保存は行わない。警告を出すのみに留める。
-			await Shell.Current.DisplayAlert(
+			await Shell.Current.DisplayAlertAsync(
 				"Invalid LocationServiceInterval Value",
 				$"value({settingFile.LocationServiceInterval_Seconds}) must be same or more than {SettingFileStructure.MinimumLocationServiceIntervalValue}",
 				"OK"

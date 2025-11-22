@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
+
 using CommunityToolkit.Mvvm.ComponentModel;
+
 using TRViS.Models;
 
 namespace TRViS.ViewModels;
@@ -48,8 +50,14 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 						.Where(static v => !string.IsNullOrWhiteSpace(v) && v != "AND" && v != "OR")
 				)
 				{
-					list.Add(await LoadLicenseText(value.license));
+					list.Add(await LoadLicenseText(fileName));
 				}
+			}
+			else if (value.licenseDataType == "url")
+			{
+				LicenseExpression = "";
+				// For license of 'url' type, show the URL as the only item
+				list.Add(new MyKeyValuePair("licenseUrl", value.license));
 			}
 			else
 			{
@@ -63,7 +71,7 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 		catch (Exception ex)
 		{
 			Console.WriteLine(ex);
-			await Shell.Current.DisplayAlert("Cannot load License Info", $"{value.id}に関するライセンス情報の読み込みに失敗しました。\n(license: {value.license})\n{ex.Message}", "OK");
+			await Shell.Current.DisplayAlertAsync("Cannot load License Info", $"{value.id}に関するライセンス情報の読み込みに失敗しました。\n(license: {value.license})\n{ex.Message}", "OK");
 		}
 	}
 
