@@ -1,0 +1,14 @@
+# Xcode
+*.xcuserdatad
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+*.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# Build artifacts
+*.app
+*.ipa
+*.dSYM
+*.xcresult
+
+# Logs
+*.log

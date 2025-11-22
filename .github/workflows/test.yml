@@ -18,6 +18,170 @@ env:
   XCODE_VERSION: "26.0"
 
 jobs:
+  build-for-test-ios:
+    name: Build for iOS UI Tests
+    runs-on: macos-26
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    env:
+      WITHOUT_ANDROID: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-ios maccatalyst
+
+      - name: Restore and Build TRViS app
+        run: |
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-ios -c Debug --no-restore
+
+      - name: Find TRViS app
+        id: find-app
+        run: |
+          APP_PATH=$(find TRViS/bin/Debug/net9.0-ios -name "*.app" | head -n 1)
+          echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
+          echo "Found app at: $APP_PATH"
+
+      - name: Upload TRViS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: trvis-app-ios
+          path: ${{ steps.find-app.outputs.app_path }}
+          retention-days: 1
+
+  build-for-test-macos:
+    name: Build for macOS UI Tests
+    runs-on: macos-26
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    env:
+      WITHOUT_ANDROID: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-ios maccatalyst
+
+      - name: Restore and Build TRViS app
+        run: |
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-maccatalyst -c Debug --no-restore
+
+      - name: Find TRViS app
+        id: find-app
+        run: |
+          APP_PATH=$(find TRViS/bin/Debug/net9.0-maccatalyst -name "*.app" | head -n 1)
+          echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
+          echo "Found app at: $APP_PATH"
+
+      - name: Upload TRViS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: trvis-app-macos
+          path: ${{ steps.find-app.outputs.app_path }}
+          retention-days: 1
+
+  build-for-test-android:
+    name: Build for Android UI Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-android
+
+      - name: Restore and Build TRViS app
+        run: |
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-android -c Debug --no-restore
+
+      - name: Find TRViS APK
+        id: find-apk
+        run: |
+          APK_PATH=$(find TRViS/bin/Debug/net9.0-android -name "*.apk" | head -n 1)
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "Found APK at: $APK_PATH"
+
+      - name: Upload TRViS APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: trvis-apk-android
+          path: ${{ steps.find-apk.outputs.apk_path }}
+          retention-days: 1
+
+  build-for-test-windows:
+    name: Build for Windows UI Tests
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    env:
+      WITHOUT_ANDROID: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-windows
+
+      - name: Restore and Build TRViS app
+        run: |
+          dotnet restore TRViS/TRViS.csproj
+          dotnet build TRViS/TRViS.csproj -f net9.0-windows10.0.19041.0 -c Debug --no-restore
+
+      - name: Find TRViS exe
+        id: find-exe
+        shell: pwsh
+        run: |
+          $EXE_PATH = (Get-ChildItem -Path "TRViS\bin\Debug\net9.0-windows10.0.19041.0" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName
+          echo "exe_path=$EXE_PATH" >> $env:GITHUB_OUTPUT
+          echo "Found exe at: $EXE_PATH"
+
+      - name: Upload TRViS exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: trvis-exe-windows
+          path: ${{ steps.find-exe.outputs.exe_path }}
+          retention-days: 1
+
   test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -52,95 +216,125 @@ jobs:
           retention-days: 7
 
   test-ios:
-    name: iOS UI Tests
+    name: iOS UI Tests (${{ matrix.device }})
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 20
     permissions:
       contents: read
+    needs: build-for-test-ios
 
-    env:
-      WITHOUT_ANDROID: true
+    strategy:
+      matrix:
+        device:
+          - "iPhone 15"
+          - "iPad mini (5th generation)"
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Xcode version
-        uses: maxim-lobanov/setup-xcode@v1.6.0
-        with:
-          xcode-version: ${{ env.XCODE_VERSION }}
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
 
-      - name: Install dotnet workloads
-        run: dotnet workload install maui-ios maccatalyst
+      - name: Download TRViS app
+        uses: actions/download-artifact@v4
+        with:
+          name: trvis-app-ios
+          path: .
 
-      - name: Restore and Build TRViS app
+      - name: Set app path
+        id: set-app-path
         run: |
-          dotnet restore TRViS/TRViS.csproj
-          dotnet build TRViS/TRViS.csproj -f net9.0-ios -c Debug --no-restore
+          APP_PATH=$(find . -name "*.app" | head -n 1)
+          echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
+          echo "Found app at: $APP_PATH"
 
-      - name: Find TRViS assembly
-        id: find-assembly
+      - name: Get simulator UDID
+        id: get-udid
         run: |
-          ASSEMBLY_PATH=$(find TRViS/bin/Debug/net9.0-ios -name "TRViS.dll" | head -n 1)
-          echo "assembly_path=$ASSEMBLY_PATH" >> $GITHUB_OUTPUT
-          echo "Found assembly at: $ASSEMBLY_PATH"
+          UDID=$(xcrun simctl list devices | grep "${{ matrix.device }}" | grep -E -o '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -n 1)
+          echo "udid=$UDID" >> $GITHUB_OUTPUT
+          echo "Simulator UDID: $UDID"
+
+      - name: Boot simulator
+        run: xcrun simctl boot ${{ steps.get-udid.outputs.udid }}
+
+      - name: Install app on simulator
+        run: xcrun simctl install ${{ steps.get-udid.outputs.udid }} "${{ steps.set-app-path.outputs.app_path }}"
 
       - name: Run UI Tests
         run: |
-          export TRVIS_ASSEMBLY_PATH="${{ steps.find-assembly.outputs.assembly_path }}"
-          dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=ios-ui-test-results.trx"
+          export DEVICE_UDID=${{ steps.get-udid.outputs.udid }}
+          export APP_PATH="${{ steps.set-app-path.outputs.app_path }}"
+          dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=ios-${{ matrix.device }}-ui-test-results.trx"
+
+      - name: Shutdown simulator
+        if: always()
+        run: xcrun simctl shutdown ${{ steps.get-udid.outputs.udid }}
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ matrix.device }}-screenshots
+          path: "**/screenshots/**"
+          retention-days: 7
 
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ui-test-results
+          name: ios-${{ matrix.device }}-ui-test-results
           path: "**/*-test-results.trx"
           retention-days: 7
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## iOS UI Test Results (${{ matrix.device }})" >> $GITHUB_STEP_SUMMARY
+          if [ -f "**/ios-${{ matrix.device }}-ui-test-results.trx" ]; then
+            echo "Test results uploaded." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No test results found." >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -d "**/screenshots" ]; then
+            echo "### Screenshots" >> $GITHUB_STEP_SUMMARY
+            for img in $(find **/screenshots -name "*.png" | head -n 5); do
+              echo "![Screenshot]($img)" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
 
   test-macos:
     name: macOS UI Tests
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
-
-    env:
-      WITHOUT_ANDROID: true
+    needs: build-for-test-macos
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Xcode version
-        uses: maxim-lobanov/setup-xcode@v1.6.0
-        with:
-          xcode-version: ${{ env.XCODE_VERSION }}
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
 
-      - name: Install dotnet workloads
-        run: dotnet workload install maui-ios maccatalyst
+      - name: Download TRViS assembly
+        uses: actions/download-artifact@v4
+        with:
+          name: trvis-assembly-macos
+          path: .
 
-      - name: Restore and Build TRViS app
+      - name: Set assembly path
+        id: set-assembly-path
         run: |
-          dotnet restore TRViS/TRViS.csproj
-          dotnet build TRViS/TRViS.csproj -f net9.0-maccatalyst -c Debug --no-restore
-
-      - name: Find TRViS assembly
-        id: find-assembly
-        run: |
-          ASSEMBLY_PATH=$(find TRViS/bin/Debug/net9.0-maccatalyst -name "TRViS.dll" | head -n 1)
+          ASSEMBLY_PATH=$(find . -name "TRViS.dll" | head -n 1)
           echo "assembly_path=$ASSEMBLY_PATH" >> $GITHUB_OUTPUT
           echo "Found assembly at: $ASSEMBLY_PATH"
 
       - name: Run UI Tests
         run: |
-          export TRVIS_ASSEMBLY_PATH="${{ steps.find-assembly.outputs.assembly_path }}"
+          export TRVIS_ASSEMBLY_PATH="${{ steps.set-assembly-path.outputs.assembly_path }}"
           dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=macos-ui-test-results.trx"
 
       - name: Upload Test Results
@@ -154,9 +348,10 @@ jobs:
   test-android:
     name: Android UI Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
+    needs: build-for-test-android
 
     steps:
       - uses: actions/checkout@v4
@@ -165,24 +360,22 @@ jobs:
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
 
-      - name: Install dotnet workloads
-        run: dotnet workload install maui-android
+      - name: Download TRViS assembly
+        uses: actions/download-artifact@v4
+        with:
+          name: trvis-assembly-android
+          path: .
 
-      - name: Restore and Build TRViS app
+      - name: Set assembly path
+        id: set-assembly-path
         run: |
-          dotnet restore TRViS/TRViS.csproj
-          dotnet build TRViS/TRViS.csproj -f net9.0-android -c Debug --no-restore
-
-      - name: Find TRViS assembly
-        id: find-assembly
-        run: |
-          ASSEMBLY_PATH=$(find TRViS/bin/Debug/net9.0-android -name "TRViS.dll" | head -n 1)
+          ASSEMBLY_PATH=$(find . -name "TRViS.dll" | head -n 1)
           echo "assembly_path=$ASSEMBLY_PATH" >> $GITHUB_OUTPUT
           echo "Found assembly at: $ASSEMBLY_PATH"
 
       - name: Run UI Tests
         run: |
-          export TRVIS_ASSEMBLY_PATH="${{ steps.find-assembly.outputs.assembly_path }}"
+          export TRVIS_ASSEMBLY_PATH="${{ steps.set-assembly-path.outputs.assembly_path }}"
           dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=android-ui-test-results.trx"
 
       - name: Upload Test Results
@@ -196,12 +389,10 @@ jobs:
   test-windows:
     name: Windows UI Tests
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
-
-    env:
-      WITHOUT_ANDROID: true
+    needs: build-for-test-windows
 
     steps:
       - uses: actions/checkout@v4
@@ -210,26 +401,24 @@ jobs:
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
 
-      - name: Install dotnet workloads
-        run: dotnet workload install maui-windows
+      - name: Download TRViS assembly
+        uses: actions/download-artifact@v4
+        with:
+          name: trvis-assembly-windows
+          path: .
 
-      - name: Restore and Build TRViS app
-        run: |
-          dotnet restore TRViS/TRViS.csproj
-          dotnet build TRViS/TRViS.csproj -f net9.0-windows10.0.19041.0 -c Debug --no-restore
-
-      - name: Find TRViS assembly
-        id: find-assembly
+      - name: Set assembly path
+        id: set-assembly-path
         shell: pwsh
         run: |
-          $ASSEMBLY_PATH = (Get-ChildItem -Path "TRViS\bin\Debug\net9.0-windows10.0.19041.0" -Filter "TRViS.dll" -Recurse | Select-Object -First 1).FullName
+          $ASSEMBLY_PATH = (Get-ChildItem -Path "." -Filter "TRViS.dll" -Recurse | Select-Object -First 1).FullName
           echo "assembly_path=$ASSEMBLY_PATH" >> $env:GITHUB_OUTPUT
           echo "Found assembly at: $ASSEMBLY_PATH"
 
       - name: Run UI Tests
         shell: pwsh
         run: |
-          $env:TRVIS_ASSEMBLY_PATH = "${{ steps.find-assembly.outputs.assembly_path }}"
+          $env:TRVIS_ASSEMBLY_PATH = "${{ steps.set-assembly-path.outputs.assembly_path }}"
           dotnet test TRViS.UITests/TRViS.UITests.csproj --verbosity normal --logger "trx;LogFileName=windows-ui-test-results.trx"
 
       - name: Upload Test Results
