@@ -231,7 +231,8 @@ jobs:
 
       - name: Build
         env:
-          DEVELOPER_DIR: /Applications/Xcode_26.1.1.app/Contents/Developer
+          DEVELOPER_DIR: /Applications/Xcode_26.0.1.app/Contents/Developer
+          ACTOOL_SKIP_SIMULATOR_RUNTIME_CHECK: true
         run: >
           dotnet publish ${{ env.CSPROJ_PATH }}
           -f ${{ env.TARGET_FRAMEWORK }}
