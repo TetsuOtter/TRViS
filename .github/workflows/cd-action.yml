@@ -233,6 +233,8 @@ jobs:
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.0.1.app/Contents/Developer
           ACTOOL_SKIP_SIMULATOR_RUNTIME_CHECK: true
+          DOTNET_CLI_UI_LANGUAGE: en-US
+          ACTOOL_DISABLE: true
         run: >
           dotnet publish ${{ env.CSPROJ_PATH }}
           -f ${{ env.TARGET_FRAMEWORK }}
@@ -247,6 +249,8 @@ jobs:
           /p:BuildIpa=true
           /p:IPhoneResourcePrefix=Resources
           /p:_CanOutputAppBundle=true
+          /p:EnableDefaultItems=false
+          /p:EnableDefaultCompileItems=false
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
