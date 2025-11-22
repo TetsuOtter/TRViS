@@ -38,7 +38,7 @@ env:
   SDK_VERSION: "10.0.x"
   IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
-  XCODE_VERSION: "26.1.0"
+  XCODE_VERSION: "26"
 
 jobs:
   generate-bundle-version:
