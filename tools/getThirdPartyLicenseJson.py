@@ -8,7 +8,7 @@ from sys import argv, stderr
 from typing import Dict, List
 from xml.etree import ElementTree
 from aiofiles import open as aio_open
-from aiohttp import ClientSession, TCPConnector
+from aiohttp import ClientSession, TCPConnector, ClientError
 import asyncio
 import re
 from hashlib import sha256
@@ -117,6 +117,10 @@ async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str):
 async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str]):
   url = licenseInfo.licenseUrl
 
+  if not url:
+    # nothing to do when there is no licenseUrl
+    return
+
   hashStr = getAndTrySetUniqueKey(urlDic, url)
   licenseFilePath = joinPath(targetDir, hashStr)
   licenseInfo.license = hashStr
@@ -124,15 +128,39 @@ async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: s
   if exists(licenseFilePath):
     return
 
-  async with session.head(url, allow_redirects=True) as result:
-    result.close()
-    if not result.closed:
-      await result.wait_for_close()
+  # Try HEAD first to resolve redirects and check availability. If HEAD
+  # is not allowed (405, 501, etc.) or fails for any reason, fall back to GET.
+  final_url = None
+  try:
+    async with session.head(url, allow_redirects=True) as result:
+      result.close()
+      if not result.closed:
+        await result.wait_for_close()
 
-    if not result.ok:
-      raise EOFError(f"HEAD request to {url} failed")
+      # If the server accepts HEAD and it's OK, we have the final URL.
+      if result.ok:
+        final_url = result.url.human_repr()
+      else:
+        # Non-OK status from HEAD; fallback to GET below.
+        final_url = None
+  except ClientError:
+    # Head failed (e.g. method not allowed, connection problems). We'll
+    # attempt a GET and let that determine the final URL.
+    final_url = None
+    print(f"HEAD request to {url} failed - falling back to GET", file=stderr)
 
-    url = result.url.human_repr()
+  if final_url is None:
+    async with session.get(url, allow_redirects=True) as result:
+      result.close()
+      if not result.closed:
+        await result.wait_for_close()
+
+      if not result.ok:
+        raise EOFError(f"GET request to {url} failed")
+
+      final_url = result.url.human_repr()
+
+  url = final_url
 
   if url.startswith("https://github.com/"):
     dirs = url.removeprefix("https://github.com/").split('/')
@@ -178,7 +206,7 @@ def getFrameworkVersion(platform: str) -> str:
     for line in p.stdout.readlines():
       lineStr = line.decode(ENC)
       frameworkVersionCheckResult = re.search(r"\[net\d+\.\d+-" + platform + r"\d+(.\d)+\]", lineStr)
-      
+
       if not frameworkVersionCheckResult:
         continue
 

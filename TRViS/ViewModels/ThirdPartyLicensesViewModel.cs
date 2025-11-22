@@ -63,7 +63,7 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 		catch (Exception ex)
 		{
 			Console.WriteLine(ex);
-			await Shell.Current.DisplayAlert("Cannot load License Info", $"{value.id}に関するライセンス情報の読み込みに失敗しました。\n(license: {value.license})\n{ex.Message}", "OK");
+			await Shell.Current.DisplayAlertAsync("Cannot load License Info", $"{value.id}に関するライセンス情報の読み込みに失敗しました。\n(license: {value.license})\n{ex.Message}", "OK");
 		}
 	}
 
