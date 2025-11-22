@@ -148,7 +148,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 30
     needs:
       - get-version
@@ -609,7 +609,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 10
     needs:
       - build-ios
