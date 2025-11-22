@@ -73,7 +73,7 @@ public class TimetableService : ITimetableService
 		lock (_lock)
 		{
 			if (!_trainDataStore.TryGetValue(trainDataId, out var trainData))
-				return Array.Empty<TimetableRowItem>();
+				return new List<TimetableRowItem>();
 
 			return trainData.Rows.ToList();
 		}
