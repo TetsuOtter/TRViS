@@ -184,20 +184,6 @@ jobs:
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
-      - name: Install compatible iOS Simulator Runtime
-        continue-on-error: true
-        run: |
-          # List currently available runtimes
-          echo "Current runtimes:"
-          xcrun simctl list runtimes
-          # Try to download iOS 18.7 runtime using simctl
-          echo "Attempting to download iOS 18.7 runtime..."
-          sudo xcrun simctl runtime add "com.apple.pkg.iPhoneSimulatorSDK18_7" || \
-          sudo xcrun simctl runtime add "iOS 18.7" || \
-          xcodebuild -runFirstLaunch || true
-          echo "Updated runtimes:"
-          xcrun simctl list runtimes
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
