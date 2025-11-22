@@ -65,7 +65,10 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="10.0.0-preview.7.25406.3" />
+			Version="$(MauiVersion)" />
+		<PackageReference
+			Include="Microsoft.Maui.Essentials"
+			Version="$(MauiVersion)" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.4.0" />
@@ -87,7 +90,7 @@
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
 		<PackageReference
 			Include="Microsoft.Maui.Controls.Maps"
-			Version="10.0.0-preview.7.25406.3" />
+			Version="$(MauiVersion)" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<!-- <BundleResource Include="GoogleService-Info.plist" />
