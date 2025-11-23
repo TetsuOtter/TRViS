@@ -6,6 +6,8 @@ using TRViS.Controls;
 using TRViS.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
+using Microsoft.Maui.ApplicationModel;
+using System;
 
 namespace TRViS.RootPages;
 
@@ -60,15 +62,67 @@ public partial class ThirdPartyLicenses : ContentPage
 			logger.Debug("LicenseTextList Length: {0}", viewModel.LicenseTextList.Count);
 			foreach (var v in viewModel.LicenseTextList)
 			{
-				licenses.Children.Add(new Label()
+				if (v.Value.StartsWith("http://") || v.Value.StartsWith("https://"))
 				{
-					Text = v.Value,
-					FontAutoScalingEnabled = true,
-					LineBreakMode = LineBreakMode.WordWrap,
-					Padding = new(4),
-					WidthRequest = LicenseTextArea.Width,
-					TextType = v.Value.StartsWith("<") && v.Value.EndsWith(">") ? TextType.Html : TextType.Text,
-				});
+					var grid = new Grid
+					{
+						ColumnDefinitions = new ColumnDefinitionCollection
+						{
+							new ColumnDefinition { Width = GridLength.Star },
+							new ColumnDefinition { Width = GridLength.Auto }
+						}
+					};
+
+					var urlLabel = new Label()
+					{
+						Text = v.Value,
+						FontAutoScalingEnabled = true,
+						LineBreakMode = LineBreakMode.TailTruncation,
+						Padding = new(4),
+						WidthRequest = LicenseTextArea.Width - 140,
+					};
+
+					var btn = new Button()
+					{
+						Text = "Open License",
+						HorizontalOptions = LayoutOptions.End,
+						Padding = new(4)
+					};
+					btn.Clicked += async (_, __) =>
+					{
+						try
+						{
+							if (Uri.TryCreate(v.Value, UriKind.Absolute, out var uri))
+							{
+								await Launcher.OpenAsync(uri);
+							}
+							else
+							{
+								await Utils.DisplayAlert("Invalid URL", $"The URL is invalid: {v.Value}", "OK");
+							}
+						}
+						catch (Exception ex)
+						{
+							await Utils.DisplayAlert("Cannot Open URL", ex.Message, "OK");
+						}
+					};
+					grid.Add(urlLabel, 0, 0);
+					grid.Add(btn, 1, 0);
+					licenses.Children.Add(grid);
+				}
+				else
+				{
+					licenses.Children.Add(new Label()
+					{
+						Text = v.Value,
+						FontAutoScalingEnabled = true,
+						LineBreakMode = LineBreakMode.WordWrap,
+						Padding = new(4),
+						WidthRequest = LicenseTextArea.Width,
+						TextType = v.Value.StartsWith("<") && v.Value.EndsWith(">") ? TextType.Html : TextType.Text,
+					});
+				}
+
 				licenses.Children.Add(new BoxView()
 				{
 					HeightRequest = 1,
