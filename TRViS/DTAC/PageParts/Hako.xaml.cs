@@ -41,8 +41,8 @@ public partial class Hako : Grid
 
 		Grid.SetRow(headerView, 1);
 		headerView.EdgeWidth = SimpleView.STA_NAME_TIME_COLUMN_WIDTH;
-		headerView.LeftEdgeText = Utils.InsertBetweenChars("乗務開始".AsSpan(), '\n');
-		headerView.RightEdgeText = Utils.InsertBetweenChars("乗務終了".AsSpan(), '\n');
+		headerView.LeftEdgeText = TRViS.Core.StringUtils.InsertBetweenChars("乗務開始".AsSpan(), '\n');
+		headerView.RightEdgeText = TRViS.Core.StringUtils.InsertBetweenChars("乗務終了".AsSpan(), '\n');
 		Children.Add(headerView);
 
 		AffectDateLabel = GenAffectDateLabel();
