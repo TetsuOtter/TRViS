@@ -67,7 +67,7 @@ public class NextTrainButton : Grid
 			_NextTrainId = value;
 			this.IsVisible = true;
 
-			string trainNumberToShow = Util.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, Util.THIN_SPACE);
+			string trainNumberToShow = TRViS.Core.StringUtils.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, TRViS.Core.StringUtils.THIN_SPACE);
 			_NextTrainButton.Text = $"{trainNumberToShow}の時刻表へ";
 		}
 	}

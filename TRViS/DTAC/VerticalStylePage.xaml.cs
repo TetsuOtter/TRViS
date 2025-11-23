@@ -407,25 +407,16 @@ public partial class VerticalStylePage : ContentView
 			return;
 
 		_DestinationString = value;
-		if (string.IsNullOrEmpty(value))
+
+		var formatted = TRViS.DTAC.Logic.DestinationFormatter.FormatDestination(value);
+		if (formatted is null)
 		{
 			DestinationLabel.IsVisible = false;
 			DestinationLabel.Text = null;
 			return;
 		}
 
-		string dstStr = value;
-		switch (value.Length)
-		{
-			case 1:
-				dstStr = $"{Util.SPACE_CHAR}{value}{Util.SPACE_CHAR}";
-				break;
-			case 2:
-				dstStr = $"{value[0]}{Util.SPACE_CHAR}{value[1]}";
-				break;
-		}
-
-		DestinationLabel.Text = $"（{dstStr}行）";
+		DestinationLabel.Text = formatted;
 		DestinationLabel.IsVisible = true;
 	}
 
