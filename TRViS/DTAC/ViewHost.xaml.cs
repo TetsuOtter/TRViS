@@ -67,7 +67,7 @@ public partial class ViewHost : ContentPage
 
 		vm.CurrentAppThemeChanged += (s, e) => SetTitleBGGradientColor(e.NewValue);
 		SetTitleBGGradientColor(vm.CurrentAppTheme);
-		vm.PropertyChanged += Vm_PropertyChanged;
+		// vm.PropertyChanged += Vm_PropertyChanged;
 		eevm.PropertyChanged += Eevm_PropertyChanged;
 
 		ViewModel = InstanceManager.DTACViewHostViewModel;
@@ -80,7 +80,7 @@ public partial class ViewHost : ContentPage
 			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
 		};
 
-		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
+		// VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
 		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
@@ -94,9 +94,9 @@ public partial class ViewHost : ContentPage
 
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
-		OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
-		OnSelectedWorkChanged(vm.SelectedWork);
-		OnSelectedTrainChanged(vm.SelectedTrainData);
+		// OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
+		// OnSelectedWorkChanged(vm.SelectedWork);
+		// OnSelectedTrainChanged(vm.SelectedTrainData);
 
 		ChangeChangeThemeButtonText(vm.CurrentAppTheme);
 		vm.CurrentAppThemeChanged += (s, e) => ChangeChangeThemeButtonText(e.NewValue);
@@ -199,35 +199,35 @@ public partial class ViewHost : ContentPage
 		}
 	}
 
-	private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (sender is not AppViewModel vm)
-			return;
+	// private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+	// {
+	// 	if (sender is not AppViewModel vm)
+	// 		return;
 
-		try
-		{
-			switch (e.PropertyName)
-			{
-				case nameof(AppViewModel.SelectedWorkGroup):
-					OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
-					break;
+	// 	try
+	// 	{
+	// 		switch (e.PropertyName)
+	// 		{
+	// 			case nameof(AppViewModel.SelectedWorkGroup):
+	// 				OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
+	// 				break;
 
-				case nameof(AppViewModel.SelectedWork):
-					OnSelectedWorkChanged(vm.SelectedWork);
-					break;
+	// 			case nameof(AppViewModel.SelectedWork):
+	// 				OnSelectedWorkChanged(vm.SelectedWork);
+	// 				break;
 
-				case nameof(AppViewModel.SelectedTrainData):
-					OnSelectedTrainChanged(vm.SelectedTrainData);
-					break;
-			}
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.Vm_PropertyChanged");
-			Utils.ExitWithAlert(ex);
-		}
-	}
+	// 			case nameof(AppViewModel.SelectedTrainData):
+	// 				OnSelectedTrainChanged(vm.SelectedTrainData);
+	// 				break;
+	// 		}
+	// 	}
+	// 	catch (Exception ex)
+	// 	{
+	// 		logger.Fatal(ex, "Unknown Exception");
+	// 		InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.Vm_PropertyChanged");
+	// 		Utils.ExitWithAlert(ex);
+	// 	}
+	// }
 
 	private void ChangeChangeThemeButtonText(AppTheme newTheme)
 	{
@@ -261,41 +261,41 @@ public partial class ViewHost : ContentPage
 		}
 	}
 
-	void OnSelectedWorkGroupChanged(IO.Models.DB.WorkGroup? newValue)
-	{
-		string title = newValue?.Name ?? string.Empty;
-		logger.Info("SelectedWorkGroup is changed to {0}", title);
-		HakoView.WorkSpaceName = title;
-	}
+	// void OnSelectedWorkGroupChanged(IO.Models.DB.WorkGroup? newValue)
+	// {
+	// 	string title = newValue?.Name ?? string.Empty;
+	// 	logger.Info("SelectedWorkGroup is changed to {0}", title);
+	// 	HakoView.WorkSpaceName = title;
+	// }
 
-	void OnSelectedWorkChanged(IO.Models.DB.Work? newValue)
-	{
-		string title = newValue?.Name ?? string.Empty;
-		logger.Info("SelectedWork is changed to {0}", title);
-		TitleLabel.Text = title;
-		Title = title;
+	// void OnSelectedWorkChanged(IO.Models.DB.Work? newValue)
+	// {
+	// 	string title = newValue?.Name ?? string.Empty;
+	// 	logger.Info("SelectedWork is changed to {0}", title);
+	// 	TitleLabel.Text = title;
+	// 	Title = title;
 
-		HakoView.WorkName = title;
-	}
+	// 	HakoView.WorkName = title;
+	// }
 
-	void OnSelectedTrainChanged(TrainData? newValue)
-	{
-		int dayCount = newValue?.DayCount ?? 0;
-		string affectDate = (
-			newValue?.AffectDate
-			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
-		).ToString("yyyy年M月d日");
+	// void OnSelectedTrainChanged(TrainData? newValue)
+	// {
+	// 	int dayCount = newValue?.DayCount ?? 0;
+	// 	string affectDate = ViewHostStateFactory.FormatAffectDate(
+	// 		newValue?.AffectDate,
+	// 		dayCount
+	// 	);
 
-		logger.Debug(
-			"date: {0}, dayCount: {1}, AffectDate: {2}",
-			newValue?.AffectDate,
-			dayCount,
-			affectDate
-		);
+	// 	logger.Debug(
+	// 		"date: {0}, dayCount: {1}, AffectDate: {2}",
+	// 		newValue?.AffectDate,
+	// 		dayCount,
+	// 		affectDate
+	// 	);
 
-		VerticalStylePageView.AffectDate = affectDate;
-		HakoView.AffectDate = affectDate;
-	}
+	// 	VerticalStylePageView.AffectDate = affectDate;
+	// 	HakoView.AffectDate = affectDate;
+	// }
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{

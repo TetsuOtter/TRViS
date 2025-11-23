@@ -86,8 +86,8 @@ public partial class VerticalTimetableRow
 		RowIndex = rowIndex;
 		RowData = rowData;
 
-		if (MarkerViewModel is not null)
-			MarkerViewModel.PropertyChanged += OnMarkerViewModelValueChanged;
+		// if (MarkerViewModel is not null)
+		// 	MarkerViewModel.PropertyChanged += OnMarkerViewModelValueChanged;
 		#endregion
 
 		BackgroundBoxView = new()

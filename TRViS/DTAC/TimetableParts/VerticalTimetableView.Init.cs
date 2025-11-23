@@ -1,6 +1,7 @@
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
+using TRViS.DTAC.Logic;
 using TRViS.DTAC.TimetableParts;
 using TRViS.IO.Models;
 using TRViS.Services;
@@ -10,6 +11,8 @@ namespace TRViS.DTAC;
 public partial class VerticalTimetableView
 {
 	public static readonly Color CURRENT_LOCATION_MARKER_COLOR = new(0x00, 0x88, 0x00);
+
+	// readonly LocationService LocationService = InstanceManager.LocationService;
 	BoxView CurrentLocationBoxView { get; } = new()
 	{
 		IsVisible = false,
@@ -52,12 +55,16 @@ public partial class VerticalTimetableView
 
 		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
-		LocationService.LocationStateChanged += LocationService_LocationStateChanged;
-		LocationService.IsEnabledChanged += (_, e) => IsLocationServiceEnabled = e.NewValue;
-		LocationService.ExceptionThrown += (s, e) =>
-		{
-			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
-		};
+		// LocationService.LocationStateChanged += LocationService_LocationStateChanged;
+		// LocationService.IsEnabledChanged += (_, e) =>
+		// {
+		// 	// Logic層を通じてIsLocationServiceEnabledを更新
+		// 	TimetableLocationServiceFactory.UpdateLocationServiceEnabled(LocationServiceState, e.NewValue);
+		// };
+		// LocationService.ExceptionThrown += (s, e) =>
+		// {
+		// 	MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
+		// };
 
 		logger.Trace("Created");
 	}
@@ -116,7 +123,7 @@ public partial class VerticalTimetableView
 	}
 
 	int RowsCount = 0;
-	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
+	internal async Task SetRowViewsAsync(TrainData? trainData, TimetableRow[]? newValue)
 	{
 		logger.Info("Setting RowViews... (Current RowViewList.Count: {0})", RowViewList.Count);
 		RowViewList.Clear();
@@ -127,11 +134,8 @@ public partial class VerticalTimetableView
 			try
 			{
 				logger.Trace("MainThread: Clearing old RowViews...");
-				IsBusy = true;
 
-				Children.Clear();
-
-				logger.Trace("MainThread: Clearing old RowViews Complete");
+				Children.Clear(); logger.Trace("MainThread: Clearing old RowViews Complete");
 
 				Add(CurrentLocationBoxView);
 				Add(CurrentLocationLine);
@@ -225,8 +229,6 @@ public partial class VerticalTimetableView
 					this.Children.Add(NextTrainButton);
 				}
 				logger.Trace("NextTrainId: {0}", trainData?.NextTrainId);
-
-				IsBusy = false;
 
 				logger.Trace("MainThread: FooterInsertion Complete");
 			}

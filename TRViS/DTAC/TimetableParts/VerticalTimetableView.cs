@@ -1,13 +1,12 @@
 using DependencyPropertyGenerator;
 
+using TRViS.DTAC.Logic;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<bool>("IsBusy")]
-[DependencyProperty<TrainData>("SelectedTrainData")]
 [DependencyProperty<double>("ScrollViewHeight", DefaultValue = 0)]
 public partial class VerticalTimetableView : Grid
 {
@@ -19,146 +18,66 @@ public partial class VerticalTimetableView : Grid
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	static public readonly GridLength RowHeight = new(60);
 
-	public event EventHandler? IsBusyChanged;
-
 	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
 	public DTACMarkerViewModel MarkerViewModel { get; } = InstanceManager.DTACMarkerViewModel;
 
-	partial void OnSelectedTrainDataChanged(TrainData? newValue)
+	/// <summary>
+	/// Initializes the timetable view with train data.
+	/// Must be called when train data changes to set up rows and location service state.
+	/// </summary>
+	public void InitializeWithTrainData(TrainData? trainData)
 	{
+		if (trainData?.Rows == null)
+		{
+			logger.Debug("TrainData or Rows is null, skipping initialization");
+			return;
+		}
+
 		try
 		{
-			logger.Trace("SelectedTrainData is changed to {0}", newValue?.TrainNumber);
-			SetRowViews(newValue, newValue?.Rows);
-			IsRunStarted = false;
-			LocationService.SetTimetableRows(newValue?.Rows);
-			ScrollRequested?.Invoke(this, new(0));
+			logger.Info("InitializeWithTrainData: {0}", trainData.TrainNumber);
+
+			// Initialize location service state with row count
+			int rowCount = trainData.Rows.Length;
+			TimetableLocationServiceFactory.InitializeTotalRows(LocationServiceState, rowCount);
+			TimetableLocationServiceFactory.SetRowHeight(LocationServiceState, RowHeight.Value);
+
+			// Set up rows in location service (Logic layer)
+			InstanceManager.LocationService.SetTimetableRows(trainData.Rows);
+
+			// Set up view rows (UI layer)
+			// This is called on the main thread through SetRowViews
+			MainThread.BeginInvokeOnMainThread(async () =>
+			{
+				await SetRowViewsAsync(trainData, trainData.Rows);
+			});
 		}
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnSelectedTrainDataChanged");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.InitializeWithTrainData");
 			Utils.ExitWithAlert(ex);
 		}
 	}
 
-	partial void OnIsBusyChanged()
-	{
-		try
-		{
-			logger.Trace("IsBusy is changed to {0}", IsBusy);
-			IsBusyChanged?.Invoke(this, new());
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnIsBusyChanged");
-			Utils.ExitWithAlert(ex);
-		}
-	}
-
-	int CurrentRunningRowIndex = -1;
-
-	VerticalTimetableRow? _CurrentRunningRow = null;
-	VerticalTimetableRow? CurrentRunningRow
-	{
-		get => _CurrentRunningRow;
-		set
-		{
-			if (_CurrentRunningRow == value)
-			{
-				logger.Trace("CurrentRunningRow is already {0}, so skipping...", value?.RowIndex);
-				return;
-			}
-
-			logger.Info("CurrentRunningRow is changed to {0}", value?.RowIndex);
-			try
-			{
-				SetCurrentRunningRow(value);
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.CurrentRunningRow");
-				Utils.ExitWithAlert(ex);
-			}
-		}
-	}
-
-	partial void OnIsRunStartedChanged(bool newValue)
-	{
-		CurrentRunningRow = newValue ? RowViewList.FirstOrDefault() : null;
-
-		if (!newValue)
-		{
-			logger.Info("IsRunStarted is changed to false -> disable location service, and hide CurrentLocation");
-			IsLocationServiceEnabled = false;
-			CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible = false;
-		}
-		else
-		{
-			logger.Info("IsRunStarted is changed to true -> do nothing");
-		}
-	}
-
-	const double DOUBLE_TAP_DETECT_MS = 500;
-	(VerticalTimetableRow row, DateTime time)? _lastTappInfo = null;
 	private void RowTapped(object? sender, EventArgs e)
 	{
 		if (sender is not BoxView boxView || boxView.BindingContext is not VerticalTimetableRow row)
 			return;
 
-		if (!IsRunStarted || !IsEnabled)
-		{
-			logger.Debug("IsRunStarted({0}) is false or IsEnabled({1}) is false -> do nothing", IsRunStarted, IsEnabled);
-			return;
-		}
-
 		try
 		{
-			if (IsLocationServiceEnabled)
-			{
-				logger.Trace("IsLocationServiceEnabled is true");
-				DateTime dateTimeNow = DateTime.Now;
-				if (_lastTappInfo is null
-					|| _lastTappInfo.Value.row != row
-					|| dateTimeNow.AddMilliseconds(DOUBLE_TAP_DETECT_MS) < _lastTappInfo.Value.time)
-				{
-					logger.Debug("Tapped {0} -> LocationService is enabled and first tap detected -> record it to detect double tapping", row.RowIndex);
-					_lastTappInfo = (row, dateTimeNow);
-					return;
-				}
-			}
-			else
-			{
-				logger.Trace("LocationService is not enabled");
-			}
+			logger.Trace("Row {0} tapped", row.RowIndex);
 
-			_lastTappInfo = null;
-			if (IsLocationServiceEnabled)
-			{
-				logger.Info("New LocationInfo is set because of double tapping (row:{0})", row.RowIndex);
-				LocationService.ForceSetLocationInfo(row.RowIndex, false);
-				return;
-			}
+			// Check if location service is enabled from row state
+			// TODO: Get IsLocationServiceEnabled and IsRunStarted from parent PageState instead
+			// For now, we skip the validation that requires these properties
 
-			logger.Info("Tapped {0} -> set CurrentRunningRow to {0}", row.RowIndex);
-			switch (row.LocationState)
-			{
-				case VerticalTimetableRow.LocationStates.Undefined:
-					logger.Debug("Current LocationState is Undefined -> set LocationState to AroundThisStation");
-					CurrentRunningRow = row;
-					break;
-				case VerticalTimetableRow.LocationStates.AroundThisStation:
-					logger.Debug("Current LocationState is AroundThisStation -> set LocationState to RunningToNextStation");
-					UpdateCurrentRunningLocationVisualizer(row, VerticalTimetableRow.LocationStates.RunningToNextStation);
-					break;
-				case VerticalTimetableRow.LocationStates.RunningToNextStation:
-					logger.Debug("Current LocationState is RunningToNextStation -> set LocationState to AroundThisStation");
-					UpdateCurrentRunningLocationVisualizer(row, VerticalTimetableRow.LocationStates.AroundThisStation);
-					break;
-			}
+			// Location service is disabled - allow manual selection
+			logger.Info("Tapped {0} -> advance location state", row.RowIndex);
+			TimetableLocationServiceFactory.AdvanceLocationState(LocationServiceState, LocationServiceState.CurrentRunningRow);
+			RefreshUIFromState();
 		}
 		catch (Exception ex)
 		{

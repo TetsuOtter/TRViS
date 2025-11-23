@@ -1,6 +1,7 @@
 using DependencyPropertyGenerator;
 
 using TRViS.Controls;
+using TRViS.DTAC.Logic;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ValueConverters;
@@ -8,8 +9,8 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<TrainData>("SelectedTrainData")]
-[DependencyProperty<string>("AffectDate")]
+// [DependencyProperty<TrainData>("SelectedTrainData")]
+// [DependencyProperty<string>("AffectDate")]
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
@@ -39,31 +40,32 @@ public partial class VerticalStylePage : ContentView
 
 	DTACViewHostViewModel DTACViewHostViewModel { get; }
 	TrainData? CurrentShowingTrainData { get; set; }
+	VerticalPageState PageState { get; set; } = VerticalPageStateFactory.CreateEmptyState();
 
 	public VerticalStylePage()
 	{
 		logger.Trace("Creating...");
 
 		DTACViewHostViewModel = InstanceManager.DTACViewHostViewModel;
-		DTACViewHostViewModel.PropertyChanged += (_, e) =>
-		{
-			try
-			{
-				switch (e.PropertyName)
-				{
-					case nameof(DTACViewHostViewModel.IsViewHostVisible):
-					case nameof(DTACViewHostViewModel.IsVerticalViewMode):
-						OnSelectedTrainDataChanged(SelectedTrainData);
-						break;
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.DTACViewHostViewModel.PropertyChanged");
-				Utils.ExitWithAlert(ex);
-			}
-		};
+		// DTACViewHostViewModel.PropertyChanged += (_, e) =>
+		// {
+		// 	try
+		// 	{
+		// 		switch (e.PropertyName)
+		// 		{
+		// 			case nameof(DTACViewHostViewModel.IsViewHostVisible):
+		// 			case nameof(DTACViewHostViewModel.IsVerticalViewMode):
+		// 				OnSelectedTrainDataChanged(SelectedTrainData);
+		// 				break;
+		// 		}
+		// 	}
+		// 	catch (Exception ex)
+		// 	{
+		// 		logger.Fatal(ex, "Unknown Exception");
+		// 		InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.DTACViewHostViewModel.PropertyChanged");
+		// 		Utils.ExitWithAlert(ex);
+		// 	}
+		// };
 
 		InitializeComponent();
 
@@ -97,11 +99,11 @@ public partial class VerticalStylePage : ContentView
 			OnMayChangeDebugMapVisible();
 		};
 
-		TimetableView.IsLocationServiceEnabledChanged += (_, e) =>
-		{
-			logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
-			PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
-		};
+		// InstanceManager.LocationService.LocationStateChanged += (_, e) =>
+		// {
+		// 	logger.Debug("LocationStateChanged forwarded to TimetableView: Index[{0}]", e.NewStationIndex);
+		// 	TimetableView.OnLocationServiceStateChanged(e);
+		// };
 
 		InstanceManager.LocationService.OnGpsLocationUpdated += (_, e) =>
 		{
@@ -110,7 +112,21 @@ public partial class VerticalStylePage : ContentView
 				return;
 			}
 			logger.Debug("OnGpsLocationUpdated: {0}", e);
-			DebugMap.SetCurrentLocation(e.Latitude, e.Longitude, e.Accuracy ?? 20);
+
+			// Update state with GPS location
+			VerticalPageStateFactory.UpdateGpsLocation(
+				PageState.LocationServiceState,
+				latitude: e.Latitude,
+				longitude: e.Longitude,
+				accuracy: e.Accuracy
+			);
+
+			// Use updated state
+			DebugMap.SetCurrentLocation(
+				PageState.LocationServiceState.CurrentLatitude ?? 0,
+				PageState.LocationServiceState.CurrentLongitude ?? 0,
+				PageState.LocationServiceState.CurrentAccuracy ?? 20
+			);
 		};
 
 		OnMayChangeDebugMapVisible();
@@ -125,52 +141,6 @@ public partial class VerticalStylePage : ContentView
 			};
 			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);
 		}
-
-		TimetableView.IsBusyChanged += (s, _) =>
-		{
-			if (s is not VerticalTimetableView v)
-				return;
-
-			logger.Info("IsBusyChanged: {0}", v.IsBusy);
-
-			try
-			{
-				if (v.IsBusy)
-				{
-					TimetableViewActivityIndicatorBorder.IsVisible = true;
-					TimetableViewActivityIndicatorBorder.FadeTo(TimetableViewActivityIndicatorBorderMaxOpacity);
-				}
-				else
-					TimetableViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
-					{
-						logger.Debug("TimetableViewActivityIndicatorBorder.FadeTo(0) completed");
-						TimetableViewActivityIndicatorBorder.IsVisible = false;
-					});
-
-				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
-				if (Content is ScrollView sv)
-				{
-					double heightRequest = CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, TimetableView.HeightRequest);
-					logger.Debug("set full-scrollable-ScrollView.HeightRequest -> Max(this.HeightRequest: {0}, heightRequest: {1})", this.HeightRequest, heightRequest);
-					sv.Content.HeightRequest = Math.Max(this.Height, heightRequest);
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.TimetableView.IsBusyChanged");
-				Utils.ExitWithAlert(ex);
-			}
-		};
-
-		TimetableView.IgnoreSafeArea = false;
-		TimetableView.VerticalOptions = LayoutOptions.Start;
-
-		PageHeaderArea.IsRunningChanged += (_, e) =>
-		{
-			logger.Info("IsRunningChanged: {0}", e.NewValue);
-			TimetableView.IsRunStarted = e.NewValue;
-		};
 
 		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
 
@@ -196,15 +166,7 @@ public partial class VerticalStylePage : ContentView
 			};
 		}
 
-		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
-		TimetableView.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
-
-		TimetableView.CanUseLocationServiceChanged += (_, canUseLocationService) =>
-		{
-			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
-			PageHeaderArea.CanUseLocationService = canUseLocationService;
-		};
-		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
+		// PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 
 		MaxSpeedLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 		SpeedTypeLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
@@ -214,67 +176,102 @@ public partial class VerticalStylePage : ContentView
 		logger.Trace("Created");
 	}
 
-	private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
+	// private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
+	// {
+	// 	logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
+
+	// 	// Update state for location service
+	// 	VerticalPageStateFactory.UpdateLocationServiceEnabledState(
+	// 		PageState,
+	// 		isEnabled: e.NewValue
+	// 	);
+
+	// 	// Apply to UI from state
+	// 	PageHeaderArea.IsLocationServiceEnabled = PageState.PageHeaderState.IsLocationServiceEnabled;
+	// 	DebugMap?.SetIsLocationServiceEnabled(PageState.LocationServiceState.IsEnabled);
+	// }
+
+	// partial void OnSelectedTrainDataChanged(TrainData? newValue)
+	// {
+	// 	if (CurrentShowingTrainData == newValue)
+	// 	{
+	// 		logger.Debug("CurrentShowingTrainData == newValue -> do nothing");
+	// 		return;
+	// 	}
+	// 	if (!DTACViewHostViewModel.IsViewHostVisible || !DTACViewHostViewModel.IsVerticalViewMode)
+	// 	{
+	// 		logger.Debug("IsViewHostVisible: {0}, IsVerticalViewMode: {1} -> lazy load",
+	// 			DTACViewHostViewModel.IsViewHostVisible,
+	// 			DTACViewHostViewModel.IsVerticalViewMode
+	// 		);
+	// 		return;
+	// 	}
+
+	// 	try
+	// 	{
+	// 		VerticalTimetableView_ScrollRequested(this, new(0));
+	// 		CurrentShowingTrainData = newValue;
+	// 		logger.Info("SelectedTrainDataChanged: {0}", newValue);
+
+	// 		// Create page state from train data using factory
+	// 		PageState = VerticalPageStateFactory.CreateStateFromTrainData(
+	// 			trainData: newValue,
+	// 			affectDate: AffectDate,
+	// 			isLocationServiceEnabled: PageHeaderArea.IsLocationServiceEnabled,
+	// 			pageHeight: this.Height,
+	// 			contentOtherThanTimetableHeight: CONTENT_OTHER_THAN_TIMETABLE_HEIGHT,
+	// 			isPhoneIdiom: DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown
+	// 		);
+
+	// 		// Apply state to UI
+	// 		ApplyPageState(PageState);
+
+	// 		// Initialize TimetableView with train data
+	// 		// This sets up location service state and row views
+	// 		TimetableView.InitializeWithTrainData(newValue);
+
+	// 		// Non-state operations
+	// 		BindingContext = newValue;
+	// 		MainThread.BeginInvokeOnMainThread(() =>
+	// 		{
+	// 			DebugMap?.SetTimetableRowList(newValue?.Rows);
+	// 		});
+	// 		PageHeaderArea.IsRunning = false;
+	// 		InstanceManager.DTACMarkerViewModel.IsToggled = false;
+	// 	}
+	// 	catch (Exception ex)
+	// 	{
+	// 		logger.Fatal(ex, "Unknown Exception");
+	// 		InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.OnSelectedTrainDataChanged");
+	// 		Utils.ExitWithAlert(ex);
+	// 	}
+	// }
+
+	private void ApplyPageState(VerticalPageState state)
 	{
-		logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
-		PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
-		TimetableView.IsLocationServiceEnabled = e.NewValue;
-		DebugMap?.SetIsLocationServiceEnabled(e.NewValue);
+		logger.Debug("Applying page state");
+
+		// Apply destination state
+		DestinationLabel.IsVisible = state.Destination.IsVisible;
+		DestinationLabel.Text = state.Destination.Text;
+
+		// Apply train display info
+		MaxSpeedLabel.Text = ToWideConverter.Convert(state.TrainDisplayInfo.MaxSpeed);
+		SpeedTypeLabel.Text = ToWideConverter.Convert(state.TrainDisplayInfo.SpeedType);
+		NominalTractiveCapacityLabel.Text = ToWideConverter.Convert(state.TrainDisplayInfo.NominalTractiveCapacity);
+		TrainInfo_BeforeDepartureArea.TrainInfoText = state.TrainInfoAreaState.TrainInfoText;
+		TrainInfo_BeforeDepartureArea.BeforeDepartureText = state.TrainInfoAreaState.BeforeDepartureText;
+		BeginRemarksLabel.Text = state.TrainDisplayInfo.BeginRemarks;
+
+		// Apply next day indicator state
+		IsNextDayLabel.IsVisible = state.NextDayIndicatorState.IsVisible;
+
+		// Apply location service state
+		PageHeaderArea.CanUseLocationService = state.PageHeaderState.CanUseLocationService;
 	}
 
-	partial void OnSelectedTrainDataChanged(TrainData? newValue)
-	{
-		if (CurrentShowingTrainData == newValue)
-		{
-			logger.Debug("CurrentShowingTrainData == newValue -> do nothing");
-			return;
-		}
-		if (!DTACViewHostViewModel.IsViewHostVisible || !DTACViewHostViewModel.IsVerticalViewMode)
-		{
-			logger.Debug("IsViewHostVisible: {0}, IsVerticalViewMode: {1} -> lazy load",
-				DTACViewHostViewModel.IsViewHostVisible,
-				DTACViewHostViewModel.IsVerticalViewMode
-			);
-			return;
-		}
-
-		try
-		{
-			VerticalTimetableView_ScrollRequested(this, new(0));
-			CurrentShowingTrainData = newValue;
-			logger.Info("SelectedTrainDataChanged: {0}", newValue);
-			BindingContext = newValue;
-			TimetableView.SelectedTrainData = newValue;
-			MainThread.BeginInvokeOnMainThread(() =>
-			{
-				DebugMap?.SetTimetableRowList(newValue?.Rows);
-			});
-			PageHeaderArea.IsRunning = false;
-			InstanceManager.DTACMarkerViewModel.IsToggled = false;
-
-			MaxSpeedLabel.Text = ToWideConverter.Convert(newValue?.MaxSpeed);
-			SpeedTypeLabel.Text = ToWideConverter.Convert(newValue?.SpeedType);
-			NominalTractiveCapacityLabel.Text = ToWideConverter.Convert(newValue?.NominalTractiveCapacity);
-			TrainInfo_BeforeDepartureArea.TrainInfoText = newValue?.TrainInfo ?? "";
-			TrainInfo_BeforeDepartureArea.BeforeDepartureText = newValue?.BeforeDeparture ?? "";
-
-			BeginRemarksLabel.Text = newValue?.BeginRemarks ?? "";
-
-			SetDestinationString(newValue?.Destination);
-
-			int dayCount = newValue?.DayCount ?? 0;
-			this.IsNextDayLabel.IsVisible = dayCount > 0;
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.OnSelectedTrainDataChanged");
-			Utils.ExitWithAlert(ex);
-		}
-	}
-
-	partial void OnAffectDateChanged(string? newValue)
-	 => PageHeaderArea.AffectDateLabelText = newValue ?? "";
+	// partial void OnAffectDateChanged(string? newValue)
+	//  => PageHeaderArea.AffectDateLabelText = newValue ?? "";
 
 	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
 	{
@@ -295,6 +292,13 @@ public partial class VerticalStylePage : ContentView
 	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
 	{
 		bool isToOpen = e.NewValue;
+
+		// Update state to reflect animation starting
+		VerticalPageStateFactory.UpdateTrainInfoAreaOpenCloseState(
+			PageState.TrainInfoAreaState,
+			isToOpen: isToOpen
+		);
+
 		(double start, double end) = isToOpen
 			? (TrainInfo_BeforeDepature_RowDefinition.Height.Value, TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT)
 			: (TrainInfo_BeforeDepature_RowDefinition.Height.Value, 0d);
@@ -320,6 +324,7 @@ public partial class VerticalStylePage : ContentView
 				}
 				TrainInfo_BeforeDepature_RowDefinition.Height = v;
 				TrainInfo_BeforeDepartureArea.HeightRequest = v;
+				PageState.TrainInfoAreaState.CurrentHeight = v;
 				logger.Trace("v: {0}", v);
 			},
 			start,
@@ -331,14 +336,23 @@ public partial class VerticalStylePage : ContentView
 				DateAndStartButton_AnimationName,
 				finished: (_, canceled) =>
 				{
-					if (!isToOpen && !canceled)
+					if (!canceled)
 					{
-						logger.Debug("Animation Successfully finished to close");
-						TrainInfo_BeforeDepartureArea.IsVisible = false;
-					}
-					else
-					{
-						logger.Debug("Animation Successfully finished to open or canceled");
+						// Update state to reflect animation completion
+						VerticalPageStateFactory.CompleteTrainInfoAreaAnimation(
+							PageState.TrainInfoAreaState,
+							wasOpenAnimation: isToOpen
+						);
+
+						if (!isToOpen)
+						{
+							logger.Debug("Animation Successfully finished to close");
+							TrainInfo_BeforeDepartureArea.IsVisible = PageState.TrainInfoAreaState.IsVisible;
+						}
+						else
+						{
+							logger.Debug("Animation Successfully finished to open");
+						}
 					}
 				}
 			);
@@ -369,8 +383,17 @@ public partial class VerticalStylePage : ContentView
 	{
 		bool isEnabled = InstanceManager.EasterEggPageViewModel.ShowMapWhenLandscape;
 		bool isLandscape = DeviceDisplay.Current.MainDisplayInfo.Orientation == DisplayOrientation.Landscape;
-		bool isVisible = isEnabled && isLandscape;
+
+		// Update state with debug map visibility logic
+		VerticalPageStateFactory.UpdateDebugMapState(
+			PageState.DebugMapState,
+			isEasterEggEnabled: isEnabled,
+			isLandscape: isLandscape
+		);
+
+		bool isVisible = PageState.DebugMapState.IsVisible;
 		logger.Debug("isEnabled: {0}, isLandscape: {1}, isVisible: {2}", isEnabled, isLandscape, isVisible);
+
 		if (isVisible)
 		{
 			if (DebugMap is not null)
@@ -383,7 +406,7 @@ public partial class VerticalStylePage : ContentView
 			if (DebugMap is not null)
 			{
 				DebugMap.IsEnabled = false;
-				DebugMapColumnDefinition.Width = new(0);
+				DebugMapColumnDefinition.Width = new(PageState.DebugMapState.ColumnWidth);
 				MainColumnDefinition.Width = new(1, GridUnitType.Star);
 				MainGrid.Remove(DebugMap);
 				DebugMap = null;
@@ -391,8 +414,9 @@ public partial class VerticalStylePage : ContentView
 			}
 			return;
 		}
+
 		DebugMap = new MyMap();
-		DebugMap.SetTimetableRowList(TimetableView.SelectedTrainData?.Rows);
+		DebugMap.SetTimetableRowList(CurrentShowingTrainData?.Rows);
 		DebugMap.SetIsLocationServiceEnabled(PageHeaderArea.IsLocationServiceEnabled);
 		double mainWidth = 768;
 		MainColumnDefinition.Width = new(mainWidth);
