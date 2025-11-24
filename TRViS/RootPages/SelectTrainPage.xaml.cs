@@ -1,5 +1,3 @@
-using CommunityToolkit.Maui.Views;
-
 using TRViS.IO;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -51,12 +49,14 @@ public partial class SelectTrainPage : ContentPage
 
 		try
 		{
-			await this.ShowPopupAsync(new SelectOnlineResourcePopup());
+			var popup = new SelectOnlineResourcePopup();
+			popup.OnOpened();
+			await Navigation.PushModalAsync(popup);
 		}
 		catch (Exception ex)
 		{
-			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.LoadFromWebButton_Clicked (ShowPopupAsync failed)");
-			logger.Error(ex, "ShowPopupAsync failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.LoadFromWebButton_Clicked (PushModalAsync failed)");
+			logger.Error(ex, "PushModalAsync failed");
 			await Utils.DisplayAlert(this, "Open Popup Failed", ex.ToString(), "OK");
 		}
 

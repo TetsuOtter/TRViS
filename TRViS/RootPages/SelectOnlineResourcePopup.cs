@@ -1,11 +1,9 @@
-using CommunityToolkit.Maui.Views;
-
 using TRViS.IO.RequestInfo;
 using TRViS.Services;
 
 namespace TRViS.RootPages;
 
-public class SelectOnlineResourcePopup : Popup
+public class SelectOnlineResourcePopup : ContentPage
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
@@ -59,12 +57,9 @@ public class SelectOnlineResourcePopup : Popup
 	public SelectOnlineResourcePopup()
 	{
 		logger.Debug("New SelectOnlineResourcePopup()");
-		Size = new(480, 480);
-		RootStyles.BackgroundColor.Apply(this, Popup.ColorProperty);
-#if WINDOWS
-		// 別ウィンドウを開くだけでも閉じてしまうため
-		CanBeDismissedByTappingOutsideOfPopup = false;
-#endif
+
+		RootStyles.BackgroundColor.Apply(this, BackgroundColorProperty);
+		Padding = new(8);
 
 		RootStyles.BackgroundBlackWhite.Apply(UrlInput, Button.BackgroundColorProperty);
 		RootStyles.TableTextColor.Apply(UrlInput, Button.TextColorProperty);
@@ -103,7 +98,7 @@ public class SelectOnlineResourcePopup : Popup
 			Padding = new(8),
 		};
 
-		CloseButton.Clicked += (s, e) => CloseAsync();
+		CloseButton.Clicked += async (s, e) => await Close();
 
 		Command DoLoadCommand = new(DoLoad);
 		UrlInput.ReturnCommand = DoLoadCommand;
@@ -132,18 +127,9 @@ public class SelectOnlineResourcePopup : Popup
 		grid.Add(AdviceLabel, row: 3);
 		grid.Add(LoadButton, column: 1, row: 3);
 		grid.Add(LoadingIndicator, column: 1, row: 3);
+		RootStyles.BackgroundColor.Apply(grid, Grid.BackgroundColorProperty);
 
 		Content = grid;
-
-		Opened += (_, _) =>
-		{
-			logger.Debug("SelectOnlineResourcePopup.Opened");
-			UrlHistoryListView.ItemsSource = InstanceManager.AppViewModel.ExternalResourceUrlHistory.Reverse();
-		};
-		Closed += (_, _) =>
-		{
-			logger.Debug("SelectOnlineResourcePopup.Closed");
-		};
 
 		logger.Debug("initialize completed");
 	}
@@ -181,7 +167,7 @@ public class SelectOnlineResourcePopup : Popup
 			bool execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, CancellationToken.None);
 			if (execResult)
 			{
-				await CloseAsync();
+				await Close();
 				return;
 			}
 		}
@@ -193,5 +179,20 @@ public class SelectOnlineResourcePopup : Popup
 		{
 			setInputIsEnabled(true);
 		}
+	}
+
+	private async Task Close()
+	{
+		logger.Debug("SelectOnlineResourcePopup.Closing");
+		await Navigation.PopModalAsync();
+	}
+
+	internal void OnOpened()
+	{
+		logger.Debug("SelectOnlineResourcePopup.Opened");
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			UrlHistoryListView.ItemsSource = InstanceManager.AppViewModel.ExternalResourceUrlHistory.Reverse();
+		});
 	}
 }
