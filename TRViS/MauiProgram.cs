@@ -1,5 +1,3 @@
-using CommunityToolkit.Maui;
-
 using Microsoft.Maui.LifecycleEvents;
 
 using NLog;
@@ -31,7 +29,6 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
-			.UseMauiCommunityToolkit()
 #if IOS
 			.ConfigureMauiHandlers(static handlers =>
 			{

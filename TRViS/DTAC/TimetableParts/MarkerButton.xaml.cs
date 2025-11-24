@@ -1,7 +1,6 @@
-using CommunityToolkit.Maui.Views;
-
 using TRViS.Services;
 using TRViS.ViewModels;
+using TR.Maui.AnchorPopover;
 
 namespace TRViS.DTAC;
 
@@ -24,12 +23,6 @@ public partial class MarkerButton : Border
 	{
 		try
 		{
-			if (Shell.Current.CurrentPage is not ViewHost page)
-			{
-				logger.Warn("Shell.Current.CurrentPage is not ViewHost");
-				return;
-			}
-
 			if (MarkerSettings.IsToggled)
 			{
 				logger.Info("MarkerSettings.IsToggled set true -> false");
@@ -39,13 +32,19 @@ public partial class MarkerButton : Border
 
 			MarkerSettings.IsToggled = true;
 
-			SelectMarkerPopup popup = new(MarkerSettings)
+			SelectMarkerPopup popup = new(MarkerSettings);
+			var popover = AnchorPopover.Create();
+			popup.SetPopover(popover);
+
+			var options = new PopoverOptions
 			{
-				Anchor = this,
+				PreferredWidth = 240,
+				PreferredHeight = 360,
+				DismissOnTapOutside = true
 			};
 
 			logger.Info("Showing SelectMarkerPopup");
-			await page.ShowPopupAsync(popup);
+			await popover.ShowAsync(popup, this, options);
 			logger.Trace("SelectMarkerPopup Shown");
 		}
 		catch (Exception ex)

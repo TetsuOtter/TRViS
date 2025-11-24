@@ -65,7 +65,7 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="9.0.70" />
+			Version="9.0.120" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.4.0" />
@@ -78,8 +78,8 @@
 			Include="System.Text.Json"
 			Version="9.0.5" />
 		<PackageReference
-			Include="CommunityToolkit.Maui"
-			Version="11.2.0" />
+			Include="TR.Maui.AnchorPopover"
+			Version="1.0.0.2" />
 		<PackageReference
 			Include="NLog"
 			Version="5.4.0" />

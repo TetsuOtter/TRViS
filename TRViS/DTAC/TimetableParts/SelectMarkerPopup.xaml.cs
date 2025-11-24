@@ -1,13 +1,14 @@
-using CommunityToolkit.Maui.Views;
-
 using TRViS.Services;
 using TRViS.ViewModels;
+using TR.Maui.AnchorPopover;
 
 namespace TRViS.DTAC;
 
-public partial class SelectMarkerPopup : Popup
+public partial class SelectMarkerPopup : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+	private IAnchorPopover? _popover;
+
 	public SelectMarkerPopup() : this(InstanceManager.DTACMarkerViewModel) { }
 
 	public SelectMarkerPopup(DTACMarkerViewModel viewModel)
@@ -18,7 +19,7 @@ public partial class SelectMarkerPopup : Popup
 
 		InitializeComponent();
 
-		DTACElementStyles.DefaultBGColor.Apply(this, ColorProperty);
+		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
 		logger.Trace("Created");
 	}
@@ -27,8 +28,16 @@ public partial class SelectMarkerPopup : Popup
 	{
 		logger.Trace("Closing...");
 
-		await CloseAsync();
+		if (_popover != null)
+		{
+			await _popover.DismissAsync();
+		}
 
 		logger.Trace("Closed");
+	}
+
+	internal void SetPopover(IAnchorPopover popover)
+	{
+		_popover = popover;
 	}
 }
