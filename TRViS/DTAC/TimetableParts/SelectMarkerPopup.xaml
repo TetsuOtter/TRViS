@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<xct:Popup
+<ContentView
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:xct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
 	xmlns:local="clr-namespace:TRViS.DTAC"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
 	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
 	x:Class="TRViS.DTAC.SelectMarkerPopup"
-	x:DataType="vm:DTACMarkerViewModel"
-	VerticalOptions="Center"
-	HorizontalOptions="End"
-	Size="240,360">
+	x:DataType="vm:DTACMarkerViewModel">
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -77,4 +73,4 @@
 			</Border>
 		</HorizontalStackLayout>
 	</Grid>
-</xct:Popup>
+</ContentView>
