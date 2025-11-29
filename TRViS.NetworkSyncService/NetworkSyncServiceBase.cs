@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+using NLog;
+
 using TRViS.Services;
 
 namespace TRViS.NetworkSyncService;
@@ -12,6 +14,8 @@ namespace TRViS.NetworkSyncService;
 /// </summary>
 public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 {
+	private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
 	public bool IsEnabled { get; set; }
 	private bool _CanUseService = false;
 	public bool CanUseService
@@ -95,10 +99,6 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 
 	protected bool _IsDisposed;
 
-	protected NetworkSyncServiceBase()
-	{
-	}
-
 	/// <summary>
 	/// Get the latest synced data from the service
 	/// </summary>
@@ -135,12 +135,14 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	/// </summary>
 	protected void ProcessSyncedData(SyncedData syncedData)
 	{
+		Logger.Debug("ProcessSyncedData: Location_m={0}, Time_ms={1}, CanStart={2}", syncedData.Location_m, syncedData.Time_ms, syncedData.CanStart);
 		UpdateCurrentStationWithLocation(syncedData.Location_m);
 
 		int currentTime_s = (int)(syncedData.Time_ms / 1000);
 		if (CurrentTime_s != currentTime_s)
 		{
 			CurrentTime_s = currentTime_s;
+			Logger.Debug("TimeChanged: {0} -> {1}", currentTime_s, CurrentTime_s);
 			TimeChanged?.Invoke(this, CurrentTime_s);
 		}
 
@@ -195,12 +197,14 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 
 	protected void RaiseTimetableUpdated(TimetableData timetableData)
 	{
+		Logger.Info("RaiseTimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}", timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
 		// 時刻表の変更スコープに応じて、表示継続可能か判定する
 		bool canContinue = CanContinueCurrentTimetable(timetableData);
 
 		if (!canContinue)
 		{
 			// 表示継続不可の場合は初期状態に戻す
+			Logger.Warn("RaiseTimetableUpdated: Cannot continue current timetable, resetting location info");
 			ResetLocationInfo();
 		}
 

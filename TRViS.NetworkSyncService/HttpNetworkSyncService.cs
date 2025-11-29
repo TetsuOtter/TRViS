@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
+using NLog;
+
 namespace TRViS.NetworkSyncService;
 
 /// <summary>
@@ -15,6 +17,8 @@ namespace TRViS.NetworkSyncService;
 /// </summary>
 public class HttpNetworkSyncService : NetworkSyncServiceBase
 {
+	private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
 	private const string WORK_GROUP_ID_QUERY_KEY = "workgroup";
 	private const string WORK_ID_QUERY_KEY = "work";
 	private const string TRAIN_ID_QUERY_KEY = "train";
@@ -34,20 +38,24 @@ public class HttpNetworkSyncService : NetworkSyncServiceBase
 		_HttpClient = httpClient;
 		BaseQuery = HttpUtility.ParseQueryString(uri.Query);
 		_NextUri = uri;
+		Logger.Info("HttpNetworkSyncService created with URI: {0}", uri);
 	}
 
 	protected override void OnWorkGroupIdChanged(string? value)
 	{
+		Logger.Debug("OnWorkGroupIdChanged: {0}", value);
 		UpdateNextUri();
 	}
 
 	protected override void OnWorkIdChanged(string? value)
 	{
+		Logger.Debug("OnWorkIdChanged: {0}", value);
 		UpdateNextUri();
 	}
 
 	protected override void OnTrainIdChanged(string? value)
 	{
+		Logger.Debug("OnTrainIdChanged: {0}", value);
 		UpdateNextUri();
 	}
 
@@ -80,11 +88,12 @@ public class HttpNetworkSyncService : NetworkSyncServiceBase
 
 	protected override async Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
 	{
+		Logger.Debug("GetSyncedDataAsync: Requesting from {0}", _NextUri);
 		using HttpResponseMessage response = await _HttpClient.GetAsync(_NextUri, token);
 		// 接続に失敗等しない限り、成功として扱う
-		// (ログ出力は今後検討)
 		if (!response.IsSuccessStatusCode)
 		{
+			Logger.Warn("GetSyncedDataAsync: HTTP request failed with status code: {0}", response.StatusCode);
 			return new(
 				Location_m: double.NaN,
 				Time_ms: (long)DateTime.Now.TimeOfDay.TotalMilliseconds,
@@ -95,6 +104,7 @@ public class HttpNetworkSyncService : NetworkSyncServiceBase
 		using JsonDocument? json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(), cancellationToken: token);
 		if (json is null)
 		{
+			Logger.Error("GetSyncedDataAsync: Failed to parse JSON response");
 			return new(
 				Location_m: double.NaN,
 				Time_ms: (long)DateTime.Now.TimeOfDay.TotalMilliseconds,

@@ -7,6 +7,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
+using NLog;
+
 using TRViS.IO;
 using TRViS.IO.Models;
 
@@ -17,6 +19,8 @@ namespace TRViS.NetworkSyncService;
 /// </summary>
 public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 {
+	private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
 	// SyncedDataメッセージのJSONキー
 	private const string LOCATION_M_JSON_KEY = "Location_m";
 	private const string TIME_MS_JSON_KEY = "Time_ms";
@@ -58,14 +62,20 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	{
 		_Uri = uri;
 		_WebSocket = webSocket;
+		logger.Info("WebSocketNetworkSyncService created with URI: {0}", uri);
 	}
 
 	public async Task ConnectAsync(CancellationToken cancellationToken)
 	{
 		if (_WebSocket.State == WebSocketState.Open)
+		{
+			logger.Warn("ConnectAsync: WebSocket is already open");
 			return;
+		}
 
+		logger.Info("ConnectAsync: Connecting to {0}", _Uri);
 		await _WebSocket.ConnectAsync(_Uri, cancellationToken);
+		logger.Info("ConnectAsync: Connected successfully");
 		StartReceiveLoop();
 	}
 
@@ -94,6 +104,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 				if (result.MessageType == WebSocketMessageType.Close)
 				{
+					logger.Info("ReceiveLoopAsync: Received Close message from server");
 					await _WebSocket.CloseAsync(
 						WebSocketCloseStatus.NormalClosure,
 						"Closing",
@@ -106,6 +117,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				if (result.MessageType == WebSocketMessageType.Binary)
 				{
 					// Pongフレームの処理
+					logger.Debug("ReceiveLoopAsync: Received Pong frame");
 					lock (_PongLock)
 					{
 						_LastPongReceivedTime = DateTime.UtcNow;
@@ -121,6 +133,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					{
 						string message = messageBuilder.ToString();
 						messageBuilder.Clear();
+						logger.Debug("ReceiveLoopAsync: Received message: {0}", message);
 						ProcessMessage(message);
 					}
 				}
@@ -128,15 +141,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 		catch (OperationCanceledException)
 		{
+			logger.Info("ReceiveLoopAsync: Cancelled");
 			// Expected when cancellation is requested
 		}
-		catch (WebSocketException)
+		catch (WebSocketException ex)
 		{
+			logger.Error(ex, "ReceiveLoopAsync: WebSocket exception");
 			// Connection closed or error occurred
 		}
 		finally
 		{
 			// 接続が切断されたことを通知
+			logger.Info("ReceiveLoopAsync: Connection closed");
 			RaiseConnectionClosed();
 		}
 	}
@@ -147,7 +163,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		{
 			using JsonDocument? json = JsonDocument.Parse(message);
 			if (json is null)
+			{
+				logger.Warn("ProcessMessage: Failed to parse JSON");
 				return;
+			}
 
 			JsonElement root = json.RootElement;
 
@@ -159,6 +178,8 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			}
 			catch (KeyNotFoundException) { }
 
+			logger.Debug("ProcessMessage: Message type: {0}", messageType ?? "null");
+
 			if (messageType == MESSAGE_TYPE_SYNCED_DATA)
 			{
 				ProcessSyncedDataMessage(root);
@@ -168,8 +189,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				ProcessTimetableMessage(root);
 			}
 		}
-		catch (JsonException)
+		catch (JsonException ex)
 		{
+			logger.Error(ex, "ProcessMessage: Invalid JSON");
 			// Invalid JSON, ignore
 		}
 	}
@@ -342,23 +364,29 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 	protected override void OnWorkGroupIdChanged(string? value)
 	{
+		logger.Debug("OnWorkGroupIdChanged: {0}", value);
 		_ = SendIdUpdateAsync();
 	}
 
 	protected override void OnWorkIdChanged(string? value)
 	{
+		logger.Debug("OnWorkIdChanged: {0}", value);
 		_ = SendIdUpdateAsync();
 	}
 
 	protected override void OnTrainIdChanged(string? value)
 	{
+		logger.Debug("OnTrainIdChanged: {0}", value);
 		_ = SendIdUpdateAsync();
 	}
 
 	private async Task SendIdUpdateAsync()
 	{
 		if (_WebSocket.State != WebSocketState.Open)
+		{
+			logger.Warn("SendIdUpdateAsync: WebSocket is not open");
 			return;
+		}
 
 		try
 		{
@@ -371,6 +399,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				updateMessage[TRAIN_ID_JSON_KEY] = TrainId;
 
 			string json = JsonSerializer.Serialize(updateMessage);
+			logger.Debug("SendIdUpdateAsync: Sending ID update: {0}", json);
 			byte[] bytes = Encoding.UTF8.GetBytes(json);
 			await _WebSocket.SendAsync(
 				new ArraySegment<byte>(bytes),
@@ -379,8 +408,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				CancellationToken.None
 			);
 		}
-		catch (WebSocketException)
+		catch (WebSocketException ex)
 		{
+			logger.Error(ex, "SendIdUpdateAsync: WebSocket exception");
 			// Connection closed or error occurred
 		}
 	}
@@ -445,6 +475,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 				try
 				{
+					logger.Debug("PingLoopAsync: Sending Ping frame");
 					// Pingフレームを送信（制御フレーム）
 					await _WebSocket.SendAsync(
 						new ArraySegment<byte>(Array.Empty<byte>()),
@@ -453,14 +484,16 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 						cancellationToken
 					);
 				}
-				catch (WebSocketException)
+				catch (WebSocketException ex)
 				{
+					logger.Error(ex, "PingLoopAsync: Failed to send Ping");
 					// Ping送信に失敗したので接続を切断
 					await ForceDisconnectAsync();
 					break;
 				}
 				catch (OperationCanceledException)
 				{
+					logger.Info("PingLoopAsync: Cancelled");
 					// キャンセルされた場合
 					break;
 				}
@@ -475,6 +508,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				if (isPongTimeout)
 				{
 					// 30秒以内にPongが返ってこなかったので接続を切断
+					logger.Warn("PingLoopAsync: Pong timeout detected, disconnecting");
 					await ForceDisconnectAsync();
 					break;
 				}
@@ -482,16 +516,19 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 		catch (OperationCanceledException)
 		{
+			logger.Info("PingLoopAsync: Cancelled");
 			// Expected when cancellation is requested
 		}
-		catch (Exception)
+		catch (Exception ex)
 		{
+			logger.Error(ex, "PingLoopAsync: Unexpected exception");
 			await ForceDisconnectAsync();
 		}
 	}
 
 	private async Task ForceDisconnectAsync()
 	{
+		logger.Warn("ForceDisconnectAsync: Forcing disconnect");
 		try
 		{
 			if (_WebSocket.State == WebSocketState.Open)
@@ -503,8 +540,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				);
 			}
 		}
-		catch (WebSocketException)
+		catch (WebSocketException ex)
 		{
+			logger.Warn(ex, "ForceDisconnectAsync: WebSocket already closed");
 			// Already closed
 		}
 
@@ -514,6 +552,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 	public async Task DisconnectAsync(CancellationToken cancellationToken = default)
 	{
+		logger.Info("DisconnectAsync: Disconnecting");
 		_ReceiveLoopCts?.Cancel();
 		_PingLoopCts?.Cancel();
 
@@ -527,8 +566,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					cancellationToken
 				);
 			}
-			catch (WebSocketException)
+			catch (WebSocketException ex)
 			{
+				logger.Warn(ex, "DisconnectAsync: WebSocket exception");
 				// Already closed or error
 			}
 		}
@@ -541,6 +581,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			}
 			catch (OperationCanceledException)
 			{
+				logger.Debug("DisconnectAsync: ReceiveLoop cancelled");
 				// Expected
 			}
 		}
@@ -553,9 +594,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			}
 			catch (OperationCanceledException)
 			{
+				logger.Debug("DisconnectAsync: PingLoop cancelled");
 				// Expected
 			}
 		}
+		logger.Info("DisconnectAsync: Disconnected");
 	}
 
 	public override void Dispose()
@@ -563,6 +606,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		if (_IsDisposed)
 			return;
 
+		logger.Info("Dispose: Disposing WebSocketNetworkSyncService");
 		_IsDisposed = true;
 		_ReceiveLoopCts?.Cancel();
 		_ReceiveLoopCts?.Dispose();
