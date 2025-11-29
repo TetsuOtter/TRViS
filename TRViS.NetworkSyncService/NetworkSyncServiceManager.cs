@@ -1,14 +1,15 @@
 using System;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-using TRViS.NetworkSyncService.DataProviders;
 using TRViS.Services;
+using TRViS.NetworkSyncService.DataProviders;
 
 namespace TRViS.NetworkSyncService;
 
-public class NetworkSyncServiceManager : ILocationService
+public class NetworkSyncServiceManager : ILocationService, IDisposable
 {
 	public bool IsEnabled { get; set; }
 	private bool _CanUseService = false;
@@ -55,6 +56,8 @@ public class NetworkSyncServiceManager : ILocationService
 	public event EventHandler<int>? TimeChanged;
 
 	private readonly IDataProvider _DataProvider;
+	private bool _IsDisposed;
+
 	private NetworkSyncServiceManager(IDataProvider dataProvider)
 	{
 		_DataProvider = dataProvider;
@@ -70,6 +73,34 @@ public class NetworkSyncServiceManager : ILocationService
 		if (!preflight.IsSuccessStatusCode)
 			throw new InvalidOperationException("Failed to connect to the NetworkSyncService server.");
 		return new(new HttpDataProvider(uri, httpClient));
+	}
+
+	public static async Task<NetworkSyncServiceManager> CreateFromWebSocketAsync(Uri uri, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null)
+	{
+		cancellationToken ??= CancellationToken.None;
+		webSocket ??= new ClientWebSocket();
+
+		// ws:// または wss:// スキームを確認
+		if (uri.Scheme != "ws" && uri.Scheme != "wss")
+			throw new ArgumentException("URI must use ws:// or wss:// scheme for WebSocket connections.", nameof(uri));
+
+		WebSocketDataProvider provider = new(uri, webSocket);
+		await provider.ConnectAsync(cancellationToken.Value);
+
+		return new(provider);
+	}
+
+	public static async Task<NetworkSyncServiceManager> CreateAsync(Uri uri, HttpClient? httpClient = null, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null)
+	{
+		// スキームに基づいて適切なプロバイダーを選択
+		if (uri.Scheme == "ws" || uri.Scheme == "wss")
+		{
+			return await CreateFromWebSocketAsync(uri, webSocket, cancellationToken);
+		}
+		else
+		{
+			return await CreateFromUriAsync(uri, httpClient, cancellationToken);
+		}
 	}
 
 	public async Task TickAsync(CancellationToken? cancellationToken = null)
@@ -150,5 +181,18 @@ public class NetworkSyncServiceManager : ILocationService
 		CurrentStationIndex = 0;
 		IsRunningToNextStation = false;
 		LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
+	}
+
+	public void Dispose()
+	{
+		if (_IsDisposed)
+			return;
+
+		_IsDisposed = true;
+
+		if (_DataProvider is IDisposable disposable)
+		{
+			disposable.Dispose();
+		}
 	}
 }
