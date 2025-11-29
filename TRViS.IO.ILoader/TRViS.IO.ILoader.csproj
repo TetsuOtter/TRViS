@@ -6,4 +6,8 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="TRViS.JsonModels" Version="1.0.2" />
+	</ItemGroup>
+
 </Project>

@@ -12,6 +12,8 @@ using NLog;
 using TRViS.IO;
 using TRViS.IO.Models;
 
+using JsonModels = TRViS.JsonModels;
+
 namespace TRViS.NetworkSyncService;
 
 /// <summary>
@@ -56,11 +58,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const int RECONNECT_ATTEMPT_MAX = 3;  // 最大再接続試行回数
 	private const int RECONNECT_INTERVAL_MS = 5000;  // 再接続間隔（5秒）
 
+	// JSONデシリアライズ用のオプション
+	private static readonly JsonSerializerOptions JsonDeserializeOptions = new()
+	{
+		AllowTrailingCommas = true,
+		PropertyNameCaseInsensitive = true,
+	};
+
 	// ILoader実装用のキャッシュ
-	private readonly Dictionary<string, WorkGroup> _WorkGroupCache = new();
-	private readonly Dictionary<string, List<Work>> _WorkListCache = new();
-	private readonly Dictionary<string, TrainData> _TrainDataCache = new();
-	private readonly Dictionary<string, List<TrainData>> _TrainListByWorkIdCache = new();
+	private readonly Dictionary<string, WorkGroup> _WorkGroupCache = [];
+	private readonly Dictionary<string, List<Work>> _WorkListCache = [];
+	private readonly Dictionary<string, TrainData> _TrainDataCache = [];
+	private readonly Dictionary<string, List<TrainData>> _TrainListByWorkIdCache = [];
 
 	public WebSocketNetworkSyncService(Uri uri, ClientWebSocket webSocket)
 	{
@@ -330,23 +339,36 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					_TrainDataCache.Clear();
 					_TrainListByWorkIdCache.Clear();
 
-					// dataElementはWorkGroup[]の配列
-					if (dataElement.ValueKind == JsonValueKind.Array)
+					// JsonModelsを使ってデシリアライズ
+					try
 					{
-						foreach (JsonElement workGroupElement in dataElement.EnumerateArray())
+						var workGroups = JsonSerializer.Deserialize<JsonModels.WorkGroupData[]>(
+							timetableData.JsonData,
+							JsonDeserializeOptions
+						);
+
+						if (workGroups is not null)
 						{
-							ParseAndCacheWorkGroup(workGroupElement);
+							foreach (var workGroupData in workGroups)
+							{
+								CacheConvertedWorkGroup(workGroupData);
+							}
 						}
+					}
+					catch (JsonException ex)
+					{
+						logger.Error(ex, "CacheTimetableData: Failed to deserialize WorkGroup array");
 					}
 					break;
 				case TimetableScopeType.WorkGroup:
 					if (timetableData.WorkGroupId is not null)
 					{
 						// WorkGroupの情報をキャッシュ
-						var workGroup = new WorkGroup(
-							Id: timetableData.WorkGroupId,
-							Name: dataElement.TryGetProperty("Name", out var nameElem) ? nameElem.GetString() ?? "" : ""
+						var jsonModels = JsonSerializer.Deserialize<JsonModels.WorkGroupData>(
+							timetableData.JsonData,
+							JsonDeserializeOptions
 						);
+						var workGroup = JsonModelsConverter.ConvertWorkGroup(jsonModels!);
 						_WorkGroupCache[timetableData.WorkGroupId] = workGroup;
 					}
 					break;
@@ -355,14 +377,14 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					if (timetableData.WorkId is not null && timetableData.WorkGroupId is not null)
 					{
 						// Workの情報をキャッシュ
-						var work = new Work(
-							Id: timetableData.WorkId,
-							WorkGroupId: timetableData.WorkGroupId,
-							Name: dataElement.TryGetProperty("Name", out var workNameElem) ? workNameElem.GetString() ?? "" : ""
+						var jsonModels = JsonSerializer.Deserialize<JsonModels.WorkData>(
+							timetableData.JsonData,
+							JsonDeserializeOptions
 						);
+						var work = JsonModelsConverter.ConvertWork(jsonModels!, timetableData.WorkGroupId);
 
 						if (!_WorkListCache.ContainsKey(timetableData.WorkGroupId))
-							_WorkListCache[timetableData.WorkGroupId] = new List<Work>();
+							_WorkListCache[timetableData.WorkGroupId] = [];
 
 						// 既存のWorkを削除して追加（更新）
 						_WorkListCache[timetableData.WorkGroupId].RemoveAll(w => w.Id == timetableData.WorkId);
@@ -374,17 +396,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					if (timetableData.TrainId is not null)
 					{
 						// TrainDataの情報をキャッシュ
-						var trainData = new TrainData(
-							Id: timetableData.TrainId,
-							Direction: Direction.Outbound
+						var jsonModels = JsonSerializer.Deserialize<JsonModels.TrainData>(
+							timetableData.JsonData,
+							JsonDeserializeOptions
 						);
+						var trainData = JsonModelsConverter.ConvertTrain(jsonModels!);
 						_TrainDataCache[timetableData.TrainId] = trainData;
 
 						// WorkIdに紐づくTrainのリストにも追加
 						if (timetableData.WorkId is not null)
 						{
 							if (!_TrainListByWorkIdCache.ContainsKey(timetableData.WorkId))
-								_TrainListByWorkIdCache[timetableData.WorkId] = new List<TrainData>();
+								_TrainListByWorkIdCache[timetableData.WorkId] = [];
 
 							// 既存のTrainDataを削除して追加（更新）
 							_TrainListByWorkIdCache[timetableData.WorkId].RemoveAll(t => t.Id == timetableData.TrainId);
@@ -400,112 +423,77 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 	}
 
-	private void ParseAndCacheWorkGroup(JsonElement workGroupElement)
+	private void CacheConvertedWorkGroup(JsonModels.WorkGroupData workGroupData)
 	{
 		try
 		{
-			// WorkGroup情報を取得
-			if (!workGroupElement.TryGetProperty("Name", out var nameElem))
-				return;
-
-			string workGroupName = nameElem.GetString() ?? "";
-			string workGroupId = Guid.NewGuid().ToString();  // IDがない場合は新規生成
-
-			var workGroup = new WorkGroup(
-				Id: workGroupId,
-				Name: workGroupName
-			);
-			_WorkGroupCache[workGroupId] = workGroup;
-			logger.Debug("ParseAndCacheWorkGroup: Added WorkGroup {0} ({1})", workGroupId, workGroupName);
+			// JsonModelsConverterを使用してWorkGroupを変換
+			var workGroup = JsonModelsConverter.ConvertWorkGroup(workGroupData);
+			_WorkGroupCache[workGroup.Id] = workGroup;
+			logger.Debug("CacheConvertedWorkGroup: Added WorkGroup {0} ({1})", workGroup.Id, workGroup.Name);
 
 			// Works配列を処理
-			if (workGroupElement.TryGetProperty("Works", out var worksElement) && worksElement.ValueKind == JsonValueKind.Array)
+			if (workGroupData.Works is not null && workGroupData.Works.Length > 0)
 			{
-				foreach (JsonElement workElement in worksElement.EnumerateArray())
+				if (!_WorkListCache.ContainsKey(workGroup.Id))
+					_WorkListCache[workGroup.Id] = [];
+
+				foreach (var workData in workGroupData.Works)
 				{
-					ParseAndCacheWork(workElement, workGroupId);
+					CacheConvertedWork(workData, workGroup.Id);
 				}
 			}
 		}
-		catch (JsonException ex)
+		catch (Exception ex)
 		{
-			logger.Error(ex, "ParseAndCacheWorkGroup: Failed to parse WorkGroup");
+			logger.Error(ex, "CacheConvertedWorkGroup: Failed to process WorkGroup");
 		}
 	}
 
-	private void ParseAndCacheWork(JsonElement workElement, string workGroupId)
+	private void CacheConvertedWork(JsonModels.WorkData workData, string workGroupId)
 	{
 		try
 		{
-			// Work情報を取得
-			if (!workElement.TryGetProperty("Name", out var nameElem))
-				return;
-
-			string workName = nameElem.GetString() ?? "";
-			string workId = Guid.NewGuid().ToString();  // IDがない場合は新規生成
-
-			var work = new Work(
-				Id: workId,
-				WorkGroupId: workGroupId,
-				Name: workName
-			);
-
-			if (!_WorkListCache.ContainsKey(workGroupId))
-				_WorkListCache[workGroupId] = new List<Work>();
-
-			_WorkListCache[workGroupId].Add(work);
-			logger.Debug("ParseAndCacheWork: Added Work {0} ({1})", workId, workName);
-
-			// Trains配列を処理
-			if (workElement.TryGetProperty("Trains", out var trainsElement) && trainsElement.ValueKind == JsonValueKind.Array)
+			// JsonModelsConverterを使用してWorkを変換
+			var works = JsonModelsConverter.ConvertWorks(new[] { workData }, workGroupId);
+			if (works.Length > 0)
 			{
-				foreach (JsonElement trainElement in trainsElement.EnumerateArray())
+				var work = works[0];
+				_WorkListCache[workGroupId].Add(work);
+				logger.Debug("CacheConvertedWork: Added Work {0} ({1})", work.Id, work.Name);
+
+				// Trains配列を処理
+				if (workData.Trains is not null && workData.Trains.Length > 0)
 				{
-					ParseAndCacheTrain(trainElement, workId);
+					if (!_TrainListByWorkIdCache.ContainsKey(work.Id))
+						_TrainListByWorkIdCache[work.Id] = [];
+
+					foreach (var trainData in workData.Trains)
+					{
+						CacheConvertedTrain(trainData, work.Id);
+					}
 				}
 			}
 		}
-		catch (JsonException ex)
+		catch (Exception ex)
 		{
-			logger.Error(ex, "ParseAndCacheWork: Failed to parse Work");
+			logger.Error(ex, "CacheConvertedWork: Failed to process Work");
 		}
 	}
 
-	private void ParseAndCacheTrain(JsonElement trainElement, string workId)
+	private void CacheConvertedTrain(JsonModels.TrainData trainDataJson, string workId)
 	{
 		try
 		{
-			// Train情報を取得
-			if (!trainElement.TryGetProperty("TrainNumber", out var trainNumberElem))
-				return;
-
-			string trainNumber = trainNumberElem.GetString() ?? "";
-			string trainId = Guid.NewGuid().ToString();  // IDがない場合は新規生成
-
-			// Directionを取得
-			int direction = 0;
-			if (trainElement.TryGetProperty("Direction", out var directionElem))
-			{
-				direction = (int)directionElem.GetDouble();
-			}
-
-			var trainData = new TrainData(
-				Id: trainId,
-				Direction: (Direction)direction,
-				TrainNumber: trainNumber
-			);
-			_TrainDataCache[trainId] = trainData;
-			logger.Debug("ParseAndCacheTrain: Added Train {0} ({1})", trainId, trainNumber);
-
-			// WorkIdに紐づくTrainのリストにも追加
-			if (!_TrainListByWorkIdCache.ContainsKey(workId))
-				_TrainListByWorkIdCache[workId] = new List<TrainData>();
-
+			// JsonModelsConverterを使用してTrainDataを変換
+			var trainData = JsonModelsConverter.ConvertTrain(trainDataJson);
+			_TrainDataCache[trainData.Id] = trainData;
 			_TrainListByWorkIdCache[workId].Add(trainData);
+			logger.Debug("CacheConvertedTrain: Added Train {0} ({1})", trainData.Id, trainData.TrainNumber);
 		}
-		catch (JsonException ex)
+		catch (Exception ex)
 		{
-			logger.Error(ex, "ParseAndCacheTrain: Failed to parse Train");
+			logger.Error(ex, "CacheConvertedTrain: Failed to process Train");
 		}
 	}
 
