@@ -123,7 +123,7 @@ public partial class AppViewModel
 			return false;
 		}
 
-		ILoader lastLoader = this.Loader;
+		ILoader? lastLoader = this.Loader;
 		this.Loader = loader;
 		logger.Info("Loader Initialized");
 		lastLoader?.Dispose();

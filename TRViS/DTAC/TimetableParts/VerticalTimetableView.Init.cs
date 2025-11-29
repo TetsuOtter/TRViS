@@ -10,6 +10,7 @@ namespace TRViS.DTAC;
 public partial class VerticalTimetableView
 {
 	public static readonly Color CURRENT_LOCATION_MARKER_COLOR = new(0x00, 0x88, 0x00);
+
 	BoxView CurrentLocationBoxView { get; } = new()
 	{
 		IsVisible = false,
@@ -174,6 +175,9 @@ public partial class VerticalTimetableView
 			await Utils.ExitWithAlert(ex);
 		}
 
+		if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+			await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs);
+
 		await Task.Run(async () =>
 		{
 			try
@@ -186,9 +190,16 @@ public partial class VerticalTimetableView
 						lastTimetableRowIndex = i;
 				}
 
+
 				logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
+				int batchSize = PerformanceHelper.RowsBatchSize;
+				int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
 				for (int i = 0; i < newCount; i++)
+				{
 					await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
+					if (0 < batchSize && i % batchSize == batchSize - 1)
+						await Task.Delay(renderDelayMs);
+				}
 				logger.Trace("Task: RowViewInit Complete");
 			}
 			catch (Exception ex)
@@ -199,7 +210,6 @@ public partial class VerticalTimetableView
 			}
 		});
 		logger.Trace("RowViewInit Task Complete");
-
 		logger.Trace("Starting FooterInsertion Task...");
 		await MainThread.InvokeOnMainThreadAsync(() =>
 		{
