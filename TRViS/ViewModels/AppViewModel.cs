@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.IO;
 using TRViS.IO.Models;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 
 namespace TRViS.ViewModels;
@@ -17,15 +18,15 @@ public partial class AppViewModel : ObservableObject
 	ILoader? _Loader;
 
 	[ObservableProperty]
-	IReadOnlyList<TRViS.IO.Models.DB.WorkGroup>? _WorkGroupList;
+	IReadOnlyList<WorkGroup>? _WorkGroupList;
 
 	[ObservableProperty]
-	IReadOnlyList<TRViS.IO.Models.DB.Work>? _WorkList;
+	IReadOnlyList<Work>? _WorkList;
 
 	[ObservableProperty]
-	TRViS.IO.Models.DB.WorkGroup? _SelectedWorkGroup;
-	TRViS.IO.Models.DB.Work? _SelectedWork;
-	public TRViS.IO.Models.DB.Work? SelectedWork
+	WorkGroup? _SelectedWorkGroup;
+	Work? _SelectedWork;
+	public Work? SelectedWork
 	{
 		get => _SelectedWork;
 		set
@@ -113,6 +114,9 @@ public partial class AppViewModel : ObservableObject
 		}
 
 		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _, StringListJsonSourceGenerationContext.Default.ListString);
+
+		// LocationService の時刻表更新イベントをサブスクライブ
+		InstanceManager.LocationService.TimetableUpdated += OnTimetableUpdated;
 	}
 
 	partial void OnLoaderChanged(ILoader? value)
@@ -122,7 +126,7 @@ public partial class AppViewModel : ObservableObject
 		SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
 	}
 
-	partial void OnSelectedWorkGroupChanged(TRViS.IO.Models.DB.WorkGroup? value)
+	partial void OnSelectedWorkGroupChanged(WorkGroup? value)
 	{
 		WorkList = null;
 		SelectedWork = null;
@@ -135,7 +139,7 @@ public partial class AppViewModel : ObservableObject
 		}
 	}
 
-	void OnSelectedWorkChanged(IO.Models.DB.Work? value)
+	void OnSelectedWorkChanged(Work? value)
 	{
 		logger.Debug("Work: {0}", value?.Id ?? "null");
 		if (value is not null)
@@ -149,6 +153,98 @@ public partial class AppViewModel : ObservableObject
 		else
 		{
 			SelectedTrainData = null;
+		}
+	}
+
+	void OnTimetableUpdated(object? sender, TimetableData timetableData)
+	{
+		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
+			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
+
+		// 時刻表の変更スコープに応じて、表示継続可能か判定する
+		bool canContinue = CanContinueCurrentTimetable(timetableData);
+
+		if (!canContinue)
+		{
+			// 表示継続不可の場合は初期状態に戻す
+			logger.Info("Timetable changed and cannot continue -> reset to initial state");
+			ResetToInitialTimetable();
+		}
+
+		// Loader のキャッシュが更新された可能性があるため、UI を再読み込み
+		// 特に WebSocket の場合は Loader のデータが動的に更新されるため、毎回再読み込みする必要がある
+		RefreshLoaderDisplay();
+	}
+
+	private void RefreshLoaderDisplay()
+	{
+		if (Loader is null)
+			return;
+
+		logger.Debug("RefreshLoaderDisplay: Refreshing UI from Loader cache");
+		WorkGroupList = Loader.GetWorkGroupList();
+
+		// 現在選択中の WorkGroup が存在しない場合は、最初のものを選択
+		if (SelectedWorkGroup is not null && !WorkGroupList?.Any(wg => wg.Id == SelectedWorkGroup.Id) == true)
+		{
+			SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
+		}
+		else if (SelectedWorkGroup is null && WorkGroupList?.Count > 0)
+		{
+			SelectedWorkGroup = WorkGroupList.FirstOrDefault();
+		}
+
+		// WorkList も更新
+		if (SelectedWorkGroup is not null)
+		{
+			WorkList = Loader.GetWorkList(SelectedWorkGroup.Id);
+
+			// 現在選択中の Work が存在しない場合は、最初のものを選択
+			if (SelectedWork is not null && !WorkList?.Any(w => w.Id == SelectedWork.Id) == true)
+			{
+				SelectedWork = WorkList?.FirstOrDefault();
+			}
+			else if (SelectedWork is null && WorkList?.Count > 0)
+			{
+				SelectedWork = WorkList.FirstOrDefault();
+			}
+			else
+			{
+				// WorkList が更新された場合、選択中の Work でも UI を更新する必要がある
+				// OnSelectedWorkChanged を明示的に呼ぶ
+				OnSelectedWorkChanged(SelectedWork);
+			}
+		}
+	}
+
+	bool CanContinueCurrentTimetable(TimetableData timetableData)
+	{
+		// 変更スコープに基づいて判定する
+		return timetableData.Scope switch
+		{
+			// All：全体の情報が更新された場合は表示継続不可
+			TimetableScopeType.All => false,
+
+			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
+			TimetableScopeType.WorkGroup => SelectedWorkGroup?.Id != timetableData.WorkGroupId,
+
+			// Work単位の変更：現在の選択がこのWorkと異なる場合のみ継続可能
+			TimetableScopeType.Work => SelectedWork?.Id != timetableData.WorkId,
+
+			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
+			TimetableScopeType.Train => SelectedTrainData?.Id != timetableData.TrainId,
+
+			_ => true
+		};
+	}
+
+	void ResetToInitialTimetable()
+	{
+		// Loader情報をリセットして、表示を初期状態に戻す
+		if (Loader is not null)
+		{
+			var workGroupList = Loader.GetWorkGroupList();
+			SelectedWorkGroup = workGroupList?.FirstOrDefault();
 		}
 	}
 }

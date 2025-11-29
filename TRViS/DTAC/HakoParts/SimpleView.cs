@@ -113,7 +113,7 @@ public class SimpleView : Grid
 			}
 		}
 	}
-	void OnSelectedWorkChanged(IO.Models.DB.Work? newWork)
+	void OnSelectedWorkChanged(Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 		Clear();
@@ -132,7 +132,7 @@ public class SimpleView : Grid
 		}
 
 		Rows.Clear();
-		IReadOnlyList<IO.Models.DB.TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
+		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
 		SetRowDefinitions(trainDataList.Count);
 		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
 		for (int i = 0; i < trainDataList.Count; i++)

@@ -1,5 +1,7 @@
 using System.Net;
+
 using TRViS.IO.RequestInfo;
+using TRViS.NetworkSyncService;
 
 namespace TRViS.IO;
 
@@ -29,26 +31,74 @@ public class OpenFile(HttpClient httpClient)
 		CancellationToken token
 	)
 	{
-		try {
-			if (appLinkInfo.ResourceUri is not null) {
+		try
+		{
+			if (appLinkInfo.ResourceUri is not null)
+			{
 				return OpenAppLink_PathTypeAsync(
 					appLinkInfo,
 					token
 				);
 			}
-		} catch (Exception e) {
+		}
+		catch (Exception e)
+		{
 			// Contentがセットされている場合は、Contentでの処理を試みる
 			// (例外が握りつぶされてしまうため、そこは何とかしたい)
-			if (appLinkInfo.Content is null || appLinkInfo.Content.Length == 0) {
+			if (appLinkInfo.Content is null || appLinkInfo.Content.Length == 0)
+			{
 				return Task.FromException<ILoader>(e);
 			}
 		}
 
-		if (appLinkInfo.Content is not null) {
+		if (appLinkInfo.Content is not null)
+		{
 			return Task.FromResult(OpenAppLink_DataType(appLinkInfo, token));
 		}
 
 		throw new ArgumentException("ResourceUri and Content are null");
+	}
+
+	public async Task<WebSocketNetworkSyncService> OpenWebSocketAppLinkAsync(
+		AppLinkInfo appLinkInfo,
+		CancellationToken token
+	)
+	{
+		if (appLinkInfo.ResourceUri is null)
+		{
+			throw new ArgumentException("ResourceUri is null");
+		}
+
+		Uri uri = appLinkInfo.ResourceUri;
+		if (uri.Scheme is not "ws" and not "wss")
+		{
+			throw new ArgumentException("ResourceUri scheme must be ws or wss");
+		}
+
+		token.ThrowIfCancellationRequested();
+
+		if (appLinkInfo.FileTypeInfo != AppLinkInfo.FileType.Json)
+		{
+			throw new ArgumentException("This file type is not supported");
+		}
+
+		bool isHostIp = uri.HostNameType is UriHostNameType.IPv4 or UriHostNameType.IPv6;
+		if (isHostIp
+			&& this.CanContinueWhenResourceUriContainsIp is not null
+			&& IPAddress.TryParse(uri.Host, out IPAddress? ip)
+			&& !await this.CanContinueWhenResourceUriContainsIp(ip, token))
+		{
+			throw new OperationCanceledException("cancelled by CanContinueWhenResourceUriContainsIp");
+		}
+
+		token.ThrowIfCancellationRequested();
+
+		WebSocketNetworkSyncService service = await NetworkSyncServiceUtil.CreateFromWebSocketAsync(
+			uri,
+			webSocket: null,
+			cancellationToken: token
+		);
+		return service;
 	}
 
 	private async Task<ILoader> OpenAppLink_PathTypeAsync(
@@ -56,7 +106,8 @@ public class OpenFile(HttpClient httpClient)
 		CancellationToken token
 	)
 	{
-		if (appLinkInfo.ResourceUri is null) {
+		if (appLinkInfo.ResourceUri is null)
+		{
 			throw new ArgumentException("ResourceUri is null");
 		}
 
@@ -85,11 +136,13 @@ public class OpenFile(HttpClient httpClient)
 		CancellationToken token
 	)
 	{
-		if (appLinkInfo.Content is null || appLinkInfo.Content.Length == 0) {
+		if (appLinkInfo.Content is null || appLinkInfo.Content.Length == 0)
+		{
 			throw new ArgumentException("Content is null or empty");
 		}
 
-		if (appLinkInfo.FileTypeInfo != AppLinkInfo.FileType.Json) {
+		if (appLinkInfo.FileTypeInfo != AppLinkInfo.FileType.Json)
+		{
 			throw new ArgumentException("This file type is not supported");
 		}
 
@@ -104,7 +157,8 @@ public class OpenFile(HttpClient httpClient)
 		CancellationToken token
 	)
 	{
-		if (appLinkInfo.FileTypeInfo != AppLinkInfo.FileType.Json) {
+		if (appLinkInfo.FileTypeInfo != AppLinkInfo.FileType.Json)
+		{
 			throw new ArgumentException("This file type is not supported");
 		}
 
@@ -112,7 +166,8 @@ public class OpenFile(HttpClient httpClient)
 		if (isHostIp
 			&& this.CanContinueWhenResourceUriContainsIp is not null
 			&& IPAddress.TryParse(uri.Host, out IPAddress? ip)
-			&& !await this.CanContinueWhenResourceUriContainsIp(ip, token)) {
+			&& !await this.CanContinueWhenResourceUriContainsIp(ip, token))
+		{
 			throw new OperationCanceledException("cancelled by CanContinueWhenResourceUriContainsIp");
 		}
 
@@ -122,7 +177,8 @@ public class OpenFile(HttpClient httpClient)
 			using HttpRequestMessage request = new(HttpMethod.Head, uri);
 			using HttpResponseMessage result = await this.HttpClient.SendAsync(request, token);
 
-			if (!result.IsSuccessStatusCode) {
+			if (!result.IsSuccessStatusCode)
+			{
 				throw new HttpRequestException(
 					$"HEAD request to {uri} failed with code: {result.StatusCode}",
 					inner: null,
@@ -131,7 +187,8 @@ public class OpenFile(HttpClient httpClient)
 			}
 
 			if (this.CanContinueWhenHeadRequestSuccess is not null
-				&& !await this.CanContinueWhenHeadRequestSuccess(result, token)) {
+				&& !await this.CanContinueWhenHeadRequestSuccess(result, token))
+			{
 				throw new OperationCanceledException("cancelled by CanContinueWhenHeadRequestSuccess");
 			}
 		}

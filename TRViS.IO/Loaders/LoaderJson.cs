@@ -2,7 +2,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using TRViS.IO.Models;
-using TRViS.IO.Models.DB;
 using TRViS.JsonModels;
 
 namespace TRViS.IO;
@@ -11,7 +10,7 @@ public class LoaderJson : ILoader
 {
 	Dictionary<string, WorkGroup> WorkGroups { get; } = [];
 	Dictionary<string, Work> WorkData { get; } = [];
-	Dictionary<string, (Models.DB.TrainData, TimetableRow[])> TrainData { get; } = [];
+	Dictionary<string, (Models.TrainData, TimetableRow[])> TrainData { get; } = [];
 
 	Dictionary<string, string> WorkGroupIdByWorkId { get; } = [];
 	Dictionary<string, string> WorkIdByTrainId { get; } = [];
@@ -65,7 +64,7 @@ public class LoaderJson : ILoader
 	{
 		if (workGroups is null)
 			throw new ArgumentNullException(nameof(workGroups));
-		
+
 		string[] workGroupIdArray = new string[workGroups.Length];
 		List<string> workIdList = [];
 		List<string> trainIdList = [];
@@ -96,12 +95,11 @@ public class LoaderJson : ILoader
 		{
 			WorkGroupData workGroup = workGroups[workGroupIndex];
 			string workGroupId = workGroupIdArray[workGroupIndex];
-			WorkGroups[workGroupId] = new()
-			{
-				Id = workGroupId,
-				Name = workGroup.Name,
-				DBVersion = workGroup.DBVersion,
-			};
+			WorkGroups[workGroupId] = new(
+				Id: workGroupId,
+				Name: workGroup.Name,
+				DBVersion: workGroup.DBVersion
+			);
 			System.Diagnostics.Debug.WriteLine($"WorkGroup: {workGroupId} {workGroup.Name}");
 
 			WorkData[] workList = workGroup.Works;
@@ -109,20 +107,19 @@ public class LoaderJson : ILoader
 			{
 				WorkData workData = workList[workIndex];
 				string workId = workIdList[workIdIndex++];
-				WorkData[workId] = new()
-				{
-					WorkGroupId = workGroupId,
-					Id = workId,
-					Name = workData.Name,
+				WorkData[workId] = new(
+					WorkGroupId: workGroupId,
+					Id: workId,
+					Name: workData.Name,
 
-					AffectDate = workData.AffectDate ?? string.Empty,
-					AffixContent = null, // workData.AffixContent,
-					AffixContentType = workData.AffixContentType,
-					ETrainTimetableContent = null, // workData.ETrainTimetableContent,
-					ETrainTimetableContentType = workData.ETrainTimetableContentType,
-					HasETrainTimetable = workData.HasETrainTimetable,
-					Remarks = workData.Remarks,
-				};
+					AffectDate: string.IsNullOrEmpty(workData.AffectDate) ? null : DateOnly.Parse(workData.AffectDate),
+					AffixContent: null, // workData.AffixContent,
+					AffixContentType: workData.AffixContentType,
+					ETrainTimetableContent: null, // workData.ETrainTimetableContent,
+					ETrainTimetableContentType: workData.ETrainTimetableContentType,
+					HasETrainTimetable: workData.HasETrainTimetable,
+					Remarks: workData.Remarks
+				);
 				WorkGroupIdByWorkId[workId] = workGroupId;
 				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name}");
 
@@ -132,32 +129,30 @@ public class LoaderJson : ILoader
 					JsonModels.TrainData trainData = trainList[trainIndex];
 					string trainId = trainIdList[trainIdIndex++];
 					TrainData[trainId] = (
-						new()
-						{
-							AfterArrive = trainData.AfterArrive,
-							AfterArrive_OnStationTrackCol = trainData.AfterArrive_OnStationTrackCol,
-							AfterRemarks = trainData.AfterRemarks,
-							BeforeDeparture = trainData.BeforeDeparture,
-							BeforeDeparture_OnStationTrackCol = trainData.BeforeDeparture_OnStationTrackCol,
-							BeginRemarks = trainData.BeginRemarks,
-							CarCount = trainData.CarCount,
-							ColorId = -1, // Not Implemented
-							DayCount = trainData.DayCount,
-							Destination = trainData.Destination,
-							Id = trainId,
-							Direction = trainData.Direction,
-							IsRideOnMoving = trainData.IsRideOnMoving,
-							MaxSpeed = trainData.MaxSpeed,
-							NominalTractiveCapacity = trainData.NominalTractiveCapacity,
-							Remarks = trainData.Remarks,
-							SpeedType = trainData.SpeedType,
-							TrainInfo = trainData.TrainInfo,
-							TrainNumber = trainData.TrainNumber,
-							WorkId = workId,
-							WorkType = trainData.WorkType,
+						new(
+							AfterArrive: trainData.AfterArrive,
+							AfterRemarks: trainData.AfterRemarks,
+							BeforeDeparture: trainData.BeforeDeparture,
+							BeginRemarks: trainData.BeginRemarks,
+							CarCount: trainData.CarCount,
+							LineColor_RGB: null, // Not Implemented
+							DayCount: trainData.DayCount ?? 0,
+							Destination: trainData.Destination,
+							Id: trainId,
+							Direction: trainData.Direction < 0 ? Direction.Inbound : Direction.Outbound,
+							IsRideOnMoving: trainData.IsRideOnMoving,
+							MaxSpeed: trainData.MaxSpeed,
+							NominalTractiveCapacity: trainData.NominalTractiveCapacity,
+							Remarks: trainData.Remarks,
+							SpeedType: trainData.SpeedType,
+							TrainInfo: trainData.TrainInfo,
+							TrainNumber: trainData.TrainNumber,
+							// WorkType: trainData.WorkType,
+							WorkName: workData.Name,
+							AffectDate: Utils.StringToDateOnlyOrNull(workData.AffectDate),
 							// TODO: JSONでのNextTrainIdのサポート
-							NextTrainId = trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null
-						},
+							NextTrainId: trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null
+						),
 						trainData.TimetableRows.Select(static (v, i) => new TimetableRow(
 							Id: v.Id ?? i.ToString(),
 							Location: new(v.Location_m, v.Longitude_deg, v.Latitude_deg, v.OnStationDetectRadius_m),
@@ -216,39 +211,7 @@ public class LoaderJson : ILoader
 	{
 	}
 
-	public Models.TrainData? GetTrainData(string trainId)
-	{
-		Work w = WorkData[WorkIdByTrainId[trainId]];
-		var (t, timetableRow) = TrainData[trainId];
-
-		return new Models.TrainData(
-			Id: trainId,
-			WorkName: w.Name,
-			AffectDate: Utils.StringToDateOnlyOrNull(w.AffectDate),
-			TrainNumber: t.TrainNumber,
-			MaxSpeed: t.MaxSpeed,
-			SpeedType: t.SpeedType,
-			NominalTractiveCapacity: t.NominalTractiveCapacity,
-			CarCount: t.CarCount,
-			Destination: t.Destination,
-			BeginRemarks: t.BeginRemarks,
-			AfterRemarks: t.AfterRemarks,
-			Remarks: t.Remarks,
-			BeforeDeparture: t.BeforeDeparture,
-			TrainInfo: t.TrainInfo,
-			Rows: timetableRow,
-			Direction: t.Direction,
-			AfterArrive: t.AfterArrive,
-			BeforeDepartureOnStationTrackCol: t.BeforeDeparture_OnStationTrackCol,
-			AfterArriveOnStationTrackCol: t.AfterArrive_OnStationTrackCol,
-			DayCount: t.DayCount ?? 0,
-			IsRideOnMoving: t.IsRideOnMoving,
-
-			// TODO: E電時刻表用の線色設定のサポート
-			LineColor_RGB: null,
-			NextTrainId: t.NextTrainId
-		);
-	}
+	public Models.TrainData? GetTrainData(string trainId) => TrainData[trainId].Item1;
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
 		=> [.. WorkGroups.Values];
@@ -256,11 +219,6 @@ public class LoaderJson : ILoader
 	public IReadOnlyList<Work> GetWorkList(string workGroupId)
 		=> WorkData.Values.Where(v => v.WorkGroupId == workGroupId).ToArray();
 
-	public IReadOnlyList<Models.DB.TrainData> GetTrainDataList(string workId)
+	public IReadOnlyList<Models.TrainData> GetTrainDataList(string workId)
 		=> TrainData.Values.Where((v) => WorkIdByTrainId[v.Item1.Id] == workId).Select(static v => v.Item1).ToArray();
-
-	public IReadOnlyList<TrainDataGroup> GetTrainDataGroupList()
-	{
-		throw new NotImplementedException();
-	}
 }
