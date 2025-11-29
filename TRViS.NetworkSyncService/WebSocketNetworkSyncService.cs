@@ -1,81 +1,52 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TRViS.NetworkSyncService.DataProviders;
+using TRViS.IO;
+using TRViS.IO.Models;
 
-public class WebSocketDataProvider : IDataProvider, IDisposable
+namespace TRViS.NetworkSyncService;
+
+/// <summary>
+/// WebSocket-based implementation of NetworkSyncService
+/// </summary>
+public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 {
 	// SyncedDataメッセージのJSONキー
-	const string LOCATION_M_JSON_KEY = "Location_m";
-	const string TIME_MS_JSON_KEY = "Time_ms";
-	const string CAN_START_JSON_KEY = "CanStart";
+	private const string LOCATION_M_JSON_KEY = "Location_m";
+	private const string TIME_MS_JSON_KEY = "Time_ms";
+	private const string CAN_START_JSON_KEY = "CanStart";
 
 	// ID更新メッセージのJSONキー
-	const string WORK_GROUP_ID_JSON_KEY = "WorkGroupId";
-	const string WORK_ID_JSON_KEY = "WorkId";
-	const string TRAIN_ID_JSON_KEY = "TrainId";
+	private const string WORK_GROUP_ID_JSON_KEY = "WorkGroupId";
+	private const string WORK_ID_JSON_KEY = "WorkId";
+	private const string TRAIN_ID_JSON_KEY = "TrainId";
 
 	// 時刻表メッセージのJSONキー
-	const string MESSAGE_TYPE_JSON_KEY = "MessageType";
-	const string MESSAGE_TYPE_SYNCED_DATA = "SyncedData";
-	const string MESSAGE_TYPE_TIMETABLE = "Timetable";
-	const string TIMETABLE_DATA_JSON_KEY = "Data";
+	private const string MESSAGE_TYPE_JSON_KEY = "MessageType";
+	private const string MESSAGE_TYPE_SYNCED_DATA = "SyncedData";
+	private const string MESSAGE_TYPE_TIMETABLE = "Timetable";
+	private const string TIMETABLE_DATA_JSON_KEY = "Data";
 
 	private readonly ClientWebSocket _WebSocket;
 	private readonly Uri _Uri;
 	private readonly byte[] _ReceiveBuffer = new byte[4096];
 	private SyncedData _LatestData = new(double.NaN, 0, false);
-	private bool _IsDisposed;
 	private CancellationTokenSource? _ReceiveLoopCts;
 	private Task? _ReceiveLoopTask;
 
-	private string? _WorkGroupId;
-	public string? WorkGroupId
-	{
-		get => _WorkGroupId;
-		set
-		{
-			if (_WorkGroupId == value)
-				return;
-			_WorkGroupId = value;
-			_ = SendIdUpdateAsync();
-		}
-	}
+	// ILoader実装用のキャッシュ
+	private readonly Dictionary<string, WorkGroup> _WorkGroupCache = new();
+	private readonly Dictionary<string, List<Work>> _WorkListCache = new();
+	private readonly Dictionary<string, TrainData> _TrainDataCache = new();
+	private readonly Dictionary<string, List<TrainData>> _TrainListByWorkIdCache = new();
 
-	private string? _WorkId;
-	public string? WorkId
-	{
-		get => _WorkId;
-		set
-		{
-			if (_WorkId == value)
-				return;
-			_WorkId = value;
-			_ = SendIdUpdateAsync();
-		}
-	}
-
-	private string? _TrainId;
-	public string? TrainId
-	{
-		get => _TrainId;
-		set
-		{
-			if (_TrainId == value)
-				return;
-			_TrainId = value;
-			_ = SendIdUpdateAsync();
-		}
-	}
-
-	public event EventHandler<TimetableData>? TimetableUpdated;
-
-	public WebSocketDataProvider(Uri uri, ClientWebSocket webSocket)
+	public WebSocketNetworkSyncService(Uri uri, ClientWebSocket webSocket)
 	{
 		_Uri = uri;
 		_WebSocket = webSocket;
@@ -254,12 +225,102 @@ public class WebSocketDataProvider : IDataProvider, IDisposable
 			if (root.TryGetProperty(TIMETABLE_DATA_JSON_KEY, out var data))
 			{
 				timetableData.JsonData = data.GetRawText();
+				CacheTimetableData(timetableData);
 			}
 		}
 		catch (FormatException) { }
 
 		// イベントを発火
-		TimetableUpdated?.Invoke(this, timetableData);
+		RaiseTimetableUpdated(timetableData);
+	}
+
+	private void CacheTimetableData(TimetableData timetableData)
+	{
+		try
+		{
+			using JsonDocument? json = JsonDocument.Parse(timetableData.JsonData);
+			if (json is null)
+				return;
+
+			JsonElement dataElement = json.RootElement;
+
+			// スコープに応じてキャッシュを更新
+			switch (timetableData.Scope)
+			{
+				case TimetableScopeType.WorkGroup:
+					if (timetableData.WorkGroupId is not null)
+					{
+						// WorkGroupの情報をキャッシュ
+						var workGroup = new WorkGroup(
+							Id: timetableData.WorkGroupId,
+							Name: dataElement.TryGetProperty("Name", out var nameElem) ? nameElem.GetString() ?? "" : ""
+						);
+						_WorkGroupCache[timetableData.WorkGroupId] = workGroup;
+					}
+					break;
+
+				case TimetableScopeType.Work:
+					if (timetableData.WorkId is not null && timetableData.WorkGroupId is not null)
+					{
+						// Workの情報をキャッシュ
+						var work = new Work(
+							Id: timetableData.WorkId,
+							WorkGroupId: timetableData.WorkGroupId,
+							Name: dataElement.TryGetProperty("Name", out var workNameElem) ? workNameElem.GetString() ?? "" : ""
+						);
+
+						if (!_WorkListCache.ContainsKey(timetableData.WorkGroupId))
+							_WorkListCache[timetableData.WorkGroupId] = new List<Work>();
+
+						// 既存のWorkを削除して追加（更新）
+						_WorkListCache[timetableData.WorkGroupId].RemoveAll(w => w.Id == timetableData.WorkId);
+						_WorkListCache[timetableData.WorkGroupId].Add(work);
+					}
+					break;
+
+				case TimetableScopeType.Train:
+					if (timetableData.TrainId is not null)
+					{
+						// TrainDataの情報をキャッシュ
+						var trainData = new TrainData(
+							Id: timetableData.TrainId,
+							Direction: Direction.Outbound
+						);
+						_TrainDataCache[timetableData.TrainId] = trainData;
+
+						// WorkIdに紐づくTrainのリストにも追加
+						if (timetableData.WorkId is not null)
+						{
+							if (!_TrainListByWorkIdCache.ContainsKey(timetableData.WorkId))
+								_TrainListByWorkIdCache[timetableData.WorkId] = new List<TrainData>();
+
+							// 既存のTrainDataを削除して追加（更新）
+							_TrainListByWorkIdCache[timetableData.WorkId].RemoveAll(t => t.Id == timetableData.TrainId);
+							_TrainListByWorkIdCache[timetableData.WorkId].Add(trainData);
+						}
+					}
+					break;
+			}
+		}
+		catch (JsonException)
+		{
+			// Invalid JSON, ignore
+		}
+	}
+
+	protected override void OnWorkGroupIdChanged(string? value)
+	{
+		_ = SendIdUpdateAsync();
+	}
+
+	protected override void OnWorkIdChanged(string? value)
+	{
+		_ = SendIdUpdateAsync();
+	}
+
+	protected override void OnTrainIdChanged(string? value)
+	{
+		_ = SendIdUpdateAsync();
 	}
 
 	private async Task SendIdUpdateAsync()
@@ -292,10 +353,49 @@ public class WebSocketDataProvider : IDataProvider, IDisposable
 		}
 	}
 
-	public Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
+	protected override Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
 	{
 		// WebSocket is event-driven, return the latest cached data
 		return Task.FromResult(_LatestData);
+	}
+
+	/// <summary>
+	/// ILoader実装: 指定のTrainIdのTrainDataを取得します
+	/// </summary>
+	public TrainData? GetTrainData(string trainId)
+	{
+		_TrainDataCache.TryGetValue(trainId, out var trainData);
+		return trainData;
+	}
+
+	/// <summary>
+	/// ILoader実装: キャッシュされたWorkGroupのリストを取得します
+	/// </summary>
+	public IReadOnlyList<WorkGroup> GetWorkGroupList()
+	{
+		return _WorkGroupCache.Values.ToList();
+	}
+
+	/// <summary>
+	/// ILoader実装: 指定のWorkGroupIdに属するWorkのリストを取得します
+	/// </summary>
+	public IReadOnlyList<Work> GetWorkList(string workGroupId)
+	{
+		if (_WorkListCache.TryGetValue(workGroupId, out var workList))
+			return workList.AsReadOnly();
+
+		return new List<Work>();
+	}
+
+	/// <summary>
+	/// ILoader実装: 指定のWorkIdに属するTrainDataのリストを取得します
+	/// </summary>
+	public IReadOnlyList<TrainData> GetTrainDataList(string workId)
+	{
+		if (_TrainListByWorkIdCache.TryGetValue(workId, out var trainList))
+			return trainList.AsReadOnly();
+
+		return new List<TrainData>();
 	}
 
 	public async Task DisconnectAsync(CancellationToken cancellationToken = default)
@@ -331,7 +431,7 @@ public class WebSocketDataProvider : IDataProvider, IDisposable
 		}
 	}
 
-	public void Dispose()
+	public override void Dispose()
 	{
 		if (_IsDisposed)
 			return;

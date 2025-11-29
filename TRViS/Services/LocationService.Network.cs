@@ -6,7 +6,7 @@ namespace TRViS.Services;
 public partial class LocationService
 {
 	const int EXCEPTION_MAX = 10;
-	async Task NetworkSyncServiceTask(NetworkSyncServiceManager networkService, CancellationToken token)
+	async Task NetworkSyncServiceTask(NetworkSyncServiceBase networkService, CancellationToken token)
 	{
 		int exceptionCounter = 0;
 		while (!token.IsCancellationRequested)

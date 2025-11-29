@@ -70,7 +70,7 @@ public partial class LocationService : IDisposable
 		}
 
 		ILocationService targetService = _CurrentService;
-		if (targetService is NetworkSyncServiceManager)
+		if (targetService is NetworkSyncServiceBase)
 		{
 			logger.Debug("NetworkSyncService is used -> do nothing");
 		}
@@ -117,7 +117,7 @@ public partial class LocationService : IDisposable
 	}
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (_CurrentService is NetworkSyncServiceManager networkSyncService)
+		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
 		{
 			switch (e.PropertyName)
 			{
@@ -166,7 +166,7 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Cancel();
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
-		if (currentService is NetworkSyncServiceManager networkSyncService)
+		if (currentService is NetworkSyncServiceBase networkSyncService)
 		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
 			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
@@ -234,7 +234,7 @@ public partial class LocationService : IDisposable
 		}
 
 		ILocationService? currentService = _CurrentService;
-		NetworkSyncServiceManager nextService = await NetworkSyncServiceManager.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
+		NetworkSyncServiceBase nextService = await NetworkSyncServiceBase.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
 		if (currentService is not null)
 		{
 			logger.Debug("CurrentService is not null -> remove EventHandlers");
@@ -266,7 +266,7 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Cancel();
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
-		if (currentService is NetworkSyncServiceManager networkSyncService)
+		if (currentService is NetworkSyncServiceBase networkSyncService)
 		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
 			networkSyncService.TimetableUpdated -= OnTimetableUpdated;

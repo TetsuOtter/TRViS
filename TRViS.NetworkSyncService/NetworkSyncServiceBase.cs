@@ -1,22 +1,23 @@
 using System;
-using System.Net.Http;
-using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
 using TRViS.Services;
-using TRViS.NetworkSyncService.DataProviders;
 
 namespace TRViS.NetworkSyncService;
 
-public class NetworkSyncServiceManager : ILocationService, IDisposable
+/// <summary>
+/// Base class for NetworkSyncService manager that handles common functionality
+/// for both HTTP and WebSocket implementations
+/// </summary>
+public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 {
 	public bool IsEnabled { get; set; }
 	private bool _CanUseService = false;
 	public bool CanUseService
 	{
 		get => _CanUseService;
-		private set
+		protected set
 		{
 			if (_CanUseService == value)
 				return;
@@ -40,9 +41,44 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 		}
 	}
 
-	public string? WorkGroupId { get => _DataProvider.WorkGroupId; set => _DataProvider.WorkGroupId = value; }
-	public string? WorkId { get => _DataProvider.WorkId; set => _DataProvider.WorkId = value; }
-	public string? TrainId { get => _DataProvider.TrainId; set => _DataProvider.TrainId = value; }
+	private string? _WorkGroupId;
+	public string? WorkGroupId
+	{
+		get => _WorkGroupId;
+		set
+		{
+			if (_WorkGroupId == value)
+				return;
+			_WorkGroupId = value;
+			OnWorkGroupIdChanged(value);
+		}
+	}
+
+	private string? _WorkId;
+	public string? WorkId
+	{
+		get => _WorkId;
+		set
+		{
+			if (_WorkId == value)
+				return;
+			_WorkId = value;
+			OnWorkIdChanged(value);
+		}
+	}
+
+	private string? _TrainId;
+	public string? TrainId
+	{
+		get => _TrainId;
+		set
+		{
+			if (_TrainId == value)
+				return;
+			_TrainId = value;
+			OnTrainIdChanged(value);
+		}
+	}
 
 	public int CurrentStationIndex { get; private set; }
 
@@ -56,59 +92,36 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<TimetableData>? TimetableUpdated;
 
-	private readonly IDataProvider _DataProvider;
-	private bool _IsDisposed;
+	protected bool _IsDisposed;
 
-	private NetworkSyncServiceManager(IDataProvider dataProvider)
+	protected NetworkSyncServiceBase()
 	{
-		_DataProvider = dataProvider;
-		_DataProvider.TimetableUpdated += DataProvider_TimetableUpdated;
 	}
 
-	public static async Task<NetworkSyncServiceManager> CreateFromUriAsync(Uri uri, HttpClient? httpClient = null, CancellationToken? cancellationToken = null)
-	{
-		cancellationToken ??= CancellationToken.None;
-		httpClient ??= new HttpClient();
-		// 将来的にはWebSocket, BIDSも対応したい
-		HttpResponseMessage preflight = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri), cancellationToken.Value);
-		// 将来的にはNetworkSyncServiceのバージョン情報を取得して、互換性を確認する
-		if (!preflight.IsSuccessStatusCode)
-			throw new InvalidOperationException("Failed to connect to the NetworkSyncService server.");
-		return new(new HttpDataProvider(uri, httpClient));
-	}
+	/// <summary>
+	/// Get the latest synced data from the service
+	/// </summary>
+	protected abstract Task<SyncedData> GetSyncedDataAsync(CancellationToken token);
 
-	public static async Task<NetworkSyncServiceManager> CreateFromWebSocketAsync(Uri uri, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null)
-	{
-		cancellationToken ??= CancellationToken.None;
-		webSocket ??= new ClientWebSocket();
+	/// <summary>
+	/// Called when WorkGroupId property changes
+	/// </summary>
+	protected virtual void OnWorkGroupIdChanged(string? value) { }
 
-		// ws:// または wss:// スキームを確認
-		if (uri.Scheme != "ws" && uri.Scheme != "wss")
-			throw new ArgumentException("URI must use ws:// or wss:// scheme for WebSocket connections.", nameof(uri));
+	/// <summary>
+	/// Called when WorkId property changes
+	/// </summary>
+	protected virtual void OnWorkIdChanged(string? value) { }
 
-		WebSocketDataProvider provider = new(uri, webSocket);
-		await provider.ConnectAsync(cancellationToken.Value);
-
-		return new(provider);
-	}
-
-	public static async Task<NetworkSyncServiceManager> CreateAsync(Uri uri, HttpClient? httpClient = null, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null)
-	{
-		// スキームに基づいて適切なプロバイダーを選択
-		if (uri.Scheme == "ws" || uri.Scheme == "wss")
-		{
-			return await CreateFromWebSocketAsync(uri, webSocket, cancellationToken);
-		}
-		else
-		{
-			return await CreateFromUriAsync(uri, httpClient, cancellationToken);
-		}
-	}
+	/// <summary>
+	/// Called when TrainId property changes
+	/// </summary>
+	protected virtual void OnTrainIdChanged(string? value) { }
 
 	public async Task TickAsync(CancellationToken? cancellationToken = null)
 	{
 		cancellationToken ??= CancellationToken.None;
-		SyncedData result = await _DataProvider.GetSyncedDataAsync(cancellationToken.Value);
+		SyncedData result = await GetSyncedDataAsync(cancellationToken.Value);
 
 		UpdateCurrentStationWithLocation(result.Location_m);
 
@@ -168,7 +181,7 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 		}
 	}
 
-	private void DataProvider_TimetableUpdated(object? sender, TimetableData timetableData)
+	protected void RaiseTimetableUpdated(TimetableData timetableData)
 	{
 		// 時刻表の変更スコープに応じて、表示継続可能か判定する
 		bool canContinue = CanContinueCurrentTimetable(timetableData);
@@ -189,13 +202,13 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 		return timetableData.Scope switch
 		{
 			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
-			TimetableScopeType.WorkGroup => _DataProvider.WorkGroupId != timetableData.WorkGroupId,
+			TimetableScopeType.WorkGroup => _WorkGroupId != timetableData.WorkGroupId,
 
 			// Work単位の変更：現在の選択がこのWorkと異なる場合のみ継続可能
-			TimetableScopeType.Work => _DataProvider.WorkId != timetableData.WorkId,
+			TimetableScopeType.Work => _WorkId != timetableData.WorkId,
 
 			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
-			TimetableScopeType.Train => _DataProvider.TrainId != timetableData.TrainId,
+			TimetableScopeType.Train => _TrainId != timetableData.TrainId,
 
 			_ => true
 		};
@@ -218,17 +231,5 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 		LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
 	}
 
-	public void Dispose()
-	{
-		if (_IsDisposed)
-			return;
-
-		_IsDisposed = true;
-		_DataProvider.TimetableUpdated -= DataProvider_TimetableUpdated;
-
-		if (_DataProvider is IDisposable disposable)
-		{
-			disposable.Dispose();
-		}
-	}
+	public abstract void Dispose();
 }

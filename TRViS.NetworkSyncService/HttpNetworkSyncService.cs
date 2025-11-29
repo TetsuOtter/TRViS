@@ -8,66 +8,50 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace TRViS.NetworkSyncService.DataProviders;
+namespace TRViS.NetworkSyncService;
 
-public class HttpDataProvider(
-	Uri uri,
-	HttpClient httpClient
-) : IDataProvider
+/// <summary>
+/// HTTP-based implementation of NetworkSyncService
+/// </summary>
+public class HttpNetworkSyncService : NetworkSyncServiceBase
 {
-	const string WORK_GROUP_ID_QUERY_KEY = "workgroup";
-	const string WORK_ID_QUERY_KEY = "work";
-	const string TRAIN_ID_QUERY_KEY = "train";
+	private const string WORK_GROUP_ID_QUERY_KEY = "workgroup";
+	private const string WORK_ID_QUERY_KEY = "work";
+	private const string TRAIN_ID_QUERY_KEY = "train";
 
-	const string LOCATION_M_JSON_KEY = "Location_m";
-	const string TIME_MS_JSON_KEY = "Time_ms";
-	const string CAN_START_JSON_KEY = "CanStart";
+	private const string LOCATION_M_JSON_KEY = "Location_m";
+	private const string TIME_MS_JSON_KEY = "Time_ms";
+	private const string CAN_START_JSON_KEY = "CanStart";
 
-	public event EventHandler<TimetableData>? TimetableUpdated;
+	private readonly HttpClient _HttpClient;
+	private readonly Uri _Uri;
+	private readonly NameValueCollection BaseQuery;
+	private Uri _NextUri;
 
-	private string? _WorkGroupId;
-	public string? WorkGroupId
+	public HttpNetworkSyncService(Uri uri, HttpClient httpClient)
 	{
-		get => _WorkGroupId;
-		set
-		{
-			if (_WorkGroupId == value)
-				return;
-			_WorkGroupId = value;
-			UpdateNextUri();
-		}
-	}
-	private string? _WorkId;
-	public string? WorkId
-	{
-		get => _WorkId;
-		set
-		{
-			if (_WorkId == value)
-				return;
-			_WorkId = value;
-			UpdateNextUri();
-		}
-	}
-	private string? _TrainId;
-	public string? TrainId
-	{
-		get => _TrainId;
-		set
-		{
-			if (_TrainId == value)
-				return;
-			_TrainId = value;
-			UpdateNextUri();
-		}
+		_Uri = uri;
+		_HttpClient = httpClient;
+		BaseQuery = HttpUtility.ParseQueryString(uri.Query);
+		_NextUri = uri;
 	}
 
-	private readonly HttpClient _HttpClient = httpClient;
-	private readonly Uri _Uri = uri;
-	private readonly NameValueCollection BaseQuery = HttpUtility.ParseQueryString(uri.Query);
+	protected override void OnWorkGroupIdChanged(string? value)
+	{
+		UpdateNextUri();
+	}
 
-	private Uri nextUri = uri;
-	void UpdateNextUri()
+	protected override void OnWorkIdChanged(string? value)
+	{
+		UpdateNextUri();
+	}
+
+	protected override void OnTrainIdChanged(string? value)
+	{
+		UpdateNextUri();
+	}
+
+	private void UpdateNextUri()
 	{
 		NameValueCollection query = new(BaseQuery);
 		if (WorkGroupId is not null)
@@ -78,23 +62,25 @@ public class HttpDataProvider(
 			query[TRAIN_ID_QUERY_KEY] = TrainId;
 		StringBuilder queryBuilder = new();
 		bool isFirst = true;
-		foreach (string key in query.AllKeys)
+		foreach (string? key in query.AllKeys)
 		{
+			if (key is null)
+				continue;
 			queryBuilder.Append(isFirst ? '?' : '&');
 			queryBuilder.Append(key);
 			queryBuilder.Append('=');
 			queryBuilder.Append(query[key]);
 			isFirst = false;
 		}
-		nextUri = new UriBuilder(_Uri)
+		_NextUri = new UriBuilder(_Uri)
 		{
 			Query = queryBuilder.ToString()
 		}.Uri;
 	}
 
-	public async Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
+	protected override async Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
 	{
-		using HttpResponseMessage response = await _HttpClient.GetAsync(nextUri, token);
+		using HttpResponseMessage response = await _HttpClient.GetAsync(_NextUri, token);
 		// 接続に失敗等しない限り、成功として扱う
 		// (ログ出力は今後検討)
 		if (!response.IsSuccessStatusCode)
@@ -150,5 +136,13 @@ public class HttpDataProvider(
 			Time_ms: time_ms,
 			CanStart: canStart
 		);
+	}
+
+	public override void Dispose()
+	{
+		if (_IsDisposed)
+			return;
+
+		_IsDisposed = true;
 	}
 }
