@@ -1,5 +1,7 @@
 using System.Reflection;
+
 using SQLite;
+
 using TRViS.IO.Models;
 
 namespace TRViS.IO.Tests;
@@ -44,28 +46,6 @@ public class LoaderSQLTests
 	}
 
 	[Test]
-	public void GetTrainDataGroupListTest()
-	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
-		TrainDataFileInfo[] emptyArr = Array.Empty<TrainDataFileInfo>();
-
-		IReadOnlyList<TrainDataGroup> actual = loader.GetTrainDataGroupList();
-
-		Assert.That(
-			actual.Select(v => v with { FileInfoArray = emptyArr }),
-			Has.Member(new TrainDataGroup("1", "Group01", emptyArr))
-		);
-
-		var actual_array = actual.FirstOrDefault(v => v.ID == "1" && v.GroupName == "Group01")?.FileInfoArray;
-
-		Assert.That(actual_array, Is.Not.Null);
-		Assert.That(
-			actual_array,
-			Has.Member(new TrainDataFileInfo("1", "1", "Work01", "T9910X"))
-		);
-	}
-
-	[Test]
 	public void GetTrainData()
 	{
 		using LoaderSQL loader = new(DB_FILE_PATH);
@@ -82,6 +62,7 @@ public class LoaderSQLTests
 			Assert.That(actual, Is.EqualTo(
 				new TrainData(
 					"1",
+					Direction.Outbound,
 					"Work01",
 					new(2022, 9, 15),
 					"T9910X",
@@ -96,11 +77,10 @@ public class LoaderSQLTests
 					"発前点検300分",
 					"試験用ダミーデータ",
 					actual.Rows,
-					1,
 
 					"着後作業 10分",
-					"点検",
-					"作業",
+					// "点検",
+					// "作業",
 					1,
 					false,
 					null

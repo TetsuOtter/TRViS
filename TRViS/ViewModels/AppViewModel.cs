@@ -18,15 +18,15 @@ public partial class AppViewModel : ObservableObject
 	ILoader? _Loader;
 
 	[ObservableProperty]
-	IReadOnlyList<TRViS.IO.Models.DB.WorkGroup>? _WorkGroupList;
+	IReadOnlyList<WorkGroup>? _WorkGroupList;
 
 	[ObservableProperty]
-	IReadOnlyList<TRViS.IO.Models.DB.Work>? _WorkList;
+	IReadOnlyList<Work>? _WorkList;
 
 	[ObservableProperty]
-	TRViS.IO.Models.DB.WorkGroup? _SelectedWorkGroup;
-	TRViS.IO.Models.DB.Work? _SelectedWork;
-	public TRViS.IO.Models.DB.Work? SelectedWork
+	WorkGroup? _SelectedWorkGroup;
+	Work? _SelectedWork;
+	public Work? SelectedWork
 	{
 		get => _SelectedWork;
 		set
@@ -126,7 +126,7 @@ public partial class AppViewModel : ObservableObject
 		SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
 	}
 
-	partial void OnSelectedWorkGroupChanged(TRViS.IO.Models.DB.WorkGroup? value)
+	partial void OnSelectedWorkGroupChanged(WorkGroup? value)
 	{
 		WorkList = null;
 		SelectedWork = null;
@@ -139,7 +139,7 @@ public partial class AppViewModel : ObservableObject
 		}
 	}
 
-	void OnSelectedWorkChanged(IO.Models.DB.Work? value)
+	void OnSelectedWorkChanged(Work? value)
 	{
 		logger.Debug("Work: {0}", value?.Id ?? "null");
 		if (value is not null)

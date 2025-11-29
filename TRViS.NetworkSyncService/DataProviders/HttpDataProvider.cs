@@ -23,6 +23,8 @@ public class HttpDataProvider(
 	const string TIME_MS_JSON_KEY = "Time_ms";
 	const string CAN_START_JSON_KEY = "CanStart";
 
+	public event EventHandler<TimetableData>? TimetableUpdated;
+
 	private string? _WorkGroupId;
 	public string? WorkGroupId
 	{

@@ -13,4 +13,8 @@
 		<PackageReference Include="System.Text.Json" Version="9.0.5" />
 		<PackageReference Include="TRViS.JsonModels" Version="1.0.2" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../TRViS.IO.ILoader/TRViS.IO.ILoader.csproj" />
+	</ItemGroup>
 </Project>
