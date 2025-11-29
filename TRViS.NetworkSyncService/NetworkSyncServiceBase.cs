@@ -91,6 +91,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<TimetableData>? TimetableUpdated;
+	public event EventHandler? ConnectionClosed;
 
 	protected bool _IsDisposed;
 
@@ -205,6 +206,11 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 
 		// 時刻表更新イベントを外部に通知
 		TimetableUpdated?.Invoke(this, timetableData);
+	}
+
+	protected void RaiseConnectionClosed()
+	{
+		ConnectionClosed?.Invoke(this, EventArgs.Empty);
 	}
 
 	private bool CanContinueCurrentTimetable(TimetableData timetableData)

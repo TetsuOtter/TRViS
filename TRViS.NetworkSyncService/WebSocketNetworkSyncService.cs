@@ -40,6 +40,14 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private CancellationTokenSource? _ReceiveLoopCts;
 	private Task? _ReceiveLoopTask;
 
+	// Ping/Pong管理用
+	private Task? _PingLoopTask;
+	private CancellationTokenSource? _PingLoopCts;
+	private DateTime _LastPongReceivedTime = DateTime.UtcNow;
+	private readonly object _PongLock = new();
+	private const int PING_INTERVAL_MS = 10000;  // 10秒
+	private const int PONG_TIMEOUT_MS = 30000;   // 30秒
+
 	// ILoader実装用のキャッシュ
 	private readonly Dictionary<string, WorkGroup> _WorkGroupCache = new();
 	private readonly Dictionary<string, List<Work>> _WorkListCache = new();
@@ -65,6 +73,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	{
 		_ReceiveLoopCts = new CancellationTokenSource();
 		_ReceiveLoopTask = ReceiveLoopAsync(_ReceiveLoopCts.Token);
+
+		// Pingループを開始
+		_PingLoopCts = new CancellationTokenSource();
+		_PingLoopTask = PingLoopAsync(_PingLoopCts.Token);
 	}
 
 	private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
@@ -90,6 +102,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					break;
 				}
 
+				// Pongフレームを受信
+				if (result.MessageType == WebSocketMessageType.Binary)
+				{
+					// Pongフレームの処理
+					lock (_PongLock)
+					{
+						_LastPongReceivedTime = DateTime.UtcNow;
+					}
+					continue;
+				}
+
 				if (result.MessageType == WebSocketMessageType.Text)
 				{
 					messageBuilder.Append(Encoding.UTF8.GetString(_ReceiveBuffer, 0, result.Count));
@@ -110,6 +133,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		catch (WebSocketException)
 		{
 			// Connection closed or error occurred
+		}
+		finally
+		{
+			// 接続が切断されたことを通知
+			RaiseConnectionClosed();
 		}
 	}
 
@@ -403,9 +431,91 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		return new List<TrainData>();
 	}
 
+	private async Task PingLoopAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			while (!cancellationToken.IsCancellationRequested && _WebSocket.State == WebSocketState.Open)
+			{
+				// 10秒ごとにPingフレームを送信
+				await Task.Delay(PING_INTERVAL_MS, cancellationToken);
+
+				if (cancellationToken.IsCancellationRequested || _WebSocket.State != WebSocketState.Open)
+					break;
+
+				try
+				{
+					// Pingフレームを送信（制御フレーム）
+					await _WebSocket.SendAsync(
+						new ArraySegment<byte>(Array.Empty<byte>()),
+						WebSocketMessageType.Binary,
+						endOfMessage: true,
+						cancellationToken
+					);
+				}
+				catch (WebSocketException)
+				{
+					// Ping送信に失敗したので接続を切断
+					await ForceDisconnectAsync();
+					break;
+				}
+				catch (OperationCanceledException)
+				{
+					// キャンセルされた場合
+					break;
+				}
+
+				// Pongが返ってきたか確認
+				bool isPongTimeout;
+				lock (_PongLock)
+				{
+					isPongTimeout = DateTime.UtcNow - _LastPongReceivedTime > TimeSpan.FromMilliseconds(PONG_TIMEOUT_MS);
+				}
+
+				if (isPongTimeout)
+				{
+					// 30秒以内にPongが返ってこなかったので接続を切断
+					await ForceDisconnectAsync();
+					break;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			// Expected when cancellation is requested
+		}
+		catch (Exception)
+		{
+			await ForceDisconnectAsync();
+		}
+	}
+
+	private async Task ForceDisconnectAsync()
+	{
+		try
+		{
+			if (_WebSocket.State == WebSocketState.Open)
+			{
+				await _WebSocket.CloseAsync(
+					WebSocketCloseStatus.InternalServerError,
+					"Pong timeout",
+					CancellationToken.None
+				);
+			}
+		}
+		catch (WebSocketException)
+		{
+			// Already closed
+		}
+
+		// ReceiveLoopを強制終了
+		_ReceiveLoopCts?.Cancel();
+	}
+
 	public async Task DisconnectAsync(CancellationToken cancellationToken = default)
 	{
 		_ReceiveLoopCts?.Cancel();
+		_PingLoopCts?.Cancel();
 
 		if (_WebSocket.State == WebSocketState.Open)
 		{
@@ -434,6 +544,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				// Expected
 			}
 		}
+
+		if (_PingLoopTask is not null)
+		{
+			try
+			{
+				await _PingLoopTask;
+			}
+			catch (OperationCanceledException)
+			{
+				// Expected
+			}
+		}
 	}
 
 	public override void Dispose()
@@ -444,6 +566,8 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		_IsDisposed = true;
 		_ReceiveLoopCts?.Cancel();
 		_ReceiveLoopCts?.Dispose();
+		_PingLoopCts?.Cancel();
+		_PingLoopCts?.Dispose();
 		_WebSocket.Dispose();
 	}
 }

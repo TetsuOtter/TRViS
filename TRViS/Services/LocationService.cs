@@ -134,6 +134,12 @@ public partial class LocationService : IDisposable
 		}
 	}
 
+	void OnNetworkSyncServiceConnectionClosed(object? sender, EventArgs e)
+	{
+		logger.Info("NetworkSyncService connection closed -> switching to LonLatLocationService");
+		SetLonLatLocationService();
+	}
+
 	public void SetLonLatLocationService()
 	{
 		logger.Trace("Setting LonLatLocationService...");
@@ -267,6 +273,7 @@ public partial class LocationService : IDisposable
 		nextService.LocationStateChanged += OnLocationStateChanged;
 		nextService.TimeChanged += OnTimeChanged;
 		nextService.TimetableUpdated += OnTimetableUpdated;
+		nextService.ConnectionClosed += OnNetworkSyncServiceConnectionClosed;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
 		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
@@ -291,6 +298,7 @@ public partial class LocationService : IDisposable
 		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
 			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
+			networkSyncService.ConnectionClosed -= OnNetworkSyncServiceConnectionClosed;
 		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
