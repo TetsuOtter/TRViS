@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.IO;
 using TRViS.IO.Models;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 
 namespace TRViS.ViewModels;
@@ -113,6 +114,9 @@ public partial class AppViewModel : ObservableObject
 		}
 
 		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _, StringListJsonSourceGenerationContext.Default.ListString);
+
+		// LocationService の時刻表更新イベントをサブスクライブ
+		InstanceManager.LocationService.TimetableUpdated += OnTimetableUpdated;
 	}
 
 	partial void OnLoaderChanged(ILoader? value)
@@ -149,6 +153,50 @@ public partial class AppViewModel : ObservableObject
 		else
 		{
 			SelectedTrainData = null;
+		}
+	}
+
+	void OnTimetableUpdated(object? sender, TimetableData timetableData)
+	{
+		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
+			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
+
+		// 時刻表の変更スコープに応じて、表示継続可能か判定する
+		bool canContinue = CanContinueCurrentTimetable(timetableData);
+
+		if (!canContinue)
+		{
+			// 表示継続不可の場合は初期状態に戻す
+			logger.Info("Timetable changed and cannot continue -> reset to initial state");
+			ResetToInitialTimetable();
+		}
+	}
+
+	bool CanContinueCurrentTimetable(TimetableData timetableData)
+	{
+		// 変更スコープに基づいて判定する
+		return timetableData.Scope switch
+		{
+			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
+			TimetableScopeType.WorkGroup => SelectedWorkGroup?.Id != timetableData.WorkGroupId,
+
+			// Work単位の変更：現在の選択がこのWorkと異なる場合のみ継続可能
+			TimetableScopeType.Work => SelectedWork?.Id != timetableData.WorkId,
+
+			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
+			TimetableScopeType.Train => SelectedTrainData?.Id != timetableData.TrainId,
+
+			_ => true
+		};
+	}
+
+	void ResetToInitialTimetable()
+	{
+		// Loader情報をリセットして、表示を初期状態に戻す
+		if (Loader is not null)
+		{
+			var workGroupList = Loader.GetWorkGroupList();
+			SelectedWorkGroup = workGroupList?.FirstOrDefault();
 		}
 	}
 }

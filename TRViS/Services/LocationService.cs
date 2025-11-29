@@ -43,6 +43,7 @@ public partial class LocationService : IDisposable
 
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<Exception>? ExceptionThrown;
+	public event EventHandler<TimetableData>? TimetableUpdated;
 
 	public bool CanUseService => _CurrentService?.CanUseService ?? false;
 
@@ -108,6 +109,12 @@ public partial class LocationService : IDisposable
 		logger.Debug("TimeChanged: {0}", second);
 		MainThread.BeginInvokeOnMainThread(() => TimeChanged?.Invoke(sender, second));
 	}
+	void OnTimetableUpdated(object? sender, TimetableData timetableData)
+	{
+		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
+			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
+		MainThread.BeginInvokeOnMainThread(() => TimetableUpdated?.Invoke(sender, timetableData));
+	}
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
 		if (_CurrentService is NetworkSyncServiceManager networkSyncService)
@@ -160,7 +167,10 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
 		if (currentService is NetworkSyncServiceManager networkSyncService)
+		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
+			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
+		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
 
@@ -235,6 +245,7 @@ public partial class LocationService : IDisposable
 		nextService.CanUseServiceChanged += OnCanUseServiceChanged;
 		nextService.LocationStateChanged += OnLocationStateChanged;
 		nextService.TimeChanged += OnTimeChanged;
+		nextService.TimetableUpdated += OnTimetableUpdated;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
 		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
@@ -256,7 +267,10 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
 		if (currentService is NetworkSyncServiceManager networkSyncService)
+		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
+			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
+		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
 
