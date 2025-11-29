@@ -103,6 +103,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		while (!cancellationToken.IsCancellationRequested && !shouldExit)
 		{
 			bool shouldRaiseConnectionClosed = false;
+			bool shouldRaiseConnectionFailed = false;
 
 			try
 			{
@@ -123,8 +124,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				if (result < 0)
 				{
 					logger.Warn("ReceiveLoopAsync: Failed to reconnect after {0} attempts", RECONNECT_ATTEMPT_MAX);
-					RaiseConnectionFailed();  // 再接続失敗を通知
-					shouldRaiseConnectionClosed = true;
+					shouldRaiseConnectionFailed = true;
 					shouldExit = true;
 				}
 				else
@@ -136,8 +136,14 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			}
 			finally
 			{
-				// 正常に終了した場合（Close メッセージまたは CancellationToken 経由）のみイベントを発火
-				if (shouldRaiseConnectionClosed)
+				// イベントを発火（再接続失敗と正常終了は相互排他的）
+				if (shouldRaiseConnectionFailed)
+				{
+					logger.Info("ReceiveLoopAsync: Connection failed");
+					RaiseConnectionFailed();
+					shouldExit = true;
+				}
+				else if (shouldRaiseConnectionClosed)
 				{
 					logger.Info("ReceiveLoopAsync: Connection closed");
 					RaiseConnectionClosed();
