@@ -1,11 +1,12 @@
 using TRViS.Controls;
+using TRViS.NetworkSyncService;
 
 namespace TRViS.Services;
 
 public partial class LocationService
 {
 	const int EXCEPTION_MAX = 10;
-	async Task NetworkSyncServiceTask(NetworkSyncService networkService, CancellationToken token)
+	async Task NetworkSyncServiceTask(NetworkSyncServiceManager networkService, CancellationToken token)
 	{
 		int exceptionCounter = 0;
 		while (!token.IsCancellationRequested)

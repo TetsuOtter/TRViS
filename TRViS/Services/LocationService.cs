@@ -1,6 +1,7 @@
 using System.ComponentModel;
 
 using TRViS.IO.Models;
+using TRViS.NetworkSyncService;
 using TRViS.ViewModels;
 
 namespace TRViS.Services;
@@ -68,7 +69,7 @@ public partial class LocationService : IDisposable
 		}
 
 		ILocationService targetService = _CurrentService;
-		if (targetService is NetworkSyncService)
+		if (targetService is NetworkSyncServiceManager)
 		{
 			logger.Debug("NetworkSyncService is used -> do nothing");
 		}
@@ -109,7 +110,7 @@ public partial class LocationService : IDisposable
 	}
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (_CurrentService is NetworkSyncService networkSyncService)
+		if (_CurrentService is NetworkSyncServiceManager networkSyncService)
 		{
 			switch (e.PropertyName)
 			{
@@ -158,7 +159,7 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Cancel();
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
-		if (currentService is NetworkSyncService networkSyncService)
+		if (currentService is NetworkSyncServiceManager networkSyncService)
 			networkSyncService.TimeChanged -= OnTimeChanged;
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
@@ -223,7 +224,7 @@ public partial class LocationService : IDisposable
 		}
 
 		ILocationService? currentService = _CurrentService;
-		NetworkSyncService nextService = await NetworkSyncService.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
+		NetworkSyncServiceManager nextService = await NetworkSyncServiceManager.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
 		if (currentService is not null)
 		{
 			logger.Debug("CurrentService is not null -> remove EventHandlers");
@@ -254,7 +255,7 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Cancel();
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
-		if (currentService is NetworkSyncService networkSyncService)
+		if (currentService is NetworkSyncServiceManager networkSyncService)
 			networkSyncService.TimeChanged -= OnTimeChanged;
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();

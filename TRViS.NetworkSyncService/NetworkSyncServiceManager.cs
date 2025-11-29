@@ -2,11 +2,13 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+
+using TRViS.NetworkSyncService.DataProviders;
 using TRViS.Services;
 
-namespace TRViS;
+namespace TRViS.NetworkSyncService;
 
-public partial class NetworkSyncService : ILocationService
+public class NetworkSyncServiceManager : ILocationService
 {
 	public bool IsEnabled { get; set; }
 	private bool _CanUseService = false;
@@ -53,12 +55,12 @@ public partial class NetworkSyncService : ILocationService
 	public event EventHandler<int>? TimeChanged;
 
 	private readonly IDataProvider _DataProvider;
-	private NetworkSyncService(IDataProvider dataProvider)
+	private NetworkSyncServiceManager(IDataProvider dataProvider)
 	{
 		_DataProvider = dataProvider;
 	}
 
-	public static async Task<NetworkSyncService> CreateFromUriAsync(Uri uri, HttpClient? httpClient = null, CancellationToken? cancellationToken = null)
+	public static async Task<NetworkSyncServiceManager> CreateFromUriAsync(Uri uri, HttpClient? httpClient = null, CancellationToken? cancellationToken = null)
 	{
 		cancellationToken ??= CancellationToken.None;
 		httpClient ??= new HttpClient();
