@@ -96,6 +96,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<TimetableData>? TimetableUpdated;
 	public event EventHandler? ConnectionClosed;
+	public event EventHandler? ConnectionFailed;
 
 	protected bool _IsDisposed;
 
@@ -215,6 +216,11 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	protected void RaiseConnectionClosed()
 	{
 		ConnectionClosed?.Invoke(this, EventArgs.Empty);
+	}
+
+	protected void RaiseConnectionFailed()
+	{
+		ConnectionFailed?.Invoke(this, EventArgs.Empty);
 	}
 
 	private bool CanContinueCurrentTimetable(TimetableData timetableData)

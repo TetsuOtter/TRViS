@@ -140,6 +140,21 @@ public partial class LocationService : IDisposable
 		SetLonLatLocationService();
 	}
 
+	void OnNetworkSyncServiceConnectionFailed(object? sender, EventArgs e)
+	{
+		logger.Warn("NetworkSyncService connection failed after reconnection attempts -> showing dialog");
+		MainThread.BeginInvokeOnMainThread(async () =>
+		{
+			await Utils.DisplayAlert(
+				"接続失敗",
+				"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
+				"OK"
+			);
+			logger.Info("NetworkSyncService connection failed -> switching to LonLatLocationService");
+			SetLonLatLocationService();
+		});
+	}
+
 	public void SetLonLatLocationService()
 	{
 		logger.Trace("Setting LonLatLocationService...");
@@ -274,6 +289,7 @@ public partial class LocationService : IDisposable
 		nextService.TimeChanged += OnTimeChanged;
 		nextService.TimetableUpdated += OnTimetableUpdated;
 		nextService.ConnectionClosed += OnNetworkSyncServiceConnectionClosed;
+		nextService.ConnectionFailed += OnNetworkSyncServiceConnectionFailed;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
 		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
@@ -299,6 +315,7 @@ public partial class LocationService : IDisposable
 			networkSyncService.TimeChanged -= OnTimeChanged;
 			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
 			networkSyncService.ConnectionClosed -= OnNetworkSyncServiceConnectionClosed;
+			networkSyncService.ConnectionFailed -= OnNetworkSyncServiceConnectionFailed;
 		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();

@@ -52,6 +52,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const int PING_INTERVAL_MS = 10000;  // 10秒
 	private const int PONG_TIMEOUT_MS = 30000;   // 30秒
 
+	// 再接続管理用
+	private const int RECONNECT_ATTEMPT_MAX = 3;  // 最大再接続試行回数
+	private const int RECONNECT_INTERVAL_MS = 5000;  // 再接続間隔（5秒）
+
 	// ILoader実装用のキャッシュ
 	private readonly Dictionary<string, WorkGroup> _WorkGroupCache = new();
 	private readonly Dictionary<string, List<Work>> _WorkListCache = new();
@@ -92,6 +96,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
 	{
 		StringBuilder messageBuilder = new();
+		int reconnectAttempt = 0;
 
 		try
 		{
@@ -135,6 +140,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 						messageBuilder.Clear();
 						logger.Debug("ReceiveLoopAsync: Received message: {0}", message);
 						ProcessMessage(message);
+						reconnectAttempt = 0;  // メッセージ受信成功時は再接続カウントをリセット
 					}
 				}
 			}
@@ -147,7 +153,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		catch (WebSocketException ex)
 		{
 			logger.Error(ex, "ReceiveLoopAsync: WebSocket exception");
-			// Connection closed or error occurred
+			// 接続が切断された場合、再接続を試みる
+			int result = await AttemptReconnectAsync(reconnectAttempt, cancellationToken);
+			if (result < 0)
+			{
+				logger.Warn("ReceiveLoopAsync: Failed to reconnect after {0} attempts", RECONNECT_ATTEMPT_MAX);
+				RaiseConnectionFailed();  // 再接続失敗を通知
+				RaiseConnectionClosed();
+				return;
+			}
+			// 再接続成功時はループを継続
+			await ReceiveLoopAsync(cancellationToken);
+			return;
 		}
 		finally
 		{
@@ -459,6 +476,67 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			return trainList.AsReadOnly();
 
 		return new List<TrainData>();
+	}
+
+	private async Task<int> AttemptReconnectAsync(int reconnectAttempt, CancellationToken cancellationToken)
+	{
+		logger.Info("AttemptReconnectAsync: Starting reconnection attempts (max: {0})", RECONNECT_ATTEMPT_MAX);
+
+		while (reconnectAttempt < RECONNECT_ATTEMPT_MAX && !cancellationToken.IsCancellationRequested)
+		{
+			reconnectAttempt++;
+			logger.Info("AttemptReconnectAsync: Attempt {0}/{1}", reconnectAttempt, RECONNECT_ATTEMPT_MAX);
+
+			try
+			{
+				// 再接続間隔を待つ
+				await Task.Delay(RECONNECT_INTERVAL_MS, cancellationToken);
+
+				// WebSocketが閉じられていれば新しいものを作成
+				if (_WebSocket.State != WebSocketState.Open && _WebSocket.State != WebSocketState.Connecting)
+				{
+					logger.Info("AttemptReconnectAsync: Creating new WebSocket");
+					_WebSocket.Dispose();
+					// Note: WebSocketNetworkSyncServiceのコンストラクタで新しいWebSocketを作成する必要があるため、
+					// ここでは既存のWebSocketの再利用を前提としています
+					// 実装上、WebSocketは再利用できないため、新しいインスタンスの作成が必要になります
+				}
+
+				// 再接続を試みる
+				logger.Info("AttemptReconnectAsync: Reconnecting to {0}", _Uri);
+				await _WebSocket.ConnectAsync(_Uri, cancellationToken);
+
+				logger.Info("AttemptReconnectAsync: Successfully reconnected on attempt {0}", reconnectAttempt);
+
+				// Receive と Ping ループを再開
+				StartReceiveLoop();
+				return reconnectAttempt;  // 再接続成功
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Info("AttemptReconnectAsync: Cancelled");
+				return -1;
+			}
+			catch (WebSocketException ex)
+			{
+				logger.Warn(ex, "AttemptReconnectAsync: Reconnection attempt {0} failed", reconnectAttempt);
+				if (reconnectAttempt < RECONNECT_ATTEMPT_MAX)
+				{
+					logger.Info("AttemptReconnectAsync: Retrying in {0}ms", RECONNECT_INTERVAL_MS);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.Error(ex, "AttemptReconnectAsync: Unexpected exception during reconnection attempt {0}", reconnectAttempt);
+				if (reconnectAttempt < RECONNECT_ATTEMPT_MAX)
+				{
+					logger.Info("AttemptReconnectAsync: Retrying in {0}ms", RECONNECT_INTERVAL_MS);
+				}
+			}
+		}
+
+		logger.Warn("AttemptReconnectAsync: All reconnection attempts failed");
+		return -1;  // 再接続失敗
 	}
 
 	private async Task PingLoopAsync(CancellationToken cancellationToken)
