@@ -233,8 +233,29 @@ public partial class LocationService : IDisposable
 			IsEnabled = false;
 		}
 
+		NetworkSyncServiceBase nextService = await NetworkSyncServiceUtil.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
+
+		await ChangeNetworkSyncServiceAsync(nextService);
+	}
+
+	public Task SetNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	{
+		logger.Trace("Setting NetworkSyncService...");
+
+		if (IsEnabled)
+		{
+			logger.Debug("IsEnabled is true -> stop Current LocationService");
+			IsEnabled = false;
+		}
+
+		return ChangeNetworkSyncServiceAsync(nextService);
+	}
+
+	private async Task ChangeNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	{
+		logger.Trace("Changing NetworkSyncService...");
+
 		ILocationService? currentService = _CurrentService;
-		NetworkSyncServiceBase nextService = await NetworkSyncServiceBase.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
 		if (currentService is not null)
 		{
 			logger.Debug("CurrentService is not null -> remove EventHandlers");
@@ -274,10 +295,13 @@ public partial class LocationService : IDisposable
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
 
-		CancellationTokenSource nextTokenSource = new();
-		serviceCancellation = nextTokenSource;
-		// バックグラウンドで実行し続ける
-		_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
+		if (nextService is not WebSocketNetworkSyncService)
+		{
+			CancellationTokenSource nextTokenSource = new();
+			serviceCancellation = nextTokenSource;
+			// バックグラウンドで実行し続ける
+			_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
+		}
 	}
 
 	public void SetTimetableRows(TimetableRow[]? timetableRows)

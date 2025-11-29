@@ -176,7 +176,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		catch (KeyNotFoundException) { }
 		catch (FormatException) { }
 
-		_LatestData = new SyncedData(location_m, time_ms, canStart);
+		SyncedData syncedData = new SyncedData(location_m, time_ms, canStart);
+		_LatestData = syncedData;
+
+		// WebSocket uses event-driven approach: process data immediately upon receipt
+		ProcessSyncedData(syncedData);
 	}
 
 	private void ProcessTimetableMessage(JsonElement root)
@@ -356,6 +360,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	protected override Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
 	{
 		// WebSocket is event-driven, return the latest cached data
+		// This method is not used by WebSocket implementation
 		return Task.FromResult(_LatestData);
 	}
 

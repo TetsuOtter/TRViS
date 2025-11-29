@@ -5,6 +5,7 @@ using System.Web;
 
 using TRViS.IO;
 using TRViS.IO.RequestInfo;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 
 namespace TRViS.ViewModels;
@@ -29,7 +30,7 @@ public partial class AppViewModel
 		{
 			appLinkInfo = AppLinkInfo.FromAppLink(uri);
 		}
-		catch(Exception ex)
+		catch (Exception ex)
 		{
 			logger.Warn(ex, "AppLinkInfo Identify Failed");
 			await Utils.DisplayAlert("Cannot Open File", "AppLinkInfo Identify Failed\n" + ex.Message, "OK");
@@ -69,6 +70,13 @@ public partial class AppViewModel
 		}
 
 		token.ThrowIfCancellationRequested();
+
+		// ResourceUriがWebSocket（ws:// or wss://）の場合、直接NetworkSyncServiceに接続
+		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "ws" or "wss")
+		{
+			logger.Info("ResourceUri is WebSocket -> Connect to NetworkSyncService directly");
+			return await HandleWebSocketAppLinkAsync(appLinkInfo, token);
+		}
 
 		OpenFile openFile = new(InstanceManager.HttpClient)
 		{
@@ -170,11 +178,77 @@ public partial class AppViewModel
 		return true;
 	}
 
+	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, CancellationToken token)
+	{
+		if (appLinkInfo.ResourceUri is null)
+		{
+			logger.Error("ResourceUri is null");
+			await Utils.DisplayAlert("Error", "WebSocket URLが指定されていません", "OK");
+			return false;
+		}
+
+		logger.Info("Connecting to WebSocket: {0}", appLinkInfo.ResourceUri);
+
+		try
+		{
+			// WebSocketで時刻表データを取得
+			OpenFile openFile = new(InstanceManager.HttpClient)
+			{
+				CanContinueWhenResourceUriContainsIp = CanContinueWhenResourceUriContainsIpHandler,
+				CanContinueWhenHeadRequestSuccess = CanContinueWhenHeadRequestSuccessHandler
+			};
+
+			WebSocketNetworkSyncService service = await openFile.OpenWebSocketAppLinkAsync(appLinkInfo, token);
+
+			ILoader? lastLoader = this.Loader;
+			this.Loader = service;
+			logger.Info("Loader Initialized from WebSocket");
+			lastLoader?.Dispose();
+			logger.Debug("Last Loader Disposed");
+
+			await InstanceManager.LocationService.SetNetworkSyncServiceAsync(service);
+
+			await Utils.DisplayAlert("Success!", "WebSocket接続が完了しました", "OK");
+			return true;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "HandleWebSocketAppLinkAsync Failed");
+			if (ex is OperationCanceledException && ex is not TaskCanceledException)
+			{
+				logger.Debug(ex, "Operation Canceled");
+				return false;
+			}
+
+			if (appLinkInfo.ResourceUri.HostNameType == UriHostNameType.IPv4
+				&& ex is TaskCanceledException
+				&& ex.InnerException is TimeoutException)
+			{
+				logger.Error(ex, "Timeout Error");
+				await Utils.DisplayAlert(
+					"接続できませんでした (Timeout)",
+					"接続先がパソコンの場合は、\n"
+					+ "接続先が同じネットワークに属しているか、\n"
+					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
+					+ "を確認してください。",
+					"OK"
+				);
+			}
+			else
+			{
+				await Utils.DisplayAlert("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
+			}
+			return false;
+		}
+	}
+
 	static async Task<bool> CanContinueWhenResourceUriContainsIpHandler(
 		IPAddress remoteIp,
 		CancellationToken token
-	) {
-		if (!IsPrivateIpv4(remoteIp)) {
+	)
+	{
+		if (!IsPrivateIpv4(remoteIp))
+		{
 			logger.Debug(
 				"ipAddress: {0} is not private address -> continue",
 				remoteIp
@@ -226,7 +300,8 @@ public partial class AppViewModel
 	static async Task<bool> CanContinueWhenHeadRequestSuccessHandler(
 		HttpResponseMessage response,
 		CancellationToken token
-	) {
+	)
+	{
 		logger.Info("Head Request status code: {0} ({1})", response.StatusCode);
 		if (response.StatusCode == HttpStatusCode.NoContent)
 		{

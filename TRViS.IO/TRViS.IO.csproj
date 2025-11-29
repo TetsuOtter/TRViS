@@ -16,5 +16,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="../TRViS.IO.ILoader/TRViS.IO.ILoader.csproj" />
+		<ProjectReference Include="../TRViS.NetworkSyncService/TRViS.NetworkSyncService.csproj" />
 	</ItemGroup>
 </Project>

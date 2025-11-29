@@ -1,6 +1,7 @@
 using System.Net;
 
 using TRViS.IO.RequestInfo;
+using TRViS.NetworkSyncService;
 
 namespace TRViS.IO;
 
@@ -56,6 +57,48 @@ public class OpenFile(HttpClient httpClient)
 		}
 
 		throw new ArgumentException("ResourceUri and Content are null");
+	}
+
+	public async Task<WebSocketNetworkSyncService> OpenWebSocketAppLinkAsync(
+		AppLinkInfo appLinkInfo,
+		CancellationToken token
+	)
+	{
+		if (appLinkInfo.ResourceUri is null)
+		{
+			throw new ArgumentException("ResourceUri is null");
+		}
+
+		Uri uri = appLinkInfo.ResourceUri;
+		if (uri.Scheme is not "ws" and not "wss")
+		{
+			throw new ArgumentException("ResourceUri scheme must be ws or wss");
+		}
+
+		token.ThrowIfCancellationRequested();
+
+		if (appLinkInfo.FileTypeInfo != AppLinkInfo.FileType.Json)
+		{
+			throw new ArgumentException("This file type is not supported");
+		}
+
+		bool isHostIp = uri.HostNameType is UriHostNameType.IPv4 or UriHostNameType.IPv6;
+		if (isHostIp
+			&& this.CanContinueWhenResourceUriContainsIp is not null
+			&& IPAddress.TryParse(uri.Host, out IPAddress? ip)
+			&& !await this.CanContinueWhenResourceUriContainsIp(ip, token))
+		{
+			throw new OperationCanceledException("cancelled by CanContinueWhenResourceUriContainsIp");
+		}
+
+		token.ThrowIfCancellationRequested();
+
+		WebSocketNetworkSyncService service = await NetworkSyncServiceUtil.CreateFromWebSocketAsync(
+			uri,
+			webSocket: null,
+			cancellationToken: token
+		);
+		return service;
 	}
 
 	private async Task<ILoader> OpenAppLink_PathTypeAsync(

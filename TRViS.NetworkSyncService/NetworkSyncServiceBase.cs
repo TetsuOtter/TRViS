@@ -118,21 +118,32 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	/// </summary>
 	protected virtual void OnTrainIdChanged(string? value) { }
 
+	/// <summary>
+	/// Poll for synced data. Used by HTTP implementation for periodic polling.
+	/// WebSocket implementation handles updates via event-driven approach instead.
+	/// </summary>
 	public async Task TickAsync(CancellationToken? cancellationToken = null)
 	{
 		cancellationToken ??= CancellationToken.None;
 		SyncedData result = await GetSyncedDataAsync(cancellationToken.Value);
+		ProcessSyncedData(result);
+	}
 
-		UpdateCurrentStationWithLocation(result.Location_m);
+	/// <summary>
+	/// Process synced data and update state. Called by TickAsync (HTTP) or directly (WebSocket).
+	/// </summary>
+	protected void ProcessSyncedData(SyncedData syncedData)
+	{
+		UpdateCurrentStationWithLocation(syncedData.Location_m);
 
-		int currentTime_s = (int)(result.Time_ms / 1000);
+		int currentTime_s = (int)(syncedData.Time_ms / 1000);
 		if (CurrentTime_s != currentTime_s)
 		{
 			CurrentTime_s = currentTime_s;
 			TimeChanged?.Invoke(this, CurrentTime_s);
 		}
 
-		CanUseService = result.CanStart;
+		CanUseService = syncedData.CanStart;
 	}
 
 	void UpdateCurrentStationWithLocation(double location_m)
