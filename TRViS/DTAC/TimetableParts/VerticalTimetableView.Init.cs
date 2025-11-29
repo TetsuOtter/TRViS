@@ -228,6 +228,13 @@ public partial class VerticalTimetableView
 
 				IsBusy = false;
 
+				// If IsRunStarted is true and now we have timetable rows, set CurrentRunningRow to the first row
+				if (IsRunStarted && RowViewList.Count > 0)
+				{
+					logger.Info("IsRunStarted is true and timetable rows are now created -> set CurrentRunningRow to first row");
+					SetCurrentRunningRow(RowViewList.First());
+				}
+
 				logger.Trace("MainThread: FooterInsertion Complete");
 			}
 			catch (Exception ex)

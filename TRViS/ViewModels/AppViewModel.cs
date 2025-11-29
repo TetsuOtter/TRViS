@@ -170,6 +170,51 @@ public partial class AppViewModel : ObservableObject
 			logger.Info("Timetable changed and cannot continue -> reset to initial state");
 			ResetToInitialTimetable();
 		}
+
+		// Loader のキャッシュが更新された可能性があるため、UI を再読み込み
+		// 特に WebSocket の場合は Loader のデータが動的に更新されるため、毎回再読み込みする必要がある
+		RefreshLoaderDisplay();
+	}
+
+	private void RefreshLoaderDisplay()
+	{
+		if (Loader is null)
+			return;
+
+		logger.Debug("RefreshLoaderDisplay: Refreshing UI from Loader cache");
+		WorkGroupList = Loader.GetWorkGroupList();
+
+		// 現在選択中の WorkGroup が存在しない場合は、最初のものを選択
+		if (SelectedWorkGroup is not null && !WorkGroupList?.Any(wg => wg.Id == SelectedWorkGroup.Id) == true)
+		{
+			SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
+		}
+		else if (SelectedWorkGroup is null && WorkGroupList?.Count > 0)
+		{
+			SelectedWorkGroup = WorkGroupList.FirstOrDefault();
+		}
+
+		// WorkList も更新
+		if (SelectedWorkGroup is not null)
+		{
+			WorkList = Loader.GetWorkList(SelectedWorkGroup.Id);
+
+			// 現在選択中の Work が存在しない場合は、最初のものを選択
+			if (SelectedWork is not null && !WorkList?.Any(w => w.Id == SelectedWork.Id) == true)
+			{
+				SelectedWork = WorkList?.FirstOrDefault();
+			}
+			else if (SelectedWork is null && WorkList?.Count > 0)
+			{
+				SelectedWork = WorkList.FirstOrDefault();
+			}
+			else
+			{
+				// WorkList が更新された場合、選択中の Work でも UI を更新する必要がある
+				// OnSelectedWorkChanged を明示的に呼ぶ
+				OnSelectedWorkChanged(SelectedWork);
+			}
+		}
 	}
 
 	bool CanContinueCurrentTimetable(TimetableData timetableData)

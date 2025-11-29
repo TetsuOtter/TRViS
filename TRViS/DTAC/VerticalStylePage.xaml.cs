@@ -2,6 +2,7 @@ using DependencyPropertyGenerator;
 
 using TRViS.Controls;
 using TRViS.IO.Models;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.ValueConverters;
 using TRViS.ViewModels;
@@ -205,6 +206,19 @@ public partial class VerticalStylePage : ContentView
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
 		};
 		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
+
+		// WebSocket接続時に CanStart が true になったら自動で「運行開始」UI を反映する
+		InstanceManager.LocationService.CanUseServiceChanged += (_, canUseService) =>
+		{
+			logger.Info("LocationService.CanUseServiceChanged: {0}", canUseService);
+			// NetworkSyncService（WebSocket or HTTP）が使用されていて、かつ CanStart が true の場合
+			if (InstanceManager.LocationService.NetworkSyncServiceCanStart)
+			{
+				logger.Info("CanStart is true and NetworkSyncService is being used -> automatically set IsRunning to true and enable location service");
+				PageHeaderArea.IsRunning = true;
+				TimetableView.IsLocationServiceEnabled = true;
+			}
+		};
 
 		MaxSpeedLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 		SpeedTypeLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;

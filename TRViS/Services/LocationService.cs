@@ -47,6 +47,13 @@ public partial class LocationService : IDisposable
 
 	public bool CanUseService => _CurrentService?.CanUseService ?? false;
 
+	public ILocationService? CurrentService => _CurrentService;
+
+	/// <summary>
+	/// NetworkSyncService の CanStart 状態。NetworkSyncService が使用されていない場合は false
+	/// </summary>
+	public bool NetworkSyncServiceCanStart => (_CurrentService as NetworkSyncServiceBase)?.CanStart ?? false;
+
 	ILocationService? _CurrentService;
 	CancellationTokenSource? serviceCancellation = null;
 	CancellationTokenSource? timeProviderCancellation = null;
