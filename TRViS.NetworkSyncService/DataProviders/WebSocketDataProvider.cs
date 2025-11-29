@@ -10,13 +10,21 @@ namespace TRViS.NetworkSyncService.DataProviders;
 
 public class WebSocketDataProvider : IDataProvider, IDisposable
 {
+	// SyncedDataメッセージのJSONキー
+	const string LOCATION_M_JSON_KEY = "Location_m";
+	const string TIME_MS_JSON_KEY = "Time_ms";
+	const string CAN_START_JSON_KEY = "CanStart";
+
+	// ID更新メッセージのJSONキー
 	const string WORK_GROUP_ID_JSON_KEY = "WorkGroupId";
 	const string WORK_ID_JSON_KEY = "WorkId";
 	const string TRAIN_ID_JSON_KEY = "TrainId";
 
-	const string LOCATION_M_JSON_KEY = "Location_m";
-	const string TIME_MS_JSON_KEY = "Time_ms";
-	const string CAN_START_JSON_KEY = "CanStart";
+	// 時刻表メッセージのJSONキー
+	const string MESSAGE_TYPE_JSON_KEY = "MessageType";
+	const string MESSAGE_TYPE_SYNCED_DATA = "SyncedData";
+	const string MESSAGE_TYPE_TIMETABLE = "Timetable";
+	const string TIMETABLE_DATA_JSON_KEY = "Data";
 
 	private readonly ClientWebSocket _WebSocket;
 	private readonly Uri _Uri;
@@ -64,6 +72,8 @@ public class WebSocketDataProvider : IDataProvider, IDisposable
 			_ = SendIdUpdateAsync();
 		}
 	}
+
+	public event EventHandler<TimetableData>? TimetableUpdated;
 
 	public WebSocketDataProvider(Uri uri, ClientWebSocket webSocket)
 	{
@@ -142,40 +152,114 @@ public class WebSocketDataProvider : IDataProvider, IDisposable
 
 			JsonElement root = json.RootElement;
 
-			double location_m = double.NaN;
+			// メッセージタイプを確認
+			string? messageType = null;
 			try
 			{
-				JsonElement location_m_element = root.GetProperty(LOCATION_M_JSON_KEY);
-				if (location_m_element.ValueKind == JsonValueKind.Null)
-					location_m = double.NaN;
-				else
-					location_m = location_m_element.GetDouble();
+				messageType = root.GetProperty(MESSAGE_TYPE_JSON_KEY).GetString();
 			}
 			catch (KeyNotFoundException) { }
-			catch (FormatException) { }
 
-			long time_ms = 0;
-			try
+			if (messageType == MESSAGE_TYPE_SYNCED_DATA)
 			{
-				time_ms = root.GetProperty(TIME_MS_JSON_KEY).GetInt64();
+				ProcessSyncedDataMessage(root);
 			}
-			catch (KeyNotFoundException) { }
-			catch (FormatException) { }
-
-			bool canStart = true;
-			try
+			else if (messageType == MESSAGE_TYPE_TIMETABLE)
 			{
-				canStart = root.GetProperty(CAN_START_JSON_KEY).GetBoolean();
+				ProcessTimetableMessage(root);
 			}
-			catch (KeyNotFoundException) { }
-			catch (FormatException) { }
-
-			_LatestData = new SyncedData(location_m, time_ms, canStart);
 		}
 		catch (JsonException)
 		{
 			// Invalid JSON, ignore
 		}
+	}
+
+	private void ProcessSyncedDataMessage(JsonElement root)
+	{
+		double location_m = double.NaN;
+		try
+		{
+			JsonElement location_m_element = root.GetProperty(LOCATION_M_JSON_KEY);
+			if (location_m_element.ValueKind == JsonValueKind.Null)
+				location_m = double.NaN;
+			else
+				location_m = location_m_element.GetDouble();
+		}
+		catch (KeyNotFoundException) { }
+		catch (FormatException) { }
+
+		long time_ms = 0;
+		try
+		{
+			time_ms = root.GetProperty(TIME_MS_JSON_KEY).GetInt64();
+		}
+		catch (KeyNotFoundException) { }
+		catch (FormatException) { }
+
+		bool canStart = true;
+		try
+		{
+			canStart = root.GetProperty(CAN_START_JSON_KEY).GetBoolean();
+		}
+		catch (KeyNotFoundException) { }
+		catch (FormatException) { }
+
+		_LatestData = new SyncedData(location_m, time_ms, canStart);
+	}
+
+	private void ProcessTimetableMessage(JsonElement root)
+	{
+		var timetableData = new TimetableData();
+
+		// WorkGroupId, WorkId, TrainIdを取得
+		try
+		{
+			if (root.TryGetProperty(WORK_GROUP_ID_JSON_KEY, out var wgId))
+				timetableData.WorkGroupId = wgId.GetString();
+		}
+		catch (FormatException) { }
+
+		try
+		{
+			if (root.TryGetProperty(WORK_ID_JSON_KEY, out var wId))
+				timetableData.WorkId = wId.GetString();
+		}
+		catch (FormatException) { }
+
+		try
+		{
+			if (root.TryGetProperty(TRAIN_ID_JSON_KEY, out var tId))
+				timetableData.TrainId = tId.GetString();
+		}
+		catch (FormatException) { }
+
+		// スコープを取得（WorkGroup > Work > Train の優先度で判定）
+		if (timetableData.WorkGroupId is not null)
+		{
+			timetableData.Scope = TimetableScopeType.WorkGroup;
+		}
+		else if (timetableData.WorkId is not null)
+		{
+			timetableData.Scope = TimetableScopeType.Work;
+		}
+		else if (timetableData.TrainId is not null)
+		{
+			timetableData.Scope = TimetableScopeType.Train;
+		}
+
+		// 時刻表JSONデータを取得
+		try
+		{
+			if (root.TryGetProperty(TIMETABLE_DATA_JSON_KEY, out var data))
+			{
+				timetableData.JsonData = data.GetRawText();
+			}
+		}
+		catch (FormatException) { }
+
+		// イベントを発火
+		TimetableUpdated?.Invoke(this, timetableData);
 	}
 
 	private async Task SendIdUpdateAsync()

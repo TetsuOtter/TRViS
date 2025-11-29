@@ -54,6 +54,7 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 	public event EventHandler<bool>? CanUseServiceChanged;
 	public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 	public event EventHandler<int>? TimeChanged;
+	public event EventHandler<TimetableData>? TimetableUpdated;
 
 	private readonly IDataProvider _DataProvider;
 	private bool _IsDisposed;
@@ -61,6 +62,7 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 	private NetworkSyncServiceManager(IDataProvider dataProvider)
 	{
 		_DataProvider = dataProvider;
+		_DataProvider.TimetableUpdated += DataProvider_TimetableUpdated;
 	}
 
 	public static async Task<NetworkSyncServiceManager> CreateFromUriAsync(Uri uri, HttpClient? httpClient = null, CancellationToken? cancellationToken = null)
@@ -166,6 +168,39 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 		}
 	}
 
+	private void DataProvider_TimetableUpdated(object? sender, TimetableData timetableData)
+	{
+		// 時刻表の変更スコープに応じて、表示継続可能か判定する
+		bool canContinue = CanContinueCurrentTimetable(timetableData);
+
+		if (!canContinue)
+		{
+			// 表示継続不可の場合は初期状態に戻す
+			ResetLocationInfo();
+		}
+
+		// 時刻表更新イベントを外部に通知
+		TimetableUpdated?.Invoke(this, timetableData);
+	}
+
+	private bool CanContinueCurrentTimetable(TimetableData timetableData)
+	{
+		// 変更スコープに基づいて判定する
+		return timetableData.Scope switch
+		{
+			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
+			TimetableScopeType.WorkGroup => _DataProvider.WorkGroupId != timetableData.WorkGroupId,
+
+			// Work単位の変更：現在の選択がこのWorkと異なる場合のみ継続可能
+			TimetableScopeType.Work => _DataProvider.WorkId != timetableData.WorkId,
+
+			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
+			TimetableScopeType.Train => _DataProvider.TrainId != timetableData.TrainId,
+
+			_ => true
+		};
+	}
+
 	public void ForceSetLocationInfo(
 		int stationIndex,
 		bool isRunningToNextStation
@@ -189,6 +224,7 @@ public class NetworkSyncServiceManager : ILocationService, IDisposable
 			return;
 
 		_IsDisposed = true;
+		_DataProvider.TimetableUpdated -= DataProvider_TimetableUpdated;
 
 		if (_DataProvider is IDisposable disposable)
 		{
