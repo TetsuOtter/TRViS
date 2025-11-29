@@ -137,7 +137,15 @@ public partial class LocationService : IDisposable
 	void OnNetworkSyncServiceConnectionClosed(object? sender, EventArgs e)
 	{
 		logger.Info("NetworkSyncService connection closed -> switching to LonLatLocationService");
-		SetLonLatLocationService();
+		MainThread.BeginInvokeOnMainThread(async () =>
+		{
+			await Utils.DisplayAlert(
+				"接続切断",
+				"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
+				"OK"
+			);
+			SetLonLatLocationService();
+		});
 	}
 
 	void OnNetworkSyncServiceConnectionFailed(object? sender, EventArgs e)
