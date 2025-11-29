@@ -31,6 +31,20 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 		}
 	}
 
+	private bool _CanStart = false;
+	public bool CanStart
+	{
+		get => _CanStart;
+		protected set
+		{
+			if (_CanStart == value)
+				return;
+
+			_CanStart = value;
+			CanStartChanged?.Invoke(this, value);
+		}
+	}
+
 	private StaLocationInfo[]? _staLocationInfo;
 	public StaLocationInfo[]? StaLocationInfo
 	{
@@ -97,6 +111,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<TimetableData>? TimetableUpdated;
 	public event EventHandler? ConnectionClosed;
 	public event EventHandler? ConnectionFailed;
+	public event EventHandler<bool>? CanStartChanged;
 
 	protected bool _IsDisposed;
 
@@ -147,6 +162,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 			TimeChanged?.Invoke(this, CurrentTime_s);
 		}
 
+		CanStart = syncedData.CanStart;
 		CanUseService = syncedData.CanStart;
 	}
 

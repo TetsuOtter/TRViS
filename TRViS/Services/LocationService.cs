@@ -115,6 +115,22 @@ public partial class LocationService : IDisposable
 			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
 		MainThread.BeginInvokeOnMainThread(() => TimetableUpdated?.Invoke(sender, timetableData));
 	}
+
+	void OnNetworkSyncServiceCanStartChanged(object? sender, bool canStart)
+	{
+		logger.Debug("NetworkSyncServiceCanStartChanged: {0}", canStart);
+
+		// WebSocket接続時にのみ、CanStartがtrueになったら自動で「運行開始」と「位置情報ON」をする
+		if (canStart && _CurrentService is WebSocketNetworkSyncService)
+		{
+			logger.Info("CanStart is true and WebSocket is being used -> automatically enable location service");
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				IsEnabled = true;
+			});
+		}
+	}
+
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
 		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
@@ -298,6 +314,7 @@ public partial class LocationService : IDisposable
 		nextService.TimetableUpdated += OnTimetableUpdated;
 		nextService.ConnectionClosed += OnNetworkSyncServiceConnectionClosed;
 		nextService.ConnectionFailed += OnNetworkSyncServiceConnectionFailed;
+		nextService.CanStartChanged += OnNetworkSyncServiceCanStartChanged;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
 		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
@@ -324,6 +341,7 @@ public partial class LocationService : IDisposable
 			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
 			networkSyncService.ConnectionClosed -= OnNetworkSyncServiceConnectionClosed;
 			networkSyncService.ConnectionFailed -= OnNetworkSyncServiceConnectionFailed;
+			networkSyncService.CanStartChanged -= OnNetworkSyncServiceCanStartChanged;
 		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
