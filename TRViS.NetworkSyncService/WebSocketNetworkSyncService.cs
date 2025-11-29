@@ -46,17 +46,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private CancellationTokenSource? _ReceiveLoopCts;
 	private Task? _ReceiveLoopTask;
 
-	// Ping/Pong管理用
-	private Task? _PingLoopTask;
-	private CancellationTokenSource? _PingLoopCts;
-	private DateTime _LastPongReceivedTime = DateTime.UtcNow;
-	private readonly object _PongLock = new();
-	private const int PING_INTERVAL_MS = 10000;  // 10秒
-	private const int PONG_TIMEOUT_MS = 30000;   // 30秒
-
 	// 再接続管理用
 	private const int RECONNECT_ATTEMPT_MAX = 3;  // 最大再接続試行回数
 	private const int RECONNECT_INTERVAL_MS = 5000;  // 再接続間隔（5秒）
+	private const int KEEP_ALIVE_INTERVAL_MS = 10000;  // ハートビート間隔（10秒）
+	private const int KEEP_ALIVE_TIMEOUT_MS = 15000;  // ハートビート応答タイムアウト（15秒）
 
 	// JSONデシリアライズ用のオプション
 	private static readonly JsonSerializerOptions JsonDeserializeOptions = new()
@@ -87,6 +81,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 
 		logger.Info("ConnectAsync: Connecting to {0}", _Uri);
+		// KeepAlive設定を適用（OS/フレームワークレベルでのハートビート）
+		_WebSocket.Options.KeepAliveInterval = TimeSpan.FromMilliseconds(KEEP_ALIVE_INTERVAL_MS);
+		_WebSocket.Options.KeepAliveTimeout = TimeSpan.FromMilliseconds(KEEP_ALIVE_TIMEOUT_MS);
 		await _WebSocket.ConnectAsync(_Uri, cancellationToken);
 		logger.Info("ConnectAsync: Connected successfully");
 		StartReceiveLoop();
@@ -96,91 +93,100 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	{
 		_ReceiveLoopCts = new CancellationTokenSource();
 		_ReceiveLoopTask = ReceiveLoopAsync(_ReceiveLoopCts.Token);
-
-		// Pingループを開始
-		_PingLoopCts = new CancellationTokenSource();
-		_PingLoopTask = PingLoopAsync(_PingLoopCts.Token);
 	}
 
 	private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
 	{
-		StringBuilder messageBuilder = new();
 		int reconnectAttempt = 0;
+		bool shouldExit = false;
 
-		try
+		while (!cancellationToken.IsCancellationRequested && !shouldExit)
 		{
-			while (!cancellationToken.IsCancellationRequested && _WebSocket.State == WebSocketState.Open)
+			bool shouldRaiseConnectionClosed = false;
+
+			try
 			{
-				WebSocketReceiveResult result = await _WebSocket.ReceiveAsync(
-					new ArraySegment<byte>(_ReceiveBuffer),
-					cancellationToken
-				);
-
-				if (result.MessageType == WebSocketMessageType.Close)
+				reconnectAttempt = await ReceiveMessagesAsync(reconnectAttempt, cancellationToken);
+				shouldRaiseConnectionClosed = true;
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Info("ReceiveLoopAsync: Cancelled");
+				shouldRaiseConnectionClosed = true;
+				// Expected when cancellation is requested
+			}
+			catch (Exception ex)
+			{
+				logger.Error(ex, "ReceiveLoopAsync: WebSocket exception");
+				// 接続が切断された場合、再接続を試みる
+				int result = await AttemptReconnectAsync(reconnectAttempt, cancellationToken);
+				if (result < 0)
 				{
-					logger.Info("ReceiveLoopAsync: Received Close message from server");
-					await _WebSocket.CloseAsync(
-						WebSocketCloseStatus.NormalClosure,
-						"Closing",
-						CancellationToken.None
-					);
-					break;
+					logger.Warn("ReceiveLoopAsync: Failed to reconnect after {0} attempts", RECONNECT_ATTEMPT_MAX);
+					RaiseConnectionFailed();  // 再接続失敗を通知
+					shouldRaiseConnectionClosed = true;
+					shouldExit = true;
 				}
-
-				// Pongフレームを受信
-				if (result.MessageType == WebSocketMessageType.Binary)
+				else
 				{
-					// Pongフレームの処理
-					logger.Debug("ReceiveLoopAsync: Received Pong frame");
-					lock (_PongLock)
-					{
-						_LastPongReceivedTime = DateTime.UtcNow;
-					}
+					// 再接続成功時は次のループを継続
+					logger.Info("ReceiveLoopAsync: Reconnected successfully, restarting receive loop");
 					continue;
 				}
-
-				if (result.MessageType == WebSocketMessageType.Text)
+			}
+			finally
+			{
+				// 正常に終了した場合（Close メッセージまたは CancellationToken 経由）のみイベントを発火
+				if (shouldRaiseConnectionClosed)
 				{
-					messageBuilder.Append(Encoding.UTF8.GetString(_ReceiveBuffer, 0, result.Count));
-
-					if (result.EndOfMessage)
-					{
-						string message = messageBuilder.ToString();
-						messageBuilder.Clear();
-						logger.Debug("ReceiveLoopAsync: Received message: {0}", message);
-						ProcessMessage(message);
-						reconnectAttempt = 0;  // メッセージ受信成功時は再接続カウントをリセット
-					}
+					logger.Info("ReceiveLoopAsync: Connection closed");
+					RaiseConnectionClosed();
+					shouldExit = true;
 				}
 			}
 		}
-		catch (OperationCanceledException)
+	}
+
+	private async Task<int> ReceiveMessagesAsync(int reconnectAttempt, CancellationToken cancellationToken)
+	{
+		StringBuilder messageBuilder = new();
+
+		while (!cancellationToken.IsCancellationRequested && _WebSocket.State == WebSocketState.Open)
 		{
-			logger.Info("ReceiveLoopAsync: Cancelled");
-			// Expected when cancellation is requested
-		}
-		catch (WebSocketException ex)
-		{
-			logger.Error(ex, "ReceiveLoopAsync: WebSocket exception");
-			// 接続が切断された場合、再接続を試みる
-			int result = await AttemptReconnectAsync(reconnectAttempt, cancellationToken);
-			if (result < 0)
+			WebSocketReceiveResult result = await _WebSocket.ReceiveAsync(
+				new ArraySegment<byte>(_ReceiveBuffer),
+				cancellationToken
+			);
+
+			if (result.MessageType == WebSocketMessageType.Close)
 			{
-				logger.Warn("ReceiveLoopAsync: Failed to reconnect after {0} attempts", RECONNECT_ATTEMPT_MAX);
-				RaiseConnectionFailed();  // 再接続失敗を通知
-				RaiseConnectionClosed();
-				return;
+				logger.Info("ReceiveMessagesAsync: Received Close message from server");
+				await _WebSocket.CloseAsync(
+					WebSocketCloseStatus.NormalClosure,
+					"Closing",
+					CancellationToken.None
+				);
+				break;
 			}
-			// 再接続成功時はループを継続
-			await ReceiveLoopAsync(cancellationToken);
-			return;
+
+			if (result.MessageType == WebSocketMessageType.Text)
+			{
+				messageBuilder.Append(Encoding.UTF8.GetString(_ReceiveBuffer, 0, result.Count));
+
+				if (result.EndOfMessage)
+				{
+					string message = messageBuilder.ToString();
+					messageBuilder.Clear();
+					logger.Debug("ReceiveMessagesAsync: Received message: {0}", message);
+					ProcessMessage(message);
+					reconnectAttempt = 0;  // メッセージ受信成功時は再接続カウントをリセット
+				}
+			}
 		}
-		finally
-		{
-			// 接続が切断されたことを通知
-			logger.Info("ReceiveLoopAsync: Connection closed");
-			RaiseConnectionClosed();
-		}
+
+		cancellationToken.ThrowIfCancellationRequested();
+
+		return reconnectAttempt;
 	}
 
 	private void ProcessMessage(string message)
@@ -657,71 +663,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		return -1;  // 再接続失敗
 	}
 
-	private async Task PingLoopAsync(CancellationToken cancellationToken)
-	{
-		try
-		{
-			while (!cancellationToken.IsCancellationRequested && _WebSocket.State == WebSocketState.Open)
-			{
-				// 10秒ごとにPingフレームを送信
-				await Task.Delay(PING_INTERVAL_MS, cancellationToken);
-
-				if (cancellationToken.IsCancellationRequested || _WebSocket.State != WebSocketState.Open)
-					break;
-
-				try
-				{
-					logger.Debug("PingLoopAsync: Sending Ping frame");
-					// Pingフレームを送信（制御フレーム）
-					await _WebSocket.SendAsync(
-						new ArraySegment<byte>(Array.Empty<byte>()),
-						WebSocketMessageType.Binary,
-						endOfMessage: true,
-						cancellationToken
-					);
-				}
-				catch (WebSocketException ex)
-				{
-					logger.Error(ex, "PingLoopAsync: Failed to send Ping");
-					// Ping送信に失敗したので接続を切断
-					await ForceDisconnectAsync();
-					break;
-				}
-				catch (OperationCanceledException)
-				{
-					logger.Info("PingLoopAsync: Cancelled");
-					// キャンセルされた場合
-					break;
-				}
-
-				// Pongが返ってきたか確認
-				bool isPongTimeout;
-				lock (_PongLock)
-				{
-					isPongTimeout = DateTime.UtcNow - _LastPongReceivedTime > TimeSpan.FromMilliseconds(PONG_TIMEOUT_MS);
-				}
-
-				if (isPongTimeout)
-				{
-					// 30秒以内にPongが返ってこなかったので接続を切断
-					logger.Warn("PingLoopAsync: Pong timeout detected, disconnecting");
-					await ForceDisconnectAsync();
-					break;
-				}
-			}
-		}
-		catch (OperationCanceledException)
-		{
-			logger.Info("PingLoopAsync: Cancelled");
-			// Expected when cancellation is requested
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "PingLoopAsync: Unexpected exception");
-			await ForceDisconnectAsync();
-		}
-	}
-
 	private async Task ForceDisconnectAsync()
 	{
 		logger.Warn("ForceDisconnectAsync: Forcing disconnect");
@@ -750,7 +691,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	{
 		logger.Info("DisconnectAsync: Disconnecting");
 		_ReceiveLoopCts?.Cancel();
-		_PingLoopCts?.Cancel();
 
 		if (_WebSocket.State == WebSocketState.Open)
 		{
@@ -781,19 +721,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				// Expected
 			}
 		}
-
-		if (_PingLoopTask is not null)
-		{
-			try
-			{
-				await _PingLoopTask;
-			}
-			catch (OperationCanceledException)
-			{
-				logger.Debug("DisconnectAsync: PingLoop cancelled");
-				// Expected
-			}
-		}
 		logger.Info("DisconnectAsync: Disconnected");
 	}
 
@@ -806,8 +733,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		_IsDisposed = true;
 		_ReceiveLoopCts?.Cancel();
 		_ReceiveLoopCts?.Dispose();
-		_PingLoopCts?.Cancel();
-		_PingLoopCts?.Dispose();
 		_WebSocket.Dispose();
 	}
 }
