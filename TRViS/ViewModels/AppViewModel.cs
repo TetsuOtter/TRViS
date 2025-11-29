@@ -177,6 +177,9 @@ public partial class AppViewModel : ObservableObject
 		// 変更スコープに基づいて判定する
 		return timetableData.Scope switch
 		{
+			// All：全体の情報が更新された場合は表示継続不可
+			TimetableScopeType.All => false,
+
 			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
 			TimetableScopeType.WorkGroup => SelectedWorkGroup?.Id != timetableData.WorkGroupId,
 

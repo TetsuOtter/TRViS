@@ -289,6 +289,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		{
 			timetableData.Scope = TimetableScopeType.Train;
 		}
+		else
+		{
+			timetableData.Scope = TimetableScopeType.All;
+		}
 
 		// 時刻表JSONデータを取得
 		try
@@ -318,6 +322,23 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			// スコープに応じてキャッシュを更新
 			switch (timetableData.Scope)
 			{
+				case TimetableScopeType.All:
+					// 全体の情報の場合は、ローカルキャッシュを全てリセットして、新しいデータで再構築する
+					logger.Info("CacheTimetableData: Resetting and rebuilding all cache due to All scope update");
+					_WorkGroupCache.Clear();
+					_WorkListCache.Clear();
+					_TrainDataCache.Clear();
+					_TrainListByWorkIdCache.Clear();
+
+					// dataElementはWorkGroup[]の配列
+					if (dataElement.ValueKind == JsonValueKind.Array)
+					{
+						foreach (JsonElement workGroupElement in dataElement.EnumerateArray())
+						{
+							ParseAndCacheWorkGroup(workGroupElement);
+						}
+					}
+					break;
 				case TimetableScopeType.WorkGroup:
 					if (timetableData.WorkGroupId is not null)
 					{
@@ -376,6 +397,115 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		catch (JsonException)
 		{
 			// Invalid JSON, ignore
+		}
+	}
+
+	private void ParseAndCacheWorkGroup(JsonElement workGroupElement)
+	{
+		try
+		{
+			// WorkGroup情報を取得
+			if (!workGroupElement.TryGetProperty("Name", out var nameElem))
+				return;
+
+			string workGroupName = nameElem.GetString() ?? "";
+			string workGroupId = Guid.NewGuid().ToString();  // IDがない場合は新規生成
+
+			var workGroup = new WorkGroup(
+				Id: workGroupId,
+				Name: workGroupName
+			);
+			_WorkGroupCache[workGroupId] = workGroup;
+			logger.Debug("ParseAndCacheWorkGroup: Added WorkGroup {0} ({1})", workGroupId, workGroupName);
+
+			// Works配列を処理
+			if (workGroupElement.TryGetProperty("Works", out var worksElement) && worksElement.ValueKind == JsonValueKind.Array)
+			{
+				foreach (JsonElement workElement in worksElement.EnumerateArray())
+				{
+					ParseAndCacheWork(workElement, workGroupId);
+				}
+			}
+		}
+		catch (JsonException ex)
+		{
+			logger.Error(ex, "ParseAndCacheWorkGroup: Failed to parse WorkGroup");
+		}
+	}
+
+	private void ParseAndCacheWork(JsonElement workElement, string workGroupId)
+	{
+		try
+		{
+			// Work情報を取得
+			if (!workElement.TryGetProperty("Name", out var nameElem))
+				return;
+
+			string workName = nameElem.GetString() ?? "";
+			string workId = Guid.NewGuid().ToString();  // IDがない場合は新規生成
+
+			var work = new Work(
+				Id: workId,
+				WorkGroupId: workGroupId,
+				Name: workName
+			);
+
+			if (!_WorkListCache.ContainsKey(workGroupId))
+				_WorkListCache[workGroupId] = new List<Work>();
+
+			_WorkListCache[workGroupId].Add(work);
+			logger.Debug("ParseAndCacheWork: Added Work {0} ({1})", workId, workName);
+
+			// Trains配列を処理
+			if (workElement.TryGetProperty("Trains", out var trainsElement) && trainsElement.ValueKind == JsonValueKind.Array)
+			{
+				foreach (JsonElement trainElement in trainsElement.EnumerateArray())
+				{
+					ParseAndCacheTrain(trainElement, workId);
+				}
+			}
+		}
+		catch (JsonException ex)
+		{
+			logger.Error(ex, "ParseAndCacheWork: Failed to parse Work");
+		}
+	}
+
+	private void ParseAndCacheTrain(JsonElement trainElement, string workId)
+	{
+		try
+		{
+			// Train情報を取得
+			if (!trainElement.TryGetProperty("TrainNumber", out var trainNumberElem))
+				return;
+
+			string trainNumber = trainNumberElem.GetString() ?? "";
+			string trainId = Guid.NewGuid().ToString();  // IDがない場合は新規生成
+
+			// Directionを取得
+			int direction = 0;
+			if (trainElement.TryGetProperty("Direction", out var directionElem))
+			{
+				direction = (int)directionElem.GetDouble();
+			}
+
+			var trainData = new TrainData(
+				Id: trainId,
+				Direction: (Direction)direction,
+				TrainNumber: trainNumber
+			);
+			_TrainDataCache[trainId] = trainData;
+			logger.Debug("ParseAndCacheTrain: Added Train {0} ({1})", trainId, trainNumber);
+
+			// WorkIdに紐づくTrainのリストにも追加
+			if (!_TrainListByWorkIdCache.ContainsKey(workId))
+				_TrainListByWorkIdCache[workId] = new List<TrainData>();
+
+			_TrainListByWorkIdCache[workId].Add(trainData);
+		}
+		catch (JsonException ex)
+		{
+			logger.Error(ex, "ParseAndCacheTrain: Failed to parse Train");
 		}
 	}
 

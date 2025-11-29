@@ -228,6 +228,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 		// 変更スコープに基づいて判定する
 		return timetableData.Scope switch
 		{
+			TimetableScopeType.All => false,
 			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
 			TimetableScopeType.WorkGroup => _WorkGroupId != timetableData.WorkGroupId,
 
@@ -237,7 +238,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
 			TimetableScopeType.Train => _TrainId != timetableData.TrainId,
 
-			_ => true
+			_ => false,
 		};
 	}
 
