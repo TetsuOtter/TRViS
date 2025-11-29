@@ -59,11 +59,16 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
-		return await HandleAppLinkUriAsync(appLinkInfo, token);
+		return await HandleAppLinkUriAsync(appLinkInfo, uri, token);
 	}
 	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
+		=> await HandleAppLinkUriAsync(appLinkInfo, null, token);
+
+	private async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
 	{
 		string? decodedUrl = null;
+		string? appLinkString = originalAppLink;
+
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
 		{
 			decodedUrl = HttpUtility.UrlDecode(appLinkInfo.ResourceUri.ToString());
@@ -75,7 +80,7 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "ws" or "wss")
 		{
 			logger.Info("ResourceUri is WebSocket -> Connect to NetworkSyncService directly");
-			return await HandleWebSocketAppLinkAsync(appLinkInfo, token);
+			return await HandleWebSocketAppLinkAsync(appLinkInfo, appLinkString, token);
 		}
 
 		OpenFile openFile = new(InstanceManager.HttpClient)
@@ -118,16 +123,18 @@ public partial class AppViewModel
 			return false;
 		}
 
-		ILoader? lastLoader = this.Loader;
+		ILoader lastLoader = this.Loader;
 		this.Loader = loader;
 		logger.Info("Loader Initialized");
 		lastLoader?.Dispose();
 		logger.Debug("Last Loader Disposed");
 
-		if (decodedUrl is not null)
+		// 履歴に追加（HTTPSのURLまたはAppLink）
+		string? historyEntry = decodedUrl ?? appLinkString;
+		if (historyEntry is not null)
 		{
 			// pathがListに存在しない場合は、Removeは何も実行されずに終了する
-			_ExternalResourceUrlHistory.Remove(decodedUrl);
+			_ExternalResourceUrlHistory.Remove(historyEntry);
 			if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
 			{
 				int removeCount = _ExternalResourceUrlHistory.Count - EXTERNAL_RESOURCE_URL_HISTORY_MAX + 1;
@@ -135,7 +142,7 @@ public partial class AppViewModel
 				_ExternalResourceUrlHistory.RemoveRange(0, removeCount);
 			}
 
-			_ExternalResourceUrlHistory.Add(decodedUrl);
+			_ExternalResourceUrlHistory.Add(historyEntry);
 			AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 		}
 
@@ -178,7 +185,7 @@ public partial class AppViewModel
 		return true;
 	}
 
-	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, CancellationToken token)
+	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
 	{
 		if (appLinkInfo.ResourceUri is null)
 		{
@@ -207,6 +214,21 @@ public partial class AppViewModel
 			logger.Debug("Last Loader Disposed");
 
 			await InstanceManager.LocationService.SetNetworkSyncServiceAsync(service);
+
+			// WebSocketのAppLinkを履歴に追加
+			if (originalAppLink is not null)
+			{
+				_ExternalResourceUrlHistory.Remove(originalAppLink);
+				if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
+				{
+					int removeCount = _ExternalResourceUrlHistory.Count - EXTERNAL_RESOURCE_URL_HISTORY_MAX + 1;
+					logger.Debug("ExternalResourceUrlHistory.Count is over EXTERNAL_RESOURCE_URL_HISTORY_MAX ({0} <= {1}) -> remove {2} items", EXTERNAL_RESOURCE_URL_HISTORY_MAX, _ExternalResourceUrlHistory.Count, removeCount);
+					_ExternalResourceUrlHistory.RemoveRange(0, removeCount);
+				}
+
+				_ExternalResourceUrlHistory.Add(originalAppLink);
+				AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
+			}
 
 			await Utils.DisplayAlert("Success!", "WebSocket接続が完了しました", "OK");
 			return true;
