@@ -39,7 +39,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_TIMETABLE = "Timetable";
 	private const string TIMETABLE_DATA_JSON_KEY = "Data";
 
-	private readonly ClientWebSocket _WebSocket;
+	private ClientWebSocket _WebSocket;
 	private readonly Uri _Uri;
 	private readonly byte[] _ReceiveBuffer = new byte[4096];
 	private SyncedData _LatestData = new(double.NaN, 0, false);
@@ -81,12 +81,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 
 		logger.Info("ConnectAsync: Connecting to {0}", _Uri);
-		// KeepAlive設定を適用（OS/フレームワークレベルでのハートビート）
-		_WebSocket.Options.KeepAliveInterval = TimeSpan.FromMilliseconds(KEEP_ALIVE_INTERVAL_MS);
-		_WebSocket.Options.KeepAliveTimeout = TimeSpan.FromMilliseconds(KEEP_ALIVE_TIMEOUT_MS);
+		ConfigureWebSocketOptions(_WebSocket);
 		await _WebSocket.ConnectAsync(_Uri, cancellationToken);
 		logger.Info("ConnectAsync: Connected successfully");
 		StartReceiveLoop();
+	}
+
+	private static void ConfigureWebSocketOptions(ClientWebSocket webSocket)
+	{
+		// KeepAlive設定を適用（OS/フレームワークレベルでのハートビート）
+		webSocket.Options.KeepAliveInterval = TimeSpan.FromMilliseconds(KEEP_ALIVE_INTERVAL_MS);
+		webSocket.Options.KeepAliveTimeout = TimeSpan.FromMilliseconds(KEEP_ALIVE_TIMEOUT_MS);
 	}
 
 	private void StartReceiveLoop()
@@ -621,9 +626,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				{
 					logger.Info("AttemptReconnectAsync: Creating new WebSocket");
 					_WebSocket.Dispose();
-					// Note: WebSocketNetworkSyncServiceのコンストラクタで新しいWebSocketを作成する必要があるため、
-					// ここでは既存のWebSocketの再利用を前提としています
-					// 実装上、WebSocketは再利用できないため、新しいインスタンスの作成が必要になります
+					// WebSocketは再利用できないため、新しいインスタンスを作成する
+					_WebSocket = new ClientWebSocket();
+					ConfigureWebSocketOptions(_WebSocket);
 				}
 
 				// 再接続を試みる
