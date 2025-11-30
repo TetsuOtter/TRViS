@@ -190,7 +190,7 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is null)
 		{
 			logger.Error("ResourceUri is null");
-			await Utils.DisplayAlert("Error", "WebSocket URLが指定されていません", "OK");
+			await Utils.DisplayAlertAsync("Error", "WebSocket URLが指定されていません", "OK");
 			return false;
 		}
 
@@ -230,7 +230,7 @@ public partial class AppViewModel
 				AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 			}
 
-			await Utils.DisplayAlert("Success!", "WebSocket接続が完了しました", "OK");
+			await Utils.DisplayAlertAsync("Success!", "WebSocket接続が完了しました", "OK");
 			return true;
 		}
 		catch (Exception ex)
@@ -247,7 +247,7 @@ public partial class AppViewModel
 				&& ex.InnerException is TimeoutException)
 			{
 				logger.Error(ex, "Timeout Error");
-				await Utils.DisplayAlert(
+				await Utils.DisplayAlertAsync(
 					"接続できませんでした (Timeout)",
 					"接続先がパソコンの場合は、\n"
 					+ "接続先が同じネットワークに属しているか、\n"
@@ -258,7 +258,7 @@ public partial class AppViewModel
 			}
 			else
 			{
-				await Utils.DisplayAlert("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
+				await Utils.DisplayAlertAsync("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
 			}
 			return false;
 		}
