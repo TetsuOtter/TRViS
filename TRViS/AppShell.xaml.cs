@@ -4,6 +4,7 @@ using System.Runtime.Versioning;
 
 using System.Runtime.CompilerServices;
 
+using TRViS.DTAC;
 using TRViS.FirebaseWrapper;
 using TRViS.RootPages;
 using TRViS.Services;
@@ -23,6 +24,8 @@ public partial class AppShell : Shell
 	public AppShell()
 	{
 		logger.Trace("AppShell Creating");
+
+		Routing.RegisterRoute(HorizontalTimetablePage.NameOfThisClass, typeof(HorizontalTimetablePage));
 		logger.Info("Application Version: {0}", AppVersionString);
 
 		EasterEggPageViewModel easterEggPageViewModel = InstanceManager.EasterEggPageViewModel;

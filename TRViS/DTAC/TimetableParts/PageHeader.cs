@@ -6,6 +6,7 @@ namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsOpen")]
 [DependencyProperty<bool>("IsLocationServiceEnabled")]
+[DependencyProperty<bool>("HasHorizontalTimetable")]
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
@@ -13,7 +14,8 @@ public partial class PageHeader : Grid
 	{
 		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
 
-		// under total: 378
+		// under total: 488
+		new ColumnDefinition(110),  // Horizontal timetable button
 		new ColumnDefinition(186),
 		new ColumnDefinition(128),
 		new ColumnDefinition(60),
@@ -131,11 +133,41 @@ public partial class PageHeader : Grid
 	}
 	#endregion
 
+	#region Horizontal Timetable Button
+	readonly Button HorizontalTimetableButton = new()
+	{
+		Text = "横型時刻表",
+		FontSize = 14,
+		FontFamily = DTACElementStyles.DefaultFontFamily,
+		FontAttributes = FontAttributes.Bold,
+		BackgroundColor = Colors.Transparent,
+		VerticalOptions = LayoutOptions.Center,
+		HorizontalOptions = LayoutOptions.Center,
+		Padding = new(4, 2),
+		IsVisible = false
+	};
+
+	partial void OnHasHorizontalTimetableChanged(bool newValue)
+	{
+		logger.Info("HasHorizontalTimetable: {0}", newValue);
+		HorizontalTimetableButton.IsVisible = newValue;
+	}
+
+	private async void HorizontalTimetableButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("HorizontalTimetableButton_Clicked");
+		await Shell.Current.GoToAsync(HorizontalTimetablePage.NameOfThisClass);
+	}
+	#endregion
+
 	public PageHeader()
 	{
 		logger.Trace("Creating...");
 
 		ColumnDefinitions = DefaultColumnDefinitions;
+
+		HorizontalTimetableButton.Clicked += HorizontalTimetableButton_Clicked;
+		DTACElementStyles.DefaultTextColor.Apply(HorizontalTimetableButton, Button.TextColorProperty);
 
 		StartEndRunButton.VerticalOptions = LayoutOptions.Center;
 		StartEndRunButton.HorizontalOptions = LayoutOptions.End;
@@ -156,15 +188,18 @@ public partial class PageHeader : Grid
 			AffectDateLabel,
 			column: 0
 		);
-		this.Add(StartEndRunButton,
+		this.Add(HorizontalTimetableButton,
 			column: 1
 		);
-		this.Add(LocationServiceButton,
+		this.Add(StartEndRunButton,
 			column: 2
+		);
+		this.Add(LocationServiceButton,
+			column: 3
 		);
 		this.Add(
 			OpenCloseButton,
-			column: 3
+			column: 4
 		);
 
 		logger.Trace("Created");
