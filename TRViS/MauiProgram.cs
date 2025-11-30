@@ -1,3 +1,4 @@
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.LifecycleEvents;
 
 using NLog;
@@ -30,10 +31,6 @@ public static class MauiProgram
 		builder
 			.UseMauiApp<App>()
 #if IOS
-			.ConfigureMauiHandlers(static handlers =>
-			{
-				handlers.AddHandler<Shell, HideShellTabRenderer>();
-			})
 			.UseMauiMaps()
 #endif
 			.ConfigureFonts(static fonts =>

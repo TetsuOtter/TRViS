@@ -39,17 +39,10 @@ public partial class Remarks : Grid
 		{
 			isOpen ??= IsOpen;
 #if IOS
-			if (Shell.Current is AppShell shell)
-			{
-				double translateToY = isOpen.Value ? 0 : shell.SafeAreaMargin.Bottom;
-				logger.Trace("translateToY: {0} (isOpen: {1})", translateToY, isOpen.Value);
-				RemarksTextScrollView.TranslateTo(
-					x: 0,
-					y: translateToY,
-					length: 250 / 2,
-					easing: Easing.CubicOut
-				);
-			}
+			// Shell is no longer used; using FlyoutPage instead
+			// The SafeAreaMargin handling is skipped
+			double translateToY = 0;
+			logger.Trace("translateToY: {0} (isOpen: {1})", translateToY, isOpen.Value);
 #endif
 			this.TranslateTo(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
 		}
@@ -121,7 +114,11 @@ public partial class Remarks : Grid
 		try
 		{
 			logger.Trace("width: {0}, height: {1}", width, height);
-			OnPageHeightChanged(Shell.Current.CurrentPage.Height * 0.25);
+
+			// FlyoutPage is used instead of Shell, so Shell.Current might be null
+			// Use the height parameter or Parent's height as fallback
+			double pageHeight = height > 0 ? height : (Parent as VisualElement)?.Height ?? 1024;
+			OnPageHeightChanged(pageHeight * 0.25);
 
 			base.OnSizeAllocated(width, height);
 		}

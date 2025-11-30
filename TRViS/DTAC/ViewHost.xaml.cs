@@ -75,10 +75,12 @@ public partial class ViewHost : ContentPage
 
 		ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-		Shell.Current.Navigated += (s, e) =>
-		{
-			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
-		};
+		// Shell is no longer used; using FlyoutPage instead
+		// Shell.Current.Navigated += (s, e) =>
+		// {
+		//	ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
+		// };
+		ViewModel.IsViewHostVisible = true;
 
 		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
@@ -86,11 +88,8 @@ public partial class ViewHost : ContentPage
 
 		UpdateContent();
 
-		if (Shell.Current is AppShell appShell)
-		{
-			appShell.SafeAreaMarginChanged += AppShell_SafeAreaMarginChanged;
-			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
-		}
+		// FlyoutPage doesn't have SafeAreaMargin event like AppShell
+		// SafeArea handling is simplified for FlyoutPage architecture
 
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
@@ -115,24 +114,6 @@ public partial class ViewHost : ContentPage
 		TitleBG_Bottom.Color = v.WithAlpha(0);
 	}
 
-	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
-	{
-		double top = newValue.Top;
-		if (oldValue.Top == top
-			&& oldValue.Left == newValue.Left
-			&& oldValue.Right == newValue.Right)
-		{
-			logger.Trace("SafeAreaMargin is not changed -> do nothing");
-			return;
-		}
-
-		TitleBGGradientBox.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
-		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
-		MenuButton.Margin = new(8 + newValue.Left, 4);
-		TimeLabel.Margin = new(0, 0, newValue.Right, 0);
-		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
-	}
-
 	protected override void OnSizeAllocated(double width, double height)
 	{
 		try
@@ -152,8 +133,23 @@ public partial class ViewHost : ContentPage
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
 	{
-		Shell.Current.FlyoutIsPresented = !Shell.Current.FlyoutIsPresented;
-		logger.Debug("FlyoutIsPresented is changed to {0}", Shell.Current.FlyoutIsPresented);
+		// Toggle FlyoutPage menu
+		try
+		{
+			if (Application.Current?.Windows[0].Page is FlyoutPageShell flyoutShell)
+			{
+				flyoutShell.IsPresented = !flyoutShell.IsPresented;
+				logger.Debug("MenuButton_Clicked: FlyoutPage IsPresented toggled to {0}", flyoutShell.IsPresented);
+			}
+			else
+			{
+				logger.Warn("MenuButton_Clicked: Could not find FlyoutPageShell");
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "MenuButton_Clicked: Error toggling FlyoutPage menu");
+		}
 	}
 
 	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)

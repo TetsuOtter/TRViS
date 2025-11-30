@@ -27,7 +27,8 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		Window window = new(new AppShell());
+		// Use FlyoutPageShell instead of AppShell to avoid iOS TraitCollectionDidChange crash in MAUI 10.0.11
+		Window window = new(new FlyoutPageShell());
 
 		logger.Info("Window Created");
 

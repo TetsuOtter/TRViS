@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<FlyoutPage
+	x:Class="TRViS.FlyoutPageShell"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS"
+	xmlns:pages="clr-namespace:TRViS.RootPages"
+	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	FlyoutLayoutBehavior="Popover">
+
+	<!-- Flyout Menu (Left sidebar) -->
+	<FlyoutPage.Flyout>
+		<ContentPage Title="Menu"
+								 BackgroundColor="{AppThemeBinding Light=#EEE, Dark=#111}">
+			<StackLayout Padding="20"
+									 Spacing="10">
+				<!-- Menu Items -->
+				<Button
+					x:Name="SelectTrainButton"
+					Text="Select Train"
+					Command="{Binding SelectTrainCommand}"
+					Clicked="OnSelectTrainClicked"
+					BackgroundColor="{AppThemeBinding Light=#0066CC, Dark=#0088FF}"
+					TextColor="White"
+					Padding="10"/>
+
+				<Button
+					x:Name="DTACButton"
+					Text="D-TAC"
+					Command="{Binding DTACCommand}"
+					Clicked="OnDTACClicked"
+					BackgroundColor="{AppThemeBinding Light=#0066CC, Dark=#0088FF}"
+					TextColor="White"
+					Padding="10"/>
+
+				<Button
+					x:Name="LicensesButton"
+					Text="Third Party Licenses"
+					Command="{Binding LicensesCommand}"
+					Clicked="OnLicensesClicked"
+					BackgroundColor="{AppThemeBinding Light=#0066CC, Dark=#0088FF}"
+					TextColor="White"
+					Padding="10"/>
+
+				<Button
+					x:Name="SettingsButton"
+					Text="Settings"
+					Command="{Binding SettingsCommand}"
+					Clicked="OnSettingsClicked"
+					BackgroundColor="{AppThemeBinding Light=#0066CC, Dark=#0088FF}"
+					TextColor="White"
+					Padding="10"/>
+
+				<Button
+					x:Name="FirebaseSettingButton"
+					Text="Firebase Setting"
+					Command="{Binding FirebaseSettingCommand}"
+					Clicked="OnFirebaseSettingClicked"
+					BackgroundColor="{AppThemeBinding Light=#0066CC, Dark=#0088FF}"
+					TextColor="White"
+					Padding="10"/>
+
+				<Button
+					x:Name="PrivacyButton"
+					Text="Privacy Policy"
+					Command="{Binding PrivacyCommand}"
+					Clicked="OnPrivacyClicked"
+					BackgroundColor="{AppThemeBinding Light=#0066CC, Dark=#0088FF}"
+					TextColor="White"
+					Padding="10"/>
+
+				<!-- Version Info -->
+				<BoxView HeightRequest="1"
+								 Color="{AppThemeBinding Light=#CCC, Dark=#333}"
+								 Margin="0,10"/>
+
+				<Label
+					x:Name="VersionLabel"
+					Text="{Binding Source={x:Static local:FlyoutPageShell.AppVersionString}}"
+					FontSize="12"
+					TextColor="{AppThemeBinding Light=#666, Dark=#AAA}"/>
+			</StackLayout>
+		</ContentPage>
+	</FlyoutPage.Flyout>
+
+	<!-- Detail (Main Content) -->
+	<FlyoutPage.Detail>
+		<NavigationPage x:Name="DetailNavigationPage"
+										Title="Select Train"
+										HasNavigationBar="False">
+			<x:Arguments>
+				<pages:SelectTrainPage/>
+			</x:Arguments>
+		</NavigationPage>
+	</FlyoutPage.Detail>
+
+</FlyoutPage>
