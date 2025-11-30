@@ -46,8 +46,8 @@ public partial class AppShell : Shell
 		}
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
-		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBhavior;
-		ApplyFlyoutBhavior(this, false, FirebaseSettingViewModel.IsEnabled);
+		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBehavior;
+		ApplyFlyoutBehavior(this, false, FirebaseSettingViewModel.IsEnabled);
 
 		this.BindingContext = easterEggPageViewModel;
 		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
@@ -60,10 +60,24 @@ public partial class AppShell : Shell
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
 		logger.Trace("Display Width/Height: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);
 
+		DeviceDisplay.Current.MainDisplayInfoChanged += (s, e) =>
+		{
+			InstanceManager.AppViewModel.WindowWidth = e.DisplayInfo.Width;
+			InstanceManager.AppViewModel.WindowHeight = e.DisplayInfo.Height;
+			logger.Trace("Display Width/Height Changed: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);
+#if IOS
+			UpdateSafeAreaMargin();
+#endif
+		};
+
+#if IOS
+		UpdateSafeAreaMargin();
+#endif
+
 		logger.Trace("AppShell Created");
 	}
 
-	void ApplyFlyoutBhavior(object? sender, bool oldValue, bool newValue)
+	void ApplyFlyoutBehavior(object? sender, bool oldValue, bool newValue)
 	{
 		logger.Trace("{0} -> {1}", oldValue, newValue);
 		if (newValue == true)
@@ -149,8 +163,17 @@ public partial class AppShell : Shell
 		bool isIOS = OperatingSystem.IsIOS();
 		logger.Info("OnSizeAllocated: {0}x{1} / ios:{2}", width, height, isIOS);
 		if (!isIOS)
+		{
+			base.OnSizeAllocated(width, height);
 			return;
+		}
 
+		UpdateSafeAreaMargin();
+		base.OnSizeAllocated(width, height);
+	}
+
+	private void UpdateSafeAreaMargin()
+	{
 		// SafeAreaInsets ref: https://stackoverflow.com/questions/46829840/get-safe-area-inset-top-and-bottom-heights
 		// ios15 >= ref: https://zenn.dev/paraches/articles/windows_was_depricated_in_ios15
 		if (UIWindow is null)
@@ -171,8 +194,6 @@ public partial class AppShell : Shell
 				UIWindow.SafeAreaInsets.Bottom.Value
 			);
 		}
-
-		base.OnSizeAllocated(width, height);
 	}
 #endif
 }

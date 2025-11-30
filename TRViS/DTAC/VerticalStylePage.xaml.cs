@@ -139,14 +139,19 @@ public partial class VerticalStylePage : ContentView
 				if (v.IsBusy)
 				{
 					TimetableViewActivityIndicatorBorder.IsVisible = true;
-					TimetableViewActivityIndicatorBorder.FadeTo(TimetableViewActivityIndicatorBorderMaxOpacity);
+					TimetableViewActivityIndicatorBorder.FadeToAsync(TimetableViewActivityIndicatorBorderMaxOpacity);
 				}
 				else
-					TimetableViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
+				{
+					TimetableViewActivityIndicatorBorder.FadeToAsync(0).ContinueWith((_) =>
 					{
-						logger.Debug("TimetableViewActivityIndicatorBorder.FadeTo(0) completed");
-						TimetableViewActivityIndicatorBorder.IsVisible = false;
+						MainThread.BeginInvokeOnMainThread(() =>
+						{
+							logger.Debug("TimetableViewActivityIndicatorBorder.FadeToAsync(0) completed");
+							TimetableViewActivityIndicatorBorder.IsVisible = false;
+						});
 					});
+				}
 
 				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
 				if (Content is ScrollView sv)
@@ -164,7 +169,7 @@ public partial class VerticalStylePage : ContentView
 			}
 		};
 
-		TimetableView.IgnoreSafeArea = false;
+		TimetableView.SafeAreaEdges = SafeAreaEdges.Default;
 		TimetableView.VerticalOptions = LayoutOptions.Start;
 
 		PageHeaderArea.IsRunningChanged += (_, e) =>

@@ -33,7 +33,7 @@ public class SelectOnlineResourcePopup : ContentPage
 		ReturnType = ReturnType.Go,
 	};
 
-	readonly ListView UrlHistoryListView = new()
+	readonly CollectionView UrlHistoryListView = new()
 	{
 		Margin = new(4),
 	};
@@ -64,16 +64,16 @@ public class SelectOnlineResourcePopup : ContentPage
 		RootStyles.BackgroundBlackWhite.Apply(UrlInput, Button.BackgroundColorProperty);
 		RootStyles.TableTextColor.Apply(UrlInput, Button.TextColorProperty);
 
-		RootStyles.BackgroundBlackWhite.ToBrushTheme().Apply(UrlHistoryListView, ListView.BackgroundProperty);
+		RootStyles.BackgroundBlackWhite.ToBrushTheme().Apply(UrlHistoryListView, CollectionView.BackgroundProperty);
 
 		RootStyles.TableTextColor.Apply(AdviceLabel, Label.TextColorProperty);
 
 		UrlHistoryListView.ItemTemplate = new DataTemplate(() =>
 		{
-			TextCell cell = new();
-			RootStyles.TableTextColor.Apply(cell, TextCell.TextColorProperty);
-			cell.SetBinding(TextCell.TextProperty, static (string? v) => v);
-			return cell;
+			Label label = new();
+			RootStyles.TableTextColor.Apply(label, Label.TextColorProperty);
+			label.SetBinding(Label.TextProperty, static (string? v) => v);
+			return label;
 		});
 
 		// 本当にiOS 15以前のみで有効なプロパティなのかは不明
@@ -104,11 +104,14 @@ public class SelectOnlineResourcePopup : ContentPage
 		UrlInput.ReturnCommand = DoLoadCommand;
 		LoadButton.Command = DoLoadCommand;
 
-		UrlHistoryListView.ItemTapped += (_, e) =>
+		UrlHistoryListView.SelectionChanged += (_, e) =>
 		{
-			logger.Debug("UrlHistoryListView.ItemTapped");
-			UrlInput.Text = e.Item as string;
-			logger.Trace("UrlInput.Text = {0}", UrlInput.Text);
+			logger.Debug("UrlHistoryListView.SelectionChanged");
+			if (e.CurrentSelection.FirstOrDefault() is string selectedItem)
+			{
+				UrlInput.Text = selectedItem;
+				logger.Trace("UrlInput.Text = {0}", UrlInput.Text);
+			}
 		};
 
 		UrlInput.TextChanged += (_, e) =>
@@ -153,7 +156,7 @@ public class SelectOnlineResourcePopup : ContentPage
 			if (string.IsNullOrEmpty(UrlInput.Text))
 			{
 				logger.Info("URL is null or empty");
-				await Utils.DisplayAlert("Cannot Load from Web", "URLを入力してください。", "OK");
+				await Utils.DisplayAlertAsync("Cannot Load from Web", "URLを入力してください。", "OK");
 				return;
 			}
 

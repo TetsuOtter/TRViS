@@ -21,7 +21,7 @@
 
 	<Grid
 		x:Name="MainGrid"
-		IgnoreSafeArea="True"
+		SafeAreaEdges="None"
 		MinimumWidthRequest="740">
 
 		<dtac:PageHeader

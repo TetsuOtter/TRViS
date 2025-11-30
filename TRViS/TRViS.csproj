@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net9.0-android;</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net10.0-android;</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 		<UseMauiNuGets>true</UseMauiNuGets>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>TRViS</RootNamespace>
@@ -65,7 +65,10 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="9.0.120" />
+			Version="$(MauiVersion)" />
+		<PackageReference
+			Include="Microsoft.Maui.Essentials"
+			Version="$(MauiVersion)" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.4.0" />
@@ -75,14 +78,11 @@
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
 		<PackageReference
-			Include="System.Text.Json"
-			Version="9.0.5" />
-		<PackageReference
 			Include="TR.Maui.AnchorPopover"
 			Version="1.0.0.2" />
 		<PackageReference
 			Include="NLog"
-			Version="5.4.0" />
+			Version="6.0.3" />
 		<PackageReference
 			Include="TR.BBCodeLabel.Maui"
 			Version="0.1.1.2" />
@@ -90,7 +90,7 @@
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
 		<PackageReference
 			Include="Microsoft.Maui.Controls.Maps"
-			Version="9.0.70" />
+			Version="$(MauiVersion)" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<!-- <BundleResource Include="GoogleService-Info.plist" />
