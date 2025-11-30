@@ -47,54 +47,54 @@ public partial class FlyoutPageShell : FlyoutPage
 		logger.Trace("FlyoutPageShell Created");
 	}
 
-	private async void OnSelectTrainClicked(object sender, EventArgs e)
+	private void OnSelectTrainClicked(object sender, EventArgs e)
 	{
 		logger.Trace("SelectTrain clicked");
 		IsPresented = false;
-		await DetailNavigationPage.Navigation.PopToRootAsync();
-		await DetailNavigationPage.Navigation.PushAsync(new SelectTrainPage());
+		var page = new SelectTrainPage();
+		Detail = new NavigationPage(page);
 	}
 
-	private async void OnDTACClicked(object sender, EventArgs e)
+	private void OnDTACClicked(object sender, EventArgs e)
 	{
 		logger.Trace("DTAC clicked");
 		IsPresented = false;
-		await DetailNavigationPage.Navigation.PopToRootAsync();
-		await DetailNavigationPage.Navigation.PushAsync(new ViewHost());
+		var page = new ViewHost();
+		NavigationPage.SetHasNavigationBar(page, false);
+		Detail = new NavigationPage(page);
 	}
 
-	private async void OnLicensesClicked(object sender, EventArgs e)
+	private void OnLicensesClicked(object sender, EventArgs e)
 	{
 		logger.Trace("Licenses clicked");
 		IsPresented = false;
-		await DetailNavigationPage.Navigation.PopToRootAsync();
-		await DetailNavigationPage.Navigation.PushAsync(new ThirdPartyLicenses());
+		var page = new ThirdPartyLicenses();
+		Detail = new NavigationPage(page);
 	}
 
-	private async void OnSettingsClicked(object sender, EventArgs e)
+	private void OnSettingsClicked(object sender, EventArgs e)
 	{
 		logger.Trace("Settings clicked");
 		IsPresented = false;
-		await DetailNavigationPage.Navigation.PopToRootAsync();
-		await DetailNavigationPage.Navigation.PushAsync(new EasterEggPage());
+		var page = new EasterEggPage();
+		Detail = new NavigationPage(page);
 	}
 
-	private async void OnFirebaseSettingClicked(object sender, EventArgs e)
+	private void OnFirebaseSettingClicked(object sender, EventArgs e)
 	{
 		logger.Trace("Firebase Setting clicked");
 		IsPresented = false;
-		await DetailNavigationPage.Navigation.PopToRootAsync();
-		await DetailNavigationPage.Navigation.PushAsync(new FirebaseSettingPage());
+		var page = new FirebaseSettingPage();
+		Detail = new NavigationPage(page);
 	}
 
-	private async void OnPrivacyClicked(object sender, EventArgs e)
+	private void OnPrivacyClicked(object sender, EventArgs e)
 	{
 		logger.Trace("Privacy Policy clicked");
 		IsPresented = false;
-		await DetailNavigationPage.Navigation.PopToRootAsync();
 		var privacyPage = new ShowMarkdownPage() { Title = "Privacy Policy" };
 		privacyPage.FileName = ResourceManager.AssetName.PrivacyPolicy_md;
-		await DetailNavigationPage.Navigation.PushAsync(privacyPage);
+		Detail = new NavigationPage(privacyPage);
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
