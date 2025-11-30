@@ -60,17 +60,27 @@ public class FlyoutPageShell : FlyoutPage
 		{
 			// Wrap page in CustomNavigationPage with AppBar
 			// Pass FlyoutPageShell reference so CustomNavigationPage can toggle menu
-			Detail = new CustomNavigationPage(page, (isShowing) =>
+			// Show AppIcon button only for ViewHost
+			bool showAppIconButton = page is ViewHost;
+			var navPage = new CustomNavigationPage(page, (isShowing) =>
 			{
 				IsPresented = isShowing;
-			});
+			}, showAppIconButton);
+
+			// Set the title from the page if available
+			if (!string.IsNullOrEmpty(page.Title))
+			{
+				navPage.AppBarTitle = page.Title;
+			}
+
+			Detail = navPage;
 		}
 	}
 	void SetupFlyout()
 	{
 		var flyoutContent = new ContentPage
 		{
-			Title = "Menu",
+			Title = "\xe241",
 			BackgroundColor = AppTheme.Light == Application.Current?.UserAppTheme ? Color.FromArgb("#EEE") : Color.FromArgb("#111"),
 			Content = new StackLayout
 			{

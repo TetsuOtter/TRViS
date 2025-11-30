@@ -1,3 +1,4 @@
+using TRViS.DTAC;
 using TRViS.Services;
 using TRViS.ViewModels;
 
@@ -12,26 +13,28 @@ public class CustomNavigationPage : NavigationPage
 	private ImageButton AppIconButton = null!;
 	private Button ChangeThemeButton = null!;
 	private Label TimeLabel = null!;
+	private Label TitleLabel = null!;
 	private Grid AppBarGrid = null!;
 
 	private Action<bool>? OnMenuButtonClicked { get; set; }
+	private bool ShowAppIconButton { get; set; } = false;
 
-	readonly GradientStop BarBG_Top = new(Colors.White.WithAlpha(0.8f), 0);
-	readonly GradientStop BarBG_Middle = new(Colors.White.WithAlpha(0.5f), 0.5f);
-	readonly GradientStop BarBG_MidBottom = new(Colors.White.WithAlpha(0.1f), 0.8f);
-	readonly GradientStop BarBG_Bottom = new(Colors.White.WithAlpha(0), 1);
+	public string? AppBarTitle
+	{
+		get => TitleLabel.Text; set => TitleLabel?.Text = value ?? string.Empty;
+	}
 
-	readonly FirebaseSettingViewModel FirebaseSettingViewModel = InstanceManager.FirebaseSettingViewModel;
 	readonly EasterEggPageViewModel EasterEggPageViewModel = InstanceManager.EasterEggPageViewModel;
 
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_LIGHT = "\xe518";
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\xe51c";
 
-	public CustomNavigationPage(ContentPage page, Action<bool>? onMenuClicked = null) : base(page)
+	public CustomNavigationPage(ContentPage page, Action<bool>? onMenuClicked = null, bool showAppIconButton = false) : base(page)
 	{
 		logger.Trace("CustomNavigationPage Creating");
 
 		OnMenuButtonClicked = onMenuClicked;
+		ShowAppIconButton = showAppIconButton;
 
 		// Create the custom AppBar
 		CreateAppBar();
@@ -40,35 +43,40 @@ public class CustomNavigationPage : NavigationPage
 		SetupNavigationBar();
 
 		// Set time label text initially
-		TimeLabel.Text = DateTime.Now.ToString("HH:mm");
+		TimeLabel.Text = "00:00:00";
 
 		// Start time update timer
 		SetupTimeUpdater();
 
 		// Set the custom navigation bar title view
 		SetTitleView(page, AppBarGrid);
-		SetTitleIconImageSource(page, null);
 
 		logger.Trace("CustomNavigationPage Created");
 	}
 
 	private void SetupTimeUpdater()
 	{
-		// Update time label periodically
-		Dispatcher.StartTimer(TimeSpan.FromSeconds(1), () =>
+		// Update time label using LocationService.TimeChanged event
+		try
 		{
-			try
+			var locationService = InstanceManager.LocationService;
+			locationService.TimeChanged += (s, totalSeconds) =>
 			{
-				TimeLabel.Text = DateTime.Now.ToString("HH:mm");
-				return true; // Continue running
-			}
-			catch (Exception ex)
-			{
-				logger.Error(ex, "Error updating time label");
-				return true; // Keep timer running even on error
-			}
-		});
-		logger.Debug("Time update timer started");
+				bool isMinus = totalSeconds < 0;
+				int Hour = Math.Abs(totalSeconds / 3600);
+				int Minute = Math.Abs((totalSeconds % 3600) / 60);
+				int Second = Math.Abs(totalSeconds % 60);
+
+				string text = isMinus ? "-" : string.Empty;
+				text += $"{Hour:D2}:{Minute:D2}:{Second:D2}";
+				TimeLabel.Text = text;
+			};
+			logger.Debug("Time update via LocationService.TimeChanged started");
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Error setting up LocationService.TimeChanged event");
+		}
 	}
 
 	private void SetupNavigationBar()
@@ -88,9 +96,27 @@ public class CustomNavigationPage : NavigationPage
 			{
 				UpdateBarBackgroundGradient();
 			}
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.ShellTitleTextColor))
+			{
+				UpdateTextColors();
+			}
 		};
 
+		// Set initial text colors
+		UpdateTextColors();
+
 		logger.Trace("Navigation bar setup complete");
+	}
+
+	private void UpdateTextColors()
+	{
+		var eevm = InstanceManager.EasterEggPageViewModel;
+		var textColor = eevm.ShellTitleTextColor;
+
+		MenuButton.TextColor = textColor;
+		ChangeThemeButton.TextColor = textColor;
+		TimeLabel.TextColor = textColor;
+		TitleLabel.TextColor = textColor;
 	}
 
 	private void UpdateBarBackgroundGradient()
@@ -146,8 +172,12 @@ public class CustomNavigationPage : NavigationPage
 		// Create AppBar grid with gradient background
 		AppBarGrid = new Grid
 		{
-			RowDefinitions = new RowDefinitionCollection { new RowDefinition(GridLength.Auto) },
-			ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+			RowDefinitions = [new RowDefinition(GridLength.Auto)],
+			ColumnDefinitions = [
+				new ColumnDefinition(GridLength.Auto),
+				new ColumnDefinition(GridLength.Star),
+				new ColumnDefinition(GridLength.Auto)
+			],
 			HeightRequest = 56,
 			HorizontalOptions = LayoutOptions.Fill,
 			VerticalOptions = LayoutOptions.Fill,
@@ -172,63 +202,71 @@ public class CustomNavigationPage : NavigationPage
 		Grid.SetColumn(MenuButton, 0);
 		AppBarGrid.Add(MenuButton);
 
-		// Middle spacer (column 1)
-		var spacer = new BoxView
+		// Title Label (center)
+		TitleLabel = new Label
 		{
-			HeightRequest = 0,
-			BackgroundColor = Colors.Transparent,
+			FontSize = 20,
+			FontFamily = "",
+			Margin = new Thickness(4, 8),
+			HorizontalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.End,
+			FontAttributes = FontAttributes.Bold,
+			LineBreakMode = LineBreakMode.NoWrap,
 		};
-		Grid.SetColumn(spacer, 1);
-		AppBarGrid.Add(spacer);
+		Grid.SetColumnSpan(TitleLabel, 3);
+		AppBarGrid.Add(TitleLabel);
 
 		// Right Controls
 		var rightControls = new HorizontalStackLayout
 		{
-			Spacing = 0,
+			Margin = new Thickness(8, 4),
 			Padding = new Thickness(0),
-			Margin = new Thickness(0),
-			VerticalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.End,
 			HorizontalOptions = LayoutOptions.End,
+			Spacing = 8,
 		};
-
-		TimeLabel = new Label
-		{
-			FontSize = 14,
-			FontFamily = "RobotoMono",
-			VerticalOptions = LayoutOptions.Center,
-			HorizontalOptions = LayoutOptions.Start,
-			Padding = new Thickness(8, 0, 4, 0),
-			Text = DateTime.Now.ToString("HH:mm"),
-			TextColor = Colors.Black,
-			LineBreakMode = LineBreakMode.NoWrap,
-		};
-		rightControls.Add(TimeLabel);
 
 		AppIconButton = new ImageButton
 		{
-			Source = "app_icon.png",
-			Padding = new Thickness(8),
-			VerticalOptions = LayoutOptions.Center,
-			HorizontalOptions = LayoutOptions.Center,
-			CornerRadius = 4,
-			BorderWidth = 0,
+			Aspect = Aspect.AspectFill,
+			Margin = new Thickness(12, 8),
+			HeightRequest = 30,
+			WidthRequest = 30,
+			Padding = new Thickness(0),
+			CornerRadius = 7,
+			Source = DTACElementStyles.AppIconSource,
+			IsVisible = ShowAppIconButton,
 		};
+		DTACElementStyles.AppIconBgColor.Apply(AppIconButton, BackgroundColorProperty);
 		AppIconButton.Clicked += (s, e) => OnToggleBgAppIconButtonClicked(s, e);
 		rightControls.Add(AppIconButton);
 
 		ChangeThemeButton = new Button
 		{
 			Text = CHANGE_THEME_BUTTON_TEXT_TO_LIGHT,
+			Margin = new Thickness(0, 6),
+			Padding = new Thickness(0),
 			FontFamily = "MaterialIconsRegular",
 			FontSize = 28,
 			VerticalOptions = LayoutOptions.Center,
 			HorizontalOptions = LayoutOptions.End,
-			Padding = new Thickness(12, 12, 16, 12),
 			BackgroundColor = Colors.Transparent,
-			TextColor = Colors.Black,
 		};
 		ChangeThemeButton.Clicked += OnChangeThemeButtonClicked;
 		rightControls.Add(ChangeThemeButton);
+
+		TimeLabel = new Label
+		{
+			Text = "00:00:00",
+			Margin = new Thickness(0),
+			Padding = new Thickness(0),
+			FontFamily = DTAC.DTACElementStyles.TimetableNumFontFamily,
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.End,
+			FontSize = 40,
+			FontAttributes = FontAttributes.Bold,
+		};
+		rightControls.Add(TimeLabel);
 
 		Grid.SetColumn(rightControls, 2);
 		AppBarGrid.Add(rightControls);
@@ -245,6 +283,37 @@ public class CustomNavigationPage : NavigationPage
 		}
 		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
 		logger.Debug("IsBgAppIconVisible is changed to {0}", newState);
+
+		// Update button background color based on new state
+		if (sender is VisualElement button)
+		{
+			if (newState)
+			{
+				// Try to apply the app icon background color from DTAC styles
+				try
+				{
+					if (Application.Current?.Resources?.TryGetValue("AppIconBgColor", out var appIconBgColorObj) == true
+						&& appIconBgColorObj is Color appIconBgColor)
+					{
+						button.BackgroundColor = appIconBgColor;
+					}
+					else
+					{
+						// Fallback if resource not found
+						button.BackgroundColor = Colors.Gray;
+					}
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "Error applying app icon background color");
+					button.BackgroundColor = Colors.Gray;
+				}
+			}
+			else
+			{
+				button.BackgroundColor = Colors.Transparent;
+			}
+		}
 	}
 
 	private void OnChangeThemeButtonClicked(object? sender, EventArgs e)
