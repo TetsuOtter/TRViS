@@ -165,7 +165,7 @@ public class SelectOnlineResourcePopup : ContentPage
 					Version: new(1, 0),
 					ResourceUri: new(urlText)
 				);
-			bool execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(urlText, CancellationToken.None);
+			bool execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, CancellationToken.None);
 			if (execResult)
 			{
 				await Close();
