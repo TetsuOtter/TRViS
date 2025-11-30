@@ -2,7 +2,7 @@
 <ContentPage
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:models="clr-namespace:TRViS.IO.Models.DB;assembly=TRViS.IO"
+	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO.ILoader"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:local="clr-namespace:TRViS"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
@@ -12,12 +12,18 @@
 	<ContentPage.Resources>
 		<ResourceDictionary>
 			<Style TargetType="Border">
-				<Setter Property="Stroke" Value="{x:Static local:RootStyles.BorderStrokeColor}"/>
-				<Setter Property="BackgroundColor" Value="{x:Static local:RootStyles.BackgroundColor}"/>
-				<Setter Property="Margin" Value="4"/>
-				<Setter Property="Padding" Value="8"/>
-				<Setter Property="FlexLayout.Basis" Value="350"/>
-				<Setter Property="FlexLayout.Grow" Value="1"/>
+				<Setter Property="Stroke"
+						Value="{x:Static local:RootStyles.BorderStrokeColor}"/>
+				<Setter Property="BackgroundColor"
+						Value="{x:Static local:RootStyles.BackgroundColor}"/>
+				<Setter Property="Margin"
+						Value="4"/>
+				<Setter Property="Padding"
+						Value="8"/>
+				<Setter Property="FlexLayout.Basis"
+						Value="350"/>
+				<Setter Property="FlexLayout.Grow"
+						Value="1"/>
 			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>

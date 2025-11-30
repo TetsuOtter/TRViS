@@ -1,5 +1,4 @@
 using TRViS.IO.Models;
-using TRViS.IO.Models.DB;
 
 namespace TRViS;
 
@@ -13,27 +12,22 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 	static readonly List<WorkGroup> WorkGroupList = new()
 	{
-		new(){ Id = WORK_GROUP_1, Name = "WorkGroup1" },
+		new(Id: WORK_GROUP_1, Name: "WorkGroup1"),
 	};
 
 	static readonly List<Work> WorkList = new()
 	{
-		new(){ Id = WORK_1_1, Name = "Work1-1", Remarks = "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3" },
+		new(Id: WORK_1_1, WorkGroupId: WORK_GROUP_1, Name: "Work1-1", Remarks: "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3"),
 	};
 
-	static readonly List<IO.Models.DB.TrainData> TrainDataList = new()
+	static readonly List<TrainData> TrainDataList = new()
 	{
-		new(){ Id = TRAIN_1_1_1, TrainNumber = "Train01" },
-		new(){ Id = TRAIN_1_1_2, TrainNumber = "Train02" },
-		new(){ Id = TRAIN_1_1_3, TrainNumber = "Train03" },
+		new(Id: TRAIN_1_1_1, Direction: Direction.Inbound, TrainNumber: "Train01"),
+		new(Id: TRAIN_1_1_2, Direction: Direction.Inbound, TrainNumber: "Train02"),
+		new(Id: TRAIN_1_1_3, Direction: Direction.Inbound, TrainNumber: "Train03"),
 	};
 
-	static readonly List<TrainDataGroup> TrainDataGroupList = new()
-	{
-		new("1", "Group01", new[]{ new TrainDataFileInfo("1", "1", "Work01", "Train01") }),
-	};
-
-	static readonly IO.Models.TrainData SampleTrainData = new(
+	static readonly TrainData SampleTrainData = new(
 		Id: TRAIN_1_1_1,
 		WorkName: "Work1-1",
 		AffectDate: new(2022, 9, 16),
@@ -49,10 +43,10 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		BeforeDeparture: "転線   10分",
 		TrainInfo: "<span style=\"color:red\">車掌省略</span>",
 
-		BeforeDepartureOnStationTrackCol: "転線",
+		// BeforeDepartureOnStationTrackCol: "転線",
 
 		AfterArrive: "入換   20分",
-		AfterArriveOnStationTrackCol: "入換",
+		// AfterArriveOnStationTrackCol: "入換",
 
 		NextTrainId: TRAIN_1_1_2,
 
@@ -368,10 +362,10 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事"
 			),
 		},
-		Direction: 1
+		Direction: Direction.Outbound
 	);
 
-	static readonly IO.Models.TrainData SampleTrainData2 = new(
+	static readonly TrainData SampleTrainData2 = new(
 		Id: TRAIN_1_1_2,
 		WorkName: "Work1-1",
 		AffectDate: null,
@@ -475,10 +469,10 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "記事\n任意の内容"
 			),
 		},
-		Direction: 1
+		Direction: Direction.Outbound
 	);
 
-	static readonly IO.Models.TrainData SampleTrainData3 = new(
+	static readonly TrainData SampleTrainData3 = new(
 		Id: TRAIN_1_1_3,
 		WorkName: "Work1-1",
 		AffectDate: null,
@@ -497,7 +491,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		DayCount: 1,
 
 		AfterArrive: "入換   20分",
-		AfterArriveOnStationTrackCol: "入換",
+		// AfterArriveOnStationTrackCol: "入換",
 
 		Rows: new[]
 		{
@@ -536,12 +530,12 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Remarks: "<b>記事</b>"
 			),
 		},
-		Direction: 1
+		Direction: Direction.Outbound
 	);
 
 	public void Dispose() { }
 
-	public IO.Models.TrainData? GetTrainData(string trainId)
+	public TrainData? GetTrainData(string trainId)
 		=> trainId switch
 		{
 			TRAIN_1_1_1 => SampleTrainData,
@@ -550,10 +544,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			_ => null
 		};
 
-	public IReadOnlyList<TrainDataGroup> GetTrainDataGroupList()
-		=> TrainDataGroupList;
-
-	public IReadOnlyList<IO.Models.DB.TrainData> GetTrainDataList(string workId)
+	public IReadOnlyList<TrainData> GetTrainDataList(string workId)
 		=> TrainDataList;
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()

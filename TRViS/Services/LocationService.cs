@@ -1,6 +1,7 @@
 using System.ComponentModel;
 
 using TRViS.IO.Models;
+using TRViS.NetworkSyncService;
 using TRViS.ViewModels;
 
 namespace TRViS.Services;
@@ -42,8 +43,16 @@ public partial class LocationService : IDisposable
 
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<Exception>? ExceptionThrown;
+	public event EventHandler<TimetableData>? TimetableUpdated;
 
 	public bool CanUseService => _CurrentService?.CanUseService ?? false;
+
+	public ILocationService? CurrentService => _CurrentService;
+
+	/// <summary>
+	/// NetworkSyncService の CanStart 状態。NetworkSyncService が使用されていない場合は false
+	/// </summary>
+	public bool NetworkSyncServiceCanStart => (_CurrentService as NetworkSyncServiceBase)?.CanStart ?? false;
 
 	ILocationService? _CurrentService;
 	CancellationTokenSource? serviceCancellation = null;
@@ -68,7 +77,7 @@ public partial class LocationService : IDisposable
 		}
 
 		ILocationService targetService = _CurrentService;
-		if (targetService is NetworkSyncService)
+		if (targetService is NetworkSyncServiceBase)
 		{
 			logger.Debug("NetworkSyncService is used -> do nothing");
 		}
@@ -107,9 +116,31 @@ public partial class LocationService : IDisposable
 		logger.Debug("TimeChanged: {0}", second);
 		MainThread.BeginInvokeOnMainThread(() => TimeChanged?.Invoke(sender, second));
 	}
+	void OnTimetableUpdated(object? sender, TimetableData timetableData)
+	{
+		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
+			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
+		MainThread.BeginInvokeOnMainThread(() => TimetableUpdated?.Invoke(sender, timetableData));
+	}
+
+	void OnNetworkSyncServiceCanStartChanged(object? sender, bool canStart)
+	{
+		logger.Debug("NetworkSyncServiceCanStartChanged: {0}", canStart);
+
+		// WebSocket接続時にのみ、CanStartがtrueになったら自動で「運行開始」と「位置情報ON」をする
+		if (canStart && _CurrentService is WebSocketNetworkSyncService)
+		{
+			logger.Info("CanStart is true and WebSocket is being used -> automatically enable location service");
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				IsEnabled = true;
+			});
+		}
+	}
+
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (_CurrentService is NetworkSyncService networkSyncService)
+		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
 		{
 			switch (e.PropertyName)
 			{
@@ -124,6 +155,35 @@ public partial class LocationService : IDisposable
 					break;
 			}
 		}
+	}
+
+	void OnNetworkSyncServiceConnectionClosed(object? sender, EventArgs e)
+	{
+		logger.Info("NetworkSyncService connection closed -> switching to LonLatLocationService");
+		MainThread.BeginInvokeOnMainThread(async () =>
+		{
+			await Utils.DisplayAlert(
+				"接続切断",
+				"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
+				"OK"
+			);
+			SetLonLatLocationService();
+		});
+	}
+
+	void OnNetworkSyncServiceConnectionFailed(object? sender, EventArgs e)
+	{
+		logger.Warn("NetworkSyncService connection failed after reconnection attempts -> showing dialog");
+		MainThread.BeginInvokeOnMainThread(async () =>
+		{
+			await Utils.DisplayAlert(
+				"接続失敗",
+				"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
+				"OK"
+			);
+			logger.Info("NetworkSyncService connection failed -> switching to LonLatLocationService");
+			SetLonLatLocationService();
+		});
 	}
 
 	public void SetLonLatLocationService()
@@ -158,8 +218,11 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Cancel();
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
-		if (currentService is NetworkSyncService networkSyncService)
+		if (currentService is NetworkSyncServiceBase networkSyncService)
+		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
+			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
+		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
 
@@ -222,8 +285,29 @@ public partial class LocationService : IDisposable
 			IsEnabled = false;
 		}
 
+		NetworkSyncServiceBase nextService = await NetworkSyncServiceUtil.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
+
+		await ChangeNetworkSyncServiceAsync(nextService);
+	}
+
+	public Task SetNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	{
+		logger.Trace("Setting NetworkSyncService...");
+
+		if (IsEnabled)
+		{
+			logger.Debug("IsEnabled is true -> stop Current LocationService");
+			IsEnabled = false;
+		}
+
+		return ChangeNetworkSyncServiceAsync(nextService);
+	}
+
+	private async Task ChangeNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	{
+		logger.Trace("Changing NetworkSyncService...");
+
 		ILocationService? currentService = _CurrentService;
-		NetworkSyncService nextService = await NetworkSyncService.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
 		if (currentService is not null)
 		{
 			logger.Debug("CurrentService is not null -> remove EventHandlers");
@@ -234,6 +318,10 @@ public partial class LocationService : IDisposable
 		nextService.CanUseServiceChanged += OnCanUseServiceChanged;
 		nextService.LocationStateChanged += OnLocationStateChanged;
 		nextService.TimeChanged += OnTimeChanged;
+		nextService.TimetableUpdated += OnTimetableUpdated;
+		nextService.ConnectionClosed += OnNetworkSyncServiceConnectionClosed;
+		nextService.ConnectionFailed += OnNetworkSyncServiceConnectionFailed;
+		nextService.CanStartChanged += OnNetworkSyncServiceCanStartChanged;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
 		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
@@ -254,15 +342,24 @@ public partial class LocationService : IDisposable
 		serviceCancellation?.Cancel();
 		serviceCancellation?.Dispose();
 		serviceCancellation = null;
-		if (currentService is NetworkSyncService networkSyncService)
+		if (currentService is NetworkSyncServiceBase networkSyncService)
+		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
+			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
+			networkSyncService.ConnectionClosed -= OnNetworkSyncServiceConnectionClosed;
+			networkSyncService.ConnectionFailed -= OnNetworkSyncServiceConnectionFailed;
+			networkSyncService.CanStartChanged -= OnNetworkSyncServiceCanStartChanged;
+		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
 
-		CancellationTokenSource nextTokenSource = new();
-		serviceCancellation = nextTokenSource;
-		// バックグラウンドで実行し続ける
-		_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
+		if (nextService is not WebSocketNetworkSyncService)
+		{
+			CancellationTokenSource nextTokenSource = new();
+			serviceCancellation = nextTokenSource;
+			// バックグラウンドで実行し続ける
+			_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
+		}
 	}
 
 	public void SetTimetableRows(TimetableRow[]? timetableRows)

@@ -88,17 +88,26 @@ public partial class VerticalTimetableView : Grid
 
 	partial void OnIsRunStartedChanged(bool newValue)
 	{
-		CurrentRunningRow = newValue ? RowViewList.FirstOrDefault() : null;
-
 		if (!newValue)
 		{
 			logger.Info("IsRunStarted is changed to false -> disable location service, and hide CurrentLocation");
 			IsLocationServiceEnabled = false;
 			CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible = false;
+			CurrentRunningRow = null;
 		}
 		else
 		{
-			logger.Info("IsRunStarted is changed to true -> do nothing");
+			logger.Info("IsRunStarted is changed to true -> set CurrentRunningRow to first row");
+			VerticalTimetableRow? firstRow = RowViewList.FirstOrDefault();
+			if (firstRow is not null)
+			{
+				SetCurrentRunningRow(firstRow);
+			}
+			else
+			{
+				logger.Debug("RowViewList is empty -> defer setting CurrentRunningRow");
+				CurrentRunningRow = null;
+			}
 		}
 	}
 
