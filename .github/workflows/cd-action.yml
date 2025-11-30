@@ -41,6 +41,7 @@ env:
   ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
   ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
   SDK_VERSION: "10.0.100"
+  XCODE_VERSION: "26.1"
   IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
 
@@ -147,7 +148,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     needs:
       - get-version
@@ -191,7 +192,7 @@ jobs:
       - name: Setup Xcode version
         uses: maxim-lobanov/setup-xcode@v1.6.0
         with:
-          xcode-version: "26.0"
+          xcode-version: ${{ env.XCODE_VERSION }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -357,7 +358,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     needs:
       - get-version
@@ -401,7 +402,7 @@ jobs:
       - name: Setup Xcode version
         uses: maxim-lobanov/setup-xcode@v1.6.0
         with:
-          xcode-version: "26.0"
+          xcode-version: ${{ env.XCODE_VERSION }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -608,7 +609,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 10
     needs:
       - build-ios
@@ -678,7 +679,7 @@ jobs:
         || github.event.pull_request.draft == false
       )
 
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     needs:
       - build-mac
