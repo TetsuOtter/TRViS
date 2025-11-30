@@ -663,30 +663,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		return -1;  // 再接続失敗
 	}
 
-	private async Task ForceDisconnectAsync()
-	{
-		logger.Warn("ForceDisconnectAsync: Forcing disconnect");
-		try
-		{
-			if (_WebSocket.State == WebSocketState.Open)
-			{
-				await _WebSocket.CloseAsync(
-					WebSocketCloseStatus.InternalServerError,
-					"Pong timeout",
-					CancellationToken.None
-				);
-			}
-		}
-		catch (WebSocketException ex)
-		{
-			logger.Warn(ex, "ForceDisconnectAsync: WebSocket already closed");
-			// Already closed
-		}
-
-		// ReceiveLoopを強制終了
-		_ReceiveLoopCts?.Cancel();
-	}
-
 	public async Task DisconnectAsync(CancellationToken cancellationToken = default)
 	{
 		logger.Info("DisconnectAsync: Disconnecting");
