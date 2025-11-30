@@ -147,7 +147,10 @@ public partial class AppViewModel : ObservableObject
 			string? trainId = Loader?.GetTrainDataList(value.Id)?.FirstOrDefault()?.Id;
 			logger.Debug("FirstTrainId: {0}", trainId ?? "null");
 			var selectedTrainData = trainId is null ? null : Loader?.GetTrainData(trainId);
-			SelectedTrainData = selectedTrainData;
+			// 時刻表更新時に同じIDのデータでも表示を更新するため、
+			// 値の等価性に関わらずプロパティ変更通知を発火させる
+			_SelectedTrainData = selectedTrainData;
+			OnPropertyChanged(nameof(SelectedTrainData));
 			logger.Debug("SelectedTrainData: {0} ({1})", SelectedTrainData?.Id ?? "null", selectedTrainData?.Id ?? "null");
 		}
 		else
