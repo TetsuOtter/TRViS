@@ -335,7 +335,6 @@ public partial class ViewHost : ContentPage
 
 			QuickSwitchPopup popup = new();
 			var popover = AnchorPopover.Create();
-			popup.SetPopover(popover);
 
 			var options = new PopoverOptions
 			{

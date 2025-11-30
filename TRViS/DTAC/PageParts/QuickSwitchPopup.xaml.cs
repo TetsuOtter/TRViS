@@ -1,14 +1,12 @@
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
-using TR.Maui.AnchorPopover;
 
 namespace TRViS.DTAC;
 
 public partial class QuickSwitchPopup : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	private IAnchorPopover? _popover;
 	private AppViewModel ViewModel { get; }
 
 	private bool _isWorkGroupTabSelected = true;
@@ -109,10 +107,5 @@ public partial class QuickSwitchPopup : ContentView
 			logger.Info("Work selected: {0}", selectedWork.Name);
 			ViewModel.SelectedWork = selectedWork;
 		}
-	}
-
-	internal void SetPopover(IAnchorPopover popover)
-	{
-		_popover = popover;
 	}
 }
