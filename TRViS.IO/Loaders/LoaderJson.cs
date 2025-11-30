@@ -10,7 +10,7 @@ public class LoaderJson : ILoader
 {
 	Dictionary<string, WorkGroup> WorkGroups { get; } = [];
 	Dictionary<string, Work> WorkData { get; } = [];
-	Dictionary<string, (Models.TrainData, TimetableRow[])> TrainData { get; } = [];
+	Dictionary<string, Models.TrainData> TrainData { get; } = [];
 
 	Dictionary<string, string> WorkGroupIdByWorkId { get; } = [];
 	Dictionary<string, string> WorkIdByTrainId { get; } = [];
@@ -128,8 +128,32 @@ public class LoaderJson : ILoader
 				{
 					JsonModels.TrainData trainData = trainList[trainIndex];
 					string trainId = trainIdList[trainIdIndex++];
-					TrainData[trainId] = (
-						new(
+					TimetableRow[] rows = [.. trainData.TimetableRows.Select(static (v, i) => new TimetableRow(
+						Id: v.Id ?? i.ToString(),
+						Location: new(v.Location_m, v.Longitude_deg, v.Latitude_deg, v.OnStationDetectRadius_m),
+						DriveTimeMM: v.DriveTime_MM,
+						DriveTimeSS: v.DriveTime_SS,
+						StationName: v.StationName,
+						IsOperationOnlyStop: v.IsOperationOnlyStop ?? false,
+						IsPass: v.IsPass ?? false,
+						HasBracket: v.HasBracket ?? false,
+						IsLastStop: v.IsLastStop ?? false,
+						ArriveTime: GetTimeData(v.Arrive),
+						DepartureTime: GetTimeData(v.Departure),
+						TrackName: v.TrackName,
+						RunInLimit: v.RunInLimit,
+						RunOutLimit: v.RunOutLimit,
+						Remarks: v.Remarks,
+
+						IsInfoRow: v.RecordType
+							is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
+							or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
+
+						// TODO: マーカーのデフォルト設定のサポート
+						DefaultMarkerColor_RGB: null,
+						DefaultMarkerText: null
+					))];
+					TrainData[trainId] = new(
 							AfterArrive: trainData.AfterArrive,
 							AfterRemarks: trainData.AfterRemarks,
 							BeforeDeparture: trainData.BeforeDeparture,
@@ -151,34 +175,9 @@ public class LoaderJson : ILoader
 							WorkName: workData.Name,
 							AffectDate: Utils.StringToDateOnlyOrNull(workData.AffectDate),
 							// TODO: JSONでのNextTrainIdのサポート
-							NextTrainId: trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null
-						),
-						trainData.TimetableRows.Select(static (v, i) => new TimetableRow(
-							Id: v.Id ?? i.ToString(),
-							Location: new(v.Location_m, v.Longitude_deg, v.Latitude_deg, v.OnStationDetectRadius_m),
-							DriveTimeMM: v.DriveTime_MM,
-							DriveTimeSS: v.DriveTime_SS,
-							StationName: v.StationName,
-							IsOperationOnlyStop: v.IsOperationOnlyStop ?? false,
-							IsPass: v.IsPass ?? false,
-							HasBracket: v.HasBracket ?? false,
-							IsLastStop: v.IsLastStop ?? false,
-							ArriveTime: GetTimeData(v.Arrive),
-							DepartureTime: GetTimeData(v.Departure),
-							TrackName: v.TrackName,
-							RunInLimit: v.RunInLimit,
-							RunOutLimit: v.RunOutLimit,
-							Remarks: v.Remarks,
-
-							IsInfoRow: v.RecordType
-								is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
-								or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
-
-							// TODO: マーカーのデフォルト設定のサポート
-							DefaultMarkerColor_RGB: null,
-							DefaultMarkerText: null
-						)).ToArray()
-					);
+							NextTrainId: trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null,
+							Rows: rows
+						);
 					System.Diagnostics.Debug.WriteLine($"\t\tTrain: {trainId} {trainData.TrainNumber}");
 					WorkIdByTrainId[trainId] = workId;
 				}
@@ -211,14 +210,14 @@ public class LoaderJson : ILoader
 	{
 	}
 
-	public Models.TrainData? GetTrainData(string trainId) => TrainData[trainId].Item1;
+	public Models.TrainData? GetTrainData(string trainId) => TrainData[trainId];
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
 		=> [.. WorkGroups.Values];
 
 	public IReadOnlyList<Work> GetWorkList(string workGroupId)
-		=> WorkData.Values.Where(v => v.WorkGroupId == workGroupId).ToArray();
+		=> [.. WorkData.Values.Where(v => v.WorkGroupId == workGroupId)];
 
 	public IReadOnlyList<Models.TrainData> GetTrainDataList(string workId)
-		=> TrainData.Values.Where((v) => WorkIdByTrainId[v.Item1.Id] == workId).Select(static v => v.Item1).ToArray();
+		=> [.. TrainData.Values.Where((v) => WorkIdByTrainId[v.Id] == workId)];
 }
