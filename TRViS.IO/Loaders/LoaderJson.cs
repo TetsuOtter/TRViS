@@ -112,7 +112,7 @@ public class LoaderJson : ILoader
 					Id: workId,
 					Name: workData.Name,
 
-					AffectDate: string.IsNullOrEmpty(workData.AffectDate) ? null : DateOnly.Parse(workData.AffectDate),
+					AffectDate: Utils.StringToDateOnlyOrNull(workData.AffectDate),
 					AffixContent: null, // workData.AffixContent,
 					AffixContentType: workData.AffixContentType,
 					ETrainTimetableContent: null, // workData.ETrainTimetableContent,
