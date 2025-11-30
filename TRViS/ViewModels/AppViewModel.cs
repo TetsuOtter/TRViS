@@ -157,11 +157,15 @@ public partial class AppViewModel : ObservableObject
 			if (orderedTrainList.Count > 0)
 			{
 				logger.Debug("FirstTrainId (from ordered list): {0}", orderedTrainList[0].Id);
-				SelectedTrainData = orderedTrainList[0];
+				// Force property change notification even when the same ID is selected
+				// This ensures UI updates during timetable updates
+				_SelectedTrainData = orderedTrainList[0];
+				OnPropertyChanged(nameof(SelectedTrainData));
 			}
 			else
 			{
-				SelectedTrainData = null;
+				_SelectedTrainData = null;
+				OnPropertyChanged(nameof(SelectedTrainData));
 			}
 			logger.Debug("SelectedTrainData: {0}", SelectedTrainData?.Id ?? "null");
 		}
