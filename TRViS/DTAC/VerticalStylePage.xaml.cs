@@ -240,7 +240,7 @@ public partial class VerticalStylePage : ContentView
 	{
 		if (ReferenceEquals(CurrentShowingTrainData, newValue))
 		{
-			logger.Debug("CurrentShowingTrainData == newValue (by reference) -> do nothing");
+			logger.Debug("Same object reference detected (CurrentShowingTrainData, newValue) -> do nothing");
 			return;
 		}
 		if (!DTACViewHostViewModel.IsViewHostVisible || !DTACViewHostViewModel.IsVerticalViewMode)
