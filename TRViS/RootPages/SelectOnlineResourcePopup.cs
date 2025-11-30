@@ -157,12 +157,13 @@ public class SelectOnlineResourcePopup : ContentPage
 				return;
 			}
 
-			AppLinkInfo appLinkInfo = UrlInput.Text.StartsWith("trvis://")
-				? AppLinkInfo.FromAppLink(UrlInput.Text)
+			string urlText = UrlInput.Text;
+			AppLinkInfo appLinkInfo = urlText.StartsWith("trvis://")
+				? AppLinkInfo.FromAppLink(urlText)
 				: new(
 					AppLinkInfo.FileType.Json,
 					Version: new(1, 0),
-					ResourceUri: new(UrlInput.Text)
+					ResourceUri: new(urlText)
 				);
 			bool execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, CancellationToken.None);
 			if (execResult)

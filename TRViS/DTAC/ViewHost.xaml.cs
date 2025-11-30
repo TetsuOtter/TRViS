@@ -261,14 +261,14 @@ public partial class ViewHost : ContentPage
 		}
 	}
 
-	void OnSelectedWorkGroupChanged(IO.Models.DB.WorkGroup? newValue)
+	void OnSelectedWorkGroupChanged(WorkGroup? newValue)
 	{
 		string title = newValue?.Name ?? string.Empty;
 		logger.Info("SelectedWorkGroup is changed to {0}", title);
 		HakoView.WorkSpaceName = title;
 	}
 
-	void OnSelectedWorkChanged(IO.Models.DB.Work? newValue)
+	void OnSelectedWorkChanged(Work? newValue)
 	{
 		string title = newValue?.Name ?? string.Empty;
 		logger.Info("SelectedWork is changed to {0}", title);

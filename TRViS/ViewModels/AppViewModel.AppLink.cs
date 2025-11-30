@@ -5,6 +5,7 @@ using System.Web;
 
 using TRViS.IO;
 using TRViS.IO.RequestInfo;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 
 namespace TRViS.ViewModels;
@@ -29,7 +30,7 @@ public partial class AppViewModel
 		{
 			appLinkInfo = AppLinkInfo.FromAppLink(uri);
 		}
-		catch(Exception ex)
+		catch (Exception ex)
 		{
 			logger.Warn(ex, "AppLinkInfo Identify Failed");
 			await Utils.DisplayAlert("Cannot Open File", "AppLinkInfo Identify Failed\n" + ex.Message, "OK");
@@ -58,17 +59,29 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
-		return await HandleAppLinkUriAsync(appLinkInfo, token);
+		return await HandleAppLinkUriAsync(appLinkInfo, uri, token);
 	}
 	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
+		=> await HandleAppLinkUriAsync(appLinkInfo, null, token);
+
+	private async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
 	{
 		string? decodedUrl = null;
+		string? appLinkString = originalAppLink;
+
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
 		{
 			decodedUrl = HttpUtility.UrlDecode(appLinkInfo.ResourceUri.ToString());
 		}
 
 		token.ThrowIfCancellationRequested();
+
+		// ResourceUriがWebSocket（ws:// or wss://）の場合、直接NetworkSyncServiceに接続
+		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "ws" or "wss")
+		{
+			logger.Info("ResourceUri is WebSocket -> Connect to NetworkSyncService directly");
+			return await HandleWebSocketAppLinkAsync(appLinkInfo, appLinkString, token);
+		}
 
 		OpenFile openFile = new(InstanceManager.HttpClient)
 		{
@@ -116,10 +129,12 @@ public partial class AppViewModel
 		lastLoader?.Dispose();
 		logger.Debug("Last Loader Disposed");
 
-		if (decodedUrl is not null)
+		// 履歴に追加（HTTPSのURLまたはAppLink）
+		string? historyEntry = decodedUrl ?? appLinkString;
+		if (historyEntry is not null)
 		{
 			// pathがListに存在しない場合は、Removeは何も実行されずに終了する
-			_ExternalResourceUrlHistory.Remove(decodedUrl);
+			_ExternalResourceUrlHistory.Remove(historyEntry);
 			if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
 			{
 				int removeCount = _ExternalResourceUrlHistory.Count - EXTERNAL_RESOURCE_URL_HISTORY_MAX + 1;
@@ -127,7 +142,7 @@ public partial class AppViewModel
 				_ExternalResourceUrlHistory.RemoveRange(0, removeCount);
 			}
 
-			_ExternalResourceUrlHistory.Add(decodedUrl);
+			_ExternalResourceUrlHistory.Add(historyEntry);
 			AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 		}
 
@@ -170,11 +185,92 @@ public partial class AppViewModel
 		return true;
 	}
 
+	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
+	{
+		if (appLinkInfo.ResourceUri is null)
+		{
+			logger.Error("ResourceUri is null");
+			await Utils.DisplayAlert("Error", "WebSocket URLが指定されていません", "OK");
+			return false;
+		}
+
+		logger.Info("Connecting to WebSocket: {0}", appLinkInfo.ResourceUri);
+
+		try
+		{
+			// WebSocketで時刻表データを取得
+			OpenFile openFile = new(InstanceManager.HttpClient)
+			{
+				CanContinueWhenResourceUriContainsIp = CanContinueWhenResourceUriContainsIpHandler,
+				CanContinueWhenHeadRequestSuccess = CanContinueWhenHeadRequestSuccessHandler
+			};
+
+			WebSocketNetworkSyncService service = await openFile.OpenWebSocketAppLinkAsync(appLinkInfo, token);
+
+			ILoader? lastLoader = this.Loader;
+			this.Loader = service;
+			logger.Info("Loader Initialized from WebSocket");
+			lastLoader?.Dispose();
+			logger.Debug("Last Loader Disposed");
+
+			await InstanceManager.LocationService.SetNetworkSyncServiceAsync(service);
+
+			// WebSocketのAppLinkを履歴に追加
+			if (originalAppLink is not null)
+			{
+				_ExternalResourceUrlHistory.Remove(originalAppLink);
+				if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
+				{
+					int removeCount = _ExternalResourceUrlHistory.Count - EXTERNAL_RESOURCE_URL_HISTORY_MAX + 1;
+					logger.Debug("ExternalResourceUrlHistory.Count is over EXTERNAL_RESOURCE_URL_HISTORY_MAX ({0} <= {1}) -> remove {2} items", EXTERNAL_RESOURCE_URL_HISTORY_MAX, _ExternalResourceUrlHistory.Count, removeCount);
+					_ExternalResourceUrlHistory.RemoveRange(0, removeCount);
+				}
+
+				_ExternalResourceUrlHistory.Add(originalAppLink);
+				AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
+			}
+
+			await Utils.DisplayAlert("Success!", "WebSocket接続が完了しました", "OK");
+			return true;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "HandleWebSocketAppLinkAsync Failed");
+			if (ex is OperationCanceledException && ex is not TaskCanceledException)
+			{
+				logger.Debug(ex, "Operation Canceled");
+				return false;
+			}
+
+			if (appLinkInfo.ResourceUri.HostNameType == UriHostNameType.IPv4
+				&& ex is TaskCanceledException
+				&& ex.InnerException is TimeoutException)
+			{
+				logger.Error(ex, "Timeout Error");
+				await Utils.DisplayAlert(
+					"接続できませんでした (Timeout)",
+					"接続先がパソコンの場合は、\n"
+					+ "接続先が同じネットワークに属しているか、\n"
+					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
+					+ "を確認してください。",
+					"OK"
+				);
+			}
+			else
+			{
+				await Utils.DisplayAlert("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
+			}
+			return false;
+		}
+	}
+
 	static async Task<bool> CanContinueWhenResourceUriContainsIpHandler(
 		IPAddress remoteIp,
 		CancellationToken token
-	) {
-		if (!IsPrivateIpv4(remoteIp)) {
+	)
+	{
+		if (!IsPrivateIpv4(remoteIp))
+		{
 			logger.Debug(
 				"ipAddress: {0} is not private address -> continue",
 				remoteIp
@@ -226,7 +322,8 @@ public partial class AppViewModel
 	static async Task<bool> CanContinueWhenHeadRequestSuccessHandler(
 		HttpResponseMessage response,
 		CancellationToken token
-	) {
+	)
+	{
 		logger.Info("Head Request status code: {0} ({1})", response.StatusCode);
 		if (response.StatusCode == HttpStatusCode.NoContent)
 		{

@@ -18,6 +18,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="coverlet.collector" Version="6.0.4" />
+		<PackageReference Include="NLog" Version="5.4.0" />
 	</ItemGroup>
 
 	<ItemGroup>
