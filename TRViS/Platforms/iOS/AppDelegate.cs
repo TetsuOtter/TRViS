@@ -24,7 +24,12 @@ public class AppDelegate : MauiUIApplicationDelegate
 		};
 	}
 
-	protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+	protected override MauiApp CreateMauiApp()
+	{
+		// Setup NavigationPage customization before creating the app
+		NavigationPageCustomizationSetup.SetupNavigationPageHandler();
+		return MauiProgram.CreateMauiApp();
+	}
 
 	public override bool OpenUrl(UIApplication application, NSUrl url, NSDictionary? options)
 	{
@@ -33,5 +38,6 @@ public class AppDelegate : MauiUIApplicationDelegate
 		return base.OpenUrl(application, url, options ?? new NSDictionary());
 	}
 }
+
 
 

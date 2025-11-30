@@ -50,6 +50,7 @@ public class CustomNavigationPage : NavigationPage
 
 		// Set the custom navigation bar title view
 		SetTitleView(page, AppBarGrid);
+		SetHasBackButton(page, false);
 
 		logger.Trace("CustomNavigationPage Created");
 	}

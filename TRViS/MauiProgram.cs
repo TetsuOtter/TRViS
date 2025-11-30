@@ -39,6 +39,7 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 				fonts.AddFont("MaterialIcons-Regular.ttf", "MaterialIconsRegular");
 			})
+			.ConfigureNavigationPageCustomization()
 			.ConfigureFirebase();
 
 		AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
@@ -152,5 +153,20 @@ public static class MauiProgram
 #endif
 	}
 #endif
+
+	private static MauiAppBuilder ConfigureNavigationPageCustomization(this MauiAppBuilder builder)
+	{
+#if IOS
+		builder.ConfigureLifecycleEvents(events =>
+		{
+			events.AddiOS(iOS => iOS.WillFinishLaunching((app, launchOptions) =>
+			{
+				NavigationPageCustomizationSetup.SetupNavigationPageHandler();
+				return true;
+			}));
+		});
+#endif
+		return builder;
+	}
 }
 
