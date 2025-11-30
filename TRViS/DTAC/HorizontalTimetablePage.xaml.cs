@@ -103,10 +103,10 @@ public partial class HorizontalTimetablePage : ContentPage
 		}
 	}
 
-	private void BackButton_Clicked(object? sender, EventArgs e)
+	private async void BackButton_Clicked(object? sender, EventArgs e)
 	{
 		logger.Info("BackButton_Clicked -> GoBack");
-		Shell.Current.GoToAsync("..");
+		await Shell.Current.GoToAsync("..");
 	}
 
 	void LoadContent(Work? work)
@@ -125,7 +125,13 @@ public partial class HorizontalTimetablePage : ContentPage
 			return;
 		}
 
-		ContentType contentType = (ContentType)(work.ETrainTimetableContentType ?? 0);
+		int contentTypeValue = work.ETrainTimetableContentType ?? (int)ContentType.PNG;
+		if (!Enum.IsDefined(typeof(ContentType), contentTypeValue))
+		{
+			logger.Warn("Unknown content type value: {0}, defaulting to PNG", contentTypeValue);
+			contentTypeValue = (int)ContentType.PNG;
+		}
+		ContentType contentType = (ContentType)contentTypeValue;
 		byte[] content = work.ETrainTimetableContent;
 
 		logger.Debug("Content type: {0}, Content length: {1}", contentType, content.Length);

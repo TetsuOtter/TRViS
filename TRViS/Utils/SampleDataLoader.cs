@@ -12,8 +12,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	const string TRAIN_1_1_3 = "1-1-3";
 	const string TRAIN_1_2_1 = "1-2-1";
 
-	// Sample horizontal timetable image (a simple PNG with text "横型時刻表サンプル")
-	// This is a minimal valid PNG image
+	// Sample horizontal timetable image - a minimal 1x1 white pixel PNG for demonstration purposes
 	static readonly byte[] SampleHorizontalTimetableImageData = CreateSamplePngData();
 
 	static byte[] CreateSamplePngData()

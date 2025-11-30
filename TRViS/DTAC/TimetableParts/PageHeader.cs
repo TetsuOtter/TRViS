@@ -14,11 +14,11 @@ public partial class PageHeader : Grid
 	{
 		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
 
-		// under total: 488
+		// Fixed-width columns total: 110 + 186 + 128 + 60 = 484
 		new ColumnDefinition(110),  // Horizontal timetable button
-		new ColumnDefinition(186),
-		new ColumnDefinition(128),
-		new ColumnDefinition(60),
+		new ColumnDefinition(186),  // Start/End run button
+		new ColumnDefinition(128),  // Location service button
+		new ColumnDefinition(60),   // Open/Close button
 	};
 
 	#region Affect Date Label
