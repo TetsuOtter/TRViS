@@ -50,7 +50,7 @@
 		<MauiImage Include="Resources\Images\*" />
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset
-			Include="Resources\AppIcon\appiconfg.png"
+			Include="Resources\AppIcon\rfclogo.png"
 			LogicalName="appiconfg.png" />
 		<MauiAsset
 			Include="Resources\Raw\**"
