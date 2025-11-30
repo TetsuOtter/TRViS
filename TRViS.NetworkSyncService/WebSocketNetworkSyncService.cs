@@ -334,12 +334,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	{
 		try
 		{
-			using JsonDocument? json = JsonDocument.Parse(timetableData.JsonData);
-			if (json is null)
-				return;
-
-			JsonElement dataElement = json.RootElement;
-
 			// スコープに応じてキャッシュを更新
 			switch (timetableData.Scope)
 			{
