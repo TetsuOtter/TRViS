@@ -134,29 +134,59 @@ public partial class PageHeader : Grid
 	#endregion
 
 	#region Horizontal Timetable Button
-	readonly Button HorizontalTimetableButton = new()
+	readonly Border HorizontalTimetableButtonBorder;
+	readonly Label HorizontalTimetableButtonLabel;
+
+	static Border CreateHorizontalTimetableButton(out Label label)
 	{
-		Text = "横型時刻表",
-		FontSize = 14,
-		FontFamily = DTACElementStyles.DefaultFontFamily,
-		FontAttributes = FontAttributes.Bold,
-		BackgroundColor = Colors.Transparent,
-		VerticalOptions = LayoutOptions.Center,
-		HorizontalOptions = LayoutOptions.Center,
-		Padding = new(4, 2),
-		IsVisible = false
-	};
+		label = new Label
+		{
+			Text = "横型時刻表",
+			FontSize = 16,
+			FontFamily = DTACElementStyles.DefaultFontFamily,
+			FontAttributes = FontAttributes.Bold,
+			TextColor = DTACElementStyles.StartEndRunButtonTextColor.Default,
+			VerticalOptions = LayoutOptions.Center,
+			HorizontalOptions = LayoutOptions.Center,
+			Margin = new(8, 4)
+		};
+		DTACElementStyles.StartEndRunButtonTextColor.Apply(label, Label.TextColorProperty);
+
+		var border = new Border
+		{
+			Margin = new(2),
+			Padding = new(4),
+			Stroke = Colors.Transparent,
+			VerticalOptions = LayoutOptions.Center,
+			HorizontalOptions = LayoutOptions.Center,
+			StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
+			BackgroundColor = Colors.White,
+			IsVisible = false,
+			Content = label,
+			Shadow = new Shadow
+			{
+				Brush = Colors.Black,
+				Offset = new(3, 3),
+				Radius = 3,
+				Opacity = 0.2f
+			}
+		};
+
+		border.GestureRecognizers.Add(new TapGestureRecognizer());
+
+		return border;
+	}
 
 	partial void OnHasHorizontalTimetableChanged(bool newValue)
 	{
 		logger.Info("HasHorizontalTimetable: {0}", newValue);
-		HorizontalTimetableButton.IsVisible = newValue;
+		HorizontalTimetableButtonBorder.IsVisible = newValue;
 	}
 
-	private async void HorizontalTimetableButton_Clicked(object? sender, EventArgs e)
+	private async void HorizontalTimetableButton_Tapped(object? sender, TappedEventArgs e)
 	{
-		logger.Info("HorizontalTimetableButton_Clicked");
-		await Shell.Current.GoToAsync(HorizontalTimetablePage.NameOfThisClass);
+		logger.Info("HorizontalTimetableButton_Tapped");
+		await Shell.Current.GoToAsync(HorizontalTimetablePage.NameOfThisClass, true);
 	}
 	#endregion
 
@@ -166,8 +196,11 @@ public partial class PageHeader : Grid
 
 		ColumnDefinitions = DefaultColumnDefinitions;
 
-		HorizontalTimetableButton.Clicked += HorizontalTimetableButton_Clicked;
-		DTACElementStyles.DefaultTextColor.Apply(HorizontalTimetableButton, Button.TextColorProperty);
+		HorizontalTimetableButtonBorder = CreateHorizontalTimetableButton(out HorizontalTimetableButtonLabel);
+		if (HorizontalTimetableButtonBorder.GestureRecognizers[0] is TapGestureRecognizer tapGesture)
+		{
+			tapGesture.Tapped += HorizontalTimetableButton_Tapped;
+		}
 
 		StartEndRunButton.VerticalOptions = LayoutOptions.Center;
 		StartEndRunButton.HorizontalOptions = LayoutOptions.End;
@@ -188,7 +221,7 @@ public partial class PageHeader : Grid
 			AffectDateLabel,
 			column: 0
 		);
-		this.Add(HorizontalTimetableButton,
+		this.Add(HorizontalTimetableButtonBorder,
 			column: 1
 		);
 		this.Add(StartEndRunButton,
