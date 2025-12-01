@@ -89,7 +89,11 @@
 			HorizontalOptions="Center"
 			VerticalOptions="End"
 			FontAttributes="Bold"
-			FontSize="20" />
+			FontSize="20">
+			<Label.GestureRecognizers>
+				<TapGestureRecognizer Tapped="TitleLabel_Tapped"/>
+			</Label.GestureRecognizers>
+		</Label>
 
 		<HorizontalStackLayout
 			Grid.Row="2"
