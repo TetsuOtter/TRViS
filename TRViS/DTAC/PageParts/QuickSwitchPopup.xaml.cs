@@ -34,9 +34,9 @@ public partial class QuickSwitchPopup : ContentView
 
 		// Set up lists
 		WorkGroupListView.ItemsSource = ViewModel.WorkGroupList;
-		WorkGroupListView.SelectedItem = ViewModel.SelectedWorkGroup;
+		UpdateWorkGroupSelection();
 		WorkListView.ItemsSource = ViewModel.WorkList;
-		WorkListView.SelectedItem = ViewModel.SelectedWork;
+		UpdateWorkSelection();
 
 		// Apply styles
 		DTACElementStyles.TabAreaBGColor.Apply(WorkGroupListContainer, Border.BackgroundColorProperty);
@@ -63,6 +63,42 @@ public partial class QuickSwitchPopup : ContentView
 		// Update list visibility
 		WorkGroupListContainer.IsVisible = IsWorkGroupTabSelected;
 		WorkListContainer.IsVisible = !IsWorkGroupTabSelected;
+
+		// Scroll to selected item
+		if (IsWorkGroupTabSelected && WorkGroupListView.SelectedItem is not null)
+		{
+			WorkGroupListView.ScrollTo(WorkGroupListView.SelectedItem, ScrollToPosition.MakeVisible, false);
+		}
+		else if (!IsWorkGroupTabSelected && WorkListView.SelectedItem is not null)
+		{
+			WorkListView.ScrollTo(WorkListView.SelectedItem, ScrollToPosition.MakeVisible, false);
+		}
+	}
+
+	private void UpdateWorkGroupSelection()
+	{
+		if (ViewModel.SelectedWorkGroup is null)
+		{
+			WorkGroupListView.SelectedItem = null;
+			return;
+		}
+
+		// IDベースで選択アイテムを検索
+		var selectedItem = ViewModel.WorkGroupList?.FirstOrDefault(wg => wg.Id == ViewModel.SelectedWorkGroup.Id);
+		WorkGroupListView.SelectedItem = selectedItem;
+	}
+
+	private void UpdateWorkSelection()
+	{
+		if (ViewModel.SelectedWork is null)
+		{
+			WorkListView.SelectedItem = null;
+			return;
+		}
+
+		// IDベースで選択アイテムを検索
+		var selectedItem = ViewModel.WorkList?.FirstOrDefault(w => w.Id == ViewModel.SelectedWork.Id);
+		WorkListView.SelectedItem = selectedItem;
 	}
 
 	private void WorkGroupTab_Tapped(object? sender, EventArgs e)
@@ -86,7 +122,7 @@ public partial class QuickSwitchPopup : ContentView
 
 			// Update Work list with new WorkGroup's works
 			WorkListView.ItemsSource = ViewModel.WorkList;
-			WorkListView.SelectedItem = ViewModel.SelectedWork;
+			UpdateWorkSelection();
 
 			// Automatically switch to Work tab
 			IsWorkGroupTabSelected = false;
