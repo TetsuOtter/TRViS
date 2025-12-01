@@ -95,7 +95,7 @@ public class LoaderSQL : ILoader, IDisposable
 			v.Id,
 			v.WorkGroupId,
 			v.Name,
-			v.AffectDate is null ? null : DateOnly.Parse(v.AffectDate),
+			Utils.StringToDateOnlyOrNull(v.AffectDate),
 
 			v.AffixContentType,
 			v.AffixContent,
