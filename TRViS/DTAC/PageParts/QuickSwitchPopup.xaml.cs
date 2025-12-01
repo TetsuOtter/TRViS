@@ -41,8 +41,10 @@ public partial class QuickSwitchPopup : ContentView
 		// Apply styles
 		DTACElementStyles.TabAreaBGColor.Apply(WorkGroupListContainer, Border.BackgroundColorProperty);
 		DTACElementStyles.TabAreaBGColor.Apply(WorkListContainer, Border.BackgroundColorProperty);
-		DTACElementStyles.TimetableTextColor.Apply(WorkGroupTabLabel, Label.TextColorProperty);
-		DTACElementStyles.TimetableTextColor.Apply(WorkTabLabel, Label.TextColorProperty);
+
+		// Set up tab buttons
+		WorkGroupTabButton.Tapped += WorkGroupTab_Tapped;
+		WorkTabButton.Tapped += WorkTab_Tapped;
 
 		// Initial tab selection is WorkGroup
 		IsWorkGroupTabSelected = true;
@@ -55,30 +57,21 @@ public partial class QuickSwitchPopup : ContentView
 	{
 		logger.Trace("IsWorkGroupTabSelected: {0}", IsWorkGroupTabSelected);
 
-		// Update tab button backgrounds
-		if (IsWorkGroupTabSelected)
-		{
-			DTACElementStyles.DefaultBGColor.Apply(WorkGroupTabButton, Border.BackgroundColorProperty);
-			DTACElementStyles.TabButtonBGColor.Apply(WorkTabButton, Border.BackgroundColorProperty);
-		}
-		else
-		{
-			DTACElementStyles.TabButtonBGColor.Apply(WorkGroupTabButton, Border.BackgroundColorProperty);
-			DTACElementStyles.DefaultBGColor.Apply(WorkTabButton, Border.BackgroundColorProperty);
-		}
+		WorkGroupTabButton.IsSelected = IsWorkGroupTabSelected;
+		WorkTabButton.IsSelected = !IsWorkGroupTabSelected;
 
 		// Update list visibility
 		WorkGroupListContainer.IsVisible = IsWorkGroupTabSelected;
 		WorkListContainer.IsVisible = !IsWorkGroupTabSelected;
 	}
 
-	private void WorkGroupTab_Tapped(object sender, EventArgs e)
+	private void WorkGroupTab_Tapped(object? sender, EventArgs e)
 	{
 		logger.Info("WorkGroup tab tapped");
 		IsWorkGroupTabSelected = true;
 	}
 
-	private void WorkTab_Tapped(object sender, EventArgs e)
+	private void WorkTab_Tapped(object? sender, EventArgs e)
 	{
 		logger.Info("Work tab tapped");
 		IsWorkGroupTabSelected = false;

@@ -2,7 +2,7 @@
 <ContentView
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:local="clr-namespace:TRViS.DTAC"
+	xmlns:local="clr-namespace:TRViS.DTAC.PageParts"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO.ILoader"
 	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
 	x:Class="TRViS.DTAC.QuickSwitchPopup">
@@ -19,46 +19,19 @@
 			Margin="0,0,0,8">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="4"/>
 				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
 
-			<Border
+			<local:TabButtonSmall
 				x:Name="WorkGroupTabButton"
 				Grid.Column="0"
-				Margin="4,0"
-				Padding="8,6"
-				StrokeThickness="0">
-				<Border.GestureRecognizers>
-					<TapGestureRecognizer Tapped="WorkGroupTab_Tapped"/>
-				</Border.GestureRecognizers>
-				<Label
-					x:Name="WorkGroupTabLabel"
-					Text="WorkGroup"
-					FontFamily="Hiragino Sans"
-					FontSize="14"
-					FontAttributes="Bold"
-					HorizontalOptions="Center"
-					VerticalOptions="Center"/>
-			</Border>
+				ButtonText="WorkGroup"/>
 
-			<Border
+			<local:TabButtonSmall
 				x:Name="WorkTabButton"
-				Grid.Column="1"
-				Margin="4,0"
-				Padding="8,6"
-				StrokeThickness="0">
-				<Border.GestureRecognizers>
-					<TapGestureRecognizer Tapped="WorkTab_Tapped"/>
-				</Border.GestureRecognizers>
-				<Label
-					x:Name="WorkTabLabel"
-					Text="Work"
-					FontFamily="Hiragino Sans"
-					FontSize="14"
-					FontAttributes="Bold"
-					HorizontalOptions="Center"
-					VerticalOptions="Center"/>
-			</Border>
+				Grid.Column="2"
+				ButtonText="Work"/>
 		</Grid>
 
 		<!-- Lists Container -->
