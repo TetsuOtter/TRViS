@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS.DTAC.PageParts"
+	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO.ILoader"
+	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+	x:Class="TRViS.DTAC.QuickSwitchPopup">
+	<Grid
+		Padding="8">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<!-- Tab Buttons -->
+		<Grid
+			Grid.Row="0"
+			Margin="0,0,0,8">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="4"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+
+			<local:TabButtonSmall
+				x:Name="WorkGroupTabButton"
+				Grid.Column="0"
+				ButtonText="WorkGroup"/>
+
+			<local:TabButtonSmall
+				x:Name="WorkTabButton"
+				Grid.Column="2"
+				ButtonText="Work"/>
+		</Grid>
+
+		<!-- Lists Container -->
+		<Grid
+			Grid.Row="1">
+			<!-- WorkGroup List -->
+			<Border
+				x:Name="WorkGroupListContainer"
+				Padding="4"
+				StrokeThickness="0">
+				<ListView
+					x:Name="WorkGroupListView"
+					SelectionMode="Single"
+					SeparatorVisibility="Default"
+					ios:ListView.SeparatorStyle="FullWidth"
+					ItemSelected="WorkGroupListView_ItemSelected">
+					<ListView.ItemTemplate>
+						<DataTemplate
+							x:DataType="models:WorkGroup">
+							<TextCell
+								Text="{Binding Name}"/>
+						</DataTemplate>
+					</ListView.ItemTemplate>
+				</ListView>
+			</Border>
+
+			<!-- Work List -->
+			<Border
+				x:Name="WorkListContainer"
+				IsVisible="False"
+				Padding="4"
+				StrokeThickness="0">
+				<ListView
+					x:Name="WorkListView"
+					SelectionMode="Single"
+					SeparatorVisibility="Default"
+					ios:ListView.SeparatorStyle="FullWidth"
+					ItemSelected="WorkListView_ItemSelected">
+					<ListView.ItemTemplate>
+						<DataTemplate
+							x:DataType="models:Work">
+							<TextCell
+								Text="{Binding Name}"/>
+						</DataTemplate>
+					</ListView.ItemTemplate>
+				</ListView>
+			</Border>
+		</Grid>
+	</Grid>
+</ContentView>

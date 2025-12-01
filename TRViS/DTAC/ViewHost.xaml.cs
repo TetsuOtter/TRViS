@@ -1,5 +1,7 @@
 using System.ComponentModel;
 
+using TR.Maui.AnchorPopover;
+
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -322,6 +324,33 @@ public partial class ViewHost : ContentPage
 		if (!ViewModel.IsVerticalViewMode && VerticalStylePageRemarksView.IsOpen)
 		{
 			VerticalStylePageRemarksView.IsOpen = false;
+		}
+	}
+
+	async void TitleLabel_Tapped(object sender, EventArgs e)
+	{
+		try
+		{
+			logger.Info("TitleLabel tapped - showing QuickSwitchPopup");
+
+			QuickSwitchPopup popup = new();
+			var popover = AnchorPopover.Create();
+
+			var options = new PopoverOptions
+			{
+				PreferredWidth = 280,
+				PreferredHeight = 400,
+				DismissOnTapOutside = true
+			};
+
+			await popover.ShowAsync(popup, TitleLabel, options);
+			logger.Trace("QuickSwitchPopup shown");
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.TitleLabel_Tapped");
+			await Utils.ExitWithAlert(ex);
 		}
 	}
 }
