@@ -53,11 +53,7 @@ public static partial class JsonModelsConverter
 			? Guid.NewGuid().ToString()
 			: jsonWork.Id;
 
-		DateOnly? affectDate = null;
-		if (!string.IsNullOrEmpty(jsonWork.AffectDate))
-		{
-			affectDate = DateOnly.Parse(jsonWork.AffectDate);
-		}
+		DateOnly? affectDate = StringToDateOnlyUtil.StringToDateOnlyOrNull(jsonWork.AffectDate);
 
 		return new(
 			Id: workId,
