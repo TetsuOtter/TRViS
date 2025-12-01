@@ -159,6 +159,45 @@ public partial class AppViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>
+	/// 現在選択中の TrainData を Loader から再取得して更新します。
+	/// 時刻表更新時に、現在選択中の列車の情報を最新化するために使用します。
+	/// 選択中の列車が存在しない場合は、最初の列車を選択します。
+	/// </summary>
+	void RefreshSelectedTrainData()
+	{
+		if (SelectedWork is null || Loader is null)
+		{
+			SelectedTrainData = null;
+			return;
+		}
+
+		string? currentTrainId = SelectedTrainData?.Id;
+		IReadOnlyList<TrainData>? trainDataList = Loader.GetTrainDataList(SelectedWork.Id);
+
+		// 現在選択中の列車が存在するか確認
+		string? trainIdToSelect = null;
+		if (currentTrainId is not null && trainDataList?.Any(t => t.Id == currentTrainId) == true)
+		{
+			// 現在選択中の列車が存在する場合は、その列車を再選択
+			trainIdToSelect = currentTrainId;
+			logger.Debug("RefreshSelectedTrainData: Keeping current train selection: {0}", trainIdToSelect);
+		}
+		else
+		{
+			// 現在選択中の列車が存在しない場合は、最初の列車を選択
+			trainIdToSelect = trainDataList?.FirstOrDefault()?.Id;
+			logger.Debug("RefreshSelectedTrainData: Current train not found, selecting first train: {0}", trainIdToSelect ?? "null");
+		}
+
+		TrainData? selectedTrainData = trainIdToSelect is null ? null : Loader.GetTrainData(trainIdToSelect);
+		// 時刻表更新時に同じ ID のデータでも表示を更新するため、
+		// 値の等価性に関わらずプロパティ変更通知を発火させる
+		_SelectedTrainData = selectedTrainData;
+		OnPropertyChanged(nameof(SelectedTrainData));
+		logger.Debug("RefreshSelectedTrainData: SelectedTrainData updated to: {0}", selectedTrainData?.Id ?? "null");
+	}
+
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
 	{
 		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
@@ -214,8 +253,8 @@ public partial class AppViewModel : ObservableObject
 			else
 			{
 				// WorkList が更新された場合、選択中の Work でも UI を更新する必要がある
-				// OnSelectedWorkChanged を明示的に呼ぶ
-				OnSelectedWorkChanged(SelectedWork);
+				// 現在選択中の TrainData を更新（保持）する
+				RefreshSelectedTrainData();
 			}
 		}
 	}
