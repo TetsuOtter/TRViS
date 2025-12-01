@@ -154,19 +154,19 @@ public partial class AppViewModel : ObservableObject
 			OrderedTrainDataList = orderedTrainList;
 
 			// Select the first train in the ordered list
+			TrainData? selectedTrainData = null;
 			if (orderedTrainList.Count > 0)
 			{
 				logger.Debug("FirstTrainId (from ordered list): {0}", orderedTrainList[0].Id);
-				// Force property change notification even when the same ID is selected
-				// This ensures UI updates during timetable updates
-				_SelectedTrainData = orderedTrainList[0];
-				OnPropertyChanged(nameof(SelectedTrainData));
+				selectedTrainData = orderedTrainList[0];
 			}
-			else
-			{
-				_SelectedTrainData = null;
-				OnPropertyChanged(nameof(SelectedTrainData));
-			}
+
+			// バインディングシステムはrecordの値ベース比較を使用する可能性があるため、
+			// 一度nullに設定してから新しい値を設定することで、確実に更新を伝播させる
+			_SelectedTrainData = null;
+			OnPropertyChanged(nameof(SelectedTrainData));
+			_SelectedTrainData = selectedTrainData;
+			OnPropertyChanged(nameof(SelectedTrainData));
 			logger.Debug("SelectedTrainData: {0}", SelectedTrainData?.Id ?? "null");
 		}
 		else
@@ -321,8 +321,11 @@ public partial class AppViewModel : ObservableObject
 		}
 
 		TrainData? selectedTrainData = trainIdToSelect is null ? null : Loader.GetTrainData(trainIdToSelect);
-		// 時刻表更新時に同じ ID のデータでも表示を更新するため、
-		// 値の等価性に関わらずプロパティ変更通知を発火させる
+		
+		// バインディングシステムはrecordの値ベース比較を使用する可能性があるため、
+		// 一度nullに設定してから新しい値を設定することで、確実に更新を伝播させる
+		_SelectedTrainData = null;
+		OnPropertyChanged(nameof(SelectedTrainData));
 		_SelectedTrainData = selectedTrainData;
 		OnPropertyChanged(nameof(SelectedTrainData));
 		logger.Debug("RefreshSelectedTrainData: SelectedTrainData updated to: {0}", selectedTrainData?.Id ?? "null");
