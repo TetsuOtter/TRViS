@@ -84,6 +84,10 @@ public static partial class DTACElementStyles
 	public const string MaterialIconFontFamily = "MaterialIconsRegular";
 	public const string TimetableNumFontFamily = "Helvetica";
 
+	// Material Icons
+	public const string BackArrowIcon = "\ue5c4";
+	public const string MenuIcon = "\ue241";
+
 	public const string AffectDateLabelTextPrefix = "行路施行日\n";
 
 	public static readonly Shadow DefaultShadow = new()

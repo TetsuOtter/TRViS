@@ -40,7 +40,7 @@ public class HorizontalTimetablePage : ContentPage
 		AppBarView = new AppBar
 		{
 			Title = "横型時刻表",
-			LeftButtonText = "\ue5c4" // Back arrow icon
+			LeftButtonText = DTACElementStyles.BackArrowIcon
 		};
 		AppBarView.LeftButtonClicked += BackButton_Clicked;
 		Grid.SetRow(AppBarView, 0);

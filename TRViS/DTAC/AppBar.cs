@@ -95,7 +95,7 @@ public class AppBar : Grid
 			Padding = 0,
 			HorizontalOptions = LayoutOptions.Start,
 			VerticalOptions = LayoutOptions.Center,
-			Text = "\ue241", // Menu icon
+			Text = DTACElementStyles.MenuIcon,
 			FontFamily = DTACElementStyles.MaterialIconFontFamily,
 			FontSize = 36,
 			BackgroundColor = Colors.Transparent,

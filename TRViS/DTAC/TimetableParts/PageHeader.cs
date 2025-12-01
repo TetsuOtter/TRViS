@@ -197,7 +197,8 @@ public partial class PageHeader : Grid
 		ColumnDefinitions = DefaultColumnDefinitions;
 
 		HorizontalTimetableButtonBorder = CreateHorizontalTimetableButton(out HorizontalTimetableButtonLabel);
-		if (HorizontalTimetableButtonBorder.GestureRecognizers[0] is TapGestureRecognizer tapGesture)
+		if (HorizontalTimetableButtonBorder.GestureRecognizers.Count > 0
+			&& HorizontalTimetableButtonBorder.GestureRecognizers[0] is TapGestureRecognizer tapGesture)
 		{
 			tapGesture.Tapped += HorizontalTimetableButton_Tapped;
 		}

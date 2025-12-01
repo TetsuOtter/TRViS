@@ -23,8 +23,8 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 			try
 			{
-				// Load the app icon from resources
-				using var stream = FileSystem.OpenAppPackageFileAsync(DTAC.DTACElementStyles.AppIconSource).Result;
+				// Load the app icon from resources using GetAwaiter().GetResult() to avoid deadlocks
+				using var stream = FileSystem.OpenAppPackageFileAsync(DTAC.DTACElementStyles.AppIconSource).GetAwaiter().GetResult();
 				using var memoryStream = new MemoryStream();
 				stream.CopyTo(memoryStream);
 				_sampleHorizontalTimetableImageData = memoryStream.ToArray();
