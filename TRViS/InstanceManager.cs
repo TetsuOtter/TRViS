@@ -28,6 +28,29 @@ internal static class InstanceManager
 	private static AnalyticsWrapper? _AnalyticsWrapper = null;
 	public static IAnalyticsWrapper AnalyticsWrapper => _AnalyticsWrapper ??= new();
 
+	private static IOrientationService? _OrientationService = null;
+	public static IOrientationService OrientationService
+	{
+		get
+		{
+			if (_OrientationService is not null)
+				return _OrientationService;
+
+#if ANDROID
+			_OrientationService = new Platforms.Android.OrientationService();
+#elif IOS
+			_OrientationService = new Platforms.iOS.OrientationService();
+#elif MACCATALYST
+			_OrientationService = new Platforms.MacCatalyst.OrientationService();
+#elif WINDOWS
+			_OrientationService = new Platforms.Windows.OrientationService();
+#else
+			_OrientationService = new DefaultOrientationService();
+#endif
+			return _OrientationService;
+		}
+	}
+
 	static HttpClient? _HttpClient = null;
 	public static HttpClient HttpClient
 	{
@@ -54,5 +77,16 @@ internal static class InstanceManager
 	public static void Dispose()
 	{
 		DisposeValue(ref _HttpClient);
+	}
+
+	/// <summary>
+	/// Default fallback implementation of the orientation service when no platform-specific implementation is available.
+	/// </summary>
+	private class DefaultOrientationService : IOrientationService
+	{
+		public void SetOrientation(AppDisplayOrientation orientation)
+		{
+			// No-op for unsupported platforms
+		}
 	}
 }
