@@ -113,7 +113,7 @@ public class SimpleView : Grid
 			}
 		}
 	}
-	void OnSelectedWorkChanged(Work? newWork)
+	async void OnSelectedWorkChanged(Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 		Clear();
@@ -135,6 +135,13 @@ public class SimpleView : Grid
 		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
 		SetRowDefinitions(trainDataList.Count);
 		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
+
+		if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+			await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs);
+
+		int batchSize = PerformanceHelper.RowsBatchSize;
+		int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
+
 		for (int i = 0; i < trainDataList.Count; i++)
 		{
 			string trainId = trainDataList[i].Id;
@@ -145,15 +152,21 @@ public class SimpleView : Grid
 				continue;
 			}
 
-			SimpleRow row = new(this, i, trainData);
-			Rows.Add(row);
-			row.IsSelectedChanged += OnIsSelectedChanged;
-			if (trainId == selectedTrainData?.Id)
+			await MainThread.InvokeOnMainThreadAsync(() =>
 			{
-				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
-				row.IsSelected = true;
-				SelectedRow = row;
-			}
+				SimpleRow row = new(this, i, trainData);
+				Rows.Add(row);
+				row.IsSelectedChanged += OnIsSelectedChanged;
+				if (trainId == selectedTrainData?.Id)
+				{
+					logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
+					row.IsSelected = true;
+					SelectedRow = row;
+				}
+			});
+
+			if (0 < batchSize && i % batchSize == batchSize - 1)
+				await Task.Delay(renderDelayMs);
 		}
 	}
 
