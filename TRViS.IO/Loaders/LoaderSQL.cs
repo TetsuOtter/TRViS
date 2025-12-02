@@ -45,6 +45,9 @@ public class LoaderSQL : ILoader, IDisposable
 						join n in Connection.Table<Models.DB.StationTrack>()
 						on r.StationTrackId equals n.Id into track
 						from tj in track.DefaultIfEmpty()
+						join c in Connection.Table<Models.DB.Color>()
+						on r.MarkerColorId equals c.Id into color
+						from cj in color.DefaultIfEmpty()
 						orderby t.Direction >= 0 ? s.Location : (s.Location * -1)
 						select new TimetableRow(
 							Id: r.Id.ToString(),
@@ -67,9 +70,8 @@ public class LoaderSQL : ILoader, IDisposable
 								is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
 								or (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain,
 
-							// TODO: マーカーのデフォルト設定のサポート
-							DefaultMarkerColor_RGB: null,
-							DefaultMarkerText: null
+							DefaultMarkerColor_RGB: cj?.RGB,
+							DefaultMarkerText: r.MarkerText
 						)
 					).ToArray(),
 					AfterArrive: t.AfterArrive,
