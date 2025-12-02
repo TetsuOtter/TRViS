@@ -353,6 +353,20 @@ public partial class VerticalTimetableRow
 		MarkerBox.Shadow.Radius = 2;
 		MarkerBox.Clicked += MarkerBoxClicked;
 
+		// Set initial marker values from TimetableRow data
+		if (rowData.DefaultMarkerColor_RGB is not null)
+		{
+			int rgb = rowData.DefaultMarkerColor_RGB.Value;
+			byte r = (byte)((rgb >> 16) & 0xFF);
+			byte g = (byte)((rgb >> 8) & 0xFF);
+			byte b = (byte)(rgb & 0xFF);
+			Color markerColor = new(r, g, b);
+			MarkedColor = markerColor;
+			MarkerBox.Text = rowData.DefaultMarkerText;
+			MarkerBox.IsVisible = true;
+			logger.Debug("Initial marker set from TimetableRow (Color: {0}, Text: {1})", markerColor, rowData.DefaultMarkerText);
+		}
+
 		parent.Add(MarkerBox, 7, rowIndex);
 
 		logger.Trace("Created");
