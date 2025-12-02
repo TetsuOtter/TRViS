@@ -46,26 +46,22 @@ public class OrientationService : IOrientationService
 						logger.Warn("Failed to update geometry: {0}", error.LocalizedDescription);
 					}
 				});
+
+				// Also update the view controller to notify it of the new supported orientations
+				var keyWindow = UIApplication.SharedApplication.KeyWindow;
+				if (keyWindow?.RootViewController is not null)
+				{
+					keyWindow.RootViewController.SetNeedsUpdateOfSupportedInterfaceOrientations();
+				}
 			}
 		}
 		else
 		{
-			// For iOS < 16, force orientation change
-			UIDevice.CurrentDevice.SetValueForKey(
-				Foundation.NSNumber.FromInt32((int)GetPreferredOrientation(orientation)),
-				new Foundation.NSString("orientation")
-			);
+			// For iOS < 16, we rely on the AppDelegate's GetSupportedInterfaceOrientations
+			// method which returns CurrentOrientationMask. Trigger re-evaluation of orientation.
+#pragma warning disable CA1422 // Call site reachable on all platforms - AttemptRotationToDeviceOrientation is deprecated on iOS 16+
+			UIViewController.AttemptRotationToDeviceOrientation();
+#pragma warning restore CA1422
 		}
-	}
-
-	private static UIInterfaceOrientation GetPreferredOrientation(AppDisplayOrientation orientation)
-	{
-		return orientation switch
-		{
-			AppDisplayOrientation.Portrait => UIInterfaceOrientation.Portrait,
-			AppDisplayOrientation.Landscape => UIInterfaceOrientation.LandscapeLeft,
-			AppDisplayOrientation.All => UIInterfaceOrientation.Unknown,
-			_ => UIInterfaceOrientation.Unknown
-		};
 	}
 }
