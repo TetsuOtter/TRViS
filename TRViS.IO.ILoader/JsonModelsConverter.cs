@@ -153,6 +153,10 @@ public static partial class JsonModelsConverter
 	/// Converts a hex color string (e.g., "3366CC" or "CC") to an RGB integer.
 	/// Returns null if the input is null, empty, or invalid.
 	/// </summary>
+	/// <remarks>
+	/// Note: This method is duplicated in TRViS.IO.Utils.Utils due to the project dependency structure.
+	/// TRViS.IO.ILoader cannot reference TRViS.IO to avoid circular dependencies.
+	/// </remarks>
 	private static int? HexStringToRgbInt(string? hexString)
 	{
 		if (string.IsNullOrEmpty(hexString))
