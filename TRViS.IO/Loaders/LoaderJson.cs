@@ -60,7 +60,7 @@ public class LoaderJson : ILoader
 		PropertyNameCaseInsensitive = true,
 	};
 
-	private LoaderJson(WorkGroupData[] workGroups)
+	private LoaderJson(Models.WorkGroupDataJson[] workGroups)
 	{
 		if (workGroups is null)
 			throw new ArgumentNullException(nameof(workGroups));
@@ -93,7 +93,7 @@ public class LoaderJson : ILoader
 		int trainIdIndex = 0;
 		for (int workGroupIndex = 0; workGroupIndex < workGroups.Length; workGroupIndex++)
 		{
-			WorkGroupData workGroup = workGroups[workGroupIndex];
+			Models.WorkGroupDataJson workGroup = workGroups[workGroupIndex];
 			string workGroupId = workGroupIdArray[workGroupIndex];
 			WorkGroups[workGroupId] = new(
 				Id: workGroupId,
@@ -102,10 +102,10 @@ public class LoaderJson : ILoader
 			);
 			System.Diagnostics.Debug.WriteLine($"WorkGroup: {workGroupId} {workGroup.Name}");
 
-			WorkData[] workList = workGroup.Works;
+			Models.WorkDataJson[] workList = workGroup.Works;
 			for (int workIndex = 0; workIndex < workList.Length; workIndex++)
 			{
-				WorkData workData = workList[workIndex];
+				Models.WorkDataJson workData = workList[workIndex];
 				string workId = workIdList[workIdIndex++];
 				WorkData[workId] = new(
 					WorkGroupId: workGroupId,
@@ -123,10 +123,10 @@ public class LoaderJson : ILoader
 				WorkGroupIdByWorkId[workId] = workGroupId;
 				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name}");
 
-				JsonModels.TrainData[] trainList = workData.Trains;
+				Models.TrainDataJson[] trainList = workData.Trains;
 				for (int trainIndex = 0; trainIndex < trainList.Length; trainIndex++)
 				{
-					JsonModels.TrainData trainData = trainList[trainIndex];
+					Models.TrainDataJson trainData = trainList[trainIndex];
 					string trainId = trainIdList[trainIdIndex++];
 					TimetableRow[] rows = [.. trainData.TimetableRows.Select(static (v, i) => new TimetableRow(
 						Id: v.Id ?? i.ToString(),
@@ -174,8 +174,13 @@ public class LoaderJson : ILoader
 							// WorkType: trainData.WorkType,
 							WorkName: workData.Name,
 							AffectDate: Utils.StringToDateOnlyOrNull(workData.AffectDate),
-							// TODO: JSONでのNextTrainIdのサポート
-							NextTrainId: trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null,
+							// NextTrainId logic:
+							// - If explicitly set to empty string: no next train (null)
+							// - If explicitly set to a value: use that value
+							// - If not set (null): use default behavior (next train in list)
+							NextTrainId: trainData.NextTrainId is not null
+								? (trainData.NextTrainId == "" ? null : trainData.NextTrainId)
+								: (trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null),
 							Rows: rows
 						);
 					System.Diagnostics.Debug.WriteLine($"\t\tTrain: {trainId} {trainData.TrainNumber}");
@@ -195,13 +200,13 @@ public class LoaderJson : ILoader
 	}
 	public static async Task<LoaderJson> InitFromStreamAsync(Stream stream, CancellationToken token)
 	{
-		WorkGroupData[]? workGroups = await JsonSerializer.DeserializeAsync<WorkGroupData[]>(stream, opts, token);
+		Models.WorkGroupDataJson[]? workGroups = await JsonSerializer.DeserializeAsync<Models.WorkGroupDataJson[]>(stream, opts, token);
 
 		return new LoaderJson(workGroups!);
 	}
 	public static LoaderJson InitFromBytes(ReadOnlySpan<byte> json)
 	{
-		WorkGroupData[]? workGroups = JsonSerializer.Deserialize<WorkGroupData[]>(json, opts);
+		Models.WorkGroupDataJson[]? workGroups = JsonSerializer.Deserialize<Models.WorkGroupDataJson[]>(json, opts);
 
 		return new LoaderJson(workGroups!);
 	}

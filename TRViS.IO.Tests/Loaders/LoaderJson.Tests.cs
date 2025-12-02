@@ -100,12 +100,16 @@ public class LoaderJsonTests
 			Assert.That(actual[0].AfterRemarks, Is.EqualTo("`(乗継)`など 最後の駅の下に記載されている内容"));
 			Assert.That(actual[0].Remarks, Is.EqualTo("列車に対する注意事項を記載する"));
 			Assert.That(actual[0].IsRideOnMoving, Is.False);
+			// First train has NextTrainId set to the second train's Id
+			Assert.That(actual[0].NextTrainId, Is.EqualTo(actual[1].Id));
 
 			Assert.That(Guid.TryParse(actual[1].Id, out _), Is.True);
 			// Assert.That(actual[1].WorkId, Is.EqualTo(workId));
 			Assert.That(actual[1].TrainNumber, Is.EqualTo("WG01-W01-Train02"));
 			Assert.That(actual[1].Direction, Is.EqualTo(Direction.Inbound));
 			Assert.That(actual[1].LineColor_RGB, Is.Null);
+			// Last train has NextTrainId set to null
+			Assert.That(actual[1].NextTrainId, Is.Null);
 		});
 	}
 
