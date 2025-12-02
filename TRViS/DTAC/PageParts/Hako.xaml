@@ -9,9 +9,9 @@
 	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}"
 	x:Class="TRViS.DTAC.Hako">
 	<Grid.RowDefinitions>
-		<RowDefinition Height="{x:Static local:VerticalStylePage.DATE_AND_START_BUTTON_ROW_HEIGHT}" />
-		<RowDefinition Height="80" />
-		<RowDefinition Height="*" />
+		<RowDefinition Height="{x:Static local:VerticalStylePage.DATE_AND_START_BUTTON_ROW_HEIGHT}"/>
+		<RowDefinition Height="80"/>
+		<RowDefinition Height="*"/>
 	</Grid.RowDefinitions>
 
 	<Image
@@ -23,10 +23,31 @@
 
 	<ScrollView
 		x:Name="SimpleViewScrollView"
-		Grid.Row="2"
-	>
+		Grid.Row="2">
 		<HakoParts:SimpleView
-			x:Name="SimpleView"
-		/>
+			x:Name="SimpleView"/>
 	</ScrollView>
+
+	<Border
+		x:Name="SimpleViewActivityIndicatorBorder"
+		Opacity="{x:Static local:VerticalStylePage.TimetableViewActivityIndicatorBorderMaxOpacity}"
+		VerticalOptions="Start"
+		IsVisible="False"
+		HeightRequest="50"
+		WidthRequest="50"
+		Margin="8"
+		Grid.Row="2">
+		<Border.Shadow>
+			<Shadow
+				Brush="Black"
+				Offset="2,2"
+				Radius="2"
+				Opacity="0.2"/>
+		</Border.Shadow>
+		<Border.StrokeShape>
+			<RoundRectangle CornerRadius="25"/>
+		</Border.StrokeShape>
+		<ActivityIndicator
+			IsRunning="True"/>
+	</Border>
 </Grid>

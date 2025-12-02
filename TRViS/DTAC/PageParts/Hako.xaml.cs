@@ -56,6 +56,35 @@ public partial class Hako : Grid
 			BindingBase.Create(static (ScrollView x) => x.Width, BindingMode.OneWay, source: headerView)
 		);
 
+		SimpleView.IsBusyChanged += (s, _) =>
+		{
+			if (s is not SimpleView v)
+				return;
+
+			logger.Info("IsBusyChanged: {0}", v.IsBusy);
+
+			try
+			{
+				if (v.IsBusy)
+				{
+					SimpleViewActivityIndicatorBorder.IsVisible = true;
+					SimpleViewActivityIndicatorBorder.FadeTo(VerticalStylePage.TimetableViewActivityIndicatorBorderMaxOpacity);
+				}
+				else
+					SimpleViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
+					{
+						logger.Debug("SimpleViewActivityIndicatorBorder.FadeTo(0) completed");
+						SimpleViewActivityIndicatorBorder.IsVisible = false;
+					});
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "Hako.SimpleView.IsBusyChanged");
+				Utils.ExitWithAlert(ex);
+			}
+		};
+
 		logger.Trace("Created");
 	}
 
