@@ -61,12 +61,14 @@
 								"Departure": "13:24:35",
 								"Remarks": "各駅の注意事項を記載する",
 								"MarkerColor": "3366CC",
-								"MarkerText": "マーカーのテキスト (全角2文字まで)",
+								"MarkerText": "確認",
 								"WorkType": 0
 							},
 							{
 								"StationName": "StaName02",
-								"Location_m": 1.1
+								"Location_m": 1.1,
+								"MarkerColor": "F04020",
+								"MarkerText": "注意"
 							},
 							{
 								"StationName": "StaName03",
@@ -81,7 +83,9 @@
 						"TimetableRows": [
 							{
 								"StationName": "StaName03",
-								"Location_m": 1.2
+								"Location_m": 1.2,
+								"MarkerColor": "40F020",
+								"MarkerText": "発車"
 							},
 							{
 								"StationName": "StaName02",
