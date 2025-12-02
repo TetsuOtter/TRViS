@@ -67,7 +67,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: "1",
 				RunInLimit: null,
 				RunOutLimit: 30,
-				Remarks: "記事"
+				Remarks: "記事",
+				DefaultMarkerColor_RGB: 0x3366CC,
+				DefaultMarkerText: "確認"
 			),
 			new TimetableRow(
 				Id: "2",
@@ -84,7 +86,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: "10",
 				RunInLimit: 30,
 				RunOutLimit: 30,
-				Remarks: "<b>記事</b>"
+				Remarks: "<b>記事</b>",
+				DefaultMarkerColor_RGB: 0xF04020,
+				DefaultMarkerText: "注意"
 			),
 			new TimetableRow(
 				Id: "3",
@@ -398,7 +402,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: "1",
 				RunInLimit: null,
 				RunOutLimit: 30,
-				Remarks: "記事"
+				Remarks: "記事",
+				DefaultMarkerColor_RGB: 0x40F020,
+				DefaultMarkerText: "発車"
 			),
 			new TimetableRow(
 				Id: "2",
