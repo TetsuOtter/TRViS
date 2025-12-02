@@ -15,6 +15,19 @@ public class SimpleView : Grid
 	const double TIME_ROW_HEIGHT = 20;
 	List<SimpleRow> Rows { get; } = new();
 	SimpleRow? _SelectedRow = null;
+	bool _IsBusy = false;
+	public bool IsBusy
+	{
+		get => _IsBusy;
+		set
+		{
+			if (_IsBusy == value)
+				return;
+			_IsBusy = value;
+			IsBusyChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
+		}
+	}
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsBusyChanged;
 	SimpleRow? SelectedRow
 	{
 		get => _SelectedRow;
@@ -113,7 +126,7 @@ public class SimpleView : Grid
 			}
 		}
 	}
-	void OnSelectedWorkChanged(Work? newWork)
+	async void OnSelectedWorkChanged(Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 		Clear();
@@ -131,29 +144,52 @@ public class SimpleView : Grid
 			return;
 		}
 
-		Rows.Clear();
-		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
-		SetRowDefinitions(trainDataList.Count);
-		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
-		for (int i = 0; i < trainDataList.Count; i++)
+		IsBusy = true;
+		try
 		{
-			string trainId = trainDataList[i].Id;
-			IO.Models.TrainData? trainData = loader.GetTrainData(trainId);
-			if (trainData is null)
-			{
-				logger.Debug("trainData is null");
-				continue;
-			}
+			Rows.Clear();
+			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2);
+			IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
+			SetRowDefinitions(trainDataList.Count);
+			TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
 
-			SimpleRow row = new(this, i, trainData);
-			Rows.Add(row);
-			row.IsSelectedChanged += OnIsSelectedChanged;
-			if (trainId == selectedTrainData?.Id)
+			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2);
+
+			int batchSize = PerformanceHelper.RowsBatchSize;
+			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
+
+			for (int i = 0; i < trainDataList.Count; i++)
 			{
-				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
-				row.IsSelected = true;
-				SelectedRow = row;
+				string trainId = trainDataList[i].Id;
+				IO.Models.TrainData? trainData = loader.GetTrainData(trainId);
+				if (trainData is null)
+				{
+					logger.Debug("trainData is null");
+					continue;
+				}
+
+				await MainThread.InvokeOnMainThreadAsync(() =>
+				{
+					SimpleRow row = new(this, i, trainData);
+					Rows.Add(row);
+					row.IsSelectedChanged += OnIsSelectedChanged;
+					if (trainId == selectedTrainData?.Id)
+					{
+						logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
+						row.IsSelected = true;
+						SelectedRow = row;
+					}
+				});
+
+				if (0 < batchSize && i % batchSize == batchSize - 1)
+					await Task.Delay(renderDelayMs);
 			}
+		}
+		finally
+		{
+			IsBusy = false;
 		}
 	}
 
