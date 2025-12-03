@@ -325,6 +325,46 @@ public partial class ViewHost : ContentPage
 		{
 			VerticalStylePageRemarksView.IsOpen = false;
 		}
+
+		UpdateOrientation();
+	}
+
+	void UpdateOrientation()
+	{
+		// Apply orientation locking only for phone devices
+		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
+		{
+			logger.Debug("Device is not a phone, skipping orientation lock");
+			return;
+		}
+
+		AppDisplayOrientation orientation = ViewModel.TabMode switch
+		{
+			DTACViewHostViewModel.Mode.Hako => AppDisplayOrientation.Portrait,
+			DTACViewHostViewModel.Mode.VerticalView => AppDisplayOrientation.Landscape,
+			_ => AppDisplayOrientation.All
+		};
+
+		logger.Info("Setting orientation to {0} for TabMode {1}", orientation, ViewModel.TabMode);
+		InstanceManager.OrientationService.SetOrientation(orientation);
+	}
+
+	protected override void OnAppearing()
+	{
+		base.OnAppearing();
+		UpdateOrientation();
+	}
+
+	protected override void OnDisappearing()
+	{
+		base.OnDisappearing();
+
+		// Reset orientation to allow all when leaving ViewHost
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
+		{
+			logger.Debug("Leaving ViewHost, resetting orientation to All");
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
+		}
 	}
 
 	async void TitleLabel_Tapped(object sender, EventArgs e)
