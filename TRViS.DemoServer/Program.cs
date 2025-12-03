@@ -9,7 +9,10 @@ builder.Services.AddRazorComponents()
 
 // Add TRViS services
 builder.Services.AddSingleton<TimetableService>();
+builder.Services.AddSingleton<TimeSimulationService>();
+builder.Services.AddSingleton<ConnectionManagerService>();
 builder.Services.AddScoped<WebSocketHandler>();
+builder.Services.AddHostedService<TimeSimulationBackgroundService>();
 
 var app = builder.Build();
 
@@ -32,8 +35,9 @@ app.Map("/ws", async context =>
     if (context.WebSockets.IsWebSocketRequest)
     {
         var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var handler = context.RequestServices.GetRequiredService<WebSocketHandler>();
-        await handler.HandleConnectionAsync(webSocket);
+        await handler.HandleConnectionAsync(webSocket, ipAddress);
     }
     else
     {

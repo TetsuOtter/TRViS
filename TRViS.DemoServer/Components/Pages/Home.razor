@@ -1,76 +1,242 @@
 @page "/"
 @using TRViS.DemoServer.Services
+@using QRCoder
 @inject TimetableService TimetableService
+@inject TimeSimulationService TimeService
+@inject ConnectionManagerService ConnectionManager
+@implements IDisposable
 
 <PageTitle>TRViS Demo Server</PageTitle>
 
 <h1>TRViS Demo Server</h1>
 
-<div class="mb-4">
-    <h2>Connection Info</h2>
-    <p><strong>WebSocket URL:</strong> <code>ws://localhost:5000/ws</code> or <code>wss://localhost:5001/ws</code></p>
-    <p>Use this URL to connect TRViS client to this demo server.</p>
-</div>
-
-<div class="mb-4">
-    <h2>Train Search Feature</h2>
-    <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="trainSearchToggle" 
-               @bind="TimetableService.IsTrainSearchEnabled">
-        <label class="form-check-label" for="trainSearchToggle">
-            Train Search Enabled
-        </label>
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <h2>Connection Info</h2>
+        <div class="card">
+            <div class="card-body">
+                <p><strong>WebSocket URL:</strong></p>
+                <code>ws://localhost:5000/ws</code><br/>
+                <code>wss://localhost:5001/ws</code>
+                
+                <h5 class="mt-3">QR Code for AppLink</h5>
+                @if (qrCodeDataUrl != null)
+                {
+                    <img src="@qrCodeDataUrl" alt="QR Code" style="max-width: 200px;" />
+                    <p class="text-muted small">Scan with TRViS to connect</p>
+                }
+            </div>
+        </div>
     </div>
-    <p class="text-muted">
-        @if (TimetableService.IsTrainSearchEnabled)
-        {
-            <span class="text-success">✓ GetFeatures will include "TrainSearch"</span>
-        }
-        else
-        {
-            <span class="text-warning">✗ GetFeatures will NOT include "TrainSearch"</span>
-        }
-    </p>
+
+    <div class="col-md-6 mb-4">
+        <h2>Time Simulation</h2>
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Current Time:</strong> @currentTime.ToString("HH:mm:ss.fff")</p>
+                <p><strong>Status:</strong> 
+                    @if (TimeService.IsRunning)
+                    {
+                        <span class="badge bg-success">Running</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Stopped</span>
+                    }
+                </p>
+                
+                <div class="mb-3">
+                    <label class="form-label">Speed:</label>
+                    <select class="form-select" @bind="selectedSpeed">
+                        <option value="1">1x (Normal)</option>
+                        <option value="30">30x (Fast)</option>
+                        <option value="60">60x (Super Fast)</option>
+                    </select>
+                </div>
+
+                <div class="btn-group" role="group">
+                    <button class="btn btn-success" @onclick="StartSimulation">Start</button>
+                    <button class="btn btn-warning" @onclick="StopSimulation">Stop</button>
+                    <button class="btn btn-secondary" @onclick="ResetSimulation">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="mb-4">
-    <h2>Sample Trains</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Train Number</th>
-                <th>Work Name</th>
-                <th>Route</th>
-                <th>Time</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var train in TimetableService.GetAllTrains())
-            {
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2>Connected Clients (@ConnectionManager.ActiveConnectionCount)</h2>
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td><strong>@train.TrainNumber</strong></td>
-                    <td>@train.WorkName</td>
-                    <td>@train.StartStation → @train.EndStation</td>
-                    <td>@train.StartTime - @train.EndTime</td>
+                    <th>ID</th>
+                    <th>IP Address</th>
+                    <th>Connected At</th>
+                    <th>Selected Train</th>
+                    <th>Location (m)</th>
+                    <th>CanStart</th>
+                    <th>Actions</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var conn in connections)
+                {
+                    <tr>
+                        <td>@conn.Id</td>
+                        <td>@conn.IpAddress</td>
+                        <td>@conn.ConnectedAt.ToString("HH:mm:ss")</td>
+                        <td>@(conn.SelectedTrainId ?? "-")</td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm" 
+                                   style="width: 100px;"
+                                   @bind="conn.LocationMeters" />
+                        </td>
+                        <td>
+                            <input type="checkbox" class="form-check-input" 
+                                   @bind="conn.CanStart" />
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" 
+                                    @onclick="() => UpdateConnection(conn)">Update</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<div class="alert alert-info">
-    <h4>Testing Instructions</h4>
-    <ol>
-        <li>Start this server: <code>dotnet run</code></li>
-        <li>Connect TRViS to <code>ws://localhost:5000/ws</code></li>
-        <li>Try searching for trains: 1234, 5678, 9999</li>
-        <li>Toggle "Train Search Enabled" to test feature detection</li>
-    </ol>
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <h2>Train Search Feature</h2>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="trainSearchToggle" 
+                   @bind="TimetableService.IsTrainSearchEnabled">
+            <label class="form-check-label" for="trainSearchToggle">
+                Train Search Enabled
+            </label>
+        </div>
+        <p class="text-muted">
+            @if (TimetableService.IsTrainSearchEnabled)
+            {
+                <span class="text-success">✓ GetFeatures will include "TrainSearch"</span>
+            }
+            else
+            {
+                <span class="text-warning">✗ GetFeatures will NOT include "TrainSearch"</span>
+            }
+        </p>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <h2>Sample Trains</h2>
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Train #</th>
+                    <th>Work</th>
+                    <th>Route</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var train in TimetableService.GetAllTrains())
+                {
+                    <tr>
+                        <td><strong>@train.TrainNumber</strong></td>
+                        <td>@train.WorkName</td>
+                        <td>@train.StartStation → @train.EndStation</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 @code {
+    private string? qrCodeDataUrl;
+    private DateTime currentTime = DateTime.Now;
+    private Timer? updateTimer;
+    private List<ClientConnection> connections = new();
+    
+    private int selectedSpeed = 1;
+
     protected override void OnInitialized()
     {
-        // Initialize
+        GenerateQRCode();
+        UpdateConnections();
+        
+        // Subscribe to events
+        ConnectionManager.ConnectionAdded += OnConnectionChanged;
+        ConnectionManager.ConnectionRemoved += OnConnectionChanged;
+        
+        // Start UI update timer
+        updateTimer = new Timer(async _ =>
+        {
+            currentTime = TimeService.CurrentSimulatedTime;
+            UpdateConnections();
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 200); // Update every 200ms
+    }
+
+    private void GenerateQRCode()
+    {
+        try
+        {
+            var appLink = "trvis://connect?url=ws://localhost:5000/ws";
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(appLink, QRCodeGenerator.ECCLevel.Q);
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            var qrCodeBytes = qrCode.GetGraphic(20);
+            qrCodeDataUrl = $"data:image/png;base64,{Convert.ToBase64String(qrCodeBytes)}";
+        }
+        catch (Exception ex)
+        {
+            // Log error but continue
+            Console.WriteLine($"QR Code generation failed: {ex.Message}");
+        }
+    }
+
+    private void StartSimulation()
+    {
+        TimeService.CurrentSpeed = (TimeSimulationService.TimeSpeed)selectedSpeed;
+        TimeService.Start();
+    }
+
+    private void StopSimulation()
+    {
+        TimeService.Stop();
+    }
+
+    private void ResetSimulation()
+    {
+        TimeService.Reset();
+    }
+
+    private void UpdateConnections()
+    {
+        connections = ConnectionManager.GetAllConnections().ToList();
+    }
+
+    private void OnConnectionChanged(object? sender, ConnectionEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            UpdateConnections();
+            StateHasChanged();
+        });
+    }
+
+    private void UpdateConnection(ClientConnection conn)
+    {
+        // Connection is already updated via binding
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        updateTimer?.Dispose();
+        ConnectionManager.ConnectionAdded -= OnConnectionChanged;
+        ConnectionManager.ConnectionRemoved -= OnConnectionChanged;
     }
 }

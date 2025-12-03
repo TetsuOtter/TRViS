@@ -8,17 +8,26 @@ namespace TRViS.DemoServer.Services;
 public class WebSocketHandler
 {
     private readonly TimetableService _timetableService;
+    private readonly ConnectionManagerService _connectionManager;
     private readonly ILogger<WebSocketHandler> _logger;
+    private string? _connectionId;
 
-    public WebSocketHandler(TimetableService timetableService, ILogger<WebSocketHandler> logger)
+    public WebSocketHandler(
+        TimetableService timetableService,
+        ConnectionManagerService connectionManager,
+        ILogger<WebSocketHandler> logger)
     {
         _timetableService = timetableService;
+        _connectionManager = connectionManager;
         _logger = logger;
     }
 
-    public async Task HandleConnectionAsync(WebSocket webSocket)
+    public async Task HandleConnectionAsync(WebSocket webSocket, string ipAddress)
     {
-        _logger.LogInformation("WebSocket connection established");
+        // Register connection
+        _connectionId = _connectionManager.AddConnection(webSocket, ipAddress);
+        _logger.LogInformation("WebSocket connection established: {ConnectionId} from {IpAddress}", _connectionId, ipAddress);
+        
         var buffer = new byte[4096];
         var messageBuilder = new StringBuilder();
 
@@ -57,7 +66,12 @@ public class WebSocketHandler
         }
         finally
         {
-            _logger.LogInformation("WebSocket connection closed");
+            // Unregister connection
+            if (_connectionId != null)
+            {
+                _connectionManager.RemoveConnection(_connectionId);
+            }
+            _logger.LogInformation("WebSocket connection closed: {ConnectionId}", _connectionId);
         }
     }
 
