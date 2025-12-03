@@ -37,6 +37,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_JSON_KEY = "MessageType";
 	private const string MESSAGE_TYPE_SYNCED_DATA = "SyncedData";
 	private const string MESSAGE_TYPE_TIMETABLE = "Timetable";
+	private const string MESSAGE_TYPE_SEARCH_TRAIN_RESULT = "SearchTrainResult";
+	private const string MESSAGE_TYPE_TRAIN_DATA = "TrainData";
+	private const string MESSAGE_TYPE_FEATURES = "Features";
 	private const string TIMETABLE_DATA_JSON_KEY = "Data";
 
 	private ClientWebSocket _WebSocket;
@@ -65,6 +68,22 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private readonly Dictionary<string, TrainData> _TrainDataCache = [];
 	private readonly Dictionary<string, List<TrainData>> _TrainListByWorkIdCache = [];
 
+	// Train search management
+	private readonly Dictionary<string, TaskCompletionSource<TrainSearchResponse>> _PendingSearchRequests = [];
+	private readonly Dictionary<string, TaskCompletionSource<TrainDataResponse>> _PendingDataRequests = [];
+	private TaskCompletionSource<FeaturesResponse>? _PendingFeaturesRequest;
+	private readonly object _RequestLock = new();
+
+	// Timeouts for requests (in milliseconds)
+	private const int SEARCH_TRAIN_TIMEOUT_MS = 10000;
+	private const int GET_TRAIN_DATA_TIMEOUT_MS = 15000;
+	private const int GET_FEATURES_TIMEOUT_MS = 5000;
+
+	// Server features
+	private HashSet<string>? _serverFeatures;
+	public IReadOnlySet<string>? ServerFeatures => _serverFeatures;
+	public event EventHandler<IReadOnlySet<string>>? FeaturesDetected;
+
 	public WebSocketNetworkSyncService(Uri uri, ClientWebSocket webSocket)
 	{
 		_Uri = uri;
@@ -85,6 +104,42 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		await _WebSocket.ConnectAsync(_Uri, cancellationToken);
 		logger.Info("ConnectAsync: Connected successfully");
 		StartReceiveLoop();
+
+		// Automatically detect server features
+		_ = DetectServerFeaturesAsync();
+	}
+
+	private async Task DetectServerFeaturesAsync()
+	{
+		logger.Info("DetectServerFeaturesAsync: Querying server features");
+		try
+		{
+			var response = await GetFeaturesAsync(CancellationToken.None);
+			if (response?.Features is not null)
+			{
+				_serverFeatures = new HashSet<string>(response.Features);
+				logger.Info("DetectServerFeaturesAsync: Detected features: {0}", string.Join(", ", _serverFeatures));
+				FeaturesDetected?.Invoke(this, _serverFeatures);
+			}
+			else
+			{
+				logger.Warn("DetectServerFeaturesAsync: No features detected (server may not support feature discovery)");
+				_serverFeatures = new HashSet<string>();
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "DetectServerFeaturesAsync: Failed to detect features");
+			_serverFeatures = new HashSet<string>();
+		}
+	}
+
+	/// <summary>
+	/// Check if a specific feature is supported by the server
+	/// </summary>
+	public bool IsFeatureSupported(string featureName)
+	{
+		return _serverFeatures?.Contains(featureName) ?? false;
 	}
 
 	private static void ConfigureWebSocketOptions(ClientWebSocket webSocket)
@@ -230,6 +285,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			else if (messageType == MESSAGE_TYPE_TIMETABLE)
 			{
 				ProcessTimetableMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_SEARCH_TRAIN_RESULT)
+			{
+				ProcessSearchTrainResultMessage(message);
+			}
+			else if (messageType == MESSAGE_TYPE_TRAIN_DATA)
+			{
+				ProcessTrainDataMessage(message);
+			}
+			else if (messageType == MESSAGE_TYPE_FEATURES)
+			{
+				ProcessFeaturesMessage(message);
 			}
 		}
 		catch (JsonException ex)
@@ -666,6 +733,301 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 		logger.Warn("AttemptReconnectAsync: All reconnection attempts failed");
 		return -1;  // 再接続失敗
+	}
+
+	private void ProcessSearchTrainResultMessage(string message)
+	{
+		try
+		{
+			var response = JsonSerializer.Deserialize<TrainSearchResponse>(message, JsonDeserializeOptions);
+			if (response is null || string.IsNullOrEmpty(response.RequestId))
+			{
+				logger.Warn("ProcessSearchTrainResultMessage: Invalid response");
+				return;
+			}
+
+			lock (_RequestLock)
+			{
+				if (_PendingSearchRequests.TryGetValue(response.RequestId, out var tcs))
+				{
+					_PendingSearchRequests.Remove(response.RequestId);
+					tcs.TrySetResult(response);
+					logger.Debug("ProcessSearchTrainResultMessage: Completed request {0}", response.RequestId);
+				}
+				else
+				{
+					logger.Warn("ProcessSearchTrainResultMessage: No pending request for {0}", response.RequestId);
+				}
+			}
+		}
+		catch (JsonException ex)
+		{
+			logger.Error(ex, "ProcessSearchTrainResultMessage: Failed to deserialize");
+		}
+	}
+
+	private void ProcessTrainDataMessage(string message)
+	{
+		try
+		{
+			var response = JsonSerializer.Deserialize<TrainDataResponse>(message, JsonDeserializeOptions);
+			if (response is null || string.IsNullOrEmpty(response.RequestId))
+			{
+				logger.Warn("ProcessTrainDataMessage: Invalid response");
+				return;
+			}
+
+			lock (_RequestLock)
+			{
+				if (_PendingDataRequests.TryGetValue(response.RequestId, out var tcs))
+				{
+					_PendingDataRequests.Remove(response.RequestId);
+					tcs.TrySetResult(response);
+					logger.Debug("ProcessTrainDataMessage: Completed request {0}", response.RequestId);
+				}
+				else
+				{
+					logger.Warn("ProcessTrainDataMessage: No pending request for {0}", response.RequestId);
+				}
+			}
+		}
+		catch (JsonException ex)
+		{
+			logger.Error(ex, "ProcessTrainDataMessage: Failed to deserialize");
+		}
+	}
+
+	private void ProcessFeaturesMessage(string message)
+	{
+		try
+		{
+			var response = JsonSerializer.Deserialize<FeaturesResponse>(message, JsonDeserializeOptions);
+			if (response is null)
+			{
+				logger.Warn("ProcessFeaturesMessage: Invalid response");
+				return;
+			}
+
+			lock (_RequestLock)
+			{
+				if (_PendingFeaturesRequest is not null)
+				{
+					_PendingFeaturesRequest.TrySetResult(response);
+					_PendingFeaturesRequest = null;
+					logger.Debug("ProcessFeaturesMessage: Completed features request");
+				}
+				else
+				{
+					logger.Warn("ProcessFeaturesMessage: No pending features request");
+				}
+			}
+		}
+		catch (JsonException ex)
+		{
+			logger.Error(ex, "ProcessFeaturesMessage: Failed to deserialize");
+		}
+	}
+
+	/// <summary>
+	/// Search for trains by train number
+	/// </summary>
+	public async Task<TrainSearchResponse?> SearchTrainAsync(string trainNumber, CancellationToken cancellationToken = default)
+	{
+		if (_WebSocket.State != WebSocketState.Open)
+		{
+			logger.Warn("SearchTrainAsync: WebSocket is not open");
+			return null;
+		}
+
+		string requestId = Guid.NewGuid().ToString();
+		var request = new TrainSearchRequest
+		{
+			TrainNumber = trainNumber,
+			RequestId = requestId
+		};
+
+		var tcs = new TaskCompletionSource<TrainSearchResponse>();
+
+		lock (_RequestLock)
+		{
+			_PendingSearchRequests[requestId] = tcs;
+		}
+
+		try
+		{
+			// Send request
+			string json = JsonSerializer.Serialize(request);
+			logger.Debug("SearchTrainAsync: Sending request {0}: {1}", requestId, json);
+			byte[] bytes = Encoding.UTF8.GetBytes(json);
+			await _WebSocket.SendAsync(
+				new ArraySegment<byte>(bytes),
+				WebSocketMessageType.Text,
+				endOfMessage: true,
+				cancellationToken
+			);
+
+			// Wait for response with timeout
+			using var timeoutCts = new CancellationTokenSource(SEARCH_TRAIN_TIMEOUT_MS);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+			try
+			{
+				using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
+				{
+					return await tcs.Task;
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Warn("SearchTrainAsync: Request {0} timed out or cancelled", requestId);
+				return null;
+			}
+		}
+		catch (WebSocketException ex)
+		{
+			logger.Error(ex, "SearchTrainAsync: WebSocket exception");
+			return null;
+		}
+		finally
+		{
+			lock (_RequestLock)
+			{
+				_PendingSearchRequests.Remove(requestId);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Get full train data by train ID
+	/// </summary>
+	public async Task<TrainDataResponse?> GetTrainDataAsync(string trainId, string? workId = null, CancellationToken cancellationToken = default)
+	{
+		if (_WebSocket.State != WebSocketState.Open)
+		{
+			logger.Warn("GetTrainDataAsync: WebSocket is not open");
+			return null;
+		}
+
+		string requestId = Guid.NewGuid().ToString();
+		var request = new GetTrainDataRequest
+		{
+			TrainId = trainId,
+			WorkId = workId,
+			RequestId = requestId
+		};
+
+		var tcs = new TaskCompletionSource<TrainDataResponse>();
+
+		lock (_RequestLock)
+		{
+			_PendingDataRequests[requestId] = tcs;
+		}
+
+		try
+		{
+			// Send request
+			string json = JsonSerializer.Serialize(request);
+			logger.Debug("GetTrainDataAsync: Sending request {0}: {1}", requestId, json);
+			byte[] bytes = Encoding.UTF8.GetBytes(json);
+			await _WebSocket.SendAsync(
+				new ArraySegment<byte>(bytes),
+				WebSocketMessageType.Text,
+				endOfMessage: true,
+				cancellationToken
+			);
+
+			// Wait for response with timeout
+			using var timeoutCts = new CancellationTokenSource(GET_TRAIN_DATA_TIMEOUT_MS);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+			try
+			{
+				using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
+				{
+					return await tcs.Task;
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Warn("GetTrainDataAsync: Request {0} timed out or cancelled", requestId);
+				return null;
+			}
+		}
+		catch (WebSocketException ex)
+		{
+			logger.Error(ex, "GetTrainDataAsync: WebSocket exception");
+			return null;
+		}
+		finally
+		{
+			lock (_RequestLock)
+			{
+				_PendingDataRequests.Remove(requestId);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Get list of features supported by the server
+	/// </summary>
+	public async Task<FeaturesResponse?> GetFeaturesAsync(CancellationToken cancellationToken = default)
+	{
+		if (_WebSocket.State != WebSocketState.Open)
+		{
+			logger.Warn("GetFeaturesAsync: WebSocket is not open");
+			return null;
+		}
+
+		var request = new GetFeaturesRequest();
+		var tcs = new TaskCompletionSource<FeaturesResponse>();
+
+		lock (_RequestLock)
+		{
+			_PendingFeaturesRequest = tcs;
+		}
+
+		try
+		{
+			// Send request
+			string json = JsonSerializer.Serialize(request);
+			logger.Debug("GetFeaturesAsync: Sending request: {0}", json);
+			byte[] bytes = Encoding.UTF8.GetBytes(json);
+			await _WebSocket.SendAsync(
+				new ArraySegment<byte>(bytes),
+				WebSocketMessageType.Text,
+				endOfMessage: true,
+				cancellationToken
+			);
+
+			// Wait for response with timeout
+			using var timeoutCts = new CancellationTokenSource(GET_FEATURES_TIMEOUT_MS);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+			try
+			{
+				using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
+				{
+					return await tcs.Task;
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Warn("GetFeaturesAsync: Request timed out or cancelled");
+				return null;
+			}
+		}
+		catch (WebSocketException ex)
+		{
+			logger.Error(ex, "GetFeaturesAsync: WebSocket exception");
+			return null;
+		}
+		finally
+		{
+			lock (_RequestLock)
+			{
+				_PendingFeaturesRequest = null;
+			}
+		}
 	}
 
 	public async Task DisconnectAsync(CancellationToken cancellationToken = default)

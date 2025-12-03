@@ -103,7 +103,8 @@
 			<local:TabButton
 				Text="ハ　コ"
 				CurrentMode="{Binding TabMode}"
-				TargetMode="Hako"/>
+				TargetMode="Hako"
+				IsVisible="{Binding IsHakoTabVisible}"/>
 			<local:TabButton
 				Text="時刻表"
 				CurrentMode="{Binding TabMode}"
