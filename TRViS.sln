@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.IO.ILoader", "TRViS.I
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.NetworkSyncService.Tests", "TRViS.NetworkSyncService.Tests\TRViS.NetworkSyncService.Tests.csproj", "{03F19511-3E32-425F-BC86-2409CE6A87F0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.DemoServer", "TRViS.DemoServer\TRViS.DemoServer.csproj", "{3BB37318-B55B-4A06-B772-4328661569D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -141,6 +143,18 @@ Global
 		{03F19511-3E32-425F-BC86-2409CE6A87F0}.Release|x64.Build.0 = Release|Any CPU
 		{03F19511-3E32-425F-BC86-2409CE6A87F0}.Release|x86.ActiveCfg = Release|Any CPU
 		{03F19511-3E32-425F-BC86-2409CE6A87F0}.Release|x86.Build.0 = Release|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Debug|x64.Build.0 = Debug|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Debug|x86.Build.0 = Debug|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Release|x64.ActiveCfg = Release|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Release|x64.Build.0 = Release|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Release|x86.ActiveCfg = Release|Any CPU
+		{3BB37318-B55B-4A06-B772-4328661569D6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
