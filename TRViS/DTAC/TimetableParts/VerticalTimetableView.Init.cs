@@ -36,9 +36,9 @@ public partial class VerticalTimetableView
 
 	readonly AfterRemarks AfterRemarks;
 	readonly BeforeDeparture_AfterArrive AfterArrive;
-	readonly NextTrainButton NextTrainButton = new();
+	readonly NextTrainButton NextTrainButton = [];
 
-	readonly List<VerticalTimetableRow> RowViewList = new();
+	readonly List<VerticalTimetableRow> RowViewList = [];
 
 	public VerticalTimetableView()
 	{
@@ -64,7 +64,7 @@ public partial class VerticalTimetableView
 	}
 
 	Line TopSeparatorLine { get; } = DTACElementStyles.TimetableRowHorizontalSeparatorLineStyle();
-	List<Line> SeparatorLines { get; } = new();
+	List<Line> SeparatorLines { get; } = [];
 	Task AddSeparatorLines()
 	{
 		if (!MainThread.IsMainThread)

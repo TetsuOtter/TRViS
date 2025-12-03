@@ -12,23 +12,23 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 	static readonly HakoTabOrderTestDataLoader HakoTabOrderTestLoader = new();
 
-	static readonly List<WorkGroup> WorkGroupList = new()
-	{
+	static readonly List<WorkGroup> WorkGroupList =
+	[
 		new(Id: WORK_GROUP_1, Name: "WorkGroup1"),
 		new(Id: HakoTabOrderTestDataLoader.WORK_GROUP_ID, Name: "ハコタブ順序確認"),
-	};
+	];
 
-	static readonly List<Work> WorkList = new()
-	{
+	static readonly List<Work> WorkList =
+	[
 		new(Id: WORK_1_1, WorkGroupId: WORK_GROUP_1, Name: "Work1-1", Remarks: "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3"),
-	};
+	];
 
-	static readonly List<TrainData> TrainDataList = new()
-	{
+	static readonly List<TrainData> TrainDataList =
+	[
 		new(Id: TRAIN_1_1_1, Direction: Direction.Inbound, TrainNumber: "Train01"),
 		new(Id: TRAIN_1_1_2, Direction: Direction.Inbound, TrainNumber: "Train02"),
 		new(Id: TRAIN_1_1_3, Direction: Direction.Inbound, TrainNumber: "Train03"),
-	};
+	];
 
 	static readonly TrainData SampleTrainData = new(
 		Id: TRAIN_1_1_1,

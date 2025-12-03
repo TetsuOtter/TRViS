@@ -57,13 +57,13 @@ public partial class ViewHost : ContentPage
 		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
 
 		TitleBGGradientBox.Color = null;
-		TitleBGGradientBox.Background = new LinearGradientBrush(new GradientStopCollection()
-		{
+		TitleBGGradientBox.Background = new LinearGradientBrush(
+		[
 			TitleBG_Top,
 			TitleBG_Middle,
 			TitleBG_MidBottom,
 			TitleBG_Bottom,
-		},
+		],
 		new Point(0, 0),
 		new Point(0, 1));
 

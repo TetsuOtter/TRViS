@@ -13,7 +13,7 @@ public class SimpleView : Grid
 	public const double STA_NAME_TIME_COLUMN_WIDTH = 120;
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;
 	const double TIME_ROW_HEIGHT = 20;
-	List<SimpleRow> Rows { get; } = new();
+	List<SimpleRow> Rows { get; } = [];
 	SimpleRow? _SelectedRow = null;
 	SimpleRow? SelectedRow
 	{
@@ -86,7 +86,8 @@ public class SimpleView : Grid
 
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork))
+		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork) ||
+				e.PropertyName == nameof(InstanceManager.AppViewModel.OrderedTrainDataList))
 		{
 			try
 			{
@@ -132,27 +133,48 @@ public class SimpleView : Grid
 		}
 
 		Rows.Clear();
-		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
-		SetRowDefinitions(trainDataList.Count);
-		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
-		for (int i = 0; i < trainDataList.Count; i++)
+
+		// Use the ordered train list created by AppViewModel
+		var orderedTrainDataList = InstanceManager.AppViewModel.OrderedTrainDataList;
+		if (orderedTrainDataList is null || orderedTrainDataList.Count == 0)
 		{
-			string trainId = trainDataList[i].Id;
-			IO.Models.TrainData? trainData = loader.GetTrainData(trainId);
-			if (trainData is null)
-			{
-				logger.Debug("trainData is null");
-				continue;
-			}
+			logger.Debug("OrderedTrainDataList is null or empty");
+			return;
+		}
+
+		SetRowDefinitions(orderedTrainDataList.Count);
+		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
+
+		// If no train is currently selected, select the first train in the ordered list
+		bool anyRowSelected = false;
+
+		for (int i = 0; i < orderedTrainDataList.Count; i++)
+		{
+			TrainData trainData = orderedTrainDataList[i];
+			string trainId = trainData.Id;
 
 			SimpleRow row = new(this, i, trainData);
 			Rows.Add(row);
 			row.IsSelectedChanged += OnIsSelectedChanged;
+
 			if (trainId == selectedTrainData?.Id)
 			{
 				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
 				row.IsSelected = true;
 				SelectedRow = row;
+				anyRowSelected = true;
+			}
+		}
+
+		// If no row was selected and we have trains, select the first one
+		if (!anyRowSelected && orderedTrainDataList.Count > 0)
+		{
+			logger.Debug("No train selected, selecting first train: {0}", orderedTrainDataList[0].TrainNumber);
+			SelectedRow = Rows.FirstOrDefault();
+			if (SelectedRow is not null)
+			{
+				SelectedRow.IsSelected = true;
+				InstanceManager.AppViewModel.SelectedTrainData = SelectedRow.TrainData;
 			}
 		}
 	}
