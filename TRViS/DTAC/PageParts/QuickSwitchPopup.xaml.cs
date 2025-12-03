@@ -326,6 +326,8 @@ public partial class QuickSwitchPopup : ContentView
 		}
 
 		// Parse and display the train data
+		// Note: trainDataResponse.Data is a JSON string (as per WebSocket protocol spec),
+		// not a JSON object, so we deserialize it from string
 		try
 		{
 			if (trainDataResponse.Data is not null)

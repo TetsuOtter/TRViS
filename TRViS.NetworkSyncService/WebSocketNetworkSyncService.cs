@@ -831,7 +831,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 			try
 			{
-				await using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
+				using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
 				{
 					return await tcs.Task;
 				}
@@ -901,7 +901,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 			try
 			{
-				await using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
+				using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
 				{
 					return await tcs.Task;
 				}
@@ -964,7 +964,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 			try
 			{
-				await using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
+				using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
 				{
 					return await tcs.Task;
 				}
