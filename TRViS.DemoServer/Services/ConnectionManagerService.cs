@@ -67,16 +67,21 @@ public class ConnectionManagerService
         try
         {
             var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             await webSocket.SendAsync(
                 new ArraySegment<byte>(bytes),
                 WebSocketMessageType.Text,
                 endOfMessage: true,
-                CancellationToken.None
+                cts.Token
             );
         }
-        catch
+        catch (OperationCanceledException)
         {
-            // Ignore send failures
+            // Send timeout, ignore
+        }
+        catch (WebSocketException)
+        {
+            // WebSocket error, connection will be cleaned up
         }
     }
 }

@@ -51,27 +51,41 @@ public class TimeSimulationBackgroundService : BackgroundService
         try
         {
             var connections = _connectionManager.GetAllConnections();
+            var currentTime = _timeService.CurrentTimeMilliseconds;
+            
             foreach (var connection in connections)
             {
-                var syncedData = new
+                try
                 {
-                    MessageType = "SyncedData",
-                    Time_ms = _timeService.CurrentTimeMilliseconds,
-                    Location_m = connection.LocationMeters,
-                    CanStart = connection.CanStart
-                };
+                    if (connection.WebSocket.State == System.Net.WebSockets.WebSocketState.Open)
+                    {
+                        var syncedData = new
+                        {
+                            MessageType = "SyncedData",
+                            Time_ms = currentTime,
+                            Location_m = connection.LocationMeters,
+                            CanStart = connection.CanStart
+                        };
 
-                var json = JsonSerializer.Serialize(syncedData);
-                // Use connection manager's broadcast for individual connection
-                if (connection.WebSocket.State == System.Net.WebSockets.WebSocketState.Open)
+                        var json = JsonSerializer.Serialize(syncedData);
+                        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                        
+                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+                        await connection.WebSocket.SendAsync(
+                            new ArraySegment<byte>(bytes),
+                            System.Net.WebSockets.WebSocketMessageType.Text,
+                            endOfMessage: true,
+                            cts.Token
+                        );
+                    }
+                }
+                catch (OperationCanceledException)
                 {
-                    var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-                    await connection.WebSocket.SendAsync(
-                        new ArraySegment<byte>(bytes),
-                        System.Net.WebSockets.WebSocketMessageType.Text,
-                        endOfMessage: true,
-                        CancellationToken.None
-                    );
+                    // Send timeout or cancelled, skip this connection
+                }
+                catch (System.Net.WebSockets.WebSocketException)
+                {
+                    // WebSocket error, connection will be cleaned up elsewhere
                 }
             }
         }
