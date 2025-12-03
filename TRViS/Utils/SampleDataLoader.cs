@@ -6,9 +6,49 @@ public class SampleDataLoader : TRViS.IO.ILoader
 {
 	const string WORK_GROUP_1 = "1";
 	const string WORK_1_1 = "1-1";
+	const string WORK_1_2 = "1-2";
 	const string TRAIN_1_1_1 = "1-1-1";
 	const string TRAIN_1_1_2 = "1-1-2";
 	const string TRAIN_1_1_3 = "1-1-3";
+	const string TRAIN_1_2_1 = "1-2-1";
+
+	// Sample horizontal timetable image - uses the app icon for demonstration
+	static byte[]? _sampleHorizontalTimetableImageData;
+	static byte[] SampleHorizontalTimetableImageData
+	{
+		get
+		{
+			if (_sampleHorizontalTimetableImageData is not null)
+				return _sampleHorizontalTimetableImageData;
+
+			try
+			{
+				// Load the app icon from resources using GetAwaiter().GetResult() to avoid deadlocks
+				using var stream = FileSystem.OpenAppPackageFileAsync(DTAC.DTACElementStyles.AppIconSource).GetAwaiter().GetResult();
+				using var memoryStream = new MemoryStream();
+				stream.CopyTo(memoryStream);
+				_sampleHorizontalTimetableImageData = memoryStream.ToArray();
+			}
+			catch
+			{
+				// Fallback to a minimal 1x1 pixel white PNG if the app icon cannot be loaded
+				_sampleHorizontalTimetableImageData = new byte[]
+				{
+					0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+					0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+					0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+					0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+					0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
+					0x54, 0x08, 0xD7, 0x63, 0xF8, 0xFF, 0xFF, 0x3F,
+					0x00, 0x05, 0xFE, 0x02, 0xFE, 0xDC, 0xCC, 0x59,
+					0xE7, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
+					0x44, 0xAE, 0x42, 0x60, 0x82
+				};
+			}
+
+			return _sampleHorizontalTimetableImageData;
+		}
+	}
 
 	static readonly List<WorkGroup> WorkGroupList = new()
 	{
@@ -18,6 +58,15 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	static readonly List<Work> WorkList = new()
 	{
 		new(Id: WORK_1_1, WorkGroupId: WORK_GROUP_1, Name: "Work1-1", Remarks: "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3"),
+		new(
+			Id: WORK_1_2,
+			WorkGroupId: WORK_GROUP_1,
+			Name: "Work1-2 (横型時刻表あり)",
+			Remarks: "横型時刻表サンプルデータ付き",
+			HasETrainTimetable: true,
+			ETrainTimetableContentType: (int)ContentType.PNG,
+			ETrainTimetableContent: SampleHorizontalTimetableImageData
+		),
 	};
 
 	static readonly List<TrainData> TrainDataList = new()
@@ -26,6 +75,83 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		new(Id: TRAIN_1_1_2, Direction: Direction.Inbound, TrainNumber: "Train02"),
 		new(Id: TRAIN_1_1_3, Direction: Direction.Inbound, TrainNumber: "Train03"),
 	};
+
+	static readonly List<TrainData> TrainDataList_Work1_2 = new()
+	{
+		new(Id: TRAIN_1_2_1, Direction: Direction.Inbound, TrainNumber: "Train01 (横型)"),
+	};
+
+	static readonly TrainData SampleTrainData_Work1_2 = new(
+		Id: TRAIN_1_2_1,
+		WorkName: "Work1-2 (横型時刻表あり)",
+		AffectDate: new(2022, 9, 16),
+		TrainNumber: "試単9094",
+		MaxSpeed: "100",
+		SpeedType: "特定",
+		NominalTractiveCapacity: null,
+		CarCount: 5,
+		Destination: "終点",
+		BeginRemarks: "(入換)",
+		AfterRemarks: null,
+		Remarks: "横型時刻表サンプルデータのある列車です",
+		BeforeDeparture: null,
+		TrainInfo: null,
+		Rows: new[]
+		{
+			new TimetableRow(
+				Id: "1",
+				Location: new(1),
+				DriveTimeMM: 0,
+				DriveTimeSS: 0,
+				StationName: "始発駅",
+				IsOperationOnlyStop: false,
+				IsPass: false,
+				HasBracket: true,
+				IsLastStop: false,
+				ArriveTime: null,
+				DepartureTime: new(10, 0, 0, null),
+				TrackName: "1",
+				RunInLimit: null,
+				RunOutLimit: null,
+				Remarks: null
+			),
+			new TimetableRow(
+				Id: "2",
+				Location: new(2),
+				DriveTimeMM: 5,
+				DriveTimeSS: 0,
+				StationName: "中間駅",
+				IsOperationOnlyStop: false,
+				IsPass: false,
+				HasBracket: false,
+				IsLastStop: false,
+				ArriveTime: new(10, 5, 0, null),
+				DepartureTime: new(10, 6, 0, null),
+				TrackName: "2",
+				RunInLimit: null,
+				RunOutLimit: null,
+				Remarks: null
+			),
+			new TimetableRow(
+				Id: "3",
+				Location: new(3),
+				DriveTimeMM: 10,
+				DriveTimeSS: 0,
+				StationName: "終点駅",
+				IsOperationOnlyStop: false,
+				IsPass: false,
+				HasBracket: false,
+				IsLastStop: true,
+				ArriveTime: new(10, 16, 0, null),
+				DepartureTime: null,
+				TrackName: "3",
+				RunInLimit: null,
+				RunOutLimit: null,
+				Remarks: null
+			),
+		},
+		Direction: Direction.Outbound
+	);
 
 	static readonly TrainData SampleTrainData = new(
 		Id: TRAIN_1_1_1,
@@ -547,11 +673,17 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			TRAIN_1_1_1 => SampleTrainData,
 			TRAIN_1_1_2 => SampleTrainData2,
 			TRAIN_1_1_3 => SampleTrainData3,
+			TRAIN_1_2_1 => SampleTrainData_Work1_2,
 			_ => null
 		};
 
 	public IReadOnlyList<TrainData> GetTrainDataList(string workId)
-		=> TrainDataList;
+		=> workId switch
+		{
+			WORK_1_1 => TrainDataList,
+			WORK_1_2 => TrainDataList_Work1_2,
+			_ => TrainDataList
+		};
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
 		=> WorkGroupList;

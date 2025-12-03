@@ -225,7 +225,25 @@ public partial class VerticalStylePage : ContentView
 		NominalTractiveCapacityLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 		BeginRemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 
+		// Subscribe to SelectedWork changes to update HasHorizontalTimetable
+		AppViewModel appVm = InstanceManager.AppViewModel;
+		appVm.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName == nameof(AppViewModel.SelectedWork))
+			{
+				UpdateHasHorizontalTimetable(appVm.SelectedWork);
+			}
+		};
+		UpdateHasHorizontalTimetable(appVm.SelectedWork);
+
 		logger.Trace("Created");
+	}
+
+	void UpdateHasHorizontalTimetable(IO.Models.Work? work)
+	{
+		bool hasHorizontalTimetable = work?.HasETrainTimetable == true && work.ETrainTimetableContent is not null;
+		logger.Info("UpdateHasHorizontalTimetable: {0}", hasHorizontalTimetable);
+		PageHeaderArea.HasHorizontalTimetable = hasHorizontalTimetable;
 	}
 
 	private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
