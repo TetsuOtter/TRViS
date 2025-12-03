@@ -60,7 +60,7 @@ public class LoaderJson : ILoader
 		PropertyNameCaseInsensitive = true,
 	};
 
-	private LoaderJson(Models.WorkGroupDataJson[] workGroups)
+	private LoaderJson(WorkGroupData[] workGroups)
 	{
 		if (workGroups is null)
 			throw new ArgumentNullException(nameof(workGroups));
@@ -93,7 +93,7 @@ public class LoaderJson : ILoader
 		int trainIdIndex = 0;
 		for (int workGroupIndex = 0; workGroupIndex < workGroups.Length; workGroupIndex++)
 		{
-			Models.WorkGroupDataJson workGroup = workGroups[workGroupIndex];
+			WorkGroupData workGroup = workGroups[workGroupIndex];
 			string workGroupId = workGroupIdArray[workGroupIndex];
 			WorkGroups[workGroupId] = new(
 				Id: workGroupId,
@@ -102,10 +102,10 @@ public class LoaderJson : ILoader
 			);
 			System.Diagnostics.Debug.WriteLine($"WorkGroup: {workGroupId} {workGroup.Name}");
 
-			Models.WorkDataJson[] workList = workGroup.Works;
+			WorkData[] workList = workGroup.Works;
 			for (int workIndex = 0; workIndex < workList.Length; workIndex++)
 			{
-				Models.WorkDataJson workData = workList[workIndex];
+				WorkData workData = workList[workIndex];
 				string workId = workIdList[workIdIndex++];
 				WorkData[workId] = new(
 					WorkGroupId: workGroupId,
@@ -123,10 +123,10 @@ public class LoaderJson : ILoader
 				WorkGroupIdByWorkId[workId] = workGroupId;
 				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name}");
 
-				Models.TrainDataJson[] trainList = workData.Trains;
+				JsonModels.TrainData[] trainList = workData.Trains;
 				for (int trainIndex = 0; trainIndex < trainList.Length; trainIndex++)
 				{
-					Models.TrainDataJson trainData = trainList[trainIndex];
+					JsonModels.TrainData trainData = trainList[trainIndex];
 					string trainId = trainIdList[trainIdIndex++];
 					TimetableRow[] rows = [.. trainData.TimetableRows.Select(static (v, i) => new TimetableRow(
 						Id: v.Id ?? i.ToString(),
@@ -200,13 +200,13 @@ public class LoaderJson : ILoader
 	}
 	public static async Task<LoaderJson> InitFromStreamAsync(Stream stream, CancellationToken token)
 	{
-		Models.WorkGroupDataJson[]? workGroups = await JsonSerializer.DeserializeAsync<Models.WorkGroupDataJson[]>(stream, opts, token);
+		WorkGroupData[]? workGroups = await JsonSerializer.DeserializeAsync<WorkGroupData[]>(stream, opts, token);
 
 		return new LoaderJson(workGroups!);
 	}
 	public static LoaderJson InitFromBytes(ReadOnlySpan<byte> json)
 	{
-		Models.WorkGroupDataJson[]? workGroups = JsonSerializer.Deserialize<Models.WorkGroupDataJson[]>(json, opts);
+		WorkGroupData[]? workGroups = JsonSerializer.Deserialize<WorkGroupData[]>(json, opts);
 
 		return new LoaderJson(workGroups!);
 	}
