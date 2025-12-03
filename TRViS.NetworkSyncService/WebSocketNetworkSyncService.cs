@@ -79,6 +79,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const int GET_TRAIN_DATA_TIMEOUT_MS = 15000;
 	private const int GET_FEATURES_TIMEOUT_MS = 5000;
 
+	// Server features
+	private HashSet<string>? _serverFeatures;
+	public IReadOnlySet<string>? ServerFeatures => _serverFeatures;
+	public event EventHandler<IReadOnlySet<string>>? FeaturesDetected;
+
 	public WebSocketNetworkSyncService(Uri uri, ClientWebSocket webSocket)
 	{
 		_Uri = uri;
@@ -99,6 +104,42 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		await _WebSocket.ConnectAsync(_Uri, cancellationToken);
 		logger.Info("ConnectAsync: Connected successfully");
 		StartReceiveLoop();
+
+		// Automatically detect server features
+		_ = DetectServerFeaturesAsync();
+	}
+
+	private async Task DetectServerFeaturesAsync()
+	{
+		logger.Info("DetectServerFeaturesAsync: Querying server features");
+		try
+		{
+			var response = await GetFeaturesAsync(CancellationToken.None);
+			if (response?.Features is not null)
+			{
+				_serverFeatures = new HashSet<string>(response.Features);
+				logger.Info("DetectServerFeaturesAsync: Detected features: {0}", string.Join(", ", _serverFeatures));
+				FeaturesDetected?.Invoke(this, _serverFeatures);
+			}
+			else
+			{
+				logger.Warn("DetectServerFeaturesAsync: No features detected (server may not support feature discovery)");
+				_serverFeatures = new HashSet<string>();
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "DetectServerFeaturesAsync: Failed to detect features");
+			_serverFeatures = new HashSet<string>();
+		}
+	}
+
+	/// <summary>
+	/// Check if a specific feature is supported by the server
+	/// </summary>
+	public bool IsFeatureSupported(string featureName)
+	{
+		return _serverFeatures?.Contains(featureName) ?? false;
 	}
 
 	private static void ConfigureWebSocketOptions(ClientWebSocket webSocket)

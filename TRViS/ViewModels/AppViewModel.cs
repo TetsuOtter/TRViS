@@ -45,6 +45,19 @@ public partial class AppViewModel : ObservableObject
 		set => SetProperty(ref _SelectedTrainData, value);
 	}
 
+	bool _IsDisplayingSearchedTrain;
+	public bool IsDisplayingSearchedTrain
+	{
+		get => _IsDisplayingSearchedTrain;
+		set
+		{
+			if (SetProperty(ref _IsDisplayingSearchedTrain, value))
+			{
+				logger.Debug("IsDisplayingSearchedTrain changed to: {0}", value);
+			}
+		}
+	}
+
 	bool _IsBgAppIconVisible = true;
 	public bool IsBgAppIconVisible
 	{

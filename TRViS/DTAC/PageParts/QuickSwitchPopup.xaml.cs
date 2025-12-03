@@ -40,6 +40,10 @@ public partial class QuickSwitchPopup : ContentView
 	private readonly ObservableCollection<TrainSearchResultViewModel> _searchResults = new();
 	private bool _isSearching;
 
+	// Search history (limited to last 10 searches)
+	private const int MAX_SEARCH_HISTORY = 10;
+	private readonly List<string> _searchHistory = new();
+
 	public QuickSwitchPopup()
 	{
 		logger.Trace("Creating...");
@@ -267,6 +271,9 @@ public partial class QuickSwitchPopup : ContentView
 			{
 				_searchResults.Add(new TrainSearchResultViewModel(result));
 			}
+
+			// Add to search history
+			AddToSearchHistory(trainNumber);
 		}
 		catch (Exception ex)
 		{
@@ -279,6 +286,25 @@ public partial class QuickSwitchPopup : ContentView
 			SearchButton.IsEnabled = true;
 		}
 	}
+
+	private void AddToSearchHistory(string trainNumber)
+	{
+		// Remove if already exists
+		_searchHistory.Remove(trainNumber);
+		
+		// Add to beginning of list
+		_searchHistory.Insert(0, trainNumber);
+		
+		// Keep only the last MAX_SEARCH_HISTORY items
+		if (_searchHistory.Count > MAX_SEARCH_HISTORY)
+		{
+			_searchHistory.RemoveRange(MAX_SEARCH_HISTORY, _searchHistory.Count - MAX_SEARCH_HISTORY);
+		}
+		
+		logger.Debug("Search history updated: {0}", string.Join(", ", _searchHistory));
+	}
+
+	public IReadOnlyList<string> GetSearchHistory() => _searchHistory.AsReadOnly();
 
 	private async Task ConfirmAndDisplayTrainAsync(TrainSearchResultViewModel result)
 	{
@@ -343,12 +369,10 @@ public partial class QuickSwitchPopup : ContentView
 					var convertedTrain = JsonModelsConverter.ConvertTrain(trainData);
 					ViewModel.SelectedTrainData = convertedTrain;
 					_isDisplayingSearchedTrain = true;
+					ViewModel.IsDisplayingSearchedTrain = true;
 					ReturnToScheduledButton.IsVisible = true;
 
 					logger.Info("Successfully displayed searched train: {0}", result.TrainNumber);
-					
-					// Note: Hako tab visibility should be handled by the parent page/view model
-					// based on whether the train is from the current work or searched
 				}
 			}
 		}
@@ -372,6 +396,7 @@ public partial class QuickSwitchPopup : ContentView
 		}
 
 		_isDisplayingSearchedTrain = false;
+		ViewModel.IsDisplayingSearchedTrain = false;
 		ReturnToScheduledButton.IsVisible = false;
 		
 		logger.Info("Returned to scheduled work: {0}, train: {1}",
