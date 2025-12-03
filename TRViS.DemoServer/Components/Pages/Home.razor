@@ -1,7 +1,76 @@
-﻿@page "/"
+@page "/"
+@using TRViS.DemoServer.Services
+@inject TimetableService TimetableService
 
-<PageTitle>Home</PageTitle>
+<PageTitle>TRViS Demo Server</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>TRViS Demo Server</h1>
 
-Welcome to your new app.
+<div class="mb-4">
+    <h2>Connection Info</h2>
+    <p><strong>WebSocket URL:</strong> <code>ws://localhost:5000/ws</code> or <code>wss://localhost:5001/ws</code></p>
+    <p>Use this URL to connect TRViS client to this demo server.</p>
+</div>
+
+<div class="mb-4">
+    <h2>Train Search Feature</h2>
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="trainSearchToggle" 
+               @bind="TimetableService.IsTrainSearchEnabled">
+        <label class="form-check-label" for="trainSearchToggle">
+            Train Search Enabled
+        </label>
+    </div>
+    <p class="text-muted">
+        @if (TimetableService.IsTrainSearchEnabled)
+        {
+            <span class="text-success">✓ GetFeatures will include "TrainSearch"</span>
+        }
+        else
+        {
+            <span class="text-warning">✗ GetFeatures will NOT include "TrainSearch"</span>
+        }
+    </p>
+</div>
+
+<div class="mb-4">
+    <h2>Sample Trains</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Train Number</th>
+                <th>Work Name</th>
+                <th>Route</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var train in TimetableService.GetAllTrains())
+            {
+                <tr>
+                    <td><strong>@train.TrainNumber</strong></td>
+                    <td>@train.WorkName</td>
+                    <td>@train.StartStation → @train.EndStation</td>
+                    <td>@train.StartTime - @train.EndTime</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="alert alert-info">
+    <h4>Testing Instructions</h4>
+    <ol>
+        <li>Start this server: <code>dotnet run</code></li>
+        <li>Connect TRViS to <code>ws://localhost:5000/ws</code></li>
+        <li>Try searching for trains: 1234, 5678, 9999</li>
+        <li>Toggle "Train Search Enabled" to test feature detection</li>
+    </ol>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Initialize
+    }
+}

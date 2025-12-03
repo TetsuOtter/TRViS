@@ -29,6 +29,36 @@ EndTime = "12:30",
 Direction = 0,
 Destination = "大阪"
 });
+
+_trains.Add(new SampleTrain
+{
+TrainId = "train_002",
+TrainNumber = "5678",
+WorkId = "work_1",
+WorkName = "行路1",
+WorkGroupId = "wg_1",
+StartStation = "大阪",
+EndStation = "東京",
+StartTime = "14:00",
+EndTime = "17:30",
+Direction = 1,
+Destination = "東京"
+});
+
+_trains.Add(new SampleTrain
+{
+TrainId = "train_003",
+TrainNumber = "9999",
+WorkId = "work_2",
+WorkName = "行路2",
+WorkGroupId = "wg_1",
+StartStation = "名古屋",
+EndStation = "京都",
+StartTime = "10:30",
+EndTime = "11:45",
+Direction = 0,
+Destination = "京都"
+});
 }
 
 public TrainSearchResponse SearchTrains(string trainNumber)
@@ -67,6 +97,58 @@ return new TrainSearchResponse
 Success = true,
 Results = results
 };
+}
+}
+
+public TrainDataResponse GetTrainData(string trainId)
+{
+lock (_lock)
+{
+var train = _trains.FirstOrDefault(t => t.TrainId == trainId);
+if (train == null)
+{
+return new TrainDataResponse
+{
+Success = false,
+ErrorMessage = "Train not found"
+};
+}
+
+string trainDataJson = $$"""
+{
+"TrainNumber": "{{train.TrainNumber}}",
+"Direction": {{train.Direction}},
+"Destination": "{{train.Destination}}",
+"TimetableRows": [
+{
+"StationName": "{{train.StartStation}}",
+"Departure": "{{train.StartTime}}",
+"Location_m": 0
+},
+{
+"StationName": "{{train.EndStation}}",
+"Arrive": "{{train.EndTime}}",
+"Location_m": 100000
+}
+]
+}
+""";
+
+return new TrainDataResponse
+{
+Success = true,
+TrainId = trainId,
+WorkId = train.WorkId,
+Data = trainDataJson
+};
+}
+}
+
+public IReadOnlyList<SampleTrain> GetAllTrains()
+{
+lock (_lock)
+{
+return _trains.AsReadOnly();
 }
 }
 }
