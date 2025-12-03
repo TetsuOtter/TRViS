@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using TRViS.IO;
 using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
@@ -36,7 +37,7 @@ public partial class QuickSwitchPopup : ContentView
 	private TrainData? _originalScheduledTrain;
 	private bool _isDisplayingSearchedTrain;
 
-	private ObservableCollection<TrainSearchResultViewModel> _searchResults = new();
+	private readonly ObservableCollection<TrainSearchResultViewModel> _searchResults = new();
 	private bool _isSearching;
 
 	public QuickSwitchPopup()

@@ -4,7 +4,32 @@ This document describes the WebSocket communication protocol between TRViS clien
 
 ## Connection
 
-The client connects to the server using WebSocket protocol. After connection is established, both client and server can send messages at any time.
+The client **must** connect to the server using a secure WebSocket connection (`wss://`). Connections over insecure WebSocket (`ws://`) are **not permitted** in production environments.
+
+The client **must** validate the server's TLS certificate to prevent man-in-the-middle attacks.
+
+The server **should** enforce origin checks, including validating the expected `Host`, `Sec-WebSocket-Protocol`, and requiring a server-side authentication token for all connections.
+
+After the connection is established, both client and server can send messages at any time.
+
+## Security Considerations
+
+### Authentication and Authorization
+
+This protocol specification does not mandate a specific authentication mechanism. However, production deployments **should** implement:
+
+- **Authentication**: Use an authenticated session or token (e.g., JWT or HMAC-signed `Authorization` header) during the initial HTTP upgrade to WebSocket
+- **Authorization**: The server should verify an `AuthToken` or equivalent in message headers or as part of the handshake, with per-operation authorization checks
+- **Access Control**: Implement appropriate access controls to restrict which users can query and retrieve timetable/train data
+
+For development and testing environments, authentication may be optional, but it is **strongly recommended** for production use.
+
+### Transport Security
+
+- Use TLS/SSL (`wss://`) exclusively in production
+- Validate server certificates
+- Implement certificate pinning where appropriate
+- Use secure token storage on the client side
 
 ## Message Format
 
@@ -217,7 +242,7 @@ The server responds with full train data, similar to a Timetable message.
   "Success": true,
   "TrainId": "train_123",
   "WorkId": "work_1",
-  "Data": { ...train JSON data... }
+  "Data": "{ ...JSON-encoded train data as string... }"
 }
 ```
 
@@ -226,7 +251,7 @@ The server responds with full train data, similar to a Timetable message.
 - `Success` (boolean, required): Whether the retrieval was successful
 - `TrainId` (string, optional): The train ID
 - `WorkId` (string, optional): The work ID
-- `Data` (object, optional): Full train data in JSON format (see train.schema.json)
+- `Data` (string, optional): Full train data as a JSON-encoded string (see train.schema.json). The client must deserialize this string to obtain the train data object.
 - `ErrorMessage` (string, optional): Error description (only when Success is false)
 
 ## Client Behavior
