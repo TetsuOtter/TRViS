@@ -21,6 +21,8 @@
 				<ColumnDefinition Width="*"/>
 				<ColumnDefinition Width="4"/>
 				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="4"/>
+				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
 
 			<local:TabButtonSmall
@@ -32,6 +34,11 @@
 				x:Name="WorkTabButton"
 				Grid.Column="2"
 				ButtonText="Work"/>
+
+			<local:TabButtonSmall
+				x:Name="TrainSearchTabButton"
+				Grid.Column="4"
+				ButtonText="Search"/>
 		</Grid>
 
 		<!-- Lists Container -->
@@ -78,6 +85,78 @@
 						</DataTemplate>
 					</ListView.ItemTemplate>
 				</ListView>
+			</Border>
+
+			<!-- Train Search -->
+			<Border
+				x:Name="TrainSearchContainer"
+				IsVisible="False"
+				Padding="4"
+				StrokeThickness="0">
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<!-- Search Input -->
+					<Grid
+						Grid.Row="0"
+						Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="8"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="4"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+
+						<Entry
+							x:Name="TrainNumberEntry"
+							Grid.Column="0"
+							Placeholder="列番を入力"
+							Keyboard="Numeric"
+							ReturnType="Search"
+							Completed="TrainNumberEntry_Completed"/>
+
+						<Button
+							x:Name="SearchButton"
+							Grid.Column="2"
+							Text="検索"
+							Clicked="SearchButton_Clicked"/>
+
+						<Button
+							x:Name="CancelSearchButton"
+							Grid.Column="4"
+							Text="キャンセル"
+							Clicked="CancelSearchButton_Clicked"/>
+					</Grid>
+
+					<!-- Return to Scheduled Train Button (hidden by default) -->
+					<Button
+						x:Name="ReturnToScheduledButton"
+						Grid.Row="1"
+						Text="所定列車に戻る"
+						IsVisible="False"
+						Margin="0,0,0,8"
+						Clicked="ReturnToScheduledButton_Clicked"/>
+
+					<!-- Search Results -->
+					<ListView
+						x:Name="SearchResultsListView"
+						Grid.Row="2"
+						SelectionMode="Single"
+						SeparatorVisibility="Default"
+						ios:ListView.SeparatorStyle="FullWidth"
+						ItemSelected="SearchResultsListView_ItemSelected">
+						<ListView.ItemTemplate>
+							<DataTemplate>
+								<TextCell Text="{Binding DisplayText}"/>
+							</DataTemplate>
+						</ListView.ItemTemplate>
+					</ListView>
+				</Grid>
 			</Border>
 		</Grid>
 	</Grid>
