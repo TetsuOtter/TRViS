@@ -238,9 +238,9 @@ public partial class VerticalStylePage : ContentView
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
-		if (CurrentShowingTrainData == newValue)
+		if (ReferenceEquals(CurrentShowingTrainData, newValue))
 		{
-			logger.Debug("CurrentShowingTrainData == newValue -> do nothing");
+			logger.Debug("Same object reference detected (CurrentShowingTrainData, newValue) -> do nothing");
 			return;
 		}
 		if (!DTACViewHostViewModel.IsViewHostVisible || !DTACViewHostViewModel.IsVerticalViewMode)
