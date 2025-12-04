@@ -196,18 +196,21 @@ public partial class SimpleRow
 
 	void SetTrainNumberButtonState()
 	{
-		if (SelectTrainButton.IsEnabled && SelectTrainButton.IsChecked)
+		MainThread.BeginInvokeOnMainThread(() =>
 		{
-			DTACElementStyles.DefaultGreen.Apply(SelectTrainButtonBorder, Border.StrokeProperty);
-			SelectTrainButtonBorder.StrokeThickness = SELECTED_STROKE_THICKNESS;
-			SelectTrainButtonBorder.Shadow = SelectTrainButtonEmptyShadow;
-		}
-		else
-		{
-			SelectTrainButtonBorder.Stroke = SelectTrainButtonBorderStrokeColor;
-			SelectTrainButtonBorder.StrokeThickness = UNSELECTED_STROKE_THICKNESS;
-			SelectTrainButtonBorder.Shadow = SelectTrainButtonShadow;
-		}
+			if (SelectTrainButton.IsEnabled && SelectTrainButton.IsChecked)
+			{
+				DTACElementStyles.DefaultGreen.Apply(SelectTrainButtonBorder, Border.StrokeProperty);
+				SelectTrainButtonBorder.StrokeThickness = SELECTED_STROKE_THICKNESS;
+				SelectTrainButtonBorder.Shadow = SelectTrainButtonEmptyShadow;
+			}
+			else
+			{
+				SelectTrainButtonBorder.Stroke = SelectTrainButtonBorderStrokeColor;
+				SelectTrainButtonBorder.StrokeThickness = UNSELECTED_STROKE_THICKNESS;
+				SelectTrainButtonBorder.Shadow = SelectTrainButtonShadow;
+			}
+		});
 	}
 
 	public bool IsSelected

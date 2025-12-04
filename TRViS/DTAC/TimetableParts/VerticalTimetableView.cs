@@ -25,15 +25,42 @@ public partial class VerticalTimetableView : Grid
 
 	public DTACMarkerViewModel MarkerViewModel { get; } = InstanceManager.DTACMarkerViewModel;
 
+	CancellationTokenSource? _currentSetRowViewsCancellationTokenSource = null;
+
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
 		try
 		{
 			logger.Trace("SelectedTrainData is changed to {0}", newValue?.TrainNumber);
-			SetRowViews(newValue, newValue?.Rows);
+			// Cancel previous SetRowViews operation
+			_currentSetRowViewsCancellationTokenSource?.Cancel();
+			_currentSetRowViewsCancellationTokenSource = new CancellationTokenSource();
+			Task.Run(async () =>
+			{
+				try
+				{
+					await SetRowViewsAsync(newValue, newValue?.Rows, _currentSetRowViewsCancellationTokenSource.Token);
+				}
+				catch (OperationCanceledException)
+				{
+					logger.Debug("SetRowViewsAsync operation was canceled");
+					return;
+				}
+				catch (Exception ex)
+				{
+					logger.Fatal(ex, "Unknown Exception");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnSelectedTrainDataChanged.SetRowViewsAsync");
+					await Utils.ExitWithAlert(ex);
+				}
+			});
 			IsRunStarted = false;
 			LocationService.SetTimetableRows(newValue?.Rows);
 			ScrollRequested?.Invoke(this, new(0));
+		}
+		catch (OperationCanceledException)
+		{
+			logger.Debug("OnSelectedTrainDataChanged operation was canceled");
+			return;
 		}
 		catch (Exception ex)
 		{

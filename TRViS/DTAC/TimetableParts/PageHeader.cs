@@ -9,15 +9,15 @@ namespace TRViS.DTAC;
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	static readonly ColumnDefinitionCollection DefaultColumnDefinitions = new()
-	{
+	static readonly ColumnDefinitionCollection DefaultColumnDefinitions =
+	[
 		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
 
 		// under total: 378
 		new ColumnDefinition(186),
 		new ColumnDefinition(128),
 		new ColumnDefinition(60),
-	};
+	];
 
 	#region Affect Date Label
 

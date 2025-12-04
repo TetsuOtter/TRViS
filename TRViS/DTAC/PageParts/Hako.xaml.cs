@@ -12,7 +12,7 @@ public partial class Hako : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	readonly HeaderView headerView = new();
+	readonly HeaderView headerView = [];
 
 	readonly Label AffectDateLabel;
 	readonly Label WorkInfoLabel;
@@ -63,26 +63,31 @@ public partial class Hako : Grid
 
 			logger.Info("IsBusyChanged: {0}", v.IsBusy);
 
-			try
+			MainThread.BeginInvokeOnMainThread(() =>
 			{
-				if (v.IsBusy)
+				try
 				{
-					SimpleViewActivityIndicatorBorder.IsVisible = true;
-					SimpleViewActivityIndicatorBorder.FadeTo(VerticalStylePage.TimetableViewActivityIndicatorBorderMaxOpacity);
-				}
-				else
-					SimpleViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
+					if (v.IsBusy)
 					{
-						logger.Debug("SimpleViewActivityIndicatorBorder.FadeTo(0) completed");
-						SimpleViewActivityIndicatorBorder.IsVisible = false;
-					});
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "Hako.SimpleView.IsBusyChanged");
-				Utils.ExitWithAlert(ex);
-			}
+						SimpleViewActivityIndicatorBorder.IsVisible = true;
+						SimpleViewActivityIndicatorBorder.FadeTo(VerticalStylePage.TimetableViewActivityIndicatorBorderMaxOpacity);
+					}
+					else
+					{
+						SimpleViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
+						{
+							logger.Debug("SimpleViewActivityIndicatorBorder.FadeTo(0) completed");
+							SimpleViewActivityIndicatorBorder.IsVisible = false;
+						});
+					}
+				}
+				catch (Exception ex)
+				{
+					logger.Fatal(ex, "Unknown Exception");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "Hako.SimpleView.IsBusyChanged");
+					Utils.ExitWithAlert(ex);
+				}
+			});
 		};
 
 		logger.Trace("Created");

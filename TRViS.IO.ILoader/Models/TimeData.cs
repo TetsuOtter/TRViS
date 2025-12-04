@@ -17,4 +17,12 @@ public record TimeData(
 		string ss = Second?.ToString("D2") ?? string.Empty;
 		return $"{hh}:{mm}:{ss}";
 	}
+
+	public TimeOnly? ToTimeOnly()
+	{
+		if (Hour is null || Minute is null)
+			return null;
+
+		return new(Hour.Value, Minute.Value, Second ?? 0);
+	}
 }

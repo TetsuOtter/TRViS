@@ -35,7 +35,7 @@ public partial class VerticalStylePage : ContentView
 
 	public static double TimetableViewActivityIndicatorBorderMaxOpacity { get; } = 0.6;
 
-	VerticalTimetableView TimetableView { get; } = new();
+	VerticalTimetableView TimetableView { get; } = [];
 	MyMap? DebugMap = null;
 
 	DTACViewHostViewModel DTACViewHostViewModel { get; }

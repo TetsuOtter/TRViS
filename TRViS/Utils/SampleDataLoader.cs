@@ -10,22 +10,25 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	const string TRAIN_1_1_2 = "1-1-2";
 	const string TRAIN_1_1_3 = "1-1-3";
 
-	static readonly List<WorkGroup> WorkGroupList = new()
-	{
+	static readonly HakoTabOrderTestDataLoader HakoTabOrderTestLoader = new();
+
+	static readonly List<WorkGroup> WorkGroupList =
+	[
 		new(Id: WORK_GROUP_1, Name: "WorkGroup1"),
-	};
+		new(Id: HakoTabOrderTestDataLoader.WORK_GROUP_ID, Name: "ハコタブ順序確認"),
+	];
 
-	static readonly List<Work> WorkList = new()
-	{
+	static readonly List<Work> WorkList =
+	[
 		new(Id: WORK_1_1, WorkGroupId: WORK_GROUP_1, Name: "Work1-1", Remarks: "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3"),
-	};
+	];
 
-	static readonly List<TrainData> TrainDataList = new()
-	{
+	static readonly List<TrainData> TrainDataList =
+	[
 		new(Id: TRAIN_1_1_1, Direction: Direction.Inbound, TrainNumber: "Train01"),
 		new(Id: TRAIN_1_1_2, Direction: Direction.Inbound, TrainNumber: "Train02"),
 		new(Id: TRAIN_1_1_3, Direction: Direction.Inbound, TrainNumber: "Train03"),
-	};
+	];
 
 	static readonly TrainData SampleTrainData = new(
 		Id: TRAIN_1_1_1,
@@ -48,7 +51,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		AfterArrive: "入換   20分",
 		// AfterArriveOnStationTrackCol: "入換",
 
-		NextTrainId: TRAIN_1_1_2,
+		NextTrainId: null,
 
 		Rows: new[]
 		{
@@ -384,7 +387,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		Remarks: null,
 		BeforeDeparture: null,
 		TrainInfo: null,
-		NextTrainId: TRAIN_1_1_3,
+		NextTrainId: TRAIN_1_1_1,
 		Rows: new[]
 		{
 			new TimetableRow(
@@ -498,6 +501,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 		AfterArrive: "入換   20分",
 		// AfterArriveOnStationTrackCol: "入換",
+		NextTrainId: TRAIN_1_1_2,
 
 		Rows: new[]
 		{
@@ -542,20 +546,38 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	public void Dispose() { }
 
 	public TrainData? GetTrainData(string trainId)
-		=> trainId switch
+	{
+		var hakoTrainData = HakoTabOrderTestLoader.GetTrainData(trainId);
+		if (hakoTrainData is not null)
+		{
+			return hakoTrainData;
+		}
+
+		return trainId switch
 		{
 			TRAIN_1_1_1 => SampleTrainData,
 			TRAIN_1_1_2 => SampleTrainData2,
 			TRAIN_1_1_3 => SampleTrainData3,
 			_ => null
 		};
+	}
 
 	public IReadOnlyList<TrainData> GetTrainDataList(string workId)
-		=> TrainDataList;
+		=> workId == HakoTabOrderTestDataLoader.WORK_LINEAR ||
+			 workId == HakoTabOrderTestDataLoader.WORK_REVERSE ||
+			 workId == HakoTabOrderTestDataLoader.WORK_MULTIPLE ||
+			 workId == HakoTabOrderTestDataLoader.WORK_ISOLATED ||
+			 workId == HakoTabOrderTestDataLoader.WORK_PARTIAL ||
+			 workId == HakoTabOrderTestDataLoader.WORK_CIRCULAR ||
+			 workId == HakoTabOrderTestDataLoader.WORK_DAYCOUNT
+			? HakoTabOrderTestLoader.GetTrainDataList(workId)
+			: TrainDataList;
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
 		=> WorkGroupList;
 
 	public IReadOnlyList<Work> GetWorkList(string workGroupId)
-		=> WorkList;
+		=> workGroupId == HakoTabOrderTestDataLoader.WORK_GROUP_ID
+			? HakoTabOrderTestLoader.GetWorkList(workGroupId)
+			: WorkList;
 }

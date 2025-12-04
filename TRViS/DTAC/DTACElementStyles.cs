@@ -571,7 +571,7 @@ public static partial class DTACElementStyles
 
 	public static TimeCell TimeCell()
 	{
-		TimeCell v = new();
+		TimeCell v = [];
 
 		v.VerticalOptions
 			= v.HorizontalOptions

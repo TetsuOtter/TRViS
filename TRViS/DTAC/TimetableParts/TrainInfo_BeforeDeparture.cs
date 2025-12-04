@@ -8,11 +8,11 @@ namespace TRViS.DTAC;
 public partial class TrainInfo_BeforeDeparture : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	static readonly RowDefinitionCollection DefaultRowDefinitions = new()
-	{
+	static readonly RowDefinitionCollection DefaultRowDefinitions =
+	[
 		new RowDefinition(DTACElementStyles.BeforeDeparture_AfterArrive_Height),
 		new RowDefinition(DTACElementStyles.BeforeDeparture_AfterArrive_Height)
-	};
+	];
 
 	#region TrainInfo Area
 	readonly HtmlAutoDetectLabel TrainInfoArea = DTACElementStyles.LargeHtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
