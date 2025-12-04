@@ -77,7 +77,8 @@ public partial class VerticalTimetableRow
 				MarkerViewModel.SelectedText
 			);
 			MarkedColor = MarkerViewModel.SelectedColor;
-			MarkerBox.Text = MarkerViewModel.SelectedText;
+			// LimitMarkerText is defined in VerticalTimetableRow.Init.cs
+			MarkerBox.Text = LimitMarkerText(MarkerViewModel.SelectedText);
 		}
 		else
 		{

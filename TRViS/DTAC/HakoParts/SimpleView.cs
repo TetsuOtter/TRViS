@@ -15,6 +15,19 @@ public class SimpleView : Grid
 	const double TIME_ROW_HEIGHT = 20;
 	List<SimpleRow> Rows { get; } = [];
 	SimpleRow? _SelectedRow = null;
+	bool _IsBusy = false;
+	public bool IsBusy
+	{
+		get => _IsBusy;
+		set
+		{
+			if (_IsBusy == value)
+				return;
+			_IsBusy = value;
+			IsBusyChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
+		}
+	}
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsBusyChanged;
 	SimpleRow? SelectedRow
 	{
 		get => _SelectedRow;
@@ -114,7 +127,7 @@ public class SimpleView : Grid
 			}
 		}
 	}
-	void OnSelectedWorkChanged(Work? newWork)
+	async void OnSelectedWorkChanged(Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 		Clear();
@@ -132,7 +145,7 @@ public class SimpleView : Grid
 			return;
 		}
 
-		Rows.Clear();
+		// Rows.Clear();
 
 		// Use the ordered train list created by AppViewModel
 		var orderedTrainDataList = InstanceManager.AppViewModel.OrderedTrainDataList;
@@ -142,40 +155,51 @@ public class SimpleView : Grid
 			return;
 		}
 
-		SetRowDefinitions(orderedTrainDataList.Count);
-		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
-
-		// If no train is currently selected, select the first train in the ordered list
-		bool anyRowSelected = false;
-
-		for (int i = 0; i < orderedTrainDataList.Count; i++)
+		IsBusy = true;
+		try
 		{
-			TrainData trainData = orderedTrainDataList[i];
-			string trainId = trainData.Id;
+			Rows.Clear();
+			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2);
+			SetRowDefinitions(orderedTrainDataList.Count);
+			TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
 
-			SimpleRow row = new(this, i, trainData);
-			Rows.Add(row);
-			row.IsSelectedChanged += OnIsSelectedChanged;
+			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2);
 
-			if (trainId == selectedTrainData?.Id)
+			int batchSize = PerformanceHelper.RowsBatchSize;
+			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
+
+			for (int i = 0; i < orderedTrainDataList.Count; i++)
 			{
-				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
-				row.IsSelected = true;
-				SelectedRow = row;
-				anyRowSelected = true;
+				TrainData trainData = orderedTrainDataList[i];
+				string trainId = trainData.Id;
+				if (trainData is null)
+				{
+					logger.Debug("trainData is null");
+					continue;
+				}
+
+				await MainThread.InvokeOnMainThreadAsync(() =>
+				{
+					SimpleRow row = new(this, i, trainData);
+					Rows.Add(row);
+					row.IsSelectedChanged += OnIsSelectedChanged;
+					if (trainId == selectedTrainData?.Id)
+					{
+						logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
+						row.IsSelected = true;
+						SelectedRow = row;
+					}
+				});
+
+				if (0 < batchSize && i % batchSize == batchSize - 1)
+					await Task.Delay(renderDelayMs);
 			}
 		}
-
-		// If no row was selected and we have trains, select the first one
-		if (!anyRowSelected && orderedTrainDataList.Count > 0)
+		finally
 		{
-			logger.Debug("No train selected, selecting first train: {0}", orderedTrainDataList[0].TrainNumber);
-			SelectedRow = Rows.FirstOrDefault();
-			if (SelectedRow is not null)
-			{
-				SelectedRow.IsSelected = true;
-				InstanceManager.AppViewModel.SelectedTrainData = SelectedRow.TrainData;
-			}
+			IsBusy = false;
 		}
 	}
 

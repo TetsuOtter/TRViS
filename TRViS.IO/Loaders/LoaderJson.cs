@@ -149,9 +149,8 @@ public class LoaderJson : ILoader
 							is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
 							or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
 
-						// TODO: マーカーのデフォルト設定のサポート
-						DefaultMarkerColor_RGB: null,
-						DefaultMarkerText: null
+						DefaultMarkerColor_RGB: Utils.HexStringToRgbInt(v.MarkerColor),
+						DefaultMarkerText: v.MarkerText
 					))];
 					TrainData[trainId] = new(
 							AfterArrive: trainData.AfterArrive,
