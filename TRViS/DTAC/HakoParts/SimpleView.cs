@@ -14,6 +14,7 @@ public class SimpleView : Grid
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;
 	const double TIME_ROW_HEIGHT = 20;
 	List<SimpleRow> Rows { get; } = [];
+	CancellationTokenSource? _cts;
 	SimpleRow? _SelectedRow = null;
 	bool _IsBusy = false;
 	public bool IsBusy
@@ -62,16 +63,24 @@ public class SimpleView : Grid
 
 		InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
 
-		try
+		Task.Run(async () =>
 		{
-			OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-			Utils.ExitWithAlert(ex);
-		}
+			try
+			{
+				await OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Debug("OnSelectedWorkChanged was cancelled");
+				return;
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
+				await Utils.ExitWithAlert(ex);
+			}
+		});
 
 		logger.Debug("Created");
 	}
@@ -102,16 +111,24 @@ public class SimpleView : Grid
 		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork) ||
 				e.PropertyName == nameof(InstanceManager.AppViewModel.OrderedTrainDataList))
 		{
-			try
+			Task.Run(async () =>
 			{
-				OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-				Utils.ExitWithAlert(ex);
-			}
+				try
+				{
+					await OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+				}
+				catch (OperationCanceledException)
+				{
+					logger.Debug("OnSelectedWorkChanged was cancelled");
+					return;
+				}
+				catch (Exception ex)
+				{
+					logger.Fatal(ex, "Unknown Exception");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
+					await Utils.ExitWithAlert(ex);
+				}
+			});
 		}
 		else if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedTrainData))
 		{
@@ -127,16 +144,23 @@ public class SimpleView : Grid
 			}
 		}
 	}
-	async void OnSelectedWorkChanged(Work? newWork)
+	async Task OnSelectedWorkChanged(Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
-		Clear();
+
+		_cts?.Cancel();
+		_cts = new CancellationTokenSource();
+		var token = _cts.Token;
+
+		await MainThread.InvokeOnMainThreadAsync(Clear);
 		SelectedRow = null;
 		if (newWork is null)
 		{
 			logger.Debug("newWork is null");
 			return;
 		}
+
+		token.ThrowIfCancellationRequested();
 
 		ILoader? loader = InstanceManager.AppViewModel.Loader;
 		if (loader is null)
@@ -145,7 +169,7 @@ public class SimpleView : Grid
 			return;
 		}
 
-		// Rows.Clear();
+		token.ThrowIfCancellationRequested();
 
 		// Use the ordered train list created by AppViewModel
 		var orderedTrainDataList = InstanceManager.AppViewModel.OrderedTrainDataList;
@@ -155,23 +179,27 @@ public class SimpleView : Grid
 			return;
 		}
 
+		token.ThrowIfCancellationRequested();
+
 		IsBusy = true;
 		try
 		{
 			Rows.Clear();
 			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
-				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2);
-			SetRowDefinitions(orderedTrainDataList.Count);
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
+			await MainThread.InvokeOnMainThreadAsync(() => SetRowDefinitions(orderedTrainDataList.Count));
 			TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
 
 			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
-				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2);
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
 
 			int batchSize = PerformanceHelper.RowsBatchSize;
 			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
 
 			for (int i = 0; i < orderedTrainDataList.Count; i++)
 			{
+				token.ThrowIfCancellationRequested();
+
 				TrainData trainData = orderedTrainDataList[i];
 				string trainId = trainData.Id;
 				if (trainData is null)
@@ -182,6 +210,9 @@ public class SimpleView : Grid
 
 				await MainThread.InvokeOnMainThreadAsync(() =>
 				{
+					if (token.IsCancellationRequested)
+						return;
+
 					SimpleRow row = new(this, i, trainData);
 					Rows.Add(row);
 					row.IsSelectedChanged += OnIsSelectedChanged;
@@ -193,8 +224,10 @@ public class SimpleView : Grid
 					}
 				});
 
+				token.ThrowIfCancellationRequested();
+
 				if (0 < batchSize && i % batchSize == batchSize - 1)
-					await Task.Delay(renderDelayMs);
+					await Task.Delay(renderDelayMs, token);
 			}
 		}
 		finally

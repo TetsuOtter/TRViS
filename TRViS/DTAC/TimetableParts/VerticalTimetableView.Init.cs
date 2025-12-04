@@ -117,7 +117,7 @@ public partial class VerticalTimetableView
 	}
 
 	int RowsCount = 0;
-	async void SetRowViews(TrainData? trainData, TimetableRow[]? newValue)
+	async Task SetRowViewsAsync(TrainData? trainData, TimetableRow[]? newValue, CancellationToken cancellationToken)
 	{
 		logger.Info("Setting RowViews... (Current RowViewList.Count: {0})", RowViewList.Count);
 		RowViewList.Clear();
@@ -155,18 +155,28 @@ public partial class VerticalTimetableView
 		try
 		{
 			RowsCount = newCount;
-			SetRowDefinitions(newCount, hasAfterArrive, hasNextTrainButton);
+			await MainThread.InvokeOnMainThreadAsync(() => SetRowDefinitions(newCount, hasAfterArrive, hasNextTrainButton));
 
+			cancellationToken.ThrowIfCancellationRequested();
 			await AddSeparatorLines();
+			cancellationToken.ThrowIfCancellationRequested();
 
-			AfterRemarks.SetRow(newCount);
-			AfterArrive.SetRow(newCount + 1);
-			if (hasAfterArrive)
-				Grid.SetRow(NextTrainButton, newCount + 2);
-			else
-				Grid.SetRow(NextTrainButton, newCount + 1);
+			await MainThread.InvokeOnMainThreadAsync(() =>
+			{
+				AfterRemarks.SetRow(newCount);
+				AfterArrive.SetRow(newCount + 1);
+				if (hasAfterArrive)
+					Grid.SetRow(NextTrainButton, newCount + 2);
+				else
+					Grid.SetRow(NextTrainButton, newCount + 1);
+			});
 
 			logger.Trace("Starting RowViewInit Task...");
+		}
+		catch (OperationCanceledException)
+		{
+			logger.Debug("SetRowViews was cancelled during SetRowDefinitions or AddSeparatorLines");
+			return;
 		}
 		catch (Exception ex)
 		{
@@ -176,39 +186,48 @@ public partial class VerticalTimetableView
 		}
 
 		if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
-			await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs);
+			await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs, cancellationToken);
 
-		await Task.Run(async () =>
+		cancellationToken.ThrowIfCancellationRequested();
+
+		try
 		{
-			try
+			logger.Trace("Task: Finding last Station Row...");
+			int lastTimetableRowIndex = 0;
+			for (int i = 0; i < newCount; i++)
 			{
-				logger.Trace("Task: Finding last Station Row...");
-				int lastTimetableRowIndex = 0;
-				for (int i = 0; i < newCount; i++)
-				{
-					if (newValue is not null && !newValue[i].IsInfoRow)
-						lastTimetableRowIndex = i;
-				}
-
-
-				logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
-				int batchSize = PerformanceHelper.RowsBatchSize;
-				int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
-				for (int i = 0; i < newCount; i++)
-				{
-					await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
-					if (0 < batchSize && i % batchSize == batchSize - 1)
-						await Task.Delay(renderDelayMs);
-				}
-				logger.Trace("Task: RowViewInit Complete");
+				if (newValue is not null && !newValue[i].IsInfoRow)
+					lastTimetableRowIndex = i;
 			}
-			catch (Exception ex)
+
+			logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
+			int batchSize = PerformanceHelper.RowsBatchSize;
+			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
+			for (int i = 0; i < newCount; i++)
 			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (AddNewRow failed)");
-				await Utils.ExitWithAlert(ex);
+				cancellationToken.ThrowIfCancellationRequested();
+				await AddNewRow(newValue![i], i, i == lastTimetableRowIndex);
+				if (0 < batchSize && i % batchSize == batchSize - 1)
+					await Task.Delay(renderDelayMs, cancellationToken);
 			}
-		});
+			logger.Trace("Task: RowViewInit Complete");
+		}
+		catch (OperationCanceledException)
+		{
+			logger.Debug("SetRowViews was cancelled during AddNewRow");
+			return;
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (AddNewRow failed)");
+			await Utils.ExitWithAlert(ex);
+		}
+		if (cancellationToken.IsCancellationRequested)
+		{
+			logger.Debug("SetRowViews operation was canceled -> exiting...");
+			return;
+		}
 		logger.Trace("RowViewInit Task Complete");
 		logger.Trace("Starting FooterInsertion Task...");
 		await MainThread.InvokeOnMainThreadAsync(() =>

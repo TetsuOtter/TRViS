@@ -93,14 +93,13 @@ public partial class AppViewModel
 		{
 			loader = await openFile.OpenAppLinkAsync(appLinkInfo, token);
 		}
+		catch (OperationCanceledException)
+		{
+			logger.Debug("OpenAppLinkAsync was cancelled");
+			return false;
+		}
 		catch (Exception ex)
 		{
-			if (ex is OperationCanceledException && ex is not TaskCanceledException)
-			{
-				logger.Debug(ex, "Operation Canceled");
-				return false;
-			}
-
 			logger.Error(ex, "OpenAppLinkAsync Failed");
 			if (appLinkInfo.ResourceUri?.HostNameType == UriHostNameType.IPv4
 				&& ex is TaskCanceledException
@@ -233,14 +232,14 @@ public partial class AppViewModel
 			await Utils.DisplayAlert("Success!", "WebSocket接続が完了しました", "OK");
 			return true;
 		}
+		catch (OperationCanceledException)
+		{
+			logger.Debug("HandleWebSocketAppLinkAsync was cancelled");
+			return false;
+		}
 		catch (Exception ex)
 		{
 			logger.Error(ex, "HandleWebSocketAppLinkAsync Failed");
-			if (ex is OperationCanceledException && ex is not TaskCanceledException)
-			{
-				logger.Debug(ex, "Operation Canceled");
-				return false;
-			}
 
 			if (appLinkInfo.ResourceUri.HostNameType == UriHostNameType.IPv4
 				&& ex is TaskCanceledException
