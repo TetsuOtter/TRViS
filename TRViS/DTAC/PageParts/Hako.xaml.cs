@@ -12,7 +12,7 @@ public partial class Hako : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	readonly HeaderView headerView = new();
+	readonly HeaderView headerView = [];
 
 	readonly Label AffectDateLabel;
 	readonly Label WorkInfoLabel;

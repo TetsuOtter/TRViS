@@ -45,6 +45,9 @@ public partial class AppViewModel : ObservableObject
 		set => SetProperty(ref _SelectedTrainData, value);
 	}
 
+	[ObservableProperty]
+	IReadOnlyList<TrainData>? _OrderedTrainDataList;
+
 	bool _IsBgAppIconVisible = true;
 	public bool IsBgAppIconVisible
 	{
@@ -142,18 +145,143 @@ public partial class AppViewModel : ObservableObject
 	void OnSelectedWorkChanged(Work? value)
 	{
 		logger.Debug("Work: {0}", value?.Id ?? "null");
-		if (value is not null)
+		if (value is not null && Loader is not null)
 		{
-			string? trainId = Loader?.GetTrainDataList(value.Id)?.FirstOrDefault()?.Id;
-			logger.Debug("FirstTrainId: {0}", trainId ?? "null");
-			var selectedTrainData = trainId is null ? null : Loader?.GetTrainData(trainId);
-			SelectedTrainData = selectedTrainData;
-			logger.Debug("SelectedTrainData: {0} ({1})", SelectedTrainData?.Id ?? "null", selectedTrainData?.Id ?? "null");
+			// Get the list of trains and create an ordered list based on NextTrainId chains
+			var trainDataList = Loader.GetTrainDataList(value.Id);
+			var orderedTrainList = GetOrderedTrainDataList(trainDataList, Loader);
+			OrderedTrainDataList = orderedTrainList;
+
+			// Select the first train in the ordered list
+			if (orderedTrainList.Count > 0)
+			{
+				logger.Debug("FirstTrainId (from ordered list): {0}", orderedTrainList[0].Id);
+				SelectedTrainData = orderedTrainList[0];
+			}
+			else
+			{
+				SelectedTrainData = null;
+			}
+			logger.Debug("SelectedTrainData: {0}", SelectedTrainData?.Id ?? "null");
 		}
 		else
 		{
+			OrderedTrainDataList = null;
 			SelectedTrainData = null;
 		}
+	}
+
+	/// <summary>
+	/// Orders trains starting from chain heads, following NextTrainId chain.
+	/// A chain head is a train that is not pointed to by any other train's NextTrainId.
+	/// If a visited train is referenced, stops the chain.
+	/// Chains are ordered by the DayCount of the head train, then by departure time of the first station.
+	/// </summary>
+	private List<TrainData> GetOrderedTrainDataList(IReadOnlyList<TrainData> trainDataList, ILoader loader)
+	{
+		List<TrainData> orderedList = [];
+		HashSet<string> visitedTrainIds = [];
+		Dictionary<string, TrainData> trainDataById = [];
+
+		// Build a map of train IDs to train data for quick lookup
+		// Need to fetch full TrainData objects which include NextTrainId
+		foreach (var trainData in trainDataList)
+		{
+			try
+			{
+				var fullTrainData = loader.GetTrainData(trainData.Id);
+				if (fullTrainData is not null)
+				{
+					trainDataById[trainData.Id] = fullTrainData;
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.Warn(ex, "Failed to get full train data for {0}", trainData.Id);
+				trainDataById[trainData.Id] = trainData;
+			}
+		}
+
+		// Find all chain heads (trains that are not pointed to by any other train's NextTrainId)
+		HashSet<string> chainHeadIds = [.. trainDataById.Keys];
+		foreach (var trainData in trainDataById.Values)
+		{
+			if (!string.IsNullOrEmpty(trainData.NextTrainId))
+			{
+				chainHeadIds.Remove(trainData.NextTrainId);
+			}
+		}
+
+		// If no chain heads found (circular references), treat all trains as chain heads
+		if (chainHeadIds.Count == 0)
+		{
+			chainHeadIds = [.. trainDataById.Keys];
+		}
+
+		// Group chains by their head train
+		List<List<TrainData>> chainGroups = [];
+		foreach (var chainHeadId in chainHeadIds)
+		{
+			List<TrainData> chain = [];
+			string? currentId = chainHeadId;
+			while (!string.IsNullOrEmpty(currentId) && !visitedTrainIds.Contains(currentId))
+			{
+				if (trainDataById.TryGetValue(currentId, out var trainData))
+				{
+					chain.Add(trainData);
+					visitedTrainIds.Add(currentId);
+					currentId = trainData.NextTrainId;
+				}
+				else
+				{
+					// Invalid NextTrainId reference - stop the chain
+					logger.Warn("Next train ID '{0}' not found", currentId);
+					break;
+				}
+			}
+
+			// If chain ended because of a visited train (circular reference), log it
+			if (!string.IsNullOrEmpty(currentId) && visitedTrainIds.Contains(currentId))
+			{
+				logger.Debug("Chain stopped at already-visited train {0}", currentId);
+			}
+
+			if (chain.Count > 0)
+			{
+				chainGroups.Add(chain);
+			}
+		}
+
+		// Sort chain groups by DayCount of head train, then by departure time of first station
+		chainGroups = [.. chainGroups
+			.OrderBy(group => group[0].DayCount)
+			.ThenBy(group => GetFirstDepartureTime(group[0]))];
+
+		// Flatten the groups into the final ordered list
+		foreach (var group in chainGroups)
+		{
+			orderedList.AddRange(group);
+		}
+
+		logger.Debug("Ordered {0} trains (original: {1})", orderedList.Count, trainDataList.Count);
+		return orderedList;
+	}
+
+	private TimeOnly? GetFirstDepartureTime(TrainData trainData)
+	{
+		if (trainData.Rows.Length == 0)
+			return null;
+
+		// Find the first row with a departure time
+		foreach (var row in trainData.Rows)
+		{
+			if (row.DepartureTime is not null)
+			{
+				return row.DepartureTime.ToTimeOnly();
+			}
+		}
+
+		return null;
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)

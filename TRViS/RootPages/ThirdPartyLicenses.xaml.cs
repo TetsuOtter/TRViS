@@ -56,7 +56,7 @@ public partial class ThirdPartyLicenses : ContentPage
 
 		logger.Debug("LicenseTextList Changed");
 
-		VerticalStackLayout licenses = new();
+		VerticalStackLayout licenses = [];
 		if (viewModel.LicenseTextList?.Count > 0)
 		{
 			logger.Debug("LicenseTextList Length: {0}", viewModel.LicenseTextList.Count);
@@ -66,11 +66,11 @@ public partial class ThirdPartyLicenses : ContentPage
 				{
 					var grid = new Grid
 					{
-						ColumnDefinitions = new ColumnDefinitionCollection
-						{
+						ColumnDefinitions =
+						[
 							new ColumnDefinition { Width = GridLength.Star },
 							new ColumnDefinition { Width = GridLength.Auto }
-						}
+						]
 					};
 
 					var urlLabel = new Label()

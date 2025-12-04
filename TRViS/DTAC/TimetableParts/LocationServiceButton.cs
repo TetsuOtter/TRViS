@@ -52,11 +52,11 @@ public class LocationServiceButton : ToggleButton
 
 		Grid grid = new()
 		{
-			ColumnDefinitions = new()
-			{
+			ColumnDefinitions =
+			[
 				new ColumnDefinition(new(1, GridUnitType.Star)),
 				new ColumnDefinition(new(1, GridUnitType.Star))
-			}
+			]
 		};
 
 		Border baseBorder = new()

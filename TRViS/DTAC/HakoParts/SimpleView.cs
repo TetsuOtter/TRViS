@@ -13,7 +13,7 @@ public class SimpleView : Grid
 	public const double STA_NAME_TIME_COLUMN_WIDTH = 120;
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;
 	const double TIME_ROW_HEIGHT = 20;
-	List<SimpleRow> Rows { get; } = new();
+	List<SimpleRow> Rows { get; } = [];
 	SimpleRow? _SelectedRow = null;
 	bool _IsBusy = false;
 	public bool IsBusy
@@ -99,7 +99,8 @@ public class SimpleView : Grid
 
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork))
+		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork) ||
+				e.PropertyName == nameof(InstanceManager.AppViewModel.OrderedTrainDataList))
 		{
 			try
 			{
@@ -144,14 +145,23 @@ public class SimpleView : Grid
 			return;
 		}
 
+		// Rows.Clear();
+
+		// Use the ordered train list created by AppViewModel
+		var orderedTrainDataList = InstanceManager.AppViewModel.OrderedTrainDataList;
+		if (orderedTrainDataList is null || orderedTrainDataList.Count == 0)
+		{
+			logger.Debug("OrderedTrainDataList is null or empty");
+			return;
+		}
+
 		IsBusy = true;
 		try
 		{
 			Rows.Clear();
 			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
 				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2);
-			IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
-			SetRowDefinitions(trainDataList.Count);
+			SetRowDefinitions(orderedTrainDataList.Count);
 			TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
 
 			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
@@ -160,10 +170,10 @@ public class SimpleView : Grid
 			int batchSize = PerformanceHelper.RowsBatchSize;
 			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
 
-			for (int i = 0; i < trainDataList.Count; i++)
+			for (int i = 0; i < orderedTrainDataList.Count; i++)
 			{
-				string trainId = trainDataList[i].Id;
-				IO.Models.TrainData? trainData = loader.GetTrainData(trainId);
+				TrainData trainData = orderedTrainDataList[i];
+				string trainId = trainData.Id;
 				if (trainData is null)
 				{
 					logger.Debug("trainData is null");
