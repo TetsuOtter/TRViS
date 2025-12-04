@@ -2,6 +2,7 @@ using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
 using TRViS.DTAC.TimetableParts;
+using TRViS.DTAC.ViewModels;
 using TRViS.IO.Models;
 using TRViS.Services;
 
@@ -59,6 +60,8 @@ public partial class VerticalTimetableView
 		{
 			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
 		};
+
+		MarkerViewModel.PropertyChanged += OnMarkerViewModelPropertyChanged;
 
 		logger.Trace("Created");
 	}
@@ -257,13 +260,12 @@ public partial class VerticalTimetableView
 
 				IsBusy = false;
 
-				// If IsRunStarted is true and now we have timetable rows, set CurrentRunningRow to the first row
-				if (IsRunStarted && RowViewList.Count > 0)
+				// If IsRunStarted is true and CurrentRunningRow is not set, set CurrentRunningRow to the first row
+				if (IsRunStarted && RowViewList.Count > 0 && CurrentRunningRow is null)
 				{
-					logger.Info("IsRunStarted is true and timetable rows are now created -> set CurrentRunningRow to first row");
+					logger.Info("IsRunStarted is true and timetable rows are now created and CurrentRunningRow is not set -> set CurrentRunningRow to first row");
 					SetCurrentRunningRow(RowViewList.First());
 				}
-
 				logger.Trace("MainThread: FooterInsertion Complete");
 			}
 			catch (Exception ex)
@@ -297,29 +299,34 @@ public partial class VerticalTimetableView
 
 			try
 			{
-				if (row.IsInfoRow)
+				VerticalTimetableRowModel model = new()
 				{
-					HtmlAutoDetectLabel label = DTACElementStyles.LargeHtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>();
+					RowIndex = index,
+					IsInfoRow = row.IsInfoRow,
+					InfoText = row.IsInfoRow ? row.StationName : null,
+					IsMarkingMode = MarkerViewModel.IsToggled,
+					DriveTimeMM = row.DriveTimeMM?.ToString(),
+					DriveTimeSS = row.DriveTimeSS?.ToString(),
+					StationName = row.StationName,
+					IsPass = row.IsPass,
+					ArrivalTime = row.ArriveTime,
+					HasBracket = row.HasBracket,
+					DepartureTime = row.DepartureTime,
+					IsLastStop = row.IsLastStop,
+					IsOperationOnlyStop = row.IsOperationOnlyStop,
+					TrackName = row.TrackName,
+					RunInLimit = row.RunInLimit?.ToString(),
+					RunOutLimit = row.RunOutLimit?.ToString(),
+					Remarks = row.Remarks,
+					MarkerColor = row.DefaultMarkerColor_RGB is not null ? Color.FromRgb((byte)((row.DefaultMarkerColor_RGB >> 16) & 0xFF), (byte)((row.DefaultMarkerColor_RGB >> 8) & 0xFF), (byte)(row.DefaultMarkerColor_RGB & 0xFF)) : null,
+					MarkerText = row.DefaultMarkerText,
+				};
 
-					label.Text = row.StationName;
+				VerticalTimetableRow rowView = new(this, model, ColumnVisibilityState, MarkerViewModel, isLastRow);
+				rowView.RowTapped += RowTapped;
+				rowView.MarkerBoxClicked += OnMarkerBoxClicked;
 
-					Grid.SetColumn(label, 1);
-					Grid.SetRow(label, index);
-					Grid.SetColumnSpan(label, 3);
-					Add(label);
-
-					DTACElementStyles.AddTimetableRowHorizontalSeparatorLineStyle(this, index);
-				}
-				else
-				{
-					VerticalTimetableRow rowView = new(this, index, row, MarkerViewModel, isLastRow);
-
-					TapGestureRecognizer tapGestureRecognizer = new();
-					tapGestureRecognizer.Tapped += RowTapped;
-					rowView.GestureRecognizers.Add(tapGestureRecognizer);
-
-					RowViewList.Add(rowView);
-				}
+				RowViewList.Add(rowView);
 			}
 			catch (Exception ex)
 			{
