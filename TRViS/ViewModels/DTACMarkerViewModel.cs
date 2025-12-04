@@ -28,7 +28,7 @@ public partial class DTACMarkerViewModel : ObservableObject
 		// Brown
 		new("茶", new(0x80, 0x40, 0x20)),
 	};
-	public List<MarkerInfo> ColorList { get; } = new(ColorListDefaultValue);
+	public List<MarkerInfo> ColorList { get; } = [.. ColorListDefaultValue];
 
 	public static readonly IReadOnlyList<string> TextListDefaultValue = new List<string>()
 	{
@@ -40,7 +40,7 @@ public partial class DTACMarkerViewModel : ObservableObject
 		"時変",
 		"合図",
 	};
-	public List<string> TextList { get; } = new(TextListDefaultValue);
+	public List<string> TextList { get; } = [.. TextListDefaultValue];
 
 	[ObservableProperty]
 	private bool _IsToggled;

@@ -11,7 +11,7 @@ namespace TRViS.DTAC;
 public partial class WithRemarksView : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	Remarks RemarksView { get; } = new();
+	Remarks RemarksView { get; } = [];
 	RowDefinition RemarksAreaRowDefinition { get; } = new(new(Remarks.HEADER_HEIGHT, GridUnitType.Absolute));
 
 #if IOS

@@ -173,8 +173,13 @@ public class LoaderJson : ILoader
 							// WorkType: trainData.WorkType,
 							WorkName: workData.Name,
 							AffectDate: Utils.StringToDateOnlyOrNull(workData.AffectDate),
-							// TODO: JSONでのNextTrainIdのサポート
-							NextTrainId: trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null,
+							// NextTrainId logic:
+							// - If explicitly set to empty string: no next train (null)
+							// - If explicitly set to a value: use that value
+							// - If not set (null): use default behavior (next train in list)
+							NextTrainId: trainData.NextTrainId is not null
+								? (trainData.NextTrainId == "" ? null : trainData.NextTrainId)
+								: (trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null),
 							Rows: rows
 						);
 					System.Diagnostics.Debug.WriteLine($"\t\tTrain: {trainId} {trainData.TrainNumber}");

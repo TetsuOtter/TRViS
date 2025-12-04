@@ -48,11 +48,9 @@ public class OrientationService : IOrientationService
 				});
 
 				// Also update the view controller to notify it of the new supported orientations
-				var keyWindow = UIApplication.SharedApplication.KeyWindow;
-				if (keyWindow?.RootViewController is not null)
-				{
-					keyWindow.RootViewController.SetNeedsUpdateOfSupportedInterfaceOrientations();
-				}
+				// Use the windows from the specific UIWindowScene instead of the obsolete UIApplication.KeyWindow.
+				var rootViewController = windowScene.Windows?.FirstOrDefault(w => w.RootViewController is not null)?.RootViewController;
+				rootViewController?.SetNeedsUpdateOfSupportedInterfaceOrientations();
 			}
 		}
 		else
