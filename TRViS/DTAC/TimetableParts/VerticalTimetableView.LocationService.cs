@@ -1,5 +1,7 @@
 using DependencyPropertyGenerator;
 
+using TRViS.DTAC.TimetableParts;
+using TRViS.DTAC.ViewModels;
 using TRViS.Services;
 
 namespace TRViS.DTAC;
@@ -56,19 +58,20 @@ public partial class VerticalTimetableView : Grid
 
 		logger.Info("LocationStateChanged: [{0}](State:{1}) Rows[{2}](IsRunningToNextStation: {3})",
 			CurrentRunningRowIndex,
-			CurrentRunningRow?.LocationState,
+			CurrentLocationState,
 			e.NewStationIndex,
 			e.IsRunningToNextStation
 		);
 
 		try
 		{
-			if (CurrentRunningRow is not null)
-				CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+			CurrentRunningRow?.Model.IsLocationMarkerOnThisRow = false;
+			CurrentLocationState = VerticalTimetableRowModel.LocationStates.Undefined;
 			VerticalTimetableRow rowView = RowViewList[e.NewStationIndex];
+			rowView.Model.IsLocationMarkerOnThisRow = true;
 			UpdateCurrentRunningLocationVisualizer(rowView, e.IsRunningToNextStation
-				? VerticalTimetableRow.LocationStates.RunningToNextStation
-				: VerticalTimetableRow.LocationStates.AroundThisStation
+				? VerticalTimetableRowModel.LocationStates.RunningToNextStation
+				: VerticalTimetableRowModel.LocationStates.AroundThisStation
 			);
 			_CurrentRunningRow = rowView;
 			CurrentRunningRowIndex = e.NewStationIndex;
@@ -93,7 +96,7 @@ public partial class VerticalTimetableView : Grid
 	{
 		if (CurrentRunningRowIndex == index || CurrentRunningRow == value)
 		{
-			logger.Trace("CurrentRunningRowIndex is already {0} or CurrentRunningRow is already {1}, so skipping...", index, value?.RowIndex);
+			logger.Trace("CurrentRunningRowIndex is already {0} or CurrentRunningRow is already {1}, so skipping...", index, value?.Model.RowIndex);
 			return;
 		}
 
@@ -110,25 +113,26 @@ public partial class VerticalTimetableView : Grid
 				if (_CurrentRunningRow is not null)
 				{
 					logger.Debug("CurrentRunningRow[{0}: {1}] is not null -> set LocationState to Undefined",
-						_CurrentRunningRow.RowIndex,
-						_CurrentRunningRow.RowData.StationName
+						_CurrentRunningRow.Model.RowIndex,
+						_CurrentRunningRow.Model.StationName
 					);
 
-					_CurrentRunningRow.LocationState = VerticalTimetableRow.LocationStates.Undefined;
+					_CurrentRunningRow.Model.IsLocationMarkerOnThisRow = false;
+					CurrentLocationState = VerticalTimetableRowModel.LocationStates.Undefined;
 				}
 
 				logger.Info("CurrentRunningRow is changed from {0}: `{1}` to {2}: `{3}`",
-					CurrentRunningRow?.RowIndex,
-					CurrentRunningRow?.RowData.StationName,
+					CurrentRunningRow?.Model.RowIndex,
+					CurrentRunningRow?.Model.StationName,
 					index,
-					value?.RowData.StationName
+					value?.Model.StationName
 				);
 				_CurrentRunningRow = value;
 
 				if (value is not null)
 				{
 					CurrentRunningRowIndex = index;
-					UpdateCurrentRunningLocationVisualizer(value, VerticalTimetableRow.LocationStates.AroundThisStation);
+					UpdateCurrentRunningLocationVisualizer(value, VerticalTimetableRowModel.LocationStates.AroundThisStation);
 				}
 				else
 				{
@@ -146,7 +150,7 @@ public partial class VerticalTimetableView : Grid
 	}
 
 	static bool IsHapticEnabled { get; set; } = true;
-	void UpdateCurrentRunningLocationVisualizer(VerticalTimetableRow row, VerticalTimetableRow.LocationStates states)
+	void UpdateCurrentRunningLocationVisualizer(VerticalTimetableRow row, VerticalTimetableRowModel.LocationStates states)
 	{
 		if (!MainThread.IsMainThread)
 		{
@@ -157,21 +161,23 @@ public partial class VerticalTimetableView : Grid
 
 		try
 		{
-			row.LocationState = states;
-			logger.Info("UpdateCurrentRunningLocationVisualizer: Row[{0}] ... Requested:{1}, Actual:{2}", row.RowIndex, states, row.LocationState);
+			CurrentRunningRow?.Model.IsLocationMarkerOnThisRow = false;
+			row.Model.IsLocationMarkerOnThisRow = true;
+			CurrentLocationState = states;
+			logger.Info("UpdateCurrentRunningLocationVisualizer: Row[{0}] ... Requested:{1}, Actual:{2}", row.Model.RowIndex, states, CurrentLocationState);
 
-			int rowCount = row.RowIndex;
+			int rowCount = row.Model.RowIndex;
 
 			Grid.SetRow(CurrentLocationBoxView, rowCount);
 			Grid.SetRow(CurrentLocationLine, rowCount);
 
-			CurrentLocationBoxView.IsVisible = row.LocationState
-				is VerticalTimetableRow.LocationStates.AroundThisStation
-				or VerticalTimetableRow.LocationStates.RunningToNextStation;
-			CurrentLocationLine.IsVisible = row.LocationState is VerticalTimetableRow.LocationStates.RunningToNextStation;
+			CurrentLocationBoxView.IsVisible = CurrentLocationState
+				is VerticalTimetableRowModel.LocationStates.AroundThisStation
+				or VerticalTimetableRowModel.LocationStates.RunningToNextStation;
+			CurrentLocationLine.IsVisible = CurrentLocationState is VerticalTimetableRowModel.LocationStates.RunningToNextStation;
 
-			CurrentLocationBoxView.Margin = row.LocationState
-				is VerticalTimetableRow.LocationStates.RunningToNextStation
+			CurrentLocationBoxView.Margin = CurrentLocationState
+				is VerticalTimetableRowModel.LocationStates.RunningToNextStation
 				? new(0, -(RowHeight.Value / 2)) : new(0);
 
 			logger.Debug("CurrentLocationBoxView.IsVisible: {0}, CurrentLocationLine.IsVisible: {1}", CurrentLocationBoxView.IsVisible, CurrentLocationLine.IsVisible);
@@ -199,12 +205,12 @@ public partial class VerticalTimetableView : Grid
 			IsHapticEnabled = false;
 		}
 
-		if (row.LocationState != VerticalTimetableRow.LocationStates.Undefined)
+		if (CurrentLocationState != VerticalTimetableRowModel.LocationStates.Undefined)
 		{
 			logger.Debug("value.LocationState is not Undefined -> invoke ScrollRequested");
 			try
 			{
-				ScrollRequested?.Invoke(this, new(Math.Max(row.RowIndex - 1, 0) * RowHeight.Value));
+				ScrollRequested?.Invoke(this, new(Math.Max(row.Model.RowIndex - 1, 0) * RowHeight.Value));
 			}
 			catch (Exception ex)
 			{
