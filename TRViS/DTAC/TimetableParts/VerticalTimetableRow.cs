@@ -10,7 +10,7 @@ namespace TRViS.DTAC.TimetableParts;
 
 public class VerticalTimetableRow
 {
-	const double BG_ALPHA = 0.5;
+	const double BG_ALPHA = 0.3;
 
 	private const int DRIVE_TIME_COLUMN = 0;
 	private const int STATION_NAME_COLUMN = 1;
@@ -74,7 +74,6 @@ public class VerticalTimetableRow
 		BackgroundBoxView = new BoxView
 		{
 			Color = Colors.Transparent,
-			BindingContext = this,
 			Opacity = BG_ALPHA,
 			ZIndex = DTACElementStyles.TimetableRowMarkerBackgroundZIndex,
 		};
@@ -271,9 +270,9 @@ public class VerticalTimetableRow
 	}
 
 	// Create系
-	private void CreateDriveTimeComponents()
+	private void EnsureDriveTimeComponents()
 	{
-		DriveTimeGrid ??= new()
+		EnsureComponent(ref DriveTimeGrid, () => new()
 		{
 			Margin = new Thickness(2, 0),
 			VerticalOptions = LayoutOptions.End,
@@ -284,7 +283,7 @@ public class VerticalTimetableRow
 			},
 			InputTransparent = true,
 			ZIndex = DTACElementStyles.TimetableRowRunTimeTextZIndex,
-		};
+		}, DRIVE_TIME_COLUMN);
 
 		if (!string.IsNullOrEmpty(Model.DriveTimeMM))
 		{
@@ -295,8 +294,6 @@ public class VerticalTimetableRow
 		{
 			EnsureComponent(ref DriveTimeSSLabel, DTACElementStyles.TimetableDriveTimeSSLabel<Label>, DriveTimeGrid, 1, 0);
 		}
-
-		EnsureComponent(ref DriveTimeGrid, () => DriveTimeGrid!, DRIVE_TIME_COLUMN);
 	}
 
 	private static HtmlAutoDetectLabel CreateStationNameComponent()
@@ -332,7 +329,7 @@ public class VerticalTimetableRow
 		return (open, close);
 	}
 
-	private HtmlAutoDetectLabel CreateTrackNameComponent()
+	private static HtmlAutoDetectLabel CreateTrackNameComponent()
 	{
 		var label = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
 		label.Margin = new Thickness(0);
@@ -342,8 +339,42 @@ public class VerticalTimetableRow
 		label.HorizontalTextAlignment = TextAlignment.Center;
 		label.TextColor = Colors.Red;
 		label.CurrentAppThemeColorBindingExtension = null;
-		label.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(Model.TrackName!, label.FontSize);
 		return label;
+	}
+
+	private void EnsureRunInOutLimitComponents()
+	{
+		EnsureComponent(ref RunInOutLimitGrid, () => new()
+		{
+			Margin = new Thickness(10, 4),
+			Padding = new Thickness(0),
+			RowDefinitions =
+			{
+				new RowDefinition(GridLength.Star),
+				new RowDefinition(GridLength.Star),
+			},
+			InputTransparent = true,
+		}, RUN_IN_OUT_LIMIT_COLUMN);
+
+		if (!string.IsNullOrEmpty(Model.RunInLimit))
+		{
+			EnsureComponent(ref RunInLimitLabel, () =>
+			{
+				var label = DTACElementStyles.TimetableRunLimitLabel<Label>();
+				label.HorizontalOptions = LayoutOptions.Start;
+				return label;
+			}, RunInOutLimitGrid, 0, 0);
+		}
+
+		if (!string.IsNullOrEmpty(Model.RunOutLimit))
+		{
+			EnsureComponent(ref RunOutLimitLabel, () =>
+			{
+				var label = DTACElementStyles.TimetableRunLimitLabel<Label>();
+				label.HorizontalOptions = LayoutOptions.End;
+				return label;
+			}, RunInOutLimitGrid, 0, 1);
+		}
 	}
 
 	private static HtmlAutoDetectLabel CreateRemarksComponent()
@@ -426,7 +457,7 @@ public class VerticalTimetableRow
 			return;
 		}
 
-		CreateDriveTimeComponents();
+		EnsureDriveTimeComponents();
 		UpdateDriveTimeValues();
 	}
 
@@ -549,6 +580,7 @@ public class VerticalTimetableRow
 
 		var label = EnsureComponent(ref TrackNameLabel, CreateTrackNameComponent, TRACK_NAME_COLUMN);
 		label.Text = Model.TrackName;
+		label.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(Model.TrackName, label.FontSize);
 	}
 
 	private void UpdateRunInOutLimit()
@@ -563,43 +595,6 @@ public class VerticalTimetableRow
 
 		EnsureRunInOutLimitComponents();
 		UpdateRunInOutLimitValues();
-	}
-
-	private void EnsureRunInOutLimitComponents()
-	{
-		RunInOutLimitGrid ??= new Grid
-		{
-			Margin = new Thickness(10, 4),
-			Padding = new Thickness(0),
-			RowDefinitions =
-			{
-				new RowDefinition(GridLength.Star),
-				new RowDefinition(GridLength.Star),
-			},
-			InputTransparent = true,
-		};
-
-		if (!string.IsNullOrEmpty(Model.RunInLimit))
-		{
-			EnsureComponent(ref RunInLimitLabel, () =>
-			{
-				var label = DTACElementStyles.TimetableRunLimitLabel<Label>();
-				label.HorizontalOptions = LayoutOptions.Start;
-				return label;
-			}, RunInOutLimitGrid, 0, 0);
-		}
-
-		if (!string.IsNullOrEmpty(Model.RunOutLimit))
-		{
-			EnsureComponent(ref RunOutLimitLabel, () =>
-			{
-				var label = DTACElementStyles.TimetableRunLimitLabel<Label>();
-				label.HorizontalOptions = LayoutOptions.End;
-				return label;
-			}, RunInOutLimitGrid, 0, 1);
-		}
-
-		EnsureComponent(ref RunInOutLimitGrid, () => RunInOutLimitGrid!, RUN_IN_OUT_LIMIT_COLUMN);
 	}
 
 	private void UpdateRunInOutLimitValues()
