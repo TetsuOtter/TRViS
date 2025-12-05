@@ -1,6 +1,7 @@
 using DependencyPropertyGenerator;
 
 using TRViS.Controls;
+using TRViS.DTAC.ViewModels;
 using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
@@ -98,12 +99,6 @@ public partial class VerticalStylePage : ContentView
 			OnMayChangeDebugMapVisible();
 		};
 
-		TimetableView.IsLocationServiceEnabledChanged += (_, e) =>
-		{
-			logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
-			PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
-		};
-
 		InstanceManager.LocationService.OnGpsLocationUpdated += (_, e) =>
 		{
 			if (DebugMap is null || e is null)
@@ -170,10 +165,8 @@ public partial class VerticalStylePage : ContentView
 		PageHeaderArea.IsRunningChanged += (_, e) =>
 		{
 			logger.Info("IsRunningChanged: {0}", e.NewValue);
-			TimetableView.IsRunStarted = e.NewValue;
+			TimetableView.ViewModel.IsRunStarted = e.NewValue;
 		};
-
-		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
@@ -181,11 +174,13 @@ public partial class VerticalStylePage : ContentView
 			Grid.SetRow(TimetableView, Grid.GetRow(TimetableAreaScrollView));
 			TimetableAreaScrollView.IsVisible = false;
 			MainGrid.Add(TimetableView);
+			TimetableView.ScrollView = Content as ScrollView;
 		}
 		else
 		{
 			logger.Info("Device is not Phone nor Unknown -> set TimetableView to TimetableAreaScrollView");
 			TimetableAreaScrollView.Content = TimetableView;
+			TimetableView.ScrollView = TimetableAreaScrollView;
 			TimetableAreaScrollView.PropertyChanged += (_, e) =>
 			{
 				// Bindingに失敗するため、代わり。
@@ -198,14 +193,29 @@ public partial class VerticalStylePage : ContentView
 		}
 
 		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
-		TimetableView.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 
-		TimetableView.CanUseLocationServiceChanged += (_, canUseLocationService) =>
+		TimetableView.ScrollRequested += async (_, e) =>
+		{
+
+			if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
+			{
+				logger.Debug("Device is not Phone nor Unknown -> scroll from {0} to {1}",
+					TimetableAreaScrollView.ScrollY,
+					e.PositionY);
+				await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
+			}
+			else
+			{
+				logger.Debug("Device is Phone or Unknown -> do nothing");
+			}
+		};
+
+		InstanceManager.LocationService.CanUseServiceChanged += (_, canUseLocationService) =>
 		{
 			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
 		};
-		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
+		PageHeaderArea.CanUseLocationService = InstanceManager.LocationService.CanUseService;
 
 		// WebSocket接続時に CanStart が true になったら自動で「運行開始」UI を反映する
 		InstanceManager.LocationService.CanUseServiceChanged += (_, canUseService) =>
@@ -216,7 +226,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Info("CanStart is true and NetworkSyncService is being used -> automatically set IsRunning to true and enable location service");
 				PageHeaderArea.IsRunning = true;
-				TimetableView.IsLocationServiceEnabled = true;
+				TimetableView.ViewModel.IsLocationServiceEnabled = true;
 			}
 		};
 
@@ -232,7 +242,7 @@ public partial class VerticalStylePage : ContentView
 	{
 		logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
 		PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
-		TimetableView.IsLocationServiceEnabled = e.NewValue;
+		TimetableView.ViewModel.IsLocationServiceEnabled = e.NewValue;
 		DebugMap?.SetIsLocationServiceEnabled(e.NewValue);
 	}
 
@@ -254,11 +264,11 @@ public partial class VerticalStylePage : ContentView
 
 		try
 		{
-			VerticalTimetableView_ScrollRequested(this, new(0));
 			CurrentShowingTrainData = newValue;
 			logger.Info("SelectedTrainDataChanged: {0}", newValue);
 			BindingContext = newValue;
-			TimetableView.SelectedTrainData = newValue;
+			TimetableView.ViewModel.SetTrainData(newValue);
+			InstanceManager.LocationService.SetTimetableRows(newValue?.Rows);
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
 				DebugMap?.SetTimetableRowList(newValue?.Rows);
@@ -289,21 +299,6 @@ public partial class VerticalStylePage : ContentView
 
 	partial void OnAffectDateChanged(string? newValue)
 	 => PageHeaderArea.AffectDateLabelText = newValue ?? "";
-
-	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
-	{
-		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
-		{
-			logger.Debug("Device is not Phone nor Unknown -> scroll from {0} to {1}",
-				TimetableAreaScrollView.ScrollY,
-				e.PositionY);
-			await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
-		}
-		else
-		{
-			logger.Debug("Device is Phone or Unknown -> do nothing");
-		}
-	}
 
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
 	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
@@ -415,7 +410,7 @@ public partial class VerticalStylePage : ContentView
 			return;
 		}
 		DebugMap = new MyMap();
-		DebugMap.SetTimetableRowList(TimetableView.SelectedTrainData?.Rows);
+		DebugMap.SetTimetableRowList(CurrentShowingTrainData?.Rows);
 		DebugMap.SetIsLocationServiceEnabled(PageHeaderArea.IsLocationServiceEnabled);
 		double mainWidth = 768;
 		MainColumnDefinition.Width = new(mainWidth);

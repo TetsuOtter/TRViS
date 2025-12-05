@@ -76,8 +76,9 @@ public static partial class DTACElementStyles
 
 	public const int BeforeDeparture_AfterArrive_Height = 45;
 
-	public const int TimetableRowMarkerBackgroundZIndex = 0;
-	public const int TimetableRowLocationBoxZIndex = 5;
+	public const int TimetableRowMarkerBackgroundZIndex = -1;
+	public const int TimetableRowLocationBoxZIndex = 2;
+	public const int TimetableRowMarkerBoxZIndex = 3;
 	public const int TimetableRowRunTimeTextZIndex = 10;
 
 	public const string DefaultFontFamily = "Hiragino Sans";

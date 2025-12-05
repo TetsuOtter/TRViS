@@ -1,10 +1,7 @@
 using Microsoft.Maui.Controls.Shapes;
 
-using TRViS.Controls;
 using TRViS.DTAC.TimetableParts;
 using TRViS.DTAC.ViewModels;
-using TRViS.IO.Models;
-using TRViS.Services;
 
 namespace TRViS.DTAC;
 
@@ -54,14 +51,15 @@ public partial class VerticalTimetableView
 
 		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
-		LocationService.LocationStateChanged += LocationService_LocationStateChanged;
-		LocationService.IsEnabledChanged += (_, e) => IsLocationServiceEnabled = e.NewValue;
-		LocationService.ExceptionThrown += (s, e) =>
+		InstanceManager.LocationService.ExceptionThrown += (s, e) =>
 		{
 			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
 		};
 
 		MarkerViewModel.PropertyChanged += OnMarkerViewModelPropertyChanged;
+
+		ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+		ViewModel.CurrentRows.CollectionChanged += OnCurrentRowsCollectionChangedAsync;
 
 		logger.Trace("Created");
 	}
@@ -120,10 +118,9 @@ public partial class VerticalTimetableView
 	}
 
 	int RowsCount = 0;
-	async Task SetRowViewsAsync(TrainData? trainData, TimetableRow[]? newValue, CancellationToken cancellationToken)
+	async Task SetRowViewsAsync(VerticalTimetableRowModel[]? newValue, CancellationToken cancellationToken)
 	{
 		logger.Info("Setting RowViews... (Current RowViewList.Count: {0})", RowViewList.Count);
-		RowViewList.Clear();
 
 		logger.Trace("Starting ClearOldRowViews Task...");
 		await MainThread.InvokeOnMainThreadAsync(() =>
@@ -133,12 +130,20 @@ public partial class VerticalTimetableView
 				logger.Trace("MainThread: Clearing old RowViews...");
 				IsBusy = true;
 
-				Children.Clear();
+				// Remove old RowViews
+				foreach (var rowView in RowViewList)
+				{
+					rowView.Dispose();
+				}
+				RowViewList.Clear();
+
+				// Ensure CurrentLocation markers are added
+				if (!Children.Contains(CurrentLocationBoxView))
+					Add(CurrentLocationBoxView);
+				if (!Children.Contains(CurrentLocationLine))
+					Add(CurrentLocationLine);
 
 				logger.Trace("MainThread: Clearing old RowViews Complete");
-
-				Add(CurrentLocationBoxView);
-				Add(CurrentLocationLine);
 
 				logger.Trace("MainThread: Insert CurrentLocationMarker Complete");
 			}
@@ -152,9 +157,10 @@ public partial class VerticalTimetableView
 		logger.Trace("ClearOldRowViews Task Complete");
 
 		int newCount = newValue?.Length ?? 0;
-		bool hasAfterArrive = trainData?.AfterArrive is not null;
-		bool hasNextTrainButton = trainData?.NextTrainId is not null;
-		logger.Debug("newCount: {0}, hasAfterArrive: {1}, hasNextTrainButton: {2}", newCount, hasAfterArrive, hasNextTrainButton);
+		bool hasAfterRemarks = ViewModel.AfterRemarksText is not null;
+		bool hasAfterArrive = ViewModel.AfterArriveText is not null;
+		bool hasNextTrainButton = ViewModel.NextTrainId is not null;
+		logger.Debug("newCount: {0}, hasAfterRemarks: {1}, hasAfterArrive: {2}, hasNextTrainButton: {3}", newCount, hasAfterRemarks, hasAfterArrive, hasNextTrainButton);
 		try
 		{
 			RowsCount = newCount;
@@ -167,11 +173,8 @@ public partial class VerticalTimetableView
 			await MainThread.InvokeOnMainThreadAsync(() =>
 			{
 				AfterRemarks.SetRow(newCount);
-				AfterArrive.SetRow(newCount + 1);
-				if (hasAfterArrive)
-					Grid.SetRow(NextTrainButton, newCount + 2);
-				else
-					Grid.SetRow(NextTrainButton, newCount + 1);
+				AfterArrive.SetRow(hasAfterRemarks ? newCount + 1 : newCount);
+				Grid.SetRow(NextTrainButton, hasAfterRemarks ? newCount + 2 : newCount + 1);
 			});
 
 			logger.Trace("Starting RowViewInit Task...");
@@ -239,33 +242,27 @@ public partial class VerticalTimetableView
 			{
 				logger.Trace("MainThread: Inserting Footer...");
 
-				if (trainData?.AfterRemarks is not null)
+				if (ViewModel.AfterRemarksText is not null)
 				{
-					AfterRemarks.Text = trainData.AfterRemarks;
+					AfterRemarks.Text = ViewModel.AfterRemarksText;
 					AfterRemarks.AddToParent();
 				}
 
-				if (trainData?.AfterArrive is not null)
+				if (ViewModel.AfterArriveText is not null)
 				{
-					AfterArrive.Text = trainData.AfterArrive;
+					AfterArrive.Text = ViewModel.AfterArriveText;
 					AfterArrive.AddToParent();
 				}
 
-				if (trainData?.NextTrainId is not null)
+				if (ViewModel.NextTrainId is not null)
 				{
-					NextTrainButton.NextTrainId = trainData.NextTrainId;
+					NextTrainButton.NextTrainId = ViewModel.NextTrainId;
 					this.Children.Add(NextTrainButton);
 				}
-				logger.Trace("NextTrainId: {0}", trainData?.NextTrainId);
+				logger.Trace("NextTrainId: {0}", ViewModel.NextTrainId);
 
 				IsBusy = false;
 
-				// If IsRunStarted is true and CurrentRunningRow is not set, set CurrentRunningRow to the first row
-				if (IsRunStarted && RowViewList.Count > 0 && CurrentRunningRow is null)
-				{
-					logger.Info("IsRunStarted is true and timetable rows are now created and CurrentRunningRow is not set -> set CurrentRunningRow to first row");
-					SetCurrentRunningRow(RowViewList.First());
-				}
 				logger.Trace("MainThread: FooterInsertion Complete");
 			}
 			catch (Exception ex)
@@ -280,11 +277,11 @@ public partial class VerticalTimetableView
 		logger.Info("RowViews are set");
 	}
 
-	Task AddNewRow(TimetableRow? row, int index, bool isLastRow)
+	Task AddNewRow(VerticalTimetableRowModel? model, int index, bool isLastRow)
 	{
-		if (row is null)
+		if (model is null)
 		{
-			logger.Trace("row is null -> skipping...");
+			logger.Trace("model is null -> skipping...");
 			return Task.CompletedTask;
 		}
 
@@ -293,35 +290,12 @@ public partial class VerticalTimetableView
 			logger.Debug("MainThread: Adding new Row (index: {0}, isLastRow: {1}, isInfoRow: {2}, Text: {3})",
 				index,
 				isLastRow,
-				row.IsInfoRow,
-				row.StationName
+				model.IsInfoRow,
+				model.InfoText ?? model.StationName
 			);
 
 			try
 			{
-				VerticalTimetableRowModel model = new()
-				{
-					RowIndex = index,
-					IsInfoRow = row.IsInfoRow,
-					InfoText = row.IsInfoRow ? row.StationName : null,
-					IsMarkingMode = MarkerViewModel.IsToggled,
-					DriveTimeMM = row.DriveTimeMM?.ToString(),
-					DriveTimeSS = row.DriveTimeSS?.ToString(),
-					StationName = row.StationName,
-					IsPass = row.IsPass,
-					ArrivalTime = row.ArriveTime,
-					HasBracket = row.HasBracket,
-					DepartureTime = row.DepartureTime,
-					IsLastStop = row.IsLastStop,
-					IsOperationOnlyStop = row.IsOperationOnlyStop,
-					TrackName = row.TrackName,
-					RunInLimit = row.RunInLimit?.ToString(),
-					RunOutLimit = row.RunOutLimit?.ToString(),
-					Remarks = row.Remarks,
-					MarkerColor = row.DefaultMarkerColor_RGB is not null ? Color.FromRgb((byte)((row.DefaultMarkerColor_RGB >> 16) & 0xFF), (byte)((row.DefaultMarkerColor_RGB >> 8) & 0xFF), (byte)(row.DefaultMarkerColor_RGB & 0xFF)) : null,
-					MarkerText = row.DefaultMarkerText,
-				};
-
 				VerticalTimetableRow rowView = new(this, model, ColumnVisibilityState, MarkerViewModel, isLastRow);
 				rowView.RowTapped += RowTapped;
 				rowView.MarkerBoxClicked += OnMarkerBoxClicked;

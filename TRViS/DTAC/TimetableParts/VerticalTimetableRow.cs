@@ -8,7 +8,7 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC.TimetableParts;
 
-public class VerticalTimetableRow
+public class VerticalTimetableRow : IDisposable
 {
 	const double BG_ALPHA = 0.3;
 
@@ -25,7 +25,10 @@ public class VerticalTimetableRow
 	private VerticalTimetableColumnVisibilityState VisibilityState { get; }
 	public VerticalTimetableRowModel Model { get; }
 
-	private readonly BoxView BackgroundBoxView;
+	[MemberNotNullWhen(false, nameof(BackgroundBoxView))]
+	private bool _disposed { get; set; } = false;
+
+	private BoxView? BackgroundBoxView;
 
 	// DriveTime components
 	private Grid? DriveTimeGrid;
@@ -197,10 +200,25 @@ public class VerticalTimetableRow
 		component = null;
 	}
 
+	[MemberNotNull(nameof(BackgroundBoxView))]
 	private T EnsureComponent<T>([NotNull] ref T? component, Func<T> createFunc, int column) where T : View
-		=> EnsureComponent(ref component, createFunc, ParentGrid, column, Model.RowIndex);
-	private static T EnsureComponent<T>([NotNull] ref T? component, Func<T> createFunc, Grid parentGrid, int column, int row) where T : View
 	{
+		if (_disposed)
+			throw new ObjectDisposedException(nameof(VerticalTimetableRow));
+
+		component ??= createFunc();
+		if (component.Parent is null)
+		{
+			ParentGrid.Add(component, column, Model.RowIndex);
+		}
+		return component;
+	}
+
+	private T EnsureComponent<T>([NotNull] ref T? component, Func<T> createFunc, Grid parentGrid, int column, int row) where T : View
+	{
+		if (_disposed)
+			throw new ObjectDisposedException(nameof(VerticalTimetableRow));
+
 		component ??= createFunc();
 		if (component.Parent is null)
 		{
@@ -282,7 +300,7 @@ public class VerticalTimetableRow
 				new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
 			},
 			InputTransparent = true,
-			ZIndex = DTACElementStyles.TimetableRowRunTimeTextZIndex,
+			ZIndex = DTACElementStyles.TimetableRowRunTimeTextZIndex + 1,
 		}, DRIVE_TIME_COLUMN);
 
 		if (!string.IsNullOrEmpty(Model.DriveTimeMM))
@@ -642,6 +660,7 @@ public class VerticalTimetableRow
 				WidthRequest = 40,
 				Shadow = DTACElementStyles.DefaultShadow,
 				Opacity = 0.9,
+				ZIndex = DTACElementStyles.TimetableRowMarkerBoxZIndex,
 			};
 			button.Shadow.Offset = new Point(2, 2);
 			button.Shadow.Radius = 2;
@@ -661,6 +680,46 @@ public class VerticalTimetableRow
 			BackgroundBoxView.Color = Model.MarkerColor;
 		}
 		MarkerBox.Text = LimitMarkerText(Model.MarkerText);
+	}
+
+	private void DisposeComponents()
+	{
+		RemoveComponent(ref BackgroundBoxView);
+		RemoveComponent(ref DriveTimeGrid);
+		DriveTimeMMLabel = null;
+		DriveTimeSSLabel = null;
+		RemoveComponent(ref StationNameLabel);
+		RemoveComponent(ref ArrivalTimeCell);
+		if (Brackets is var (open, close))
+		{
+			RemoveComponent(ref open);
+			RemoveComponent(ref close);
+		}
+		Brackets = null;
+		if (OpOnlyStopBrackets is var (opOpen, opClose))
+		{
+			RemoveComponent(ref opOpen);
+			RemoveComponent(ref opClose);
+		}
+		OpOnlyStopBrackets = null;
+		RemoveComponent(ref DepartureTimeCell);
+		RemoveComponent(ref LastStopLineGrid);
+		RemoveComponent(ref TrackNameLabel);
+		RemoveComponent(ref RunInOutLimitGrid);
+		RunInLimitLabel = null;
+		RunOutLimitLabel = null;
+		RemoveComponent(ref RemarksLabel);
+		RemoveComponent(ref MarkerBox);
+		RemoveComponent(ref InfoRowLabel);
+	}
+
+	public void Dispose()
+	{
+		if (_disposed)
+			return;
+
+		_disposed = true;
+		DisposeComponents();
 	}
 
 	private void UpdateDriveTimeTextColor()
