@@ -10,14 +10,14 @@
 	<Grid.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
-				<ResourceDictionary Source="../Style_VerticalView.xaml" />
+				<ResourceDictionary Source="../Style_VerticalView.xaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Grid.Resources>
 
 	<Grid.ColumnDefinitions>
-		<ColumnDefinition Width="72"/>
-		<ColumnDefinition Width="24"/>
+		<ColumnDefinition Width="90"/>
+		<ColumnDefinition Width="30"/>
 	</Grid.ColumnDefinitions>
 
 	<Label

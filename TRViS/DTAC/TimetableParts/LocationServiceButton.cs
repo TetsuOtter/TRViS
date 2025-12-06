@@ -11,9 +11,9 @@ public class LocationServiceButton : ToggleButton
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	const float CornerRadius = 5;
-	const float SelectedRectMargin = 2;
-	const float SelectedRectThickness = 1;
-	const float NotSelectedRectMargin = 1;
+	const float SelectedRectMargin = 4;
+	const float SelectedRectThickness = 2;
+	const float NotSelectedRectMargin = 2;
 
 	readonly Label Label_Location = DTACElementStyles.LargeLabelStyle<Label>();
 	readonly Label Label_ON = DTACElementStyles.LabelStyle<Label>();

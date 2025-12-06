@@ -6,7 +6,6 @@ namespace TRViS.DTAC;
 public class BeforeDeparture_AfterArrive
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	public readonly RowDefinition RowDefinition = new(DTACElementStyles.BeforeDeparture_AfterArrive_Height);
 
 	readonly BoxView HeaderBoxView = new()
 	{
@@ -69,11 +68,30 @@ public class BeforeDeparture_AfterArrive
 
 	public void AddToParent()
 	{
+		if (Parent.Contains(HeaderBoxView) || Parent.Contains(HeaderLabel) || Parent.Contains(Label))
+		{
+			logger.Trace("Elements are already added to Parent, skipping...");
+			return;
+		}
+
 		Parent.Add(HeaderBoxView);
 		Parent.Add(HeaderLabel);
 		Grid.SetColumn(Label, 1);
 		Grid.SetColumnSpan(Label, 7);
 		Parent.Add(Label);
+	}
+
+	public void RemoveFromParent()
+	{
+		if (!Parent.Contains(HeaderBoxView) && !Parent.Contains(HeaderLabel) && !Parent.Contains(Label))
+		{
+			logger.Trace("Elements are not in Parent, skipping...");
+			return;
+		}
+
+		Parent.Remove(HeaderBoxView);
+		Parent.Remove(HeaderLabel);
+		Parent.Remove(Label);
 	}
 
 	bool _IsVisible = false;
