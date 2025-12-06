@@ -36,7 +36,7 @@ public static class PerformanceHelper
 		{
 			PerformanceLevel.Low => 250,
 			PerformanceLevel.Medium => 100,
-			PerformanceLevel.High => 0,
+			PerformanceLevel.High => 25,
 			_ => 100
 		};
 
@@ -49,8 +49,8 @@ public static class PerformanceHelper
 		=> performanceLevel switch
 		{
 			PerformanceLevel.Low => 1,
-			PerformanceLevel.Medium => 5,
-			PerformanceLevel.High => 0,
+			PerformanceLevel.Medium => 2,
+			PerformanceLevel.High => 4,
 			_ => 5
 		};
 
@@ -64,7 +64,7 @@ public static class PerformanceHelper
 		{
 			PerformanceLevel.Low => 16,
 			PerformanceLevel.Medium => 8,
-			PerformanceLevel.High => 0,
+			PerformanceLevel.High => 4,
 			_ => 8
 		};
 
