@@ -60,6 +60,7 @@ public class VerticalTimetableRow : IDisposable
 
 	// Marker component
 	private Button? MarkerBox;
+	private BoxView? MarkerTransparentBox;
 
 	// InfoRow component
 	private HtmlAutoDetectLabel? InfoRowLabel;
@@ -638,6 +639,7 @@ public class VerticalTimetableRow : IDisposable
 		if (Model.IsInfoRow || !VisibilityState.Marker || (!Model.IsMarkingMode && Model.MarkerColor is null))
 		{
 			RemoveComponent(ref MarkerBox);
+			RemoveComponent(ref MarkerTransparentBox);
 			BackgroundBoxView!.Color = Colors.Transparent;
 			return;
 		}
@@ -667,6 +669,19 @@ public class VerticalTimetableRow : IDisposable
 			button.Clicked += OnMarkerBoxClicked;
 			return button;
 		}, MARKER_COLUMN);
+
+		// マーカー列をタップしてもRowTappedが発火しないようにするための透明なBoxView
+		// トグルする際の誤タップを防止するためのため、MarkingMode時のみ機能を有効にする
+		EnsureComponent(ref MarkerTransparentBox, () =>
+		{
+			return new BoxView
+			{
+				Color = Colors.Transparent,
+				ZIndex = DTACElementStyles.TimetableRowMarkerBoxZIndex - 1,
+			};
+		}, MARKER_COLUMN);
+		MarkerTransparentBox.InputTransparent = !Model.IsMarkingMode;
+
 		MarkerBox.IsEnabled = Model.IsMarkingMode;
 		if (Model.MarkerColor is null)
 		{
@@ -710,6 +725,7 @@ public class VerticalTimetableRow : IDisposable
 		RunOutLimitLabel = null;
 		RemoveComponent(ref RemarksLabel);
 		RemoveComponent(ref MarkerBox);
+		RemoveComponent(ref MarkerTransparentBox);
 		RemoveComponent(ref InfoRowLabel);
 	}
 
