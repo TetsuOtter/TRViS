@@ -296,6 +296,7 @@ public partial class VerticalTimetableView : Grid
 				{
 					Grid.SetRow(CurrentLocationBoxView, ViewModel.LocationMarkerPosition);
 					Grid.SetRow(CurrentLocationLine, ViewModel.LocationMarkerPosition);
+					Utils.PerformHaptic(HapticFeedbackType.Click);
 				}
 				else
 				{
