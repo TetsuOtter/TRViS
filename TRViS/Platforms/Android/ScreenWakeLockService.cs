@@ -1,5 +1,8 @@
 using Android.Views;
 
+using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+
 using TRViS.Services;
 
 namespace TRViS.Platforms.Android;
