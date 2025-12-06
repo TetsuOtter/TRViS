@@ -166,6 +166,14 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Info("IsRunningChanged: {0}", e.NewValue);
 			TimetableView.ViewModel.IsRunStarted = e.NewValue;
+
+			// 運行終了時にLocationServiceを無効化
+			if (!e.NewValue)
+			{
+				logger.Info("IsRunning is changed to false -> disable LocationService");
+				InstanceManager.LocationService.IsEnabled = false;
+				PageHeaderArea.IsLocationServiceEnabled = false;
+			}
 		};
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
