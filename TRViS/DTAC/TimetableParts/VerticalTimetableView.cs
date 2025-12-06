@@ -493,14 +493,12 @@ public partial class VerticalTimetableView : Grid
 				}
 
 				logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
-				int batchSize = PerformanceHelper.RowsBatchSize;
 				int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
 				for (int i = 0; i < newCount; i++)
 				{
 					cancellationToken.ThrowIfCancellationRequested();
 					await AddNewRowAsync(newValue![i], i, i == lastTimetableRowIndex);
-					if (0 < batchSize && i % batchSize == batchSize - 1)
-						await Task.Delay(renderDelayMs, cancellationToken);
+					await Task.Delay(renderDelayMs, cancellationToken);
 				}
 				logger.Trace("Task: RowViewInit Complete");
 			}
