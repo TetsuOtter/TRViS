@@ -484,7 +484,14 @@ public class VerticalTimetableRow : IDisposable
 	{
 		if (!string.IsNullOrEmpty(Model.DriveTimeMM) && DriveTimeMMLabel is not null)
 		{
-			DriveTimeMMLabel.Text = Model.DriveTimeMM;
+			if (2 < Model.DriveTimeMM.Length)
+			{
+				DriveTimeMMLabel.Text = "**";
+			}
+			else
+			{
+				DriveTimeMMLabel.Text = Model.DriveTimeMM;
+			}
 		}
 		if (!string.IsNullOrEmpty(Model.DriveTimeSS) && DriveTimeSSLabel is not null)
 		{
