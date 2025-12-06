@@ -147,6 +147,34 @@
 							VerticalOptions="Center"
 							IsToggled="{Binding ShowMapWhenLandscape}"/>
 					</HorizontalStackLayout>
+					<HorizontalStackLayout
+						x:Name="KeepScreenOnWhenRunningHeaderLabel"
+						HorizontalOptions="End">
+						<Label
+							Text="運行中は画面OFFを抑制する"
+							Margin="0,0,8,0"
+							VerticalOptions="Center"/>
+						<Switch
+							OnColor="GreenYellow"
+							VerticalOptions="Center"
+							IsToggled="{Binding KeepScreenOnWhenRunning}"/>
+					</HorizontalStackLayout>
+				</VerticalStackLayout>
+			</Border>
+			<Border>
+				<VerticalStackLayout Spacing="8">
+					<Label
+						Text="アプリのテーマ"
+						FontSize="Header"/>
+					<Picker
+						x:Name="AppThemePicker"
+						SelectedIndexChanged="OnAppThemePickerSelectedIndexChanged">
+						<Picker.Items>
+							<x:String>システムに従う</x:String>
+							<x:String>ライト</x:String>
+							<x:String>ダーク</x:String>
+						</Picker.Items>
+					</Picker>
 				</VerticalStackLayout>
 			</Border>
 			<Border>

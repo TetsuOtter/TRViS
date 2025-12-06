@@ -365,6 +365,13 @@ public partial class ViewHost : ContentPage
 			logger.Debug("Leaving ViewHost, resetting orientation to All");
 			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
 		}
+
+		// Disable wake lock when leaving ViewHost
+		if (InstanceManager.ScreenWakeLockService.IsWakeLockEnabled)
+		{
+			logger.Debug("Leaving ViewHost, disabling wake lock");
+			InstanceManager.ScreenWakeLockService.DisableWakeLock();
+		}
 	}
 
 	async void TitleLabel_Tapped(object sender, EventArgs e)
