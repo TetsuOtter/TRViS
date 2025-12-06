@@ -68,9 +68,12 @@ public static partial class DTACElementStyles
 
 	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
 
-	public static readonly double DefaultTextSize = 16;
-	public static readonly double DefaultTextSizePlus = 17;
-	public static readonly double LargeTextSize = 24;
+	public const double DefaultTextSize = 16;
+	public const double DefaultTextSizePlus = 17;
+	public const double LargeTextSize = 24;
+	public const double AffectDateFontSize = 18;
+	public const double BEFORE_REMARKS_FONT_SIZE = 17;
+	public const double AFTER_REMARKS_FONT_SIZE = 20;
 	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 32 : 30;
 	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 26 : 24;
 	public static readonly double DriveTimeMMFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
@@ -83,6 +86,8 @@ public static partial class DTACElementStyles
 	public const int TimetableRowLocationBoxZIndex = 2;
 	public const int TimetableRowMarkerBoxZIndex = 3;
 	public const int TimetableRowRunTimeTextZIndex = 10;
+
+	public const double BEFORE_REMARKS_LEFT_MARGIN = 20;
 
 	public const string DefaultFontFamily = "Hiragino Sans";
 	public const string MaterialIconFontFamily = "MaterialIconsRegular";
@@ -243,9 +248,9 @@ public static partial class DTACElementStyles
 
 			_BeforeRemarksStyleResource.Setters.Add(Label.HorizontalOptionsProperty, LayoutOptions.Start);
 			_BeforeRemarksStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
-			_BeforeRemarksStyleResource.Setters.Add(Label.FontSizeProperty, DefaultTextSizePlus);
-			_BeforeRemarksStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.5);
-			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(32, 0, 0, 10));
+			_BeforeRemarksStyleResource.Setters.Add(Label.FontSizeProperty, BEFORE_REMARKS_FONT_SIZE);
+			_BeforeRemarksStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.25);
+			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(BEFORE_REMARKS_LEFT_MARGIN, -BEFORE_REMARKS_FONT_SIZE, 0, 8));
 
 			return _BeforeRemarksStyleResource;
 		}
@@ -256,11 +261,10 @@ public static partial class DTACElementStyles
 
 		v.HorizontalOptions = LayoutOptions.Start;
 		v.VerticalOptions = LayoutOptions.Start;
-		v.FontSize = DefaultTextSizePlus;
+		v.FontSize = AFTER_REMARKS_FONT_SIZE;
 		v.FontAttributes = FontAttributes.Bold;
-		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.6;
-		// LineHeight分だけ上に隙間が空くため、MarginTopは設定しない
-		v.Margin = new(32, 0, 0, 0);
+		v.LineHeight = DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.25;
+		v.Margin = new(0, 0, 0, -AFTER_REMARKS_FONT_SIZE);
 
 		return v;
 	}
@@ -298,11 +302,13 @@ public static partial class DTACElementStyles
 	{
 		T v = LabelStyle<T>();
 
-		v.Margin = new(18, 0, 0, 0);
+		v.Margin = new(18, -8, 0, -8);
 		v.LineHeight = 1.4;
-		v.FontSize = 16;
+		v.FontSize = AffectDateFontSize;
 		v.HorizontalOptions = LayoutOptions.Start;
+		v.VerticalOptions = LayoutOptions.Center;
 		v.Text = AffectDateLabelTextPrefix;
+		Grid.SetColumnSpan(v, 4);
 
 		return v;
 	}

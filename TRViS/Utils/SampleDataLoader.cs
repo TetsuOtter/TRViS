@@ -40,7 +40,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		NominalTractiveCapacity: "ＨＰ９９９形\n現車　　　１両\n換算　２０.０",
 		CarCount: 1,
 		Destination: "終点",
-		BeginRemarks: "(入換)",
+		BeginRemarks: "(入換1行目)\n(入換2行目)",
 		AfterRemarks: "(入区)",
 		Remarks: "サンプルデータです。\n車掌省略",
 		BeforeDeparture: "転線   10分",
