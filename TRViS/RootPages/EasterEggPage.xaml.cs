@@ -22,6 +22,15 @@ public partial class EasterEggPage : ContentPage
 		// Initialize AppThemePicker selection based on ViewModel
 		UpdateAppThemePickerSelection();
 
+		// Update picker when ViewModel's SelectedAppTheme changes
+		ViewModel.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName == nameof(EasterEggPageViewModel.SelectedAppTheme))
+			{
+				UpdateAppThemePickerSelection();
+			}
+		};
+
 #if IOS || MACCATALYST
 		ShowMapWhenLandscapeHeaderLabel.IsVisible = DeviceInfo.Idiom != DeviceIdiom.Phone;
 #else
