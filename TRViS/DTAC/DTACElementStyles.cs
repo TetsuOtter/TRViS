@@ -68,13 +68,16 @@ public static partial class DTACElementStyles
 
 	public static readonly AppThemeColorBindingExtension StartEndRunButtonTextColor = genColor(0xFF, 0xE0);
 
-	public static readonly double DefaultTextSize = 14;
-	public static readonly double DefaultTextSizePlus = 15;
+	public static readonly double DefaultTextSize = 16;
+	public static readonly double DefaultTextSizePlus = 17;
 	public static readonly double LargeTextSize = 24;
-	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
-	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 24 : 22;
+	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 32 : 30;
+	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 26 : 24;
+	public static readonly double DriveTimeMMFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+	public static readonly double DriveTimeSSFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 18 : 16;
 
-	public const int BeforeDeparture_AfterArrive_Height = 45;
+	public const int TRAIN_INFO_HEIGHT = 50;
+	public const int BEFORE_DEPARTURE_HEIGHT = 45;
 
 	public const int TimetableRowMarkerBackgroundZIndex = -1;
 	public const int TimetableRowLocationBoxZIndex = 2;
@@ -101,7 +104,7 @@ public static partial class DTACElementStyles
 	public static void SetTimetableColumnWidthCollection(Grid grid)
 	{
 		ColumnDefinition runTimeColumn = new(new(RUN_TIME_COLUMN_WIDTH));
-		ColumnDefinition trackNameColumn = new(new(140));
+		ColumnDefinition stationNameColumn = new(new(140));
 		ColumnDefinition arrivalDepartureTimeColumn = new(new(140));
 		ColumnDefinition trackNumberColumn = new(new(60));
 		ColumnDefinition speedLimitColumn = new(new(60));
@@ -109,7 +112,7 @@ public static partial class DTACElementStyles
 		ColumnDefinition markerColumn = new(new(64));
 		grid.ColumnDefinitions = [
 			runTimeColumn,
-			trackNameColumn,
+			stationNameColumn,
 			arrivalDepartureTimeColumn,
 			arrivalDepartureTimeColumn,
 			trackNumberColumn,
@@ -437,7 +440,7 @@ public static partial class DTACElementStyles
 	{
 		T v = TimetableLargeNumberLabel<T>();
 
-		v.FontSize = 26;
+		v.FontSize = DriveTimeMMFontSize;
 		v.Margin = v.Padding = new(0);
 		v.HorizontalOptions = LayoutOptions.End;
 
@@ -448,7 +451,7 @@ public static partial class DTACElementStyles
 	{
 		T v = TimetableLargeNumberLabel<T>();
 
-		v.FontSize = 18;
+		v.FontSize = DriveTimeSSFontSize;
 		v.Margin = new(1);
 		v.Padding = new(0);
 		v.HorizontalOptions = LayoutOptions.Start;

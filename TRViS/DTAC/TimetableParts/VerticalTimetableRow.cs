@@ -351,7 +351,7 @@ public class VerticalTimetableRow : IDisposable
 	private static HtmlAutoDetectLabel CreateTrackNameComponent()
 	{
 		var label = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
-		label.Margin = new Thickness(0);
+		label.Margin = new Thickness(-8);
 		label.Padding = new Thickness(0);
 		label.HorizontalOptions = LayoutOptions.Center;
 		label.VerticalOptions = LayoutOptions.Center;
@@ -365,7 +365,7 @@ public class VerticalTimetableRow : IDisposable
 	{
 		EnsureComponent(ref RunInOutLimitGrid, () => new()
 		{
-			Margin = new Thickness(10, 4),
+			Margin = new Thickness(8, 4),
 			Padding = new Thickness(0),
 			RowDefinitions =
 			{
@@ -548,6 +548,9 @@ public class VerticalTimetableRow : IDisposable
 			ParentGrid.Add(open, ARRIVAL_TIME_COLUMN, Model.RowIndex);
 			ParentGrid.Add(close, ARRIVAL_TIME_COLUMN, Model.RowIndex);
 		}
+
+		// Update OpOnlyStopBrackets visibility when both Brackets and OpOnlyStopBrackets are present
+		UpdateOpOnlyStopBracketsVisibility();
 	}
 
 	private void UpdateOperationOnlyStop()
@@ -569,6 +572,9 @@ public class VerticalTimetableRow : IDisposable
 			ParentGrid.Add(opOpen, ARRIVAL_TIME_COLUMN, Model.RowIndex);
 			ParentGrid.Add(opClose, DEPARTURE_TIME_COLUMN, Model.RowIndex);
 		}
+
+		// Update OpOnlyStopBrackets visibility when both Brackets and OpOnlyStopBrackets are present
+		UpdateOpOnlyStopBracketsVisibility();
 	}
 
 	private void UpdateDepartureTime()
@@ -756,5 +762,18 @@ public class VerticalTimetableRow : IDisposable
 		AppThemeColorBindingExtension color = Model.IsLocationMarkerOnThisRow ? DTACElementStyles.TimetableTextInvColor : DTACElementStyles.TimetableTextColor;
 		color.Apply(DriveTimeMMLabel, Label.TextColorProperty);
 		color.Apply(DriveTimeSSLabel, Label.TextColorProperty);
+	}
+
+	/// <summary>
+	/// OpOnlyStopBrackets の Open 側の表示/非表示を制御します
+	/// Brackets が存在する場合、OpOnlyStopBrackets の Open 側を非表示にします
+	/// </summary>
+	private void UpdateOpOnlyStopBracketsVisibility()
+	{
+		if (OpOnlyStopBrackets is var (opOpen, _))
+		{
+			// Brackets が存在する場合、OpOnlyStopBrackets の Open 側を非表示にする
+			opOpen.IsVisible = Brackets is null;
+		}
 	}
 }

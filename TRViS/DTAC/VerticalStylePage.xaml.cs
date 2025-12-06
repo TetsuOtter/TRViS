@@ -15,12 +15,12 @@ namespace TRViS.DTAC;
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
-	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;
+	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 68;
+	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 58;
+	const double TRAIN_INFO_ROW_HEIGHT = 58;
+	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.TRAIN_INFO_HEIGHT + DTACElementStyles.BEFORE_DEPARTURE_HEIGHT;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
-	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
+	const double TIMETABLE_HEADER_ROW_HEIGHT = 65;
 
 	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
 	ColumnDefinition MainColumnDefinition { get; } = new(new(1, GridUnitType.Star));

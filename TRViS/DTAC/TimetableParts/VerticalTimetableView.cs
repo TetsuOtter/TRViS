@@ -27,7 +27,7 @@ public partial class VerticalTimetableView : Grid
 	#region Constants
 
 	public static readonly Color CURRENT_LOCATION_MARKER_COLOR = new(0x00, 0x88, 0x00);
-	public static readonly GridLength RowHeight = new(60);
+	public static readonly GridLength RowHeight = new(65);
 
 	#endregion
 
