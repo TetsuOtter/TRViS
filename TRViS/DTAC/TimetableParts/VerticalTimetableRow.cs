@@ -414,7 +414,7 @@ public class VerticalTimetableRow : IDisposable
 			return;
 		}
 
-		EnsureComponent(ref InfoRowLabel, DTACElementStyles.LargeHtmlAutoDetectLabelStyle<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
+		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
 		InfoRowLabel.Text = Model.InfoText;
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);

@@ -379,6 +379,18 @@ public static partial class DTACElementStyles
 		return v;
 	}
 
+	public static T TimetableInfoRowHtmlAutoDetectLabel<T>() where T : HtmlAutoDetectLabel, new()
+	{
+		T v = HtmlAutoDetectLabelStyle<T>();
+
+		v.CurrentAppThemeColorBindingExtension = TimetableTextColor;
+		v.Margin = new(0);
+		v.FontSize = TimetableFontSize;
+		v.InputTransparent = true;
+
+		return v;
+	}
+
 	static Style? _timetableLargeNumberLabelStyleResource = null;
 	public static Style TimetableLargeNumberLabelStyleResource
 	{
