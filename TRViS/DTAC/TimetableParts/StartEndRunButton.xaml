@@ -11,8 +11,8 @@
 		Margin="0"
 		Padding="4"
 		Stroke="Transparent"
-		VerticalOptions="Center"
-		HorizontalOptions="Center">
+		VerticalOptions="Fill"
+		HorizontalOptions="Fill">
 		<Border.StrokeShape>
 			<RoundRectangle CornerRadius="8"/>
 		</Border.StrokeShape>
@@ -24,7 +24,7 @@
 				Text="&#xe039;"
 				TextColor="{x:Static local:DTACElementStyles.StartEndRunButtonTextColor}"
 				FontFamily="MaterialIconsRegular"
-				FontSize="32"
+				FontSize="36"
 				FontAutoScalingEnabled="False"
 				VerticalOptions="Center"
 				Margin="2"
@@ -46,7 +46,7 @@
 				Text="運行開始"
 				TextColor="{x:Static local:DTACElementStyles.StartEndRunButtonTextColor}"
 				FontFamily="Hiragino Sans"
-				FontSize="24"
+				FontSize="28"
 				FontAutoScalingEnabled="False"
 				FontAttributes="Bold"
 				VerticalOptions="Center"

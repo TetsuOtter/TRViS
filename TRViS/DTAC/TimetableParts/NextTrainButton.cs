@@ -12,7 +12,7 @@ public class NextTrainButton : Grid
 		FontSize = DTACElementStyles.LargeTextSize,
 		TextColor = Colors.White,
 		FontAttributes = FontAttributes.Bold,
-		Margin = new(32, 8),
+		Margin = new(32, 10),
 		MinimumWidthRequest = 400,
 		CornerRadius = 4,
 		Shadow = DTACElementStyles.DefaultShadow,

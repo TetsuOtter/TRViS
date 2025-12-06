@@ -16,8 +16,8 @@
 		<!-- 列車 -->
 		<ColumnDefinition Width="270"/>
 		<!-- 最高速度 -->
-		<ColumnDefinition Width="120"/>
-		<!-- 速度種別 (Default: 210) -->
+		<ColumnDefinition Width="130"/>
+		<!-- 速度種別 (Default: 200) -->
 		<ColumnDefinition Width="*"/>
 		<!-- けん引定数 -->
 		<ColumnDefinition Width="168"/>

@@ -193,7 +193,6 @@ public class SimpleView : Grid
 			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
 				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
 
-			int batchSize = PerformanceHelper.RowsBatchSize;
 			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
 
 			for (int i = 0; i < orderedTrainDataList.Count; i++)
@@ -226,8 +225,7 @@ public class SimpleView : Grid
 
 				token.ThrowIfCancellationRequested();
 
-				if (0 < batchSize && i % batchSize == batchSize - 1)
-					await Task.Delay(renderDelayMs, token);
+				await Task.Delay(renderDelayMs, token);
 			}
 		}
 		finally
