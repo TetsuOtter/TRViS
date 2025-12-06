@@ -218,7 +218,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
-				StationName: "<span style=\"color:red\">交  直  切  換  2</span>",
+				StationName: "[b][color=#FF0000]　　　　　交  直  切  換  2[/color][/b]",
 				IsOperationOnlyStop: false,
 				IsPass: false,
 				HasBracket: false,
