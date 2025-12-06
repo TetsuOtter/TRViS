@@ -91,6 +91,23 @@ public partial class VerticalStylePage : ContentView
 			{
 				MainThread.BeginInvokeOnMainThread(OnMayChangeDebugMapVisible);
 			}
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.KeepScreenOnWhenRunning))
+			{
+				// Handle wake lock setting change during runtime
+				if (TimetableView.ViewModel.IsRunStarted)
+				{
+					if (eevm.KeepScreenOnWhenRunning)
+					{
+						logger.Info("KeepScreenOnWhenRunning is enabled during run -> enable wake lock");
+						InstanceManager.ScreenWakeLockService.EnableWakeLock();
+					}
+					else
+					{
+						logger.Info("KeepScreenOnWhenRunning is disabled during run -> disable wake lock");
+						InstanceManager.ScreenWakeLockService.DisableWakeLock();
+					}
+				}
+			}
 		};
 
 		DeviceDisplay.Current.MainDisplayInfoChanged += (_, e) =>
@@ -173,6 +190,22 @@ public partial class VerticalStylePage : ContentView
 				logger.Info("IsRunning is changed to false -> disable LocationService");
 				InstanceManager.LocationService.IsEnabled = false;
 				PageHeaderArea.IsLocationServiceEnabled = false;
+
+				// Disable wake lock when run ends
+				if (InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
+				{
+					logger.Info("IsRunning is changed to false -> disable wake lock");
+					InstanceManager.ScreenWakeLockService.DisableWakeLock();
+				}
+			}
+			else
+			{
+				// Enable wake lock when run starts if setting is enabled
+				if (InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
+				{
+					logger.Info("IsRunning is changed to true -> enable wake lock");
+					InstanceManager.ScreenWakeLockService.EnableWakeLock();
+				}
 			}
 		};
 
