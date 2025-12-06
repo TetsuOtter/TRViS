@@ -41,9 +41,26 @@ public class AfterRemarks
 
 	public void AddToParent()
 	{
+		if (Parent.Contains(Label))
+		{
+			logger.Trace("Label is already added to Parent, skipping...");
+			return;
+		}
+
 		Grid.SetColumn(Label, 2);
 		Grid.SetColumnSpan(Label, 6);
 		Parent.Add(Label);
+	}
+
+	public void RemoveFromParent()
+	{
+		if (!Parent.Contains(Label))
+		{
+			logger.Trace("Label is not in Parent, skipping...");
+			return;
+		}
+
+		Parent.Remove(Label);
 	}
 
 	bool _IsVisible = false;
