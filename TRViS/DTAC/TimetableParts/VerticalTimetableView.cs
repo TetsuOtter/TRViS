@@ -1,6 +1,9 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+
 using DependencyPropertyGenerator;
 
-using System.ComponentModel;
+using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.DTAC.TimetableParts;
 using TRViS.DTAC.ViewModels;
@@ -12,16 +15,40 @@ namespace TRViS.DTAC;
 [DependencyProperty<double>("ScrollViewHeight", DefaultValue = 0)]
 public partial class VerticalTimetableView : Grid
 {
+	#region Nested Types
+
 	public class ScrollRequestedEventArgs(double PositionY) : EventArgs
 	{
 		public double PositionY { get; } = PositionY;
 	}
 
-	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	static public readonly GridLength RowHeight = new(60);
+	#endregion
 
-	public event EventHandler<bool>? IsBusyChanged;
-	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
+	#region Constants
+
+	public static readonly Color CURRENT_LOCATION_MARKER_COLOR = new(0x00, 0x88, 0x00);
+	public static readonly GridLength RowHeight = new(60);
+
+	#endregion
+
+	#region Fields
+
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+	private CancellationTokenSource? _currentSetRowViewsCancellationTokenSource = null;
+
+	private bool _isBusy = false;
+	private readonly BoxView CurrentLocationBoxView;
+	private readonly BoxView CurrentLocationLine;
+	private readonly AfterRemarks AfterRemarks;
+	private readonly BeforeDeparture_AfterArrive AfterArrive;
+	private readonly NextTrainButton NextTrainButton = [];
+	private readonly List<VerticalTimetableRow> RowViewList = [];
+	private readonly Line TopSeparatorLine;
+	private readonly List<Line> SeparatorLines = [];
+
+	#endregion
+
+	#region Properties
 
 	public DTACMarkerViewModel MarkerViewModel { get; } = InstanceManager.DTACMarkerViewModel;
 
@@ -29,7 +56,6 @@ public partial class VerticalTimetableView : Grid
 
 	public VerticalTimetableViewModel ViewModel { get; } = new();
 
-	private bool _isBusy = false;
 	private bool IsBusy
 	{
 		get => _isBusy;
@@ -52,7 +78,79 @@ public partial class VerticalTimetableView : Grid
 		}
 	}
 
-	CancellationTokenSource? _currentSetRowViewsCancellationTokenSource = null;
+	#endregion
+
+	#region Events
+
+	public event EventHandler<bool>? IsBusyChanged;
+	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
+
+	#endregion
+
+	#region Constructor
+
+	public VerticalTimetableView()
+	{
+		logger.Trace("Creating...");
+
+		// Initialize location marker views
+		CurrentLocationBoxView = new()
+		{
+			IsVisible = false,
+			HeightRequest = RowHeight.Value,
+			WidthRequest = DTACElementStyles.RUN_TIME_COLUMN_WIDTH,
+			Margin = new(0),
+			VerticalOptions = LayoutOptions.End,
+			HorizontalOptions = LayoutOptions.Start,
+			Color = CURRENT_LOCATION_MARKER_COLOR,
+			InputTransparent = true,
+			ZIndex = DTACElementStyles.TimetableRowLocationBoxZIndex,
+		};
+
+		CurrentLocationLine = new()
+		{
+			IsVisible = false,
+			HeightRequest = 4,
+			Margin = new(0, -2),
+			VerticalOptions = LayoutOptions.End,
+			Color = CURRENT_LOCATION_MARKER_COLOR,
+			InputTransparent = true,
+			ZIndex = DTACElementStyles.TimetableRowLocationBoxZIndex,
+		};
+
+		// Initialize after-row components
+		AfterArrive = new(this, "着後");
+		AfterRemarks = new(this);
+
+		// Initialize separator line
+		TopSeparatorLine = DTACElementStyles.TimetableRowHorizontalSeparatorLineStyle();
+
+		// Setup grid layout
+		Grid.SetColumnSpan(NextTrainButton, 8);
+		DTACElementStyles.SetTimetableColumnWidthCollection(this);
+		Grid.SetColumnSpan(CurrentLocationLine, 8);
+
+		// Add views to children
+		Children.Add(CurrentLocationBoxView);
+		Children.Add(CurrentLocationLine);
+
+		// Setup location service error handling
+		InstanceManager.LocationService.ExceptionThrown += (s, e) =>
+		{
+			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlert("Location Service Error", e.ToString(), "OK"));
+		};
+
+		// Subscribe to events
+		MarkerViewModel.PropertyChanged += OnMarkerViewModelPropertyChanged;
+		ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+		ViewModel.CurrentRows.CollectionChanged += OnCurrentRowsCollectionChangedAsync;
+
+		logger.Trace("Created");
+	}
+
+	#endregion
+
+	#region Event Handlers - Row Interaction
 
 	private void RowTapped(object? sender, EventArgs e)
 	{
@@ -70,6 +168,27 @@ public partial class VerticalTimetableView : Grid
 			Utils.ExitWithAlert(ex);
 		}
 	}
+
+	private void OnMarkerBoxClicked(object? sender, EventArgs e)
+	{
+		if (sender is not VerticalTimetableRow row || !row.Model.IsMarkingMode)
+			return;
+
+		try
+		{
+			row.Model.MarkerBoxTapped(MarkerViewModel.SelectedColor, MarkerViewModel.SelectedText);
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnMarkerBoxClicked");
+			Utils.ExitWithAlert(ex);
+		}
+	}
+
+	#endregion
+
+	#region Event Handlers - ViewModel Property Changes
 
 	private void OnMarkerViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
@@ -110,7 +229,6 @@ public partial class VerticalTimetableView : Grid
 	{
 		logger.Trace("CurrentRows is changed");
 
-		// Cancel previous SetRowViews operation
 		_currentSetRowViewsCancellationTokenSource?.Cancel();
 		_currentSetRowViewsCancellationTokenSource = new CancellationTokenSource();
 		try
@@ -130,7 +248,8 @@ public partial class VerticalTimetableView : Grid
 		}
 	}
 
-	private async void OnCurrentRowsCollectionChangedAsync(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => await OnViewModelCurrentRowsChangedAsync();
+	private async void OnCurrentRowsCollectionChangedAsync(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+		=> await OnViewModelCurrentRowsChangedAsync();
 
 	private void OnViewModelLocationMarkerStateChanged()
 	{
@@ -274,11 +393,11 @@ public partial class VerticalTimetableView : Grid
 				if (ViewModel.NextTrainId is not null)
 				{
 					NextTrainButton.NextTrainId = ViewModel.NextTrainId;
-					this.Children.Add(NextTrainButton);
+					Children.Add(NextTrainButton);
 				}
 				else
 				{
-					this.Children.Remove(NextTrainButton);
+					Children.Remove(NextTrainButton);
 				}
 			}
 			catch (Exception ex)
@@ -290,20 +409,277 @@ public partial class VerticalTimetableView : Grid
 		});
 	}
 
-	private void OnMarkerBoxClicked(object? sender, EventArgs e)
+	#endregion
+
+	#region Row Management
+
+	private async Task SetRowViewsAsync(ObservableCollection<VerticalTimetableRowModel>? newValue, CancellationToken cancellationToken)
 	{
-		if (sender is not VerticalTimetableRow row || !row.Model.IsMarkingMode)
-			return;
+		logger.Info("Setting RowViews... (Current RowViewList.Count: {0})", RowViewList.Count);
 
 		try
 		{
-			row.Model.MarkerBoxTapped(MarkerViewModel.SelectedColor, MarkerViewModel.SelectedText);
+			logger.Trace("Starting ClearOldRowViews Task...");
+			await MainThread.InvokeOnMainThreadAsync(() =>
+			{
+				try
+				{
+					logger.Trace("MainThread: Clearing old RowViews...");
+					IsBusy = true;
+
+					foreach (var rowView in RowViewList)
+					{
+						rowView.Dispose();
+					}
+					RowViewList.Clear();
+
+					logger.Trace("MainThread: Clearing old RowViews Complete");
+				}
+				catch (Exception ex)
+				{
+					logger.Fatal(ex, "Unknown Exception");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews");
+					Utils.ExitWithAlert(ex);
+				}
+			});
+			logger.Trace("ClearOldRowViews Task Complete");
+
+			if (newValue is null || cancellationToken.IsCancellationRequested)
+			{
+				logger.Info("RowViews cleared, but newValue is null or operation was canceled -> exiting...");
+				return;
+			}
+
+			int newCount = newValue?.Count ?? 0;
+			logger.Debug("newCount: {0}", newCount);
+			try
+			{
+				await MainThread.InvokeOnMainThreadAsync(() =>
+				{
+					EnsureRowDefinitions();
+					AddSeparatorLines();
+					AfterRemarks.SetRow(newCount);
+					AfterArrive.SetRow(newCount + 1);
+					Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? newCount + 2 : newCount + 1);
+				});
+
+				logger.Trace("Starting RowViewInit Task...");
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Debug("SetRowViews was cancelled during SetRowDefinitions or AddSeparatorLines");
+				return;
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (SetRowDefinitions etc failed)");
+				await Utils.ExitWithAlert(ex);
+			}
+
+			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs, cancellationToken);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			try
+			{
+				logger.Trace("Task: Finding last Station Row...");
+				int lastTimetableRowIndex = 0;
+				for (int i = 0; i < newCount; i++)
+				{
+					if (newValue is not null && !newValue[i].IsInfoRow)
+						lastTimetableRowIndex = i;
+				}
+
+				logger.Trace("Task: last Station row is {0}, so Adding new RowViews...", lastTimetableRowIndex);
+				int batchSize = PerformanceHelper.RowsBatchSize;
+				int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
+				for (int i = 0; i < newCount; i++)
+				{
+					cancellationToken.ThrowIfCancellationRequested();
+					await AddNewRowAsync(newValue![i], i, i == lastTimetableRowIndex);
+					if (0 < batchSize && i % batchSize == batchSize - 1)
+						await Task.Delay(renderDelayMs, cancellationToken);
+				}
+				logger.Trace("Task: RowViewInit Complete");
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Debug("SetRowViews was cancelled during AddNewRow");
+				return;
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (AddNewRow failed)");
+				await Utils.ExitWithAlert(ex);
+			}
+			cancellationToken.ThrowIfCancellationRequested();
+			logger.Trace("RowViewInit Task Complete");
+
+			logger.Info("RowViews are set");
+		}
+		finally
+		{
+			await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+		}
+	}
+
+	private Task AddNewRowAsync(VerticalTimetableRowModel? model, int index, bool isLastRow)
+	{
+		if (model is null)
+		{
+			logger.Trace("model is null -> skipping...");
+			return Task.CompletedTask;
+		}
+
+		return MainThread.InvokeOnMainThreadAsync(() =>
+		{
+			logger.Debug("MainThread: Adding new Row (index: {0}, isLastRow: {1}, isInfoRow: {2}, Text: {3})",
+				index,
+				isLastRow,
+				model.IsInfoRow,
+				model.InfoText ?? model.StationName
+			);
+
+			try
+			{
+				VerticalTimetableRow rowView = new(this, model, ColumnVisibilityState, MarkerViewModel, isLastRow);
+				rowView.RowTapped += RowTapped;
+				rowView.MarkerBoxClicked += OnMarkerBoxClicked;
+
+				RowViewList.Add(rowView);
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.AddNewRow");
+				Utils.ExitWithAlert(ex);
+			}
+		});
+	}
+
+	#endregion
+
+	#region Layout Management
+
+	private void AddSeparatorLines()
+	{
+		logger.Trace("MainThread: Insert Separator Lines");
+
+		try
+		{
+			bool isChildrenCleared = !Children.Contains(TopSeparatorLine);
+			int initialSeparatorLinesListLength = SeparatorLines.Count;
+			for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
+			{
+				SeparatorLines.Add(DTACElementStyles.TimetableRowHorizontalSeparatorLineStyle());
+			}
+			for (int i = initialSeparatorLinesListLength - 1; RowDefinitions.Count <= i; i--)
+			{
+				Line line = SeparatorLines[i];
+				SeparatorLines.RemoveAt(i);
+				Children.Remove(line);
+			}
+
+			if (isChildrenCleared)
+			{
+				TopSeparatorLine.VerticalOptions = LayoutOptions.Start;
+				DTACElementStyles.AddHorizontalSeparatorLineStyle(this, TopSeparatorLine, 0);
+				for (int i = 0; i < SeparatorLines.Count; i++)
+				{
+					DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
+				}
+			}
+			else
+			{
+				for (int i = initialSeparatorLinesListLength; i < RowDefinitions.Count; i++)
+				{
+					DTACElementStyles.AddHorizontalSeparatorLineStyle(this, SeparatorLines[i], i);
+				}
+			}
+
+			logger.Trace("MainThread: Insert Separator Lines Complete");
 		}
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnMarkerBoxClicked");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.AddSeparatorLines");
 			Utils.ExitWithAlert(ex);
 		}
 	}
+
+	private void EnsureRowDefinitions()
+	{
+		int currentCount = RowDefinitions.Count;
+		int newCount = ViewModel.CurrentRows.Count;
+		bool hasAfterArrive = ViewModel.AfterArriveText is not null;
+		bool hasNextTrainButton = ViewModel.NextTrainId is not null;
+		logger.Debug("Count {0} -> {1}", currentCount, newCount);
+
+		if (newCount < 0)
+			throw new ArgumentOutOfRangeException(nameof(newCount), "count must be 0 or more");
+
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+		{
+			// AfterRemarks
+			newCount += 1;
+			if (hasAfterArrive)
+				newCount += 1;
+			if (hasNextTrainButton)
+				newCount += 1;
+		}
+		else
+		{
+			int minCount = (int)Math.Floor(ScrollViewHeight / RowHeight.Value);
+			int additionalRowsCount = Math.Max(2, (int)Math.Ceiling(ScrollViewHeight / RowHeight.Value) - 2);
+			logger.Debug("additionalRowsCount: {0}", additionalRowsCount);
+
+			newCount += additionalRowsCount;
+			newCount = Math.Max(minCount, newCount);
+		}
+
+		HeightRequest = newCount * RowHeight.Value;
+		logger.Debug("HeightRequest: {0}", HeightRequest);
+
+		if (newCount <= 0)
+			RowDefinitions.Clear();
+		else if (currentCount < newCount)
+		{
+			for (int i = RowDefinitions.Count; i < newCount; i++)
+				RowDefinitions.Add(new(RowHeight));
+		}
+		else if (newCount < currentCount)
+		{
+			for (int i = RowDefinitions.Count - 1; i >= newCount; i--)
+				RowDefinitions.RemoveAt(i);
+		}
+	}
+
+	partial void OnScrollViewHeightChanged(double newValue)
+	{
+		logger.Debug("ScrollViewHeight: {0}", newValue);
+
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+			return;
+
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			try
+			{
+				EnsureRowDefinitions();
+				AddSeparatorLines();
+				logger.Debug("RowDefinitions.Count changed to: {0}", RowDefinitions.Count);
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnScrollViewHeightChanged(MainThread)");
+				Utils.ExitWithAlert(ex);
+			}
+		});
+	}
+
+	#endregion
 }
