@@ -9,7 +9,6 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<bool>("IsBusy")]
 [DependencyProperty<double>("ScrollViewHeight", DefaultValue = 0)]
 public partial class VerticalTimetableView : Grid
 {
@@ -21,7 +20,7 @@ public partial class VerticalTimetableView : Grid
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	static public readonly GridLength RowHeight = new(60);
 
-	public event EventHandler? IsBusyChanged;
+	public event EventHandler<bool>? IsBusyChanged;
 	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
 	public DTACMarkerViewModel MarkerViewModel { get; } = InstanceManager.DTACMarkerViewModel;
@@ -30,91 +29,39 @@ public partial class VerticalTimetableView : Grid
 
 	public VerticalTimetableViewModel ViewModel { get; } = new();
 
-	public ScrollView? ScrollView { get; set; }
-
-	CancellationTokenSource? _currentSetRowViewsCancellationTokenSource = null;
-	partial void OnIsBusyChanged()
+	private bool _isBusy = false;
+	private bool IsBusy
 	{
-		try
+		get => _isBusy;
+		set
 		{
-			logger.Trace("IsBusy is changed to {0}", IsBusy);
-			IsBusyChanged?.Invoke(this, new());
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnIsBusyChanged");
-			Utils.ExitWithAlert(ex);
-		}
-	}
-
-	static bool IsHapticEnabled { get; set; } = true;
-	void UpdateCurrentRunningLocationVisualizer(VerticalTimetableRow row, VerticalTimetableRowModel.LocationStates states)
-	{
-		int rowCount = row.Model.RowIndex;
-
-		Grid.SetRow(CurrentLocationBoxView, rowCount);
-		Grid.SetRow(CurrentLocationLine, rowCount);
-
-		CurrentLocationBoxView.IsVisible = states
-			is VerticalTimetableRowModel.LocationStates.AroundThisStation
-			or VerticalTimetableRowModel.LocationStates.RunningToNextStation;
-		CurrentLocationLine.IsVisible = states is VerticalTimetableRowModel.LocationStates.RunningToNextStation;
-
-		CurrentLocationBoxView.Margin = states
-			is VerticalTimetableRowModel.LocationStates.RunningToNextStation
-			? new(0, -(RowHeight.Value / 2)) : new(0);
-
-		try
-		{
-			if (IsHapticEnabled)
-				HapticFeedback.Default.Perform(HapticFeedbackType.Click);
-		}
-		catch (FeatureNotSupportedException)
-		{
-			IsHapticEnabled = false;
-		}
-		catch (Exception ex)
-		{
-			IsHapticEnabled = false;
-			logger.Error(ex, "HapticFeedback Failed");
-		}
-
-		if (states != VerticalTimetableRowModel.LocationStates.Undefined)
-		{
-			logger.Debug("LocationState is not Undefined -> invoke ScrollRequested");
+			if (_isBusy == value)
+				return;
+			_isBusy = value;
 			try
 			{
-				ScrollRequested?.Invoke(this, new(Math.Max(row.Model.RowIndex - 1, 0) * RowHeight.Value));
+				logger.Trace("IsBusy is changed to {0}", IsBusy);
+				IsBusyChanged?.Invoke(this, new());
 			}
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.UpdateCurrentRunningLocationVisualizer.ScrollRequested");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnIsBusyChanged");
 				Utils.ExitWithAlert(ex);
 			}
 		}
-		else
-		{
-			logger.Debug("LocationState is Undefined -> do nothing");
-		}
 	}
 
-	private void RowTapped(object? sender, EventArgs e) // ViewModel側で処理する
+	CancellationTokenSource? _currentSetRowViewsCancellationTokenSource = null;
+
+	private void RowTapped(object? sender, EventArgs e)
 	{
 		if (sender is not VerticalTimetableRow row)
 			return;
 
-		if (!ViewModel.IsRunStarted || !IsEnabled)
-		{
-			logger.Debug("IsRunStarted({0}) is false or IsEnabled({1}) is false -> do nothing", ViewModel.IsRunStarted, IsEnabled);
-			return;
-		}
-
 		try
 		{
-			// Handle row tap through ViewModel
-			ViewModel.HandleRowTappedWithDoubleTapDetection(row, RowViewList.Count);
+			ViewModel.HandleRowTappedWithDoubleTapDetection(row.Model, RowViewList.Count);
 		}
 		catch (Exception ex)
 		{
@@ -126,13 +73,11 @@ public partial class VerticalTimetableView : Grid
 
 	private void OnMarkerViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(DTACMarkerViewModel.IsToggled))
+		switch (e.PropertyName)
 		{
-			ViewModel.IsMarkingMode = MarkerViewModel.IsToggled;
-			foreach (var row in RowViewList)
-			{
-				row.Model.IsMarkingMode = MarkerViewModel.IsToggled;
-			}
+			case nameof(DTACMarkerViewModel.IsToggled):
+				ViewModel.IsMarkingMode = MarkerViewModel.IsToggled;
+				break;
 		}
 	}
 
@@ -143,17 +88,11 @@ public partial class VerticalTimetableView : Grid
 			case nameof(ViewModel.CurrentRows):
 				await OnViewModelCurrentRowsChangedAsync();
 				break;
-			case nameof(ViewModel.IsRunStarted):
-				OnViewModelIsRunStartedChanged();
-				break;
 			case nameof(ViewModel.LocationMarkerState):
 				OnViewModelLocationMarkerStateChanged();
 				break;
 			case nameof(ViewModel.LocationMarkerPosition):
 				OnViewModelLocationMarkerPositionChanged();
-				break;
-			case nameof(ViewModel.CurrentRunningRow):
-				OnViewModelCurrentRunningRowChanged();
 				break;
 			case nameof(ViewModel.AfterRemarksText):
 				OnViewModelAfterRemarksTextChanged();
@@ -176,7 +115,7 @@ public partial class VerticalTimetableView : Grid
 		_currentSetRowViewsCancellationTokenSource = new CancellationTokenSource();
 		try
 		{
-			await SetRowViewsAsync([.. ViewModel.CurrentRows], _currentSetRowViewsCancellationTokenSource.Token);
+			await SetRowViewsAsync(ViewModel.CurrentRows, _currentSetRowViewsCancellationTokenSource.Token);
 		}
 		catch (OperationCanceledException)
 		{
@@ -193,57 +132,30 @@ public partial class VerticalTimetableView : Grid
 
 	private async void OnCurrentRowsCollectionChangedAsync(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => await OnViewModelCurrentRowsChangedAsync();
 
-	private void OnViewModelIsRunStartedChanged()
-	{
-		try
-		{
-			bool newValue = ViewModel.IsRunStarted;
-			if (!newValue)
-			{
-				logger.Info("IsRunStarted is changed to false -> disable location service, and hide CurrentLocation");
-				CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible = false;
-				ViewModel.CurrentRunningRow = null;
-			}
-			else
-			{
-				// 既に CurrentRunningRow が設定されている場合はそれを保持する
-				if (ViewModel.CurrentRunningRow is not null)
-				{
-					logger.Info("IsRunStarted is changed to true and CurrentRunningRow is already set -> keep current row {0}", ViewModel.CurrentRunningRow.Model.RowIndex);
-					return;
-				}
-
-				logger.Info("IsRunStarted is changed to true -> set CurrentRunningRow to first row");
-				VerticalTimetableRow? firstRow = RowViewList.FirstOrDefault();
-				if (firstRow is not null)
-				{
-					ViewModel.SetCurrentRunningRow(0, firstRow);
-					ViewModel.LocationMarkerState = VerticalTimetableRowModel.LocationStates.AroundThisStation;
-				}
-				else
-				{
-					logger.Debug("RowViewList is empty -> defer setting CurrentRunningRow");
-					ViewModel.CurrentRunningRow = null;
-				}
-			}
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelIsRunStartedChanged");
-			Utils.ExitWithAlert(ex);
-		}
-	}
-
 	private void OnViewModelLocationMarkerStateChanged()
 	{
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			try
 			{
-				if (ViewModel.CurrentRunningRow is not null)
+				switch (ViewModel.LocationMarkerState)
 				{
-					UpdateCurrentRunningLocationVisualizer(ViewModel.CurrentRunningRow, ViewModel.LocationMarkerState);
+					case VerticalTimetableRowModel.LocationStates.Undefined:
+						CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible = false;
+						break;
+					case VerticalTimetableRowModel.LocationStates.AroundThisStation:
+						CurrentLocationBoxView.IsVisible = true;
+						CurrentLocationBoxView.Margin = new(0);
+						CurrentLocationLine.IsVisible = false;
+						Utils.PerformHaptic(HapticFeedbackType.Click);
+						break;
+
+					case VerticalTimetableRowModel.LocationStates.RunningToNextStation:
+						CurrentLocationBoxView.IsVisible = true;
+						CurrentLocationBoxView.Margin = new(0, -(RowHeight.Value / 2));
+						CurrentLocationLine.IsVisible = true;
+						Utils.PerformHaptic(HapticFeedbackType.Click);
+						break;
 				}
 			}
 			catch (Exception ex)
@@ -261,37 +173,30 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
-				ViewModel.SetCurrentRunningRowFromLocationMarkerPosition(RowViewList);
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelLocationMarkerPositionChanged");
-				Utils.ExitWithAlert(ex);
-			}
-		});
-	}
-
-	private void OnViewModelCurrentRunningRowChanged()
-	{
-		MainThread.BeginInvokeOnMainThread(() =>
-		{
-			try
-			{
-				if (ViewModel.CurrentRunningRow is not null)
+				if (0 <= ViewModel.LocationMarkerPosition)
 				{
-					int rowIndex = RowViewList.IndexOf(ViewModel.CurrentRunningRow);
-					if (rowIndex >= 0)
-					{
-						ViewModel.LocationMarkerPosition = rowIndex;
-						UpdateCurrentRunningLocationVisualizer(ViewModel.CurrentRunningRow, ViewModel.LocationMarkerState);
-					}
+					Grid.SetRow(CurrentLocationBoxView, ViewModel.LocationMarkerPosition);
+					Grid.SetRow(CurrentLocationLine, ViewModel.LocationMarkerPosition);
+				}
+				else
+				{
+					Grid.SetRow(CurrentLocationBoxView, 0);
+					Grid.SetRow(CurrentLocationLine, 0);
+				}
+
+				if (0 == ViewModel.LocationMarkerPosition)
+				{
+					ScrollRequested?.Invoke(this, new(ViewModel.LocationMarkerPosition * RowHeight.Value));
+				}
+				else if (1 <= ViewModel.LocationMarkerPosition)
+				{
+					ScrollRequested?.Invoke(this, new((ViewModel.LocationMarkerPosition - 1) * RowHeight.Value));
 				}
 			}
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelCurrentRunningRowChanged");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelLocationMarkerPositionChanged");
 				Utils.ExitWithAlert(ex);
 			}
 		});
@@ -303,12 +208,8 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
-				bool hasAfterRemarks = ViewModel.AfterRemarksText is not null;
-				SetRowDefinitions(RowsCount, ViewModel.AfterArriveText is not null, ViewModel.NextTrainId is not null);
+				EnsureRowDefinitions();
 				AddSeparatorLines();
-				AfterRemarks.SetRow(RowsCount);
-				AfterArrive.SetRow(RowsCount + 1);
-				Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? RowsCount + 2 : RowsCount + 1);
 
 				if (ViewModel.AfterRemarksText is not null)
 				{
@@ -335,12 +236,11 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
-				bool hasAfterRemarks = ViewModel.AfterRemarksText is not null;
-				SetRowDefinitions(RowsCount, ViewModel.AfterArriveText is not null, ViewModel.NextTrainId is not null);
+				int rowsCount = ViewModel.CurrentRows.Count;
+				EnsureRowDefinitions();
 				AddSeparatorLines();
-				AfterArrive.SetRow(RowsCount + 1);
-				Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? RowsCount + 2 : RowsCount + 1);
-
+				AfterArrive.SetRow(rowsCount + 1);
+				Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? rowsCount + 2 : rowsCount + 1);
 				if (ViewModel.AfterArriveText is not null)
 				{
 					AfterArrive.Text = ViewModel.AfterArriveText;
@@ -366,10 +266,10 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
-				bool hasAfterRemarks = ViewModel.AfterRemarksText is not null;
-				SetRowDefinitions(RowsCount, ViewModel.AfterArriveText is not null, ViewModel.NextTrainId is not null);
+				EnsureRowDefinitions();
 				AddSeparatorLines();
-				Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? RowsCount + 2 : RowsCount + 1);
+				int rowsCount = ViewModel.CurrentRows.Count;
+				Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? rowsCount + 2 : rowsCount + 1);
 
 				if (ViewModel.NextTrainId is not null)
 				{
@@ -397,16 +297,7 @@ public partial class VerticalTimetableView : Grid
 
 		try
 		{
-			if (row.Model.MarkerColor is null)
-			{
-				row.Model.MarkerColor = MarkerViewModel.SelectedColor;
-				row.Model.MarkerText = MarkerViewModel.SelectedText ?? string.Empty;
-			}
-			else
-			{
-				row.Model.MarkerColor = null;
-				row.Model.MarkerText = null;
-			}
+			row.Model.MarkerBoxTapped(MarkerViewModel.SelectedColor, MarkerViewModel.SelectedText);
 		}
 		catch (Exception ex)
 		{

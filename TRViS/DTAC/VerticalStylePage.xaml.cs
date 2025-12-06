@@ -122,16 +122,16 @@ public partial class VerticalStylePage : ContentView
 			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);
 		}
 
-		TimetableView.IsBusyChanged += (s, _) =>
+		TimetableView.IsBusyChanged += (s, isBusy) =>
 		{
 			if (s is not VerticalTimetableView v)
 				return;
 
-			logger.Info("IsBusyChanged: {0}", v.IsBusy);
+			logger.Info("IsBusyChanged: {0}", isBusy);
 
 			try
 			{
-				if (v.IsBusy)
+				if (isBusy)
 				{
 					TimetableViewActivityIndicatorBorder.IsVisible = true;
 					TimetableViewActivityIndicatorBorder.FadeTo(TimetableViewActivityIndicatorBorderMaxOpacity);
@@ -174,13 +174,11 @@ public partial class VerticalStylePage : ContentView
 			Grid.SetRow(TimetableView, Grid.GetRow(TimetableAreaScrollView));
 			TimetableAreaScrollView.IsVisible = false;
 			MainGrid.Add(TimetableView);
-			TimetableView.ScrollView = Content as ScrollView;
 		}
 		else
 		{
 			logger.Info("Device is not Phone nor Unknown -> set TimetableView to TimetableAreaScrollView");
 			TimetableAreaScrollView.Content = TimetableView;
-			TimetableView.ScrollView = TimetableAreaScrollView;
 			TimetableAreaScrollView.PropertyChanged += (_, e) =>
 			{
 				// Bindingに失敗するため、代わり。

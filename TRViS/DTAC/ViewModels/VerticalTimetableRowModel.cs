@@ -57,4 +57,18 @@ public partial class VerticalTimetableRowModel : ObservableObject
 
 	[ObservableProperty]
 	public partial bool IsLocationMarkerOnThisRow { get; set; } = false;
+
+	public void MarkerBoxTapped(Color? selectedColor, string? selectedText)
+	{
+		if (MarkerColor is null)
+		{
+			MarkerColor = selectedColor;
+			MarkerText = selectedText ?? string.Empty;
+		}
+		else
+		{
+			MarkerColor = null;
+			MarkerText = null;
+		}
+	}
 }

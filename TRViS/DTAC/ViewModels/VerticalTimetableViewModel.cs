@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 
 using TRViS.IO.Models;
-using TRViS.DTAC.TimetableParts;
 using TRViS.Services;
 using NLog;
 
@@ -33,9 +32,6 @@ public partial class VerticalTimetableViewModel : ObservableObject
 	public partial bool IsMarkingMode { get; set; } = false;
 
 	[ObservableProperty]
-	public partial VerticalTimetableRow? CurrentRunningRow { get; set; } = null;
-
-	[ObservableProperty]
 	public partial bool IsRunStarted { get; set; } = false;
 
 	[ObservableProperty]
@@ -51,52 +47,55 @@ public partial class VerticalTimetableViewModel : ObservableObject
 	public partial bool IsLocationServiceEnabled { get; set; } = false;
 
 	const double DOUBLE_TAP_DETECT_MS = 500;
-	(VerticalTimetableRow row, DateTime time)? _lastTapInfo = null;
-	private VerticalTimetableRow? _previousCurrentRunningRow;
+	(VerticalTimetableRowModel row, DateTime time)? _lastTapInfo = null;
 
 	partial void OnIsLocationServiceEnabledChanged(bool value)
 	{
 		LocationService.IsEnabled = value;
 	}
 
-	static bool IsHapticEnabled { get; set; } = true;
-
-	public void SetCurrentRunningRow(int index, VerticalTimetableRow? value)
+	partial void OnIsMarkingModeChanged(bool value)
 	{
-		if (LocationMarkerPosition == index || CurrentRunningRow == value)
+		foreach (var row in CurrentRows)
 		{
-			return;
+			row.IsMarkingMode = value;
 		}
+	}
 
-		MainThread.BeginInvokeOnMainThread(() =>
+	partial void OnIsRunStartedChanged(bool value)
+	{
+		if (!value)
 		{
-			try
-			{
-				_previousCurrentRunningRow = CurrentRunningRow;
-				if (_previousCurrentRunningRow is not null)
-				{
-					_previousCurrentRunningRow.Model.IsLocationMarkerOnThisRow = false;
-					LocationMarkerState = VerticalTimetableRowModel.LocationStates.Undefined;
-				}
+			logger.Info("IsRunStarted is changed to false -> reset location marker state");
+			LocationMarkerPosition = -1;
+			LocationMarkerState = VerticalTimetableRowModel.LocationStates.Undefined;
+		}
+		else if (LocationMarkerPosition < 0)
+		{
+			logger.Info("IsRunStarted is changed to true -> set LocationMarkerPosition to first row");
+			LocationMarkerPosition = 0;
+			LocationMarkerState = VerticalTimetableRowModel.LocationStates.AroundThisStation;
+		}
+		else
+		{
+			logger.Info("IsRunStarted is changed to true and LocationMarkerPosition is already set -> keep current position {0}", LocationMarkerPosition);
+		}
+	}
 
-				CurrentRunningRow = value;
+	partial void OnLocationMarkerPositionChanged(int value)
+	{
+		for (int i = 0; i < CurrentRows.Count; i++)
+		{
+			CurrentRows[i].IsLocationMarkerOnThisRow = (i == value);
+		}
+	}
 
-				if (value is not null)
-				{
-					LocationMarkerPosition = index;
-				}
-				else
-				{
-					LocationMarkerPosition = -1;
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableViewModel.SetCurrentRunningRow");
-				Utils.ExitWithAlert(ex);
-			}
-		});
+	partial void OnLocationMarkerStateChanged(VerticalTimetableRowModel.LocationStates value)
+	{
+		if (value == VerticalTimetableRowModel.LocationStates.Undefined)
+		{
+			LocationMarkerPosition = -1;
+		}
 	}
 
 	/// <summary>
@@ -136,7 +135,6 @@ public partial class VerticalTimetableViewModel : ObservableObject
 		// Reset location marker state
 		LocationMarkerPosition = -1;
 		LocationMarkerState = VerticalTimetableRowModel.LocationStates.Undefined;
-		CurrentRunningRow = null;
 
 		// Reset run started state
 		IsRunStarted = false;
@@ -159,26 +157,19 @@ public partial class VerticalTimetableViewModel : ObservableObject
 			return;
 		}
 
-		// Clear previous row's marker state
-		_previousCurrentRunningRow = CurrentRunningRow;
-		if (_previousCurrentRunningRow is not null)
-		{
-			_previousCurrentRunningRow.Model.IsLocationMarkerOnThisRow = false;
-		}
-
-		// Set new row's marker state
 		LocationMarkerState = e.IsRunningToNextStation
 			? VerticalTimetableRowModel.LocationStates.RunningToNextStation
 			: VerticalTimetableRowModel.LocationStates.AroundThisStation;
 		LocationMarkerPosition = e.NewStationIndex;
-		// CurrentRunningRow is set by the view
 	}
 
 	/// <summary>
 	/// Handles row tap event with double tap detection - cycles through location marker states
 	/// </summary>
-	public void HandleRowTappedWithDoubleTapDetection(VerticalTimetableRow row, int rowViewListCount)
+	public void HandleRowTappedWithDoubleTapDetection(VerticalTimetableRowModel row, int rowViewListCount)
 	{
+		if (!IsRunStarted || row.IsInfoRow)
+			return;
 		if (IsLocationServiceEnabled)
 		{
 			DateTime dateTimeNow = DateTime.Now;
@@ -194,69 +185,50 @@ public partial class VerticalTimetableViewModel : ObservableObject
 		_lastTapInfo = null;
 		if (IsLocationServiceEnabled)
 		{
-			InstanceManager.LocationService.ForceSetLocationInfo(row.Model.RowIndex, false);
+			InstanceManager.LocationService.ForceSetLocationInfo(row.RowIndex, false);
 			return;
 		}
 
-		// Handle row tap through ViewModel
 		HandleRowTapped(row, rowViewListCount);
 	}
 
 	/// <summary>
 	/// Handles row tap event - cycles through location marker states
 	/// </summary>
-	public void HandleRowTapped(VerticalTimetableRow? row, int rowViewListCount)
+	private void HandleRowTapped(VerticalTimetableRowModel row, int rowViewListCount)
 	{
-		if (row is null)
+		if (row.IsInfoRow)
 			return;
 
-		// If tapped a different row, set CurrentRunningRow
-		if (CurrentRunningRow != row)
-		{
-			CurrentRunningRow = row;
-			LocationMarkerState = VerticalTimetableRowModel.LocationStates.AroundThisStation;
-			return;
-		}
-
-		// Cycle through location states for the same row
+		// Cycle through location states
 		switch (LocationMarkerState)
 		{
 			case VerticalTimetableRowModel.LocationStates.Undefined:
-				CurrentRunningRow = row;
+				LocationMarkerPosition = row.RowIndex;
 				LocationMarkerState = VerticalTimetableRowModel.LocationStates.AroundThisStation;
 				break;
 			case VerticalTimetableRowModel.LocationStates.AroundThisStation:
-				// Don't transition to RunningToNextStation if it's the last row
-				if (row.Model.RowIndex != rowViewListCount - 1)
+				// Only transition to RunningToNextStation if tapping the same row and it's not the last row
+				if (LocationMarkerPosition == row.RowIndex && row.RowIndex != rowViewListCount - 1)
 				{
 					LocationMarkerState = VerticalTimetableRowModel.LocationStates.RunningToNextStation;
 				}
+				else if (LocationMarkerPosition != row.RowIndex)
+				{
+					LocationMarkerPosition = row.RowIndex;
+				}
 				break;
 			case VerticalTimetableRowModel.LocationStates.RunningToNextStation:
-				LocationMarkerState = VerticalTimetableRowModel.LocationStates.AroundThisStation;
+				if (LocationMarkerPosition == row.RowIndex)
+				{
+					LocationMarkerState = VerticalTimetableRowModel.LocationStates.AroundThisStation;
+				}
+				else
+				{
+					LocationMarkerPosition = row.RowIndex;
+					LocationMarkerState = VerticalTimetableRowModel.LocationStates.AroundThisStation;
+				}
 				break;
-		}
-	}
-
-	/// <summary>
-	/// Sets CurrentRunningRow from LocationMarkerPosition
-	/// </summary>
-	public void SetCurrentRunningRowFromLocationMarkerPosition(List<VerticalTimetableRow> rowViewList)
-	{
-		// Clear previous row's marker state
-		_previousCurrentRunningRow?.Model.IsLocationMarkerOnThisRow = false;
-
-		// Set new row's marker state
-		if (LocationMarkerPosition >= 0 && LocationMarkerPosition < rowViewList.Count)
-		{
-			_previousCurrentRunningRow = CurrentRunningRow;
-			CurrentRunningRow = rowViewList[LocationMarkerPosition];
-			CurrentRunningRow.Model.IsLocationMarkerOnThisRow = true;
-		}
-		else
-		{
-			_previousCurrentRunningRow = CurrentRunningRow;
-			CurrentRunningRow = null;
 		}
 	}
 }
