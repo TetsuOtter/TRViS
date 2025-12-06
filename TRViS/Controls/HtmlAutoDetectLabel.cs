@@ -150,6 +150,11 @@ public class HtmlAutoDetectLabel : ContentView
 		{
 			Content = bbCodeLabel;
 			bbCodeLabel.BBCodeText = Text;
+			// FIXME: 本来はBBCodeLabel側でやるべきだが、一旦ここで対応する
+			foreach (var v in bbCodeLabel.FormattedText.Spans)
+			{
+				v.FontAutoScalingEnabled = FontAutoScalingEnabled;
+			}
 		}
 	}
 

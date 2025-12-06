@@ -13,9 +13,8 @@ public partial class PageHeader : Grid
 	[
 		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
 
-		// under total: 378
-		new ColumnDefinition(186),
-		new ColumnDefinition(128),
+		new ColumnDefinition(176),
+		new ColumnDefinition(134),
 		new ColumnDefinition(60),
 	];
 
@@ -137,13 +136,11 @@ public partial class PageHeader : Grid
 
 		ColumnDefinitions = DefaultColumnDefinitions;
 
-		StartEndRunButton.VerticalOptions = LayoutOptions.Center;
-		StartEndRunButton.HorizontalOptions = LayoutOptions.End;
-		StartEndRunButton.Margin = new(2);
+		StartEndRunButton.Margin = new(2, 8);
 		StartEndRunButton.IsCheckedChanged += StartEndRunButton_IsCheckedChanged;
 
 		LocationServiceButton.IsEnabled = false;
-		LocationServiceButton.Margin = new(4, 8);
+		LocationServiceButton.Margin = new(4, 8, 4, 10);
 		LocationServiceButton.IsCheckedChanged += LocationServiceButton_IsCheckedChanged;
 
 		OpenCloseButton.TextWhenOpen = "\xe5ce";
