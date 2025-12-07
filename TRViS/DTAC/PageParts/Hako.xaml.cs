@@ -2,6 +2,7 @@ using DependencyPropertyGenerator;
 
 using TRViS.DTAC.HakoParts;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -41,8 +42,8 @@ public partial class Hako : Grid
 
 		Grid.SetRow(headerView, 1);
 		headerView.EdgeWidth = SimpleView.STA_NAME_TIME_COLUMN_WIDTH;
-		headerView.LeftEdgeText = Utils.InsertBetweenChars("乗務開始".AsSpan(), '\n');
-		headerView.RightEdgeText = Utils.InsertBetweenChars("乗務終了".AsSpan(), '\n');
+		headerView.LeftEdgeText = Util.InsertBetweenChars("乗務開始".AsSpan(), '\n');
+		headerView.RightEdgeText = Util.InsertBetweenChars("乗務終了".AsSpan(), '\n');
 		Children.Add(headerView);
 
 		AffectDateLabel = GenAffectDateLabel();
@@ -85,7 +86,7 @@ public partial class Hako : Grid
 				{
 					logger.Fatal(ex, "Unknown Exception");
 					InstanceManager.CrashlyticsWrapper.Log(ex, "Hako.SimpleView.IsBusyChanged");
-					Utils.ExitWithAlert(ex);
+					Util.ExitWithAlert(ex);
 				}
 			});
 		};

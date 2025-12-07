@@ -2,6 +2,7 @@ using DependencyPropertyGenerator;
 
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -57,7 +58,7 @@ public partial class Remarks : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "Remarks.ResetTextScrollViewPosition");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -129,7 +130,7 @@ public partial class Remarks : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "Remarks.OnSizeAllocated");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -144,7 +145,7 @@ public partial class Remarks : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "Remarks.OpenCloseButton_IsOpenChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 }

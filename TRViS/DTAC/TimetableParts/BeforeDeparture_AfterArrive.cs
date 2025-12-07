@@ -1,5 +1,6 @@
 using TRViS.Controls;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -128,7 +129,7 @@ public class BeforeDeparture_AfterArrive
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "BeforeDeparture_AfterArrive.SetRow");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 }

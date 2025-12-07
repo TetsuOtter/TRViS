@@ -1,6 +1,7 @@
 using DependencyPropertyGenerator;
 
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.Controls;
 
@@ -29,7 +30,7 @@ public partial class ToggleButton : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "ToggleButton.TapGestureRecognized");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		};
 
@@ -49,7 +50,7 @@ public partial class ToggleButton : ContentView
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ToggleButton.OnIsCheckedChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 }

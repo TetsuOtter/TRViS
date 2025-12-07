@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -174,7 +175,7 @@ public class LocationServiceButton : ToggleButton
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "LocationServiceButton.OnIsCheckedChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -192,7 +193,7 @@ public class LocationServiceButton : ToggleButton
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "LocationServiceButton.OnPropertyChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		}
 	}

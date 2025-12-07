@@ -1,4 +1,4 @@
-namespace TRViS;
+namespace TRViS.Utils;
 
 public delegate void ValueChangedEventHandler<TValue>(
 	object? sender,

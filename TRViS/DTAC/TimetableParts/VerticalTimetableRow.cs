@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using TRViS.DTAC.ViewModels;
 using TRViS.ViewModels;
+using TRViS.Utils;
 
 namespace TRViS.DTAC.TimetableParts;
 
@@ -704,7 +705,7 @@ public class VerticalTimetableRow : IDisposable
 		else
 		{
 			MarkerBox.Background = new SolidColorBrush(Model.MarkerColor);
-			MarkerBox.TextColor = Utils.GetTextColorFromBGColor(Model.MarkerColor);
+			MarkerBox.TextColor = Util.GetTextColorFromBGColor(Model.MarkerColor);
 			BackgroundBoxView.Color = Model.MarkerColor;
 		}
 		MarkerBox.Text = LimitMarkerText(Model.MarkerText);

@@ -1,6 +1,6 @@
 using NLog;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 /// <summary>
 /// デバイスのCPU情報に基づいてパフォーマンスレベルを判定し、

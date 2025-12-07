@@ -1,6 +1,6 @@
 using System;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 public class ValueChangedEventArgs<T> : EventArgs
 {

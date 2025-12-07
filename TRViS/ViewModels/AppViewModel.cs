@@ -7,6 +7,7 @@ using TRViS.IO;
 using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.ViewModels;
 
@@ -373,6 +374,85 @@ public partial class AppViewModel : ObservableObject
 		{
 			var workGroupList = Loader.GetWorkGroupList();
 			SelectedWorkGroup = workGroupList?.FirstOrDefault();
+		}
+	}
+
+	/// <summary>
+	/// Attempts to load default timetable file with privacy policy check.
+	/// If privacy policy is not accepted, returns false to indicate policy screen is needed first.
+	/// </summary>
+	/// <param name="cancellationToken">Cancellation token for async operations</param>
+	/// <returns>Tuple (success, requiresFileSelection, selectedFilePath, errorMessage)</returns>
+	public async Task<(bool success, bool requiresFileSelection, string? selectedFilePath, string? errorMessage)> TryLoadDefaultTimetableAsync(
+		CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			// Check privacy policy first
+			var firebaseSetting = InstanceManager.FirebaseSettingViewModel;
+			if (!firebaseSetting.IsPrivacyPolicyAccepted)
+			{
+				logger.Info("Privacy policy not accepted yet - file loading deferred");
+				return (false, false, null, "PrivacyPolicyNotAccepted");
+			}
+
+			// Try to load default timetable
+			(var loader, var selectedFilePath, var requiresFileSelection) =
+				await DefaultTimetableFileLoader.TryLoadDefaultTimetableAsync(cancellationToken);
+
+			if (loader is not null)
+			{
+				logger.Info("Successfully loaded default timetable: {0}", selectedFilePath);
+				Loader = loader;
+				return (true, false, selectedFilePath, null);
+			}
+
+			if (requiresFileSelection)
+			{
+				logger.Info("Multiple JSON files found - user selection required");
+				return (true, true, null, null);
+			}
+
+			// No files found or failed to load
+			logger.Info("No default timetable file found");
+			return (false, false, null, null);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Error in TryLoadDefaultTimetableAsync");
+			return (false, false, null, ex.Message);
+		}
+	}
+
+	/// <summary>
+	/// Loads a specific timetable file after user selection
+	/// </summary>
+	/// <param name="filePath">Full path to the file to load</param>
+	/// <param name="cancellationToken">Cancellation token for async operations</param>
+	/// <returns>True if successfully loaded, false otherwise</returns>
+	public async Task<bool> LoadSelectedTimetableFileAsync(
+		string filePath,
+		CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			logger.Info("Loading selected timetable file: {0}", filePath);
+			var loader = await DefaultTimetableFileLoader.LoadTimetableFileAsync(filePath, cancellationToken);
+
+			if (loader is not null)
+			{
+				Loader = loader;
+				logger.Trace("Successfully loaded selected timetable file");
+				return true;
+			}
+
+			logger.Warn("Failed to load selected timetable file");
+			return false;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Error in LoadSelectedTimetableFileAsync");
+			return false;
 		}
 	}
 }
