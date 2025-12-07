@@ -1,6 +1,6 @@
 using TRViS.Controls;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 public class AppThemeGenericsBindingExtension<T> : AppThemeBindingExtension where T : class
 {

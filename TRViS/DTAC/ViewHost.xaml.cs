@@ -1,7 +1,10 @@
 using System.ComponentModel;
 
+using TR.Maui.AnchorPopover;
+
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.Utils;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -14,6 +17,8 @@ public partial class ViewHost : ContentPage
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\xe51c";
 	// 時刻表示が160px、残りはアイコンとWorkName分
 	const int TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH = (160 + 90) * 2;
+
+	public static readonly string NameOfThisClass = nameof(ViewHost);
 
 	DTACViewHostViewModel ViewModel { get; }
 
@@ -55,13 +60,13 @@ public partial class ViewHost : ContentPage
 		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
 
 		TitleBGGradientBox.Color = null;
-		TitleBGGradientBox.Background = new LinearGradientBrush(new GradientStopCollection()
-		{
+		TitleBGGradientBox.Background = new LinearGradientBrush(
+		[
 			TitleBG_Top,
 			TitleBG_Middle,
 			TitleBG_MidBottom,
 			TitleBG_Bottom,
-		},
+		],
 		new Point(0, 0),
 		new Point(0, 1));
 
@@ -130,7 +135,7 @@ public partial class ViewHost : ContentPage
 		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
 		MenuButton.Margin = new(8 + newValue.Left, 4);
 		TimeLabel.Margin = new(0, 0, newValue.Right, 0);
-		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
+		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Util.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
 	protected override void OnSizeAllocated(double width, double height)
@@ -146,7 +151,7 @@ public partial class ViewHost : ContentPage
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.OnSizeAllocated");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -163,7 +168,7 @@ public partial class ViewHost : ContentPage
 			&& newState == false)
 		{
 			logger.Warn("IsBgAppIconVisible is not changed to false because CurrentAppTheme is Light");
-			Utils.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
+			Util.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
 			return;
 		}
 		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
@@ -225,7 +230,7 @@ public partial class ViewHost : ContentPage
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.Vm_PropertyChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -322,6 +327,80 @@ public partial class ViewHost : ContentPage
 		if (!ViewModel.IsVerticalViewMode && VerticalStylePageRemarksView.IsOpen)
 		{
 			VerticalStylePageRemarksView.IsOpen = false;
+		}
+
+		UpdateOrientation();
+	}
+
+	void UpdateOrientation()
+	{
+		// Apply orientation locking only for phone devices
+		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
+		{
+			logger.Debug("Device is not a phone, skipping orientation lock");
+			return;
+		}
+
+		AppDisplayOrientation orientation = ViewModel.TabMode switch
+		{
+			DTACViewHostViewModel.Mode.Hako => AppDisplayOrientation.Portrait,
+			DTACViewHostViewModel.Mode.VerticalView => AppDisplayOrientation.Landscape,
+			_ => AppDisplayOrientation.All
+		};
+
+		logger.Info("Setting orientation to {0} for TabMode {1}", orientation, ViewModel.TabMode);
+		InstanceManager.OrientationService.SetOrientation(orientation);
+	}
+
+	protected override void OnAppearing()
+	{
+		base.OnAppearing();
+		UpdateOrientation();
+	}
+
+	protected override void OnDisappearing()
+	{
+		base.OnDisappearing();
+
+		// Reset orientation to allow all when leaving ViewHost
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
+		{
+			logger.Debug("Leaving ViewHost, resetting orientation to All");
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
+		}
+
+		// Disable wake lock when leaving ViewHost
+		if (InstanceManager.ScreenWakeLockService.IsWakeLockEnabled)
+		{
+			logger.Debug("Leaving ViewHost, disabling wake lock");
+			InstanceManager.ScreenWakeLockService.DisableWakeLock();
+		}
+	}
+
+	async void TitleLabel_Tapped(object sender, EventArgs e)
+	{
+		try
+		{
+			logger.Info("TitleLabel tapped - showing QuickSwitchPopup");
+
+			QuickSwitchPopup popup = new();
+			var popover = AnchorPopover.Create();
+
+			var options = new PopoverOptions
+			{
+				PreferredWidth = 280,
+				PreferredHeight = 400,
+				DismissOnTapOutside = true
+			};
+
+			await popover.ShowAsync(popup, TitleLabel, options);
+			logger.Trace("QuickSwitchPopup shown");
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.TitleLabel_Tapped");
+			await Util.ExitWithAlert(ex);
 		}
 	}
 }

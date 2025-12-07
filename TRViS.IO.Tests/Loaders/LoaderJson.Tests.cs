@@ -100,12 +100,16 @@ public class LoaderJsonTests
 			Assert.That(actual[0].AfterRemarks, Is.EqualTo("`(乗継)`など 最後の駅の下に記載されている内容"));
 			Assert.That(actual[0].Remarks, Is.EqualTo("列車に対する注意事項を記載する"));
 			Assert.That(actual[0].IsRideOnMoving, Is.False);
+			// First train has NextTrainId set to the second train's Id
+			Assert.That(actual[0].NextTrainId, Is.EqualTo(actual[1].Id));
 
 			Assert.That(Guid.TryParse(actual[1].Id, out _), Is.True);
 			// Assert.That(actual[1].WorkId, Is.EqualTo(workId));
 			Assert.That(actual[1].TrainNumber, Is.EqualTo("WG01-W01-Train02"));
 			Assert.That(actual[1].Direction, Is.EqualTo(Direction.Inbound));
 			Assert.That(actual[1].LineColor_RGB, Is.Null);
+			// Last train has NextTrainId set to null
+			Assert.That(actual[1].NextTrainId, Is.Null);
 		});
 	}
 
@@ -132,6 +136,53 @@ public class LoaderJsonTests
 			Assert.That(actual[1].TrainNumber, Is.EqualTo("WG01-W02-Train02"));
 			Assert.That(actual[1].Direction, Is.EqualTo(Direction.Inbound));
 			Assert.That(actual[1].LineColor_RGB, Is.Null);
+		});
+	}
+
+	[Test]
+	public void GetMarkerDataTest()
+	{
+		IReadOnlyList<WorkGroup> workGroupList = loader!.GetWorkGroupList();
+		string workGroupId = workGroupList[0].Id;
+		IReadOnlyList<Work> workList = loader!.GetWorkList(workGroupId);
+		string workId = workList[0].Id;
+		IReadOnlyList<TrainData> trains = loader!.GetTrainDataList(workId);
+
+		// First train (WG01-W01-Train01) has rows with markers
+		TimetableRow[]? rows1 = trains[0].Rows;
+		Assert.That(rows1, Is.Not.Null);
+		Assert.That(rows1, Has.Length.EqualTo(3));
+		Assert.Multiple(() =>
+		{
+			// First row: MarkerColor "3366CC" -> 0x3366CC = 3368652, MarkerText "確認"
+			Assert.That(rows1![0].DefaultMarkerColor_RGB, Is.EqualTo(0x3366CC));
+			Assert.That(rows1[0].DefaultMarkerText, Is.EqualTo("確認"));
+
+			// Second row: MarkerColor "F04020" -> 0xF04020 = 15745056, MarkerText "注意"
+			Assert.That(rows1[1].DefaultMarkerColor_RGB, Is.EqualTo(0xF04020));
+			Assert.That(rows1[1].DefaultMarkerText, Is.EqualTo("注意"));
+
+			// Third row: No marker
+			Assert.That(rows1[2].DefaultMarkerColor_RGB, Is.Null);
+			Assert.That(rows1[2].DefaultMarkerText, Is.Null);
+		});
+
+		// Second train (WG01-W01-Train02) has rows with markers
+		TimetableRow[]? rows2 = trains[1].Rows;
+		Assert.That(rows2, Is.Not.Null);
+		Assert.That(rows2, Has.Length.EqualTo(3));
+		Assert.Multiple(() =>
+		{
+			// First row: MarkerColor "40F020" -> 0x40F020 = 4255776, MarkerText "発車"
+			Assert.That(rows2![0].DefaultMarkerColor_RGB, Is.EqualTo(0x40F020));
+			Assert.That(rows2[0].DefaultMarkerText, Is.EqualTo("発車"));
+
+			// Second and third rows: No marker
+			Assert.That(rows2[1].DefaultMarkerColor_RGB, Is.Null);
+			Assert.That(rows2[1].DefaultMarkerText, Is.Null);
+
+			Assert.That(rows2[2].DefaultMarkerColor_RGB, Is.Null);
+			Assert.That(rows2[2].DefaultMarkerText, Is.Null);
 		});
 	}
 }

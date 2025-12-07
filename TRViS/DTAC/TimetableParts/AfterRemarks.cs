@@ -1,5 +1,6 @@
 using TRViS.Controls;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -41,9 +42,26 @@ public class AfterRemarks
 
 	public void AddToParent()
 	{
+		if (Parent.Contains(Label))
+		{
+			logger.Trace("Label is already added to Parent, skipping...");
+			return;
+		}
+
 		Grid.SetColumn(Label, 2);
 		Grid.SetColumnSpan(Label, 6);
 		Parent.Add(Label);
+	}
+
+	public void RemoveFromParent()
+	{
+		if (!Parent.Contains(Label))
+		{
+			logger.Trace("Label is not in Parent, skipping...");
+			return;
+		}
+
+		Parent.Remove(Label);
 	}
 
 	bool _IsVisible = false;
@@ -68,7 +86,7 @@ public class AfterRemarks
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "AfterRemarks.SetRow");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 }

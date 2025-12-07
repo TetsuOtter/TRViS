@@ -1,5 +1,6 @@
 using TRViS.IO.RequestInfo;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.RootPages;
 
@@ -153,7 +154,7 @@ public class SelectOnlineResourcePopup : ContentPage
 			if (string.IsNullOrEmpty(UrlInput.Text))
 			{
 				logger.Info("URL is null or empty");
-				await Utils.DisplayAlert("Cannot Load from Web", "URLを入力してください。", "OK");
+				await Util.DisplayAlert("Cannot Load from Web", "URLを入力してください。", "OK");
 				return;
 			}
 

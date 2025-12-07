@@ -1,6 +1,6 @@
-namespace TRViS;
+namespace TRViS.Utils;
 
-public static partial class Utils
+public static partial class Util
 {
 	public static Task DisplayAlert(string title, string message, string cancel)
 	{

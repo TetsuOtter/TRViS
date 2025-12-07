@@ -10,7 +10,8 @@
 	<Grid
 		IgnoreSafeArea="True">
 		<Grid.RowDefinitions>
-			<RowDefinition x:Name="TitlePaddingViewHeight" Height="0"/>
+			<RowDefinition x:Name="TitlePaddingViewHeight"
+										 Height="0"/>
 			<RowDefinition Height="{x:Static local:ViewHost.TITLE_VIEW_HEIGHT}"/>
 			<RowDefinition Height="60"/>
 			<RowDefinition Height="*"/>
@@ -38,8 +39,9 @@
 			Text="&#xe241;"
 			FontFamily="MaterialIconsRegular"
 			FontSize="36"
+			FontAutoScalingEnabled="False"
 			BackgroundColor="Transparent"
-			Clicked="MenuButton_Clicked" />
+			Clicked="MenuButton_Clicked"/>
 
 		<HorizontalStackLayout
 			Grid.Row="1"
@@ -57,17 +59,18 @@
 				CornerRadius="7"
 				Source="{x:Static local:DTACElementStyles.AppIconSource}"
 				BackgroundColor="{x:Static local:DTACElementStyles.AppIconBgColor}"
-				Clicked="OnToggleBgAppIconButtonClicked" />
+				Clicked="OnToggleBgAppIconButtonClicked"/>
 			<Button
 				x:Name="ChangeThemeButton"
 				Margin="0,6"
 				Padding="0"
 				FontFamily="MaterialIconsRegular"
 				FontSize="28"
+				FontAutoScalingEnabled="False"
 				HorizontalOptions="Center"
 				VerticalOptions="End"
 				BackgroundColor="Transparent"
-				Clicked="OnChangeThemeButtonClicked" />
+				Clicked="OnChangeThemeButtonClicked"/>
 			<Label
 				x:Name="TimeLabel"
 				Text="12:34:56"
@@ -77,8 +80,9 @@
 				HorizontalOptions="End"
 				VerticalOptions="End"
 				VerticalTextAlignment="End"
+				FontAutoScalingEnabled="False"
 				FontAttributes="Bold"
-				FontSize="40" />
+				FontSize="40"/>
 		</HorizontalStackLayout>
 
 		<Label
@@ -88,8 +92,13 @@
 			Margin="4,8"
 			HorizontalOptions="Center"
 			VerticalOptions="End"
+			FontAutoScalingEnabled="False"
 			FontAttributes="Bold"
-			FontSize="20" />
+			FontSize="20">
+			<Label.GestureRecognizers>
+				<TapGestureRecognizer Tapped="TitleLabel_Tapped"/>
+			</Label.GestureRecognizers>
+		</Label>
 
 		<HorizontalStackLayout
 			Grid.Row="2"

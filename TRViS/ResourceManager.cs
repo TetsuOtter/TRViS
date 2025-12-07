@@ -20,7 +20,7 @@ public class ResourceManager
 			_ => throw new NotImplementedException(),
 		};
 
-	readonly Dictionary<AssetName, string> Resources = new();
+	readonly Dictionary<AssetName, string> Resources = [];
 
 	public async Task<string> LoadAssetAsync(AssetName assetName)
 	{

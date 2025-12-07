@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using TRViS.Services;
+using TRViS.Utils;
 using TRViS.ViewModels;
 
 namespace TRViS.MyAppCustomizables;
@@ -50,6 +51,11 @@ public partial class SettingFileStructure
 	/// </summary>
 	public bool ShowMapWhenLandscape { get; set; } = false;
 
+	/// <summary>
+	/// 運行中に画面OFFを抑制するかどうか (スマートフォン・タブレット用)
+	/// </summary>
+	public bool KeepScreenOnWhenRunning { get; set; } = false;
+
 	public override string ToString()
 	{
 		return
@@ -58,7 +64,8 @@ public partial class SettingFileStructure
 			+ $"MarkerTexts: {MarkerTexts},"
 			+ $"LocationServiceInterval: {LocationServiceInterval_Seconds}[s],"
 			+ $"InitialTheme: {InitialTheme},"
-			+ $"ShowMapWhenLandscape: {ShowMapWhenLandscape}"
+			+ $"ShowMapWhenLandscape: {ShowMapWhenLandscape},"
+			+ $"KeepScreenOnWhenRunning: {KeepScreenOnWhenRunning}"
 		;
 	}
 
@@ -74,6 +81,7 @@ public partial class SettingFileStructure
 			&& LocationServiceInterval_Seconds.Equals(v.LocationServiceInterval_Seconds)
 			&& InitialTheme.Equals(v.InitialTheme)
 			&& ShowMapWhenLandscape.Equals(v.ShowMapWhenLandscape)
+			&& KeepScreenOnWhenRunning.Equals(v.KeepScreenOnWhenRunning)
 		;
 	}
 
@@ -81,7 +89,7 @@ public partial class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape);
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning);
 
 	#region Loaders
 

@@ -2,6 +2,7 @@
 
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -11,7 +12,7 @@ namespace TRViS.DTAC;
 public partial class WithRemarksView : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	Remarks RemarksView { get; } = new();
+	Remarks RemarksView { get; } = [];
 	RowDefinition RemarksAreaRowDefinition { get; } = new(new(Remarks.HEADER_HEIGHT, GridUnitType.Absolute));
 
 #if IOS
@@ -72,7 +73,7 @@ public partial class WithRemarksView : Grid
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
-		logger.Trace("SafeAreaMargin is changed: {0} -> {1}", Utils.ThicknessToString(oldValue), Utils.ThicknessToString(newValue));
+		logger.Trace("SafeAreaMargin is changed: {0} -> {1}", Util.ThicknessToString(oldValue), Util.ThicknessToString(newValue));
 #if IOS
 		double bottomPaddingValue = newValue.Bottom;
 

@@ -1,5 +1,7 @@
 using Foundation;
 
+using TRViS.Platforms.iOS;
+
 using UIKit;
 
 namespace TRViS;
@@ -14,5 +16,11 @@ public class AppDelegate : MauiUIApplicationDelegate
 		if (!string.IsNullOrEmpty(url.AbsoluteString))
 			App.SetAppLinkUri(url.AbsoluteString);
 		return base.OpenUrl(application, url, options);
+	}
+
+	[Export("application:supportedInterfaceOrientationsForWindow:")]
+	public UIInterfaceOrientationMask GetSupportedInterfaceOrientations(UIApplication application, UIWindow? forWindow)
+	{
+		return OrientationService.CurrentOrientationMask;
 	}
 }

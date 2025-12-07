@@ -1,9 +1,11 @@
 using DependencyPropertyGenerator;
 
 using TRViS.Controls;
+using TRViS.DTAC.ViewModels;
 using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
+using TRViS.Utils;
 using TRViS.ValueConverters;
 using TRViS.ViewModels;
 
@@ -14,12 +16,12 @@ namespace TRViS.DTAC;
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 60;
-	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_ROW_HEIGHT = 54;
-	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.BeforeDeparture_AfterArrive_Height * 2;
+	public const double DATE_AND_START_BUTTON_ROW_HEIGHT = 68;
+	const double TRAIN_INFO_HEADER_ROW_HEIGHT = 58;
+	const double TRAIN_INFO_ROW_HEIGHT = 58;
+	const double TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT = DTACElementStyles.TRAIN_INFO_HEIGHT + DTACElementStyles.BEFORE_DEPARTURE_HEIGHT;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
-	const double TIMETABLE_HEADER_ROW_HEIGHT = 60;
+	const double TIMETABLE_HEADER_ROW_HEIGHT = 65;
 
 	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
 	ColumnDefinition MainColumnDefinition { get; } = new(new(1, GridUnitType.Star));
@@ -35,7 +37,7 @@ public partial class VerticalStylePage : ContentView
 
 	public static double TimetableViewActivityIndicatorBorderMaxOpacity { get; } = 0.6;
 
-	VerticalTimetableView TimetableView { get; } = new();
+	VerticalTimetableView TimetableView { get; } = [];
 	MyMap? DebugMap = null;
 
 	DTACViewHostViewModel DTACViewHostViewModel { get; }
@@ -62,7 +64,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.DTACViewHostViewModel.PropertyChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		};
 
@@ -90,18 +92,26 @@ public partial class VerticalStylePage : ContentView
 			{
 				MainThread.BeginInvokeOnMainThread(OnMayChangeDebugMapVisible);
 			}
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.KeepScreenOnWhenRunning))
+			{
+				// Handle wake lock setting change during runtime
+				if (TimetableView.ViewModel.IsRunStarted && eevm.KeepScreenOnWhenRunning)
+				{
+					logger.Info("KeepScreenOnWhenRunning is enabled during run -> enable wake lock");
+					InstanceManager.ScreenWakeLockService.EnableWakeLock();
+				}
+				else if (TimetableView.ViewModel.IsRunStarted && !eevm.KeepScreenOnWhenRunning)
+				{
+					logger.Info("KeepScreenOnWhenRunning is disabled during run -> disable wake lock");
+					InstanceManager.ScreenWakeLockService.DisableWakeLock();
+				}
+			}
 		};
 
 		DeviceDisplay.Current.MainDisplayInfoChanged += (_, e) =>
 		{
 			logger.Debug("MainDisplayInfoChanged: {0}", e.DisplayInfo);
 			OnMayChangeDebugMapVisible();
-		};
-
-		TimetableView.IsLocationServiceEnabledChanged += (_, e) =>
-		{
-			logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
-			PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
 		};
 
 		InstanceManager.LocationService.OnGpsLocationUpdated += (_, e) =>
@@ -127,16 +137,16 @@ public partial class VerticalStylePage : ContentView
 			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);
 		}
 
-		TimetableView.IsBusyChanged += (s, _) =>
+		TimetableView.IsBusyChanged += (s, isBusy) =>
 		{
 			if (s is not VerticalTimetableView v)
 				return;
 
-			logger.Info("IsBusyChanged: {0}", v.IsBusy);
+			logger.Info("IsBusyChanged: {0}", isBusy);
 
 			try
 			{
-				if (v.IsBusy)
+				if (isBusy)
 				{
 					TimetableViewActivityIndicatorBorder.IsVisible = true;
 					TimetableViewActivityIndicatorBorder.FadeTo(TimetableViewActivityIndicatorBorderMaxOpacity);
@@ -160,7 +170,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.TimetableView.IsBusyChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		};
 
@@ -170,10 +180,32 @@ public partial class VerticalStylePage : ContentView
 		PageHeaderArea.IsRunningChanged += (_, e) =>
 		{
 			logger.Info("IsRunningChanged: {0}", e.NewValue);
-			TimetableView.IsRunStarted = e.NewValue;
-		};
+			TimetableView.ViewModel.IsRunStarted = e.NewValue;
 
-		TimetableView.ScrollRequested += VerticalTimetableView_ScrollRequested;
+			// 運行終了時にLocationServiceを無効化
+			if (!e.NewValue)
+			{
+				logger.Info("IsRunning is changed to false -> disable LocationService");
+				InstanceManager.LocationService.IsEnabled = false;
+				PageHeaderArea.IsLocationServiceEnabled = false;
+
+				// Disable wake lock when run ends
+				if (InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
+				{
+					logger.Info("IsRunning is changed to false -> disable wake lock");
+					InstanceManager.ScreenWakeLockService.DisableWakeLock();
+				}
+			}
+			else
+			{
+				// Enable wake lock when run starts if setting is enabled
+				if (InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
+				{
+					logger.Info("IsRunning is changed to true -> enable wake lock");
+					InstanceManager.ScreenWakeLockService.EnableWakeLock();
+				}
+			}
+		};
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
@@ -198,14 +230,29 @@ public partial class VerticalStylePage : ContentView
 		}
 
 		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
-		TimetableView.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 
-		TimetableView.CanUseLocationServiceChanged += (_, canUseLocationService) =>
+		TimetableView.ScrollRequested += async (_, e) =>
+		{
+
+			if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
+			{
+				logger.Debug("Device is not Phone nor Unknown -> scroll from {0} to {1}",
+					TimetableAreaScrollView.ScrollY,
+					e.PositionY);
+				await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
+			}
+			else
+			{
+				logger.Debug("Device is Phone or Unknown -> do nothing");
+			}
+		};
+
+		InstanceManager.LocationService.CanUseServiceChanged += (_, canUseLocationService) =>
 		{
 			logger.Info("CanUseLocationServiceChanged: {0}", canUseLocationService);
 			PageHeaderArea.CanUseLocationService = canUseLocationService;
 		};
-		PageHeaderArea.CanUseLocationService = TimetableView.CanUseLocationService;
+		PageHeaderArea.CanUseLocationService = InstanceManager.LocationService.CanUseService;
 
 		// WebSocket接続時に CanStart が true になったら自動で「運行開始」UI を反映する
 		InstanceManager.LocationService.CanUseServiceChanged += (_, canUseService) =>
@@ -216,7 +263,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Info("CanStart is true and NetworkSyncService is being used -> automatically set IsRunning to true and enable location service");
 				PageHeaderArea.IsRunning = true;
-				TimetableView.IsLocationServiceEnabled = true;
+				TimetableView.ViewModel.IsLocationServiceEnabled = true;
 			}
 		};
 
@@ -232,7 +279,7 @@ public partial class VerticalStylePage : ContentView
 	{
 		logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
 		PageHeaderArea.IsLocationServiceEnabled = e.NewValue;
-		TimetableView.IsLocationServiceEnabled = e.NewValue;
+		TimetableView.ViewModel.IsLocationServiceEnabled = e.NewValue;
 		DebugMap?.SetIsLocationServiceEnabled(e.NewValue);
 	}
 
@@ -254,11 +301,15 @@ public partial class VerticalStylePage : ContentView
 
 		try
 		{
-			VerticalTimetableView_ScrollRequested(this, new(0));
 			CurrentShowingTrainData = newValue;
 			logger.Info("SelectedTrainDataChanged: {0}", newValue);
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				TimetableAreaScrollView.ScrollToAsync(0, 0, false);
+			});
 			BindingContext = newValue;
-			TimetableView.SelectedTrainData = newValue;
+			TimetableView.ViewModel.SetTrainData(newValue);
+			InstanceManager.LocationService.SetTimetableRows(newValue?.Rows);
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
 				DebugMap?.SetTimetableRowList(newValue?.Rows);
@@ -283,27 +334,12 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.OnSelectedTrainDataChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
 	partial void OnAffectDateChanged(string? newValue)
 	 => PageHeaderArea.AffectDateLabelText = newValue ?? "";
-
-	private async void VerticalTimetableView_ScrollRequested(object? sender, VerticalTimetableView.ScrollRequestedEventArgs e)
-	{
-		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
-		{
-			logger.Debug("Device is not Phone nor Unknown -> scroll from {0} to {1}",
-				TimetableAreaScrollView.ScrollY,
-				e.PositionY);
-			await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
-		}
-		else
-		{
-			logger.Debug("Device is Phone or Unknown -> do nothing");
-		}
-	}
 
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
 	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)
@@ -377,10 +413,10 @@ public partial class VerticalStylePage : ContentView
 		switch (value.Length)
 		{
 			case 1:
-				dstStr = $"{Utils.SPACE_CHAR}{value}{Utils.SPACE_CHAR}";
+				dstStr = $"{Util.SPACE_CHAR}{value}{Util.SPACE_CHAR}";
 				break;
 			case 2:
-				dstStr = $"{value[0]}{Utils.SPACE_CHAR}{value[1]}";
+				dstStr = $"{value[0]}{Util.SPACE_CHAR}{value[1]}";
 				break;
 		}
 
@@ -415,7 +451,7 @@ public partial class VerticalStylePage : ContentView
 			return;
 		}
 		DebugMap = new MyMap();
-		DebugMap.SetTimetableRowList(TimetableView.SelectedTrainData?.Rows);
+		DebugMap.SetTimetableRowList(CurrentShowingTrainData?.Rows);
 		DebugMap.SetIsLocationServiceEnabled(PageHeaderArea.IsLocationServiceEnabled);
 		double mainWidth = 768;
 		MainColumnDefinition.Width = new(mainWidth);

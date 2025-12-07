@@ -3,6 +3,7 @@ using System.ComponentModel;
 using TRViS.IO;
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC.HakoParts;
 
@@ -13,8 +14,22 @@ public class SimpleView : Grid
 	public const double STA_NAME_TIME_COLUMN_WIDTH = 120;
 	const double TRAIN_NUMBER_ROW_HEIGHT = 72;
 	const double TIME_ROW_HEIGHT = 20;
-	List<SimpleRow> Rows { get; } = new();
+	List<SimpleRow> Rows { get; } = [];
+	CancellationTokenSource? _cts;
 	SimpleRow? _SelectedRow = null;
+	bool _IsBusy = false;
+	public bool IsBusy
+	{
+		get => _IsBusy;
+		set
+		{
+			if (_IsBusy == value)
+				return;
+			_IsBusy = value;
+			IsBusyChanged?.Invoke(this, new ValueChangedEventArgs<bool>(!value, value));
+		}
+	}
+	public event EventHandler<ValueChangedEventArgs<bool>>? IsBusyChanged;
 	SimpleRow? SelectedRow
 	{
 		get => _SelectedRow;
@@ -49,16 +64,24 @@ public class SimpleView : Grid
 
 		InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
 
-		try
+		Task.Run(async () =>
 		{
-			OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-			Utils.ExitWithAlert(ex);
-		}
+			try
+			{
+				await OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+			}
+			catch (OperationCanceledException)
+			{
+				logger.Debug("OnSelectedWorkChanged was cancelled");
+				return;
+			}
+			catch (Exception ex)
+			{
+				logger.Fatal(ex, "Unknown Exception");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
+				await Util.ExitWithAlert(ex);
+			}
+		});
 
 		logger.Debug("Created");
 	}
@@ -80,24 +103,33 @@ public class SimpleView : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnIsSelectedChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork))
+		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork) ||
+				e.PropertyName == nameof(InstanceManager.AppViewModel.OrderedTrainDataList))
 		{
-			try
+			Task.Run(async () =>
 			{
-				OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-				Utils.ExitWithAlert(ex);
-			}
+				try
+				{
+					await OnSelectedWorkChanged(InstanceManager.AppViewModel.SelectedWork);
+				}
+				catch (OperationCanceledException)
+				{
+					logger.Debug("OnSelectedWorkChanged was cancelled");
+					return;
+				}
+				catch (Exception ex)
+				{
+					logger.Fatal(ex, "Unknown Exception");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
+					await Util.ExitWithAlert(ex);
+				}
+			});
 		}
 		else if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedTrainData))
 		{
@@ -109,20 +141,27 @@ public class SimpleView : Grid
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedTrainChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		}
 	}
-	void OnSelectedWorkChanged(Work? newWork)
+	async Task OnSelectedWorkChanged(Work? newWork)
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
-		Clear();
+
+		_cts?.Cancel();
+		_cts = new CancellationTokenSource();
+		var token = _cts.Token;
+
+		await MainThread.InvokeOnMainThreadAsync(Clear);
 		SelectedRow = null;
 		if (newWork is null)
 		{
 			logger.Debug("newWork is null");
 			return;
 		}
+
+		token.ThrowIfCancellationRequested();
 
 		ILoader? loader = InstanceManager.AppViewModel.Loader;
 		if (loader is null)
@@ -131,29 +170,68 @@ public class SimpleView : Grid
 			return;
 		}
 
-		Rows.Clear();
-		IReadOnlyList<TrainData> trainDataList = loader.GetTrainDataList(newWork.Id);
-		SetRowDefinitions(trainDataList.Count);
-		TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
-		for (int i = 0; i < trainDataList.Count; i++)
-		{
-			string trainId = trainDataList[i].Id;
-			IO.Models.TrainData? trainData = loader.GetTrainData(trainId);
-			if (trainData is null)
-			{
-				logger.Debug("trainData is null");
-				continue;
-			}
+		token.ThrowIfCancellationRequested();
 
-			SimpleRow row = new(this, i, trainData);
-			Rows.Add(row);
-			row.IsSelectedChanged += OnIsSelectedChanged;
-			if (trainId == selectedTrainData?.Id)
+		// Use the ordered train list created by AppViewModel
+		var orderedTrainDataList = InstanceManager.AppViewModel.OrderedTrainDataList;
+		if (orderedTrainDataList is null || orderedTrainDataList.Count == 0)
+		{
+			logger.Debug("OrderedTrainDataList is null or empty");
+			return;
+		}
+
+		token.ThrowIfCancellationRequested();
+
+		IsBusy = true;
+		try
+		{
+			Rows.Clear();
+			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
+			await MainThread.InvokeOnMainThreadAsync(() => SetRowDefinitions(orderedTrainDataList.Count));
+			TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
+
+			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
+
+			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
+
+			for (int i = 0; i < orderedTrainDataList.Count; i++)
 			{
-				logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
-				row.IsSelected = true;
-				SelectedRow = row;
+				token.ThrowIfCancellationRequested();
+
+				TrainData trainData = orderedTrainDataList[i];
+				string trainId = trainData.Id;
+				if (trainData is null)
+				{
+					logger.Debug("trainData is null");
+					continue;
+				}
+
+				await MainThread.InvokeOnMainThreadAsync(() =>
+				{
+					if (token.IsCancellationRequested)
+						return;
+
+					SimpleRow row = new(this, i, trainData);
+					Rows.Add(row);
+					row.IsSelectedChanged += OnIsSelectedChanged;
+					if (trainId == selectedTrainData?.Id)
+					{
+						logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
+						row.IsSelected = true;
+						SelectedRow = row;
+					}
+				});
+
+				token.ThrowIfCancellationRequested();
+
+				await Task.Delay(renderDelayMs, token);
 			}
+		}
+		finally
+		{
+			IsBusy = false;
 		}
 	}
 

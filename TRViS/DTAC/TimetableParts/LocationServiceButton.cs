@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -11,9 +12,9 @@ public class LocationServiceButton : ToggleButton
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	const float CornerRadius = 5;
-	const float SelectedRectMargin = 2;
-	const float SelectedRectThickness = 1;
-	const float NotSelectedRectMargin = 1;
+	const float SelectedRectMargin = 4;
+	const float SelectedRectThickness = 2;
+	const float NotSelectedRectMargin = 2;
 
 	readonly Label Label_Location = DTACElementStyles.LargeLabelStyle<Label>();
 	readonly Label Label_ON = DTACElementStyles.LabelStyle<Label>();
@@ -52,11 +53,11 @@ public class LocationServiceButton : ToggleButton
 
 		Grid grid = new()
 		{
-			ColumnDefinitions = new()
-			{
+			ColumnDefinitions =
+			[
 				new ColumnDefinition(new(1, GridUnitType.Star)),
 				new ColumnDefinition(new(1, GridUnitType.Star))
-			}
+			]
 		};
 
 		Border baseBorder = new()
@@ -174,7 +175,7 @@ public class LocationServiceButton : ToggleButton
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "LocationServiceButton.OnIsCheckedChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -192,7 +193,7 @@ public class LocationServiceButton : ToggleButton
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "LocationServiceButton.OnPropertyChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		}
 	}

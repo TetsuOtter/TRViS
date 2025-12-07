@@ -1,5 +1,6 @@
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC.TimetableParts;
 
@@ -12,7 +13,7 @@ public class NextTrainButton : Grid
 		FontSize = DTACElementStyles.LargeTextSize,
 		TextColor = Colors.White,
 		FontAttributes = FontAttributes.Bold,
-		Margin = new(32, 8),
+		Margin = new(32, 10),
 		MinimumWidthRequest = 400,
 		CornerRadius = 4,
 		Shadow = DTACElementStyles.DefaultShadow,
@@ -66,7 +67,7 @@ public class NextTrainButton : Grid
 			_NextTrainId = value;
 			this.IsVisible = true;
 
-			string trainNumberToShow = Utils.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, Utils.THIN_SPACE);
+			string trainNumberToShow = Util.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, Util.THIN_SPACE);
 			_NextTrainButton.Text = $"{trainNumberToShow}の時刻表へ";
 		}
 	}
@@ -89,7 +90,7 @@ public class NextTrainButton : Grid
 				+ $"NextTrainID: {_NextTrainId}";
 			logger.Error(ex, "Unknown Exception: " + msg);
 			InstanceManager.CrashlyticsWrapper.Log(ex, "NextTrainButton.Click");
-			Utils.DisplayAlert("エラー", msg, "OK");
+			Util.DisplayAlert("エラー", msg, "OK");
 		}
 	}
 }

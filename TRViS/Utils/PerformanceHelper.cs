@@ -1,6 +1,6 @@
 using NLog;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 /// <summary>
 /// デバイスのCPU情報に基づいてパフォーマンスレベルを判定し、
@@ -19,12 +19,12 @@ public static class PerformanceHelper
 	/// <summary>行の追加開始から行の設定を始めるまでの遅延時間（ミリ秒）</summary>
 	public static readonly int DelayBeforeSettingRowsMs;
 
-	/// <summary>行の追加時に、UIレンダリングのための遅延を入れる行数の閾値。0の場合は遅延を入れない</summary>
-	public static readonly int RowsBatchSize;
-
 	/// <summary>UIレンダリングのための遅延時間（ミリ秒）</summary>
 	public static readonly int RowRenderDelayMs;
 
+	private const int FRAME_DURATION_30FPS_MS = 1000 / 30;
+	private const int FRAME_DURATION_60FPS_MS = 1000 / 60;
+	private const int FRAME_DURATION_120FPS_MS = 1000 / 120;
 
 	/// <summary>
 	/// パフォーマンスレベルに応じた遅延設定（初期遅延時間）を取得します
@@ -36,22 +36,8 @@ public static class PerformanceHelper
 		{
 			PerformanceLevel.Low => 250,
 			PerformanceLevel.Medium => 100,
-			PerformanceLevel.High => 0,
+			PerformanceLevel.High => 25,
 			_ => 100
-		};
-
-	/// <summary>
-	/// パフォーマンスレベルに応じたUI描画遅延時間を取得します
-	/// </summary>
-	/// <param name="performanceLevel">パフォーマンスレベル</param>
-	/// <returns>UI描画遅延時間（ミリ秒）</returns>
-	private static int GetRowRenderBatchSizeForLevel(PerformanceLevel performanceLevel)
-		=> performanceLevel switch
-		{
-			PerformanceLevel.Low => 1,
-			PerformanceLevel.Medium => 5,
-			PerformanceLevel.High => 0,
-			_ => 5
 		};
 
 	/// <summary>
@@ -62,10 +48,10 @@ public static class PerformanceHelper
 	private static int GetRowRenderDelayMsForLevel(PerformanceLevel performanceLevel)
 		=> performanceLevel switch
 		{
-			PerformanceLevel.Low => 16,
-			PerformanceLevel.Medium => 8,
-			PerformanceLevel.High => 0,
-			_ => 8
+			PerformanceLevel.Low => FRAME_DURATION_30FPS_MS,
+			PerformanceLevel.Medium => FRAME_DURATION_60FPS_MS,
+			PerformanceLevel.High => FRAME_DURATION_120FPS_MS,
+			_ => FRAME_DURATION_60FPS_MS
 		};
 
 	static PerformanceHelper()
@@ -73,7 +59,6 @@ public static class PerformanceHelper
 		PerformanceLevel level = GetPerformanceLevelFromDeviceModel();
 
 		DelayBeforeSettingRowsMs = GetBeforeRowRenderDelayConfigForLevel(level);
-		RowsBatchSize = GetRowRenderBatchSizeForLevel(level);
 		RowRenderDelayMs = GetRowRenderDelayMsForLevel(level);
 	}
 

@@ -1,6 +1,7 @@
 using TRViS.Services;
 using TRViS.ViewModels;
 using TR.Maui.AnchorPopover;
+using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
@@ -51,7 +52,7 @@ public partial class MarkerButton : Border
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "MarkerButton.Tap");
-			await Utils.ExitWithAlert(ex);
+			await Util.ExitWithAlert(ex);
 		}
 	}
 }

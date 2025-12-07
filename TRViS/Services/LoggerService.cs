@@ -7,6 +7,8 @@ using NLog.Config;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 
+using TRViS.Utils;
+
 namespace TRViS.Services;
 
 public static class LoggerService

@@ -8,6 +8,7 @@ using TRViS.Services;
 using TRViS.ViewModels;
 using Microsoft.Maui.ApplicationModel;
 using System;
+using TRViS.Utils;
 
 namespace TRViS.RootPages;
 
@@ -56,7 +57,7 @@ public partial class ThirdPartyLicenses : ContentPage
 
 		logger.Debug("LicenseTextList Changed");
 
-		VerticalStackLayout licenses = new();
+		VerticalStackLayout licenses = [];
 		if (viewModel.LicenseTextList?.Count > 0)
 		{
 			logger.Debug("LicenseTextList Length: {0}", viewModel.LicenseTextList.Count);
@@ -66,11 +67,11 @@ public partial class ThirdPartyLicenses : ContentPage
 				{
 					var grid = new Grid
 					{
-						ColumnDefinitions = new ColumnDefinitionCollection
-						{
+						ColumnDefinitions =
+						[
 							new ColumnDefinition { Width = GridLength.Star },
 							new ColumnDefinition { Width = GridLength.Auto }
-						}
+						]
 					};
 
 					var urlLabel = new Label()
@@ -98,12 +99,12 @@ public partial class ThirdPartyLicenses : ContentPage
 							}
 							else
 							{
-								await Utils.DisplayAlert("Invalid URL", $"The URL is invalid: {v.Value}", "OK");
+								await Util.DisplayAlert("Invalid URL", $"The URL is invalid: {v.Value}", "OK");
 							}
 						}
 						catch (Exception ex)
 						{
-							await Utils.DisplayAlert("Cannot Open URL", ex.Message, "OK");
+							await Util.DisplayAlert("Cannot Open URL", ex.Message, "OK");
 						}
 					};
 					grid.Add(urlLabel, 0, 0);

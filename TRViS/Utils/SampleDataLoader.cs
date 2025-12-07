@@ -1,6 +1,6 @@
 using TRViS.IO.Models;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 public class SampleDataLoader : TRViS.IO.ILoader
 {
@@ -10,22 +10,25 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	const string TRAIN_1_1_2 = "1-1-2";
 	const string TRAIN_1_1_3 = "1-1-3";
 
-	static readonly List<WorkGroup> WorkGroupList = new()
-	{
+	static readonly HakoTabOrderTestDataLoader HakoTabOrderTestLoader = new();
+
+	static readonly List<WorkGroup> WorkGroupList =
+	[
 		new(Id: WORK_GROUP_1, Name: "WorkGroup1"),
-	};
+		new(Id: HakoTabOrderTestDataLoader.WORK_GROUP_ID, Name: "ハコタブ順序確認"),
+	];
 
-	static readonly List<Work> WorkList = new()
-	{
+	static readonly List<Work> WorkList =
+	[
 		new(Id: WORK_1_1, WorkGroupId: WORK_GROUP_1, Name: "Work1-1", Remarks: "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3"),
-	};
+	];
 
-	static readonly List<TrainData> TrainDataList = new()
-	{
+	static readonly List<TrainData> TrainDataList =
+	[
 		new(Id: TRAIN_1_1_1, Direction: Direction.Inbound, TrainNumber: "Train01"),
 		new(Id: TRAIN_1_1_2, Direction: Direction.Inbound, TrainNumber: "Train02"),
 		new(Id: TRAIN_1_1_3, Direction: Direction.Inbound, TrainNumber: "Train03"),
-	};
+	];
 
 	static readonly TrainData SampleTrainData = new(
 		Id: TRAIN_1_1_1,
@@ -37,7 +40,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		NominalTractiveCapacity: "ＨＰ９９９形\n現車　　　１両\n換算　２０.０",
 		CarCount: 1,
 		Destination: "終点",
-		BeginRemarks: "(入換)",
+		BeginRemarks: "(入換1行目)\n(入換2行目)",
 		AfterRemarks: "(入区)",
 		Remarks: "サンプルデータです。\n車掌省略",
 		BeforeDeparture: "転線   10分",
@@ -48,7 +51,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		AfterArrive: "入換   20分",
 		// AfterArriveOnStationTrackCol: "入換",
 
-		NextTrainId: TRAIN_1_1_2,
+		NextTrainId: null,
 
 		Rows: new[]
 		{
@@ -67,7 +70,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: "1",
 				RunInLimit: null,
 				RunOutLimit: 30,
-				Remarks: "記事"
+				Remarks: "記事",
+				DefaultMarkerColor_RGB: 0x3366CC,
+				DefaultMarkerText: "確認"
 			),
 			new TimetableRow(
 				Id: "2",
@@ -84,7 +89,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: "10",
 				RunInLimit: 30,
 				RunOutLimit: 30,
-				Remarks: "<b>記事</b>"
+				Remarks: "<b>記事</b>",
+				DefaultMarkerColor_RGB: 0xF04020,
+				DefaultMarkerText: "注意"
 			),
 			new TimetableRow(
 				Id: "3",
@@ -109,12 +116,12 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				DriveTimeMM: 1,
 				DriveTimeSS: null,
 				StationName: "東京",
-				IsOperationOnlyStop: false,
+				IsOperationOnlyStop: true,
 				IsPass: false,
-				HasBracket: false,
+				HasBracket: true,
 				IsLastStop: false,
 				ArriveTime: new(1,23,45,null),
-				DepartureTime: new(1,25,null, null),
+				DepartureTime: new(12,34,56, null),
 				TrackName: """<span style="color: aqua">1</span>""",
 				RunInLimit: null,
 				RunOutLimit: null,
@@ -211,7 +218,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				Location: new(6),
 				DriveTimeMM: null,
 				DriveTimeSS: null,
-				StationName: "<span style=\"color:red\">交  直  切  換  2</span>",
+				StationName: "[b][color=#FF0000 dark=#FF0000]　　　　　交　直　切　換　2[/color][/b]",
 				IsOperationOnlyStop: false,
 				IsPass: false,
 				HasBracket: false,
@@ -380,7 +387,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		Remarks: null,
 		BeforeDeparture: null,
 		TrainInfo: null,
-		NextTrainId: TRAIN_1_1_3,
+		NextTrainId: TRAIN_1_1_1,
 		Rows: new[]
 		{
 			new TimetableRow(
@@ -398,7 +405,9 @@ public class SampleDataLoader : TRViS.IO.ILoader
 				TrackName: "1",
 				RunInLimit: null,
 				RunOutLimit: 30,
-				Remarks: "記事"
+				Remarks: "記事",
+				DefaultMarkerColor_RGB: 0x40F020,
+				DefaultMarkerText: "発車"
 			),
 			new TimetableRow(
 				Id: "2",
@@ -492,6 +501,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 
 		AfterArrive: "入換   20分",
 		// AfterArriveOnStationTrackCol: "入換",
+		NextTrainId: TRAIN_1_1_2,
 
 		Rows: new[]
 		{
@@ -536,20 +546,38 @@ public class SampleDataLoader : TRViS.IO.ILoader
 	public void Dispose() { }
 
 	public TrainData? GetTrainData(string trainId)
-		=> trainId switch
+	{
+		var hakoTrainData = HakoTabOrderTestLoader.GetTrainData(trainId);
+		if (hakoTrainData is not null)
+		{
+			return hakoTrainData;
+		}
+
+		return trainId switch
 		{
 			TRAIN_1_1_1 => SampleTrainData,
 			TRAIN_1_1_2 => SampleTrainData2,
 			TRAIN_1_1_3 => SampleTrainData3,
 			_ => null
 		};
+	}
 
 	public IReadOnlyList<TrainData> GetTrainDataList(string workId)
-		=> TrainDataList;
+		=> workId == HakoTabOrderTestDataLoader.WORK_LINEAR ||
+			 workId == HakoTabOrderTestDataLoader.WORK_REVERSE ||
+			 workId == HakoTabOrderTestDataLoader.WORK_MULTIPLE ||
+			 workId == HakoTabOrderTestDataLoader.WORK_ISOLATED ||
+			 workId == HakoTabOrderTestDataLoader.WORK_PARTIAL ||
+			 workId == HakoTabOrderTestDataLoader.WORK_CIRCULAR ||
+			 workId == HakoTabOrderTestDataLoader.WORK_DAYCOUNT
+			? HakoTabOrderTestLoader.GetTrainDataList(workId)
+			: TrainDataList;
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
 		=> WorkGroupList;
 
 	public IReadOnlyList<Work> GetWorkList(string workGroupId)
-		=> WorkList;
+		=> workGroupId == HakoTabOrderTestDataLoader.WORK_GROUP_ID
+			? HakoTabOrderTestLoader.GetWorkList(workGroupId)
+			: WorkList;
 }

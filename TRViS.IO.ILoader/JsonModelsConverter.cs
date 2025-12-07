@@ -99,8 +99,8 @@ public static partial class JsonModelsConverter
 				RunOutLimit: v.RunOutLimit,
 				Remarks: v.Remarks,
 				IsInfoRow: false,  // JSONModelsにはRecordTypeが含まれない
-				DefaultMarkerColor_RGB: null,
-				DefaultMarkerText: null
+				DefaultMarkerColor_RGB: HexStringToRgbInt(v.MarkerColor),
+				DefaultMarkerText: v.MarkerText
 			))];
 		}
 
@@ -147,6 +147,29 @@ public static partial class JsonModelsConverter
 			ToIntOrNull(hhmmss[2]),
 			null
 		);
+	}
+
+	/// <summary>
+	/// Converts a hex color string (e.g., "3366CC" or "CC") to an RGB integer.
+	/// Returns null if the input is null, empty, or invalid.
+	/// </summary>
+	/// <remarks>
+	/// Note: This method is duplicated in TRViS.IO.Utils.Utils due to the project dependency structure.
+	/// TRViS.IO.ILoader cannot reference TRViS.IO to avoid circular dependencies.
+	/// </remarks>
+	private static int? HexStringToRgbInt(string? hexString)
+	{
+		if (string.IsNullOrEmpty(hexString))
+			return null;
+
+		// Remove leading '#' if present
+		if (hexString.StartsWith('#'))
+			hexString = hexString.Substring(1);
+
+		if (int.TryParse(hexString, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int result))
+			return result;
+
+		return null;
 	}
 
 	[GeneratedRegex("^[0-9]{0,2}:[0-9]{0,2}:[0-9]{0,2}$", RegexOptions.Compiled)]
