@@ -303,6 +303,10 @@ public partial class VerticalStylePage : ContentView
 		{
 			CurrentShowingTrainData = newValue;
 			logger.Info("SelectedTrainDataChanged: {0}", newValue);
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				TimetableAreaScrollView.ScrollToAsync(0, 0, false);
+			});
 			BindingContext = newValue;
 			TimetableView.ViewModel.SetTrainData(newValue);
 			InstanceManager.LocationService.SetTimetableRows(newValue?.Rows);
