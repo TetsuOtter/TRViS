@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using Microsoft.Maui.Controls;
+
 using TRViS.MyAppCustomizables;
 using TRViS.Services;
 
@@ -44,6 +46,25 @@ public partial class EasterEggPageViewModel : ObservableObject
 	[ObservableProperty]
 	bool _ShowMapWhenLandscape = false;
 
+	[ObservableProperty]
+	bool _KeepScreenOnWhenRunning = false;
+
+	[ObservableProperty]
+	AppTheme _SelectedAppTheme = AppTheme.Unspecified;
+
+	partial void OnSelectedAppThemeChanged(AppTheme value)
+	{
+		logger.Info("OnSelectedAppThemeChanged: {0}", value);
+		InstanceManager.AppViewModel.CurrentAppTheme = value;
+		if (Application.Current is not null)
+		{
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				Application.Current.UserAppTheme = value;
+			});
+		}
+	}
+
 	public IReadOnlyList<double> LocationServiceIntervalItems { get; } = new List<double>()
 	{
 		0.1,
@@ -59,14 +80,6 @@ public partial class EasterEggPageViewModel : ObservableObject
 		30,
 		60,
 	};
-
-	[ObservableProperty]
-	string _LocationServiceIntervalSettingHeaderLabel = "";
-	partial void OnLocationServiceInterval_SecondsChanged(double value)
-	{
-		logger.Debug("OnLocationServiceInterval_SecondsChanged (value: {0})", value);
-		LocationServiceIntervalSettingHeaderLabel = $"Location Service Interval: {value:F2} [s]";
-	}
 
 	public DTACMarkerViewModel MarkerViewModel { get; }
 
@@ -145,6 +158,8 @@ public partial class EasterEggPageViewModel : ObservableObject
 		Color_Blue = settingFile.TitleColor.Blue;
 		LocationServiceInterval_Seconds = settingFile.LocationServiceInterval_Seconds;
 		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
+		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
+		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
 
 		MarkerViewModel?.UpdateList(settingFile);
 
@@ -173,6 +188,8 @@ public partial class EasterEggPageViewModel : ObservableObject
 			TitleColor = new(ShellBackgroundColor),
 			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds,
 			ShowMapWhenLandscape = ShowMapWhenLandscape,
+			KeepScreenOnWhenRunning = KeepScreenOnWhenRunning,
+			InitialTheme = SelectedAppTheme,
 		};
 
 		MarkerViewModel?.SetToSettings(settingFile);
