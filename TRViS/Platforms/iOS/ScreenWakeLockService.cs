@@ -25,10 +25,10 @@ public class ScreenWakeLockService : IScreenWakeLockService
 		}
 
 		logger.Info("Enabling screen wake lock");
+		_isWakeLockEnabled = true;
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			UIApplication.SharedApplication.IdleTimerDisabled = true;
-			_isWakeLockEnabled = true;
 		});
 	}
 
@@ -41,10 +41,10 @@ public class ScreenWakeLockService : IScreenWakeLockService
 		}
 
 		logger.Info("Disabling screen wake lock");
+		_isWakeLockEnabled = false;
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			UIApplication.SharedApplication.IdleTimerDisabled = false;
-			_isWakeLockEnabled = false;
 		});
 	}
 }

@@ -81,14 +81,6 @@ public partial class EasterEggPageViewModel : ObservableObject
 		60,
 	};
 
-	[ObservableProperty]
-	string _LocationServiceIntervalSettingHeaderLabel = "";
-	partial void OnLocationServiceInterval_SecondsChanged(double value)
-	{
-		logger.Debug("OnLocationServiceInterval_SecondsChanged (value: {0})", value);
-		LocationServiceIntervalSettingHeaderLabel = $"Location Service Interval: {value:F2} [s]";
-	}
-
 	public DTACMarkerViewModel MarkerViewModel { get; }
 
 	public EasterEggPageViewModel()

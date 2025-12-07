@@ -120,12 +120,8 @@
 					<Label
 						Text="位置情報の取得間隔"
 						FontSize="Header"/>
-					<Label
-						x:Name="LocationServiceIntervalSettingHeaderLabel"
-						Text="{Binding LocationServiceIntervalSettingHeaderLabel, Mode=OneWay}"
-						FontSize="Header"/>
-					<ListView
-						VerticalScrollBarVisibility="Never"
+					<Picker
+						x:Name="LocationServiceIntervalPicker"
 						ItemsSource="{Binding LocationServiceIntervalItems, Mode=OneTime}"
 						SelectedItem="{Binding LocationServiceInterval_Seconds, Mode=TwoWay}"/>
 				</VerticalStackLayout>

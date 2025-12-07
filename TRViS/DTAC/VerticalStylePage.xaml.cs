@@ -94,18 +94,15 @@ public partial class VerticalStylePage : ContentView
 			else if (e.PropertyName == nameof(EasterEggPageViewModel.KeepScreenOnWhenRunning))
 			{
 				// Handle wake lock setting change during runtime
-				if (TimetableView.ViewModel.IsRunStarted)
+				if (TimetableView.ViewModel.IsRunStarted && eevm.KeepScreenOnWhenRunning)
 				{
-					if (eevm.KeepScreenOnWhenRunning)
-					{
-						logger.Info("KeepScreenOnWhenRunning is enabled during run -> enable wake lock");
-						InstanceManager.ScreenWakeLockService.EnableWakeLock();
-					}
-					else
-					{
-						logger.Info("KeepScreenOnWhenRunning is disabled during run -> disable wake lock");
-						InstanceManager.ScreenWakeLockService.DisableWakeLock();
-					}
+					logger.Info("KeepScreenOnWhenRunning is enabled during run -> enable wake lock");
+					InstanceManager.ScreenWakeLockService.EnableWakeLock();
+				}
+				else if (TimetableView.ViewModel.IsRunStarted && !eevm.KeepScreenOnWhenRunning)
+				{
+					logger.Info("KeepScreenOnWhenRunning is disabled during run -> disable wake lock");
+					InstanceManager.ScreenWakeLockService.DisableWakeLock();
 				}
 			}
 		};

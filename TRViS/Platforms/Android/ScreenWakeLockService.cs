@@ -25,18 +25,18 @@ public class ScreenWakeLockService : IScreenWakeLockService
 			return;
 		}
 
-		var activity = Platform.CurrentActivity;
-		if (activity?.Window is null)
-		{
-			logger.Warn("Platform.CurrentActivity or Window is null, cannot enable wake lock");
-			return;
-		}
-
 		logger.Info("Enabling screen wake lock");
+		_isWakeLockEnabled = true;
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
+			var activity = Platform.CurrentActivity;
+			if (activity?.Window is null)
+			{
+				logger.Warn("Platform.CurrentActivity or Window is null, cannot enable wake lock");
+				_isWakeLockEnabled = false;
+				return;
+			}
 			activity.Window.AddFlags(WindowManagerFlags.KeepScreenOn);
-			_isWakeLockEnabled = true;
 		});
 	}
 
@@ -48,18 +48,17 @@ public class ScreenWakeLockService : IScreenWakeLockService
 			return;
 		}
 
-		var activity = Platform.CurrentActivity;
-		if (activity?.Window is null)
-		{
-			logger.Warn("Platform.CurrentActivity or Window is null, cannot disable wake lock");
-			return;
-		}
-
 		logger.Info("Disabling screen wake lock");
+		_isWakeLockEnabled = false;
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
+			var activity = Platform.CurrentActivity;
+			if (activity?.Window is null)
+			{
+				logger.Warn("Platform.CurrentActivity or Window is null, cannot disable wake lock");
+				return;
+			}
 			activity.Window.ClearFlags(WindowManagerFlags.KeepScreenOn);
-			_isWakeLockEnabled = false;
 		});
 	}
 }

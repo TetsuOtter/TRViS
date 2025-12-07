@@ -89,8 +89,13 @@ public partial class EasterEggPage : ContentPage
 		}
 	}
 
+	private bool _isUpdatingAppThemePicker = false;
+
 	private void OnAppThemePickerSelectedIndexChanged(object sender, EventArgs e)
 	{
+		if (_isUpdatingAppThemePicker)
+			return;
+
 		if (sender is not Picker picker)
 			return;
 
@@ -108,12 +113,20 @@ public partial class EasterEggPage : ContentPage
 
 	private void UpdateAppThemePickerSelection()
 	{
-		AppThemePicker.SelectedIndex = ViewModel.SelectedAppTheme switch
+		_isUpdatingAppThemePicker = true;
+		try
 		{
-			AppTheme.Unspecified => 0,
-			AppTheme.Light => 1,
-			AppTheme.Dark => 2,
-			_ => 0
-		};
+			AppThemePicker.SelectedIndex = ViewModel.SelectedAppTheme switch
+			{
+				AppTheme.Unspecified => 0,
+				AppTheme.Light => 1,
+				AppTheme.Dark => 2,
+				_ => 0
+			};
+		}
+		finally
+		{
+			_isUpdatingAppThemePicker = false;
+		}
 	}
 }
