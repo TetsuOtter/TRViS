@@ -18,6 +18,8 @@ public partial class ViewHost : ContentPage
 	// 時刻表示が160px、残りはアイコンとWorkName分
 	const int TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH = (160 + 90) * 2;
 
+	public static readonly string NameOfThisClass = nameof(ViewHost);
+
 	DTACViewHostViewModel ViewModel { get; }
 
 	readonly GradientStop TitleBG_Top = new(Colors.White.WithAlpha(0.8f), 0);

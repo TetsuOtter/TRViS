@@ -36,7 +36,9 @@
 		Route="{x:Static pages:SelectTrainPage.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate pages:SelectTrainPage}"/>
 	</FlyoutItem>
-	<FlyoutItem Title="D-TAC">
+	<FlyoutItem
+		Title="D-TAC"
+		Route="{x:Static dtac:ViewHost.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
 	</FlyoutItem>
 	<FlyoutItem Title="Third Party Licenses">
