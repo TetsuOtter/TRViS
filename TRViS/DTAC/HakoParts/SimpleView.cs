@@ -3,6 +3,7 @@ using System.ComponentModel;
 using TRViS.IO;
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC.HakoParts;
 
@@ -78,7 +79,7 @@ public class SimpleView : Grid
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-				await Utils.ExitWithAlert(ex);
+				await Util.ExitWithAlert(ex);
 			}
 		});
 
@@ -102,7 +103,7 @@ public class SimpleView : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnIsSelectedChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -126,7 +127,7 @@ public class SimpleView : Grid
 				{
 					logger.Fatal(ex, "Unknown Exception");
 					InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-					await Utils.ExitWithAlert(ex);
+					await Util.ExitWithAlert(ex);
 				}
 			});
 		}
@@ -140,7 +141,7 @@ public class SimpleView : Grid
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedTrainChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		}
 	}

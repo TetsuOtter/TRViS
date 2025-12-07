@@ -2,6 +2,7 @@ using System.ComponentModel;
 
 using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
+using TRViS.Utils;
 using TRViS.ViewModels;
 
 namespace TRViS.Services;
@@ -162,7 +163,7 @@ public partial class LocationService : IDisposable
 		logger.Info("NetworkSyncService connection closed -> switching to LonLatLocationService");
 		MainThread.BeginInvokeOnMainThread(async () =>
 		{
-			await Utils.DisplayAlert(
+			await Util.DisplayAlert(
 				"接続切断",
 				"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
 				"OK"
@@ -176,7 +177,7 @@ public partial class LocationService : IDisposable
 		logger.Warn("NetworkSyncService connection failed after reconnection attempts -> showing dialog");
 		MainThread.BeginInvokeOnMainThread(async () =>
 		{
-			await Utils.DisplayAlert(
+			await Util.DisplayAlert(
 				"接続失敗",
 				"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
 				"OK"

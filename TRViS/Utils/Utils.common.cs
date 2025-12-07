@@ -1,12 +1,12 @@
 using TRViS.Services;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
-public static partial class Utils
+public static partial class Util
 {
 	private static readonly NLog.Logger logger;
 
-	static Utils()
+	static Util()
 	{
 		logger = LoggerService.GetGeneralLogger();
 	}

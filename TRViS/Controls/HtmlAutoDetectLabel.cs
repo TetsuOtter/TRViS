@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using TR.BBCodeLabel.Maui;
 
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.Controls;
 
@@ -174,7 +175,7 @@ public class HtmlAutoDetectLabel : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (base)");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 
 			if (propertyName == nameof(Text))
@@ -187,7 +188,7 @@ public class HtmlAutoDetectLabel : ContentView
 				{
 					logger.Fatal(ex, "Unknown Exception");
 					InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (Text)");
-					Utils.ExitWithAlert(ex);
+					Util.ExitWithAlert(ex);
 				}
 			}
 		}

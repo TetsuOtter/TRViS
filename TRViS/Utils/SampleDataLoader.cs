@@ -1,6 +1,6 @@
 using TRViS.IO.Models;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 public class SampleDataLoader : TRViS.IO.ILoader
 {

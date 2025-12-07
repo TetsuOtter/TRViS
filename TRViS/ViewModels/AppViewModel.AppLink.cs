@@ -7,6 +7,7 @@ using TRViS.IO;
 using TRViS.IO.RequestInfo;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.ViewModels;
 
@@ -33,7 +34,7 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Warn(ex, "AppLinkInfo Identify Failed");
-			await Utils.DisplayAlert("Cannot Open File", "AppLinkInfo Identify Failed\n" + ex.Message, "OK");
+			await Util.DisplayAlert("Cannot Open File", "AppLinkInfo Identify Failed\n" + ex.Message, "OK");
 			return false;
 		}
 
@@ -44,7 +45,7 @@ public partial class AppViewModel
 			string path = appLinkInfo.ResourceUri.ToString();
 			string decodedUrl = HttpUtility.UrlDecode(path);
 
-			bool openRemoteFileCheckResult = await Utils.DisplayAlert(
+			bool openRemoteFileCheckResult = await Util.DisplayAlert(
 				"外部ファイルを開く",
 				$"ファイル `{decodedUrl}` を開きますか?",
 				"はい",
@@ -106,7 +107,7 @@ public partial class AppViewModel
 				&& ex.InnerException is TimeoutException)
 			{
 				logger.Error(ex, "Timeout Error");
-				await Utils.DisplayAlert(
+				await Util.DisplayAlert(
 					"接続できませんでした (Timeout)",
 					"接続先がパソコンの場合は、\n"
 					+ "接続先が同じネットワークに属しているか、\n"
@@ -117,7 +118,7 @@ public partial class AppViewModel
 			}
 			else
 			{
-				await Utils.DisplayAlert("Cannot Open File", "OpenAppLinkAsync Failed\n" + ex.Message, "OK");
+				await Util.DisplayAlert("Cannot Open File", "OpenAppLinkAsync Failed\n" + ex.Message, "OK");
 			}
 			return false;
 		}
@@ -150,7 +151,7 @@ public partial class AppViewModel
 			bool doConnect = true;
 			if (appLinkInfo.ResourceUri?.Host != appLinkInfo.RealtimeServiceUri.Host)
 			{
-				doConnect = await Utils.DisplayAlert(
+				doConnect = await Util.DisplayAlert(
 					"External Location Service",
 					"位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。"
 					+ '\n' +
@@ -175,12 +176,12 @@ public partial class AppViewModel
 				catch (Exception ex)
 				{
 					logger.Error(ex, "SetNetworkSyncServiceAsync Failed");
-					await Utils.DisplayAlert("Cannot Set External Location Service", "SetNetworkSyncServiceAsync Failed\n" + ex.Message, "OK");
+					await Util.DisplayAlert("Cannot Set External Location Service", "SetNetworkSyncServiceAsync Failed\n" + ex.Message, "OK");
 				}
 			}
 		}
 
-		await Utils.DisplayAlert("Success!", "ファイルの読み込みが完了しました", "OK");
+		await Util.DisplayAlert("Success!", "ファイルの読み込みが完了しました", "OK");
 		return true;
 	}
 
@@ -189,7 +190,7 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is null)
 		{
 			logger.Error("ResourceUri is null");
-			await Utils.DisplayAlert("Error", "WebSocket URLが指定されていません", "OK");
+			await Util.DisplayAlert("Error", "WebSocket URLが指定されていません", "OK");
 			return false;
 		}
 
@@ -229,7 +230,7 @@ public partial class AppViewModel
 				AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 			}
 
-			await Utils.DisplayAlert("Success!", "WebSocket接続が完了しました", "OK");
+			await Util.DisplayAlert("Success!", "WebSocket接続が完了しました", "OK");
 			return true;
 		}
 		catch (OperationCanceledException)
@@ -246,7 +247,7 @@ public partial class AppViewModel
 				&& ex.InnerException is TimeoutException)
 			{
 				logger.Error(ex, "Timeout Error");
-				await Utils.DisplayAlert(
+				await Util.DisplayAlert(
 					"接続できませんでした (Timeout)",
 					"接続先がパソコンの場合は、\n"
 					+ "接続先が同じネットワークに属しているか、\n"
@@ -257,7 +258,7 @@ public partial class AppViewModel
 			}
 			else
 			{
-				await Utils.DisplayAlert("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
+				await Util.DisplayAlert("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
 			}
 			return false;
 		}
@@ -307,7 +308,7 @@ public partial class AppViewModel
 
 		logger.Warn("remoteIp is private but not same network");
 		string myIpListStr = string.Join('\n', myIpList.Select(static (x, i) => $"この端末[{i}]:{x}"));
-		bool continueProcessing = await Utils.DisplayAlert(
+		bool continueProcessing = await Util.DisplayAlert(
 			"Maybe Different Network",
 			$"接続先と違うネットワークに属しているため、接続に失敗する可能性があります。\nこのまま接続しますか?\n接続先:{remoteIp}\n{myIpListStr}",
 			"続ける",
@@ -326,7 +327,7 @@ public partial class AppViewModel
 		logger.Info("Head Request status code: {0} ({1})", response.StatusCode);
 		if (response.StatusCode == HttpStatusCode.NoContent)
 		{
-			await Utils.DisplayAlert(
+			await Util.DisplayAlert(
 				"Cannot Open File",
 				$"時刻表ファイルを確認しましたが、ファイルの中身がありませんでした。",
 				"OK"
@@ -343,7 +344,7 @@ public partial class AppViewModel
 		if (response.Content.Headers.ContentLength is not long contentLength)
 		{
 			logger.Warn("File Size Check Failed (Content-Length not set) -> check continue or not");
-			return await Utils.DisplayAlert(
+			return await Util.DisplayAlert(
 				"Continue to download?",
 				"ダウンロードするファイルのサイズが不明です。ダウンロードを継続しますか?",
 				"続ける",
@@ -352,7 +353,7 @@ public partial class AppViewModel
 		}
 
 		logger.Info("File Size Check Succeeded: {0} bytes", contentLength);
-		return await Utils.DisplayAlert(
+		return await Util.DisplayAlert(
 			"Continue to download?",
 			$"ダウンロードするファイルのサイズは {contentLength} byte です。このファイルをダウンロードしますか?",
 			"続ける",

@@ -1,6 +1,6 @@
-namespace TRViS;
+namespace TRViS.Utils;
 
-public static partial class Utils
+public static partial class Util
 {
 	private static bool IsHapticEnabled { get; set; } = true;
 	private static DateTime? LastHapticTime { get; set; } = null;

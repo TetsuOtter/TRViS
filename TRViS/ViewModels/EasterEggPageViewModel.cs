@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls;
 
 using TRViS.MyAppCustomizables;
 using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.ViewModels;
 
@@ -200,7 +201,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	void SetTitleTextColor()
 	{
 		// ref: http://www.asahi-net.or.jp/~gx4s-kmgi/page04.html
-		ShellTitleTextColor = Utils.GetTextColorFromBGColor(Color_Red, Color_Green, Color_Blue);
+		ShellTitleTextColor = Util.GetTextColorFromBGColor(Color_Red, Color_Green, Color_Blue);
 	}
 
 	partial void OnColor_RedChanged(int value)

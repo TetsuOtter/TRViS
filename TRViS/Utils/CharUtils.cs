@@ -1,8 +1,8 @@
 using System.Text;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
-public static partial class Utils
+public static partial class Util
 {
 	public const string SPACE_CHAR = "\x2002";
 	public const string THIN_SPACE = "\x2009";
