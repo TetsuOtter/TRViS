@@ -26,6 +26,8 @@ public class ScreenWakeLockService : IScreenWakeLockService
 		}
 
 		logger.Info("Enabling screen wake lock");
+		// Set flag before async operation to prevent race conditions.
+		// If activity check fails, flag is reset inside the lambda.
 		_isWakeLockEnabled = true;
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
