@@ -1,4 +1,4 @@
-namespace TRViS;
+namespace TRViS.Utils;
 
 public static class DirectoryPathProvider
 {

@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using TRViS.DTAC.ViewModels;
 using TRViS.ViewModels;
+using TRViS.Utils;
 
 namespace TRViS.DTAC.TimetableParts;
 

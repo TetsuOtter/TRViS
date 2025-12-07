@@ -8,6 +8,7 @@ using Microsoft.Maui.Controls.Shapes;
 using TRViS.DTAC.TimetableParts;
 using TRViS.DTAC.ViewModels;
 using TRViS.Services;
+using TRViS.Utils;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;

@@ -1,6 +1,6 @@
 using TRViS.IO.Models;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 /// <summary>
 /// Test data loader for Hako Tab ordering functionality

@@ -1,6 +1,6 @@
 using TRViS.Services;
 
-namespace TRViS;
+namespace TRViS.Utils;
 
 public static partial class Util
 {

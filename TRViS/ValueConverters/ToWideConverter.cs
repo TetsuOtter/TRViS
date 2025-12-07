@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
+using TRViS.Utils;
+
 namespace TRViS.ValueConverters;
 
 public class ToWideConverter : IValueConverter
