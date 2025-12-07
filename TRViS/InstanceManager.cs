@@ -51,6 +51,29 @@ internal static class InstanceManager
 		}
 	}
 
+	private static IScreenWakeLockService? _ScreenWakeLockService = null;
+	public static IScreenWakeLockService ScreenWakeLockService
+	{
+		get
+		{
+			if (_ScreenWakeLockService is not null)
+				return _ScreenWakeLockService;
+
+#if ANDROID
+			_ScreenWakeLockService = new Platforms.Android.ScreenWakeLockService();
+#elif IOS
+			_ScreenWakeLockService = new Platforms.iOS.ScreenWakeLockService();
+#elif MACCATALYST
+			_ScreenWakeLockService = new Platforms.MacCatalyst.ScreenWakeLockService();
+#elif WINDOWS
+			_ScreenWakeLockService = new Platforms.Windows.ScreenWakeLockService();
+#else
+			_ScreenWakeLockService = new DefaultScreenWakeLockService();
+#endif
+			return _ScreenWakeLockService;
+		}
+	}
+
 	static HttpClient? _HttpClient = null;
 	public static HttpClient HttpClient
 	{
@@ -85,6 +108,24 @@ internal static class InstanceManager
 	private class DefaultOrientationService : IOrientationService
 	{
 		public void SetOrientation(AppDisplayOrientation orientation)
+		{
+			// No-op for unsupported platforms
+		}
+	}
+
+	/// <summary>
+	/// Default fallback implementation of the screen wake lock service when no platform-specific implementation is available.
+	/// </summary>
+	private class DefaultScreenWakeLockService : IScreenWakeLockService
+	{
+		public bool IsWakeLockEnabled => false;
+
+		public void EnableWakeLock()
+		{
+			// No-op for unsupported platforms
+		}
+
+		public void DisableWakeLock()
 		{
 			// No-op for unsupported platforms
 		}
