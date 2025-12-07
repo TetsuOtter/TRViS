@@ -75,7 +75,7 @@ public partial class TabButton : ContentView
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "TabButton.OnWindowWidthChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -154,7 +154,7 @@ public partial class TabButton : ContentView
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "TabButton.BaseBox_Tapped");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 }

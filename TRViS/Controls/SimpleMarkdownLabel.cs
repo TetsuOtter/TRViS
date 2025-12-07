@@ -67,7 +67,7 @@ public partial class SimpleMarkdownLabel : Label
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -141,7 +141,7 @@ public partial class SimpleMarkdownLabel : Label
 						{
 							new TapGestureRecognizer
 							{
-								Command = Utils.OpenUrlCommand,
+								Command = Util.OpenUrlCommand,
 								CommandParameter = inputTextLine,
 							},
 						},
@@ -165,7 +165,7 @@ public partial class SimpleMarkdownLabel : Label
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleMarkdownLabel.SetMarkdownSpanList");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 }

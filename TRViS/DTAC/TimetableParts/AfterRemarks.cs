@@ -85,7 +85,7 @@ public class AfterRemarks
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "AfterRemarks.SetRow");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 }

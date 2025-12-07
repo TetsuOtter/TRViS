@@ -59,6 +59,6 @@
 
 	<MenuItem
 		Text="Privacy Policy (online)"
-		Command="{x:Static local:Utils.OpenUrlCommand}"
+		Command="{x:Static local:Util.OpenUrlCommand}"
 		CommandParameter="https://github.com/TetsuOtter/TRViS/blob/main/docs/md/PrivacyPolicy.md"/>
 </Shell>

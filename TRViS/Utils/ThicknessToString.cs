@@ -1,6 +1,6 @@
 namespace TRViS;
 
-public static partial class Utils
+public static partial class Util
 {
   public static string ThicknessToString(in Thickness thickness)
   {

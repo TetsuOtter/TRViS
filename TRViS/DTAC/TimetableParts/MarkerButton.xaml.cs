@@ -51,7 +51,7 @@ public partial class MarkerButton : Border
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "MarkerButton.Tap");
-			await Utils.ExitWithAlert(ex);
+			await Util.ExitWithAlert(ex);
 		}
 	}
 }

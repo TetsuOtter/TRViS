@@ -66,7 +66,7 @@ public class NextTrainButton : Grid
 			_NextTrainId = value;
 			this.IsVisible = true;
 
-			string trainNumberToShow = Utils.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, Utils.THIN_SPACE);
+			string trainNumberToShow = Util.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, Util.THIN_SPACE);
 			_NextTrainButton.Text = $"{trainNumberToShow}の時刻表へ";
 		}
 	}
@@ -89,7 +89,7 @@ public class NextTrainButton : Grid
 				+ $"NextTrainID: {_NextTrainId}";
 			logger.Error(ex, "Unknown Exception: " + msg);
 			InstanceManager.CrashlyticsWrapper.Log(ex, "NextTrainButton.Click");
-			Utils.DisplayAlert("エラー", msg, "OK");
+			Util.DisplayAlert("エラー", msg, "OK");
 		}
 	}
 }

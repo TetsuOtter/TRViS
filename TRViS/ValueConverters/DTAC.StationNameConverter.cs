@@ -15,17 +15,17 @@ public class StationNameConverter : IValueConverter
 	public static string Convert(string s)
 		=> s.Length switch
 		{
-			2 => Utils.InsertCharBetweenCharAndMakeWide(s, $"{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}{Utils.SPACE_CHAR}"),
-			3 => Utils.InsertCharBetweenCharAndMakeWide(s, Utils.SPACE_CHAR),
+			2 => Util.InsertCharBetweenCharAndMakeWide(s, $"{Util.SPACE_CHAR}{Util.SPACE_CHAR}{Util.SPACE_CHAR}{Util.SPACE_CHAR}"),
+			3 => Util.InsertCharBetweenCharAndMakeWide(s, Util.SPACE_CHAR),
 #if IOS
 			4 => DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Tablet
-				? Utils.InsertCharBetweenCharAndMakeWide(s, Utils.THIN_SPACE)
+				? Util.InsertCharBetweenCharAndMakeWide(s, Util.THIN_SPACE)
 				: s,
 #endif
 			_ => s
 		};
 
 	public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-		=> (value as string)?.Replace(Utils.SPACE_CHAR, string.Empty).Replace(Utils.THIN_SPACE, string.Empty) ?? value;
+		=> (value as string)?.Replace(Util.SPACE_CHAR, string.Empty).Replace(Util.THIN_SPACE, string.Empty) ?? value;
 }
 

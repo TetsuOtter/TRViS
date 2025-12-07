@@ -2,7 +2,7 @@ using System.Text;
 
 namespace TRViS;
 
-public static partial class Utils
+public static partial class Util
 {
   public static string UrlSafeBase64Encode(byte[] input)
   {

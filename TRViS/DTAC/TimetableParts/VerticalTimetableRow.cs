@@ -704,7 +704,7 @@ public class VerticalTimetableRow : IDisposable
 		else
 		{
 			MarkerBox.Background = new SolidColorBrush(Model.MarkerColor);
-			MarkerBox.TextColor = Utils.GetTextColorFromBGColor(Model.MarkerColor);
+			MarkerBox.TextColor = Util.GetTextColorFromBGColor(Model.MarkerColor);
 			BackgroundBoxView.Color = Model.MarkerColor;
 		}
 		MarkerBox.Text = LimitMarkerText(Model.MarkerText);

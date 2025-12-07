@@ -63,7 +63,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.DTACViewHostViewModel.PropertyChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		};
 
@@ -169,7 +169,7 @@ public partial class VerticalStylePage : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.TimetableView.IsBusyChanged");
-				Utils.ExitWithAlert(ex);
+				Util.ExitWithAlert(ex);
 			}
 		};
 
@@ -329,7 +329,7 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.OnSelectedTrainDataChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -408,10 +408,10 @@ public partial class VerticalStylePage : ContentView
 		switch (value.Length)
 		{
 			case 1:
-				dstStr = $"{Utils.SPACE_CHAR}{value}{Utils.SPACE_CHAR}";
+				dstStr = $"{Util.SPACE_CHAR}{value}{Util.SPACE_CHAR}";
 				break;
 			case 2:
-				dstStr = $"{value[0]}{Utils.SPACE_CHAR}{value[1]}";
+				dstStr = $"{value[0]}{Util.SPACE_CHAR}{value[1]}";
 				break;
 		}
 

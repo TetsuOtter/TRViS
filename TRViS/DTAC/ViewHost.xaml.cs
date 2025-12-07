@@ -132,7 +132,7 @@ public partial class ViewHost : ContentPage
 		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
 		MenuButton.Margin = new(8 + newValue.Left, 4);
 		TimeLabel.Margin = new(0, 0, newValue.Right, 0);
-		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Utils.ThicknessToString(TitleBGGradientBox.Margin));
+		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Util.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
 	protected override void OnSizeAllocated(double width, double height)
@@ -148,7 +148,7 @@ public partial class ViewHost : ContentPage
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.OnSizeAllocated");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -165,7 +165,7 @@ public partial class ViewHost : ContentPage
 			&& newState == false)
 		{
 			logger.Warn("IsBgAppIconVisible is not changed to false because CurrentAppTheme is Light");
-			Utils.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
+			Util.DisplayAlert("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
 			return;
 		}
 		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
@@ -227,7 +227,7 @@ public partial class ViewHost : ContentPage
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.Vm_PropertyChanged");
-			Utils.ExitWithAlert(ex);
+			Util.ExitWithAlert(ex);
 		}
 	}
 
@@ -397,7 +397,7 @@ public partial class ViewHost : ContentPage
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.TitleLabel_Tapped");
-			await Utils.ExitWithAlert(ex);
+			await Util.ExitWithAlert(ex);
 		}
 	}
 }

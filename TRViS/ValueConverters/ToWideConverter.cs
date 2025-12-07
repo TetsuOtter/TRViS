@@ -10,7 +10,7 @@ public class ToWideConverter : IValueConverter
 
 	[return: NotNullIfNotNull(nameof(value))]
 	public static string? Convert(string? value)
-		=> value is null ? null : Utils.ToWide(value);
+		=> value is null ? null : Util.ToWide(value);
 
 	public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
 		=> value;

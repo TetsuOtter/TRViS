@@ -1,6 +1,6 @@
 namespace TRViS;
 
-public static partial class Utils
+public static partial class Util
 {
 	// ref: http://www.asahi-net.or.jp/~gx4s-kmgi/page04.html
 
