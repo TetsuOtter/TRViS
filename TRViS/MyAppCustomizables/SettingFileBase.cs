@@ -56,6 +56,11 @@ public partial class SettingFileStructure
 	/// </summary>
 	public bool KeepScreenOnWhenRunning { get; set; } = false;
 
+	/// <summary>
+	/// 時間の進み方の倍率
+	/// </summary>
+	public TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.Normal;
+
 	public override string ToString()
 	{
 		return
@@ -65,7 +70,8 @@ public partial class SettingFileStructure
 			+ $"LocationServiceInterval: {LocationServiceInterval_Seconds}[s],"
 			+ $"InitialTheme: {InitialTheme},"
 			+ $"ShowMapWhenLandscape: {ShowMapWhenLandscape},"
-			+ $"KeepScreenOnWhenRunning: {KeepScreenOnWhenRunning}"
+			+ $"KeepScreenOnWhenRunning: {KeepScreenOnWhenRunning},"
+			+ $"TimeProgressionRate: {TimeProgressionRate}"
 		;
 	}
 
@@ -82,6 +88,7 @@ public partial class SettingFileStructure
 			&& InitialTheme.Equals(v.InitialTheme)
 			&& ShowMapWhenLandscape.Equals(v.ShowMapWhenLandscape)
 			&& KeepScreenOnWhenRunning.Equals(v.KeepScreenOnWhenRunning)
+			&& TimeProgressionRate.Equals(v.TimeProgressionRate)
 		;
 	}
 
@@ -89,7 +96,7 @@ public partial class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning);
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, TimeProgressionRate);
 
 	#region Loaders
 
