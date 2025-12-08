@@ -23,12 +23,19 @@ public partial class EasterEggPage : ContentPage
 		// Initialize AppThemePicker selection based on ViewModel
 		UpdateAppThemePickerSelection();
 
+		// Initialize TimeProgressionRatePicker selection based on ViewModel
+		UpdateTimeProgressionRatePickerSelection();
+
 		// Update picker when ViewModel's SelectedAppTheme changes
 		ViewModel.PropertyChanged += (_, e) =>
 		{
 			if (e.PropertyName == nameof(EasterEggPageViewModel.SelectedAppTheme))
 			{
 				UpdateAppThemePickerSelection();
+			}
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.TimeProgressionRate))
+			{
+				UpdateTimeProgressionRatePickerSelection();
 			}
 		};
 
@@ -128,6 +135,47 @@ public partial class EasterEggPage : ContentPage
 		finally
 		{
 			_isUpdatingAppThemePicker = false;
+		}
+	}
+
+	private bool _isUpdatingTimeProgressionRatePicker = false;
+
+	private void OnTimeProgressionRatePickerSelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (_isUpdatingTimeProgressionRatePicker)
+			return;
+
+		if (sender is not Picker picker)
+			return;
+
+		TimeProgressionRate newRate = picker.SelectedIndex switch
+		{
+			0 => TimeProgressionRate.Normal,
+			1 => TimeProgressionRate.X30,
+			2 => TimeProgressionRate.X60,
+			_ => TimeProgressionRate.Normal
+		};
+
+		logger.Info("TimeProgressionRate changed to {0}", newRate);
+		ViewModel.TimeProgressionRate = newRate;
+	}
+
+	private void UpdateTimeProgressionRatePickerSelection()
+	{
+		_isUpdatingTimeProgressionRatePicker = true;
+		try
+		{
+			TimeProgressionRatePicker.SelectedIndex = ViewModel.TimeProgressionRate switch
+			{
+				TimeProgressionRate.Normal => 0,
+				TimeProgressionRate.X30 => 1,
+				TimeProgressionRate.X60 => 2,
+				_ => 0
+			};
+		}
+		finally
+		{
+			_isUpdatingTimeProgressionRatePicker = false;
 		}
 	}
 }

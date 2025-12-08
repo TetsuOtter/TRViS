@@ -245,7 +245,7 @@ public partial class LocationService : IDisposable
 
 				try
 				{
-					int currentTime_s = (int)DateTime.Now.TimeOfDay.TotalSeconds;
+					int currentTime_s = InstanceManager.TimeProvider.GetCurrentTimeSeconds();
 					if (lastTime_s != currentTime_s)
 					{
 						lastTime_s = currentTime_s;
