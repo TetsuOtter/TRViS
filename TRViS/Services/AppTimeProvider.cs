@@ -6,6 +6,7 @@ namespace TRViS.Services;
 public class AppTimeProvider : ITimeProvider
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+	private const int SECONDS_IN_DAY = 86400; // 24 hours * 60 minutes * 60 seconds
 
 	private TimeProgressionRate _progressionRate = TimeProgressionRate.Normal;
 
@@ -55,7 +56,7 @@ public class AppTimeProvider : ITimeProvider
 					// 直前の0分からの経過時間（秒）
 					int elapsedSeconds = realMinutes * 60 + realSeconds;
 					// 30倍速で進んだ時間
-					int virtualSeconds = (elapsedSeconds * 30) % 86400; // 86400秒 = 24時間
+					int virtualSeconds = (elapsedSeconds * 30) % SECONDS_IN_DAY;
 					return virtualSeconds;
 				}
 
@@ -69,7 +70,7 @@ public class AppTimeProvider : ITimeProvider
 					int minutesFromBase = realMinutes % 30;
 					int elapsedSeconds = minutesFromBase * 60 + realSeconds;
 					// 60倍速で進んだ時間
-					int virtualSeconds = (elapsedSeconds * 60) % 86400; // 86400秒 = 24時間
+					int virtualSeconds = (elapsedSeconds * 60) % SECONDS_IN_DAY;
 					return virtualSeconds;
 				}
 
