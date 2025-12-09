@@ -20,7 +20,7 @@
 	<Border.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
-				<ResourceDictionary Source="../Style_VerticalView.xaml" />
+				<ResourceDictionary Source="../Style_VerticalView.xaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Border.Resources>
@@ -35,10 +35,11 @@
 			Text="ﾏｰｶｰ">
 			<Label.Triggers>
 				<DataTrigger
-						TargetType="Label"
-						Binding="{Binding IsToggled}"
-						Value="True">
-					<Setter Property="TextColor" Value="White"/>
+					TargetType="Label"
+					Binding="{Binding IsToggled}"
+					Value="True">
+					<Setter Property="TextColor"
+							Value="White"/>
 				</DataTrigger>
 			</Label.Triggers>
 		</Label>
@@ -55,10 +56,11 @@
 			Text="&#xe9a2;">
 			<Label.Triggers>
 				<DataTrigger
-						TargetType="Label"
-						Binding="{Binding IsToggled}"
-						Value="True">
-					<Setter Property="TextColor" Value="White"/>
+					TargetType="Label"
+					Binding="{Binding IsToggled}"
+					Value="True">
+					<Setter Property="TextColor"
+							Value="White"/>
 				</DataTrigger>
 			</Label.Triggers>
 		</Label>
@@ -74,7 +76,8 @@
 			TargetType="Border"
 			Binding="{Binding IsToggled}"
 			Value="True">
-			<Setter Property="BackgroundColor" Value="{StaticResource DarkerGreen}"/>
+			<Setter Property="BackgroundColor"
+					Value="{x:Static local:DTACElementStyles.DarkGreen}"/>
 		</DataTrigger>
 	</Border.Triggers>
 </Border>

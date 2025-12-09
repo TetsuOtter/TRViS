@@ -10,8 +10,6 @@
 	<dtacConv:StationNameConverter x:Key="StationNameConverter"/>
 	<dtacConv:TrainNumberConverter x:Key="TrainNumberConverter"/>
 
-	<Color x:Key="DarkerGreen">#151</Color>
-
 	<ColumnDefinitionCollection x:Key="TrainInfoColumnWidthCollection">
 		<!-- 列車 -->
 		<ColumnDefinition Width="270"/>
@@ -23,7 +21,9 @@
 		<ColumnDefinition Width="168"/>
 	</ColumnDefinitionCollection>
 
-	<Style TargetType="Label" BasedOn="{x:Static dtac:DTACElementStyles.LabelStyleResource}">
-		<Setter Property="Margin" Value="4"/>
+	<Style TargetType="Label"
+				 BasedOn="{x:Static dtac:DTACElementStyles.LabelStyleResource}">
+		<Setter Property="Margin"
+						Value="4"/>
 	</Style>
 </ResourceDictionary>
