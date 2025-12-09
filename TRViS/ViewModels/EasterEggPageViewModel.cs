@@ -14,17 +14,17 @@ public partial class EasterEggPageViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	Color _ShellBackgroundColor = Color.FromRgb(0x55, 0x88, 0x33);
+	Color _ShellBackgroundColor = Color.FromRgb(0x19, 0x7A, 0x11);
 	public Color ShellBackgroundColor
 	{
 		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
 		get => _ShellBackgroundColor;
 		set
 		{
-			if (SetProperty(ref _ShellBackgroundColor, value))
-			{
-				SetTitleTextColor();
-			}
+			// if (SetProperty(ref _ShellBackgroundColor, value))
+			// {
+			// 	SetTitleTextColor();
+			// }
 		}
 	}
 
@@ -33,7 +33,10 @@ public partial class EasterEggPageViewModel : ObservableObject
 	{
 		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
 		get => _ShellTitleTextColor;
-		set => SetProperty(ref _ShellTitleTextColor, value);
+		set
+		{
+			// SetProperty(ref _ShellTitleTextColor, value);
+		}
 	}
 
 	[ObservableProperty]
@@ -50,7 +53,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial bool ShowMapWhenLandscape { get; set; } = false;
 
 	[ObservableProperty]
-	public partial bool KeepScreenOnWhenRunning { get; set; } = false;
+	public partial bool KeepScreenOnWhenRunning { get; set; } = true;
 
 	[ObservableProperty]
 	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Train;
