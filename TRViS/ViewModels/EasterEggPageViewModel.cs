@@ -12,17 +12,17 @@ public partial class EasterEggPageViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	Color _ShellBackgroundColor = Colors.Black;
+	Color _ShellBackgroundColor = Color.FromRgb(0x19, 0x7A, 0x11);
 	public Color ShellBackgroundColor
 	{
 		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
 		get => _ShellBackgroundColor;
 		set
 		{
-			if (SetProperty(ref _ShellBackgroundColor, value))
-			{
-				SetTitleTextColor();
-			}
+			// if (SetProperty(ref _ShellBackgroundColor, value))
+			// {
+			// 	SetTitleTextColor();
+			// }
 		}
 	}
 
@@ -31,7 +31,10 @@ public partial class EasterEggPageViewModel : ObservableObject
 	{
 		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
 		get => _ShellTitleTextColor;
-		set => SetProperty(ref _ShellTitleTextColor, value);
+		set
+		{
+			// SetProperty(ref _ShellTitleTextColor, value);
+		}
 	}
 
 	[ObservableProperty]
@@ -48,7 +51,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	bool _ShowMapWhenLandscape = false;
 
 	[ObservableProperty]
-	bool _KeepScreenOnWhenRunning = false;
+	bool _KeepScreenOnWhenRunning = true;
 
 	[ObservableProperty]
 	AppTheme _SelectedAppTheme = AppTheme.Unspecified;

@@ -32,9 +32,9 @@ public static partial class DTACElementStyles
 	public static readonly AppThemeColorBindingExtension DefaultBGColor = genColor(0xFF, baseDarkColor);
 	public static readonly AppThemeColorBindingExtension CarCountBGColor = genColor(0xFE, baseDarkColor + 0x11);
 	public static readonly AppThemeColorBindingExtension TabAreaBGColor = genColor(0xEE, baseDarkColor - 0x20);
-	public static readonly AppThemeColorBindingExtension TabButtonBGColor = genColor(0xDD, baseDarkColor - 0x11);
+	public static readonly AppThemeColorBindingExtension TabButtonBGColor = genColor(0xCC, baseDarkColor - 0x11);
 
-	public static readonly AppThemeColorBindingExtension OpenCloseButtonBGColor = genColor(0xFE, 0x4A);
+	public static readonly AppThemeColorBindingExtension OpenCloseButtonBGColor = genColor(0xFD, 0x4A);
 	public static readonly AppThemeColorBindingExtension OpenCloseButtonTextColor = genColor(0xAA, 0x99);
 	public static readonly AppThemeColorBindingExtension MarkerButtonIconColor = new(
 		new(0x00, 0x44, 0x00),
@@ -53,7 +53,7 @@ public static partial class DTACElementStyles
 		new(0x00, 0x77, 0x00)
 	);
 	public static readonly AppThemeColorBindingExtension DarkGreen = new(
-		new(0x00, 0x44, 0x00),
+		new(0x31, 0x65, 0x23),
 		new(0x00, 0x33, 0x00)
 	);
 
