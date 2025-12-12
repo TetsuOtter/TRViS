@@ -30,10 +30,10 @@
 
 	<Border
 		Grid.Column="2"
-		Margin="16,4"
+		Margin="12,4"
 		Padding="0"
 		Stroke="Transparent"
-		BackgroundColor="{StaticResource DarkerGreen}">
+		BackgroundColor="{x:Static dtac:DTACElementStyles.DarkGreen}">
 		<Border.StrokeShape>
 			<RoundRectangle CornerRadius="8"/>
 		</Border.StrokeShape>

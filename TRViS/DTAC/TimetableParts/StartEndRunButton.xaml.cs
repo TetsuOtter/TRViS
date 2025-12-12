@@ -7,9 +7,9 @@ namespace TRViS.DTAC;
 public partial class StartEndRunButton : ToggleButton
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	static readonly Color GREEN = new(0, 0x80, 0);
+	static readonly Color GREEN = new(0x47, 0x92, 0x32);
 	static readonly Color GREEN_DARK = new(0, 0x70, 0);
-	const float BUTTON_LUMINOUS_DELTA = 0.05f;
+	const float BUTTON_LUMINOUS_DELTA = 0.025f;
 
 	static readonly AppThemeColorBindingExtension Color_Up = new(
 		GREEN.AddLuminosity(BUTTON_LUMINOUS_DELTA),
