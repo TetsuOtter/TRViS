@@ -126,6 +126,22 @@
 						SelectedItem="{Binding LocationServiceInterval_Seconds, Mode=TwoWay}"/>
 				</VerticalStackLayout>
 			</Border>
+			<Border>
+				<VerticalStackLayout Spacing="8">
+					<Label
+						Text="時間の進み方"
+						FontSize="Header"/>
+					<Picker
+						x:Name="TimeProgressionRatePicker"
+						SelectedIndexChanged="OnTimeProgressionRatePickerSelectedIndexChanged">
+						<Picker.Items>
+							<x:String>1倍速（リアルタイム）</x:String>
+							<x:String>30倍速（1秒で30秒進む）</x:String>
+							<x:String>60倍速（1秒で60秒進む）</x:String>
+						</Picker.Items>
+					</Picker>
+				</VerticalStackLayout>
+			</Border>
 			<Border x:Name="AdvancedSettingsBorder">
 				<VerticalStackLayout Spacing="8">
 					<Label

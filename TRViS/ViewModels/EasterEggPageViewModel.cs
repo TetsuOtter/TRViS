@@ -56,6 +56,9 @@ public partial class EasterEggPageViewModel : ObservableObject
 	[ObservableProperty]
 	AppTheme _SelectedAppTheme = AppTheme.Unspecified;
 
+	[ObservableProperty]
+	TimeProgressionRate _TimeProgressionRate = TimeProgressionRate.Normal;
+
 	partial void OnSelectedAppThemeChanged(AppTheme value)
 	{
 		logger.Info("OnSelectedAppThemeChanged: {0}", value);
@@ -67,6 +70,12 @@ public partial class EasterEggPageViewModel : ObservableObject
 				Application.Current.UserAppTheme = value;
 			});
 		}
+	}
+
+	partial void OnTimeProgressionRateChanged(TimeProgressionRate value)
+	{
+		logger.Info("OnTimeProgressionRateChanged: {0}", value);
+		InstanceManager.TimeProvider.ProgressionRate = value;
 	}
 
 	public IReadOnlyList<double> LocationServiceIntervalItems { get; } = new List<double>()
@@ -164,6 +173,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
+		TimeProgressionRate = settingFile.TimeProgressionRate;
 
 		MarkerViewModel?.UpdateList(settingFile);
 
@@ -194,6 +204,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 			ShowMapWhenLandscape = ShowMapWhenLandscape,
 			KeepScreenOnWhenRunning = KeepScreenOnWhenRunning,
 			InitialTheme = SelectedAppTheme,
+			TimeProgressionRate = TimeProgressionRate,
 		};
 
 		MarkerViewModel?.SetToSettings(settingFile);

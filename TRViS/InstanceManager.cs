@@ -23,6 +23,9 @@ internal static class InstanceManager
 	private static LocationService? _LocationService = null;
 	public static LocationService LocationService { get => _LocationService ??= new(); }
 
+	private static ITimeProvider? _TimeProvider = null;
+	public static ITimeProvider TimeProvider { get => _TimeProvider ??= new AppTimeProvider(); }
+
 	private static CrashlyticsWrapper? _CrashlyticsWrapper = null;
 	public static ICrashlyticsWrapper CrashlyticsWrapper => _CrashlyticsWrapper ??= new();
 	private static AnalyticsWrapper? _AnalyticsWrapper = null;
