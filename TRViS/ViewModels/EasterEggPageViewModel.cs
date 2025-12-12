@@ -57,7 +57,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	AppTheme _SelectedAppTheme = AppTheme.Unspecified;
 
 	[ObservableProperty]
-	TimeProgressionRate _TimeProgressionRate = TimeProgressionRate.Normal;
+	TimeProgressionRate _TimeProgressionRate = TimeProgressionRate.X60;
 
 	partial void OnSelectedAppThemeChanged(AppTheme value)
 	{
@@ -173,7 +173,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
-		TimeProgressionRate = settingFile.TimeProgressionRate;
+		// TimeProgressionRate = settingFile.TimeProgressionRate;
 
 		MarkerViewModel?.UpdateList(settingFile);
 
