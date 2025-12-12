@@ -65,7 +65,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
 
 	[ObservableProperty]
-	public partial TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.Normal;
+	public partial TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.X60;
 
 	[ObservableProperty]
 	public partial AppLanguage SelectedAppLanguage { get; set; } = AppLanguage.System;
@@ -204,7 +204,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		HorizontalTimetableButtonLabel = settingFile.HorizontalTimetableButtonLabel;
 		PdfJsRenderEngine = settingFile.PdfJsRenderEngine;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
-		TimeProgressionRate = settingFile.TimeProgressionRate;
+		// TimeProgressionRate = settingFile.TimeProgressionRate;
 		if (AppLanguageOsBridge.IsSupported)
 		{
 			// iOS / Mac Catalyst: OS (AppleLanguages) が真実。Picker は OS の
