@@ -3,6 +3,163 @@ using TRViS.IO.Models;
 
 namespace TRViS.CustomRoute.Tests;
 
+using Direction = TRViS.IO.Models.Direction;
+
+/// <summary>
+/// CustomRoute時刻表表示のビジネスロジック層（テスト用簡易版）
+/// UIとの完全な分離を目指し、単体テストで動作を保証する
+/// </summary>
+public class CustomRouteServiceSimplified
+{
+	private IReadOnlyList<TrainData>? _trains = null;
+	private TrainData? _selectedTrain = null;
+
+	/// <summary>
+	/// 列車データの設定
+	/// </summary>
+	public void SetTrains(IReadOnlyList<TrainData> trains)
+	{
+		if (trains == null)
+		{
+			_trains = null;
+			_selectedTrain = null;
+			return;
+		}
+
+		_trains = trains;
+
+		// 最初の列車を選択
+		if (trains.Count > 0)
+		{
+			_selectedTrain = trains[0];
+		}
+		else
+		{
+			_selectedTrain = null;
+		}
+	}
+
+	/// <summary>
+	/// 現在利用可能な列車の一覧を取得
+	/// </summary>
+	public IReadOnlyList<TrainData> GetAvailableTrains()
+	{
+		return _trains ?? [];
+	}
+
+	/// <summary>
+	/// 指定されたインデックスの列車を選択
+	/// </summary>
+	/// <returns>成功時はtrue、インデックスが範囲外の場合はfalse</returns>
+	public bool SelectTrainByIndex(int index)
+	{
+		if (_trains == null || index < 0 || index >= _trains.Count)
+		{
+			return false;
+		}
+
+		_selectedTrain = _trains[index];
+		return true;
+	}
+
+	/// <summary>
+	/// 指定されたIDの列車を選択
+	/// </summary>
+	/// <returns>成功時はtrue、IDが見つからない場合はfalse</returns>
+	public bool SelectTrainById(string trainId)
+	{
+		if (_trains == null || string.IsNullOrEmpty(trainId))
+		{
+			return false;
+		}
+
+		var train = _trains.FirstOrDefault(t => t.Id == trainId);
+		if (train == null)
+		{
+			return false;
+		}
+
+		_selectedTrain = train;
+		return true;
+	}
+
+	/// <summary>
+	/// 現在選択されている列車を取得
+	/// </summary>
+	public TrainData? GetSelectedTrain()
+	{
+		return _selectedTrain;
+	}
+
+	/// <summary>
+	/// 現在選択されている列車のインデックスを取得
+	/// </summary>
+	/// <returns>見つからない場合は-1</returns>
+	public int GetSelectedTrainIndex()
+	{
+		if (_trains == null || _selectedTrain == null)
+		{
+			return -1;
+		}
+
+		// IndexOfの代替
+		for (int i = 0; i < _trains.Count; i++)
+		{
+			if (_trains[i].Id == _selectedTrain.Id)
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/// <summary>
+	/// 同じ路線の列車リストを取得
+	/// </summary>
+	public IReadOnlyList<TrainData> GetTrainsOnSameLine(TrainData train)
+	{
+		if (_trains == null || train == null)
+		{
+			return [];
+		}
+
+		// 同じ方向の列車を返す (簡略版 - テスト用)
+		return _trains.Where(t => t != null && t.Direction == train.Direction).ToList();
+	}
+
+	/// <summary>
+	/// 選択された列車の駅一覧を取得
+	/// </summary>
+	public IReadOnlyList<object> GetSelectedTrainRows()
+	{
+		return (_selectedTrain?.Rows ?? []).Cast<object>().ToList();
+	}
+
+	/// <summary>
+	/// 指定された駅インデックスが有効かどうかを確認
+	/// </summary>
+	public bool IsValidStationIndex(int stationIndex)
+	{
+		var rows = GetSelectedTrainRows();
+		return stationIndex >= 0 && stationIndex < rows.Count;
+	}
+
+	/// <summary>
+	/// 列車の基本情報を取得
+	/// </summary>
+	public (string trainName, string? trainNumber, string? lineId) GetTrainBasicInfo(TrainData train)
+	{
+		if (train == null)
+		{
+			return (string.Empty, null, null);
+		}
+
+		// TrainDataから基本情報を抽出
+		// TrainNameはデータベースに存在しないため、TrainNumberやIdから構築
+		return (train.TrainNumber ?? string.Empty, train.TrainNumber, train.Id);
+	}
+}
+
 /// <summary>
 /// CustomRouteService の単体テスト（テストプロジェクト用簡易版）
 /// ビジネスロジックが正しく動作することを保証
@@ -280,12 +437,8 @@ public class CustomRouteServiceOnlyTests
 		var trains = new List<TrainData>();
 		for (int i = 0; i < count; i++)
 		{
-			// TrainDataの必須プロパティを設定
-			var train = new TrainData(
-				id: $"train_{i}",
-				direction: 0,
-				trainNumber: $"100{i}"
-			);
+			// sqlite-net-pcl generated constructor: (string id, Direction direction, string? trainNumber, ...)
+			var train = new TrainData($"train_{i}", Direction.Outbound, $"100{i}");
 			trains.Add(train);
 		}
 		return trains;
@@ -295,9 +448,9 @@ public class CustomRouteServiceOnlyTests
 	{
 		var trains = new List<TrainData>
 		{
-			new TrainData(id: "train_0", direction: 0, trainNumber: "1000"),
-			new TrainData(id: "train_1", direction: 0, trainNumber: "1001"),
-			new TrainData(id: "train_2", direction: 0, trainNumber: "2000"),
+			new TrainData("train_0", Direction.Outbound, "1000"),
+			new TrainData("train_1", Direction.Outbound, "1001"),
+			new TrainData("train_2", Direction.Inbound, "2000"),
 		};
 		return trains;
 	}

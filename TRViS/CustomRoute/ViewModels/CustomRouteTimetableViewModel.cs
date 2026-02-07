@@ -129,9 +129,9 @@ public partial class CustomRouteTimetableViewModel : ObservableObject
 			trains.Select((train, index) => new CustomRouteTrainListItemViewModel
 			{
 				Index = index,
-				TrainName = train.TrainName,
+				TrainName = train.TrainNumber,
 				TrainNumber = train.TrainNumber,
-				LineId = train.LineId,
+				LineId = train.Id,
 				TrainId = train.Id,
 			})
 		);
@@ -223,8 +223,8 @@ public partial class CustomRouteTimetableViewModel : ObservableObject
 			{
 				RowIndex = index,
 				StationName = row.StationName ?? string.Empty,
-				ArrivalTime = row.ArriveTime,
-				DepartureTime = row.DepartureTime,
+				ArrivalTime = row.ArriveTime?.ToString() ?? string.Empty,
+				DepartureTime = row.DepartureTime?.ToString() ?? string.Empty,
 				IsPass = row.IsPass,
 				IsInfoRow = row.IsInfoRow,
 				HasBracket = row.HasBracket,

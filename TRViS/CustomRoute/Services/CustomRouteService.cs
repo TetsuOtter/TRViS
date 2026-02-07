@@ -35,7 +35,7 @@ public class CustomRouteService
 		if (trains.Count > 0)
 		{
 			_selectedTrain = trains[0];
-			_selectedLineId = trains[0].LineId;
+			_selectedLineId = trains[0].Id;
 			logger.Debug("SetTrains: Selected first train (Id={0})", _selectedTrain.Id);
 		}
 		else
@@ -66,7 +66,7 @@ public class CustomRouteService
 		}
 
 		_selectedTrain = _trains[index];
-		_selectedLineId = _selectedTrain?.LineId;
+		_selectedLineId = _selectedTrain?.Id;
 		logger.Info("SelectTrainByIndex: Selected train at index {0} (Id={1})", index, _selectedTrain?.Id);
 		return true;
 	}
@@ -91,7 +91,7 @@ public class CustomRouteService
 		}
 
 		_selectedTrain = train;
-		_selectedLineId = train.LineId;
+		_selectedLineId = train.Id;
 		logger.Info("SelectTrainById: Selected train (Id={0})", trainId);
 		return true;
 	}
@@ -115,7 +115,15 @@ public class CustomRouteService
 			return -1;
 		}
 
-		return _trains.IndexOf(_selectedTrain);
+		// IndexOf の代替
+		for (int i = 0; i < _trains.Count; i++)
+		{
+			if (_trains[i].Id == _selectedTrain.Id)
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	/// <summary>
@@ -128,7 +136,7 @@ public class CustomRouteService
 			return [];
 		}
 
-		return _trains.Where(t => t.LineId == train.LineId).ToList();
+		return _trains.Where(t => t.Id == train.Id).ToList();
 	}
 
 	/// <summary>
@@ -158,7 +166,7 @@ public class CustomRouteService
 			return (string.Empty, null, null);
 		}
 
-		return (train.TrainName, train.TrainNumber, train.LineId);
+		return (train.TrainNumber ?? string.Empty, train.TrainNumber, train.Id);
 	}
 
 	/// <summary>
