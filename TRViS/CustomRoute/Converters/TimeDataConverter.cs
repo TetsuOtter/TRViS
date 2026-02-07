@@ -16,7 +16,7 @@ public class TimeDataConverter : IValueConverter
 			return string.Empty;
 		return Convert(timeData);
 	}
-	public static string Convert(TimeData timeData)
+	public static string Convert(TimeData? timeData)
 	{
 		if (timeData is null)
 			return string.Empty;

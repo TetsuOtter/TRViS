@@ -1,5 +1,3 @@
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
 using TRViS.ViewModels;
 
 namespace TRViS.CustomRoute.Controls;
@@ -11,8 +9,6 @@ namespace TRViS.CustomRoute.Controls;
 public class CustomRouteHeader : ContentView
 {
 	private Label _trainNameLabel = null!;
-	private Label _trainNumberLabel = null!;
-	private Label _lineIdLabel = null!;
 	private Button _locationToggleButton = null!;
 	private Button _themeToggleButton = null!;
 	private Button _runStartButton = null!;
@@ -51,29 +47,9 @@ public class CustomRouteHeader : ContentView
 			VerticalTextAlignment = TextAlignment.Center,
 		};
 
-		_trainNumberLabel = new Label
-		{
-			Text = "Number",
-			FontSize = 14,
-			VerticalTextAlignment = TextAlignment.Center,
-		};
-
-		_lineIdLabel = new Label
-		{
-			Text = "Line",
-			FontSize = 12,
-			VerticalTextAlignment = TextAlignment.Center,
-		};
-
-		var trainInfoStack = new VerticalStackLayout
-		{
-			Spacing = 2,
-			Children = { _trainNameLabel, _trainNumberLabel, _lineIdLabel }
-		};
-
-		Grid.SetRow(trainInfoStack, 0);
-		Grid.SetColumn(trainInfoStack, 0);
-		mainGrid.Add(trainInfoStack);
+		Grid.SetRow(_trainNameLabel, 0);
+		Grid.SetColumn(_trainNameLabel, 0);
+		mainGrid.Add(_trainNameLabel);
 
 		// ボタンエリア
 		_locationToggleButton = new Button
@@ -152,18 +128,7 @@ public class CustomRouteHeader : ContentView
 
 	private void UpdateTrainInfo()
 	{
-		if (_viewModel?.SelectedTrainData != null)
-		{
-			_trainNameLabel.Text = _viewModel.SelectedTrainData.TrainNumber ?? "Unknown";
-			_trainNumberLabel.Text = _viewModel.SelectedTrainData.TrainNumber ?? "-";
-			_lineIdLabel.Text = _viewModel.SelectedTrainData.Id ?? "-";
-		}
-		else
-		{
-			_trainNameLabel.Text = "No Train";
-			_trainNumberLabel.Text = "-";
-			_lineIdLabel.Text = "-";
-		}
+		_trainNameLabel.Text = _viewModel?.SelectedTrainData?.TrainNumber ?? "Unknown";
 	}
 
 	private void UpdateThemeButtonState()

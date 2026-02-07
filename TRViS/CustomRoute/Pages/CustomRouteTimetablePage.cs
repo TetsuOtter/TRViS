@@ -59,8 +59,8 @@ public class CustomRouteTimetablePage : ContentPage
 		{
 			RowDefinitions =
 			[
-				new RowDefinition { Height = new GridLength(180, GridUnitType.Absolute) },    // ヘッダー
-				new RowDefinition { Height = GridLength.Star },                                // 時刻表（残り全部）
+				new RowDefinition { Height = new GridLength(60, GridUnitType.Absolute) },
+				new RowDefinition { Height = GridLength.Star },
 			],
 			Padding = 0,
 			RowSpacing = 0,
