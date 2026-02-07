@@ -1,7 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+
 using System.Collections.ObjectModel;
+
+using TRViS.CustomRoute.Services;
 using TRViS.IO.Models;
 using TRViS.Services;
+
 using NLog;
 
 namespace TRViS.CustomRoute.ViewModels;
@@ -12,7 +16,7 @@ namespace TRViS.CustomRoute.ViewModels;
 public partial class CustomRouteTimetableViewModel : ObservableObject
 {
 	private static readonly Logger logger = LoggerService.GetGeneralLogger();
-	private readonly CustomRoute.Services.CustomRouteService _service = new();
+	private readonly CustomRouteService _service = new();
 	private readonly LocationService _locationService = InstanceManager.LocationService;
 
 	public CustomRouteTimetableViewModel()
@@ -310,7 +314,7 @@ public class CustomRouteTrainInfoViewModel
 /// <summary>
 /// 時刻表行のViewModel
 /// </summary>
-public class CustomRouteTimetableRowViewModel : ObservableObject
+public partial class CustomRouteTimetableRowViewModel : ObservableObject
 {
 	[ObservableProperty]
 	public partial int RowIndex { get; set; }

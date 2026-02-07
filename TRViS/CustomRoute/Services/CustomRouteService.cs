@@ -1,5 +1,6 @@
 using TRViS.IO.Models;
 using NLog;
+using TRViS.Services;
 
 namespace TRViS.CustomRoute.Services;
 
@@ -133,7 +134,7 @@ public class CustomRouteService
 	/// <summary>
 	/// 選択された列車の駅一覧を取得
 	/// </summary>
-	public IReadOnlyList<TrainDataRow> GetSelectedTrainRows()
+	public IReadOnlyList<TimetableRow> GetSelectedTrainRows()
 	{
 		return _selectedTrain?.Rows ?? [];
 	}
@@ -164,7 +165,7 @@ public class CustomRouteService
 	/// 駅データから表示用の情報を抽出
 	/// </summary>
 	public (string stationName, string? arrivalTime, string? departureTime, bool isPass, bool isInfoRow)
-		GetStationDisplayInfo(TrainDataRow row)
+		GetStationDisplayInfo(TimetableRow row)
 	{
 		if (row == null)
 		{
@@ -173,8 +174,8 @@ public class CustomRouteService
 
 		return (
 			row.StationName ?? string.Empty,
-			row.ArriveTime,
-			row.DepartureTime,
+			row.ArriveTime?.GetTimeString(),
+			row.DepartureTime?.GetTimeString(),
 			row.IsPass,
 			row.IsInfoRow
 		);
@@ -183,7 +184,7 @@ public class CustomRouteService
 	/// <summary>
 	/// 駅間の走行時間を計算（秒単位）
 	/// </summary>
-	public int? CalculateTravelTimeSeconds(TrainDataRow fromRow, TrainDataRow toRow)
+	public int? CalculateTravelTimeSeconds(TimetableRow fromRow, TimetableRow toRow)
 	{
 		if (fromRow == null || toRow == null)
 		{
@@ -192,8 +193,8 @@ public class CustomRouteService
 
 		try
 		{
-			var departureSeconds = TimeStringToSeconds(fromRow.DepartureTime);
-			var arrivalSeconds = TimeStringToSeconds(toRow.ArriveTime);
+			var departureSeconds = TimeDataToSeconds(fromRow.DepartureTime);
+			var arrivalSeconds = TimeDataToSeconds(toRow.ArriveTime);
 
 			if (departureSeconds == null || arrivalSeconds == null)
 			{
@@ -216,24 +217,22 @@ public class CustomRouteService
 	}
 
 	/// <summary>
-	/// 時刻文字列を秒に変換 (HH:mm形式を想定)
+	/// TimeDataオブジェクトを秒に変換
 	/// </summary>
-	private int? TimeStringToSeconds(string? timeStr)
+	private int? TimeDataToSeconds(TimeData? timeData)
 	{
-		if (string.IsNullOrEmpty(timeStr))
+		if (timeData == null)
 		{
 			return null;
 		}
 
 		try
 		{
-			var parts = timeStr.Split(':');
-			if (parts.Length != 2 || !int.TryParse(parts[0], out var hours) || !int.TryParse(parts[1], out var minutes))
-			{
-				return null;
-			}
+			var hour = timeData.Hour ?? 0;
+			var minute = timeData.Minute ?? 0;
+			var second = timeData.Second ?? 0;
 
-			return hours * 3600 + minutes * 60;
+			return hour * 3600 + minute * 60 + second;
 		}
 		catch
 		{
