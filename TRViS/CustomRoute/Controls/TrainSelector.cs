@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls;
-using TRViS.CustomRoute.ViewModels;
+using Microsoft.Maui.Controls.Shapes;
+using TRViS.IO.Models;
 
 namespace TRViS.CustomRoute.Controls;
 
@@ -10,7 +11,11 @@ namespace TRViS.CustomRoute.Controls;
 public class TrainSelector : ContentView
 {
 	private CollectionView _trainCollectionView = null!;
-	private CustomRouteTimetableViewModel? _viewModel;
+
+	/// <summary>
+	/// 列車が選択されたときに発火するイベント
+	/// </summary>
+	public event EventHandler<TrainData>? TrainSelected;
 
 	public TrainSelector()
 	{
@@ -19,35 +24,40 @@ public class TrainSelector : ContentView
 
 	private void InitializeLayout()
 	{
-		// 列車リストビュー
+		// 列車リストビュー（デフォルトで縦スクロール）
 		_trainCollectionView = new CollectionView
 		{
 			SelectionMode = SelectionMode.Single,
-			SelectionChangedCommand = new Command<object>(OnTrainSelected),
-			SelectionChangedCommandParameter = new object(),
 		};
 
-		// Itemテンプレートの定義
+		// SelectionChanged イベントをハンドル
+		_trainCollectionView.SelectionChanged += OnCollectionViewSelectionChanged;
+
+		// Itemテンプレートの定義（見やすいサイズ設定）
 		var itemTemplate = new DataTemplate(() =>
 		{
 			var grid = new Grid
 			{
 				ColumnDefinitions =
 				[
-					new ColumnDefinition { Width = new GridLength(80, GridUnitType.Absolute) },
+					new ColumnDefinition { Width = new GridLength(120, GridUnitType.Absolute) },
 					new ColumnDefinition { Width = GridLength.Star },
-					new ColumnDefinition { Width = new GridLength(100, GridUnitType.Absolute) },
+					new ColumnDefinition { Width = new GridLength(140, GridUnitType.Absolute) },
 				],
-				ColumnSpacing = 10,
-				Padding = 10,
+				ColumnSpacing = 15,
+				Padding = 15,
+				HeightRequest = 120,
+				VerticalOptions = LayoutOptions.Center,
+				RowSpacing = 5,
 			};
 
 			// 列車番号
 			var trainNumberLabel = new Label
 			{
-				FontSize = 14,
+				FontSize = 18,
 				FontAttributes = FontAttributes.Bold,
 				VerticalTextAlignment = TextAlignment.Center,
+				VerticalOptions = LayoutOptions.Center,
 			};
 			trainNumberLabel.SetBinding(Label.TextProperty, "TrainNumber");
 			Grid.SetColumn(trainNumberLabel, 0);
@@ -56,36 +66,39 @@ public class TrainSelector : ContentView
 			// 列車名
 			var trainNameLabel = new Label
 			{
-				FontSize = 12,
+				FontSize = 16,
 				VerticalTextAlignment = TextAlignment.Center,
+				VerticalOptions = LayoutOptions.Center,
 			};
-			trainNameLabel.SetBinding(Label.TextProperty, "TrainName");
+			trainNameLabel.SetBinding(Label.TextProperty, "TrainNumber");
 			Grid.SetColumn(trainNameLabel, 1);
 			grid.Add(trainNameLabel);
 
 			// 路線ID
 			var lineIdLabel = new Label
 			{
-				FontSize = 11,
+				FontSize = 13,
 				TextColor = Colors.Gray,
 				VerticalTextAlignment = TextAlignment.Center,
 				HorizontalTextAlignment = TextAlignment.End,
+				VerticalOptions = LayoutOptions.Center,
 			};
-			lineIdLabel.SetBinding(Label.TextProperty, "LineId");
+			lineIdLabel.SetBinding(Label.TextProperty, "Id");
 			Grid.SetColumn(lineIdLabel, 2);
 			grid.Add(lineIdLabel);
 
-			// タップ時のハイライト
-			var frame = new Frame
+			// タップ時のハイライト効果
+			var border = new Border
 			{
 				Content = grid,
-				BorderColor = Colors.Transparent,
-				CornerRadius = 5,
+				Stroke = Colors.LightGray,
+				StrokeThickness = 1,
+				StrokeShape = new RoundRectangle { CornerRadius = 8 },
 				Padding = 0,
-				HasShadow = false,
+				Margin = new Thickness(0, 5, 0, 5),
 			};
 
-			return frame;
+			return border;
 		});
 
 		_trainCollectionView.ItemTemplate = itemTemplate;
@@ -94,37 +107,25 @@ public class TrainSelector : ContentView
 	}
 
 	/// <summary>
-	/// ViewModelをバインド
+	/// 列車リストを設定
 	/// </summary>
-	public void SetViewModel(CustomRouteTimetableViewModel viewModel)
+	public void SetTrainList(IReadOnlyList<TrainData>? trainList)
 	{
-		_viewModel = viewModel;
-
-		if (_viewModel != null)
-		{
-			_trainCollectionView.ItemsSource = _viewModel.TrainList;
-
-			// 選択変更時にViewModelを更新
-			_viewModel.PropertyChanged += (s, e) =>
-			{
-				if (e.PropertyName == nameof(CustomRouteTimetableViewModel.SelectedTrainIndex))
-				{
-					if (_viewModel.SelectedTrainIndex >= 0 && _viewModel.SelectedTrainIndex < _viewModel.TrainList.Count)
-					{
-						_trainCollectionView.SelectedItem = _viewModel.TrainList[_viewModel.SelectedTrainIndex];
-					}
-				}
-			};
-		}
+		_trainCollectionView.ItemsSource = trainList;
 	}
 
-	private void OnTrainSelected(object selectedItem)
+	private void OnCollectionViewSelectionChanged(object sender, SelectionChangedEventArgs e)
 	{
-		if (_viewModel == null || selectedItem is not CustomRouteTrainListItemViewModel train)
+		if (e.CurrentSelection.Count == 0)
 		{
 			return;
 		}
 
-		_viewModel.SelectTrain(train.Index);
+		if (e.CurrentSelection[0] is not TrainData trainData)
+		{
+			return;
+		}
+
+		TrainSelected?.Invoke(this, trainData);
 	}
 }

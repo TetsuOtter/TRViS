@@ -1,6 +1,6 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
-using TRViS.CustomRoute.ViewModels;
+using TRViS.ViewModels;
 
 namespace TRViS.CustomRoute.Controls;
 
@@ -18,7 +18,7 @@ public class CustomRouteHeader : ContentView
 	private Button _runStartButton = null!;
 	private Button _runStopButton = null!;
 
-	private CustomRouteTimetableViewModel? _viewModel;
+	private AppViewModel? _viewModel;
 
 	public CustomRouteHeader()
 	{
@@ -29,11 +29,6 @@ public class CustomRouteHeader : ContentView
 	{
 		var mainGrid = new Grid
 		{
-			RowDefinitions =
-			[
-				new RowDefinition { Height = GridLength.Star },
-				new RowDefinition { Height = new GridLength(50, GridUnitType.Absolute) },
-			],
 			ColumnDefinitions =
 			[
 				new ColumnDefinition { Width = GridLength.Star },
@@ -126,25 +121,13 @@ public class CustomRouteHeader : ContentView
 		Grid.SetColumn(_runStopButton, 4);
 		mainGrid.Add(_runStopButton);
 
-		// 下部の列車選択エリア (スペース確保)
-		var selectionLabel = new Label
-		{
-			Text = "Train Selection Area",
-			FontSize = 12,
-			VerticalTextAlignment = TextAlignment.Center,
-			HorizontalOptions = LayoutOptions.Center,
-		};
-		Grid.SetRow(selectionLabel, 1);
-		Grid.SetColumnSpan(selectionLabel, 5);
-		mainGrid.Add(selectionLabel);
-
 		Content = mainGrid;
 	}
 
 	/// <summary>
 	/// ViewModelをバインド
 	/// </summary>
-	public void SetViewModel(CustomRouteTimetableViewModel viewModel)
+	public void SetViewModel(AppViewModel viewModel)
 	{
 		_viewModel = viewModel;
 
@@ -152,48 +135,34 @@ public class CustomRouteHeader : ContentView
 		{
 			_viewModel.PropertyChanged += (s, e) =>
 			{
-				if (e.PropertyName == nameof(CustomRouteTimetableViewModel.SelectedTrainInfo))
+				if (e.PropertyName == nameof(AppViewModel.SelectedTrainData))
 				{
 					UpdateTrainInfo();
 				}
-				else if (e.PropertyName == nameof(CustomRouteTimetableViewModel.IsLocationServiceEnabled))
-				{
-					UpdateLocationButtonState();
-				}
-				else if (e.PropertyName == nameof(CustomRouteTimetableViewModel.CurrentAppTheme))
+				else if (e.PropertyName == nameof(AppViewModel.CurrentAppTheme))
 				{
 					UpdateThemeButtonState();
-				}
-				else if (e.PropertyName == nameof(CustomRouteTimetableViewModel.IsRunStarted))
-				{
-					UpdateRunButtonState();
 				}
 			};
 
 			UpdateTrainInfo();
-			UpdateLocationButtonState();
 			UpdateThemeButtonState();
-			UpdateRunButtonState();
 		}
 	}
 
 	private void UpdateTrainInfo()
 	{
-		if (_viewModel?.SelectedTrainInfo != null)
+		if (_viewModel?.SelectedTrainData != null)
 		{
-			_trainNameLabel.Text = _viewModel.SelectedTrainInfo.TrainName ?? "Unknown";
-			_trainNumberLabel.Text = _viewModel.SelectedTrainInfo.TrainNumber ?? "-";
-			_lineIdLabel.Text = _viewModel.SelectedTrainInfo.LineId ?? "-";
+			_trainNameLabel.Text = _viewModel.SelectedTrainData.TrainNumber ?? "Unknown";
+			_trainNumberLabel.Text = _viewModel.SelectedTrainData.TrainNumber ?? "-";
+			_lineIdLabel.Text = _viewModel.SelectedTrainData.Id ?? "-";
 		}
-	}
-
-	private void UpdateLocationButtonState()
-	{
-		if (_viewModel != null)
+		else
 		{
-			_locationToggleButton.BackgroundColor = _viewModel.IsLocationServiceEnabled
-				? Colors.Green
-				: Colors.Gray;
+			_trainNameLabel.Text = "No Train";
+			_trainNumberLabel.Text = "-";
+			_lineIdLabel.Text = "-";
 		}
 	}
 
@@ -205,21 +174,9 @@ public class CustomRouteHeader : ContentView
 		}
 	}
 
-	private void UpdateRunButtonState()
-	{
-		if (_viewModel != null)
-		{
-			_runStartButton.IsEnabled = !_viewModel.IsRunStarted;
-			_runStopButton.IsEnabled = _viewModel.IsRunStarted;
-		}
-	}
-
 	private void OnLocationToggleClicked(object? sender, EventArgs e)
 	{
-		if (_viewModel != null)
-		{
-			_viewModel.IsLocationServiceEnabled = !_viewModel.IsLocationServiceEnabled;
-		}
+		// 位置情報サービス機能は今後実装
 	}
 
 	private void OnThemeToggleClicked(object? sender, EventArgs e)
@@ -227,23 +184,17 @@ public class CustomRouteHeader : ContentView
 		if (_viewModel != null)
 		{
 			var newTheme = _viewModel.CurrentAppTheme == AppTheme.Dark ? AppTheme.Light : AppTheme.Dark;
-			_viewModel.ChangeTheme(newTheme);
+			_viewModel.CurrentAppTheme = newTheme;
 		}
 	}
 
 	private void OnRunStartClicked(object? sender, EventArgs e)
 	{
-		if (_viewModel != null)
-		{
-			_viewModel.StartRun();
-		}
+		// 運行開始機能は今後実装
 	}
 
 	private void OnRunStopClicked(object? sender, EventArgs e)
 	{
-		if (_viewModel != null)
-		{
-			_viewModel.StopRun();
-		}
+		// 運行停止機能は今後実装
 	}
 }

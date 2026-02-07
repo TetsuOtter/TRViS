@@ -1,7 +1,6 @@
 using TRViS.FirebaseWrapper;
 using TRViS.Services;
 using TRViS.ViewModels;
-using TRViS.CustomRoute.ViewModels;
 
 namespace TRViS;
 
@@ -21,9 +20,6 @@ internal static class InstanceManager
 
 	private static EasterEggPageViewModel? _EasterEggPageViewModel = null;
 	public static EasterEggPageViewModel EasterEggPageViewModel { get => _EasterEggPageViewModel ??= new(); }
-
-	private static CustomRouteTimetableViewModel? _CustomRouteTimetableViewModel = null;
-	public static CustomRouteTimetableViewModel CustomRouteTimetableViewModel { get => _CustomRouteTimetableViewModel ??= new(); }
 
 	private static LocationService? _LocationService = null;
 	public static LocationService LocationService { get => _LocationService ??= new(); }

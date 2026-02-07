@@ -1,6 +1,7 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
-using TRViS.CustomRoute.ViewModels;
+using TRViS.ViewModels;
 
 namespace TRViS.CustomRoute.Controls;
 
@@ -11,7 +12,8 @@ namespace TRViS.CustomRoute.Controls;
 public class CustomRouteTimetableView : ContentView
 {
 	private CollectionView _timetableCollectionView = null!;
-	private CustomRouteTimetableViewModel? _viewModel;
+	private Label _debugLabel = null!;
+	private AppViewModel? _viewModel;
 
 	public CustomRouteTimetableView()
 	{
@@ -23,7 +25,6 @@ public class CustomRouteTimetableView : ContentView
 		_timetableCollectionView = new CollectionView
 		{
 			SelectionMode = SelectionMode.Single,
-			SelectionChangedCommand = new Command<object>(OnRowSelected),
 		};
 
 		// Itemテンプレート
@@ -90,74 +91,79 @@ public class CustomRouteTimetableView : ContentView
 			Grid.SetColumn(markerLabel, 3);
 			mainGrid.Add(markerLabel);
 
-			// タップ可能なフレーム
-			var frame = new Frame
+			// タップ可能なボーダー
+			var border = new Border
 			{
 				Content = mainGrid,
-				BorderColor = Colors.LightGray,
-				CornerRadius = 5,
+				Stroke = Colors.LightGray,
+				StrokeThickness = 1,
+				StrokeShape = new RoundRectangle { CornerRadius = 5 },
 				Padding = 0,
-				HasShadow = false,
 				Margin = new Thickness(0, 2, 0, 2),
 			};
 
-			return frame;
+			return border;
 		});
 
 		_timetableCollectionView.ItemTemplate = itemTemplate;
 
-		Content = new ScrollView
+		// デバッグ用：TimetableRows が入力されているか確認
+		_debugLabel = new Label
 		{
-			Content = _timetableCollectionView,
-			Orientation = ScrollOrientation.Vertical,
+			Text = "Rows: 0",
+			FontSize = 16,
+			TextColor = Colors.Red,
+			Padding = 10,
 		};
+
+		var mainLayout = new VerticalStackLayout
+		{
+			Children =
+			{
+				_debugLabel,
+				new ScrollView
+				{
+					Content = _timetableCollectionView,
+					Orientation = ScrollOrientation.Vertical,
+					BackgroundColor = Colors.LightGray,
+				},
+			},
+		};
+
+		Content = mainLayout;
 	}
 
 	/// <summary>
 	/// ViewModelをバインド
 	/// </summary>
-	public void SetViewModel(CustomRouteTimetableViewModel viewModel)
+	public void SetViewModel(AppViewModel viewModel)
 	{
 		_viewModel = viewModel;
 
 		if (_viewModel != null)
 		{
-			_timetableCollectionView.ItemsSource = _viewModel.TimetableRows;
+			UpdateTimetableRows();
 
-			// LocationMarkerPosition変更時にスクロール
+			// SelectedTrainData変更時に時刻表を更新
 			_viewModel.PropertyChanged += (s, e) =>
 			{
-				if (e.PropertyName == nameof(CustomRouteTimetableViewModel.LocationMarkerPosition)
-					&& _viewModel.LocationMarkerPosition >= 0)
+				if (e.PropertyName == nameof(AppViewModel.SelectedTrainData))
 				{
-					ScrollToMarker(_viewModel.LocationMarkerPosition);
+					UpdateTimetableRows();
 				}
 			};
 		}
 	}
 
-	private void OnRowSelected(object? selectedItem)
+	private void UpdateTimetableRows()
 	{
-		if (_viewModel == null || selectedItem is not CustomRouteTimetableRowViewModel row)
-		{
-			return;
-		}
-
-		if (!_viewModel.IsRunStarted)
-		{
-			return;
-		}
-
-		// 駅をタップして位置を設定
-		_viewModel.SetLocationAtStation(row.RowIndex);
+		var rows = _viewModel?.SelectedTrainData?.Rows ?? [];
+		_timetableCollectionView.ItemsSource = rows;
+		_debugLabel.Text = $"Rows: {rows.Count}";
 	}
 
-	private void ScrollToMarker(int markerPosition)
+	private void OnRowSelected(object selectedItem)
 	{
-		if (markerPosition >= 0 && markerPosition < _viewModel?.TimetableRows.Count)
-		{
-			// スクロール位置を調整（マーカーが画面中央に来るように）
-			_timetableCollectionView.ScrollTo(markerPosition, -1, ScrollToPosition.MakeVisible, true);
-		}
+		// 今後実装
 	}
 }

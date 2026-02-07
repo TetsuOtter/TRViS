@@ -9,6 +9,7 @@ using TRViS.RootPages;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
+using TRViS.CustomRoute.Pages;
 
 namespace TRViS;
 
@@ -36,6 +37,16 @@ public partial class AppShell : Shell
 		}
 
 		InitializeComponent();
+
+		// Register Custom Route sub-routes
+		Routing.RegisterRoute($"{CustomRouteTrainSelectionPage.NameOfThisClass}/timetable", typeof(CustomRouteTimetablePage));
+
+		// Set global back button behavior
+		Shell.SetBackButtonBehavior(this, new BackButtonBehavior
+		{
+			IsEnabled = true,
+			IsVisible = true
+		});
 
 		if (FirebaseSettingViewModel.IsEnabled)
 		{

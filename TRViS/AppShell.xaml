@@ -42,10 +42,12 @@
 		Route="{x:Static dtac:ViewHost.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
 	</FlyoutItem>
-	<FlyoutItem
-		Title="Custom Route"
-		Route="{x:Static customroute:CustomRoutePage.NameOfThisClass}">
-		<ShellContent ContentTemplate="{DataTemplate customroute:CustomRoutePage}"/>
+	<FlyoutItem Title="Custom Route">
+		<ShellSection Title="Train Selection">
+			<ShellContent
+				Route="{x:Static customroute:CustomRouteTrainSelectionPage.NameOfThisClass}"
+				ContentTemplate="{DataTemplate customroute:CustomRouteTrainSelectionPage}"/>
+		</ShellSection>
 	</FlyoutItem>
 	<FlyoutItem Title="Third Party Licenses">
 		<ShellContent ContentTemplate="{DataTemplate pages:ThirdPartyLicenses}"/>
