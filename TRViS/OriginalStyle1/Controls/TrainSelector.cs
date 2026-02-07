@@ -3,7 +3,7 @@ using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.IO.Models;
 
-namespace TRViS.CustomRoute.Controls;
+namespace TRViS.OriginalStyle1.Controls;
 
 /// <summary>
 /// 列車選択コントロール

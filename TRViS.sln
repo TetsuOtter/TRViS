@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.ILocationService", "T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.IO.ILoader", "TRViS.IO.ILoader\TRViS.IO.ILoader.csproj", "{99DAE4CF-5E6E-46BB-980B-D4F58076AE6A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.CustomRoute.Tests", "TRViS.CustomRoute.Tests\TRViS.CustomRoute.Tests.csproj", "{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.OriginalStyle1.Tests", "TRViS.OriginalStyle1.Tests\TRViS.OriginalStyle1.Tests.csproj", "{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

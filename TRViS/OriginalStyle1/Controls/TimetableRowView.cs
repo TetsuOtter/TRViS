@@ -3,17 +3,17 @@ using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 
 using TRViS.Controls;
-using TRViS.CustomRoute.Converters;
+using TRViS.OriginalStyle1.Converters;
 using TRViS.DTAC;
 using TRViS.IO.Models;
 
-namespace TRViS.CustomRoute.Controls;
+namespace TRViS.OriginalStyle1.Controls;
 
 /// <summary>
-/// CustomRoute時刻表の行コンポーネント
+/// 時刻表の行コンポーネント
 /// TimetableRowデータを表示するための再利用可能なビュー
 /// </summary>
-public class CustomRouteTimetableRowView : Border
+public class TimetableRowView : Border
 {
 	private TimetableRow? _currentRow;
 
@@ -26,7 +26,7 @@ public class CustomRouteTimetableRowView : Border
 	private Label _runOutLimitLabel = null!;
 	private HtmlAutoDetectLabel _remarksLabel = null!;
 
-	public CustomRouteTimetableRowView()
+	public TimetableRowView()
 	{
 		InitializeLayout();
 		this.BindingContextChanged += OnBindingContextChanged;
@@ -65,12 +65,12 @@ public class CustomRouteTimetableRowView : Border
 	{
 		var mainGrid = new Grid
 		{
-			ColumnDefinitions = CustomRouteTimetableConstants.CreateColumnDefinitions(),
-			ColumnSpacing = CustomRouteTimetableConstants.COLUMN_SPACING,
+			ColumnDefinitions = TimetableConstants.CreateColumnDefinitions(),
+			ColumnSpacing = TimetableConstants.COLUMN_SPACING,
 			Padding = new Thickness(8, 6, 8, 6),
 			RowSpacing = 0,
-			MinimumHeightRequest = CustomRouteTimetableConstants.ROW_HEIGHT,
-			HeightRequest = CustomRouteTimetableConstants.ROW_HEIGHT,
+			MinimumHeightRequest = TimetableConstants.ROW_HEIGHT,
+			HeightRequest = TimetableConstants.ROW_HEIGHT,
 		};
 
 		// 駅名（HtmlAutoDetectLabel使用）
@@ -81,7 +81,7 @@ public class CustomRouteTimetableRowView : Border
 			VerticalOptions = LayoutOptions.Center,
 			Padding = new Thickness(0, 2),
 		};
-		Grid.SetColumn(_stationNameLabel, CustomRouteTimetableConstants.ColumnIndex.StationName);
+		Grid.SetColumn(_stationNameLabel, TimetableConstants.ColumnIndex.StationName);
 		mainGrid.Add(_stationNameLabel);
 
 		// 到着時刻
@@ -91,7 +91,7 @@ public class CustomRouteTimetableRowView : Border
 			HorizontalTextAlignment = TextAlignment.Center,
 			VerticalTextAlignment = TextAlignment.Center,
 		};
-		Grid.SetColumn(_arrivalLabel, CustomRouteTimetableConstants.ColumnIndex.ArrivalTime);
+		Grid.SetColumn(_arrivalLabel, TimetableConstants.ColumnIndex.ArrivalTime);
 		mainGrid.Add(_arrivalLabel);
 
 		// 出発時刻
@@ -101,7 +101,7 @@ public class CustomRouteTimetableRowView : Border
 			HorizontalTextAlignment = TextAlignment.Center,
 			VerticalTextAlignment = TextAlignment.Center,
 		};
-		Grid.SetColumn(_departureLabel, CustomRouteTimetableConstants.ColumnIndex.DepartureTime);
+		Grid.SetColumn(_departureLabel, TimetableConstants.ColumnIndex.DepartureTime);
 		mainGrid.Add(_departureLabel);
 
 		// 番線（HtmlAutoDetectLabel使用）
@@ -112,7 +112,7 @@ public class CustomRouteTimetableRowView : Border
 			VerticalOptions = LayoutOptions.Center,
 			Padding = new Thickness(0, 2),
 		};
-		Grid.SetColumn(_trackNameLabel, CustomRouteTimetableConstants.ColumnIndex.TrackName);
+		Grid.SetColumn(_trackNameLabel, TimetableConstants.ColumnIndex.TrackName);
 		mainGrid.Add(_trackNameLabel);
 
 		// 走行入場制限（上段）と走行出場制限（下段）をまとめて表示
@@ -146,7 +146,7 @@ public class CustomRouteTimetableRowView : Border
 		Grid.SetRow(_runOutLimitLabel, 1);
 		limitGrid.Add(_runOutLimitLabel);
 
-		Grid.SetColumn(limitGrid, CustomRouteTimetableConstants.ColumnIndex.Limit);
+		Grid.SetColumn(limitGrid, TimetableConstants.ColumnIndex.Limit);
 		mainGrid.Add(limitGrid);
 
 		// 記事（HtmlAutoDetectLabel使用）
@@ -156,7 +156,7 @@ public class CustomRouteTimetableRowView : Border
 			VerticalOptions = LayoutOptions.Center,
 			Padding = new Thickness(0, 2),
 		};
-		Grid.SetColumn(_remarksLabel, CustomRouteTimetableConstants.ColumnIndex.Remarks);
+		Grid.SetColumn(_remarksLabel, TimetableConstants.ColumnIndex.Remarks);
 		mainGrid.Add(_remarksLabel);
 
 		// Border のプロパティを設定
@@ -166,8 +166,8 @@ public class CustomRouteTimetableRowView : Border
 		StrokeShape = new RoundRectangle { CornerRadius = 5 };
 		Padding = 0;
 		Margin = new Thickness(0, 1, 0, 1);
-		MinimumHeightRequest = CustomRouteTimetableConstants.ROW_HEIGHT;
-		HeightRequest = CustomRouteTimetableConstants.ROW_HEIGHT;
+		MinimumHeightRequest = TimetableConstants.ROW_HEIGHT;
+		HeightRequest = TimetableConstants.ROW_HEIGHT;
 	}
 }
 

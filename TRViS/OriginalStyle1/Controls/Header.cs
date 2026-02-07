@@ -1,12 +1,12 @@
 using TRViS.ViewModels;
 
-namespace TRViS.CustomRoute.Controls;
+namespace TRViS.OriginalStyle1.Controls;
 
 /// <summary>
-/// CustomRoute時刻表ページのヘッダーコントロール
+/// 時刻表ページのヘッダーコントロール
 /// 列車情報と各種操作ボタンを表示
 /// </summary>
-public class CustomRouteHeader : ContentView
+public class Header : ContentView
 {
 	private Label _trainNameLabel = null!;
 	private Button _locationToggleButton = null!;
@@ -16,7 +16,7 @@ public class CustomRouteHeader : ContentView
 
 	private AppViewModel? _viewModel;
 
-	public CustomRouteHeader()
+	public Header()
 	{
 		InitializeLayout();
 	}

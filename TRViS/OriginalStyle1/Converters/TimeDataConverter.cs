@@ -2,7 +2,7 @@ using System.Globalization;
 
 using TRViS.IO.Models;
 
-namespace TRViS.CustomRoute.Converters;
+namespace TRViS.OriginalStyle1.Converters;
 
 /// <summary>
 /// TimeData を HHMM 形式の文字列に変換するコンバーター

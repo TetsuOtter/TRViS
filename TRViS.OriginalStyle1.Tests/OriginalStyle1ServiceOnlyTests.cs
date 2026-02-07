@@ -1,15 +1,15 @@
 using NUnit.Framework;
 using TRViS.IO.Models;
 
-namespace TRViS.CustomRoute.Tests;
+namespace TRViS.OriginalStyle1.Tests;
 
 using Direction = TRViS.IO.Models.Direction;
 
 /// <summary>
-/// CustomRoute時刻表表示のビジネスロジック層（テスト用簡易版）
+/// 時刻表表示のビジネスロジック層（テスト用簡易版）
 /// UIとの完全な分離を目指し、単体テストで動作を保証する
 /// </summary>
-public class CustomRouteServiceSimplified
+public class ServiceSimplified
 {
 	private IReadOnlyList<TrainData>? _trains = null;
 	private TrainData? _selectedTrain = null;
@@ -161,18 +161,18 @@ public class CustomRouteServiceSimplified
 }
 
 /// <summary>
-/// CustomRouteService の単体テスト（テストプロジェクト用簡易版）
+/// Service の単体テスト（テストプロジェクト用簡易版）
 /// ビジネスロジックが正しく動作することを保証
 /// </summary>
 [TestFixture]
-public class CustomRouteServiceOnlyTests
+public class ServiceOnlyTests
 {
-	private CustomRouteServiceSimplified _service = null!;
+	private ServiceSimplified _service = null!;
 
 	[SetUp]
 	public void SetUp()
 	{
-		_service = new CustomRouteServiceSimplified();
+		_service = new ServiceSimplified();
 	}
 
 	#region SetTrains Tests

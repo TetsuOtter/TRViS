@@ -1,11 +1,11 @@
 using Microsoft.Maui.Controls;
 
-namespace TRViS.CustomRoute.Controls;
+namespace TRViS.OriginalStyle1.Controls;
 
 /// <summary>
-/// CustomRoute時刻表の共通定数とレイアウト設定
+/// 時刻表の共通定数とレイアウト設定
 /// </summary>
-public static class CustomRouteTimetableConstants
+public static class TimetableConstants
 {
 	/// <summary>
 	/// 時刻表行の高さ

@@ -7,7 +7,7 @@
 	xmlns:utils="clr-namespace:TRViS.Utils"
 	xmlns:pages="clr-namespace:TRViS.RootPages"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
-	xmlns:customroute="clr-namespace:TRViS.CustomRoute.Pages"
+	xmlns:customroute="clr-namespace:TRViS.OriginalStyle1.Pages"
 	FlyoutBackgroundColor="{AppThemeBinding Light=#EEE, Dark=#111}">
 	<Shell.FlyoutIcon>
 		<FontImageSource
@@ -45,8 +45,8 @@
 	<FlyoutItem Title="Custom Route">
 		<ShellSection Title="Train Selection">
 			<ShellContent
-				Route="{x:Static customroute:CustomRouteTrainSelectionPage.NameOfThisClass}"
-				ContentTemplate="{DataTemplate customroute:CustomRouteTrainSelectionPage}"/>
+				Route="{x:Static customroute:TrainSelectionPage.NameOfThisClass}"
+				ContentTemplate="{DataTemplate customroute:TrainSelectionPage}"/>
 		</ShellSection>
 	</FlyoutItem>
 	<FlyoutItem Title="Third Party Licenses">

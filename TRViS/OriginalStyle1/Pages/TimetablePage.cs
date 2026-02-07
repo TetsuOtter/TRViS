@@ -1,26 +1,26 @@
 using Microsoft.Maui.Controls;
 
-using TRViS.CustomRoute.Controls;
+using TRViS.OriginalStyle1.Controls;
 using TRViS.ViewModels;
 
-namespace TRViS.CustomRoute.Pages;
+namespace TRViS.OriginalStyle1.Pages;
 
 using TRViS;
 
 /// <summary>
-/// CustomRoute時刻表ページ
+/// 時刻表ページ
 /// 選択された列車の時刻表を表示するページ
 /// C#コードビハインド実装（XAML禁止）
 /// </summary>
-public class CustomRouteTimetablePage : ContentPage
+public class TimetablePage : ContentPage
 {
-	public static readonly string NameOfThisClass = nameof(CustomRouteTimetablePage);
+	public static readonly string NameOfThisClass = nameof(TimetablePage);
 
 	private AppViewModel _appViewModel = null!;
-	private CustomRouteHeader _header = null!;
-	private CustomRouteTimetableView _timetableView = null!;
+	private Header _header = null!;
+	private TimetableView _timetableView = null!;
 
-	public CustomRouteTimetablePage()
+	public TimetablePage()
 	{
 		Title = "Custom Route - Timetable";
 		InitializeViewModel();
@@ -67,13 +67,13 @@ public class CustomRouteTimetablePage : ContentPage
 		};
 
 		// ヘッダーコントロール
-		_header = new CustomRouteHeader();
+		_header = new Header();
 		_header.SetViewModel(_appViewModel);
 		Grid.SetRow(_header, 0);
 		mainGrid.Add(_header);
 
 		// 時刻表ビューコントロール
-		_timetableView = new CustomRouteTimetableView();
+		_timetableView = new TimetableView();
 		_timetableView.SetViewModel(_appViewModel);
 		Grid.SetRow(_timetableView, 1);
 		mainGrid.Add(_timetableView);

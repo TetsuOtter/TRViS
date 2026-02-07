@@ -9,7 +9,7 @@ using TRViS.RootPages;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
-using TRViS.CustomRoute.Pages;
+using TRViS.OriginalStyle1.Pages;
 
 namespace TRViS;
 
@@ -39,7 +39,7 @@ public partial class AppShell : Shell
 		InitializeComponent();
 
 		// Register Custom Route sub-routes
-		Routing.RegisterRoute($"{CustomRouteTrainSelectionPage.NameOfThisClass}/timetable", typeof(CustomRouteTimetablePage));
+		Routing.RegisterRoute($"{TrainSelectionPage.NameOfThisClass}/timetable", typeof(TimetablePage));
 
 		// Set global back button behavior
 		Shell.SetBackButtonBehavior(this, new BackButtonBehavior

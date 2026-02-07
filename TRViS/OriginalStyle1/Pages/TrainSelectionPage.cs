@@ -1,25 +1,25 @@
 using Microsoft.Maui.Controls;
 
-using TRViS.CustomRoute.Controls;
+using TRViS.OriginalStyle1.Controls;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
-namespace TRViS.CustomRoute.Pages;
+namespace TRViS.OriginalStyle1.Pages;
 
 
 /// <summary>
-/// CustomRoute列車選択ページ
+/// 列車選択ページ
 /// 列車一覧を表示し、時刻表を表示する列車を選択するページ
 /// C#コードビハインド実装（XAML禁止）
 /// </summary>
-public class CustomRouteTrainSelectionPage : ContentPage
+public class TrainSelectionPage : ContentPage
 {
-	public static readonly string NameOfThisClass = nameof(CustomRouteTrainSelectionPage);
+	public static readonly string NameOfThisClass = nameof(TrainSelectionPage);
 
 	private AppViewModel _appViewModel = null!;
 	private TrainSelector _trainSelector = null!;
 
-	public CustomRouteTrainSelectionPage()
+	public TrainSelectionPage()
 	{
 		Title = "Custom Route - Select Train";
 		InitializeViewModel();

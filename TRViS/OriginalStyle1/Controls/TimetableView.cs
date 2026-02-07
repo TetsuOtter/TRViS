@@ -3,23 +3,23 @@ using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 
 using TRViS.Controls;
-using TRViS.CustomRoute.Converters;
+using TRViS.OriginalStyle1.Converters;
 using TRViS.DTAC;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
-namespace TRViS.CustomRoute.Controls;
+namespace TRViS.OriginalStyle1.Controls;
 
 /// <summary>
-/// CustomRoute時刻表ビューコントロール
+/// 時刻表ビューコントロール
 /// 駅情報と時刻を縦型で表示
 /// </summary>
-public class CustomRouteTimetableView : ContentView
+public class TimetableView : ContentView
 {
 	private CollectionView _timetableCollectionView = null!;
 	private AppViewModel? _viewModel;
 
-	public CustomRouteTimetableView()
+	public TimetableView()
 	{
 		InitializeLayout();
 	}
@@ -35,8 +35,8 @@ public class CustomRouteTimetableView : ContentView
 		// ヘッダー行
 		var headerGrid = CreateHeaderGrid();
 
-		// Itemテンプレート - CustomRouteTimetableRowViewを使用
-		var itemTemplate = new DataTemplate(() => new CustomRouteTimetableRowView());
+		// Itemテンプレート - TimetableRowViewを使用
+		var itemTemplate = new DataTemplate(() => new TimetableRowView());
 
 		_timetableCollectionView.ItemTemplate = itemTemplate;
 
@@ -45,7 +45,7 @@ public class CustomRouteTimetableView : ContentView
 		{
 			RowDefinitions =
 			[
-				new RowDefinition { Height = new GridLength(CustomRouteTimetableConstants.HEADER_HEIGHT, GridUnitType.Absolute) },  // ヘッダー
+				new RowDefinition { Height = new GridLength(TimetableConstants.HEADER_HEIGHT, GridUnitType.Absolute) },  // ヘッダー
 				new RowDefinition { Height = GridLength.Star },                             // 時刻表（残り全部）
 			],
 			ColumnDefinitions =
@@ -73,27 +73,27 @@ public class CustomRouteTimetableView : ContentView
 	{
 		var headerGrid = new Grid
 		{
-			ColumnDefinitions = CustomRouteTimetableConstants.CreateColumnDefinitions(),
-			ColumnSpacing = CustomRouteTimetableConstants.COLUMN_SPACING,
+			ColumnDefinitions = TimetableConstants.CreateColumnDefinitions(),
+			ColumnSpacing = TimetableConstants.COLUMN_SPACING,
 			Padding = new Thickness(8, 6, 8, 6),
-			HeightRequest = CustomRouteTimetableConstants.HEADER_HEIGHT,
+			HeightRequest = TimetableConstants.HEADER_HEIGHT,
 		};
 
 		// ダークモード対応：背景色をテーマに応じて自動切り替え
 		headerGrid.SetAppThemeColor(BackgroundColorProperty, Colors.WhiteSmoke, Colors.Black);
 
 		// ヘッダーラベルのスタイル
-		for (int i = 0; i < CustomRouteTimetableConstants.ColumnHeaders.Length; i++)
+		for (int i = 0; i < TimetableConstants.ColumnHeaders.Length; i++)
 		{
 			var headerLabel = new Label
 			{
-				Text = CustomRouteTimetableConstants.ColumnHeaders[i],
+				Text = TimetableConstants.ColumnHeaders[i],
 				FontSize = 14,
 				FontAttributes = FontAttributes.Bold,
 				HorizontalTextAlignment = TextAlignment.Center,
 				VerticalTextAlignment = TextAlignment.Center,
 			};
-			if (i == CustomRouteTimetableConstants.ColumnIndex.StationName)
+			if (i == TimetableConstants.ColumnIndex.StationName)
 			{
 				headerLabel.HorizontalTextAlignment = TextAlignment.Start;
 			}
