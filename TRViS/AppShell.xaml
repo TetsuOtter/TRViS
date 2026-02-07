@@ -7,6 +7,7 @@
 	xmlns:utils="clr-namespace:TRViS.Utils"
 	xmlns:pages="clr-namespace:TRViS.RootPages"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	xmlns:customroute="clr-namespace:TRViS.CustomRoute.Pages"
 	FlyoutBackgroundColor="{AppThemeBinding Light=#EEE, Dark=#111}">
 	<Shell.FlyoutIcon>
 		<FontImageSource
@@ -40,6 +41,11 @@
 		Title="D-TAC"
 		Route="{x:Static dtac:ViewHost.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		Title="Custom Route"
+		Route="{x:Static customroute:CustomRoutePage.NameOfThisClass}">
+		<ShellContent ContentTemplate="{DataTemplate customroute:CustomRoutePage}"/>
 	</FlyoutItem>
 	<FlyoutItem Title="Third Party Licenses">
 		<ShellContent ContentTemplate="{DataTemplate pages:ThirdPartyLicenses}"/>

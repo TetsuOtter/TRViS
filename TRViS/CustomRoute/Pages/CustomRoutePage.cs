@@ -5,28 +5,33 @@ using TRViS.IO.Models;
 
 namespace TRViS.CustomRoute.Pages;
 
+using TRViS;
+
 /// <summary>
 /// CustomRoute時刻表ページ
 /// 独自路線の時刻表を表示するメインページ
 /// C#コードビハインド実装（XAML禁止）
 /// </summary>
-public class CustomRouteTimetablePage : ContentPage
+public class CustomRoutePage : ContentPage
 {
+	public static readonly string NameOfThisClass = nameof(CustomRoutePage);
+
 	private CustomRouteTimetableViewModel _viewModel = null!;
 	private CustomRouteHeader _header = null!;
 	private TrainSelector _trainSelector = null!;
 	private CustomRouteTimetableView _timetableView = null!;
 
-	public CustomRouteTimetablePage()
+	public CustomRoutePage()
 	{
-		Title = "Custom Route Timetable";
+		Title = "Custom Route";
 		InitializeViewModel();
 		InitializeLayout();
+		Shell.SetNavBarIsVisible(this, false);
 	}
 
 	private void InitializeViewModel()
 	{
-		_viewModel = new CustomRouteTimetableViewModel();
+		_viewModel = InstanceManager.CustomRouteTimetableViewModel;
 		BindingContext = _viewModel;
 	}
 
