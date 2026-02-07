@@ -1,7 +1,5 @@
 using System.Globalization;
 
-using Microsoft.Maui.Controls;
-
 using TRViS.IO.Models;
 
 namespace TRViS.CustomRoute.Converters;
@@ -15,6 +13,12 @@ public class TimeDataConverter : IValueConverter
 	public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
 	{
 		if (value is not TimeData timeData)
+			return string.Empty;
+		return Convert(timeData);
+	}
+	public static string Convert(TimeData timeData)
+	{
+		if (timeData is null)
 			return string.Empty;
 
 		// 時刻データがある場合
