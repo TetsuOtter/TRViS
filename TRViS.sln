@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.ILocationService", "T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.IO.ILoader", "TRViS.IO.ILoader\TRViS.IO.ILoader.csproj", "{99DAE4CF-5E6E-46BB-980B-D4F58076AE6A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRViS.CustomRoute.Tests", "TRViS.CustomRoute.Tests\TRViS.CustomRoute.Tests.csproj", "{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -127,6 +129,18 @@ Global
 		{99DAE4CF-5E6E-46BB-980B-D4F58076AE6A}.Release|x64.Build.0 = Release|Any CPU
 		{99DAE4CF-5E6E-46BB-980B-D4F58076AE6A}.Release|x86.ActiveCfg = Release|Any CPU
 		{99DAE4CF-5E6E-46BB-980B-D4F58076AE6A}.Release|x86.Build.0 = Release|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Debug|x64.Build.0 = Debug|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Debug|x86.Build.0 = Debug|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Release|x64.ActiveCfg = Release|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Release|x64.Build.0 = Release|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Release|x86.ActiveCfg = Release|Any CPU
+		{CAC523C8-FF5A-400C-91DE-AE5BAFED883F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
