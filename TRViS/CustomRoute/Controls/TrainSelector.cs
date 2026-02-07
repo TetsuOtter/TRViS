@@ -128,5 +128,8 @@ public class TrainSelector : ContentView
 		}
 
 		TrainSelected?.Invoke(this, trainData);
+
+		// 同じ列車の再選択を可能にするため、選択状態をクリア
+		_trainCollectionView.SelectedItem = null;
 	}
 }
