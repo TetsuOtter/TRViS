@@ -1,6 +1,8 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
+
+using TRViS.IO.Models;
 using TRViS.ViewModels;
 
 namespace TRViS.CustomRoute.Controls;
@@ -51,7 +53,7 @@ public class CustomRouteTimetableView : ContentView
 				HorizontalTextAlignment = TextAlignment.Center,
 				VerticalTextAlignment = TextAlignment.Center,
 			};
-			arrivalLabel.SetBinding(Label.TextProperty, "ArrivalTime", stringFormat: "{0}");
+			arrivalLabel.SetBinding(Label.TextProperty, new Binding(nameof(TimetableRow.ArriveTime), stringFormat: "{0}"));
 			Grid.SetColumn(arrivalLabel, 0);
 			mainGrid.Add(arrivalLabel);
 
@@ -62,7 +64,7 @@ public class CustomRouteTimetableView : ContentView
 				HorizontalTextAlignment = TextAlignment.Center,
 				VerticalTextAlignment = TextAlignment.Center,
 			};
-			departureLabel.SetBinding(Label.TextProperty, "DepartureTime", stringFormat: "{0}");
+			departureLabel.SetBinding(Label.TextProperty, new Binding(nameof(TimetableRow.DepartureTime), stringFormat: "{0}"));
 			Grid.SetColumn(departureLabel, 1);
 			mainGrid.Add(departureLabel);
 
@@ -73,7 +75,7 @@ public class CustomRouteTimetableView : ContentView
 				FontAttributes = FontAttributes.Bold,
 				VerticalTextAlignment = TextAlignment.Center,
 			};
-			stationNameLabel.SetBinding(Label.TextProperty, "StationName");
+			stationNameLabel.SetBinding(Label.TextProperty, new Binding(nameof(TimetableRow.StationName)));
 			Grid.SetColumn(stationNameLabel, 2);
 			mainGrid.Add(stationNameLabel);
 
@@ -87,7 +89,6 @@ public class CustomRouteTimetableView : ContentView
 				VerticalTextAlignment = TextAlignment.Center,
 				IsVisible = false,
 			};
-			markerLabel.SetBinding(Label.IsVisibleProperty, "IsLocationMarkerOnThisRow");
 			Grid.SetColumn(markerLabel, 3);
 			mainGrid.Add(markerLabel);
 
@@ -110,7 +111,7 @@ public class CustomRouteTimetableView : ContentView
 		// デバッグ用：TimetableRows が入力されているか確認
 		_debugLabel = new Label
 		{
-			Text = "Rows: 0",
+			Text = "Rows: <not set>",
 			FontSize = 16,
 			TextColor = Colors.Red,
 			Padding = 10,
@@ -159,7 +160,7 @@ public class CustomRouteTimetableView : ContentView
 	{
 		var rows = _viewModel?.SelectedTrainData?.Rows ?? [];
 		_timetableCollectionView.ItemsSource = rows;
-		_debugLabel.Text = $"Rows: {rows.Count}";
+		_debugLabel.Text = $"Rows: {rows.Length}";
 	}
 
 	private void OnRowSelected(object selectedItem)

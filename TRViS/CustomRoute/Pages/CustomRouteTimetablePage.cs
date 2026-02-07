@@ -32,7 +32,7 @@ public class CustomRouteTimetablePage : ContentPage
 		{
 			IsEnabled = true,
 			IsVisible = true,
-			TextOverride = "< 戻る",
+			TextOverride = "戻る",
 		});
 	}
 

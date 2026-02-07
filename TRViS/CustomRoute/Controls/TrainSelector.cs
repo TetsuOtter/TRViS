@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
+
 using TRViS.IO.Models;
 
 namespace TRViS.CustomRoute.Controls;
@@ -59,7 +60,7 @@ public class TrainSelector : ContentView
 				VerticalTextAlignment = TextAlignment.Center,
 				VerticalOptions = LayoutOptions.Center,
 			};
-			trainNumberLabel.SetBinding(Label.TextProperty, "TrainNumber");
+			trainNumberLabel.SetBinding(Label.TextProperty, new Binding(nameof(TrainData.TrainNumber)));
 			Grid.SetColumn(trainNumberLabel, 0);
 			grid.Add(trainNumberLabel);
 
@@ -70,7 +71,7 @@ public class TrainSelector : ContentView
 				VerticalTextAlignment = TextAlignment.Center,
 				VerticalOptions = LayoutOptions.Center,
 			};
-			trainNameLabel.SetBinding(Label.TextProperty, "TrainNumber");
+			trainNameLabel.SetBinding(Label.TextProperty, new Binding(nameof(TrainData.TrainNumber)));
 			Grid.SetColumn(trainNameLabel, 1);
 			grid.Add(trainNameLabel);
 
@@ -83,7 +84,7 @@ public class TrainSelector : ContentView
 				HorizontalTextAlignment = TextAlignment.End,
 				VerticalOptions = LayoutOptions.Center,
 			};
-			lineIdLabel.SetBinding(Label.TextProperty, "Id");
+			lineIdLabel.SetBinding(Label.TextProperty, new Binding(nameof(TrainData.Id)));
 			Grid.SetColumn(lineIdLabel, 2);
 			grid.Add(lineIdLabel);
 
@@ -114,7 +115,7 @@ public class TrainSelector : ContentView
 		_trainCollectionView.ItemsSource = trainList;
 	}
 
-	private void OnCollectionViewSelectionChanged(object sender, SelectionChangedEventArgs e)
+	private void OnCollectionViewSelectionChanged(object? sender, SelectionChangedEventArgs e)
 	{
 		if (e.CurrentSelection.Count == 0)
 		{

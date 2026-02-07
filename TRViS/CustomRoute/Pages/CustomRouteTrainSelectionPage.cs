@@ -1,11 +1,11 @@
 using Microsoft.Maui.Controls;
+
 using TRViS.CustomRoute.Controls;
 using TRViS.IO.Models;
 using TRViS.ViewModels;
 
 namespace TRViS.CustomRoute.Pages;
 
-using TRViS;
 
 /// <summary>
 /// CustomRoute列車選択ページ
@@ -64,32 +64,20 @@ public class CustomRouteTrainSelectionPage : ContentPage
 	{
 		System.Diagnostics.Debug.WriteLine($"[LoadTrainData] SelectedWork: {_appViewModel.SelectedWork?.Name ?? "null"}, Loader: {(_appViewModel.Loader != null ? "not null" : "null")}");
 
-		// 現在選択されているWorkから列車データを取得
-		if (_appViewModel.SelectedWork is not null && _appViewModel.Loader is not null)
-		{
-			var trainDataList = _appViewModel.Loader.GetTrainDataList(_appViewModel.SelectedWork.Id);
-			System.Diagnostics.Debug.WriteLine($"[LoadTrainData] trainDataList from Loader: {trainDataList?.Count ?? 0} items");
-			if (trainDataList is not null && trainDataList.Count > 0)
-			{
-				System.Diagnostics.Debug.WriteLine($"[LoadTrainData] Updating OrderedTrainDataList from Loader");
-				_appViewModel.OrderedTrainDataList = trainDataList;
-				_trainSelector.SetTrainList(trainDataList);
-				return;
-			}
-		}
-
 		// OrderedTrainDataListが利用可能な場合はそれを使用
 		if (_appViewModel.OrderedTrainDataList is not null && _appViewModel.OrderedTrainDataList.Count > 0)
 		{
 			System.Diagnostics.Debug.WriteLine($"[LoadTrainData] Using OrderedTrainDataList: {_appViewModel.OrderedTrainDataList.Count} items");
+			_trainSelector.SetTrainList(_appViewModel.OrderedTrainDataList);
 		}
 		else
 		{
 			System.Diagnostics.Debug.WriteLine($"[LoadTrainData] No trains available");
+			_trainSelector.SetTrainList([]);
 		}
 	}
 
-	private async void OnTrainSelected(object? sender, TrainData trainData)
+	private async void OnTrainSelected(object? sender, TRViS.IO.Models.TrainData trainData)
 	{
 		// 選択された列車をAppViewModelに設定
 		_appViewModel.SelectedTrainData = trainData;
