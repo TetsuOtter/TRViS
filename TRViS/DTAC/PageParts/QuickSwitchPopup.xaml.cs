@@ -67,11 +67,11 @@ public partial class QuickSwitchPopup : ContentView
 		// Scroll to selected item
 		if (IsWorkGroupTabSelected && WorkGroupListView.SelectedItem is not null)
 		{
-			WorkGroupListView.ScrollTo(WorkGroupListView.SelectedItem, ScrollToPosition.MakeVisible, false);
+			WorkGroupListView.ScrollTo(item: WorkGroupListView.SelectedItem, position: Microsoft.Maui.Controls.ScrollToPosition.MakeVisible, animate: false);
 		}
 		else if (!IsWorkGroupTabSelected && WorkListView.SelectedItem is not null)
 		{
-			WorkListView.ScrollTo(WorkListView.SelectedItem, ScrollToPosition.MakeVisible, false);
+			WorkListView.ScrollTo(item: WorkListView.SelectedItem, position: Microsoft.Maui.Controls.ScrollToPosition.MakeVisible, animate: false);
 		}
 	}
 
@@ -113,9 +113,10 @@ public partial class QuickSwitchPopup : ContentView
 		IsWorkGroupTabSelected = false;
 	}
 
-	private void WorkGroupListView_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+	private void WorkGroupListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
 	{
-		if (e.SelectedItem is WorkGroup selectedWorkGroup)
+		var selected = e.CurrentSelection?.FirstOrDefault();
+		if (selected is WorkGroup selectedWorkGroup)
 		{
 			logger.Info("WorkGroup selected: {0}", selectedWorkGroup.Name);
 			ViewModel.SelectedWorkGroup = selectedWorkGroup;
@@ -129,9 +130,10 @@ public partial class QuickSwitchPopup : ContentView
 		}
 	}
 
-	private void WorkListView_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+	private void WorkListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
 	{
-		if (e.SelectedItem is Work selectedWork)
+		var selected = e.CurrentSelection?.FirstOrDefault();
+		if (selected is Work selectedWork)
 		{
 			logger.Info("Work selected: {0}", selectedWork.Name);
 			ViewModel.SelectedWork = selectedWork;
