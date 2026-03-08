@@ -175,7 +175,7 @@ public class HtmlAutoDetectLabel : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (base)");
-				Util.ExitWithAlert(ex);
+				Util.ExitWithAlertAsync(ex);
 			}
 
 			if (propertyName == nameof(Text))
@@ -188,7 +188,7 @@ public class HtmlAutoDetectLabel : ContentView
 				{
 					logger.Fatal(ex, "Unknown Exception");
 					InstanceManager.CrashlyticsWrapper.Log(ex, "HtmlAutoDetectLabel.OnPropertyChanged (Text)");
-					Util.ExitWithAlert(ex);
+					Util.ExitWithAlertAsync(ex);
 				}
 			}
 		}

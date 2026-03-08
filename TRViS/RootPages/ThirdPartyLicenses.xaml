@@ -15,21 +15,25 @@
 			FlexLayout.Grow="1"
 			FlexLayout.Basis="200"
 			Margin="4">
-			<ListView
+			<CollectionView
 				SelectionMode="Single"
 				SelectedItem="{Binding SelectedLicenseData}"
 				ItemsSource="{Binding LicenseDataArray}">
-				<ListView.ItemTemplate>
+				<CollectionView.ItemTemplate>
 					<DataTemplate
 						x:DataType="models:LicenseData">
-						<TextCell
-							TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"
-							DetailColor="{AppThemeBinding Dark=#AAA, Default=#555}"
-							Text="{Binding id}"
-							Detail="{Binding author}"/>
+						<StackLayout Padding="8">
+							<Label
+								Text="{Binding id}"
+								TextColor="{AppThemeBinding Dark=#EEE, Default=#111}"/>
+							<Label
+								Text="{Binding author}"
+								TextColor="{AppThemeBinding Dark=#AAA, Default=#555}"
+								FontSize="Small"/>
+						</StackLayout>
 					</DataTemplate>
-				</ListView.ItemTemplate>
-			</ListView>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
 		</Border>
 
 		<Border

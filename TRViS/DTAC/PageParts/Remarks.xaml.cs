@@ -34,17 +34,18 @@ public partial class Remarks : Grid
 		logger.Trace("Created");
 	}
 
-	public void ResetTextScrollViewPosition(bool? isOpen = null)
+	public async void ResetTextScrollViewPosition(bool? isOpen = null)
 	{
 		try
 		{
 			isOpen ??= IsOpen;
+			Task? remarksTextScrollViewTranslateTask = null;
 #if IOS
 			if (Shell.Current is AppShell shell)
 			{
 				double translateToY = isOpen.Value ? 0 : shell.SafeAreaMargin.Bottom;
 				logger.Trace("translateToY: {0} (isOpen: {1})", translateToY, isOpen.Value);
-				RemarksTextScrollView.TranslateTo(
+				remarksTextScrollViewTranslateTask = RemarksTextScrollView.TranslateToAsync(
 					x: 0,
 					y: translateToY,
 					length: 250 / 2,
@@ -52,13 +53,21 @@ public partial class Remarks : Grid
 				);
 			}
 #endif
-			this.TranslateTo(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
+			Task remarksTranslateTask = this.TranslateToAsync(0, isOpen.Value ? BottomMargin : 0, easing: Easing.SinInOut);
+			if (remarksTextScrollViewTranslateTask is not null)
+			{
+				await Task.WhenAll(remarksTranslateTask, remarksTextScrollViewTranslateTask);
+			}
+			else
+			{
+				await remarksTranslateTask;
+			}
 		}
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "Remarks.ResetTextScrollViewPosition");
-			Util.ExitWithAlert(ex);
+			await Util.ExitWithAlertAsync(ex);
 		}
 	}
 
@@ -130,7 +139,7 @@ public partial class Remarks : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "Remarks.OnSizeAllocated");
-			Util.ExitWithAlert(ex);
+			Util.ExitWithAlertAsync(ex);
 		}
 	}
 
@@ -145,7 +154,7 @@ public partial class Remarks : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "Remarks.OpenCloseButton_IsOpenChanged");
-			Util.ExitWithAlert(ex);
+			Util.ExitWithAlertAsync(ex);
 		}
 	}
 }
