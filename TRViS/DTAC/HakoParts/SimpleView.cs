@@ -79,7 +79,7 @@ public class SimpleView : Grid
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-				await Util.ExitWithAlert(ex);
+				await Util.ExitWithAlertAsync(ex);
 			}
 		});
 
@@ -103,7 +103,7 @@ public class SimpleView : Grid
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnIsSelectedChanged");
-			Util.ExitWithAlert(ex);
+			Util.ExitWithAlertAsync(ex);
 		}
 	}
 
@@ -127,7 +127,7 @@ public class SimpleView : Grid
 				{
 					logger.Fatal(ex, "Unknown Exception");
 					InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedWorkChanged");
-					await Util.ExitWithAlert(ex);
+					await Util.ExitWithAlertAsync(ex);
 				}
 			});
 		}
@@ -141,7 +141,7 @@ public class SimpleView : Grid
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "SimpleView.OnSelectedTrainChanged");
-				Util.ExitWithAlert(ex);
+				Util.ExitWithAlertAsync(ex);
 			}
 		}
 	}

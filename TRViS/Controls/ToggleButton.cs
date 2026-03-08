@@ -30,7 +30,7 @@ public partial class ToggleButton : ContentView
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "ToggleButton.TapGestureRecognized");
-				Util.ExitWithAlert(ex);
+				Util.ExitWithAlertAsync(ex);
 			}
 		};
 
@@ -50,7 +50,7 @@ public partial class ToggleButton : ContentView
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ToggleButton.OnIsCheckedChanged");
-			Util.ExitWithAlert(ex);
+			Util.ExitWithAlertAsync(ex);
 		}
 	}
 }

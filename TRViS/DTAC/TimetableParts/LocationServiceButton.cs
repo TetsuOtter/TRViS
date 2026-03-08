@@ -175,7 +175,7 @@ public class LocationServiceButton : ToggleButton
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "LocationServiceButton.OnIsCheckedChanged");
-			Util.ExitWithAlert(ex);
+			Util.ExitWithAlertAsync(ex);
 		}
 	}
 
@@ -193,7 +193,7 @@ public class LocationServiceButton : ToggleButton
 			{
 				logger.Fatal(ex, "Unknown Exception");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "LocationServiceButton.OnPropertyChanged");
-				Util.ExitWithAlert(ex);
+				Util.ExitWithAlertAsync(ex);
 			}
 		}
 	}
