@@ -114,7 +114,7 @@ public partial class LocationService : IDisposable
 	}
 	void OnTimeChanged(object? sender, int second)
 	{
-		logger.Debug("TimeChanged: {0}", second);
+		// logger.Debug("TimeChanged: {0}", second);
 		MainThread.BeginInvokeOnMainThread(() => TimeChanged?.Invoke(sender, second));
 	}
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
