@@ -231,7 +231,7 @@ jobs:
 
       - name: Build
         env:
-          DEVELOPER_DIR: /Applications/Xcode_26.0.1.app/Contents/Developer
+          DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
           ACTOOL_SKIP_SIMULATOR_RUNTIME_CHECK: true
           DOTNET_CLI_UI_LANGUAGE: en-US
           ACTOOL_DISABLE: true
