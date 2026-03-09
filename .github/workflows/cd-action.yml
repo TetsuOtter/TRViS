@@ -44,6 +44,7 @@ env:
   IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
   XCODE_VERSION: "26.2"
+  FIREBASE_PROJECT_ID: trvis-app
 
 jobs:
   generate-bundle-version:
@@ -662,21 +663,26 @@ jobs:
 
       - name: Download dSYM
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: dSYM
           path: .
       - name: extract dSYM
         run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
+        continue-on-error: true
       - name: Check dSYM
         run: dwarfdump -u ${{ env.IOS_DSYM_FILENAME }}
-      - name: Install AppCenter CLI
-        run: npm install -g appcenter-cli
-      - name: upload dSYM to AppCenter
+        continue-on-error: true
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+        continue-on-error: true
+      - name: upload dSYM to Firebase Crashlytics
         run: >
-          appcenter crashes upload-symbols
-          --token ${{ secrets.APPCENTER_ACCESS_TOKEN_IOS }}
-          --app 'Tetsu_Otter/TRViS-iOS-Beta'
-          --symbol ${{ env.IOS_DSYM_FILENAME }}
+          firebase crashlytics:symbols:upload
+          --token ${{ secrets.FIREBASE_TOKEN }}
+          --app ${{ env.FIREBASE_PROJECT_ID }}
+          ${{ env.IOS_DSYM_FILENAME }}
+        continue-on-error: true
 
   publish-mac:
     if: |
