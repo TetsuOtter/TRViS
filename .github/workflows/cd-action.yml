@@ -663,29 +663,6 @@ jobs:
           --apiKey ${{ secrets.APPSTORECONNECT_API_KEY }}
           --apiIssuer ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
-      - name: Download dSYM
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: dSYM
-          path: .
-      - name: extract dSYM
-        run: tar -xzf ${{ env.IOS_DSYM_FILENAME }}.tar.gz
-        continue-on-error: true
-      - name: Check dSYM
-        run: dwarfdump -u ${{ env.IOS_DSYM_FILENAME }}
-        continue-on-error: true
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-        continue-on-error: true
-      - name: upload dSYM to Firebase Crashlytics
-        run: >
-          firebase crashlytics:symbols:upload
-          --token ${{ secrets.FIREBASE_TOKEN }}
-          --app ${{ env.FIREBASE_PROJECT_ID }}
-          ${{ env.IOS_DSYM_FILENAME }}
-        continue-on-error: true
-
   publish-mac:
     if: |
       !failure()
