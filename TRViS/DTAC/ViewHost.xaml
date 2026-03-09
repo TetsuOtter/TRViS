@@ -7,8 +7,7 @@
 	x:Class="TRViS.DTAC.ViewHost"
 	x:DataType="viewmodels:DTACViewHostViewModel"
 	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}">
-	<Grid
-		IgnoreSafeArea="True">
+	<Grid SafeAreaEdges="None">
 		<Grid.RowDefinitions>
 			<RowDefinition x:Name="TitlePaddingViewHeight"
 										 Height="0"/>
@@ -44,6 +43,7 @@
 			Clicked="MenuButton_Clicked"/>
 
 		<HorizontalStackLayout
+			x:Name="TimeLabelStack"
 			Grid.Row="1"
 			Margin="8,4"
 			Padding="0"
