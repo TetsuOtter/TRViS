@@ -4,10 +4,11 @@ namespace TRViS.LocationService.Tests;
 
 public class Tests
 {
+	private NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 	[Test]
 	public void InitializeTest()
 	{
-		var logger = NLog.LogManager.GetLogger("Test");
 		LonLatLocationService service = new(logger);
 		Assert.Multiple(() =>
 		{
@@ -20,7 +21,6 @@ public class Tests
 	[Test]
 	public void MoveTest()
 	{
-		var logger = NLog.LogManager.GetLogger("Test");
 		LonLatLocationService service = new(logger)
 		{
 			StaLocationInfo =
@@ -108,7 +108,6 @@ public class Tests
 		StaLocationInfo sta1 = new(0, 0, 0, 200);
 		StaLocationInfo sta2 = new(1, 1, 1, 200);
 		StaLocationInfo sta3 = new(2, 2, 2, 200);
-		var logger = NLog.LogManager.GetLogger("Test");
 		LonLatLocationService service = new(logger)
 		{
 			StaLocationInfo =
@@ -141,7 +140,6 @@ public class Tests
 		StaLocationInfo sta1 = new(0, 0, 0, 200);
 		StaLocationInfo sta2 = new(1, 1, 1, 200);
 		StaLocationInfo sta3 = new(2, 2, 2, 200);
-		var logger = NLog.LogManager.GetLogger("Test");
 		LonLatLocationService service = new(logger)
 		{
 			StaLocationInfo =
@@ -188,7 +186,6 @@ public class Tests
 		StaLocationInfo sta1 = new(0, 0, 0, 200);
 		StaLocationInfo sta2 = new(1, 1, 1, 200);
 		StaLocationInfo sta3 = new(2, 2, 2, 200);
-		var logger = NLog.LogManager.GetLogger("Test");
 		LonLatLocationService service = new(logger)
 		{
 			StaLocationInfo =

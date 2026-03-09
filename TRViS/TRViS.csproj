@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net9.0-android;</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net10.0-android;</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+		<!-- iOS: Using iOS 13.0+ only due to Firebase SDK minimum requirement -->
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 		<UseMauiNuGets>true</UseMauiNuGets>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>TRViS</RootNamespace>
@@ -20,14 +21,16 @@
 		<!-- Versions -->
 		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
+		<!-- iOS 12.2 supported with Firebase SDK 10.x -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">12.2</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
 		<IsAotCompatible>true</IsAotCompatible>
-		<DefineConstants>$(DefineConstans);DISABLE_FIREBASE</DefineConstants>
+		<MauiVersion>10.0.41</MauiVersion>
+		<NoWarn>$(NoWarn);NU1608</NoWarn>
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
 		<RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
@@ -65,7 +68,10 @@
 	<ItemGroup>
 		<PackageReference
 			Include="Microsoft.Maui.Controls"
-			Version="9.0.120" />
+			Version="$(MauiVersion)" />
+		<PackageReference
+			Include="Microsoft.Maui.Essentials"
+			Version="$(MauiVersion)" />
 		<PackageReference
 			Include="CommunityToolkit.Mvvm"
 			Version="8.4.0" />
@@ -75,14 +81,11 @@
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
 		<PackageReference
-			Include="System.Text.Json"
-			Version="9.0.5" />
-		<PackageReference
 			Include="TR.Maui.AnchorPopover"
 			Version="1.0.0.2" />
 		<PackageReference
 			Include="NLog"
-			Version="5.4.0" />
+			Version="6.0.3" />
 		<PackageReference
 			Include="TR.BBCodeLabel.Maui"
 			Version="0.1.1.2" />
@@ -90,17 +93,18 @@
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
 		<PackageReference
 			Include="Microsoft.Maui.Controls.Maps"
-			Version="9.0.70" />
+			Version="$(MauiVersion)" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
-		<!-- <BundleResource Include="GoogleService-Info.plist" />
-		<PackageReference Include="AdamE.Firebase.iOS.Analytics" Version="11.8.0" />
-		<PackageReference Include="AdamE.Firebase.iOS.Crashlytics" Version="11.8.0" /> -->
+		<BundleResource Include="GoogleService-Info.plist" />
+		<PackageReference Include="AdamE.Firebase.iOS.Analytics" Version="10.16.0" />
+		<PackageReference Include="AdamE.Firebase.iOS.Crashlytics" Version="10.29.0.3" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
-		<!-- <GoogleServicesJson Include="Google-services.json" />
-		<PackageReference Include="Xamarin.Firebase.Analytics" Version="122.2.0" />
-		<PackageReference Include="Xamarin.Firebase.Crashlytics" Version="119.4.0" /> -->
+		<GoogleServicesJson Include="Google-services.json" />
+		<PackageReference Include="Xamarin.Firebase.Analytics" Version="123.0.0.3" />
+		<PackageReference Include="Xamarin.Firebase.Crashlytics" Version="120.0.4.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.10.0.2" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />

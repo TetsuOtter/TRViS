@@ -6,8 +6,6 @@ using TRViS.Controls;
 using TRViS.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
-using Microsoft.Maui.ApplicationModel;
-using System;
 using TRViS.Utils;
 
 namespace TRViS.RootPages;
@@ -99,12 +97,12 @@ public partial class ThirdPartyLicenses : ContentPage
 							}
 							else
 							{
-								await Util.DisplayAlert("Invalid URL", $"The URL is invalid: {v.Value}", "OK");
+								await Util.DisplayAlertAsync("Invalid URL", $"The URL is invalid: {v.Value}", "OK");
 							}
 						}
 						catch (Exception ex)
 						{
-							await Util.DisplayAlert("Cannot Open URL", ex.Message, "OK");
+							await Util.DisplayAlertAsync("Cannot Open URL", ex.Message, "OK");
 						}
 					};
 					grid.Add(urlLabel, 0, 0);
