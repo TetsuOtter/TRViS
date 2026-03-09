@@ -16,6 +16,11 @@ public class CrashlyticsWrapper : ICrashlyticsWrapper
 
 	public void Log(Exception ex, string? message)
 	{
+		if (!InstanceManager.FirebaseSettingViewModel.IsEnabled)
+		{
+			logger.Info("Crashlytics logging is disabled. Exception: {0}, Message: {1}", ex, message);
+			return;
+		}
 		logger.Warn(ex, $"Logging exception to Crashlytics: {message}");
 
 #if DISABLE_FIREBASE

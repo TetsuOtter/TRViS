@@ -37,7 +37,8 @@ public static class MauiProgram
 				// iOS 12.x: CollectionViewHandler2 (default in MAUI 10) uses
 				// UICollectionViewCompositionalLayoutConfiguration which requires iOS 13+.
 				// Fall back to the legacy CollectionViewHandler (uses UICollectionViewFlowLayout) on iOS 12.
-				if (!OperatingSystem.IsIOSVersionAtLeast(13)) {
+				if (!OperatingSystem.IsIOSVersionAtLeast(13))
+				{
 					handlers.AddHandler<CollectionView, Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler>();
 				}
 			})
@@ -62,6 +63,7 @@ public static class MauiProgram
 			return;
 
 		logger.Fatal(ex, "UnhandledException");
+		InstanceManager.CrashlyticsWrapper.Log(ex, "UnhandledException");
 	}
 
 	private static MauiAppBuilder ConfigureFirebase(this MauiAppBuilder builder)
