@@ -114,7 +114,7 @@ public partial class LocationService : IDisposable
 	}
 	void OnTimeChanged(object? sender, int second)
 	{
-		logger.Debug("TimeChanged: {0}", second);
+		// logger.Debug("TimeChanged: {0}", second);
 		MainThread.BeginInvokeOnMainThread(() => TimeChanged?.Invoke(sender, second));
 	}
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
@@ -163,7 +163,7 @@ public partial class LocationService : IDisposable
 		logger.Info("NetworkSyncService connection closed -> switching to LonLatLocationService");
 		MainThread.BeginInvokeOnMainThread(async () =>
 		{
-			await Util.DisplayAlert(
+			await Util.DisplayAlertAsync(
 				"接続切断",
 				"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
 				"OK"
@@ -177,7 +177,7 @@ public partial class LocationService : IDisposable
 		logger.Warn("NetworkSyncService connection failed after reconnection attempts -> showing dialog");
 		MainThread.BeginInvokeOnMainThread(async () =>
 		{
-			await Util.DisplayAlert(
+			await Util.DisplayAlertAsync(
 				"接続失敗",
 				"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
 				"OK"

@@ -13,17 +13,17 @@
 		<ResourceDictionary>
 			<Style TargetType="Border">
 				<Setter Property="Stroke"
-						Value="{x:Static local:RootStyles.BorderStrokeColor}"/>
+								Value="{x:Static local:RootStyles.BorderStrokeColor}"/>
 				<Setter Property="BackgroundColor"
-						Value="{x:Static local:RootStyles.BackgroundColor}"/>
+								Value="{x:Static local:RootStyles.BackgroundColor}"/>
 				<Setter Property="Margin"
-						Value="4"/>
+								Value="4"/>
 				<Setter Property="Padding"
-						Value="8"/>
+								Value="8"/>
 				<Setter Property="FlexLayout.Basis"
-						Value="350"/>
+								Value="350"/>
 				<Setter Property="FlexLayout.Grow"
-						Value="1"/>
+								Value="1"/>
 			</Style>
 		</ResourceDictionary>
 	</ContentPage.Resources>
@@ -74,20 +74,23 @@
 						Grid.Row="0"
 						FontSize="Subtitle"
 						Text="Work Group"/>
-					<ListView
+					<CollectionView
 						Grid.Row="1"
 						ItemsSource="{Binding WorkGroupList}"
-						SelectedItem="{Binding SelectedWorkGroup, Mode=TwoWay}">
-						<ListView.ItemTemplate>
+						SelectedItem="{Binding SelectedWorkGroup, Mode=TwoWay}"
+						SelectionMode="Single">
+						<CollectionView.ItemTemplate>
 							<DataTemplate
 								x:DataType="models:WorkGroup">
-								<TextCell
-									TextColor="{x:Static local:RootStyles.TableTextColor}"
-									DetailColor="{x:Static local:RootStyles.TableDetailColor}"
-									Text="{Binding Name}"/>
+								<Grid Padding="8,6">
+									<Label
+										Text="{Binding Name}"
+										TextColor="{x:Static local:RootStyles.TableTextColor}"
+										VerticalTextAlignment="Center"/>
+								</Grid>
 							</DataTemplate>
-						</ListView.ItemTemplate>
-					</ListView>
+						</CollectionView.ItemTemplate>
+					</CollectionView>
 				</Grid>
 			</Border>
 
@@ -101,20 +104,23 @@
 						Grid.Row="0"
 						FontSize="Subtitle"
 						Text="Work"/>
-					<ListView
+					<CollectionView
 						Grid.Row="1"
 						ItemsSource="{Binding WorkList}"
-						SelectedItem="{Binding SelectedWork, Mode=TwoWay}">
-						<ListView.ItemTemplate>
+						SelectedItem="{Binding SelectedWork, Mode=TwoWay}"
+						SelectionMode="Single">
+						<CollectionView.ItemTemplate>
 							<DataTemplate
 								x:DataType="models:Work">
-								<TextCell
-									TextColor="{x:Static local:RootStyles.TableTextColor}"
-									DetailColor="{x:Static local:RootStyles.TableDetailColor}"
-									Text="{Binding Name}"/>
+								<Grid Padding="8,6">
+									<Label
+										Text="{Binding Name}"
+										TextColor="{x:Static local:RootStyles.TableTextColor}"
+										VerticalTextAlignment="Center"/>
+								</Grid>
 							</DataTemplate>
-						</ListView.ItemTemplate>
-					</ListView>
+						</CollectionView.ItemTemplate>
+					</CollectionView>
 				</Grid>
 			</Border>
 		</FlexLayout>
