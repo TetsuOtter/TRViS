@@ -36,7 +36,7 @@ public partial class WithRemarksView : Grid
 		RowDefinitions.Add(new(new(1, GridUnitType.Star)));
 		RowDefinitions.Add(RemarksAreaRowDefinition);
 
-		IgnoreSafeArea = true;
+		SafeAreaEdges = SafeAreaEdges.None;
 		Margin = new(0);
 		Padding = new(0);
 

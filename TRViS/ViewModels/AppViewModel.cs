@@ -270,7 +270,7 @@ public partial class AppViewModel : ObservableObject
 
 	private TimeOnly? GetFirstDepartureTime(TrainData trainData)
 	{
-		if (trainData.Rows.Length == 0)
+		if (trainData.Rows is null || trainData.Rows.Length == 0)
 			return null;
 
 		// Find the first row with a departure time

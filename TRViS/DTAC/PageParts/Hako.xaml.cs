@@ -71,11 +71,11 @@ public partial class Hako : Grid
 					if (v.IsBusy)
 					{
 						SimpleViewActivityIndicatorBorder.IsVisible = true;
-						SimpleViewActivityIndicatorBorder.FadeTo(VerticalStylePage.TimetableViewActivityIndicatorBorderMaxOpacity);
+						SimpleViewActivityIndicatorBorder.FadeToAsync(VerticalStylePage.TimetableViewActivityIndicatorBorderMaxOpacity);
 					}
 					else
 					{
-						SimpleViewActivityIndicatorBorder.FadeTo(0).ContinueWith((_) =>
+						SimpleViewActivityIndicatorBorder.FadeToAsync(0).ContinueWith((_) =>
 						{
 							logger.Debug("SimpleViewActivityIndicatorBorder.FadeTo(0) completed");
 							SimpleViewActivityIndicatorBorder.IsVisible = false;
@@ -86,7 +86,7 @@ public partial class Hako : Grid
 				{
 					logger.Fatal(ex, "Unknown Exception");
 					InstanceManager.CrashlyticsWrapper.Log(ex, "Hako.SimpleView.IsBusyChanged");
-					Util.ExitWithAlert(ex);
+					Util.ExitWithAlertAsync(ex);
 				}
 			});
 		};

@@ -42,20 +42,20 @@
 				x:Name="WorkGroupListContainer"
 				Padding="4"
 				StrokeThickness="0">
-				<ListView
+				<CollectionView
 					x:Name="WorkGroupListView"
 					SelectionMode="Single"
-					SeparatorVisibility="Default"
-					ios:ListView.SeparatorStyle="FullWidth"
-					ItemSelected="WorkGroupListView_ItemSelected">
-					<ListView.ItemTemplate>
+					SelectionChanged="WorkGroupListView_SelectionChanged">
+					<CollectionView.ItemTemplate>
 						<DataTemplate
 							x:DataType="models:WorkGroup">
-							<TextCell
-								Text="{Binding Name}"/>
+							<Label
+								Text="{Binding Name}"
+								Padding="8,6"
+								VerticalTextAlignment="Center"/>
 						</DataTemplate>
-					</ListView.ItemTemplate>
-				</ListView>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
 			</Border>
 
 			<!-- Work List -->
@@ -64,20 +64,20 @@
 				IsVisible="False"
 				Padding="4"
 				StrokeThickness="0">
-				<ListView
+				<CollectionView
 					x:Name="WorkListView"
 					SelectionMode="Single"
-					SeparatorVisibility="Default"
-					ios:ListView.SeparatorStyle="FullWidth"
-					ItemSelected="WorkListView_ItemSelected">
-					<ListView.ItemTemplate>
+					SelectionChanged="WorkListView_SelectionChanged">
+					<CollectionView.ItemTemplate>
 						<DataTemplate
 							x:DataType="models:Work">
-							<TextCell
-								Text="{Binding Name}"/>
+							<Label
+								Text="{Binding Name}"
+								Padding="8,6"
+								VerticalTextAlignment="Center"/>
 						</DataTemplate>
-					</ListView.ItemTemplate>
-				</ListView>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
 			</Border>
 		</Grid>
 	</Grid>
