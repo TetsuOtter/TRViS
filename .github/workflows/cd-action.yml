@@ -314,10 +314,10 @@ jobs:
       - name: Print Third Party License Info Files
         run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
-      - name: Add google-services.json
+      - name: Add Google-services.json
         run: |
-          echo "${{ secrets.FIREBASE_ANDROID_JSON }}" > TRViS/google-services.json
-          ls -l TRViS/google-services.json
+          echo "${{ secrets.FIREBASE_ANDROID_JSON }}" > TRViS/Google-services.json
+          ls -l TRViS/Google-services.json
 
       # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
       - name: Install Android SDK Platform Tools
