@@ -34,6 +34,12 @@ public static class MauiProgram
 			.ConfigureMauiHandlers(static handlers =>
 			{
 				handlers.AddHandler<Shell, HideShellTabRenderer>();
+				// iOS 12.x: CollectionViewHandler2 (default in MAUI 10) uses
+				// UICollectionViewCompositionalLayoutConfiguration which requires iOS 13+.
+				// Fall back to the legacy CollectionViewHandler (uses UICollectionViewFlowLayout) on iOS 12.
+				if (!OperatingSystem.IsIOSVersionAtLeast(13)) {
+					handlers.AddHandler<CollectionView, Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler>();
+				}
 			})
 			.UseMauiMaps()
 #endif
