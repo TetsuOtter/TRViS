@@ -43,7 +43,7 @@ public partial class FirebaseSettingPage : ContentPage
 		MauiProgram.ConfigureFirebase();
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.PrivacyPolicyAccepted);
 
-		await DisplayAlert("Success!", "Successfully saved\nYour InstallId: " + FirebaseSettingViewModel.InstallId, "OK");
+		await DisplayAlertAsync("Success!", "Successfully saved\nYour InstallId: " + FirebaseSettingViewModel.InstallId, "OK");
 
 		// 初回はこのページが自動で表示されている状態のため、自動でページを移動するようにする
 		// 次回以降はユーザが自分で移動してきたはずであるため、自動で移動しないようにする

@@ -52,7 +52,7 @@ public partial class OpenCloseButton : Button
 		{
 			logger.Fatal(ex, "Unknown Exception");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "OpenCloseButton.OnIsOpenChanged");
-			Util.ExitWithAlert(ex);
+			Util.ExitWithAlertAsync(ex);
 		}
 	}
 

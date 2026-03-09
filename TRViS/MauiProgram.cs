@@ -34,6 +34,13 @@ public static class MauiProgram
 			.ConfigureMauiHandlers(static handlers =>
 			{
 				handlers.AddHandler<Shell, HideShellTabRenderer>();
+				// iOS 12.x: CollectionViewHandler2 (default in MAUI 10) uses
+				// UICollectionViewCompositionalLayoutConfiguration which requires iOS 13+.
+				// Fall back to the legacy CollectionViewHandler (uses UICollectionViewFlowLayout) on iOS 12.
+				if (!OperatingSystem.IsIOSVersionAtLeast(13))
+				{
+					handlers.AddHandler<CollectionView, Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler>();
+				}
 			})
 			.UseMauiMaps()
 #endif
@@ -56,6 +63,7 @@ public static class MauiProgram
 			return;
 
 		logger.Fatal(ex, "UnhandledException");
+		InstanceManager.CrashlyticsWrapper.Log(ex, "UnhandledException");
 	}
 
 	private static MauiAppBuilder ConfigureFirebase(this MauiAppBuilder builder)
@@ -63,10 +71,10 @@ public static class MauiProgram
 		builder.ConfigureLifecycleEvents(events =>
 		{
 #if IOS
-			events.AddiOS((iOS) => iOS.WillFinishLaunching((_, _) =>
+			events.AddiOS((iOS) => iOS.FinishedLaunching((_, _) =>
 			{
 				ConfigureFirebase();
-				return false;
+				return true;
 			}));
 #elif ANDROID
 			events.AddAndroid((android) => android.OnCreate((activity, _) =>
@@ -93,13 +101,29 @@ public static class MauiProgram
 
 #if IOS
 #if !DISABLE_FIREBASE
-		Firebase.Core.App.Configure();
-		Firebase.Crashlytics.Crashlytics.SharedInstance.SetCrashlyticsCollectionEnabled(true);
-		SetCrashlyticsCustomKey();
-		Firebase.Crashlytics.Crashlytics.SharedInstance.SendUnsentReports();
+		try
+		{
+			Firebase.Core.App.Configure();
+			Firebase.Crashlytics.Crashlytics.SharedInstance.SetCrashlyticsCollectionEnabled(true);
+			SetCrashlyticsCustomKey();
+			Firebase.Crashlytics.Crashlytics.SharedInstance.SendUnsentReports();
+
+			// Flush buffered logs after Firebase is initialized
+			logger.Info("Firebase initialized, flushing buffered logs");
+			InstanceManager.AnalyticsWrapper.FlushBufferedLogs();
+			InstanceManager.CrashlyticsWrapper.FlushBufferedLogs();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Firebase.Core.App.Configure() failed");
+			return;
+		}
 #endif
 #elif ANDROID
-		ConfigureFirebase(Platform.CurrentActivity);
+		if (Platform.CurrentActivity is Android.App.Activity currentActivity)
+			ConfigureFirebase(currentActivity);
+		else
+			logger.Warn("Firebase: CurrentActivity is null, skipping initialization");
 #else
 		logger.Warn("Firebase Unsupported platform");
 #endif
@@ -115,9 +139,14 @@ public static class MauiProgram
 
 #if !DISABLE_FIREBASE
 		Firebase.FirebaseApp.InitializeApp(activity);
-		Firebase.FirebaseAnalytics.GetInstance(activity).SetAnalyticsCollectionEnabled(true);
+		Firebase.Analytics.FirebaseAnalytics.GetInstance(activity).SetAnalyticsCollectionEnabled(true);
 		SetCrashlyticsCustomKey();
 		Firebase.Crashlytics.FirebaseCrashlytics.Instance.SendUnsentReports();
+
+		// Flush buffered logs after Firebase is initialized
+		logger.Info("Firebase initialized, flushing buffered logs");
+		InstanceManager.AnalyticsWrapper.FlushBufferedLogs();
+		InstanceManager.CrashlyticsWrapper.FlushBufferedLogs();
 #endif
 		IsFirebaseConfigured = true;
 	}
