@@ -226,8 +226,10 @@ jobs:
         run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
       - name: Add GoogleService-Info.plist
+        env:
+          FIREBASE_IOS_PLIST: ${{ secrets.FIREBASE_IOS_PLIST }}
         run: |
-          echo "${{ secrets.FIREBASE_IOS_PLIST }}" > TRViS/GoogleService-Info.plist
+          echo "${{ env.FIREBASE_IOS_PLIST }}" > TRViS/GoogleService-Info.plist
           ls -l TRViS/GoogleService-Info.plist
 
       - name: Build
