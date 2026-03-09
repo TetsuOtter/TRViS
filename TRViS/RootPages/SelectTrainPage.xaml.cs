@@ -115,7 +115,7 @@ public partial class SelectTrainPage : ContentPage
 			var fileNames = jsonFiles.Select(f => f.Name).ToArray();
 			var filePaths = jsonFiles.Select(f => f.FullName).ToArray();
 
-			string? selectedFileName = await DisplayActionSheet(
+			string? selectedFileName = await DisplayActionSheetAsync(
 				"どのファイルを開きますか？",
 				"キャンセル",
 				null,
@@ -143,7 +143,7 @@ public partial class SelectTrainPage : ContentPage
 				else
 				{
 					logger.Warn("Failed to load selected timetable file");
-					await Util.DisplayAlert(this, "エラー", "ファイルの読み込みに失敗しました", "OK");
+					await Util.DisplayAlertAsync(this, "エラー", "ファイルの読み込みに失敗しました", "OK");
 					viewModel.Loader = new SampleDataLoader();
 				}
 			}
@@ -157,7 +157,7 @@ public partial class SelectTrainPage : ContentPage
 		{
 			logger.Error(ex, "Error in ShowFileSelectionDialogAsync");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.ShowFileSelectionDialogAsync failed");
-			await Util.DisplayAlert(this, "エラー", $"ファイル選択に失敗しました: {ex.Message}", "OK");
+			await Util.DisplayAlertAsync(this, "エラー", $"ファイル選択に失敗しました: {ex.Message}", "OK");
 			viewModel.Loader = new SampleDataLoader();
 		}
 	}
@@ -176,7 +176,7 @@ public partial class SelectTrainPage : ContentPage
 		{
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.LoadFromWebButton_Clicked (PushModalAsync failed)");
 			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlert(this, "Open Popup Failed", ex.ToString(), "OK");
+			await Util.DisplayAlertAsync(this, "Open Popup Failed", ex.ToString(), "OK");
 		}
 
 		logger.Info("Load From Web Button Clicked Processing Complete");
@@ -210,7 +210,7 @@ public partial class SelectTrainPage : ContentPage
 				else
 				{
 					logger.Warn("Unknown File Type");
-					await Util.DisplayAlert(this, "Unknown File Type", "The selected file is not a supported file type.", "OK");
+					await Util.DisplayAlertAsync(this, "Unknown File Type", "The selected file is not a supported file type.", "OK");
 				}
 
 				if (!ReferenceEquals(lastLoader, viewModel.Loader))
@@ -236,7 +236,7 @@ public partial class SelectTrainPage : ContentPage
 
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.SelectDatabaseButton_Clicked (PickAsync failed)");
 			logger.Error(ex, "File Selection Failed");
-			await Util.DisplayAlert(this, "Cannot Open File", ex.ToString(), "OK");
+			await Util.DisplayAlertAsync(this, "Cannot Open File", ex.ToString(), "OK");
 		}
 
 		logger.Info("Select File Button Clicked Processing Complete");
