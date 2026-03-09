@@ -43,6 +43,7 @@
 			Clicked="MenuButton_Clicked"/>
 
 		<HorizontalStackLayout
+			x:Name="TimeLabelStack"
 			Grid.Row="1"
 			Margin="8,4"
 			Padding="0"

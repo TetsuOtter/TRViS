@@ -134,7 +134,7 @@ public partial class ViewHost : ContentPage
 		TitleBGGradientBox.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
 		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
 		MenuButton.Margin = new(8 + newValue.Left, 4);
-		TimeLabel.Margin = new(0, 0, newValue.Right, 0);
+		TimeLabelStack.Margin = new(8, 4, newValue.Right + 8, 4);
 		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Util.ThicknessToString(TitleBGGradientBox.Margin));
 	}
 
