@@ -315,8 +315,10 @@ jobs:
         run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
 
       - name: Add Google-services.json
+        env:
+          FIREBASE_ANDROID_JSON: ${{ secrets.FIREBASE_ANDROID_JSON }}
         run: |
-          echo "${{ secrets.FIREBASE_ANDROID_JSON }}" > TRViS/Google-services.json
+          echo "$FIREBASE_ANDROID_JSON" > TRViS/Google-services.json
           ls -l TRViS/Google-services.json
 
       # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
