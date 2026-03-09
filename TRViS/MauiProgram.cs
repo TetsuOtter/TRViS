@@ -107,7 +107,10 @@ public static class MauiProgram
 		Firebase.Crashlytics.Crashlytics.SharedInstance.SendUnsentReports();
 #endif
 #elif ANDROID
-		ConfigureFirebase(Platform.CurrentActivity);
+		if (Platform.CurrentActivity is Android.App.Activity currentActivity)
+			ConfigureFirebase(currentActivity);
+		else
+			logger.Warn("Firebase: CurrentActivity is null, skipping initialization");
 #else
 		logger.Warn("Firebase Unsupported platform");
 #endif
@@ -123,7 +126,7 @@ public static class MauiProgram
 
 #if !DISABLE_FIREBASE
 		Firebase.FirebaseApp.InitializeApp(activity);
-		Firebase.FirebaseAnalytics.GetInstance(activity).SetAnalyticsCollectionEnabled(true);
+		Firebase.Analytics.FirebaseAnalytics.GetInstance(activity).SetAnalyticsCollectionEnabled(true);
 		SetCrashlyticsCustomKey();
 		Firebase.Crashlytics.FirebaseCrashlytics.Instance.SendUnsentReports();
 #endif

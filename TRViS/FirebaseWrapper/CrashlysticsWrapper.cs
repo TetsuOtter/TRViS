@@ -43,7 +43,7 @@ public class CrashlyticsWrapper : ICrashlyticsWrapper
 		Firebase.Crashlytics.Crashlytics.SharedInstance.RecordError(error);
 #elif ANDROID
 		// TODO: Androidでもmessageを送信する
-		Firebase.FirebaseCrashlytics.Instance.RecordException(Java.Lang.Throwable.FromException(ex));
+		Firebase.Crashlytics.FirebaseCrashlytics.Instance.RecordException(Java.Lang.Throwable.FromException(ex));
 #endif
 	}
 }
