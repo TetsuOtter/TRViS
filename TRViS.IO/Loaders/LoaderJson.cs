@@ -53,6 +53,17 @@ public class LoaderJson : ILoader
 		}
 		throw new InvalidOperationException("Failed to generate a unique ID");
 	}
+	static string GenerateUniqueId(IEnumerable<string> idList)
+	{
+		HashSet<string> idSet = idList is HashSet<string> hs ? hs : [.. idList];
+		for (int i = 0; i < 100; i++)
+		{
+			string tmpId = Guid.NewGuid().ToString();
+			if (!idSet.Contains(tmpId))
+				return tmpId;
+		}
+		throw new InvalidOperationException("Failed to generate a unique ID");
+	}
 
 	static readonly JsonSerializerOptions opts = new()
 	{
@@ -65,36 +76,35 @@ public class LoaderJson : ILoader
 		if (workGroups is null)
 			throw new ArgumentNullException(nameof(workGroups));
 
-		string[] workGroupIdArray = new string[workGroups.Length];
-		List<string> workIdList = [];
-		List<string> trainIdList = [];
+		Dictionary<WorkGroupData, string> workGroupIdDict = [];
+		Dictionary<WorkData, string> workIdDict = [];
+		Dictionary<JsonModels.TrainData, string> trainIdDict = [];
 		for (int i = 0; i < workGroups.Length; i++)
 		{
-			string? id = workGroups[i].Id;
-			workGroupIdArray[i] = string.IsNullOrEmpty(id) ? GenerateUniqueId(workGroupIdArray) : id;
+			string? workGroupId = workGroups[i].Id;
+			workGroupIdDict[workGroups[i]] = string.IsNullOrEmpty(workGroupId) ? GenerateUniqueId(workGroupIdDict.Values) : workGroupId;
 
-			workIdList.EnsureCapacity(workIdList.Count + workGroups[i].Works.Length);
 			for (int j = 0; j < workGroups[i].Works.Length; j++)
 			{
-				string? workId = workGroups[i].Works[j].Id;
-				workIdList.Add(string.IsNullOrEmpty(workId) ? GenerateUniqueId(workIdList) : workId);
+				WorkData workData = workGroups[i].Works[j];
+				string? workId = workData.Id;
+				workIdDict[workData] = string.IsNullOrEmpty(workId) ? GenerateUniqueId(workIdDict.Values) : workId;
 
-				for (int k = 0; k < workGroups[i].Works[j].Trains.Length; k++)
+				for (int k = 0; k < workData.Trains.Length; k++)
 				{
-					string? trainId = workGroups[i].Works[j].Trains[k].Id;
-					trainIdList.Add(string.IsNullOrEmpty(trainId) ? GenerateUniqueId(trainIdList) : trainId);
+					JsonModels.TrainData trainData = workData.Trains[k];
+					string? trainId = trainData.Id;
+					trainIdDict[trainData] = string.IsNullOrEmpty(trainId) ? GenerateUniqueId(trainIdDict.Values) : trainId;
 
 					// TimetableRowIdは内部で使用しないため、ここでの生成は不要
 				}
 			}
 		}
 
-		int workIdIndex = 0;
-		int trainIdIndex = 0;
 		for (int workGroupIndex = 0; workGroupIndex < workGroups.Length; workGroupIndex++)
 		{
 			WorkGroupData workGroup = workGroups[workGroupIndex];
-			string workGroupId = workGroupIdArray[workGroupIndex];
+			string workGroupId = workGroupIdDict[workGroup];
 			WorkGroups[workGroupId] = new(
 				Id: workGroupId,
 				Name: workGroup.Name,
@@ -106,7 +116,7 @@ public class LoaderJson : ILoader
 			for (int workIndex = 0; workIndex < workList.Length; workIndex++)
 			{
 				WorkData workData = workList[workIndex];
-				string workId = workIdList[workIdIndex++];
+				string workId = workIdDict[workData];
 				WorkData[workId] = new(
 					WorkGroupId: workGroupId,
 					Id: workId,
@@ -121,13 +131,13 @@ public class LoaderJson : ILoader
 					Remarks: workData.Remarks
 				);
 				WorkGroupIdByWorkId[workId] = workGroupId;
-				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name}");
+				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name} (WorkGroupId: {workGroupId})");
 
 				JsonModels.TrainData[] trainList = workData.Trains;
 				for (int trainIndex = 0; trainIndex < trainList.Length; trainIndex++)
 				{
 					JsonModels.TrainData trainData = trainList[trainIndex];
-					string trainId = trainIdList[trainIdIndex++];
+					string trainId = trainIdDict[trainData];
 					TimetableRow[] rows = [.. trainData.TimetableRows.Select(static (v, i) => new TimetableRow(
 						Id: v.Id ?? i.ToString(),
 						Location: new(v.Location_m, v.Longitude_deg, v.Latitude_deg, v.OnStationDetectRadius_m),
@@ -179,10 +189,10 @@ public class LoaderJson : ILoader
 							// - If not set (null): use default behavior (next train in list)
 							NextTrainId: trainData.NextTrainId is not null
 								? (trainData.NextTrainId == "" ? null : trainData.NextTrainId)
-								: (trainIndex != trainList.Length - 1 ? trainIdList[trainIdIndex] : null),
+								: (trainIndex != trainList.Length - 1 ? trainIdDict[trainList[trainIndex + 1]] : null),
 							Rows: rows
 						);
-					System.Diagnostics.Debug.WriteLine($"\t\tTrain: {trainId} {trainData.TrainNumber}");
+					System.Diagnostics.Debug.WriteLine($"\t\tTrain: {trainId} {trainData.TrainNumber} (WorkId: {workId})");
 					WorkIdByTrainId[trainId] = workId;
 				}
 			}
