@@ -1,0 +1,38 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Restore test projects
+        run: |
+          dotnet restore TRViS.IO.Tests/TRViS.IO.Tests.csproj
+          dotnet restore TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj
+
+      - name: Build test projects
+        run: |
+          dotnet build TRViS.IO.Tests/TRViS.IO.Tests.csproj --no-restore --configuration Debug
+          dotnet build TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj --no-restore --configuration Debug
+
+      - name: Run tests
+        run: dotnet test --configuration Debug --verbosity normal --no-build
