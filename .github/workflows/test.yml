@@ -21,11 +21,15 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restore test projects
+        run: |
+          dotnet restore TRViS.IO.Tests/TRViS.IO.Tests.csproj
+          dotnet restore TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj
 
-      - name: Build
-        run: dotnet build --no-restore --configuration Debug
+      - name: Build test projects
+        run: |
+          dotnet build TRViS.IO.Tests/TRViS.IO.Tests.csproj --no-restore --configuration Debug
+          dotnet build TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj --no-restore --configuration Debug
 
       - name: Run tests
-        run: dotnet test --no-build --configuration Debug --verbosity normal
+        run: dotnet test --configuration Debug --verbosity normal --no-build
