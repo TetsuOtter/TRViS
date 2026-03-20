@@ -116,54 +116,60 @@ jobs:
           npm install -g appium
           appium driver install uiautomator2
 
+      - name: Write Android test script
+        run: |
+          cat > /tmp/android-test.sh << 'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: No APK found in TRViS/bin/Debug/net10.0-android"
+            find TRViS/bin/Debug/ -type f -name "*.apk" 2>/dev/null \
+              || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+            exit 1
+          fi
+          echo "APK: $APK_PATH"
+
+          appium &
+          APPIUM_PID=$!
+          echo "Appium PID: $APPIUM_PID"
+
+          echo "Waiting for Appium server to start..."
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4723/status > /dev/null 2>&1; then
+              echo "Appium server is ready!"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: Appium server did not start within 30 seconds"
+              kill "$APPIUM_PID" 2>/dev/null || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+          timeout 600 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
+            --configuration Debug \
+            --logger "trx;LogFileName=android-results.trx" \
+            -- \
+            "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
+            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
+            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"http://localhost:4723\")"
+          TEST_EXIT_CODE=$?
+
+          kill "$APPIUM_PID" 2>/dev/null || true
+          exit $TEST_EXIT_CODE
+          SCRIPT
+          chmod +x /tmp/android-test.sh
+
       - name: Run Android UI Tests
         uses: reactivecircus/android-emulator-runner@v2.37.0
         with:
           api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
           arch: ${{ env.ANDROID_EMULATOR_ARCH }}
           profile: ${{ env.ANDROID_EMULATOR_PROFILE }}
-          script: |
-            APK_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_ANDROID }} -name "*.apk" | head -1)
-            if [ -z "$APK_PATH" ]; then
-              echo "ERROR: No APK found in TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_ANDROID }}"
-              find TRViS/bin/Debug/ -type f -name "*.apk" 2>/dev/null || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
-              exit 1
-            fi
-            echo "APK: $APK_PATH"
-
-            # Start Appium server
-            appium &
-            APPIUM_PID=$!
-            echo "Appium PID: $APPIUM_PID"
-
-            # Wait for Appium to be ready
-            echo "Waiting for Appium server to start..."
-            for i in {1..30}; do
-              if curl -s http://localhost:4723/status > /dev/null 2>&1; then
-                echo "Appium server is ready!"
-                break
-              fi
-              if [ $i -eq 30 ]; then
-                echo "ERROR: Appium server did not start within 30 seconds"
-                kill $APPIUM_PID 2>/dev/null || true
-                exit 1
-              fi
-              sleep 1
-            done
-
-            # Run tests with timeout
-            timeout 600 dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
-              --configuration Debug \
-              --logger "trx;LogFileName=android-results.trx" \
-              -- \
-              "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
-              "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
-              "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\")"
-            TEST_EXIT_CODE=$?
-
-            # Clean up
-            kill $APPIUM_PID 2>/dev/null || true
-            exit $TEST_EXIT_CODE
+          script: bash /tmp/android-test.sh
 
       - name: Upload test results
         if: always()
@@ -365,8 +371,9 @@ jobs:
           # .cmd files directly - it needs cmd.exe, which silently swallows
           # the output. Running node.exe with the appium entry-point script
           # gives proper stdout/stderr capture.
+          # Use node to resolve the actual appium entrypoint (handles any version layout).
           $nodePath = (Get-Command node).Source
-          $appiumMain = Join-Path (npm root -g) "appium\build\index.js"
+          $appiumMain = (node -e "process.stdout.write(require.resolve('appium'))").Trim()
           Write-Host "Node: $nodePath"
           Write-Host "Appium main: $appiumMain"
           if (-not (Test-Path $appiumMain)) {

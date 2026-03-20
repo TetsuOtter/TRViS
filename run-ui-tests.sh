@@ -12,6 +12,11 @@
 
 set -euo pipefail
 
+# ── Helpers (defined early so they are available everywhere) ─────
+log()  { printf '[%s] %b\n' "$(date '+%H:%M:%S')" "$*"; }
+err()  { printf '[%s] ERROR: %b\n' "$(date '+%H:%M:%S')" "$*" >&2; }
+die()  { err "$*"; exit 1; }
+
 # ── Portable timeout ─────────────────────────────────────────────
 # macOS ships GNU coreutils' 'timeout' as 'gtimeout'; create a wrapper
 # so the rest of the script can use 'timeout' uniformly.
@@ -47,11 +52,6 @@ CSPROJ_PATH="$SCRIPT_DIR/TRViS/TRViS.csproj"
 UITESTS_CSPROJ_PATH="$SCRIPT_DIR/TRViS.UITests/TRViS.UITests.csproj"
 APPIUM_URL="http://localhost:4723"
 APPIUM_PID=""
-
-# ── Helpers ─────────────────────────────────────────────────────
-log()  { printf '[%s] %b\n' "$(date '+%H:%M:%S')" "$*"; }
-err()  { printf '[%s] ERROR: %b\n' "$(date '+%H:%M:%S')" "$*" >&2; }
-die()  { err "$*"; exit 1; }
 
 cleanup() {
   local exit_code=$?
