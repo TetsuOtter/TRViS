@@ -109,7 +109,7 @@ jobs:
           appium driver install uiautomator2
 
       - name: Run Android UI Tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@v2.37.0
         with:
           api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
           arch: ${{ env.ANDROID_EMULATOR_ARCH }}
@@ -317,7 +317,7 @@ jobs:
           Write-Host "Starting Appium server..."
           $appiumProcess = Start-Process -FilePath "appium" -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
           Write-Host "Appium PID: $($appiumProcess.Id)"
-          
+
           # Wait for Appium to be ready by checking the port
           $timeout = 30
           $elapsed = 0
@@ -333,7 +333,7 @@ jobs:
               $elapsed++
             }
           }
-          
+
           if ($elapsed -ge $timeout) {
             Write-Error "Appium server did not start within $timeout seconds"
             Get-Content appium.log -ErrorAction SilentlyContinue
