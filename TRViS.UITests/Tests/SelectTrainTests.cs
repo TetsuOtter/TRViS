@@ -1,3 +1,4 @@
+using OpenQA.Selenium;
 using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
@@ -30,8 +31,10 @@ public class SelectTrainTests : BaseUITest
 		Assert.That(workGroupList.Displayed, Is.True,
 			"WorkGroupList should be visible after loading sample data.");
 
-		// Verify the list is not empty by checking child elements.
-		var items = workGroupList.FindElements(MobileBy.ClassName("android.widget.TextView"));
+		// Verify the list is not empty by checking descendant elements.
+		// Using XPath with .//* works across all platforms without needing
+		// platform-specific class names (e.g. android.widget.TextView vs XCUIElementTypeCell).
+		var items = workGroupList.FindElements(By.XPath(".//*"));
 		Assert.That(items, Is.Not.Empty,
 			"WorkGroupList should have items after loading the sample database.");
 	}

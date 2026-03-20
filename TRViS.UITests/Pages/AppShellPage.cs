@@ -1,3 +1,4 @@
+using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using TRViS.UITests.Infrastructure;
 
@@ -11,27 +12,40 @@ public class AppShellPage : PageObject
 
 	public void OpenFlyout()
 	{
-		// On most platforms, the flyout opens via swipe or a hamburger button.
-		// Try to find the flyout toggle button; fall back to swipe.
+		// Android: standard hamburger "navigation drawer" button.
 		try
 		{
 			Driver.FindElement(MobileBy.AccessibilityId("Open navigation drawer")).Click();
+			return;
 		}
-		catch (OpenQA.Selenium.NoSuchElementException)
+		catch (OpenQA.Selenium.NoSuchElementException) { }
+
+		// iOS simulator: swipe from left edge.
+		try
 		{
-			// Swipe from left edge to open flyout
 			var size = Driver.Manage().Window.Size;
-			var startX = 5;
-			var startY = size.Height / 2;
-			var endX = size.Width / 2;
 			Driver.ExecuteScript("mobile: swipe", new Dictionary<string, object>
 			{
-				{ "startX", startX },
-				{ "startY", startY },
-				{ "endX", endX },
-				{ "endY", startY },
+				{ "startX", 5 },
+				{ "startY", size.Height / 2 },
+				{ "endX", size.Width / 2 },
+				{ "endY", size.Height / 2 },
 			});
+			return;
 		}
+		catch { }
+
+		// Mac Catalyst (mac2): the flyout toggle is a button in the navigation bar.
+		// Try finding it by XPath type, then by its accessibility ID set on the Shell.
+		try
+		{
+			Driver.FindElement(By.XPath(
+				"//XCUIElementTypeNavigationBar//XCUIElementTypeButton[1]")).Click();
+			return;
+		}
+		catch { }
+
+		// Last resort: if the sidebar is always visible on this platform, no action needed.
 	}
 
 	public SelectTrainPageObject NavigateToSelectTrain()

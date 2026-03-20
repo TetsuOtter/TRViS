@@ -30,17 +30,33 @@ public class FirebaseSettingPageObject : PageObject
 	/// </summary>
 	public SelectTrainPageObject SaveAndAccept()
 	{
+		// Wait for the page to be fully visible before interacting with buttons.
+		_ = Title;
 		SaveButton.Click();
 
-		// Accept the confirmation dialog
+		// Accept the "Success!" confirmation dialog.
+		// The W3C alert API is not implemented by some drivers (e.g. mac2),
+		// so fall back to finding the OK button directly in the accessibility tree.
 		try
 		{
-			var alert = Driver.SwitchTo().Alert();
-			alert.Accept();
+			Driver.SwitchTo().Alert().Accept();
 		}
 		catch (OpenQA.Selenium.NoAlertPresentException)
 		{
-			// On some platforms the alert may already be dismissed
+			// Alert already dismissed or did not appear on this platform.
+		}
+		catch
+		{
+			// Fallback: driver does not support the alert endpoint (e.g. mac2).
+			// Look for an "OK" button rendered as a native sheet button.
+			try
+			{
+				Driver.FindElement(MobileBy.AccessibilityId("OK")).Click();
+			}
+			catch
+			{
+				// No dismissable alert found; continue.
+			}
 		}
 
 		return new SelectTrainPageObject(Driver);

@@ -1,4 +1,4 @@
-using OpenQA.Selenium;
+using System.Diagnostics;
 using OpenQA.Selenium.Appium;
 
 namespace TRViS.UITests.Infrastructure;
@@ -11,6 +11,56 @@ public abstract class BaseUITest
 	private static readonly TimeSpan DefaultImplicitWait = TimeSpan.FromSeconds(10);
 	private static readonly TimeSpan DefaultExplicitWait = TimeSpan.FromSeconds(30);
 
+	/// <summary>
+	/// Resets per-test app state so every test begins from a clean slate
+	/// (e.g. Firebase consent page visible on Mac/iOS).
+	/// </summary>
+	private static void ResetAppState(TestPlatform platform)
+	{
+		switch (platform)
+		{
+			case TestPlatform.MacCatalyst:
+				// Kill any running instance so the app restarts fresh
+				RunProcess("pkill", "-f dev.t0r.trvis");
+				Thread.Sleep(500);
+				// Clear NSUserDefaults (includes preference-daemon cache flush)
+				RunProcess("defaults", "delete dev.t0r.trvis");
+				Thread.Sleep(200);
+				break;
+
+			case TestPlatform.Android:
+				// Appium's UiAutomator2 reinstalls the APK on session creation,
+				// which resets app data automatically.
+				break;
+
+			case TestPlatform.iOS:
+				// XCUITest reinstalls the .app on session creation.
+				break;
+
+			case TestPlatform.Windows:
+				// No-op: tests assume a fresh app state on Windows as well.
+				break;
+		}
+	}
+
+	private static void RunProcess(string fileName, string arguments)
+	{
+		try
+		{
+			using var p = Process.Start(new ProcessStartInfo(fileName, arguments)
+			{
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+			});
+			p?.WaitForExit(3000);
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"ResetAppState: {fileName} {arguments} failed: {ex.Message}");
+		}
+	}
+
 	[SetUp]
 	public virtual void SetUp()
 	{
@@ -21,6 +71,8 @@ public abstract class BaseUITest
 		var appiumUrl = TestContext.Parameters["appiumUrl"] ?? "http://localhost:4723";
 
 		var platform = AppiumConfig.ParsePlatform(platformStr);
+		ResetAppState(platform);
+
 		var options = AppiumConfig.CreateOptions(platform, appPath);
 		var serverUri = new Uri(appiumUrl);
 
