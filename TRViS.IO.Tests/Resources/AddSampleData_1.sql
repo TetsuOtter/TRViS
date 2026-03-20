@@ -279,7 +279,7 @@ VALUES
   NULL,
 
   NULL,
-  '試験',
+  NULL,
   NULL
 ),
 (
