@@ -119,13 +119,7 @@ jobs:
             echo "APK: $APK_PATH"
             appium &
             sleep 5
-            dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
-              --configuration Debug \
-              --logger "trx;LogFileName=android-results.trx" \
-              -- \
-              TestRunParameters.Parameter\(name=\"platform\",value=\"android\"\) \
-              TestRunParameters.Parameter\(name=\"appPath\",value=\"$APK_PATH\"\) \
-              TestRunParameters.Parameter\(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\"\)
+            dotnet test ${{ env.UITESTS_CSPROJ_PATH }} --configuration Debug --logger "trx;LogFileName=android-results.trx" -- TestRunParameters.Parameter\(name=\"platform\",value=\"android\"\) TestRunParameters.Parameter\(name=\"appPath\",value=\"$APK_PATH\"\) TestRunParameters.Parameter\(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\"\)
 
       - name: Upload test results
         if: always()
@@ -319,10 +313,33 @@ jobs:
           }
           Write-Host "EXE: $exePath"
 
-          # Start Appium server in background
-          Start-Process appium -WindowStyle Hidden
-          Write-Host "Waiting for Appium server to start..."
-          Start-Sleep -Seconds 10
+          # Start Appium server in background and wait for it to be ready
+          Write-Host "Starting Appium server..."
+          $appiumProcess = Start-Process -FilePath "appium" -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          Write-Host "Appium PID: $($appiumProcess.Id)"
+          
+          # Wait for Appium to be ready by checking the port
+          $timeout = 30
+          $elapsed = 0
+          while ($elapsed -lt $timeout) {
+            try {
+              $response = Invoke-WebRequest -Uri "${{ env.APPIUM_URL }}/status" -Method GET -TimeoutSec 1 -ErrorAction Stop
+              if ($response.StatusCode -eq 200) {
+                Write-Host "Appium server is ready!"
+                break
+              }
+            } catch {
+              Start-Sleep -Seconds 1
+              $elapsed++
+            }
+          }
+          
+          if ($elapsed -ge $timeout) {
+            Write-Error "Appium server did not start within $timeout seconds"
+            Get-Content appium.log -ErrorAction SilentlyContinue
+            Get-Content appium-error.log -ErrorAction SilentlyContinue
+            exit 1
+          }
 
           # Run tests
           dotnet test ${{ env.UITESTS_CSPROJ_PATH }} `
