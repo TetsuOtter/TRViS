@@ -2,7 +2,10 @@
 # ================================================================
 # TRViS UI Test Local Runner
 # Usage: ./run-ui-tests.sh [platform] [options]
-#   platform: mac (default), ios
+#   platform: mac (default)  – Mac Catalyst (no signing needed)
+#             ios             – iOS Simulator (no signing needed)
+#             device [UDID]   – Real iOS device (requires valid Apple
+#                               Developer certificate + provisioning)
 #   options:  --skip-build   Skip the build step
 #             --skip-install Skip Appium driver installation
 # ================================================================
@@ -11,8 +14,14 @@ set -euo pipefail
 
 # ── Defaults ────────────────────────────────────────────────────
 PLATFORM="${1:-mac}"
+DEVICE_UDID_OVERRIDE=""  # Optional explicit device UDID (for real device)
 SKIP_BUILD=false
 SKIP_INSTALL=false
+
+# Consume positional device UDID if provided after "device"
+if [[ "$PLATFORM" == "device" && -n "${2:-}" && "${2}" != --* ]]; then
+  DEVICE_UDID_OVERRIDE="$2"
+fi
 
 for arg in "$@"; do
   case "$arg" in
@@ -47,12 +56,43 @@ case "$PLATFORM" in
     PLATFORM_VALUE="mac"
     TARGET_FRAMEWORK="net10.0-maccatalyst"
     APPIUM_DRIVER="mac2"
+    IS_SIMULATOR=false
     ;;
   ios)
     PLATFORM_VALUE="ios"
     TARGET_FRAMEWORK="net10.0-ios"
     TARGET_RUNTIME="iossimulator-arm64"
     APPIUM_DRIVER="xcuitest"
+    IS_SIMULATOR=true
+    ;;
+  device)
+    # Real iOS device (arm64, not simulator)
+    PLATFORM_VALUE="ios"
+    TARGET_FRAMEWORK="net10.0-ios"
+    TARGET_RUNTIME="ios-arm64"
+    APPIUM_DRIVER="xcuitest"
+    IS_SIMULATOR=false
+    # Real device testing requires a valid Apple Developer certificate.
+    # Verify one is available before proceeding.
+    if ! security find-identity -p codesigning -v 2>/dev/null | grep -q "valid identit[y|ies].*[^0]"; then
+      die "No valid iOS code-signing identity found.\n" \
+          "Real-device testing requires:\n" \
+          "  1. An Apple Developer account with a valid certificate in Keychain\n" \
+          "  2. A provisioning profile for bundle ID 'dev.t0r.trvis'\n" \
+          "  3. The device UDID registered with the provisioning profile\n" \
+          "Install a certificate via Xcode > Settings > Accounts."
+    fi
+    # Resolve device UDID
+    if [[ -n "$DEVICE_UDID_OVERRIDE" ]]; then
+      DEVICE_ID="$DEVICE_UDID_OVERRIDE"
+    else
+      DEVICE_ID=$(xcrun xctrace list devices 2>&1 \
+        | grep -v "(Simulator)" \
+        | grep -oE '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}|[0-9A-Fa-f]{40}' \
+        | head -1)
+    fi
+    [[ -n "$DEVICE_ID" ]] || die "No connected iOS device found. Connect a device via USB and unlock it."
+    log "Real device UDID: $DEVICE_ID"
     ;;
   *)
     die "Unsupported platform: '$PLATFORM'. Supported: mac, ios"
@@ -106,13 +146,22 @@ if [[ "$SKIP_BUILD" == true ]]; then
   log "Skipping build (--skip-build specified)"
 else
   log "Building app for $TARGET_FRAMEWORK..."
-  if [[ "$PLATFORM_VALUE" == "ios" ]]; then
+  if [[ "$PLATFORM_VALUE" == "ios" && "$IS_SIMULATOR" == true ]]; then
+    # Simulator: ad-hoc signing is sufficient
     dotnet build "$CSPROJ_PATH" \
       -f "$TARGET_FRAMEWORK" \
       -r "$TARGET_RUNTIME" \
       -c Debug \
       /p:DefineConstants=DISABLE_FIREBASE \
-      /p:_RequireCodeSigning=false
+      /p:_RequireCodeSigning=false \
+      /p:CodesignKey="-"
+  elif [[ "$PLATFORM_VALUE" == "ios" && "$IS_SIMULATOR" == false ]]; then
+    # Real device: use the developer certificate from Keychain (no overrides)
+    dotnet build "$CSPROJ_PATH" \
+      -f "$TARGET_FRAMEWORK" \
+      -r "$TARGET_RUNTIME" \
+      -c Debug \
+      /p:DefineConstants=DISABLE_FIREBASE
   else
     dotnet build "$CSPROJ_PATH" \
       -f "$TARGET_FRAMEWORK" \
@@ -134,8 +183,22 @@ fi
 [[ -n "$APP_PATH" ]] || die "Could not find built .app under TRViS/bin/Debug/$TARGET_FRAMEWORK"
 log "App: $APP_PATH"
 
-# ── Boot iOS Simulator (iOS only) ──────────────────────────────
-if [[ "$PLATFORM_VALUE" == "ios" ]]; then
+# ── Re-sign iOS Simulator bundle ───────────────────────────────
+# iOS 26.3+ simulator requires all binaries in the bundle to share the same
+# signing identity. .NET runtime dylibs are signed by Microsoft (UBF8T346G9)
+# but the app shell is ad-hoc; re-signing everything with "-" fixes the mismatch.
+# (Real devices must use proper developer signing; skip this step for them.)
+if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
+  log "Re-signing all bundle binaries with ad-hoc identity..."
+  find "$APP_PATH" -type f \( -name "*.dylib" -o -name "*.so" \) | while read -r lib; do
+    codesign --force --sign - "$lib" 2>/dev/null || true
+  done
+  codesign --force --sign - "$APP_PATH" 2>/dev/null || true
+  log "Re-signing complete."
+fi
+
+# ── Boot iOS Simulator (simulator only, not real device) ───────
+if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "Looking for available iOS simulator..."
   DEVICE_ID=$(xcrun simctl list devices available --json \
     | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \
@@ -191,12 +254,18 @@ sleep 5
 LOG_FILE="${PLATFORM_VALUE}-results.trx"
 log "Running UI tests... (results -> $LOG_FILE)"
 
+EXTRA_PARAMS=()
+if [[ -n "${DEVICE_ID:-}" ]]; then
+  EXTRA_PARAMS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
+fi
+
 dotnet test "$UITESTS_CSPROJ_PATH" \
   --configuration Debug \
   --logger "trx;LogFileName=$LOG_FILE" \
   -- \
   "TestRunParameters.Parameter(name=\"platform\",value=\"$PLATFORM_VALUE\")" \
   "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")" \
-  "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"$APPIUM_URL\")"
+  "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"$APPIUM_URL\")" \
+  "${EXTRA_PARAMS[@]}"
 
 log "All tests passed!"

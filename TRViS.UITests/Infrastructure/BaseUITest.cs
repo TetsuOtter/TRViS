@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 
 namespace TRViS.UITests.Infrastructure;
@@ -73,7 +74,8 @@ public abstract class BaseUITest
 		var platform = AppiumConfig.ParsePlatform(platformStr);
 		ResetAppState(platform);
 
-		var options = AppiumConfig.CreateOptions(platform, appPath);
+		var deviceUdid = TestContext.Parameters["deviceUdid"];
+		var options = AppiumConfig.CreateOptions(platform, appPath, deviceUdid);
 		var serverUri = new Uri(appiumUrl);
 
 		Driver = platform switch

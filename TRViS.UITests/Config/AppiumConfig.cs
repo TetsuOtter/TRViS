@@ -6,7 +6,7 @@ public static class AppiumConfig
 {
 	public const string AppPackage = "dev.t0r.trvis";
 
-	public static AppiumOptions CreateOptions(TestPlatform platform, string appPath)
+	public static AppiumOptions CreateOptions(TestPlatform platform, string appPath, string? deviceUdid = null)
 	{
 		var options = new AppiumOptions();
 
@@ -19,6 +19,8 @@ public static class AppiumConfig
 				options.AddAdditionalAppiumOption("appPackage", AppPackage);
 				options.AddAdditionalAppiumOption("appActivity", $"{AppPackage}.MainActivity");
 				options.AddAdditionalAppiumOption("autoGrantPermissions", true);
+				if (!string.IsNullOrEmpty(deviceUdid))
+					options.AddAdditionalAppiumOption("udid", deviceUdid);
 				break;
 
 			case TestPlatform.iOS:
@@ -27,6 +29,11 @@ public static class AppiumConfig
 				options.App = appPath;
 				options.AddAdditionalAppiumOption("bundleId", AppPackage);
 				options.AddAdditionalAppiumOption("autoAcceptAlerts", true);
+				// Specifying the simulator UDID directly lets xcuitest bypass SDK version
+				// matching (which would fail when the app's DTPlatformVersion differs from
+				// the only available simulator runtime).
+				if (!string.IsNullOrEmpty(deviceUdid))
+					options.AddAdditionalAppiumOption("udid", deviceUdid);
 				break;
 
 			case TestPlatform.MacCatalyst:
