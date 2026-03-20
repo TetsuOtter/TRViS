@@ -177,7 +177,7 @@ jobs:
 
       - name: Create placeholder GoogleService-Info.plist
         run: |
-          cat > TRViS/Platforms/iOS/GoogleService-Info.plist << 'EOF'
+          cat > TRViS/GoogleService-Info.plist << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -259,43 +259,6 @@ jobs:
       - name: Install mac2 driver
         run: appium driver install mac2
 
-      - name: Create placeholder GoogleService-Info.plist
-        run: |
-          cat > TRViS/Platforms/iOS/GoogleService-Info.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CLIENT_ID</key>
-            <string>000000000000-placeholder.apps.googleusercontent.com</string>
-            <key>REVERSED_CLIENT_ID</key>
-            <string>com.googleusercontent.apps.000000000000-placeholder</string>
-            <key>API_KEY</key>
-            <string>placeholder_api_key</string>
-            <key>GCM_SENDER_ID</key>
-            <string>000000000000</string>
-            <key>PLIST_VERSION</key>
-            <string>1</string>
-            <key>BUNDLE_ID</key>
-            <string>${{ env.APP_PACKAGE }}</string>
-            <key>PROJECT_ID</key>
-            <string>placeholder-project-id</string>
-            <key>STORAGE_BUCKET</key>
-            <string>placeholder-project-id.appspot.com</string>
-            <key>IS_ADS_ENABLED</key>
-            <false/>
-            <key>IS_ANALYTICS_ENABLED</key>
-            <false/>
-            <key>IS_GCM_ENABLED</key>
-            <true/>
-            <key>IS_SIGNIN_ENABLED</key>
-            <true/>
-            <key>GOOGLE_APP_ID</key>
-            <string>1:000000000000:ios:0000000000000000</string>
-          </dict>
-          </plist>
-          EOF
-
       - name: Run macOS UI Tests
         run: ./run-ui-tests.sh mac --skip-install
 
@@ -359,12 +322,12 @@ jobs:
             exit 1
           }
           Write-Host "EXE: $exePath"
-          
+
           # Start Appium server in background
           Start-Process appium -WindowStyle Hidden
           Write-Host "Waiting for Appium server to start..."
           Start-Sleep -Seconds 10
-          
+
           # Run tests
           dotnet test ${{ env.UITESTS_CSPROJ_PATH }} `
             --configuration Debug `
