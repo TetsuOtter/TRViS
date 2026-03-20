@@ -16,6 +16,7 @@
 		</Grid.RowDefinitions>
 		<VerticalStackLayout Grid.Row="0">
 			<Label
+				AutomationId="Firebase.Title"
 				FontSize="Title"
 				FontAttributes="Bold"
 				Text="ログ収集のお知らせ"/>
@@ -69,6 +70,7 @@
 					VerticalOptions="Center"
 					Text="使用状況の収集を許可する"/>
 				<Switch
+					AutomationId="Firebase.AnalyticsSwitch"
 					Grid.Row="2"
 					Grid.Column="1"
 					OnColor="GreenYellow"
@@ -76,6 +78,7 @@
 					IsToggled="{Binding IsAnalyticsEnabled}"/>
 
 				<Button
+					AutomationId="Firebase.ResetButton"
 					Padding="16"
 					Grid.Row="4"
 					Grid.Column="0"
@@ -84,6 +87,7 @@
 					Clicked="OnResetButtonClicked"
 					Text="保存値を復元"/>
 				<Button
+					AutomationId="Firebase.SaveButton"
 					Padding="16"
 					Grid.Row="4"
 					Grid.Column="0"
