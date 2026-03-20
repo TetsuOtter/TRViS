@@ -64,9 +64,11 @@
 			<HorizontalStackLayout
 				HorizontalOptions="End">
 				<Button
+					AutomationId="Settings.ReloadSavedButton"
 					Text="Reload Saved"
 					Clicked="OnReloadSavedClicked"/>
 				<Button
+					AutomationId="Settings.SaveButton"
 					Text="Save"
 					Clicked="OnSaveClicked"/>
 			</HorizontalStackLayout>

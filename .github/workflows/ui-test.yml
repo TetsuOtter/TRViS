@@ -1,0 +1,431 @@
+name: UI Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # .NET / tooling versions
+  SDK_VERSION: "10.0.x"
+  NODE_VERSION: "20"
+  XCODE_VERSION: "16.3"
+
+  # Project paths
+  CSPROJ_PATH: ./TRViS/TRViS.csproj
+  UITESTS_CSPROJ_PATH: ./TRViS.UITests/TRViS.UITests.csproj
+
+  # Target frameworks
+  TARGET_FRAMEWORK_ANDROID: net10.0-android
+  TARGET_FRAMEWORK_IOS: net10.0-ios
+  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
+  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
+
+  # Target runtimes
+  TARGET_RUNTIME_IOS_SIM: iossimulator-arm64
+  TARGET_RUNTIME_WIN: win-x64
+
+  # App identity
+  APP_PACKAGE: dev.t0r.trvis
+
+  # Build flags
+  DISABLE_FIREBASE: DISABLE_FIREBASE
+
+  # Appium
+  APPIUM_URL: http://localhost:4723
+
+  # Android emulator settings
+  ANDROID_EMULATOR_API_LEVEL: 34
+  ANDROID_EMULATOR_ARCH: x86_64
+  ANDROID_EMULATOR_PROFILE: pixel_6
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Android UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install Android workload
+        run: dotnet workload install maui-android
+
+      - name: Create placeholder google-services.json
+        run: |
+          cat > TRViS/Platforms/Android/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "placeholder-project-id",
+              "storage_bucket": "placeholder-project-id.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "${{ env.APP_PACKAGE }}"
+                  }
+                },
+                "api_key": [{ "current_key": "placeholder_api_key" }],
+                "services": {}
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
+      - name: Build Android app
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+          -c Debug
+          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+          /p:AndroidCreatePackagePerAbi=false
+
+      - name: Install Appium and UiAutomator2 driver
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+
+      - name: Run Android UI Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
+          arch: ${{ env.ANDROID_EMULATOR_ARCH }}
+          profile: ${{ env.ANDROID_EMULATOR_PROFILE }}
+          script: |
+            APK_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_ANDROID }} -name "*.apk" | head -1)
+            echo "APK: $APK_PATH"
+            appium &
+            sleep 5
+            dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
+              --configuration Debug \
+              --logger "trx;LogFileName=android-results.trx" \
+              -- \
+              TestRunParameters.Parameter\(name=\"platform\",value=\"android\"\) \
+              TestRunParameters.Parameter\(name=\"appPath\",value=\"$APK_PATH\"\) \
+              TestRunParameters.Parameter\(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\"\)
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # iOS Simulator UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-ios:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install iOS and MacCatalyst workloads
+        run: dotnet workload install maui-ios maccatalyst
+
+      - name: Create placeholder GoogleService-Info.plist
+        run: |
+          cat > TRViS/Platforms/iOS/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>000000000000-placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>com.googleusercontent.apps.000000000000-placeholder</string>
+            <key>API_KEY</key>
+            <string>placeholder_api_key</string>
+            <key>GCM_SENDER_ID</key>
+            <string>000000000000</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>${{ env.APP_PACKAGE }}</string>
+            <key>PROJECT_ID</key>
+            <string>placeholder-project-id</string>
+            <key>STORAGE_BUCKET</key>
+            <string>placeholder-project-id.appspot.com</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <true/>
+            <key>IS_SIGNIN_ENABLED</key>
+            <true/>
+            <key>GOOGLE_APP_ID</key>
+            <string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build iOS app (simulator)
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_IOS }}
+          -r ${{ env.TARGET_RUNTIME_IOS_SIM }}
+          -c Debug
+          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+          /p:_RequireCodeSigning=false
+
+      - name: Boot iOS Simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available --json \
+            | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \
+            | head -1)
+          if [ -z "$DEVICE_ID" ]; then
+            DEVICE_ID=$(xcrun simctl list devices available --json \
+              | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
+          fi
+          echo "SIMULATOR_UDID=$DEVICE_ID" >> $GITHUB_ENV
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+      - name: Install Appium and XCUITest driver
+        run: |
+          npm install -g appium
+          appium driver install xcuitest
+
+      - name: Start Appium server
+        run: appium &
+        shell: bash
+
+      - name: Run iOS UI Tests
+        run: |
+          APP_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }} -name "*.app" -type d | head -1)
+          echo "App: $APP_PATH"
+          sleep 5
+          dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
+            --configuration Debug \
+            --logger "trx;LogFileName=ios-results.trx" \
+            -- \
+            "TestRunParameters.Parameter(name=\"platform\",value=\"ios\")" \
+            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")" \
+            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\")"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # macOS (Mac Catalyst) UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-macos:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install MacCatalyst workload
+        run: dotnet workload install maccatalyst
+
+      - name: Create placeholder GoogleService-Info.plist
+        run: |
+          cat > TRViS/Platforms/iOS/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>000000000000-placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>com.googleusercontent.apps.000000000000-placeholder</string>
+            <key>API_KEY</key>
+            <string>placeholder_api_key</string>
+            <key>GCM_SENDER_ID</key>
+            <string>000000000000</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>${{ env.APP_PACKAGE }}</string>
+            <key>PROJECT_ID</key>
+            <string>placeholder-project-id</string>
+            <key>STORAGE_BUCKET</key>
+            <string>placeholder-project-id.appspot.com</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <true/>
+            <key>IS_SIGNIN_ENABLED</key>
+            <true/>
+            <key>GOOGLE_APP_ID</key>
+            <string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build Mac Catalyst app
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_MAC }}
+          -c Debug
+          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+
+      - name: Install Appium and mac2 driver
+        run: |
+          npm install -g appium
+          appium driver install mac2
+
+      - name: Start Appium server
+        run: appium &
+        shell: bash
+
+      - name: Run macOS UI Tests
+        run: |
+          APP_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_MAC }} -name "*.app" -type d | head -1)
+          echo "App: $APP_PATH"
+          sleep 5
+          dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
+            --configuration Debug \
+            --logger "trx;LogFileName=macos-results.trx" \
+            -- \
+            "TestRunParameters.Parameter(name=\"platform\",value=\"mac\")" \
+            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")" \
+            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\")"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # Windows UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Enable Developer Mode
+        run: |
+          reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
+
+      - name: Build Windows app
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_WIN }}
+          -c Debug
+          /p:WindowsPackageType=None
+          /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WIN }}
+          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+
+      - name: Install Appium and Windows driver
+        run: |
+          npm install -g appium
+          appium driver install --source=npm appium-windows-driver
+
+      - name: Start Appium server
+        run: Start-Process appium
+        shell: pwsh
+
+      - name: Run Windows UI Tests
+        run: |
+          $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "*.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          Write-Host "EXE: $exePath"
+          Start-Sleep -Seconds 5
+          dotnet test ${{ env.UITESTS_CSPROJ_PATH }} `
+            --configuration Debug `
+            --logger "trx;LogFileName=windows-results.trx" `
+            -- `
+            "TestRunParameters.Parameter(name=`"platform`",value=`"windows`")" `
+            "TestRunParameters.Parameter(name=`"appPath`",value=`"$exePath`")" `
+            "TestRunParameters.Parameter(name=`"appiumUrl`",value=`"${{ env.APPIUM_URL }}`")"
+        shell: pwsh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-ui-test-results
+          path: "**/*.trx"
