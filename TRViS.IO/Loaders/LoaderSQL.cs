@@ -20,8 +20,8 @@ public class LoaderSQL : ILoader, IDisposable
 	{
 		try
 		{
-			var result = Connection.ExecuteScalar("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Color' LIMIT 1");
-			return result != null;
+			var result = Connection.ExecuteScalar<int>("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Color' LIMIT 1");
+			return result > 0;
 		}
 		catch
 		{
