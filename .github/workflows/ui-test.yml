@@ -49,11 +49,18 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo chown -R $USER /dev/kvm
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -117,6 +124,11 @@ jobs:
           profile: ${{ env.ANDROID_EMULATOR_PROFILE }}
           script: |
             APK_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_ANDROID }} -name "*.apk" | head -1)
+            if [ -z "$APK_PATH" ]; then
+              echo "ERROR: No APK found in TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_ANDROID }}"
+              find TRViS/bin/Debug/ -type f -name "*.apk" 2>/dev/null || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+              exit 1
+            fi
             echo "APK: $APK_PATH"
 
             # Start Appium server
@@ -133,13 +145,20 @@ jobs:
               fi
               if [ $i -eq 30 ]; then
                 echo "ERROR: Appium server did not start within 30 seconds"
+                kill $APPIUM_PID 2>/dev/null || true
                 exit 1
               fi
               sleep 1
             done
 
             # Run tests with timeout
-            timeout 600 dotnet test ${{ env.UITESTS_CSPROJ_PATH }} --configuration Debug --logger "trx;LogFileName=android-results.trx" -- TestRunParameters.Parameter\(name=\"platform\",value=\"android\"\) TestRunParameters.Parameter\(name=\"appPath\",value=\"$APK_PATH\"\) TestRunParameters.Parameter\(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\"\)
+            timeout 600 dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
+              --configuration Debug \
+              --logger "trx;LogFileName=android-results.trx" \
+              -- \
+              "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
+              "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
+              "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\")"
             TEST_EXIT_CODE=$?
 
             # Clean up
