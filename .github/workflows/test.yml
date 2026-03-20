@@ -35,4 +35,6 @@ jobs:
           dotnet build TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj --no-restore --configuration Debug
 
       - name: Run tests
-        run: dotnet test --configuration Debug --verbosity normal --no-build
+        run: |
+          dotnet test TRViS.IO.Tests/TRViS.IO.Tests.csproj --configuration Debug --verbosity normal --no-build
+          dotnet test TRViS.LocationService.Tests/TRViS.LocationService.Tests.csproj --configuration Debug --verbosity normal --no-build
