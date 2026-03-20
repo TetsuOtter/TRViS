@@ -169,6 +169,12 @@ jobs:
       - name: Install iOS and MacCatalyst workloads
         run: dotnet workload install maui-ios maccatalyst
 
+      - name: Install Appium globally
+        run: npm install -g appium
+
+      - name: Install XCUITest driver
+        run: appium driver install xcuitest
+
       - name: Create placeholder GoogleService-Info.plist
         run: |
           cat > TRViS/Platforms/iOS/GoogleService-Info.plist << 'EOF'
@@ -206,49 +212,8 @@ jobs:
           </plist>
           EOF
 
-      - name: Build iOS app (simulator)
-        run: >
-          dotnet build ${{ env.CSPROJ_PATH }}
-          -f ${{ env.TARGET_FRAMEWORK_IOS }}
-          -r ${{ env.TARGET_RUNTIME_IOS_SIM }}
-          -c Debug
-          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
-          /p:_RequireCodeSigning=false
-
-      - name: Boot iOS Simulator
-        run: |
-          DEVICE_ID=$(xcrun simctl list devices available --json \
-            | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \
-            | head -1)
-          if [ -z "$DEVICE_ID" ]; then
-            DEVICE_ID=$(xcrun simctl list devices available --json \
-              | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
-          fi
-          echo "SIMULATOR_UDID=$DEVICE_ID" >> $GITHUB_ENV
-          xcrun simctl boot "$DEVICE_ID" || true
-          xcrun simctl bootstatus "$DEVICE_ID" -b
-
-      - name: Install Appium and XCUITest driver
-        run: |
-          npm install -g appium
-          appium driver install xcuitest
-
-      - name: Start Appium server
-        run: appium &
-        shell: bash
-
       - name: Run iOS UI Tests
-        run: |
-          APP_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }} -name "*.app" -type d | head -1)
-          echo "App: $APP_PATH"
-          sleep 5
-          dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
-            --configuration Debug \
-            --logger "trx;LogFileName=ios-results.trx" \
-            -- \
-            "TestRunParameters.Parameter(name=\"platform\",value=\"ios\")" \
-            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")" \
-            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\")"
+        run: ./run-ui-tests.sh ios --skip-install
 
       - name: Upload test results
         if: always()
@@ -288,6 +253,12 @@ jobs:
       - name: Install MacCatalyst workload
         run: dotnet workload install maccatalyst
 
+      - name: Install Appium globally
+        run: npm install -g appium
+
+      - name: Install mac2 driver
+        run: appium driver install mac2
+
       - name: Create placeholder GoogleService-Info.plist
         run: |
           cat > TRViS/Platforms/iOS/GoogleService-Info.plist << 'EOF'
@@ -325,34 +296,8 @@ jobs:
           </plist>
           EOF
 
-      - name: Build Mac Catalyst app
-        run: >
-          dotnet build ${{ env.CSPROJ_PATH }}
-          -f ${{ env.TARGET_FRAMEWORK_MAC }}
-          -c Debug
-          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
-
-      - name: Install Appium and mac2 driver
-        run: |
-          npm install -g appium
-          appium driver install mac2
-
-      - name: Start Appium server
-        run: appium &
-        shell: bash
-
       - name: Run macOS UI Tests
-        run: |
-          APP_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_MAC }} -name "*.app" -type d | head -1)
-          echo "App: $APP_PATH"
-          sleep 5
-          dotnet test ${{ env.UITESTS_CSPROJ_PATH }} \
-            --configuration Debug \
-            --logger "trx;LogFileName=macos-results.trx" \
-            -- \
-            "TestRunParameters.Parameter(name=\"platform\",value=\"mac\")" \
-            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")" \
-            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\")"
+        run: ./run-ui-tests.sh mac --skip-install
 
       - name: Upload test results
         if: always()
