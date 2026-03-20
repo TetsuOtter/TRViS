@@ -43,7 +43,7 @@ env:
   SDK_VERSION: "10.0.x"
   IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
   IOS_DSYM_FILENAME: TRViS.app.dSYM
-  XCODE_VERSION: "26.2"
+  XCODE_VERSION: "26.3"
   FIREBASE_PROJECT_ID: trvis-app
 
 jobs:
@@ -234,7 +234,7 @@ jobs:
 
       - name: Build
         env:
-          DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+          DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
           ACTOOL_SKIP_SIMULATOR_RUNTIME_CHECK: true
           DOTNET_CLI_UI_LANGUAGE: en-US
           ACTOOL_DISABLE: true
