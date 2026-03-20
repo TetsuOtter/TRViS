@@ -76,7 +76,7 @@ jobs:
 
       - name: Create placeholder google-services.json
         run: |
-          cat > TRViS/Platforms/Android/google-services.json << 'EOF'
+          cat > TRViS/Google-services.json << 'EOF'
           {
             "project_info": {
               "project_number": "000000000000",
@@ -350,15 +350,22 @@ jobs:
           npm install -g appium
           appium driver install --source=npm appium-windows-driver
 
-      - name: Start Appium server
-        run: Start-Process appium
-        shell: pwsh
-
       - name: Run Windows UI Tests
         run: |
-          $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "*.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          # Find the main app executable (not RestartAgent.exe)
+          $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "TRViS.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $exePath) {
+            Write-Error "TRViS.exe not found"
+            exit 1
+          }
           Write-Host "EXE: $exePath"
-          Start-Sleep -Seconds 5
+          
+          # Start Appium server in background
+          Start-Process appium -WindowStyle Hidden
+          Write-Host "Waiting for Appium server to start..."
+          Start-Sleep -Seconds 10
+          
+          # Run tests
           dotnet test ${{ env.UITESTS_CSPROJ_PATH }} `
             --configuration Debug `
             --logger "trx;LogFileName=windows-results.trx" `
