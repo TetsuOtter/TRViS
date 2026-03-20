@@ -81,7 +81,7 @@ public abstract class BaseUITest
 	}
 
 	[SetUp]
-	public void SetUp()
+	public virtual void SetUp()
 	{
 		var platformStr = TestContext.Parameters["platform"]
 			?? throw new InvalidOperationException("TestRunParameter 'platform' is required.");

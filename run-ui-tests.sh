@@ -43,10 +43,12 @@ err()  { printf '[%s] ERROR: %b\n' "$(date '+%H:%M:%S')" "$*" >&2; }
 die()  { err "$*"; exit 1; }
 
 cleanup() {
+  local exit_code=$?
   if [[ -n "$APPIUM_PID" ]]; then
     log "Stopping Appium (PID $APPIUM_PID)..."
     kill "$APPIUM_PID" 2>/dev/null || true
   fi
+  exit "$exit_code"
 }
 trap cleanup EXIT
 
@@ -214,7 +216,9 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
   log "Booting simulator: $DEVICE_ID"
   xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
-  xcrun simctl bootstatus "$DEVICE_ID" -b
+  log "Waiting for simulator to finish booting (up to 5 minutes)..."
+  timeout 600 xcrun simctl bootstatus "$DEVICE_ID" -b \
+    || die "Simulator $DEVICE_ID failed to boot within 5 minutes"
 fi
 
 # ── Reset app data (ensure Firebase consent page appears) ──────
@@ -271,19 +275,22 @@ done
 LOG_FILE="${PLATFORM_VALUE}-results.trx"
 log "Running UI tests... (results -> $LOG_FILE)"
 
-EXTRA_PARAMS=()
+# Build the dotnet test argument list incrementally to avoid empty-array
+# expansion issues with 'set -u' in bash 4.4+ (unbound variable for [@]).
+DOTNET_TEST_ARGS=(
+  "$UITESTS_CSPROJ_PATH"
+  --configuration Debug
+  --logger "trx;LogFileName=$LOG_FILE"
+  --
+  "TestRunParameters.Parameter(name=\"platform\",value=\"$PLATFORM_VALUE\")"
+  "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")"
+  "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"$APPIUM_URL\")"
+)
 if [[ -n "${DEVICE_ID:-}" ]]; then
-  EXTRA_PARAMS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
+  DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
 fi
 
 # Run tests with timeout (10 minutes = 600 seconds)
-timeout 600 dotnet test "$UITESTS_CSPROJ_PATH" \
-  --configuration Debug \
-  --logger "trx;LogFileName=$LOG_FILE" \
-  -- \
-  "TestRunParameters.Parameter(name=\"platform\",value=\"$PLATFORM_VALUE\")" \
-  "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")" \
-  "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"$APPIUM_URL\")" \
-  "${EXTRA_PARAMS[@]}"
+timeout 600 dotnet test "${DOTNET_TEST_ARGS[@]}"
 
 log "All tests passed!"
