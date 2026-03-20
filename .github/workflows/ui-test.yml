@@ -341,11 +341,21 @@ jobs:
           }
           Write-Host "EXE: $exePath"
 
-          # Start Appium server in background and wait for it to be ready.
-          # Use -NoNewWindow (not -WindowStyle Hidden) so that
-          # -RedirectStandardOutput/-RedirectStandardError work correctly.
+          # Start Appium via node.exe directly to avoid cmd.exe wrapper issues.
+          # 'appium' on Windows is a .cmd batch file; Start-Process can't run
+          # .cmd files directly - it needs cmd.exe, which silently swallows
+          # the output. Running node.exe with the appium entry-point script
+          # gives proper stdout/stderr capture.
+          $nodePath = (Get-Command node).Source
+          $appiumMain = Join-Path (npm root -g) "appium\build\index.js"
+          Write-Host "Node: $nodePath"
+          Write-Host "Appium main: $appiumMain"
+          if (-not (Test-Path $appiumMain)) {
+            Write-Error "Appium entry point not found: $appiumMain"
+            exit 1
+          }
           Write-Host "Starting Appium server..."
-          $appiumProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c","appium" -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          $appiumProcess = Start-Process -FilePath $nodePath -ArgumentList $appiumMain -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
           Write-Host "Appium PID: $($appiumProcess.Id)"
 
           # Wait for Appium to be ready by polling the /status endpoint.

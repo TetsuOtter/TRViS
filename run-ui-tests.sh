@@ -12,6 +12,17 @@
 
 set -euo pipefail
 
+# ── Portable timeout ─────────────────────────────────────────────
+# macOS ships GNU coreutils' 'timeout' as 'gtimeout'; create a wrapper
+# so the rest of the script can use 'timeout' uniformly.
+if ! command -v timeout >/dev/null 2>&1; then
+  if command -v gtimeout >/dev/null 2>&1; then
+    timeout() { gtimeout "$@"; }
+  else
+    die "'timeout' command not found. Install GNU coreutils (brew install coreutils)."
+  fi
+fi
+
 # ── Defaults ────────────────────────────────────────────────────
 PLATFORM="${1:-mac}"
 DEVICE_UDID_OVERRIDE=""  # Optional explicit device UDID (for real device)
@@ -214,11 +225,16 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
       | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
   fi
   [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
+  log "Resetting simulator $DEVICE_ID to a clean state..."
+  xcrun simctl shutdown "$DEVICE_ID" 2>/dev/null || true
+  xcrun simctl erase "$DEVICE_ID" \
+    || log "Warning: erase returned non-zero (continuing anyway)"
   log "Booting simulator: $DEVICE_ID"
-  xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
-  log "Waiting for simulator to finish booting (up to 5 minutes)..."
+  xcrun simctl boot "$DEVICE_ID" \
+    || log "Warning: boot returned non-zero (may already be booting)"
+  log "Waiting for simulator to finish booting (up to 10 minutes)..."
   timeout 600 xcrun simctl bootstatus "$DEVICE_ID" -b \
-    || die "Simulator $DEVICE_ID failed to boot within 5 minutes"
+    || die "Simulator $DEVICE_ID failed to boot within 10 minutes"
 fi
 
 # ── Reset app data (ensure Firebase consent page appears) ──────
