@@ -38,8 +38,8 @@ APPIUM_URL="http://localhost:4723"
 APPIUM_PID=""
 
 # ── Helpers ─────────────────────────────────────────────────────
-log()  { echo "[$(date '+%H:%M:%S')] $*"; }
-err()  { echo "[$(date '+%H:%M:%S')] ERROR: $*" >&2; }
+log()  { printf '[%s] %b\n' "$(date '+%H:%M:%S')" "$*"; }
+err()  { printf '[%s] ERROR: %b\n' "$(date '+%H:%M:%S')" "$*" >&2; }
 die()  { err "$*"; exit 1; }
 
 cleanup() {
@@ -74,7 +74,7 @@ case "$PLATFORM" in
     IS_SIMULATOR=false
     # Real device testing requires a valid Apple Developer certificate.
     # Verify one is available before proceeding.
-    if ! security find-identity -p codesigning -v 2>/dev/null | grep -q "valid identit[y|ies].*[^0]"; then
+    if ! security find-identity -p codesigning -v 2>/dev/null | grep -q "^[[:space:]]*[1-9][0-9]* valid identit"; then
       die "No valid iOS code-signing identity found.\n" \
           "Real-device testing requires:\n" \
           "  1. An Apple Developer account with a valid certificate in Keychain\n" \
@@ -200,6 +200,10 @@ fi
 # ── Boot iOS Simulator (simulator only, not real device) ───────
 if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "Looking for available iOS simulator..."
+  # Ensure jq is available before using it in the simulator selection pipeline
+  if ! command -v jq >/dev/null 2>&1; then
+    die "This script requires 'jq' to select an iOS simulator. Please install jq (e.g. 'brew install jq') and try again."
+  fi
   DEVICE_ID=$(xcrun simctl list devices available --json \
     | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \
     | head -1)
@@ -207,7 +211,7 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
     DEVICE_ID=$(xcrun simctl list devices available --json \
       | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
   fi
-  [[ -n "$DEVICE_ID" ]] || die "No available iOS simulator found"
+  [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
   log "Booting simulator: $DEVICE_ID"
   xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
   xcrun simctl bootstatus "$DEVICE_ID" -b

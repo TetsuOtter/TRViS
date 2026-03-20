@@ -17,7 +17,6 @@ public static class AppiumConfig
 				options.PlatformName = "Android";
 				options.App = appPath;
 				options.AddAdditionalAppiumOption("appPackage", AppPackage);
-				options.AddAdditionalAppiumOption("appActivity", $"{AppPackage}.MainActivity");
 				options.AddAdditionalAppiumOption("autoGrantPermissions", true);
 				if (!string.IsNullOrEmpty(deviceUdid))
 					options.AddAdditionalAppiumOption("udid", deviceUdid);

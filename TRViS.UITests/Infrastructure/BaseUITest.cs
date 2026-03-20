@@ -4,9 +4,10 @@ using OpenQA.Selenium.Appium;
 
 namespace TRViS.UITests.Infrastructure;
 
-[TestFixture]
 public abstract class BaseUITest
 {
+	private const string AppPackage = "dev.t0r.trvis";
+
 	protected AppiumDriver Driver { get; private set; } = null!;
 
 	private static readonly TimeSpan DefaultImplicitWait = TimeSpan.FromSeconds(10);
@@ -39,7 +40,24 @@ public abstract class BaseUITest
 				break;
 
 			case TestPlatform.Windows:
-				// No-op: tests assume a fresh app state on Windows as well.
+				// Clear app-specific preferences to ensure a clean state.
+				// Windows MAUI apps store preferences via Preferences API, which persists
+				// to LocalAppData. For UI tests, we need to clear this folder.
+				var appDataLocal = Path.Combine(
+					Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+					AppPackage);
+				try
+				{
+					if (Directory.Exists(appDataLocal))
+					{
+						Directory.Delete(appDataLocal, recursive: true);
+						Thread.Sleep(200);
+					}
+				}
+				catch (Exception ex)
+				{
+					TestContext.Out.WriteLine($"Warning: Could not delete {appDataLocal}: {ex.Message}");
+				}
 				break;
 		}
 	}
@@ -63,7 +81,7 @@ public abstract class BaseUITest
 	}
 
 	[SetUp]
-	public virtual void SetUp()
+	public void SetUp()
 	{
 		var platformStr = TestContext.Parameters["platform"]
 			?? throw new InvalidOperationException("TestRunParameter 'platform' is required.");
@@ -73,7 +91,11 @@ public abstract class BaseUITest
 
 		var platform = AppiumConfig.ParsePlatform(platformStr);
 		ResetAppState(platform);
+		SetUpDriver(platform, appPath, appiumUrl);
+	}
 
+	protected virtual void SetUpDriver(TestPlatform platform, string appPath, string appiumUrl)
+	{
 		var deviceUdid = TestContext.Parameters["deviceUdid"];
 		var options = AppiumConfig.CreateOptions(platform, appPath, deviceUdid);
 		var serverUri = new Uri(appiumUrl);
@@ -91,7 +113,7 @@ public abstract class BaseUITest
 	}
 
 	[TearDown]
-	public virtual void TearDown()
+	public void TearDown()
 	{
 		if (Driver is not null)
 		{

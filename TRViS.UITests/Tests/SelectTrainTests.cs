@@ -26,8 +26,8 @@ public class SelectTrainTests : BaseUITest
 
 		_selectTrainPage.LoadSample();
 
-		// After loading the sample, the WorkGroupList should contain at least one item.
-		var workGroupList = _selectTrainPage.WorkGroupList;
+		// Wait for UI re-binding to complete (list has at least one item)
+		var workGroupList = _selectTrainPage.WaitForElement("workGroupList");
 		Assert.That(workGroupList.Displayed, Is.True,
 			"WorkGroupList should be visible after loading sample data.");
 
