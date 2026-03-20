@@ -16,6 +16,7 @@
 			FlexLayout.Basis="200"
 			Margin="4">
 			<CollectionView
+				AutomationId="ThirdParty.LicenseList"
 				SelectionMode="Single"
 				SelectedItem="{Binding SelectedLicenseData}"
 				ItemsSource="{Binding LicenseDataArray}">
