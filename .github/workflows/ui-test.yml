@@ -16,8 +16,8 @@ concurrency:
 env:
   # .NET / tooling versions
   SDK_VERSION: "10.0.x"
-  NODE_VERSION: "20"
-  XCODE_VERSION: "16.3"
+  NODE_VERSION: "24"
+  XCODE_VERSION: "26.3"
 
   # Project paths
   CSPROJ_PATH: ./TRViS/TRViS.csproj
