@@ -252,7 +252,20 @@ log "Starting Appium server..."
 appium &
 APPIUM_PID=$!
 log "Appium PID: $APPIUM_PID"
-sleep 5
+
+# Wait for Appium to be ready
+log "Waiting for Appium server to start..."
+for i in {1..30}; do
+  if curl -s "$APPIUM_URL/status" > /dev/null 2>&1; then
+    log "Appium server is ready!"
+    break
+  fi
+  if [[ $i -eq 30 ]]; then
+    err "Appium server did not start within 30 seconds"
+    exit 1
+  fi
+  sleep 1
+done
 
 # ── Run tests ───────────────────────────────────────────────────
 LOG_FILE="${PLATFORM_VALUE}-results.trx"
@@ -263,7 +276,8 @@ if [[ -n "${DEVICE_ID:-}" ]]; then
   EXTRA_PARAMS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
 fi
 
-dotnet test "$UITESTS_CSPROJ_PATH" \
+# Run tests with timeout (10 minutes = 600 seconds)
+timeout 600 dotnet test "$UITESTS_CSPROJ_PATH" \
   --configuration Debug \
   --logger "trx;LogFileName=$LOG_FILE" \
   -- \

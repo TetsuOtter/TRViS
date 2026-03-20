@@ -117,9 +117,33 @@ jobs:
           script: |
             APK_PATH=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_ANDROID }} -name "*.apk" | head -1)
             echo "APK: $APK_PATH"
+            
+            # Start Appium server
             appium &
-            sleep 5
-            dotnet test ${{ env.UITESTS_CSPROJ_PATH }} --configuration Debug --logger "trx;LogFileName=android-results.trx" -- TestRunParameters.Parameter\(name=\"platform\",value=\"android\"\) TestRunParameters.Parameter\(name=\"appPath\",value=\"$APK_PATH\"\) TestRunParameters.Parameter\(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\"\)
+            APPIUM_PID=$!
+            echo "Appium PID: $APPIUM_PID"
+            
+            # Wait for Appium to be ready
+            echo "Waiting for Appium server to start..."
+            for i in {1..30}; do
+              if curl -s http://localhost:4723/status > /dev/null 2>&1; then
+                echo "Appium server is ready!"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "ERROR: Appium server did not start within 30 seconds"
+                exit 1
+              fi
+              sleep 1
+            done
+            
+            # Run tests with timeout
+            timeout 600 dotnet test ${{ env.UITESTS_CSPROJ_PATH }} --configuration Debug --logger "trx;LogFileName=android-results.trx" -- TestRunParameters.Parameter\(name=\"platform\",value=\"android\"\) TestRunParameters.Parameter\(name=\"appPath\",value=\"$APK_PATH\"\) TestRunParameters.Parameter\(name=\"appiumUrl\",value=\"${{ env.APPIUM_URL }}\"\)
+            TEST_EXIT_CODE=$?
+            
+            # Clean up
+            kill $APPIUM_PID 2>/dev/null || true
+            exit $TEST_EXIT_CODE
 
       - name: Upload test results
         if: always()
@@ -315,7 +339,7 @@ jobs:
 
           # Start Appium server in background and wait for it to be ready
           Write-Host "Starting Appium server..."
-          $appiumProcess = Start-Process -FilePath "appium" -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          $appiumProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c","appium" -PassThru -WindowStyle Hidden -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
           Write-Host "Appium PID: $($appiumProcess.Id)"
 
           # Wait for Appium to be ready by checking the port
