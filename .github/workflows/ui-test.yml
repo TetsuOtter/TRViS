@@ -210,6 +210,9 @@ jobs:
       - name: Install iOS and MacCatalyst workloads
         run: dotnet workload install maui-ios maccatalyst
 
+      - name: Install GNU coreutils (provides timeout)
+        run: brew install coreutils
+
       - name: Install Appium globally
         run: npm install -g appium
 
@@ -295,6 +298,9 @@ jobs:
       - name: Install MacCatalyst workload
         run: dotnet workload install maccatalyst
 
+      - name: Install GNU coreutils (provides timeout)
+        run: brew install coreutils
+
       - name: Install Appium globally
         run: npm install -g appium
 
@@ -372,7 +378,9 @@ jobs:
           # the output. Running node.exe with the appium entry-point script
           # gives proper stdout/stderr capture.
           # Use node to resolve the actual appium entrypoint (handles any version layout).
+          # Set NODE_PATH so that require.resolve can find globally-installed modules.
           $nodePath = (Get-Command node).Source
+          $env:NODE_PATH = (npm root -g).Trim()
           $appiumMain = (node -e "process.stdout.write(require.resolve('appium'))").Trim()
           Write-Host "Node: $nodePath"
           Write-Host "Appium main: $appiumMain"
