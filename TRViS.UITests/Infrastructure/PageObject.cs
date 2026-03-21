@@ -14,7 +14,7 @@ public abstract class PageObject
 	protected AppiumElement FindByAutomationId(string automationId)
 		=> Driver.FindElement(MobileBy.AccessibilityId(automationId));
 
-	protected AppiumElement WaitForElement(string automationId, TimeSpan? timeout = null)
+	public AppiumElement WaitForElement(string automationId, TimeSpan? timeout = null)
 	{
 		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(
 			Driver,
