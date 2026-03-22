@@ -47,6 +47,9 @@ env:
   ANDROID_EMULATOR_ARCH: x86_64
   ANDROID_EMULATOR_PROFILE: pixel_6
   ANDROID_EMULATOR_AVD_NAME: trvis-test
+  # google_apis includes Google Play Services, required to prevent Firebase
+  # native ContentProviders (FirebaseInitProvider) from crashing on startup.
+  ANDROID_EMULATOR_TAG: google_apis
 
 jobs:
   # ─────────────────────────────────────────────
@@ -129,7 +132,7 @@ jobs:
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
             "emulator" \
             "platform-tools" \
-            "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};default;${{ env.ANDROID_EMULATOR_ARCH }}" \
+            "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};${{ env.ANDROID_EMULATOR_TAG }};${{ env.ANDROID_EMULATOR_ARCH }}" \
             > /dev/null
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
 
@@ -143,13 +146,13 @@ jobs:
           echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
           mkdir -p "$ANDROID_AVD_HOME"
           # Note: --device flag is intentionally omitted. Specifying a device profile
-          # (e.g. pixel_6) that does not match the installed system-image tag (default
-          # vs google_apis) causes avdmanager to exit 0 but skip AVD directory creation.
+          # (e.g. pixel_6) that does not match the installed system-image tag
+          # causes avdmanager to exit 0 but skip AVD directory creation.
           echo no | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager \
             create avd \
             --force \
             -n ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
-            --package "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};default;${{ env.ANDROID_EMULATOR_ARCH }}" \
+            --package "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};${{ env.ANDROID_EMULATOR_TAG }};${{ env.ANDROID_EMULATOR_ARCH }}" \
             2>&1
           if [ ! -d "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd" ]; then
             echo "ERROR: AVD directory was not created by avdmanager"

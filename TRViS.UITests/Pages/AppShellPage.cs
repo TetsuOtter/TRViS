@@ -48,41 +48,100 @@ public class AppShellPage : PageObject
 		}
 		catch { }
 
+		// Windows: WinUI 3 NavigationView pane toggle button ("PaneToggleButton" is its
+		// default x:Name / AutomationId). Only present when the pane is in LeftMinimal mode
+		// (narrow window). Suppress the implicit wait so we don't block for 10 s if the
+		// pane is already open in Left (always-visible) mode.
+		try
+		{
+			var prev = Driver.Manage().Timeouts().ImplicitWait;
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			try
+			{
+				Driver.FindElement(MobileBy.AccessibilityId("PaneToggleButton")).Click();
+				Thread.Sleep(300); // Allow pane-open animation to complete
+			}
+			finally
+			{
+				Driver.Manage().Timeouts().ImplicitWait = prev;
+			}
+			return;
+		}
+		catch { }
+
 		// Last resort: if the sidebar is always visible on this platform, no action needed.
+	}
+
+	/// <summary>
+	/// Waits up to 30 s for a flyout item to appear. Tries AccessibilityId first;
+	/// falls back to Name (title text) in case the platform does not propagate
+	/// AutomationId to the underlying navigation control (e.g. WinUI NavigationViewItem).
+	/// The implicit wait is suppressed inside the loop so each probe is fast.
+	/// </summary>
+	private AppiumElement WaitForFlyoutItem(string automationId, string title)
+	{
+		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(Driver, TimeSpan.FromSeconds(30));
+		var prev = Driver.Manage().Timeouts().ImplicitWait;
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			return (AppiumElement)wait.Until(d =>
+			{
+				try
+				{
+					var el = d.FindElement(MobileBy.AccessibilityId(automationId));
+					if (el.Displayed) return el;
+				}
+				catch { }
+
+				try
+				{
+					var el = d.FindElement(By.Name(title));
+					if (el.Displayed) return el;
+				}
+				catch { }
+
+				return null!;
+			});
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prev;
+		}
 	}
 
 	public SelectTrainPageObject NavigateToSelectTrain()
 	{
 		OpenFlyout();
-		WaitForElement(AutomationIds.Shell.Flyout.SelectTrain).Click();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.SelectTrain, "Select Train").Click();
 		return new SelectTrainPageObject(Driver);
 	}
 
 	public DTACViewHostPageObject NavigateToDTAC()
 	{
 		OpenFlyout();
-		WaitForElement(AutomationIds.Shell.Flyout.DTAC).Click();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.DTAC, "D-TAC").Click();
 		return new DTACViewHostPageObject(Driver);
 	}
 
 	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()
 	{
 		OpenFlyout();
-		WaitForElement(AutomationIds.Shell.Flyout.ThirdPartyLicenses).Click();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.ThirdPartyLicenses, "Third Party Licenses").Click();
 		return new ThirdPartyLicensesPageObject(Driver);
 	}
 
 	public EasterEggPageObject NavigateToSettings()
 	{
 		OpenFlyout();
-		WaitForElement(AutomationIds.Shell.Flyout.Settings).Click();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.Settings, "Settings").Click();
 		return new EasterEggPageObject(Driver);
 	}
 
 	public FirebaseSettingPageObject NavigateToFirebase()
 	{
 		OpenFlyout();
-		WaitForElement(AutomationIds.Shell.Flyout.Firebase).Click();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.Firebase, "Firebase Setting").Click();
 		return new FirebaseSettingPageObject(Driver);
 	}
 }
