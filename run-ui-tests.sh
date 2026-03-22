@@ -232,9 +232,9 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "Booting simulator: $DEVICE_ID"
   xcrun simctl boot "$DEVICE_ID" \
     || log "Warning: boot returned non-zero (may already be booting)"
-  log "Waiting for simulator to finish booting (up to 15 minutes)..."
-  timeout 900 xcrun simctl bootstatus "$DEVICE_ID" -b \
-    || die "Simulator $DEVICE_ID failed to boot within 15 minutes"
+  log "Waiting for simulator to finish booting (up to 20 minutes)..."
+  timeout 1200 xcrun simctl bootstatus "$DEVICE_ID" -b \
+    || die "Simulator $DEVICE_ID failed to boot within 20 minutes"
 fi
 
 # ── Install Mac Catalyst app ────────────────────────────────────

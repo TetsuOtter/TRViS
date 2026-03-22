@@ -232,6 +232,12 @@ jobs:
           kill "$APPIUM_PID" 2>/dev/null || true
           exit $TEST_EXIT_CODE
 
+      - name: Dump logcat on failure
+        if: failure()
+        run: |
+          echo "=== logcat (last 500 lines) ==="
+          $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 500 2>/dev/null || true
+
       - name: Stop Android emulator
         if: always()
         run: |
@@ -257,7 +263,7 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout code

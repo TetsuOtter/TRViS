@@ -119,6 +119,12 @@ public abstract class BaseUITest
 		};
 
 		Driver.Manage().Timeouts().ImplicitWait = DefaultImplicitWait;
+
+		// On Windows, maximize the window so WinUI NavigationView stays in Left mode
+		// (pane always visible). At ≥ExpandedModeThresholdWidth (1008 px) the pane is
+		// permanently open and NavigateToXxx calls do not need to click PaneToggleButton.
+		if (platform == TestPlatform.Windows)
+			Driver.Manage().Window.Maximize();
 	}
 
 	[TearDown]
