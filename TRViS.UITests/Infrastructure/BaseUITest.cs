@@ -40,6 +40,15 @@ public abstract class BaseUITest
 				break;
 
 			case TestPlatform.Windows:
+				// Kill any running TRViS instances so the next Appium session
+				// launches a fresh process rather than attaching to the existing one
+				// (which may be showing a page other than FirebaseSettingPage).
+				foreach (var proc in Process.GetProcessesByName("TRViS"))
+				{
+					try { proc.Kill(entireProcessTree: true); } catch { }
+				}
+				Thread.Sleep(1000);
+
 				// Clear app-specific preferences to ensure a clean state.
 				// Windows MAUI apps store preferences via Preferences API, which persists
 				// to LocalAppData. For UI tests, we need to clear this folder.
