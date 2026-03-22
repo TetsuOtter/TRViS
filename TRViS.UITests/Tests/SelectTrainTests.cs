@@ -14,11 +14,11 @@ public class SelectTrainTests : BaseUITest
 		base.SetUp();
 
 		// Accept Firebase consent to reach SelectTrainPage.
-		// Use a 90 s timeout: on Android, EmbedAssembliesIntoApk=true triggers
+		// Use a 120 s timeout: on Android, EmbedAssembliesIntoApk=true triggers
 		// Mono JIT compilation on first launch after APK install, which can take
-		// 60+ s before the Firebase consent page renders.
+		// 90+ s before the Firebase consent page renders.
 		var firebasePage = new FirebaseSettingPageObject(Driver);
-		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(90)))
+		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(120)))
 			_selectTrainPage = firebasePage.SaveAndAccept();
 		else
 			_selectTrainPage = new SelectTrainPageObject(Driver);

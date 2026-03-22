@@ -14,9 +14,12 @@ public class FirebaseSettingPageObject : PageObject
 
 	public bool IsDisplayed(TimeSpan? timeout = null)
 	{
+		// Default to 120 s: on Android, EmbedAssembliesIntoApk=true triggers Mono JIT
+		// compilation on first launch, which can delay page rendering by 90+ seconds.
+		var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(120);
 		try
 		{
-			return WaitForElement(AutomationIds.Firebase.Title, timeout).Displayed;
+			return WaitForElement(AutomationIds.Firebase.Title, effectiveTimeout).Displayed;
 		}
 		catch
 		{

@@ -20,17 +20,27 @@ public abstract class PageObject
 			Driver,
 			timeout ?? TimeSpan.FromSeconds(30));
 
-		return (AppiumElement)wait.Until(d =>
+		// Suppress implicit wait so the polling loop fires every ~500 ms instead
+		// of every 10 s. Restoring in finally keeps the session state consistent.
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
 		{
-			try
+			return (AppiumElement)wait.Until(d =>
 			{
-				var element = d.FindElement(MobileBy.AccessibilityId(automationId));
-				return element.Displayed ? element : null!;
-			}
-			catch (OpenQA.Selenium.NoSuchElementException)
-			{
-				return null!;
-			}
-		});
+				try
+				{
+					var element = d.FindElement(MobileBy.AccessibilityId(automationId));
+					return element.Displayed ? element : null!;
+				}
+				catch (OpenQA.Selenium.NoSuchElementException)
+				{
+					return null!;
+				}
+			});
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
 	}
 }

@@ -342,7 +342,9 @@ if [[ -n "${DEVICE_ID:-}" ]]; then
   DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
 fi
 
-# Run tests with timeout (10 minutes = 600 seconds)
-timeout 600 dotnet test "${DOTNET_TEST_ARGS[@]}"
+# Run tests with timeout (30 minutes = 1800 seconds).
+# iOS: 6 tests × ~60 s each + ~5 min for WDA installation on first run ≈ 11 min.
+# Android: 6 tests × ~120 s each (Mono JIT delay on first launch) ≈ 12 min.
+timeout 1800 dotnet test "${DOTNET_TEST_ARGS[@]}"
 
 log "All tests passed!"

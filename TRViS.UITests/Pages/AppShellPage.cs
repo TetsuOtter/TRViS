@@ -105,7 +105,11 @@ public class AppShellPage : PageObject
 					if (toggle.Displayed)
 					{
 						toggle.Click();
-						Thread.Sleep(400);
+						// Give the WinUI 3 pane-open animation time to settle and
+						// allow NavigationViewItems to appear in the UIA tree.
+						Thread.Sleep(1500);
+						NUnit.Framework.TestContext.Out.WriteLine(
+							$"[WaitForFlyoutItem] Pane reopened; page source:\n{d.PageSource}");
 					}
 				}
 				catch { }
