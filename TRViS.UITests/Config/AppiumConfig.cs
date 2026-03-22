@@ -17,14 +17,14 @@ public static class AppiumConfig
 				options.PlatformName = "Android";
 				options.App = appPath;
 				options.AddAdditionalAppiumOption("appPackage", AppPackage);
-				// .NET MAUI Android generates activity class names with a CRC64 hash prefix
-				// (e.g. crc64a112fd51566f77e9.MainActivity). The class is NOT in the app's
-				// Java package, so "dev.t0r.trvis.*" never matches. Use ".*" to accept any
-				// activity in the package. The APK is built with -r android-x86_64 so it
-				// runs natively on the x86_64 emulator; raise appWaitDuration to 120 s for
-				// slow cold-starts (first-launch JIT compilation).
-				options.AddAdditionalAppiumOption("appWaitPackage", AppPackage);
-				options.AddAdditionalAppiumOption("appWaitActivity", ".*");
+				// .NET MAUI generates activity class names with a CRC64 hash prefix
+				// (e.g. crc64a112fd51566f77e9.MainActivity). Setting appWaitActivity=".*"
+				// with appWaitPackage causes appium-adb to build the regex
+				// /^dev\.t0r\.trvis\..*$/ which never matches crc64…MainActivity.
+				// Omit both so Appium falls back to the auto-detected appActivity from the
+				// APK manifest (the exact crc64 class name), which matches correctly.
+				// Keep a generous appWaitDuration because EmbedAssembliesIntoApk=true
+				// means the first-launch Mono JIT compilation is slow.
 				options.AddAdditionalAppiumOption("appWaitDuration", 300000);
 				options.AddAdditionalAppiumOption("autoGrantPermissions", true);
 				if (!string.IsNullOrEmpty(deviceUdid))
