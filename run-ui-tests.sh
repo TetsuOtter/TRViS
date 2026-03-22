@@ -114,6 +114,37 @@ esac
 
 log "Platform: $PLATFORM_VALUE | Framework: $TARGET_FRAMEWORK"
 
+# ── Select and pre-boot iOS Simulator (before build) ───────────
+# Starting the boot early lets it overlap with the app build, reducing
+# wall-clock time when the runtime is already cached on the runner.
+# Logging runtimes here also helps diagnose slow-boot issues in CI.
+if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
+  if ! command -v jq >/dev/null 2>&1; then
+    die "'jq' is required to select an iOS simulator. Install it with: brew install jq"
+  fi
+  log "Selecting iOS simulator..."
+  DEVICE_ID=$(xcrun simctl list devices available --json \
+    | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \
+    | head -1)
+  if [[ -z "$DEVICE_ID" ]]; then
+    DEVICE_ID=$(xcrun simctl list devices available --json \
+      | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
+  fi
+  [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
+  log "Selected simulator: $DEVICE_ID"
+
+  log "Available simulator runtimes (for diagnostics):"
+  xcrun simctl list runtimes | grep -i ios || log "(no iOS runtimes listed)"
+
+  log "Booting simulator: $DEVICE_ID"
+  BOOT_OUTPUT=$(xcrun simctl boot "$DEVICE_ID" 2>&1)
+  BOOT_EXIT=$?
+  if [[ $BOOT_EXIT -ne 0 ]]; then
+    # Non-zero is expected if the device is already in Booted state.
+    log "xcrun simctl boot exited $BOOT_EXIT: $BOOT_OUTPUT"
+  fi
+fi
+
 # ── Ensure GoogleService-Info.plist exists ──────────────────────
 PLIST_PATH="$SCRIPT_DIR/TRViS/Platforms/iOS/GoogleService-Info.plist"
 if [[ ! -f "$PLIST_PATH" ]]; then
@@ -210,28 +241,11 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "Re-signing complete."
 fi
 
-# ── Boot iOS Simulator (simulator only, not real device) ───────
+# ── Wait for iOS Simulator boot ────────────────────────────────
+# Boot was started before the build to overlap boot time with compile time.
+# Do NOT erase the simulator: a full erase forces an OS-image reinstall
+# that takes >10 min in CI. Reinstalling the app per-test is sufficient.
 if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
-  log "Looking for available iOS simulator..."
-  # Ensure jq is available before using it in the simulator selection pipeline
-  if ! command -v jq >/dev/null 2>&1; then
-    die "This script requires 'jq' to select an iOS simulator. Please install jq (e.g. 'brew install jq') and try again."
-  fi
-  DEVICE_ID=$(xcrun simctl list devices available --json \
-    | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \
-    | head -1)
-  if [[ -z "$DEVICE_ID" ]]; then
-    DEVICE_ID=$(xcrun simctl list devices available --json \
-      | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
-  fi
-  [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
-  log "Shutting down simulator $DEVICE_ID (if running)..."
-  xcrun simctl shutdown "$DEVICE_ID" 2>/dev/null || true
-  # Do NOT erase – full erase forces an OS-image reinstall that takes >10 min in CI.
-  # Uninstalling the app per-test is sufficient for a clean slate.
-  log "Booting simulator: $DEVICE_ID"
-  xcrun simctl boot "$DEVICE_ID" \
-    || log "Warning: boot returned non-zero (may already be booting)"
   log "Waiting for simulator to finish booting (up to 20 minutes)..."
   timeout 1200 xcrun simctl bootstatus "$DEVICE_ID" -b \
     || die "Simulator $DEVICE_ID failed to boot within 20 minutes"
