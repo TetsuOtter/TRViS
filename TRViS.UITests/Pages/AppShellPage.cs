@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Support.UI;
 using TRViS.UITests.Infrastructure;
 
 namespace TRViS.UITests.Pages;
@@ -54,8 +55,35 @@ public class AppShellPage : PageObject
 			}
 			catch { }
 
-			// Windows: WinUI 3 NavigationView is maximized in CI so the pane is always
-			// visible in Left mode (ExpandedModeThresholdWidth = 1008 px). No action needed.
+			// Windows: WinUI 3 NavigationView is in Left mode when the window is wide
+			// enough (≥ExpandedModeThresholdWidth = 1008 px). In Left mode, the pane is
+			// always visible and no toggle action is needed.
+			// If the pane is in LeftMinimal mode (window narrower than 641 px), we need
+			// to click PaneToggleButton. We detect this by checking whether any flyout
+			// item is already visible; if not, we click the toggle button.
+			try
+			{
+				bool paneOpen = false;
+				foreach (string selector in new[] {
+					AutomationIds.Shell.Flyout.SelectTrain,
+					AutomationIds.Shell.Flyout.DTAC })
+				{
+					try
+					{
+						var el = Driver.FindElement(MobileBy.AccessibilityId(selector));
+						if (el.Displayed) { paneOpen = true; break; }
+					}
+					catch { }
+				}
+
+				if (!paneOpen)
+				{
+					Driver.FindElement(MobileBy.AccessibilityId("PaneToggleButton")).Click();
+					Thread.Sleep(400); // Allow pane-open animation to complete
+				}
+				return;
+			}
+			catch { }
 		}
 		finally
 		{
@@ -64,21 +92,22 @@ public class AppShellPage : PageObject
 	}
 
 	/// <summary>
-	/// Waits up to 30 s for a flyout item to appear. Tries AccessibilityId first;
-	/// falls back to Name (title text) in case the platform does not propagate
-	/// AutomationId to the underlying navigation control (e.g. WinUI NavigationViewItem).
-	/// Sets implicit wait to zero inside the loop so each probe is fast.
+	/// Waits up to 30 s for a flyout item to appear.
+	/// Tries AccessibilityId, then By.Name, then XPath (Windows ListItem fallback).
+	/// Implicit wait is suppressed inside the loop so each probe is fast.
 	/// Note: reading ImplicitWait via GET /session/.../timeouts is not implemented by
 	/// the Windows Appium driver, so we restore to the known default (10 s) directly.
+	/// On timeout, dumps the page source to test output for diagnosis.
 	/// </summary>
 	private AppiumElement WaitForFlyoutItem(string automationId, string title)
 	{
-		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(Driver, TimeSpan.FromSeconds(30));
+		var wait = new WebDriverWait(Driver, TimeSpan.FromSeconds(30));
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
 			return (AppiumElement)wait.Until(d =>
 			{
+				// AccessibilityId (iOS, macOS; Windows if MAUI propagates AutomationId)
 				try
 				{
 					var el = d.FindElement(MobileBy.AccessibilityId(automationId));
@@ -86,6 +115,7 @@ public class AppShellPage : PageObject
 				}
 				catch { }
 
+				// Name / UIA Name (all platforms; Windows NavigationViewItem content)
 				try
 				{
 					var el = d.FindElement(By.Name(title));
@@ -93,8 +123,36 @@ public class AppShellPage : PageObject
 				}
 				catch { }
 
+				// Windows XPath fallback: WinUI 3 NavigationViewItem maps to UIA ListItem
+				try
+				{
+					var el = d.FindElement(By.XPath($"//ListItem[@Name='{title}']"));
+					if (el.Displayed) return el;
+				}
+				catch { }
+
+				// Broadest XPath fallback: any element with matching Name
+				try
+				{
+					var el = d.FindElement(By.XPath($"//*[@Name='{title}']"));
+					if (el.Displayed) return el;
+				}
+				catch { }
+
 				return null!;
 			});
+		}
+		catch (WebDriverTimeoutException)
+		{
+			// Dump page source so the accessibility tree is visible in CI logs.
+			try
+			{
+				NUnit.Framework.TestContext.Out.WriteLine(
+					$"[WaitForFlyoutItem] Timed out waiting for '{title}' ({automationId}). Page source:");
+				NUnit.Framework.TestContext.Out.WriteLine(Driver.PageSource);
+			}
+			catch { }
+			throw;
 		}
 		finally
 		{

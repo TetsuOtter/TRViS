@@ -114,6 +114,10 @@ jobs:
       - name: Build Android app
         # -r android-x86_64 ensures the APK contains x86_64 native libraries so it
         # can run natively on the x86_64 emulator (no ARM translation needed).
+        # EmbedAssembliesIntoApk=true is required so assemblies are bundled in the APK
+        # file itself. Debug builds default to Fast Deployment (assemblies deployed
+        # separately via adb), which causes a startup crash when Appium installs the
+        # APK without also pushing the assembly files.
         run: >
           dotnet build ${{ env.CSPROJ_PATH }}
           -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
@@ -121,6 +125,7 @@ jobs:
           -c Debug
           /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
           /p:AndroidCreatePackagePerAbi=false
+          /p:EmbedAssembliesIntoApk=true
 
       - name: Install Appium and UiAutomator2 driver
         run: |
