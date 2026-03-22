@@ -159,6 +159,13 @@ jobs:
           TEST_EXIT_CODE=$?
 
           kill "$APPIUM_PID" 2>/dev/null || true
+
+          # Force-kill emulator and QEMU processes so the android-emulator-runner
+          # action's cleanup does not hang for 30+ minutes waiting for the process
+          # to exit naturally (the emulator sometimes gets stuck after adb emu kill).
+          pkill -9 -f "qemu-system-x86" 2>/dev/null || true
+          pkill -9 -f "/emulator/emulator" 2>/dev/null || true
+
           exit $TEST_EXIT_CODE
           SCRIPT
           chmod +x /tmp/android-test.sh
@@ -372,29 +379,28 @@ jobs:
           }
           Write-Host "EXE: $exePath"
 
-          # Start Appium via node.exe directly to avoid cmd.exe wrapper issues.
-          # 'appium' on Windows is a .cmd batch file; Start-Process can't run
-          # .cmd files directly - it needs cmd.exe, which silently swallows
-          # the output. Running node.exe with the appium entry-point script
-          # gives proper stdout/stderr capture.
-          # Use node to resolve the actual appium entrypoint (handles any version layout).
-          # Set NODE_PATH so that require.resolve can find globally-installed modules.
-          $nodePath = (Get-Command node).Source
-          $env:NODE_PATH = (npm root -g).Trim()
-          $appiumMain = (node -e "process.stdout.write(require.resolve('appium'))").Trim()
-          Write-Host "Node: $nodePath"
-          Write-Host "Appium main: $appiumMain"
-          if (-not (Test-Path $appiumMain)) {
-            Write-Error "Appium entry point not found: $appiumMain"
+          # Start Appium via cmd.exe with the appium.cmd batch wrapper.
+          # IMPORTANT: require.resolve('appium') returns the MODULE entry (index.js)
+          # which only exports the API and does NOT start the HTTP server.
+          # The correct approach is to use the appium.cmd wrapper installed by npm
+          # into the global prefix (e.g. C:\npm\prefix\appium.cmd), which calls
+          # node with the actual CLI entry point (build/lib/main.js).
+          $npmPrefix = (npm prefix -g).Trim()
+          $appiumCmd = Join-Path $npmPrefix "appium.cmd"
+          Write-Host "Appium cmd: $appiumCmd"
+          if (-not (Test-Path $appiumCmd)) {
+            Write-Error "appium.cmd not found at $appiumCmd – was 'npm install -g appium' successful?"
             exit 1
           }
           Write-Host "Starting Appium server..."
-          $appiumProcess = Start-Process -FilePath $nodePath -ArgumentList $appiumMain -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          $appiumProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$appiumCmd`"" -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
           Write-Host "Appium PID: $($appiumProcess.Id)"
 
           # Wait for Appium to be ready by polling the /status endpoint.
-          # Allow up to 60 seconds (each iteration: 1s request timeout + 1s sleep).
-          $timeout = 60
+          # Each iteration: up to 1s request timeout + 1s sleep = ~2s.
+          # Allow 120 iterations (~4 minutes total) for Windows Defender / AV
+          # to inspect the new node process before it can bind to the port.
+          $timeout = 120
           $elapsed = 0
           while ($elapsed -lt $timeout) {
             try {
@@ -410,7 +416,7 @@ jobs:
           }
 
           if ($elapsed -ge $timeout) {
-            Write-Error "Appium server did not start within $timeout seconds"
+            Write-Error "Appium server did not respond within $($timeout * 2) seconds"
             Write-Host "=== appium.log ==="
             Get-Content appium.log -ErrorAction SilentlyContinue
             Write-Host "=== appium-error.log ==="

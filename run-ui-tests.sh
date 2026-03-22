@@ -225,16 +225,38 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
       | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
   fi
   [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
-  log "Resetting simulator $DEVICE_ID to a clean state..."
+  log "Shutting down simulator $DEVICE_ID (if running)..."
   xcrun simctl shutdown "$DEVICE_ID" 2>/dev/null || true
-  xcrun simctl erase "$DEVICE_ID" \
-    || log "Warning: erase returned non-zero (continuing anyway)"
+  # Do NOT erase – full erase forces an OS-image reinstall that takes >10 min in CI.
+  # Uninstalling the app per-test is sufficient for a clean slate.
   log "Booting simulator: $DEVICE_ID"
   xcrun simctl boot "$DEVICE_ID" \
     || log "Warning: boot returned non-zero (may already be booting)"
   log "Waiting for simulator to finish booting (up to 10 minutes)..."
   timeout 600 xcrun simctl bootstatus "$DEVICE_ID" -b \
     || die "Simulator $DEVICE_ID failed to boot within 10 minutes"
+fi
+
+# ── Install Mac Catalyst app ────────────────────────────────────
+# The mac2 / WDA driver uses XCUIApplication(bundleId:) which requires the app
+# to be registered with Launch Services.  A .app built by dotnet but never run
+# is invisible to the system; install it to ~/Applications/ first.
+if [[ "$PLATFORM_VALUE" == "mac" ]]; then
+  log "Installing Mac Catalyst app to ~/Applications/..."
+  mkdir -p "$HOME/Applications"
+  rm -rf "$HOME/Applications/TRViS.app"
+  cp -r "$APP_PATH" "$HOME/Applications/TRViS.app"
+  # Strip quarantine so Gatekeeper does not block unsigned CI builds
+  xattr -rd com.apple.quarantine "$HOME/Applications/TRViS.app" 2>/dev/null || true
+  # Register with Launch Services: run the app briefly so the OS records the bundle.
+  # mac2 / WDA uses XCUIApplication(bundleId:) which requires system registration.
+  open "$HOME/Applications/TRViS.app" 2>/dev/null || true
+  sleep 3
+  pkill -f "dev.t0r.trvis" 2>/dev/null || true
+  sleep 1
+  # Point subsequent steps at the installed copy
+  APP_PATH="$HOME/Applications/TRViS.app"
+  log "App installed at: $APP_PATH"
 fi
 
 # ── Reset app data (ensure Firebase consent page appears) ──────

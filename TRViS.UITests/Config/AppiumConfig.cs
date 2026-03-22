@@ -17,6 +17,11 @@ public static class AppiumConfig
 				options.PlatformName = "Android";
 				options.App = appPath;
 				options.AddAdditionalAppiumOption("appPackage", AppPackage);
+				// .NET MAUI Android generates activity class names with a CRC64 hash prefix
+				// (e.g. crc64a112fd51566f77e9.MainActivity). Accept any activity in the
+				// package so UiAutomator2 does not reject the session when the hash changes.
+				options.AddAdditionalAppiumOption("appWaitPackage", AppPackage);
+				options.AddAdditionalAppiumOption("appWaitActivity", AppPackage + ".*");
 				options.AddAdditionalAppiumOption("autoGrantPermissions", true);
 				if (!string.IsNullOrEmpty(deviceUdid))
 					options.AddAdditionalAppiumOption("udid", deviceUdid);
