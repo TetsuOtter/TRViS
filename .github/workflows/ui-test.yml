@@ -135,23 +135,29 @@ jobs:
 
       - name: Create Android AVD
         run: |
+          # Ubuntu 24.04 cmdline-tools default to $XDG_CONFIG_HOME/.android/avd
+          # rather than $HOME/.android/avd.  Set ANDROID_AVD_HOME explicitly so
+          # avdmanager, the emulator, and our config.ini patch all agree on the
+          # same path.  Also write it to GITHUB_ENV so subsequent steps inherit it.
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_AVD_HOME"
           # Note: --device flag is intentionally omitted. Specifying a device profile
           # (e.g. pixel_6) that does not match the installed system-image tag (default
-          # vs google_apis) causes avdmanager to exit 0 but skip AVD directory creation,
-          # breaking the subsequent printf. A generic AVD works fine for UI tests.
+          # vs google_apis) causes avdmanager to exit 0 but skip AVD directory creation.
           echo no | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager \
             create avd \
             --force \
             -n ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
             --package "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};default;${{ env.ANDROID_EMULATOR_ARCH }}" \
             2>&1
-          if [ ! -d "$HOME/.android/avd/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd" ]; then
+          if [ ! -d "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd" ]; then
             echo "ERROR: AVD directory was not created by avdmanager"
             $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager list avd
             exit 1
           fi
           # Use 2 CPU cores to speed up emulator startup
-          printf 'hw.cpu.ncore=2\n' >> $HOME/.android/avd/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini
+          printf 'hw.cpu.ncore=2\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
 
       - name: Start Android emulator
         run: |
