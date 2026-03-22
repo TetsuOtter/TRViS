@@ -20,16 +20,19 @@ public class AppShellPage : PageObject
 		}
 		catch (OpenQA.Selenium.NoSuchElementException) { }
 
-		// iOS simulator: swipe from left edge.
+		// iOS simulator: drag from left edge to open flyout.
+		// Appium 3.x XCUITest driver replaced the old startX/endX swipe API with
+		// mobile: dragFromToForDuration which takes fromX/fromY/toX/toY/duration.
 		try
 		{
 			var size = Driver.Manage().Window.Size;
-			Driver.ExecuteScript("mobile: swipe", new Dictionary<string, object>
+			Driver.ExecuteScript("mobile: dragFromToForDuration", new Dictionary<string, object>
 			{
-				{ "startX", 5 },
-				{ "startY", size.Height / 2 },
-				{ "endX", size.Width / 2 },
-				{ "endY", size.Height / 2 },
+				{ "fromX", 5.0 },
+				{ "fromY", (double)size.Height / 2 },
+				{ "toX", (double)size.Width / 2 },
+				{ "toY", (double)size.Height / 2 },
+				{ "duration", 0.5 },
 			});
 			return;
 		}
@@ -51,35 +54,35 @@ public class AppShellPage : PageObject
 	public SelectTrainPageObject NavigateToSelectTrain()
 	{
 		OpenFlyout();
-		FindByAutomationId(AutomationIds.Shell.Flyout.SelectTrain).Click();
+		WaitForElement(AutomationIds.Shell.Flyout.SelectTrain).Click();
 		return new SelectTrainPageObject(Driver);
 	}
 
 	public DTACViewHostPageObject NavigateToDTAC()
 	{
 		OpenFlyout();
-		FindByAutomationId(AutomationIds.Shell.Flyout.DTAC).Click();
+		WaitForElement(AutomationIds.Shell.Flyout.DTAC).Click();
 		return new DTACViewHostPageObject(Driver);
 	}
 
 	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()
 	{
 		OpenFlyout();
-		FindByAutomationId(AutomationIds.Shell.Flyout.ThirdPartyLicenses).Click();
+		WaitForElement(AutomationIds.Shell.Flyout.ThirdPartyLicenses).Click();
 		return new ThirdPartyLicensesPageObject(Driver);
 	}
 
 	public EasterEggPageObject NavigateToSettings()
 	{
 		OpenFlyout();
-		FindByAutomationId(AutomationIds.Shell.Flyout.Settings).Click();
+		WaitForElement(AutomationIds.Shell.Flyout.Settings).Click();
 		return new EasterEggPageObject(Driver);
 	}
 
 	public FirebaseSettingPageObject NavigateToFirebase()
 	{
 		OpenFlyout();
-		FindByAutomationId(AutomationIds.Shell.Flyout.Firebase).Click();
+		WaitForElement(AutomationIds.Shell.Flyout.Firebase).Click();
 		return new FirebaseSettingPageObject(Driver);
 	}
 }
