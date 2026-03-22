@@ -25,7 +25,7 @@ public static class AppiumConfig
 				// slow cold-starts (first-launch JIT compilation).
 				options.AddAdditionalAppiumOption("appWaitPackage", AppPackage);
 				options.AddAdditionalAppiumOption("appWaitActivity", ".*");
-				options.AddAdditionalAppiumOption("appWaitDuration", 120000);
+				options.AddAdditionalAppiumOption("appWaitDuration", 300000);
 				options.AddAdditionalAppiumOption("autoGrantPermissions", true);
 				if (!string.IsNullOrEmpty(deviceUdid))
 					options.AddAdditionalAppiumOption("udid", deviceUdid);

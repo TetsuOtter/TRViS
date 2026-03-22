@@ -55,35 +55,22 @@ public class AppShellPage : PageObject
 			}
 			catch { }
 
-			// Windows: WinUI 3 NavigationView is in Left mode when the window is wide
-			// enough (≥ExpandedModeThresholdWidth = 1008 px). In Left mode, the pane is
-			// always visible and no toggle action is needed.
-			// If the pane is in LeftMinimal mode (window narrower than 641 px), we need
-			// to click PaneToggleButton. We detect this by checking whether any flyout
-			// item is already visible; if not, we click the toggle button.
+			// Windows: MAUI Shell forces NavigationView into LeftMinimal mode (pane
+			// always collapsed behind a hamburger) regardless of window width.
+			// The PaneToggleButton's UIA Name is "Open Navigation" when the pane is
+			// closed (AutomationId is "OK" — not "PaneToggleButton" as expected).
+			// Click the toggle to open the pane; if absent the pane is already open.
 			try
 			{
-				bool paneOpen = false;
-				foreach (string selector in new[] {
-					AutomationIds.Shell.Flyout.SelectTrain,
-					AutomationIds.Shell.Flyout.DTAC })
+				var paneToggle = Driver.FindElement(By.Name("Open Navigation"));
+				if (paneToggle.Displayed)
 				{
-					try
-					{
-						var el = Driver.FindElement(MobileBy.AccessibilityId(selector));
-						if (el.Displayed) { paneOpen = true; break; }
-					}
-					catch { }
-				}
-
-				if (!paneOpen)
-				{
-					Driver.FindElement(MobileBy.AccessibilityId("PaneToggleButton")).Click();
+					paneToggle.Click();
 					Thread.Sleep(400); // Allow pane-open animation to complete
 				}
-				return;
 			}
 			catch { }
+			return;
 		}
 		finally
 		{
