@@ -17,11 +17,11 @@ public class NavigationTests : BaseUITest
 		base.SetUp();
 
 		// Accept Firebase consent so we can reach the main shell.
-		// On platforms that persist consent state across sessions (e.g. Windows
-		// unpackaged) the page may be skipped on subsequent launches; use a short
-		// timeout so we don't block for 30 s in that case.
+		// Use a 90 s timeout: on Android, EmbedAssembliesIntoApk=true triggers
+		// Mono JIT compilation on first launch after APK install, which can take
+		// 60+ s before the Firebase consent page renders.
 		var firebasePage = new FirebaseSettingPageObject(Driver);
-		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(15)))
+		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(90)))
 			firebasePage.SaveAndAccept();
 
 		_shell = new AppShellPage(Driver);

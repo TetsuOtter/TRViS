@@ -94,6 +94,22 @@ public class AppShellPage : PageObject
 		{
 			return (AppiumElement)wait.Until(d =>
 			{
+				// Windows: WinUI 3 NavigationView in LeftMinimal mode auto-closes the
+				// overlay pane when the UIA driver traverses focus. Reopen it on each
+				// probe by clicking the hamburger toggle if the pane is currently closed.
+				// On non-Windows platforms "Open Navigation" never exists, so this is a
+				// fast no-op (ImplicitWait is already set to zero above).
+				try
+				{
+					var toggle = d.FindElement(By.Name("Open Navigation"));
+					if (toggle.Displayed)
+					{
+						toggle.Click();
+						Thread.Sleep(400);
+					}
+				}
+				catch { }
+
 				// AccessibilityId (iOS, macOS; Windows if MAUI propagates AutomationId)
 				try
 				{
