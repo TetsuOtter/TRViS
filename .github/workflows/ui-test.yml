@@ -26,6 +26,7 @@ env:
   TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
 
   # Target runtimes
+  TARGET_RUNTIME_ANDROID: android-x86_64
   TARGET_RUNTIME_IOS_SIM: iossimulator-arm64
   TARGET_RUNTIME_WIN: win-x64
 
@@ -42,10 +43,11 @@ env:
   ANDROID_EMULATOR_API_LEVEL: 34
   ANDROID_EMULATOR_ARCH: x86_64
   ANDROID_EMULATOR_PROFILE: pixel_6
+  ANDROID_EMULATOR_AVD_NAME: trvis-test
 
 jobs:
   # ─────────────────────────────────────────────
-  # Android UI Tests
+  # Android UI Tests  (self-managed emulator)
   # ─────────────────────────────────────────────
   ui-test-android:
     runs-on: ubuntu-latest
@@ -104,9 +106,12 @@ jobs:
           EOF
 
       - name: Build Android app
+        # -r android-x86_64 ensures the APK contains x86_64 native libraries so it
+        # can run natively on the x86_64 emulator (no ARM translation needed).
         run: >
           dotnet build ${{ env.CSPROJ_PATH }}
           -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+          -r ${{ env.TARGET_RUNTIME_ANDROID }}
           -c Debug
           /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
           /p:AndroidCreatePackagePerAbi=false
@@ -116,12 +121,57 @@ jobs:
           npm install -g appium
           appium driver install uiautomator2
 
-      - name: Write Android test script
+      - name: Install Android emulator system image
         run: |
-          cat > /tmp/android-test.sh << 'SCRIPT'
-          #!/usr/bin/env bash
-          set -euo pipefail
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "emulator" \
+            "platform-tools" \
+            "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};default;${{ env.ANDROID_EMULATOR_ARCH }}" \
+            > /dev/null
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
 
+      - name: Create Android AVD
+        run: |
+          echo no | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager \
+            create avd \
+            --force \
+            -n ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+            --package "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};default;${{ env.ANDROID_EMULATOR_ARCH }}" \
+            --device "${{ env.ANDROID_EMULATOR_PROFILE }}"
+          # Use 2 CPU cores to speed up emulator startup
+          printf 'hw.cpu.ncore=2\n' >> $HOME/.android/avd/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini
+
+      - name: Start Android emulator
+        run: |
+          $ANDROID_SDK_ROOT/emulator/emulator \
+            -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -no-snapshot \
+            -noaudio \
+            -no-boot-anim \
+            &
+          EMULATOR_PID=$!
+          echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
+          echo "Emulator started with PID $EMULATOR_PID"
+
+      - name: Wait for emulator to boot
+        run: |
+          echo "Waiting for ADB device..."
+          $ANDROID_SDK_ROOT/platform-tools/adb wait-for-device
+          echo "Waiting for sys.boot_completed (up to 5 min)..."
+          timeout 300 bash -c \
+            'until $ANDROID_SDK_ROOT/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | grep -q "^1$"; do sleep 5; done'
+          # Disable animations to speed up UI tests
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global window_animation_scale 0.0
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global transition_animation_scale 0.0
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global animator_duration_scale 0.0
+          # Unlock screen
+          $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
+          echo "Emulator is ready!"
+
+      - name: Run Android UI Tests
+        run: |
           APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
           if [ -z "$APK_PATH" ]; then
             echo "ERROR: No APK found in TRViS/bin/Debug/net10.0-android"
@@ -159,24 +209,20 @@ jobs:
           TEST_EXIT_CODE=$?
 
           kill "$APPIUM_PID" 2>/dev/null || true
+          exit $TEST_EXIT_CODE
 
-          # Force-kill emulator and QEMU processes so the android-emulator-runner
-          # action's cleanup does not hang for 30+ minutes waiting for the process
-          # to exit naturally (the emulator sometimes gets stuck after adb emu kill).
+      - name: Stop Android emulator
+        if: always()
+        run: |
+          # Force-kill all emulator processes immediately.
+          # Using 'adb emu kill' alone can leave QEMU hanging for 30+ minutes.
+          $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
           pkill -9 -f "qemu-system-x86" 2>/dev/null || true
           pkill -9 -f "/emulator/emulator" 2>/dev/null || true
-
-          exit $TEST_EXIT_CODE
-          SCRIPT
-          chmod +x /tmp/android-test.sh
-
-      - name: Run Android UI Tests
-        uses: reactivecircus/android-emulator-runner@v2.37.0
-        with:
-          api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
-          arch: ${{ env.ANDROID_EMULATOR_ARCH }}
-          profile: ${{ env.ANDROID_EMULATOR_PROFILE }}
-          script: bash /tmp/android-test.sh
+          if [ -n "${EMULATOR_PID:-}" ]; then
+            kill -9 "$EMULATOR_PID" 2>/dev/null || true
+          fi
+          echo "Emulator stopped."
 
       - name: Upload test results
         if: always()
@@ -374,34 +420,49 @@ jobs:
           # Find the main app executable (not RestartAgent.exe)
           $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "TRViS.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
           if (-not $exePath) {
-            Write-Error "TRViS.exe not found"
+            Write-Host "[ERROR] TRViS.exe not found"
             exit 1
           }
           Write-Host "EXE: $exePath"
 
-          # Start Appium by invoking node directly with the CLI entry point.
-          # IMPORTANT: appium.cmd (the npm batch wrapper) redirects output incorrectly
-          # when launched via Start-Process -RedirectStandardOutput, causing both the
-          # log file to be empty and the node process to exit without any visible error.
-          # Running node.exe directly against appium's build/lib/main.js avoids the
-          # cmd.exe shell layer and correctly captures stdout/stderr.
+          # Find the Appium CLI entry point from the installed package's package.json.
+          # This is the only reliable way to get the correct JS file regardless of
+          # Appium version (2.x used build/lib/main.js, 3.x uses bin/appium.js).
+          # Running node.exe directly avoids the cmd.exe wrapper that breaks
+          # -RedirectStandardOutput when used with Start-Process.
           $nodeExe = (Get-Command node).Source
           $npmRoot = (npm root -g).Trim()
-          $appiumMain = Join-Path $npmRoot "appium\build\lib\main.js"
           Write-Host "node: $nodeExe"
-          Write-Host "appium main: $appiumMain"
-          if (-not (Test-Path $appiumMain)) {
-            Write-Error "appium main.js not found at $appiumMain – was 'npm install -g appium' successful?"
+          Write-Host "npm root: $npmRoot"
+
+          $appiumPkgJson = Join-Path $npmRoot "appium\package.json"
+          if (-not (Test-Path $appiumPkgJson)) {
+            Write-Host "[ERROR] appium package.json not found at $appiumPkgJson"
             exit 1
           }
+          $binField = (Get-Content $appiumPkgJson -Raw | ConvertFrom-Json).bin.appium
+          $binRelative = $binField -replace '^\./', ''
+          $appiumBinJs = Join-Path $npmRoot "appium\$binRelative"
+          Write-Host "appium script: $appiumBinJs"
+          if (-not (Test-Path $appiumBinJs)) {
+            Write-Host "[ERROR] appium script not found: $appiumBinJs"
+            Write-Host "package.json bin field: $binField"
+            exit 1
+          }
+
           Write-Host "Starting Appium server..."
-          $appiumProcess = Start-Process -FilePath $nodeExe -ArgumentList $appiumMain -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          $appiumProcess = Start-Process `
+            -FilePath $nodeExe `
+            -ArgumentList $appiumBinJs `
+            -PassThru `
+            -RedirectStandardOutput "appium.log" `
+            -RedirectStandardError "appium-error.log"
           Write-Host "Appium PID: $($appiumProcess.Id)"
 
           # Give the process 5 seconds to start, then verify it did not exit immediately.
           Start-Sleep -Seconds 5
           if ($appiumProcess.HasExited) {
-            Write-Error "Appium exited immediately (exit code $($appiumProcess.ExitCode))"
+            Write-Host "[ERROR] Appium exited immediately (exit code $($appiumProcess.ExitCode))"
             Write-Host "=== appium.log ==="
             Get-Content appium.log -ErrorAction SilentlyContinue
             Write-Host "=== appium-error.log ==="
@@ -415,16 +476,18 @@ jobs:
           # to inspect the new node process before it can bind to the port.
           $timeout = 120
           $elapsed = 0
+          $ready = $false
           while ($elapsed -lt $timeout) {
             try {
               $response = Invoke-WebRequest -Uri "${{ env.APPIUM_URL }}/status" -Method GET -TimeoutSec 1 -ErrorAction Stop
               if ($response.StatusCode -eq 200) {
                 Write-Host "Appium server is ready!"
+                $ready = $true
                 break
               }
             } catch {
               if ($appiumProcess.HasExited) {
-                Write-Error "Appium process exited unexpectedly (exit code $($appiumProcess.ExitCode))"
+                Write-Host "[ERROR] Appium process exited unexpectedly (exit code $($appiumProcess.ExitCode))"
                 Write-Host "=== appium.log ==="
                 Get-Content appium.log -ErrorAction SilentlyContinue
                 Write-Host "=== appium-error.log ==="
@@ -436,8 +499,8 @@ jobs:
             }
           }
 
-          if ($elapsed -ge $timeout) {
-            Write-Error "Appium server did not respond within $($timeout * 2) seconds"
+          if (-not $ready) {
+            Write-Host "[ERROR] Appium server did not respond within $($timeout * 2) seconds"
             Write-Host "=== appium.log ==="
             Get-Content appium.log -ErrorAction SilentlyContinue
             Write-Host "=== appium-error.log ==="
