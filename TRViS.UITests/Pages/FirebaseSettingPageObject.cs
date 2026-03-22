@@ -47,15 +47,20 @@ public class FirebaseSettingPageObject : PageObject
 		}
 		catch
 		{
-			// Fallback: driver does not support the alert endpoint (e.g. mac2).
-			// Look for an "OK" button rendered as a native sheet button.
+			// Fallback: driver does not support the W3C alert endpoint (e.g. mac2).
+			// On macOS Catalyst, DisplayAlert renders as a native sheet (XCUIElementTypeSheet).
+			// Target the "OK" button only within a sheet or alert context so we do not
+			// accidentally click a navigation button on the underlying page.
 			try
 			{
-				Driver.FindElement(MobileBy.AccessibilityId("OK")).Click();
+				Driver.FindElement(OpenQA.Selenium.By.XPath(
+					"//XCUIElementTypeSheet//XCUIElementTypeButton[@label='OK']" +
+					" | //XCUIElementTypeAlert//XCUIElementTypeButton[@label='OK']"
+				)).Click();
 			}
 			catch
 			{
-				// No dismissable alert found; continue.
+				// No sheet/alert dialog found (e.g. DISABLE_FIREBASE builds skip the dialog).
 			}
 		}
 

@@ -379,22 +379,35 @@ jobs:
           }
           Write-Host "EXE: $exePath"
 
-          # Start Appium via cmd.exe with the appium.cmd batch wrapper.
-          # IMPORTANT: require.resolve('appium') returns the MODULE entry (index.js)
-          # which only exports the API and does NOT start the HTTP server.
-          # The correct approach is to use the appium.cmd wrapper installed by npm
-          # into the global prefix (e.g. C:\npm\prefix\appium.cmd), which calls
-          # node with the actual CLI entry point (build/lib/main.js).
-          $npmPrefix = (npm prefix -g).Trim()
-          $appiumCmd = Join-Path $npmPrefix "appium.cmd"
-          Write-Host "Appium cmd: $appiumCmd"
-          if (-not (Test-Path $appiumCmd)) {
-            Write-Error "appium.cmd not found at $appiumCmd – was 'npm install -g appium' successful?"
+          # Start Appium by invoking node directly with the CLI entry point.
+          # IMPORTANT: appium.cmd (the npm batch wrapper) redirects output incorrectly
+          # when launched via Start-Process -RedirectStandardOutput, causing both the
+          # log file to be empty and the node process to exit without any visible error.
+          # Running node.exe directly against appium's build/lib/main.js avoids the
+          # cmd.exe shell layer and correctly captures stdout/stderr.
+          $nodeExe = (Get-Command node).Source
+          $npmRoot = (npm root -g).Trim()
+          $appiumMain = Join-Path $npmRoot "appium\build\lib\main.js"
+          Write-Host "node: $nodeExe"
+          Write-Host "appium main: $appiumMain"
+          if (-not (Test-Path $appiumMain)) {
+            Write-Error "appium main.js not found at $appiumMain – was 'npm install -g appium' successful?"
             exit 1
           }
           Write-Host "Starting Appium server..."
-          $appiumProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$appiumCmd`"" -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          $appiumProcess = Start-Process -FilePath $nodeExe -ArgumentList $appiumMain -PassThru -NoNewWindow -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
           Write-Host "Appium PID: $($appiumProcess.Id)"
+
+          # Give the process 5 seconds to start, then verify it did not exit immediately.
+          Start-Sleep -Seconds 5
+          if ($appiumProcess.HasExited) {
+            Write-Error "Appium exited immediately (exit code $($appiumProcess.ExitCode))"
+            Write-Host "=== appium.log ==="
+            Get-Content appium.log -ErrorAction SilentlyContinue
+            Write-Host "=== appium-error.log ==="
+            Get-Content appium-error.log -ErrorAction SilentlyContinue
+            exit 1
+          }
 
           # Wait for Appium to be ready by polling the /status endpoint.
           # Each iteration: up to 1s request timeout + 1s sleep = ~2s.
@@ -410,6 +423,14 @@ jobs:
                 break
               }
             } catch {
+              if ($appiumProcess.HasExited) {
+                Write-Error "Appium process exited unexpectedly (exit code $($appiumProcess.ExitCode))"
+                Write-Host "=== appium.log ==="
+                Get-Content appium.log -ErrorAction SilentlyContinue
+                Write-Host "=== appium-error.log ==="
+                Get-Content appium-error.log -ErrorAction SilentlyContinue
+                exit 1
+              }
               Start-Sleep -Seconds 1
               $elapsed++
             }
