@@ -52,9 +52,10 @@ public class AppShellPage : PageObject
 		// default x:Name / AutomationId). Only present when the pane is in LeftMinimal mode
 		// (narrow window). Suppress the implicit wait so we don't block for 10 s if the
 		// pane is already open in Left (always-visible) mode.
+		// Note: reading ImplicitWait via GET /session/.../timeouts is not implemented by
+		// the Windows Appium driver, so we restore to the known default (10 s) directly.
 		try
 		{
-			var prev = Driver.Manage().Timeouts().ImplicitWait;
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			try
 			{
@@ -63,7 +64,7 @@ public class AppShellPage : PageObject
 			}
 			finally
 			{
-				Driver.Manage().Timeouts().ImplicitWait = prev;
+				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
 			}
 			return;
 		}
@@ -78,10 +79,17 @@ public class AppShellPage : PageObject
 	/// AutomationId to the underlying navigation control (e.g. WinUI NavigationViewItem).
 	/// The implicit wait is suppressed inside the loop so each probe is fast.
 	/// </summary>
+	/// <summary>
+	/// Waits up to 30 s for a flyout item to appear. Tries AccessibilityId first;
+	/// falls back to Name (title text) in case the platform does not propagate
+	/// AutomationId to the underlying navigation control (e.g. WinUI NavigationViewItem).
+	/// Sets implicit wait to zero inside the loop so each probe is fast.
+	/// Note: reading ImplicitWait via GET /session/.../timeouts is not implemented by
+	/// the Windows Appium driver, so we restore to the known default (10 s) directly.
+	/// </summary>
 	private AppiumElement WaitForFlyoutItem(string automationId, string title)
 	{
 		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(Driver, TimeSpan.FromSeconds(30));
-		var prev = Driver.Manage().Timeouts().ImplicitWait;
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
@@ -106,7 +114,7 @@ public class AppShellPage : PageObject
 		}
 		finally
 		{
-			Driver.Manage().Timeouts().ImplicitWait = prev;
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
 		}
 	}
 
