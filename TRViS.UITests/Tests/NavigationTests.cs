@@ -17,8 +17,12 @@ public class NavigationTests : BaseUITest
 		base.SetUp();
 
 		// Accept Firebase consent so we can reach the main shell.
+		// On platforms that persist consent state across sessions (e.g. Windows
+		// unpackaged) the page may be skipped on subsequent launches; use a short
+		// timeout so we don't block for 30 s in that case.
 		var firebasePage = new FirebaseSettingPageObject(Driver);
-		firebasePage.SaveAndAccept();
+		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(15)))
+			firebasePage.SaveAndAccept();
 
 		_shell = new AppShellPage(Driver);
 	}

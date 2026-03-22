@@ -14,8 +14,14 @@ public class SelectTrainTests : BaseUITest
 		base.SetUp();
 
 		// Accept Firebase consent to reach SelectTrainPage.
+		// On platforms that persist consent state across sessions (e.g. Windows
+		// unpackaged) the page may be skipped on subsequent launches; use a short
+		// timeout so we don't block for 30 s in that case.
 		var firebasePage = new FirebaseSettingPageObject(Driver);
-		_selectTrainPage = firebasePage.SaveAndAccept();
+		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(15)))
+			_selectTrainPage = firebasePage.SaveAndAccept();
+		else
+			_selectTrainPage = new SelectTrainPageObject(Driver);
 	}
 
 	[Test]

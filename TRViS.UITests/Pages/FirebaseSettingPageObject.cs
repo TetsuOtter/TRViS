@@ -12,13 +12,13 @@ public class FirebaseSettingPageObject : PageObject
 	public AppiumElement ResetButton => FindByAutomationId(AutomationIds.Firebase.ResetButton);
 	public AppiumElement SaveButton => FindByAutomationId(AutomationIds.Firebase.SaveButton);
 
-	public bool IsDisplayed()
+	public bool IsDisplayed(TimeSpan? timeout = null)
 	{
 		try
 		{
-			return Title.Displayed;
+			return WaitForElement(AutomationIds.Firebase.Title, timeout).Displayed;
 		}
-		catch (OpenQA.Selenium.NoSuchElementException)
+		catch
 		{
 			return false;
 		}
