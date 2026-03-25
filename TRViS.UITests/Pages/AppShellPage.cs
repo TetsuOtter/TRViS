@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Windows;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using TRViS.UITests.Infrastructure;
@@ -8,7 +9,12 @@ namespace TRViS.UITests.Pages;
 
 public class AppShellPage : PageObject
 {
-	public AppShellPage(AppiumDriver driver) : base(driver) { }
+	private readonly bool _isWindows;
+
+	public AppShellPage(AppiumDriver driver) : base(driver)
+	{
+		_isWindows = driver is WindowsDriver;
+	}
 
 	public AppiumElement VersionLabel => FindByAutomationId(AutomationIds.Shell.VersionLabel);
 
@@ -108,10 +114,10 @@ public class AppShellPage : PageObject
 		{
 			return (AppiumElement)wait.Until(d =>
 			{
-				// AccessibilityId (iOS, macOS; Windows if MAUI propagates AutomationId)
+				// AutomationId: AccessibilityId on iOS/macOS/Windows, resource-id on Android
 				try
 				{
-					var el = d.FindElement(MobileBy.AccessibilityId(automationId));
+					var el = d.FindElement(AutomationIdLocator(automationId));
 					if (el.Displayed) return el;
 				}
 				catch { }
@@ -219,28 +225,6 @@ public class AppShellPage : PageObject
 		throw new InvalidOperationException($"Failed to navigate to '{title}' via keyboard after 3 attempts");
 	}
 
-	/// <summary>
-	/// Returns true if the current platform is Windows (detected by checking for
-	/// the "Open Navigation" button which only exists on WinUI).
-	/// </summary>
-	private bool IsWindowsPlatform()
-	{
-		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-		try
-		{
-			Driver.FindElement(By.Name("Open Navigation"));
-			return true;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-		}
-	}
-
 	public SelectTrainPageObject NavigateToSelectTrain()
 	{
 		OpenFlyout();
@@ -250,7 +234,7 @@ public class AppShellPage : PageObject
 
 	public DTACViewHostPageObject NavigateToDTAC()
 	{
-		if (IsWindowsPlatform())
+		if (_isWindows)
 			NavigateViaKeyboard("D-TAC");
 		else
 		{
@@ -262,7 +246,7 @@ public class AppShellPage : PageObject
 
 	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()
 	{
-		if (IsWindowsPlatform())
+		if (_isWindows)
 			NavigateViaKeyboard("Third Party Licenses");
 		else
 		{
@@ -274,7 +258,7 @@ public class AppShellPage : PageObject
 
 	public EasterEggPageObject NavigateToSettings()
 	{
-		if (IsWindowsPlatform())
+		if (_isWindows)
 			NavigateViaKeyboard("Settings");
 		else
 		{
@@ -286,7 +270,7 @@ public class AppShellPage : PageObject
 
 	public FirebaseSettingPageObject NavigateToFirebase()
 	{
-		if (IsWindowsPlatform())
+		if (_isWindows)
 			NavigateViaKeyboard("Firebase Setting");
 		else
 		{

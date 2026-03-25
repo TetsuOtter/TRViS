@@ -10,6 +10,11 @@ public abstract class BaseUITest
 
 	protected AppiumDriver Driver { get; private set; } = null!;
 
+	/// <summary>
+	/// True when running on Android. MAUI maps AutomationId to resource-id on Android.
+	/// </summary>
+	protected bool IsAndroid { get; private set; }
+
 	private static readonly TimeSpan DefaultImplicitWait = TimeSpan.FromSeconds(10);
 	private static readonly TimeSpan DefaultExplicitWait = TimeSpan.FromSeconds(30);
 
@@ -122,6 +127,7 @@ public abstract class BaseUITest
 			_ => throw new ArgumentOutOfRangeException(nameof(platform)),
 		};
 
+		IsAndroid = platform == TestPlatform.Android;
 		Driver.Manage().Timeouts().ImplicitWait = DefaultImplicitWait;
 
 		// On Windows, maximize the window so WinUI NavigationView stays in Left mode
@@ -141,8 +147,15 @@ public abstract class BaseUITest
 		}
 	}
 
+	/// <summary>
+	/// Returns the correct locator for MAUI AutomationId on the current platform.
+	/// Android: By.Id (resource-id); others: MobileBy.AccessibilityId.
+	/// </summary>
+	private By AutomationIdLocator(string automationId)
+		=> IsAndroid ? By.Id(automationId) : MobileBy.AccessibilityId(automationId);
+
 	protected AppiumElement FindByAutomationId(string automationId)
-		=> Driver.FindElement(MobileBy.AccessibilityId(automationId));
+		=> (AppiumElement)Driver.FindElement(AutomationIdLocator(automationId));
 
 	protected AppiumElement WaitForElement(string automationId, TimeSpan? timeout = null)
 	{
@@ -150,11 +163,13 @@ public abstract class BaseUITest
 			Driver,
 			timeout ?? DefaultExplicitWait);
 
+		var locator = AutomationIdLocator(automationId);
+
 		return (AppiumElement)wait.Until(d =>
 		{
 			try
 			{
-				var element = d.FindElement(MobileBy.AccessibilityId(automationId));
+				var element = d.FindElement(locator);
 				return element.Displayed ? element : null!;
 			}
 			catch (NoSuchElementException)
