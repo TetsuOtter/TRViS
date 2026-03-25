@@ -50,23 +50,27 @@ public abstract class BaseUITest
 				Thread.Sleep(1000);
 
 				// Clear app-specific preferences to ensure a clean state.
-				// Windows MAUI apps store preferences via Preferences API, which persists
-				// to LocalAppData. For UI tests, we need to clear this folder.
-				var appDataLocal = Path.Combine(
-					Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-					AppPackage);
-				try
+				// MAUI Preferences on unpackaged Windows apps may store data under
+				// LocalAppData using the ApplicationId or the assembly name.
+				// Delete both possible paths to ensure a full reset.
+				var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+				foreach (var folderName in new[] { AppPackage, "TRViS" })
 				{
-					if (Directory.Exists(appDataLocal))
+					var path = Path.Combine(localAppData, folderName);
+					try
 					{
-						Directory.Delete(appDataLocal, recursive: true);
-						Thread.Sleep(200);
+						if (Directory.Exists(path))
+						{
+							Directory.Delete(path, recursive: true);
+							TestContext.Out.WriteLine($"Deleted {path}");
+						}
+					}
+					catch (Exception ex)
+					{
+						TestContext.Out.WriteLine($"Warning: Could not delete {path}: {ex.Message}");
 					}
 				}
-				catch (Exception ex)
-				{
-					TestContext.Out.WriteLine($"Warning: Could not delete {appDataLocal}: {ex.Message}");
-				}
+				Thread.Sleep(200);
 				break;
 		}
 	}

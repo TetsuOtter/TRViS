@@ -122,6 +122,15 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   if ! command -v jq >/dev/null 2>&1; then
     die "'jq' is required to select an iOS simulator. Install it with: brew install jq"
   fi
+
+  # Xcode 26+ may not have the iOS simulator runtime pre-installed.
+  # Download it if no iOS runtimes are available.
+  if ! xcrun simctl list runtimes | grep -qi ios; then
+    log "No iOS simulator runtime found. Downloading (this may take several minutes)..."
+    xcodebuild -downloadPlatform iOS
+    log "Download complete."
+  fi
+
   log "Selecting iOS simulator..."
   DEVICE_ID=$(xcrun simctl list devices available --json \
     | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \

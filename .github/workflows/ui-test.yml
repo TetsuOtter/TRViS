@@ -164,8 +164,12 @@ jobs:
             $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager list avd
             exit 1
           fi
-          # Use 2 CPU cores to speed up emulator startup
-          printf 'hw.cpu.ncore=2\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
+          # Use 2 CPU cores to speed up emulator startup.
+          # Set display to Pixel 6-like resolution (1080x2400 @ 420dpi) so the app
+          # renders at a realistic size. The default AVD (no --device flag) uses
+          # 320x640 @ 160dpi, which is extremely small and causes slow rendering
+          # and element-detection failures during UI tests.
+          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
 
       - name: Start Android emulator
         run: |
@@ -225,7 +229,7 @@ jobs:
             sleep 1
           done
 
-          timeout 600 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
+          timeout 900 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
             --configuration Debug \
             --logger "trx;LogFileName=android-results.trx" \
             -- \
@@ -297,6 +301,19 @@ jobs:
 
       - name: Install GNU coreutils (provides timeout)
         run: brew install coreutils
+
+      - name: Download iOS simulator runtime (if needed)
+        run: |
+          # Xcode 26+ on macos-26 runners may not have the iOS simulator runtime
+          # pre-installed. Download it if no iOS runtimes are available.
+          if xcrun simctl list runtimes | grep -qi ios; then
+            echo "iOS simulator runtime already available."
+          else
+            echo "No iOS simulator runtime found. Downloading..."
+            xcodebuild -downloadPlatform iOS
+            echo "Download complete. Available runtimes:"
+            xcrun simctl list runtimes
+          fi
 
       - name: Install Appium globally
         run: npm install -g appium

@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using TRViS.UITests.Infrastructure;
 
@@ -10,6 +11,19 @@ public class AppShellPage : PageObject
 	public AppShellPage(AppiumDriver driver) : base(driver) { }
 
 	public AppiumElement VersionLabel => FindByAutomationId(AutomationIds.Shell.VersionLabel);
+
+	/// <summary>
+	/// Ordered list of flyout item titles as they appear in AppShell.xaml.
+	/// Used by Windows keyboard navigation to calculate arrow-key presses.
+	/// </summary>
+	private static readonly string[] FlyoutItemOrder = [
+		"Select Train",
+		"D-TAC",
+		"Third Party Licenses",
+		"Settings",
+		"Firebase Setting",
+		"Privacy Policy",
+	];
 
 	public void OpenFlyout()
 	{
@@ -94,26 +108,6 @@ public class AppShellPage : PageObject
 		{
 			return (AppiumElement)wait.Until(d =>
 			{
-				// Windows: WinUI 3 NavigationView in LeftMinimal mode auto-closes the
-				// overlay pane when the UIA driver traverses focus. Reopen it on each
-				// probe by clicking the hamburger toggle if the pane is currently closed.
-				// On non-Windows platforms "Open Navigation" never exists, so this is a
-				// fast no-op (ImplicitWait is already set to zero above).
-				try
-				{
-					var toggle = d.FindElement(By.Name("Open Navigation"));
-					if (toggle.Displayed)
-					{
-						toggle.Click();
-						// Give the WinUI 3 pane-open animation time to settle and
-						// allow NavigationViewItems to appear in the UIA tree.
-						Thread.Sleep(1500);
-						NUnit.Framework.TestContext.Out.WriteLine(
-							$"[WaitForFlyoutItem] Pane reopened; page source:\n{d.PageSource}");
-					}
-				}
-				catch { }
-
 				// AccessibilityId (iOS, macOS; Windows if MAUI propagates AutomationId)
 				try
 				{
@@ -167,6 +161,86 @@ public class AppShellPage : PageObject
 		}
 	}
 
+	/// <summary>
+	/// Windows-specific: navigates to a flyout item using keyboard input.
+	/// WinUI 3's NavigationView overlay pane auto-dismisses when the UIA driver
+	/// performs tree traversal (FindElement calls). Keyboard navigation avoids
+	/// this by sending input directly without UIA queries while the pane is open.
+	/// </summary>
+	private void NavigateViaKeyboard(string title)
+	{
+		int targetIndex = Array.IndexOf(FlyoutItemOrder, title);
+		if (targetIndex < 0)
+			throw new ArgumentException($"Unknown flyout item title: '{title}'");
+
+		// The currently selected item is "Select Train" (index 0) after Firebase consent.
+		// When the pane opens, the selected item gets keyboard focus.
+		// ArrowDown moves through items sequentially.
+		int arrowDownCount = targetIndex; // 0-based: Select Train=0, D-TAC=1, etc.
+
+		for (int attempt = 0; attempt < 3; attempt++)
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			try
+			{
+				var toggle = Driver.FindElement(By.Name("Open Navigation"));
+				if (toggle.Displayed)
+				{
+					toggle.Click();
+					Thread.Sleep(800); // Wait for pane-open animation
+
+					// Navigate to target using keyboard (no UIA tree traversal).
+					// Tab moves focus into the pane list, ArrowDown navigates items.
+					var actions = new Actions(Driver);
+					actions.SendKeys(Keys.Tab);
+					actions.Pause(TimeSpan.FromMilliseconds(200));
+					for (int i = 0; i < arrowDownCount; i++)
+					{
+						actions.SendKeys(Keys.ArrowDown);
+						actions.Pause(TimeSpan.FromMilliseconds(100));
+					}
+					actions.SendKeys(Keys.Enter);
+					actions.Perform();
+					Thread.Sleep(500); // Wait for navigation to complete
+					return;
+				}
+			}
+			catch (Exception ex)
+			{
+				NUnit.Framework.TestContext.Out.WriteLine(
+					$"[NavigateViaKeyboard] Attempt {attempt + 1} failed: {ex.Message}");
+			}
+			finally
+			{
+				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+			}
+			Thread.Sleep(1000);
+		}
+		throw new InvalidOperationException($"Failed to navigate to '{title}' via keyboard after 3 attempts");
+	}
+
+	/// <summary>
+	/// Returns true if the current platform is Windows (detected by checking for
+	/// the "Open Navigation" button which only exists on WinUI).
+	/// </summary>
+	private bool IsWindowsPlatform()
+	{
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			Driver.FindElement(By.Name("Open Navigation"));
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
+
 	public SelectTrainPageObject NavigateToSelectTrain()
 	{
 		OpenFlyout();
@@ -176,29 +250,49 @@ public class AppShellPage : PageObject
 
 	public DTACViewHostPageObject NavigateToDTAC()
 	{
-		OpenFlyout();
-		WaitForFlyoutItem(AutomationIds.Shell.Flyout.DTAC, "D-TAC").Click();
+		if (IsWindowsPlatform())
+			NavigateViaKeyboard("D-TAC");
+		else
+		{
+			OpenFlyout();
+			WaitForFlyoutItem(AutomationIds.Shell.Flyout.DTAC, "D-TAC").Click();
+		}
 		return new DTACViewHostPageObject(Driver);
 	}
 
 	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()
 	{
-		OpenFlyout();
-		WaitForFlyoutItem(AutomationIds.Shell.Flyout.ThirdPartyLicenses, "Third Party Licenses").Click();
+		if (IsWindowsPlatform())
+			NavigateViaKeyboard("Third Party Licenses");
+		else
+		{
+			OpenFlyout();
+			WaitForFlyoutItem(AutomationIds.Shell.Flyout.ThirdPartyLicenses, "Third Party Licenses").Click();
+		}
 		return new ThirdPartyLicensesPageObject(Driver);
 	}
 
 	public EasterEggPageObject NavigateToSettings()
 	{
-		OpenFlyout();
-		WaitForFlyoutItem(AutomationIds.Shell.Flyout.Settings, "Settings").Click();
+		if (IsWindowsPlatform())
+			NavigateViaKeyboard("Settings");
+		else
+		{
+			OpenFlyout();
+			WaitForFlyoutItem(AutomationIds.Shell.Flyout.Settings, "Settings").Click();
+		}
 		return new EasterEggPageObject(Driver);
 	}
 
 	public FirebaseSettingPageObject NavigateToFirebase()
 	{
-		OpenFlyout();
-		WaitForFlyoutItem(AutomationIds.Shell.Flyout.Firebase, "Firebase Setting").Click();
+		if (IsWindowsPlatform())
+			NavigateViaKeyboard("Firebase Setting");
+		else
+		{
+			OpenFlyout();
+			WaitForFlyoutItem(AutomationIds.Shell.Flyout.Firebase, "Firebase Setting").Click();
+		}
 		return new FirebaseSettingPageObject(Driver);
 	}
 }
