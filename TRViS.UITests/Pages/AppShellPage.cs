@@ -1,7 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Windows;
-using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using TRViS.UITests.Infrastructure;
 
@@ -168,10 +167,51 @@ public class AppShellPage : PageObject
 	}
 
 	/// <summary>
+	/// Sends key presses using the Windows Appium driver's native extension.
+	/// The W3C Actions API is not supported by the Windows driver, so we use
+	/// the 'windows: keys' extension command with virtual key codes.
+	/// </summary>
+	private void SendWindowsKeys(params int[] virtualKeyCodes)
+	{
+		var actions = new List<Dictionary<string, object>>();
+		foreach (var vk in virtualKeyCodes)
+		{
+			actions.Add(new Dictionary<string, object>
+			{
+				{ "virtualKeyCode", vk },
+				{ "down", true },
+			});
+			actions.Add(new Dictionary<string, object>
+			{
+				{ "pause", 50 },
+			});
+			actions.Add(new Dictionary<string, object>
+			{
+				{ "virtualKeyCode", vk },
+				{ "down", false },
+			});
+			actions.Add(new Dictionary<string, object>
+			{
+				{ "pause", 100 },
+			});
+		}
+		Driver.ExecuteScript("windows: keys", new Dictionary<string, object>
+		{
+			{ "actions", actions },
+		});
+	}
+
+	// Virtual key codes for keyboard navigation
+	private const int VK_TAB = 0x09;
+	private const int VK_DOWN = 0x28;
+	private const int VK_RETURN = 0x0D;
+
+	/// <summary>
 	/// Windows-specific: navigates to a flyout item using keyboard input.
 	/// WinUI 3's NavigationView overlay pane auto-dismisses when the UIA driver
 	/// performs tree traversal (FindElement calls). Keyboard navigation avoids
 	/// this by sending input directly without UIA queries while the pane is open.
+	/// Uses the 'windows: keys' extension instead of W3C Actions (not supported).
 	/// </summary>
 	private void NavigateViaKeyboard(string title)
 	{
@@ -195,18 +235,13 @@ public class AppShellPage : PageObject
 					toggle.Click();
 					Thread.Sleep(800); // Wait for pane-open animation
 
-					// Navigate to target using keyboard (no UIA tree traversal).
-					// Tab moves focus into the pane list, ArrowDown navigates items.
-					var actions = new Actions(Driver);
-					actions.SendKeys(Keys.Tab);
-					actions.Pause(TimeSpan.FromMilliseconds(200));
+					// Build key sequence: Tab into pane, ArrowDown to target, Enter to select.
+					var keys = new List<int> { VK_TAB };
 					for (int i = 0; i < arrowDownCount; i++)
-					{
-						actions.SendKeys(Keys.ArrowDown);
-						actions.Pause(TimeSpan.FromMilliseconds(100));
-					}
-					actions.SendKeys(Keys.Enter);
-					actions.Perform();
+						keys.Add(VK_DOWN);
+					keys.Add(VK_RETURN);
+
+					SendWindowsKeys(keys.ToArray());
 					Thread.Sleep(500); // Wait for navigation to complete
 					return;
 				}
