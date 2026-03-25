@@ -82,7 +82,7 @@ public class AppShellPage : PageObject
 			// Click the toggle to open the pane; if absent the pane is already open.
 			try
 			{
-				var paneToggle = Driver.FindElement(By.Name("Open Navigation"));
+				var paneToggle = Driver.FindElement(By.XPath("//*[@Name='Open Navigation']"));
 				if (paneToggle.Displayed)
 				{
 					paneToggle.Click();
@@ -125,7 +125,7 @@ public class AppShellPage : PageObject
 				// Name / UIA Name (all platforms; Windows NavigationViewItem content)
 				try
 				{
-					var el = d.FindElement(By.Name(title));
+					var el = d.FindElement(MobileBy.Name(title));
 					if (el.Displayed) return el;
 				}
 				catch { }
@@ -189,7 +189,7 @@ public class AppShellPage : PageObject
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			try
 			{
-				var toggle = Driver.FindElement(By.Name("Open Navigation"));
+				var toggle = Driver.FindElement(By.XPath("//*[@Name='Open Navigation']"));
 				if (toggle.Displayed)
 				{
 					toggle.Click();
