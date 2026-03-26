@@ -254,10 +254,39 @@ fi
 # Boot was started before the build to overlap boot time with compile time.
 # Do NOT erase the simulator: a full erase forces an OS-image reinstall
 # that takes >10 min in CI. Reinstalling the app per-test is sufficient.
+#
+# NOTE: `xcrun simctl bootstatus -b` can hang indefinitely in some CI
+# environments (e.g., GitHub Actions macos-26 runners with Xcode 26).
+# Instead, we poll the simulator state directly for robustness.
 if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "Waiting for simulator to finish booting (up to 20 minutes)..."
-  timeout 1200 xcrun simctl bootstatus "$DEVICE_ID" -b \
-    || die "Simulator $DEVICE_ID failed to boot within 20 minutes"
+  MAX_WAIT=1200  # 20 minutes
+  POLL_INTERVAL=5
+  ELAPSED=0
+
+  while [[ $ELAPSED -lt $MAX_WAIT ]]; do
+    # Check the simulator state via simctl list
+    SIM_STATE=$(xcrun simctl list devices -j 2>/dev/null \
+      | jq -r --arg udid "$DEVICE_ID" \
+          '.devices | to_entries[] | .value[] | select(.udid == $udid) | .state' \
+      2>/dev/null || echo "Unknown")
+
+    if [[ "$SIM_STATE" == "Booted" ]]; then
+      log "Simulator is booted (state: $SIM_STATE)"
+      break
+    fi
+
+    log "Simulator state: $SIM_STATE (elapsed: ${ELAPSED}s, waiting...)"
+    sleep $POLL_INTERVAL
+    ELAPSED=$((ELAPSED + POLL_INTERVAL))
+  done
+
+  if [[ "$SIM_STATE" != "Booted" ]]; then
+    # Dump simulator list for diagnostics
+    log "Simulator state after ${ELAPSED}s: $SIM_STATE"
+    xcrun simctl list devices | grep -A2 -B2 "$DEVICE_ID" || true
+    die "Simulator $DEVICE_ID failed to boot within 20 minutes (state: $SIM_STATE)"
+  fi
 fi
 
 # ── Install Mac Catalyst app ────────────────────────────────────
