@@ -260,13 +260,6 @@ public class AppShellPage : PageObject
 		throw new InvalidOperationException($"Failed to navigate to '{title}' via keyboard after 3 attempts");
 	}
 
-	public SelectTrainPageObject NavigateToSelectTrain()
-	{
-		OpenFlyout();
-		WaitForFlyoutItem(AutomationIds.Shell.Flyout.SelectTrain, "Select Train").Click();
-		return new SelectTrainPageObject(Driver);
-	}
-
 	public DTACViewHostPageObject NavigateToDTAC()
 	{
 		if (_isWindows)
@@ -303,15 +296,4 @@ public class AppShellPage : PageObject
 		return new EasterEggPageObject(Driver);
 	}
 
-	public FirebaseSettingPageObject NavigateToFirebase()
-	{
-		if (_isWindows)
-			NavigateViaKeyboard("Firebase Setting");
-		else
-		{
-			OpenFlyout();
-			WaitForFlyoutItem(AutomationIds.Shell.Flyout.Firebase, "Firebase Setting").Click();
-		}
-		return new FirebaseSettingPageObject(Driver);
-	}
 }

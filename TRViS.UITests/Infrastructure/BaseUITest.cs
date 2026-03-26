@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 
 namespace TRViS.UITests.Infrastructure;
@@ -16,7 +15,6 @@ public abstract class BaseUITest
 	protected bool IsAndroid { get; private set; }
 
 	private static readonly TimeSpan DefaultImplicitWait = TimeSpan.FromSeconds(10);
-	private static readonly TimeSpan DefaultExplicitWait = TimeSpan.FromSeconds(30);
 
 	/// <summary>
 	/// Resets per-test app state so every test begins from a clean slate
@@ -145,38 +143,6 @@ public abstract class BaseUITest
 			TakeScreenshot();
 			Driver.Quit();
 		}
-	}
-
-	/// <summary>
-	/// Returns the correct locator for MAUI AutomationId on the current platform.
-	/// Android: By.Id (resource-id); others: MobileBy.AccessibilityId.
-	/// </summary>
-	private By AutomationIdLocator(string automationId)
-		=> IsAndroid ? By.Id(automationId) : MobileBy.AccessibilityId(automationId);
-
-	protected AppiumElement FindByAutomationId(string automationId)
-		=> (AppiumElement)Driver.FindElement(AutomationIdLocator(automationId));
-
-	protected AppiumElement WaitForElement(string automationId, TimeSpan? timeout = null)
-	{
-		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(
-			Driver,
-			timeout ?? DefaultExplicitWait);
-
-		var locator = AutomationIdLocator(automationId);
-
-		return (AppiumElement)wait.Until(d =>
-		{
-			try
-			{
-				var element = d.FindElement(locator);
-				return element.Displayed ? element : null!;
-			}
-			catch (NoSuchElementException)
-			{
-				return null!;
-			}
-		});
 	}
 
 	protected void TakeScreenshot()
