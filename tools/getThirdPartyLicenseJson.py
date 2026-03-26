@@ -102,8 +102,13 @@ def getAndTrySetUniqueKey(dic: Dict[str, str], key: str) -> str:
   dic[key] = hashStr
   return hashStr
 
-async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str):
-  async with session.get(srcUrl) as result:
+async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str, github_headers: dict = None):
+  # Use GitHub authentication only for GitHub URLs
+  headers = None
+  if github_headers and ('github.com' in srcUrl or 'githubusercontent.com' in srcUrl):
+    headers = github_headers
+  
+  async with session.get(srcUrl, headers=headers) as result:
     if not result.ok:
       raise EOFError(f'GET Request to {srcUrl} failed (status={result.status})')
 
@@ -236,7 +241,7 @@ async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: s
     licenseInfo.licenseDataType = LICENSE_TYPE_HASH
     licenseInfo.license = hashStr
 
-async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licenseInfo: LicenseInfo, targetDir: str):
+async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licenseInfo: LicenseInfo, targetDir: str, github_headers: dict = None):
   licenseList = [str(v) for v in re.split(r"\(|\)| ", licenseInfo.license) if (v != '' or v.isspace()) and v != "OR" and v != "AND"]
   for licenseId in licenseList:
     licenseFilePath = joinPath(targetDir, licenseId)
@@ -244,7 +249,7 @@ async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licen
       continue
 
     url = f'https://raw.githubusercontent.com/spdx/license-list-data/master/text/{licenseId}.txt'
-    await getAndWriteFile(session, url, licenseFilePath)
+    await getAndWriteFile(session, url, licenseFilePath, headers=github_headers)
 
 def dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir: str, targetDir: str, licenseInfo: LicenseInfo):
   packageNameLower = str.lower(licenseInfo.id)
@@ -256,11 +261,11 @@ def dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir: str, targetDir: st
   licenseInfo.license = f'{licenseInfo.id}/{licenseInfo.license}'
 
 
-async def dumpLicenseTextFile(session: ClientSession, targetDir: str, globalPackagesDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str]):
+async def dumpLicenseTextFile(session: ClientSession, targetDir: str, globalPackagesDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str], github_headers: dict = None):
   if licenseInfo.licenseDataType is None:
     await dumpLicenseTextFileFromLicenseUrl(session, targetDir, licenseInfo, urlDic)
   elif licenseInfo.licenseDataType == LICENSE_TYPE_EXPRESSION:
-    await dumpLicenseTextFileFromLicenseExpression(session, licenseInfo, targetDir)
+    await dumpLicenseTextFileFromLicenseExpression(session, licenseInfo, targetDir, github_headers)
   elif licenseInfo.licenseDataType == LICENSE_TYPE_FILE:
     dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir, targetDir, licenseInfo)
 
@@ -302,8 +307,20 @@ async def main(platform: str, targetDir: str) -> int:
   headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
   }
+  
+  # Prepare GitHub API headers with authentication if token is available
+  # GitHub token can be provided via GITHUB_TOKEN environment variable
+  import os
+  github_headers = None
+  github_token = os.environ.get('GITHUB_TOKEN')
+  if github_token:
+    github_headers = {
+      'Authorization': f'token {github_token}',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+  
   async with ClientSession(connector = TCPConnector(limit = 2, force_close = True), headers = headers) as session:
-    await asyncio.gather(*[dumpLicenseTextFile(session, targetDir, globalPackagesDir, v, urlDic) for v in packageInfoList])
+    await asyncio.gather(*[dumpLicenseTextFile(session, targetDir, globalPackagesDir, v, urlDic, github_headers) for v in packageInfoList])
 
   with open(f'{targetDir}/{LICENSE_INFO_LIST_FILE_NAME}', 'w') as f:
     json.dump([asdict(v) for v in packageInfoList], f)
