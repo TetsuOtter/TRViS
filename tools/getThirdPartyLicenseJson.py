@@ -120,7 +120,7 @@ async def getAndWriteFile(session: ClientSession, srcUrl: str, targetPath: str, 
     if not result.closed:
       await result.wait_for_close()
 
-async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str]):
+async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str], github_headers: dict = None):
   url = licenseInfo.licenseUrl
 
   if not url:
@@ -223,7 +223,7 @@ async def dumpLicenseTextFileFromLicenseUrl(session: ClientSession, targetDir: s
       return
 
     try:
-      await getAndWriteFile(session, url, licenseFilePath)
+      await getAndWriteFile(session, url, licenseFilePath, github_headers=github_headers)
     except EOFError as e:
       print(f"Failed to GET {url}: {e}", file=stderr)
       # Create a placeholder file so the app can display something instead of failing
@@ -249,7 +249,7 @@ async def dumpLicenseTextFileFromLicenseExpression(session: ClientSession, licen
       continue
 
     url = f'https://raw.githubusercontent.com/spdx/license-list-data/master/text/{licenseId}.txt'
-    await getAndWriteFile(session, url, licenseFilePath, headers=github_headers)
+    await getAndWriteFile(session, url, licenseFilePath, github_headers=github_headers)
 
 def dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir: str, targetDir: str, licenseInfo: LicenseInfo):
   packageNameLower = str.lower(licenseInfo.id)
@@ -263,7 +263,7 @@ def dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir: str, targetDir: st
 
 async def dumpLicenseTextFile(session: ClientSession, targetDir: str, globalPackagesDir: str, licenseInfo: LicenseInfo, urlDic: Dict[str, str], github_headers: dict = None):
   if licenseInfo.licenseDataType is None:
-    await dumpLicenseTextFileFromLicenseUrl(session, targetDir, licenseInfo, urlDic)
+    await dumpLicenseTextFileFromLicenseUrl(session, targetDir, licenseInfo, urlDic, github_headers)
   elif licenseInfo.licenseDataType == LICENSE_TYPE_EXPRESSION:
     await dumpLicenseTextFileFromLicenseExpression(session, licenseInfo, targetDir, github_headers)
   elif licenseInfo.licenseDataType == LICENSE_TYPE_FILE:
