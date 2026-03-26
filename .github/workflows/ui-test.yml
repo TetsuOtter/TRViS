@@ -1,0 +1,577 @@
+name: UI Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # .NET / tooling versions
+  SDK_VERSION: "10.0.x"
+  NODE_VERSION: "24"
+  XCODE_VERSION: "26.3"
+
+  # Project paths
+  CSPROJ_PATH: ./TRViS/TRViS.csproj
+  UITESTS_CSPROJ_PATH: ./TRViS.UITests/TRViS.UITests.csproj
+
+  # Target frameworks
+  TARGET_FRAMEWORK_ANDROID: net10.0-android
+  TARGET_FRAMEWORK_IOS: net10.0-ios
+  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
+  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
+
+  # Target runtimes
+  TARGET_RUNTIME_ANDROID: android-x64
+  TARGET_RUNTIME_IOS_SIM: iossimulator-arm64
+  TARGET_RUNTIME_WIN: win-x64
+
+  # App identity
+  APP_PACKAGE: dev.t0r.trvis
+
+  # Build flags
+  DISABLE_FIREBASE: DISABLE_FIREBASE
+
+  # Appium
+  # Use 127.0.0.1 (not localhost) on Windows because PowerShell's
+  # Invoke-WebRequest resolves "localhost" to ::1 (IPv6) while Appium
+  # listens on 0.0.0.0 (IPv4 only), causing connection refused.
+  APPIUM_URL: http://127.0.0.1:4723
+
+  # Android emulator settings
+  ANDROID_EMULATOR_API_LEVEL: 34
+  ANDROID_EMULATOR_ARCH: x86_64
+  ANDROID_EMULATOR_PROFILE: pixel_6
+  ANDROID_EMULATOR_AVD_NAME: trvis-test
+  # google_apis includes Google Play Services, required to prevent Firebase
+  # native ContentProviders (FirebaseInitProvider) from crashing on startup.
+  ANDROID_EMULATOR_TAG: google_apis
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Android UI Tests  (self-managed emulator)
+  # ─────────────────────────────────────────────
+  ui-test-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo chown -R $USER /dev/kvm
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install Android workload
+        run: dotnet workload install maui-android
+
+      - name: Create placeholder google-services.json
+        run: |
+          cat > TRViS/Google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "placeholder-project-id",
+              "storage_bucket": "placeholder-project-id.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "${{ env.APP_PACKAGE }}"
+                  }
+                },
+                "api_key": [{ "current_key": "placeholder_api_key" }],
+                "services": {}
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
+      - name: Build Android app
+        # -r android-x86_64 ensures the APK contains x86_64 native libraries so it
+        # can run natively on the x86_64 emulator (no ARM translation needed).
+        # EmbedAssembliesIntoApk=true is required so assemblies are bundled in the APK
+        # file itself. Debug builds default to Fast Deployment (assemblies deployed
+        # separately via adb), which causes a startup crash when Appium installs the
+        # APK without also pushing the assembly files.
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+          -r ${{ env.TARGET_RUNTIME_ANDROID }}
+          -c Debug
+          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+          /p:AndroidCreatePackagePerAbi=false
+          /p:EmbedAssembliesIntoApk=true
+
+      - name: Install Appium and UiAutomator2 driver
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+
+      - name: Install Android emulator system image
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "emulator" \
+            "platform-tools" \
+            "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};${{ env.ANDROID_EMULATOR_TAG }};${{ env.ANDROID_EMULATOR_ARCH }}" \
+            > /dev/null
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+
+      - name: Create Android AVD
+        run: |
+          # Ubuntu 24.04 cmdline-tools default to $XDG_CONFIG_HOME/.android/avd
+          # rather than $HOME/.android/avd.  Set ANDROID_AVD_HOME explicitly so
+          # avdmanager, the emulator, and our config.ini patch all agree on the
+          # same path.  Also write it to GITHUB_ENV so subsequent steps inherit it.
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_AVD_HOME"
+          # Note: --device flag is intentionally omitted. Specifying a device profile
+          # (e.g. pixel_6) that does not match the installed system-image tag
+          # causes avdmanager to exit 0 but skip AVD directory creation.
+          echo no | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager \
+            create avd \
+            --force \
+            -n ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+            --package "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};${{ env.ANDROID_EMULATOR_TAG }};${{ env.ANDROID_EMULATOR_ARCH }}" \
+            2>&1
+          if [ ! -d "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd" ]; then
+            echo "ERROR: AVD directory was not created by avdmanager"
+            $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager list avd
+            exit 1
+          fi
+          # Use 2 CPU cores to speed up emulator startup.
+          # Set display to Pixel 6-like resolution (1080x2400 @ 420dpi) so the app
+          # renders at a realistic size. The default AVD (no --device flag) uses
+          # 320x640 @ 160dpi, which is extremely small and causes slow rendering
+          # and element-detection failures during UI tests.
+          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
+
+      - name: Start Android emulator
+        run: |
+          $ANDROID_SDK_ROOT/emulator/emulator \
+            -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -no-snapshot \
+            -noaudio \
+            -no-boot-anim \
+            &
+          EMULATOR_PID=$!
+          echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
+          echo "Emulator started with PID $EMULATOR_PID"
+
+      - name: Wait for emulator to boot
+        run: |
+          echo "Waiting for ADB device..."
+          $ANDROID_SDK_ROOT/platform-tools/adb wait-for-device
+          echo "Waiting for sys.boot_completed (up to 5 min)..."
+          timeout 300 bash -c \
+            'until $ANDROID_SDK_ROOT/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | grep -q "^1$"; do sleep 5; done'
+          # Disable animations to speed up UI tests
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global window_animation_scale 0.0
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global transition_animation_scale 0.0
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global animator_duration_scale 0.0
+          # Unlock screen
+          $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
+          echo "Emulator is ready!"
+
+      - name: Run Android UI Tests
+        run: |
+          APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: No APK found in TRViS/bin/Debug/net10.0-android"
+            find TRViS/bin/Debug/ -type f -name "*.apk" 2>/dev/null \
+              || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+            exit 1
+          fi
+          echo "APK: $APK_PATH"
+
+          appium &
+          APPIUM_PID=$!
+          echo "Appium PID: $APPIUM_PID"
+
+          echo "Waiting for Appium server to start..."
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4723/status > /dev/null 2>&1; then
+              echo "Appium server is ready!"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: Appium server did not start within 30 seconds"
+              kill "$APPIUM_PID" 2>/dev/null || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+          timeout 900 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
+            --configuration Debug \
+            --logger "trx;LogFileName=android-results.trx" \
+            -- \
+            "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
+            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
+            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"http://localhost:4723\")"
+          TEST_EXIT_CODE=$?
+
+          kill "$APPIUM_PID" 2>/dev/null || true
+          exit $TEST_EXIT_CODE
+
+      - name: Dump logcat on failure
+        if: failure()
+        run: |
+          echo "=== logcat (last 500 lines) ==="
+          $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 500 2>/dev/null || true
+
+      - name: Stop Android emulator
+        if: always()
+        run: |
+          # Force-kill all emulator processes immediately.
+          # Using 'adb emu kill' alone can leave QEMU hanging for 30+ minutes.
+          $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
+          pkill -9 -f "qemu-system-x86" 2>/dev/null || true
+          pkill -9 -f "/emulator/emulator" 2>/dev/null || true
+          if [ -n "${EMULATOR_PID:-}" ]; then
+            kill -9 "$EMULATOR_PID" 2>/dev/null || true
+          fi
+          echo "Emulator stopped."
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # iOS Simulator UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-ios:
+    runs-on: macos-26
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install iOS and MacCatalyst workloads
+        run: dotnet workload install maui-ios maccatalyst
+
+      - name: Install GNU coreutils (provides timeout)
+        run: brew install coreutils
+
+      - name: Download iOS simulator runtime (if needed)
+        run: |
+          # Xcode 26+ on macos-26 runners may not have the iOS simulator runtime
+          # pre-installed. Download it if no iOS runtimes are available.
+          if xcrun simctl list runtimes | grep -qi ios; then
+            echo "iOS simulator runtime already available."
+          else
+            echo "No iOS simulator runtime found. Downloading..."
+            xcodebuild -downloadPlatform iOS
+            echo "Download complete. Available runtimes:"
+            xcrun simctl list runtimes
+          fi
+
+      - name: Install Appium globally
+        run: npm install -g appium
+
+      - name: Install XCUITest driver
+        run: appium driver install xcuitest
+
+      - name: Create placeholder GoogleService-Info.plist
+        run: |
+          cat > TRViS/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>000000000000-placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>com.googleusercontent.apps.000000000000-placeholder</string>
+            <key>API_KEY</key>
+            <string>placeholder_api_key</string>
+            <key>GCM_SENDER_ID</key>
+            <string>000000000000</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>${{ env.APP_PACKAGE }}</string>
+            <key>PROJECT_ID</key>
+            <string>placeholder-project-id</string>
+            <key>STORAGE_BUCKET</key>
+            <string>placeholder-project-id.appspot.com</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <true/>
+            <key>IS_SIGNIN_ENABLED</key>
+            <true/>
+            <key>GOOGLE_APP_ID</key>
+            <string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Run iOS UI Tests
+        run: ./run-ui-tests.sh ios --skip-install
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # macOS (Mac Catalyst) UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-macos:
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install MacCatalyst workload
+        run: dotnet workload install maccatalyst
+
+      - name: Install GNU coreutils (provides timeout)
+        run: brew install coreutils
+
+      - name: Install Appium globally
+        run: npm install -g appium
+
+      - name: Install mac2 driver
+        run: appium driver install mac2
+
+      - name: Run macOS UI Tests
+        run: ./run-ui-tests.sh mac --skip-install
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # Windows UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Enable Developer Mode
+        run: |
+          reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
+
+      - name: Build Windows app
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_WIN }}
+          -c Debug
+          /p:WindowsPackageType=None
+          /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WIN }}
+          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+
+      - name: Install Appium and Windows driver
+        run: |
+          npm install -g appium
+          appium driver install --source=npm appium-windows-driver
+
+      - name: Run Windows UI Tests
+        run: |
+          # Find the main app executable (not RestartAgent.exe)
+          $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "TRViS.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $exePath) {
+            Write-Host "[ERROR] TRViS.exe not found"
+            exit 1
+          }
+          Write-Host "EXE: $exePath"
+
+          # Find the Appium CLI entry point from the installed package's package.json.
+          # This is the only reliable way to get the correct JS file regardless of
+          # Appium version (2.x used build/lib/main.js, 3.x uses bin/appium.js).
+          # Running node.exe directly avoids the cmd.exe wrapper that breaks
+          # -RedirectStandardOutput when used with Start-Process.
+          $nodeExe = (Get-Command node).Source
+          $npmRoot = (npm root -g).Trim()
+          Write-Host "node: $nodeExe"
+          Write-Host "npm root: $npmRoot"
+
+          $appiumPkgJson = Join-Path $npmRoot "appium\package.json"
+          if (-not (Test-Path $appiumPkgJson)) {
+            Write-Host "[ERROR] appium package.json not found at $appiumPkgJson"
+            exit 1
+          }
+          $binField = (Get-Content $appiumPkgJson -Raw | ConvertFrom-Json).bin.appium
+          $binRelative = $binField -replace '^\./', ''
+          $appiumBinJs = Join-Path $npmRoot "appium\$binRelative"
+          Write-Host "appium script: $appiumBinJs"
+          if (-not (Test-Path $appiumBinJs)) {
+            Write-Host "[ERROR] appium script not found: $appiumBinJs"
+            Write-Host "package.json bin field: $binField"
+            exit 1
+          }
+
+          Write-Host "Starting Appium server..."
+          $appiumProcess = Start-Process `
+            -FilePath $nodeExe `
+            -ArgumentList $appiumBinJs `
+            -PassThru `
+            -RedirectStandardOutput "appium.log" `
+            -RedirectStandardError "appium-error.log"
+          Write-Host "Appium PID: $($appiumProcess.Id)"
+
+          # Give the process 5 seconds to start, then verify it did not exit immediately.
+          Start-Sleep -Seconds 5
+          if ($appiumProcess.HasExited) {
+            Write-Host "[ERROR] Appium exited immediately (exit code $($appiumProcess.ExitCode))"
+            Write-Host "=== appium.log ==="
+            Get-Content appium.log -ErrorAction SilentlyContinue
+            Write-Host "=== appium-error.log ==="
+            Get-Content appium-error.log -ErrorAction SilentlyContinue
+            exit 1
+          }
+
+          # Wait for Appium to be ready by polling the /status endpoint.
+          # Each iteration: up to 1s request timeout + 1s sleep = ~2s.
+          # Allow 120 iterations (~4 minutes total) for Windows Defender / AV
+          # to inspect the new node process before it can bind to the port.
+          $timeout = 120
+          $elapsed = 0
+          $ready = $false
+          while ($elapsed -lt $timeout) {
+            try {
+              $response = Invoke-WebRequest -Uri "${{ env.APPIUM_URL }}/status" -Method GET -TimeoutSec 1 -ErrorAction Stop
+              if ($response.StatusCode -eq 200) {
+                Write-Host "Appium server is ready!"
+                $ready = $true
+                break
+              }
+            } catch {
+              if ($appiumProcess.HasExited) {
+                Write-Host "[ERROR] Appium process exited unexpectedly (exit code $($appiumProcess.ExitCode))"
+                Write-Host "=== appium.log ==="
+                Get-Content appium.log -ErrorAction SilentlyContinue
+                Write-Host "=== appium-error.log ==="
+                Get-Content appium-error.log -ErrorAction SilentlyContinue
+                exit 1
+              }
+              Start-Sleep -Seconds 1
+              $elapsed++
+            }
+          }
+
+          if (-not $ready) {
+            Write-Host "[ERROR] Appium server did not respond within $($timeout * 2) seconds"
+            Write-Host "=== appium.log ==="
+            Get-Content appium.log -ErrorAction SilentlyContinue
+            Write-Host "=== appium-error.log ==="
+            Get-Content appium-error.log -ErrorAction SilentlyContinue
+            exit 1
+          }
+          Write-Host "=== appium.log (startup) ==="
+          Get-Content appium.log -ErrorAction SilentlyContinue
+
+          # Run tests
+          dotnet test ${{ env.UITESTS_CSPROJ_PATH }} `
+            --configuration Debug `
+            --logger "trx;LogFileName=windows-results.trx" `
+            -- `
+            "TestRunParameters.Parameter(name=`"platform`",value=`"windows`")" `
+            "TestRunParameters.Parameter(name=`"appPath`",value=`"$exePath`")" `
+            "TestRunParameters.Parameter(name=`"appiumUrl`",value=`"${{ env.APPIUM_URL }}`")"
+        shell: pwsh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-ui-test-results
+          path: "**/*.trx"

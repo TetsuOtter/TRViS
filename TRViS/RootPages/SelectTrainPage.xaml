@@ -35,6 +35,7 @@
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 		<Label
+			AutomationId="SelectTrain.Title"
 			Margin="8,4"
 			VerticalOptions="Center"
 			Text="TRViS"
@@ -47,14 +48,17 @@
 			JustifyContent="End"
 			Grid.Row="1">
 			<Button
+				AutomationId="SelectTrain.LoadSampleButton"
 				Text="Load Sample"
 				Margin="4"
 				Clicked="LoadSampleButton_Clicked"/>
 			<Button
+				AutomationId="SelectTrain.LoadFromWebButton"
 				Text="Load from Web 🌍"
 				Margin="4"
 				Clicked="LoadFromWebButton_Clicked"/>
 			<Button
+				AutomationId="SelectTrain.SelectDatabaseButton"
 				Text="Select Database File"
 				Margin="4"
 				Clicked="SelectDatabaseButton_Clicked"/>
@@ -75,6 +79,7 @@
 						FontSize="Subtitle"
 						Text="Work Group"/>
 					<CollectionView
+						AutomationId="SelectTrain.WorkGroupList"
 						Grid.Row="1"
 						ItemsSource="{Binding WorkGroupList}"
 						SelectedItem="{Binding SelectedWorkGroup, Mode=TwoWay}"
@@ -105,6 +110,7 @@
 						FontSize="Subtitle"
 						Text="Work"/>
 					<CollectionView
+						AutomationId="SelectTrain.WorkList"
 						Grid.Row="1"
 						ItemsSource="{Binding WorkList}"
 						SelectedItem="{Binding SelectedWork, Mode=TwoWay}"
