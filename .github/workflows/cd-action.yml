@@ -64,7 +64,7 @@ jobs:
       build_number: ${{ steps.build_number.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event_name == 'push' && github.head_ref || github.event_name == 'pull_request' && github.head_ref || '' }}
 
@@ -188,14 +188,14 @@ jobs:
         env:
           KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Xcode version
-        uses: maxim-lobanov/setup-xcode@v1.6.0
+        uses: maxim-lobanov/setup-xcode@v1.7.0
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
       - name: Install dotnet workloads
@@ -204,7 +204,7 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
       - name: Prapare Python Package
@@ -214,11 +214,15 @@ jobs:
       - name: Dump Third Party License Info
         id: dump-third-party-license-info
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
       - name: Dump Third Party License Info (Retry)
         if: steps.dump-third-party-license-info.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py ios ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
@@ -251,7 +255,7 @@ jobs:
           /p:_RequireCodeSigning=true
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ipa
           path: ${{ env.IPA_PATH }}
@@ -260,7 +264,7 @@ jobs:
       - name: tar dSYM
         run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
       - name: Upload dSYM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dSYM
           path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
@@ -285,9 +289,9 @@ jobs:
       - get-version
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
       - name: Install dotnet workloads
@@ -296,7 +300,7 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
       - name: Prapare Python Package
@@ -306,11 +310,15 @@ jobs:
       - name: Dump Third Party License Info
         id: dump-third-party-license-info
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
       - name: Dump Third Party License Info (Retry)
         if: steps.dump-third-party-license-info.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
@@ -347,14 +355,14 @@ jobs:
           /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
 
       - name: Upload AAB
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: aab
           path: ${{ env.AAB_PATH }}
           retention-days: 3
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: apk
           path: ${{ env.APK_PATH }}
@@ -408,14 +416,14 @@ jobs:
         env:
           KEYCHAIN_NAME: ${{ steps.gen-keychain-name.outputs.keychain-name }}.keychain
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Xcode version
-        uses: maxim-lobanov/setup-xcode@v1.6.0
+        uses: maxim-lobanov/setup-xcode@v1.7.0
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
       - name: Install dotnet workloads
@@ -424,7 +432,7 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME_MAC }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
       - name: Prapare Python Package
@@ -434,11 +442,15 @@ jobs:
       - name: Dump Third Party License Info
         id: dump-third-party-license-info
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
       - name: Dump Third Party License Info (Retry)
         if: steps.dump-third-party-license-info.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py maccatalyst ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
@@ -466,7 +478,7 @@ jobs:
           ${{ env.PKG_PATH }}
 
       - name: Upload PKG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pkg
           path: ${{ env.PKG_PATH }}
@@ -494,9 +506,9 @@ jobs:
       WITHOUT_ANDROID: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.SDK_VERSION }}
       - name: Install dotnet workloads
@@ -505,7 +517,7 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
       - name: Prapare Python Package
@@ -515,11 +527,15 @@ jobs:
       - name: Dump Third Party License Info
         id: dump-third-party-license-info
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
       - name: Dump Third Party License Info (Retry)
         if: steps.dump-third-party-license-info.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python ./tools/getThirdPartyLicenseJson.py windows ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
@@ -538,7 +554,7 @@ jobs:
           /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
       - name: Upload x64
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ASSET_NAME_WIN_X64 }}
           path: ${{ env.OUTPUT_DIR }}
@@ -561,7 +577,7 @@ jobs:
           /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
       - name: Upload x64 Self Contained
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
           path: ${{ env.OUTPUT_DIR }}
@@ -582,7 +598,7 @@ jobs:
           /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
       - name: Upload x86
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ASSET_NAME_WIN_X86 }}
           path: ${{ env.OUTPUT_DIR }}
@@ -605,7 +621,7 @@ jobs:
           /p:ApplicationVersion=${{ needs.get-version.outputs.build_number }}
 
       - name: Upload x86 Self Contained
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
           path: ${{ env.OUTPUT_DIR }}
@@ -640,7 +656,7 @@ jobs:
           TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
       - name: Download IPA
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ipa
           path: ${{ env.OUTPUT_DIR }}
@@ -692,7 +708,7 @@ jobs:
           TARGET_FILE: AuthKey_${{ secrets.APPSTORECONNECT_API_KEY }}.p8
 
       - name: Download PKG
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pkg
           path: ${{ env.OUTPUT_DIR }}
@@ -743,7 +759,7 @@ jobs:
       tag-name: ${{ steps.tag-name.outputs.tag-name }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: fetch all history to assign tag
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
         run: git fetch --unshallow --no-tags --no-recurse-submodules origin +${{ github.sha }}:${{ github.ref }}
@@ -801,27 +817,27 @@ jobs:
 
     steps:
       - name: Download APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: apk
           path: ${{ env.OUTPUT_DIR }}
       - name: Download windows asset (x64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.ASSET_NAME_WIN_X64 }}
           path: ${{ env.ASSET_NAME_WIN_X64 }}
       - name: Download windows asset (x86)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.ASSET_NAME_WIN_X86 }}
           path: ${{ env.ASSET_NAME_WIN_X86 }}
       - name: Download windows asset (x64 self-contained)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
           path: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
       - name: Download windows asset (x86 self-contained)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
           path: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
