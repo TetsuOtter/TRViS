@@ -29,6 +29,7 @@
 			Margin="0,0,0,30"/>
 
 		<Button
+			AutomationId="DTAC.MenuButton"
 			x:Name="MenuButton"
 			Grid.Row="1"
 			Margin="8,4"
@@ -72,6 +73,7 @@
 				BackgroundColor="Transparent"
 				Clicked="OnChangeThemeButtonClicked"/>
 			<Label
+				AutomationId="DTAC.TimeLabel"
 				x:Name="TimeLabel"
 				Text="12:34:56"
 				Margin="0"
@@ -86,6 +88,7 @@
 		</HorizontalStackLayout>
 
 		<Label
+			AutomationId="DTAC.TitleLabel"
 			x:Name="TitleLabel"
 			Grid.Row="1"
 			FontFamily=""
@@ -106,14 +109,17 @@
 			Padding="4,0"
 			BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}">
 			<local:TabButton
+				AutomationId="DTAC.TabHako"
 				Text="ハ　コ"
 				CurrentMode="{Binding TabMode}"
 				TargetMode="Hako"/>
 			<local:TabButton
+				AutomationId="DTAC.TabTimetable"
 				Text="時刻表"
 				CurrentMode="{Binding TabMode}"
 				TargetMode="VerticalView"/>
 			<local:TabButton
+				AutomationId="DTAC.TabWorkAffix"
 				Text="行路添付"
 				IsEnabled="False"
 				CurrentMode="{Binding TabMode}"
