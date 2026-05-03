@@ -41,14 +41,10 @@ internal static class PresenterFactory
 
 		var appViewModelAdapter = new AppViewModelAdapter(rawAppViewModel);
 		var timeProvider = new TimeProviderAdapter(InstanceManager.LocationService);
-		var userAlerts = new UserAlertAdapter();
-		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
 
 		return new ViewHostPresenter(
 			appViewModelAdapter,
-			timeProvider,
-			userAlerts,
-			crashLogger);
+			timeProvider);
 	}
 
 	/// <summary>
@@ -109,13 +105,6 @@ internal static class PresenterFactory
 	/// </summary>
 	public static IDtacCrashLogger GetCrashLogger()
 		=> new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
-
-	/// <summary>
-	/// Returns an IAppViewModelProvider wrapping the global AppViewModel.
-	/// Used by View-layer components that need to observe WindowWidth or other properties.
-	/// </summary>
-	public static IAppViewModelProvider GetAppViewModelProvider()
-		=> new AppViewModelAdapter(InstanceManager.AppViewModel);
 
 	/// <summary>
 	/// Returns the raw AppViewModel for View-layer components that need it as BindingContext.

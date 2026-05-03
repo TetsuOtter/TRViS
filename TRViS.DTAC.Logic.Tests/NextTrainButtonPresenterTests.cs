@@ -41,10 +41,7 @@ public class NextTrainButtonPresenterTests
 		public WorkGroup? SelectedWorkGroup { get; set; }
 		public Work? SelectedWork { get; set; }
 		public TrainData? SelectedTrainData { get; set; }
-		public AppTheme CurrentAppTheme { get; set; }
-		public bool IsBgAppIconVisible { get; set; }
 		public event PropertyChangedEventHandler? PropertyChanged;
-		public event EventHandler<AppTheme>? CurrentAppThemeChanged;
 	}
 
 	private class FakeCrashLogger : IDtacCrashLogger

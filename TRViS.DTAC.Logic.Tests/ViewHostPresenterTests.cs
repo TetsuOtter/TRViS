@@ -17,8 +17,6 @@ public class ViewHostPresenterTests
         private WorkGroup? _selectedWorkGroup;
         private Work? _selectedWork;
         private TrainData? _selectedTrainData;
-        private AppTheme _currentAppTheme = AppTheme.Dark;
-        private bool _isBgAppIconVisible = true;
 
         public WorkGroup? SelectedWorkGroup
         {
@@ -59,35 +57,7 @@ public class ViewHostPresenterTests
             }
         }
 
-        public AppTheme CurrentAppTheme
-        {
-            get => _currentAppTheme;
-            set
-            {
-                if (_currentAppTheme != value)
-                {
-                    _currentAppTheme = value;
-                    CurrentAppThemeChanged?.Invoke(this, value);
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentAppTheme)));
-                }
-            }
-        }
-
-        public bool IsBgAppIconVisible
-        {
-            get => _isBgAppIconVisible;
-            set
-            {
-                if (_isBgAppIconVisible != value)
-                {
-                    _isBgAppIconVisible = value;
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsBgAppIconVisible)));
-                }
-            }
-        }
-
         public event PropertyChangedEventHandler? PropertyChanged;
-        public event EventHandler<AppTheme>? CurrentAppThemeChanged;
     }
 
     private class FakeTimeProvider : ITimeProvider
@@ -98,24 +68,6 @@ public class ViewHostPresenterTests
             => TimeChanged?.Invoke(this, totalSeconds);
     }
 
-    private class FakeUserAlertService : IUserAlertService
-    {
-        public int AlertCount { get; private set; } = 0;
-        public string? LastTitle { get; private set; }
-
-        public void DisplayAlert(string title, string message, string cancel)
-        {
-            AlertCount++;
-            LastTitle = title;
-        }
-    }
-
-    private class FakeCrashLogger : IDtacCrashLogger
-    {
-        public int LogCount { get; private set; } = 0;
-        public void Log(Exception ex, string? context = null) => LogCount++;
-    }
-
     #endregion
 
     #region Helpers
@@ -123,23 +75,17 @@ public class ViewHostPresenterTests
     private static (
         ViewHostPresenter presenter,
         FakeAppViewModelProvider appViewModel,
-        FakeTimeProvider timeProvider,
-        FakeUserAlertService userAlerts,
-        FakeCrashLogger crashLogger
+        FakeTimeProvider timeProvider
     ) CreatePresenter()
     {
         var appViewModel = new FakeAppViewModelProvider();
         var timeProvider = new FakeTimeProvider();
-        var userAlerts = new FakeUserAlertService();
-        var crashLogger = new FakeCrashLogger();
 
         var presenter = new ViewHostPresenter(
             appViewModel,
-            timeProvider,
-            userAlerts,
-            crashLogger);
+            timeProvider);
 
-        return (presenter, appViewModel, timeProvider, userAlerts, crashLogger);
+        return (presenter, appViewModel, timeProvider);
     }
 
     private static WorkGroup MakeWorkGroup(string name) => new WorkGroup(
@@ -167,84 +113,12 @@ public class ViewHostPresenterTests
 
     #endregion
 
-    #region Theme Toggle Tests
-
-    [Fact]
-    public void OnChangeThemeButtonClicked_TogglesTheme_DarkToLight()
-    {
-        var (presenter, appViewModel, _, _, _) = CreatePresenter();
-
-        appViewModel.CurrentAppTheme = AppTheme.Dark;
-        presenter.OnChangeThemeButtonClicked();
-
-        Assert.Equal(AppTheme.Light, appViewModel.CurrentAppTheme);
-    }
-
-    [Fact]
-    public void OnChangeThemeButtonClicked_TogglesTheme_LightToDark()
-    {
-        var (presenter, appViewModel, _, _, _) = CreatePresenter();
-
-        appViewModel.CurrentAppTheme = AppTheme.Light;
-        presenter.OnChangeThemeButtonClicked();
-
-        Assert.Equal(AppTheme.Dark, appViewModel.CurrentAppTheme);
-    }
-
-    #endregion
-
-    #region BgAppIcon Toggle Tests
-
-    [Fact]
-    public void OnToggleBgAppIconRequested_LightTheme_ShowsAlert_DoesNotChange()
-    {
-        var (presenter, appViewModel, _, userAlerts, _) = CreatePresenter();
-
-        appViewModel.CurrentAppTheme = AppTheme.Light;
-        appViewModel.IsBgAppIconVisible = true;
-
-        presenter.OnToggleBgAppIconRequested();
-
-        Assert.Equal(1, userAlerts.AlertCount);
-        Assert.True(appViewModel.IsBgAppIconVisible);
-    }
-
-    [Fact]
-    public void OnToggleBgAppIconRequested_DarkTheme_TogglesNormally()
-    {
-        var (presenter, appViewModel, _, userAlerts, _) = CreatePresenter();
-
-        appViewModel.CurrentAppTheme = AppTheme.Dark;
-        appViewModel.IsBgAppIconVisible = true;
-
-        presenter.OnToggleBgAppIconRequested();
-
-        Assert.Equal(0, userAlerts.AlertCount);
-        Assert.False(appViewModel.IsBgAppIconVisible);
-    }
-
-    [Fact]
-    public void OnToggleBgAppIconRequested_DarkTheme_False_TogglesTo_True()
-    {
-        var (presenter, appViewModel, _, userAlerts, _) = CreatePresenter();
-
-        appViewModel.CurrentAppTheme = AppTheme.Dark;
-        appViewModel.IsBgAppIconVisible = false;
-
-        presenter.OnToggleBgAppIconRequested();
-
-        Assert.Equal(0, userAlerts.AlertCount);
-        Assert.True(appViewModel.IsBgAppIconVisible);
-    }
-
-    #endregion
-
     #region AppViewModel State Propagation Tests
 
     [Fact]
     public void AppViewModel_SelectedWorkChanged_UpdatesTitleText()
     {
-        var (presenter, appViewModel, _, _, _) = CreatePresenter();
+        var (presenter, appViewModel, _) = CreatePresenter();
 
         ViewHostStateChangedEventArgs? eventArgs = null;
         presenter.StateChanged += (_, e) => eventArgs = e;
@@ -263,7 +137,7 @@ public class ViewHostPresenterTests
     [Fact]
     public void TimeProvider_TimeChanged_UpdatesTimeLabelText()
     {
-        var (presenter, _, timeProvider, _, _) = CreatePresenter();
+        var (presenter, _, timeProvider) = CreatePresenter();
 
         ViewHostStateChangedEventArgs? eventArgs = null;
         presenter.StateChanged += (_, e) => eventArgs = e;
@@ -278,7 +152,7 @@ public class ViewHostPresenterTests
     [Fact]
     public void TimeProvider_TimeChanged_Negative_FormatWithMinus()
     {
-        var (presenter, _, timeProvider, _, _) = CreatePresenter();
+        var (presenter, _, timeProvider) = CreatePresenter();
 
         timeProvider.RaiseTimeChanged(-65);
 
@@ -288,7 +162,7 @@ public class ViewHostPresenterTests
     [Fact]
     public void TimeProvider_TimeChanged_Zero_Formats_Correctly()
     {
-        var (presenter, _, timeProvider, _, _) = CreatePresenter();
+        var (presenter, _, timeProvider) = CreatePresenter();
 
         timeProvider.RaiseTimeChanged(0);
 
@@ -302,7 +176,7 @@ public class ViewHostPresenterTests
     [Fact]
     public void Dispose_UnsubscribesEvents()
     {
-        var (presenter, appViewModel, timeProvider, _, _) = CreatePresenter();
+        var (presenter, appViewModel, timeProvider) = CreatePresenter();
 
         var stateChangedCount = 0;
         presenter.StateChanged += (_, _) => stateChangedCount++;
@@ -321,7 +195,7 @@ public class ViewHostPresenterTests
     [Fact]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
-        var (presenter, _, _, _, _) = CreatePresenter();
+        var (presenter, _, _) = CreatePresenter();
 
         presenter.Dispose();
 

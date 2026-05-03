@@ -57,11 +57,7 @@ public class HakoPresenterTests
 			}
 		}
 
-		public AppTheme CurrentAppTheme { get; set; } = AppTheme.Dark;
-		public bool IsBgAppIconVisible { get; set; } = true;
-
 		public event PropertyChangedEventHandler? PropertyChanged;
-		public event EventHandler<AppTheme>? CurrentAppThemeChanged;
 	}
 
 	private class FakeCrashLogger : IDtacCrashLogger

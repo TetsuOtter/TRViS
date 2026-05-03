@@ -15,10 +15,4 @@ public class ViewHostPageState
     /// The formatted time label text.
     /// </summary>
     public string TimeLabelText { get; set; } = "00:00:00";
-
-    /// <summary>
-    /// Whether the background app icon is currently visible.
-    /// Used by View to update button appearance.
-    /// </summary>
-    public bool IsBgAppIconVisible { get; set; } = true;
 }

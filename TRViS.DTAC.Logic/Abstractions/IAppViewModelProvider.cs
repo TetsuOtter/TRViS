@@ -25,29 +25,7 @@ public interface IAppViewModelProvider
     TrainData? SelectedTrainData { get; }
 
     /// <summary>
-    /// The current application theme.
-    /// Setting this writes the value back to the underlying view model.
-    /// </summary>
-    AppTheme CurrentAppTheme { get; set; }
-
-    /// <summary>
-    /// Whether the background app icon is visible.
-    /// </summary>
-    bool IsBgAppIconVisible { get; set; }
-
-    /// <summary>
-    /// The current window width in device-independent pixels.
-    /// Defaults to 0 so existing implementations compile without change.
-    /// </summary>
-    double WindowWidth => 0;
-
-    /// <summary>
     /// Fired when any property changes.
     /// </summary>
     event PropertyChangedEventHandler? PropertyChanged;
-
-    /// <summary>
-    /// Fired when the current app theme changes.
-    /// </summary>
-    event EventHandler<AppTheme>? CurrentAppThemeChanged;
 }

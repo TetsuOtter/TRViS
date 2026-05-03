@@ -30,6 +30,7 @@ public partial class ViewHost : ContentPage
 
 	private readonly ViewHostPresenter _presenter;
 	private readonly DTACViewHostViewModel _dtacViewModel;
+	private readonly AppViewModel _appViewModel;
 
 	public ViewHost()
 	{
@@ -40,6 +41,7 @@ public partial class ViewHost : ContentPage
 			out EasterEggPageViewModel eevm,
 			out DTACViewHostViewModel dtacViewModel);
 
+		_appViewModel = vm;
 		_dtacViewModel = dtacViewModel;
 
 		_presenter.StateChanged += OnPresenterStateChanged;
@@ -162,20 +164,25 @@ public partial class ViewHost : ContentPage
 
 	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)
 	{
-		_presenter.OnToggleBgAppIconRequested();
+		bool newState = !_appViewModel.IsBgAppIconVisible;
 
-		bool newState = _presenter.CurrentState.IsBgAppIconVisible;
+		if (_appViewModel.CurrentAppTheme == AppTheme.Light && newState == false)
+		{
+			Utils.Util.DisplayAlertAsync(
+				"背景を非表示にできません",
+				"現在のテーマがライトモードのため、背景アイコンは非表示にできません。",
+				"OK");
+			return;
+		}
+
+		_appViewModel.IsBgAppIconVisible = newState;
 		logger.Debug("IsBgAppIconVisible is now {0}", newState);
 		if (sender is VisualElement button)
 		{
 			if (newState)
-			{
 				DTACElementStyles.AppIconBgColor.Apply(button, BackgroundColorProperty);
-			}
 			else
-			{
 				button.BackgroundColor = Colors.Transparent;
-			}
 		}
 	}
 
@@ -208,7 +215,12 @@ public partial class ViewHost : ContentPage
 	private void OnChangeThemeButtonClicked(object? sender, EventArgs e)
 	{
 		logger.Info("ChangeThemeButton clicked");
-		_presenter.OnChangeThemeButtonClicked();
+		AppTheme newTheme = _appViewModel.CurrentAppTheme == AppTheme.Dark
+			? AppTheme.Light
+			: AppTheme.Dark;
+		_appViewModel.CurrentAppTheme = newTheme;
+		if (Application.Current is not null)
+			Application.Current.UserAppTheme = newTheme;
 	}
 
 	// ---------- DTACViewModel event handling (tab visibility, orientation) ----------

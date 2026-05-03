@@ -13,8 +13,6 @@ public sealed class ViewHostPresenter : IDisposable
 {
     private readonly IAppViewModelProvider _appViewModel;
     private readonly ITimeProvider _timeProvider;
-    private readonly IUserAlertService _userAlerts;
-    private readonly IDtacCrashLogger _crashLogger;
 
     private ViewHostPageState _currentState = new();
     private bool _disposed = false;
@@ -25,14 +23,10 @@ public sealed class ViewHostPresenter : IDisposable
 
     public ViewHostPresenter(
         IAppViewModelProvider appViewModel,
-        ITimeProvider timeProvider,
-        IUserAlertService userAlerts,
-        IDtacCrashLogger crashLogger)
+        ITimeProvider timeProvider)
     {
         _appViewModel = appViewModel ?? throw new ArgumentNullException(nameof(appViewModel));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
-        _userAlerts = userAlerts ?? throw new ArgumentNullException(nameof(userAlerts));
-        _crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
 
         _appViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
         _timeProvider.TimeChanged += OnTimeChanged;
@@ -43,7 +37,6 @@ public sealed class ViewHostPresenter : IDisposable
     private void ApplyInitialState()
     {
         _currentState.TitleText = _appViewModel.SelectedWork?.Name ?? string.Empty;
-        _currentState.IsBgAppIconVisible = _appViewModel.IsBgAppIconVisible;
     }
 
     private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -67,42 +60,6 @@ public sealed class ViewHostPresenter : IDisposable
         string text = (isMinus ? "-" : string.Empty) + $"{hour:D2}:{minute:D2}:{second:D2}";
         _currentState.TimeLabelText = text;
         RaiseStateChanged(ViewHostStateSection.TimeLabel);
-    }
-
-    /// <summary>
-    /// Called when the change-theme button is clicked.
-    /// Toggles between Light and Dark theme.
-    /// </summary>
-    public void OnChangeThemeButtonClicked()
-    {
-        AppTheme newTheme = _appViewModel.CurrentAppTheme == AppTheme.Dark
-            ? AppTheme.Light
-            : AppTheme.Dark;
-
-        _appViewModel.CurrentAppTheme = newTheme;
-    }
-
-    /// <summary>
-    /// Called when the toggle-BgAppIcon button is clicked.
-    /// Applies business rule: cannot hide icon in Light theme.
-    /// If not allowed, requests a user alert.
-    /// </summary>
-    public void OnToggleBgAppIconRequested()
-    {
-        bool newState = !_appViewModel.IsBgAppIconVisible;
-
-        if (_appViewModel.CurrentAppTheme == AppTheme.Light && newState == false)
-        {
-            _userAlerts.DisplayAlert(
-                "背景を非表示にできません",
-                "現在のテーマがライトモードのため、背景アイコンは非表示にできません。",
-                "OK");
-            return;
-        }
-
-        _appViewModel.IsBgAppIconVisible = newState;
-        _currentState.IsBgAppIconVisible = newState;
-        RaiseStateChanged(ViewHostStateSection.BgAppIcon);
     }
 
     private void RaiseStateChanged(ViewHostStateSection changed)

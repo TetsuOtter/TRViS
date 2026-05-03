@@ -9,7 +9,6 @@ public enum ViewHostStateSection
     None = 0,
     TitleText = 1,
     TimeLabel = 8,
-    BgAppIcon = 64,
     All = ~0,
 }
 

@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 
 using DependencyPropertyGenerator;
 
-using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Formatters;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -23,14 +22,14 @@ public partial class TabButton : ContentView
 
 	public static readonly double NORMAL_MODE_WIDTH = 152;
 
-	private readonly IAppViewModelProvider _appViewModelProvider;
+	private readonly AppViewModel _appViewModel;
 	private readonly DTACViewHostViewModel _viewHostViewModel;
 
 	public TabButton()
 	{
 		logger.Trace("Creating...");
 
-		_appViewModelProvider = Adapters.PresenterFactory.GetAppViewModelProvider();
+		_appViewModel = Adapters.PresenterFactory.GetRawAppViewModel();
 		_viewHostViewModel = Adapters.PresenterFactory.GetRawViewHostViewModel();
 
 		InitializeComponent();
@@ -38,8 +37,8 @@ public partial class TabButton : ContentView
 		UpdateIsSelectedProperty();
 		DTACElementStyles.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
 
-		_appViewModelProvider.PropertyChanged += AppViewModel_PropertyChanged;
-		OnWindowWidthChanged(_appViewModelProvider.WindowWidth);
+		_appViewModel.PropertyChanged += AppViewModel_PropertyChanged;
+		OnWindowWidthChanged(_appViewModel.WindowWidth);
 
 		OnIsEnabledChanged(IsEnabled);
 
@@ -51,7 +50,7 @@ public partial class TabButton : ContentView
 		switch (e.PropertyName)
 		{
 			case nameof(AppViewModel.WindowWidth):
-				OnWindowWidthChanged(_appViewModelProvider.WindowWidth);
+				OnWindowWidthChanged(_appViewModel.WindowWidth);
 				break;
 		}
 	}
