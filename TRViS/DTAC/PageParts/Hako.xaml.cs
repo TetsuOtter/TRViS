@@ -1,6 +1,8 @@
 using DependencyPropertyGenerator;
 
+using TRViS.DTAC.Adapters;
 using TRViS.DTAC.HakoParts;
+using TRViS.DTAC.Logic.Presenter;
 using TRViS.Services;
 using TRViS.Utils;
 
@@ -17,6 +19,9 @@ public partial class Hako : Grid
 
 	readonly Label AffectDateLabel;
 	readonly Label WorkInfoLabel;
+
+	private readonly HakoPresenter _presenter;
+
 	static Label GenAffectDateLabel()
 	{
 		Label v = DTACElementStyles.AffectDateLabelStyle<Label>();
@@ -37,6 +42,9 @@ public partial class Hako : Grid
 	public Hako()
 	{
 		logger.Trace("Creating...");
+
+		_presenter = PresenterFactory.BuildHakoPresenter();
+		_presenter.StateChanged += OnPresenterStateChanged;
 
 		InitializeComponent();
 
@@ -63,6 +71,7 @@ public partial class Hako : Grid
 				return;
 
 			logger.Info("IsBusyChanged: {0}", v.IsBusy);
+			_presenter.OnSimpleViewBusyChanged(v.IsBusy);
 
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
@@ -85,7 +94,7 @@ public partial class Hako : Grid
 				catch (Exception ex)
 				{
 					logger.Fatal(ex, "Unknown Exception");
-					InstanceManager.CrashlyticsWrapper.Log(ex, "Hako.SimpleView.IsBusyChanged");
+					_presenter.LogException(ex, "Hako.SimpleView.IsBusyChanged");
 					Util.ExitWithAlertAsync(ex);
 				}
 			});
@@ -94,25 +103,33 @@ public partial class Hako : Grid
 		logger.Trace("Created");
 	}
 
+	private void OnPresenterStateChanged(object? sender, HakoStateChangedEventArgs e)
+	{
+		if (e.Changed.HasFlag(HakoStateSection.AffectDate))
+		{
+			AffectDateLabel.Text = _presenter.CurrentState.AffectDateText;
+		}
+		if (e.Changed.HasFlag(HakoStateSection.WorkInfo))
+		{
+			WorkInfoLabel.Text = _presenter.CurrentState.WorkInfoText;
+		}
+		// IsSimpleViewBusy is handled directly by the IsBusyChanged handler (animation is View-only).
+	}
+
 	partial void OnAffectDateChanged(string? newValue)
 	{
 		logger.Info("AffectDate: {0}", newValue);
-		AffectDateLabel.Text = DTACElementStyles.AffectDateLabelTextPrefix + newValue;
+		_presenter.OnAffectDateChanged(newValue);
 	}
 
 	partial void OnWorkNameChanged(string? newValue)
 	{
 		logger.Info("WorkName: {0}", newValue);
-		UpdateWorkInfoLabel(newValue, WorkSpaceName);
+		_presenter.OnWorkNameChanged(newValue);
 	}
 	partial void OnWorkSpaceNameChanged(string? newValue)
 	{
 		logger.Info("WorkSpaceName: {0}", newValue);
-		UpdateWorkInfoLabel(WorkName, newValue);
-	}
-
-	void UpdateWorkInfoLabel(string? workName, string? workSpaceName)
-	{
-		WorkInfoLabel.Text = $"{workName}\n{workSpaceName}";
+		_presenter.OnWorkSpaceNameChanged(newValue);
 	}
 }

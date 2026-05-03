@@ -69,6 +69,15 @@ internal static class PresenterFactory
 	}
 
 	/// <summary>
+	/// Builds a fully configured HakoPresenter.
+	/// </summary>
+	public static HakoPresenter BuildHakoPresenter()
+	{
+		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
+		return new HakoPresenter(crashLogger);
+	}
+
+	/// <summary>
 	/// Simple clock implementation that delegates to DateTime.UtcNow.
 	/// </summary>
 	private class SystemClock : IClock
