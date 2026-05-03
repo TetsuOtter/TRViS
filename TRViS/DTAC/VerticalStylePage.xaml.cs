@@ -8,6 +8,7 @@ using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ValueConverters;
+using TRViS.ValueConverters.DTAC;
 
 namespace TRViS.DTAC;
 
@@ -224,6 +225,10 @@ public partial class VerticalStylePage : ContentView
 
 		if ((changed & VerticalPageStateSection.TrainDisplayInfo) != 0)
 		{
+			TrainNumberLabel.Text = TrainNumberConverter.Convert(state.TrainDisplayInfo.TrainNumber);
+			bool hasCarCount = (state.TrainDisplayInfo.CarCount ?? 0) >= 1;
+			CarCountBorder.IsVisible = hasCarCount;
+			CarCountLabel.Text = hasCarCount ? state.TrainDisplayInfo.CarCount!.Value.ToString() : string.Empty;
 			MaxSpeedLabel.Text = ToWideConverter.Convert(state.TrainDisplayInfo.MaxSpeed);
 			SpeedTypeLabel.Text = ToWideConverter.Convert(state.TrainDisplayInfo.SpeedType);
 			NominalTractiveCapacityLabel.Text = ToWideConverter.Convert(state.TrainDisplayInfo.NominalTractiveCapacity);
@@ -280,7 +285,6 @@ public partial class VerticalStylePage : ContentView
 		// Apply scroll position on All change (train data changed)
 		if (changed == VerticalPageStateSection.All)
 		{
-			BindingContext = _presenter.CurrentState;
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
 				TimetableAreaScrollView.ScrollToAsync(0, 0, false);

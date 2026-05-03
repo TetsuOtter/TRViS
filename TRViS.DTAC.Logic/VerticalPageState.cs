@@ -318,6 +318,16 @@ public class PageHeaderState
 public class TrainDisplayInfo
 {
 	/// <summary>
+	/// The train number (列番)
+	/// </summary>
+	public string TrainNumber { get; set; } = string.Empty;
+
+	/// <summary>
+	/// The number of cars (両数)
+	/// </summary>
+	public int? CarCount { get; set; } = null;
+
+	/// <summary>
 	/// The maximum speed of the train
 	/// </summary>
 	public string MaxSpeed { get; set; } = string.Empty;

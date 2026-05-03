@@ -51,6 +51,8 @@ public static class VerticalPageStateFactory
 		UpdateNextDayIndicatorState(state.NextDayIndicatorState, trainData.DayCount);
 
 		// Set train display info
+		state.TrainDisplayInfo.TrainNumber = trainData.TrainNumber ?? string.Empty;
+		state.TrainDisplayInfo.CarCount = trainData.CarCount;
 		state.TrainDisplayInfo.MaxSpeed = trainData.MaxSpeed ?? string.Empty;
 		state.TrainDisplayInfo.SpeedType = trainData.SpeedType ?? string.Empty;
 		state.TrainDisplayInfo.NominalTractiveCapacity = trainData.NominalTractiveCapacity ?? string.Empty;
