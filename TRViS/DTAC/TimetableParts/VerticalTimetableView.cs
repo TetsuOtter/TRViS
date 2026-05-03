@@ -72,11 +72,10 @@ public partial class VerticalTimetableView : Grid
 			if (_isBusy == value)
 				return;
 			_isBusy = value;
-			_presenter.OnSetBusy(value);
 			try
 			{
-				logger.Trace("IsBusy is changed to {0}", IsBusy);
-				IsBusyChanged?.Invoke(this, new());
+				logger.Trace("IsBusy is changed to {0}", _isBusy);
+				IsBusyChanged?.Invoke(this, _isBusy);
 			}
 			catch (Exception ex)
 			{

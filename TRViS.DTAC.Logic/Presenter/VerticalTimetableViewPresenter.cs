@@ -125,7 +125,8 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 	}
 
 	/// <summary>
-	/// Call when the view's IsBusy state changes.
+	/// Sets the Logic-side busy state independently of the View's own busy state.
+	/// The View manages its own busy flag; this is for Logic-driven operations.
 	/// </summary>
 	public void OnSetBusy(bool isBusy)
 	{

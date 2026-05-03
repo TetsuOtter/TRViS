@@ -42,6 +42,7 @@ public partial class VerticalStylePage : ContentView
 	private bool _isLandscape;
 
 	private readonly VerticalStylePagePresenter _presenter;
+	private bool _isTimetableViewBusy = false;
 
 	public VerticalStylePage()
 	{
@@ -103,29 +104,15 @@ public partial class VerticalStylePage : ContentView
 
 		TimetableView.IsBusyChanged += (s, isBusy) =>
 		{
-			if (s is not VerticalTimetableView v)
+			if (s is not VerticalTimetableView)
 				return;
 
 			logger.Info("IsBusyChanged: {0}", isBusy);
 
 			try
 			{
-				if (isBusy)
-				{
-					TimetableViewActivityIndicatorBorder.IsVisible = true;
-					TimetableViewActivityIndicatorBorder.FadeToAsync(TimetableViewActivityIndicatorBorderMaxOpacity);
-				}
-				else
-				{
-					TimetableViewActivityIndicatorBorder.FadeToAsync(0).ContinueWith((_) =>
-					{
-						MainThread.BeginInvokeOnMainThread(() =>
-						{
-							logger.Debug("TimetableViewActivityIndicatorBorder.FadeToAsync(0) completed");
-							TimetableViewActivityIndicatorBorder.IsVisible = false;
-						});
-					});
-				}
+				_isTimetableViewBusy = isBusy;
+				UpdateTimetableActivityIndicator();
 
 				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
 				if (Content is ScrollView sv)
@@ -134,8 +121,6 @@ public partial class VerticalStylePage : ContentView
 					logger.Debug("set full-scrollable-ScrollView.HeightRequest -> Max(this.HeightRequest: {0}, heightRequest: {1})", this.HeightRequest, heightRequest);
 					sv.Content.HeightRequest = Math.Max(this.Height, heightRequest);
 				}
-
-				_presenter.OnTimetableBusyChanged(isBusy);
 			}
 			catch (Exception ex)
 			{
@@ -311,6 +296,11 @@ public partial class VerticalStylePage : ContentView
 			}
 		}
 
+		if ((changed & VerticalPageStateSection.ActivityIndicator) != 0)
+		{
+			UpdateTimetableActivityIndicator();
+		}
+
 		if ((changed & VerticalPageStateSection.RowStates) != 0)
 		{
 			ApplyRowStates(state);
@@ -325,6 +315,27 @@ public partial class VerticalStylePage : ContentView
 			});
 			TimetableView.ViewModel.SetTrainData(_presenter.CurrentTrainData);
 			DebugMap?.SetTimetableRowList(_presenter.CurrentTrainData?.Rows);
+		}
+	}
+
+	private void UpdateTimetableActivityIndicator()
+	{
+		bool isBusy = _isTimetableViewBusy || _presenter.CurrentState.TimetableActivityIndicatorState.IsBusy;
+		if (isBusy)
+		{
+			TimetableViewActivityIndicatorBorder.IsVisible = true;
+			TimetableViewActivityIndicatorBorder.FadeToAsync(TimetableViewActivityIndicatorBorderMaxOpacity);
+		}
+		else
+		{
+			TimetableViewActivityIndicatorBorder.FadeToAsync(0).ContinueWith((_) =>
+			{
+				MainThread.BeginInvokeOnMainThread(() =>
+				{
+					logger.Debug("TimetableViewActivityIndicatorBorder.FadeToAsync(0) completed");
+					TimetableViewActivityIndicatorBorder.IsVisible = false;
+				});
+			});
 		}
 	}
 
