@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 
 using TRViS.IO.Models;
+using TRViS.Services;
 using NLog;
 
 namespace TRViS.DTAC.ViewModels;
