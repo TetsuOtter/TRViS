@@ -118,9 +118,11 @@ public partial class AppViewModel : ObservableObject
 		}
 
 		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _, StringListJsonSourceGenerationContext.Default.ListString);
+	}
 
-		// LocationService の時刻表更新イベントをサブスクライブ
-		InstanceManager.LocationService.TimetableUpdated += OnTimetableUpdated;
+	internal void SubscribeToLocationService(LocationService locationService)
+	{
+		locationService.TimetableUpdated += OnTimetableUpdated;
 	}
 
 	partial void OnLoaderChanged(ILoader? value)

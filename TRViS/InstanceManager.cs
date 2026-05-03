@@ -59,6 +59,7 @@ internal static class InstanceManager
 			_LocationServiceGpsAdapter = new LocationServiceGpsAdapter(_LocationService);
 			_LocationServiceIdSyncAdapter = new LocationServiceIdSyncAdapter(_LocationService, appViewModel);
 			_LocationServiceAlertSubscriber = new LocationServiceAlertSubscriber(_LocationService);
+			appViewModel.SubscribeToLocationService(_LocationService);
 
 			return _LocationService;
 		}
