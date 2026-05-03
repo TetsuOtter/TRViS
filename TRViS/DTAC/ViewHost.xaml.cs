@@ -258,7 +258,7 @@ public partial class ViewHost : ContentPage
 	{
 		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
 		{
-			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.Default);
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
 			return;
 		}
 
@@ -266,7 +266,7 @@ public partial class ViewHost : ContentPage
 		{
 			DTACViewHostViewModel.Mode.Hako => AppDisplayOrientation.Portrait,
 			DTACViewHostViewModel.Mode.VerticalView => AppDisplayOrientation.Landscape,
-			_ => AppDisplayOrientation.Default,
+			_ => AppDisplayOrientation.All,
 		};
 		InstanceManager.OrientationService.SetOrientation(desired);
 	}
@@ -306,7 +306,7 @@ public partial class ViewHost : ContentPage
 	{
 		base.OnDisappearing();
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
-			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.Default);
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
 		InstanceManager.ScreenWakeLockService.DisableWakeLock();
 	}
 

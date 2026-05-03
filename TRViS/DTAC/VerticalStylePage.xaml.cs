@@ -212,10 +212,10 @@ public partial class VerticalStylePage : ContentView
 	{
 		switch (e.PropertyName)
 		{
-			case nameof(ViewModels.EasterEggPageViewModel.ShowMapWhenLandscape):
+			case nameof(TRViS.ViewModels.EasterEggPageViewModel.ShowMapWhenLandscape):
 				UpdateDebugMapVisibility();
 				break;
-			case nameof(ViewModels.EasterEggPageViewModel.KeepScreenOnWhenRunning):
+			case nameof(TRViS.ViewModels.EasterEggPageViewModel.KeepScreenOnWhenRunning):
 				bool isRunning = _presenter.CurrentState.TimetableViewState.IsRunStarted;
 				bool keepOn = InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning;
 				if (isRunning && keepOn)
