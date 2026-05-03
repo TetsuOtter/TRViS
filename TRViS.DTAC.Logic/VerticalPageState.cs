@@ -33,11 +33,6 @@ public class VerticalPageState
 	public TimetableViewState TimetableViewState { get; set; } = new();
 
 	/// <summary>
-	/// Information about the scroll view
-	/// </summary>
-	public ScrollViewState ScrollViewState { get; set; } = new();
-
-	/// <summary>
 	/// Information about location service
 	/// </summary>
 	public LocationServiceState LocationServiceState { get; set; } = new();
@@ -94,16 +89,6 @@ public class TrainInfoAreaState
 	/// Whether the before departure area is visible
 	/// </summary>
 	public bool IsVisible { get; set; } = false;
-
-	/// <summary>
-	/// Current height of the before departure row (0 when closed, full height when open)
-	/// </summary>
-	public double CurrentHeight { get; set; } = 0;
-
-	/// <summary>
-	/// Full height when the area is open
-	/// </summary>
-	public double FullHeight { get; set; } = 0;
 
 	/// <summary>
 	/// The train info text to display
@@ -179,16 +164,6 @@ public class TimetableViewState
 	public bool IsRunStarted { get; set; } = false;
 
 	/// <summary>
-	/// The height request for the timetable view
-	/// </summary>
-	public double HeightRequest { get; set; } = 0;
-
-	/// <summary>
-	/// The scroll view height that the timetable should be constrained to
-	/// </summary>
-	public double ScrollViewHeight { get; set; } = 0;
-
-	/// <summary>
 	/// Whether location service is enabled for the timetable
 	/// </summary>
 	public bool IsLocationServiceEnabled { get; set; } = false;
@@ -197,32 +172,6 @@ public class TimetableViewState
 	/// Whether location service can be used
 	/// </summary>
 	public bool CanUseLocationService { get; set; } = false;
-}
-
-/// <summary>
-/// Represents the state of the scroll view containing the timetable
-/// </summary>
-public class ScrollViewState
-{
-	/// <summary>
-	/// The total height request for the scroll view content
-	/// </summary>
-	public double ContentHeightRequest { get; set; } = 0;
-
-	/// <summary>
-	/// The current scroll position
-	/// </summary>
-	public double ScrollY { get; set; } = 0;
-
-	/// <summary>
-	/// Whether the scroll view should fill the available space
-	/// </summary>
-	public bool ShouldFillContent { get; set; } = false;
-
-	/// <summary>
-	/// The height of content other than the timetable
-	/// </summary>
-	public double NonTimetableContentHeight { get; set; } = 0;
 }
 
 /// <summary>

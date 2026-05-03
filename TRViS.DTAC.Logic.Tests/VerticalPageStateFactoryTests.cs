@@ -35,9 +35,7 @@ public class VerticalPageStateFactoryTests
 		var state = VerticalPageStateFactory.CreateStateFromTrainData(
 			trainData,
 			affectDate: "2024年1月15日",
-			isLocationServiceEnabled: true,
-			pageHeight: 800,
-			contentOtherThanTimetableHeight: 200);
+			isLocationServiceEnabled: true);
 
 		// Assert
 		Assert.NotNull(state);
@@ -48,7 +46,6 @@ public class VerticalPageStateFactoryTests
 		Assert.Equal("Shinkansen 101", state.TrainInfoAreaState.TrainInfoText);
 		Assert.Equal("10 minutes", state.TrainInfoAreaState.BeforeDepartureText);
 		Assert.Equal(2, state.NextDayIndicatorState.DayCount);
-		Assert.Equal(200, state.ScrollViewState.NonTimetableContentHeight);
 	}
 
 	[Fact]
@@ -58,9 +55,7 @@ public class VerticalPageStateFactoryTests
 		var state = VerticalPageStateFactory.CreateStateFromTrainData(
 			trainData: null,
 			affectDate: null,
-			isLocationServiceEnabled: false,
-			pageHeight: 800,
-			contentOtherThanTimetableHeight: 200);
+			isLocationServiceEnabled: false);
 
 		// Assert
 		Assert.NotNull(state);
@@ -159,9 +154,7 @@ public class VerticalPageStateFactoryTests
 	public void CompleteTrainInfoAreaAnimation_AfterOpenAnimation_SetsFinalOpenState()
 	{
 		// Arrange
-		var trainInfoState = new TrainInfoAreaState();
-		trainInfoState.FullHeight = 90;
-		trainInfoState.IsAnimationRunning = true;
+		var trainInfoState = new TrainInfoAreaState { IsAnimationRunning = true };
 
 		// Act
 		VerticalPageStateFactory.CompleteTrainInfoAreaAnimation(trainInfoState, wasOpenAnimation: true);
@@ -169,16 +162,13 @@ public class VerticalPageStateFactoryTests
 		// Assert
 		Assert.False(trainInfoState.IsAnimationRunning);
 		Assert.True(trainInfoState.IsVisible);
-		Assert.Equal(90, trainInfoState.CurrentHeight);
 	}
 
 	[Fact]
 	public void CompleteTrainInfoAreaAnimation_AfterCloseAnimation_SetsFinalClosedState()
 	{
 		// Arrange
-		var trainInfoState = new TrainInfoAreaState();
-		trainInfoState.FullHeight = 90;
-		trainInfoState.IsAnimationRunning = true;
+		var trainInfoState = new TrainInfoAreaState { IsAnimationRunning = true };
 
 		// Act
 		VerticalPageStateFactory.CompleteTrainInfoAreaAnimation(trainInfoState, wasOpenAnimation: false);
@@ -186,7 +176,6 @@ public class VerticalPageStateFactoryTests
 		// Assert
 		Assert.False(trainInfoState.IsAnimationRunning);
 		Assert.False(trainInfoState.IsVisible);
-		Assert.Equal(0, trainInfoState.CurrentHeight);
 	}
 
 	[Fact]

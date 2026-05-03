@@ -22,8 +22,6 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 	private bool _hasAfterRemarks = false;
 	private bool _hasAfterArrive = false;
 	private bool _hasNextTrainButton = false;
-	private bool _isPhoneIdiom = true;
-	private double _scrollViewHeight = 0;
 
 	private VerticalTimetableViewPageState _currentState = new();
 	private bool _disposed = false;
@@ -35,9 +33,9 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 	public event EventHandler<VerticalTimetableViewStateChangedEventArgs>? StateChanged;
 
 	/// <summary>
-	/// Raised when the view should scroll to a specific Y position.
+	/// Raised when the view should scroll to the given row index.
 	/// </summary>
-	public event EventHandler<double>? ScrollRequested;
+	public event EventHandler<int>? ScrollRequested;
 
 	public VerticalTimetableViewPresenter(
 		IMarkerToggleController markerToggle,
@@ -62,16 +60,12 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 		IReadOnlyList<bool> isInfoRowList,
 		bool hasAfterRemarksText,
 		bool hasAfterArriveText,
-		bool hasNextTrainId,
-		bool isPhoneIdiom,
-		double scrollViewHeight)
+		bool hasNextTrainId)
 	{
 		_rowCount = isInfoRowList?.Count ?? 0;
 		_hasAfterRemarks = hasAfterRemarksText;
 		_hasAfterArrive = hasAfterArriveText;
 		_hasNextTrainButton = hasNextTrainId;
-		_isPhoneIdiom = isPhoneIdiom;
-		_scrollViewHeight = scrollViewHeight;
 
 		RecalculateLayout();
 		RaiseStateChanged();
@@ -108,41 +102,26 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 	}
 
 	/// <summary>
-	/// Call when the ScrollView height changes (tablet idiom re-layout).
-	/// </summary>
-	public void OnScrollViewHeightChanged(double height, bool isPhoneIdiom)
-	{
-		_scrollViewHeight = height;
-		_isPhoneIdiom = isPhoneIdiom;
-		RecalculateLayout();
-		RaiseStateChanged();
-	}
-
-	/// <summary>
 	/// Call when the location marker state changes.
 	/// Updates <see cref="VerticalTimetableViewPageState.Marker"/> box/line visibility.
 	/// </summary>
-	public void OnLocationMarkerStateChanged(TimetableLocationState state, double rowHeight)
+	public void OnLocationMarkerStateChanged(TimetableLocationState state)
 	{
-		var display = TimetableLayoutCalculator.CalculateLocationMarkerDisplay(state, rowHeight);
-		_currentState.Marker.IsBoxVisible = display.IsBoxVisible;
-		_currentState.Marker.IsLineVisible = display.IsLineVisible;
-		_currentState.Marker.BoxMarginTop = display.BoxMarginTop;
+		_currentState.Marker.IsBoxVisible = state != TimetableLocationState.Undefined;
+		_currentState.Marker.IsLineVisible = state == TimetableLocationState.RunningToNextStation;
 		RaiseStateChanged();
 	}
 
 	/// <summary>
 	/// Call when the location marker row position changes.
 	/// Updates <see cref="VerticalTimetableViewPageState.Marker"/> row and fires
-	/// <see cref="ScrollRequested"/>.
+	/// <see cref="ScrollRequested"/> with the row index.
 	/// </summary>
-	public void OnLocationMarkerPositionChanged(int position, double rowHeight)
+	public void OnLocationMarkerPositionChanged(int position)
 	{
 		_currentState.Marker.MarkerRow = position;
-
-		double scrollY = TimetableLayoutCalculator.CalculateScrollTargetY(position, rowHeight);
 		RaiseStateChanged();
-		ScrollRequested?.Invoke(this, scrollY);
+		ScrollRequested?.Invoke(this, position);
 	}
 
 	/// <summary>
@@ -175,19 +154,14 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 
 	private void RecalculateLayout()
 	{
-		const double rowHeight = 65; // matches VerticalTimetableView.RowHeight
+		// Phone-idiom row count (tablet idiom is handled by View using TimetableLayoutCalculator)
+		int count = _rowCount + 1; // +1 for AfterRemarks
+		if (_hasAfterArrive)
+			count += 1;
+		if (_hasNextTrainButton)
+			count += 1;
 
-		int rowDefCount = TimetableLayoutCalculator.CalculateRowDefinitionCount(
-			_rowCount,
-			_hasAfterRemarks,
-			_hasAfterArrive,
-			_hasNextTrainButton,
-			_isPhoneIdiom,
-			_scrollViewHeight,
-			rowHeight);
-
-		_currentState.RowDefinitionCount = rowDefCount;
-		_currentState.GridHeightRequest = TimetableLayoutCalculator.CalculateGridHeightRequest(rowDefCount, rowHeight);
+		_currentState.RowDefinitionCount = Math.Max(0, count);
 		_currentState.AfterArriveRowIndex = TimetableLayoutCalculator.CalculateAfterArriveRowIndex(_rowCount);
 		_currentState.NextTrainButtonRowIndex = TimetableLayoutCalculator.CalculateNextTrainButtonRowIndex(_rowCount, _hasAfterArrive);
 	}

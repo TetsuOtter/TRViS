@@ -176,28 +176,6 @@ public class TimetableLocationServiceFactoryTests
   }
 
   [Fact]
-  public void ProcessLocationStateChanged_SetsMarkerMargin()
-  {
-    // Arrange
-    var state = TimetableLocationServiceFactory.CreateEmptyState();
-    TimetableLocationServiceFactory.InitializeTotalRows(state, 50);
-    TimetableLocationServiceFactory.UpdateLocationServiceEnabled(state, true);
-    TimetableLocationServiceFactory.SetRowHeight(state, 60);
-
-    // Act - AroundThisStation
-    TimetableLocationServiceFactory.ProcessLocationStateChanged(state, 5, false, "Station");
-    var marginAround = state.LocationMarker.MarkerTopMargin;
-
-    // Act - RunningToNextStation
-    TimetableLocationServiceFactory.ProcessLocationStateChanged(state, 5, true, "Station");
-    var marginRunning = state.LocationMarker.MarkerTopMargin;
-
-    // Assert
-    Assert.Equal(0, marginAround);
-    Assert.Equal(-30, marginRunning);
-  }
-
-  [Fact]
   public void SetCurrentRunningRow_SetsRowCorrectly()
   {
     // Arrange
@@ -387,33 +365,6 @@ public class TimetableLocationServiceFactoryTests
 
     // Assert
     Assert.False(state.IsHapticEnabled);
-  }
-
-  [Fact]
-  public void SetRowHeight_UpdatesMarkerRowHeight()
-  {
-    // Arrange
-    var state = TimetableLocationServiceFactory.CreateEmptyState();
-
-    // Act
-    TimetableLocationServiceFactory.SetRowHeight(state, 80);
-
-    // Assert
-    Assert.Equal(80, state.LocationMarker.RowHeight);
-  }
-
-  [Fact]
-  public void SetRowHeight_IgnoresZeroHeight()
-  {
-    // Arrange
-    var state = TimetableLocationServiceFactory.CreateEmptyState();
-    var originalHeight = state.LocationMarker.RowHeight;
-
-    // Act
-    TimetableLocationServiceFactory.SetRowHeight(state, 0);
-
-    // Assert
-    Assert.Equal(originalHeight, state.LocationMarker.RowHeight);
   }
 
   [Fact]

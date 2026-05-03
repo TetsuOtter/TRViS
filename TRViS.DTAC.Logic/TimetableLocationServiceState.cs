@@ -60,12 +60,6 @@ public class TimetableLocationServiceState
     /// <summary>Row index where the marker should be displayed</summary>
     public int MarkerRowIndex { get; set; } = -1;
 
-    /// <summary>Top margin for the marker (when running to next station)</summary>
-    public double MarkerTopMargin { get; set; } = 0;
-
-    /// <summary>Height of each timetable row for margin calculations</summary>
-    public double RowHeight { get; set; } = 60;
-
     public override string ToString()
       => $"Box:{BoxIsVisible} Line:{LineIsVisible} Row:{MarkerRowIndex}";
   }

@@ -52,8 +52,6 @@ public class VerticalTimetableViewPresenterTests
 
 	#endregion
 
-	private const double RowHeight = 65.0;
-
 	// --- Initial state ---
 
 	[Fact]
@@ -88,9 +86,7 @@ public class VerticalTimetableViewPresenterTests
 			isInfoRowList: new[] { false, true, false },
 			hasAfterRemarksText: false,
 			hasAfterArriveText: true,
-			hasNextTrainId: false,
-			isPhoneIdiom: true,
-			scrollViewHeight: 0);
+			hasNextTrainId: false);
 
 		Assert.Equal(5, p.CurrentState.RowDefinitionCount);
 	}
@@ -103,9 +99,7 @@ public class VerticalTimetableViewPresenterTests
 			isInfoRowList: new[] { false, false, false },
 			hasAfterRemarksText: false,
 			hasAfterArriveText: true,
-			hasNextTrainId: false,
-			isPhoneIdiom: true,
-			scrollViewHeight: 0);
+			hasNextTrainId: false);
 
 		// AfterArriveRowIndex = rowCount + 1 = 4
 		Assert.Equal(4, p.CurrentState.AfterArriveRowIndex);
@@ -119,9 +113,7 @@ public class VerticalTimetableViewPresenterTests
 			isInfoRowList: new[] { false, false },
 			hasAfterRemarksText: false,
 			hasAfterArriveText: true,
-			hasNextTrainId: true,
-			isPhoneIdiom: true,
-			scrollViewHeight: 0);
+			hasNextTrainId: true);
 
 		// NextTrainButtonRowIndex = rowCount + 2 = 4 (because hasAfterArrive)
 		Assert.Equal(4, p.CurrentState.NextTrainButtonRowIndex);
@@ -134,7 +126,7 @@ public class VerticalTimetableViewPresenterTests
 		bool raised = false;
 		p.StateChanged += (_, _) => raised = true;
 
-		p.OnRowsChanged(new[] { false }, false, false, false, true, 0);
+		p.OnRowsChanged(new[] { false }, false, false, false);
 
 		Assert.True(raised);
 	}
@@ -149,9 +141,7 @@ public class VerticalTimetableViewPresenterTests
 			isInfoRowList: new[] { false, false },
 			hasAfterRemarksText: false,
 			hasAfterArriveText: false,
-			hasNextTrainId: false,
-			isPhoneIdiom: true,
-			scrollViewHeight: 0);
+			hasNextTrainId: false);
 
 		p.OnAfterArriveTextChanged(hasText: true);
 
@@ -166,21 +156,20 @@ public class VerticalTimetableViewPresenterTests
 	public void OnLocationMarkerPositionChanged_FiresScrollRequested()
 	{
 		var p = CreatePresenter(out _, out _);
-		double? receivedY = null;
-		p.ScrollRequested += (_, y) => receivedY = y;
+		int? receivedRow = null;
+		p.ScrollRequested += (_, row) => receivedRow = row;
 
-		p.OnLocationMarkerPositionChanged(3, RowHeight);
+		p.OnLocationMarkerPositionChanged(3);
 
-		// (3-1)*65 = 130
-		Assert.NotNull(receivedY);
-		Assert.Equal(130.0, receivedY!.Value, precision: 3);
+		Assert.NotNull(receivedRow);
+		Assert.Equal(3, receivedRow!.Value);
 	}
 
 	[Fact]
 	public void OnLocationMarkerPositionChanged_UpdatesMarkerRow()
 	{
 		var p = CreatePresenter(out _, out _);
-		p.OnLocationMarkerPositionChanged(5, RowHeight);
+		p.OnLocationMarkerPositionChanged(5);
 		Assert.Equal(5, p.CurrentState.Marker.MarkerRow);
 	}
 
@@ -190,22 +179,20 @@ public class VerticalTimetableViewPresenterTests
 	public void OnLocationMarkerStateChanged_AroundThisStation_UpdatesMarkerDisplay()
 	{
 		var p = CreatePresenter(out _, out _);
-		p.OnLocationMarkerStateChanged(TimetableLocationState.AroundThisStation, RowHeight);
+		p.OnLocationMarkerStateChanged(TimetableLocationState.AroundThisStation);
 
 		Assert.True(p.CurrentState.Marker.IsBoxVisible);
 		Assert.False(p.CurrentState.Marker.IsLineVisible);
-		Assert.Equal(0.0, p.CurrentState.Marker.BoxMarginTop);
 	}
 
 	[Fact]
-	public void OnLocationMarkerStateChanged_RunningToNextStation_HalfRowOffset()
+	public void OnLocationMarkerStateChanged_RunningToNextStation_ShowsLineAndBox()
 	{
 		var p = CreatePresenter(out _, out _);
-		p.OnLocationMarkerStateChanged(TimetableLocationState.RunningToNextStation, RowHeight);
+		p.OnLocationMarkerStateChanged(TimetableLocationState.RunningToNextStation);
 
 		Assert.True(p.CurrentState.Marker.IsBoxVisible);
 		Assert.True(p.CurrentState.Marker.IsLineVisible);
-		Assert.Equal(-(RowHeight / 2), p.CurrentState.Marker.BoxMarginTop, precision: 3);
 	}
 
 	[Fact]
@@ -213,9 +200,9 @@ public class VerticalTimetableViewPresenterTests
 	{
 		var p = CreatePresenter(out _, out _);
 		// First set to a visible state
-		p.OnLocationMarkerStateChanged(TimetableLocationState.AroundThisStation, RowHeight);
+		p.OnLocationMarkerStateChanged(TimetableLocationState.AroundThisStation);
 		// Then reset to undefined
-		p.OnLocationMarkerStateChanged(TimetableLocationState.Undefined, RowHeight);
+		p.OnLocationMarkerStateChanged(TimetableLocationState.Undefined);
 
 		Assert.False(p.CurrentState.Marker.IsBoxVisible);
 		Assert.False(p.CurrentState.Marker.IsLineVisible);

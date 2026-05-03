@@ -18,11 +18,7 @@ public static class TimetableLocationServiceUsageGuide
 		var rowCount = 50; // From TrainData?.Rows?.Length
 		TimetableLocationServiceFactory.InitializeTotalRows(locationState, rowCount);
 
-		// 3. Set row height for proper marker positioning
-		const double ROW_HEIGHT = 60;
-		TimetableLocationServiceFactory.SetRowHeight(locationState, ROW_HEIGHT);
-
-		// 4. When location service capability changes (e.g., GPS available)
+		// 3. When location service capability changes (e.g., GPS available)
 		TimetableLocationServiceFactory.UpdateLocationServiceCapability(locationState, canUseLocationService: true);
 
 		// 5. When user enables/disables location service
@@ -43,7 +39,6 @@ public static class TimetableLocationServiceUsageGuide
 			// - Set CurrentLocationBoxView.IsVisible = locationState.LocationMarker.BoxIsVisible
 			// - Set CurrentLocationLine.IsVisible = locationState.LocationMarker.LineIsVisible
 			// - Set Grid.SetRow(marker, locationState.LocationMarker.MarkerRowIndex)
-			// - Set marker.Margin = new(0, locationState.LocationMarker.MarkerTopMargin)
 		}
 
 		// 7. When user taps a row

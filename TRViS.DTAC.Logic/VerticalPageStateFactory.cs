@@ -22,10 +22,7 @@ public static class VerticalPageStateFactory
 	public static VerticalPageState CreateStateFromTrainData(
 		TrainData? trainData,
 		string? affectDate,
-		bool isLocationServiceEnabled,
-		double pageHeight,
-		double contentOtherThanTimetableHeight,
-		bool isPhoneIdiom = false)
+		bool isLocationServiceEnabled)
 	{
 		var state = new VerticalPageState();
 
@@ -34,8 +31,6 @@ public static class VerticalPageStateFactory
 			state.LocationServiceState.IsEnabled = isLocationServiceEnabled;
 			state.PageHeaderState.AffectDateLabelText = affectDate ?? string.Empty;
 			state.PageHeaderState.IsLocationServiceEnabled = isLocationServiceEnabled;
-			state.ScrollViewState.NonTimetableContentHeight = contentOtherThanTimetableHeight;
-			state.ScrollViewState.ShouldFillContent = isPhoneIdiom;
 			return state;
 		}
 
@@ -45,7 +40,6 @@ public static class VerticalPageStateFactory
 		// Set train info
 		state.TrainInfoAreaState.TrainInfoText = trainData.TrainInfo ?? string.Empty;
 		state.TrainInfoAreaState.BeforeDepartureText = trainData.BeforeDeparture ?? string.Empty;
-		state.TrainInfoAreaState.FullHeight = 90; // TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT
 
 		// Set next day indicator
 		UpdateNextDayIndicatorState(state.NextDayIndicatorState, trainData.DayCount);
@@ -64,10 +58,6 @@ public static class VerticalPageStateFactory
 		// Set page header state
 		state.PageHeaderState.AffectDateLabelText = affectDate ?? string.Empty;
 		state.PageHeaderState.IsLocationServiceEnabled = isLocationServiceEnabled;
-
-		// Set scroll view state
-		state.ScrollViewState.NonTimetableContentHeight = contentOtherThanTimetableHeight;
-		state.ScrollViewState.ShouldFillContent = isPhoneIdiom;
 
 		return state;
 	}
@@ -136,17 +126,7 @@ public static class VerticalPageStateFactory
 	public static void CompleteTrainInfoAreaAnimation(TrainInfoAreaState state, bool wasOpenAnimation)
 	{
 		state.IsAnimationRunning = false;
-
-		if (!wasOpenAnimation)
-		{
-			state.IsVisible = false;
-			state.CurrentHeight = 0;
-		}
-		else
-		{
-			state.IsVisible = true;
-			state.CurrentHeight = state.FullHeight;
-		}
+		state.IsVisible = wasOpenAnimation;
 	}
 
 	/// <summary>
@@ -167,23 +147,6 @@ public static class VerticalPageStateFactory
 		{
 			state.Opacity = 0;
 		}
-	}
-
-	/// <summary>
-	/// Updates the scroll view height based on timetable height and other content.
-	/// </summary>
-	/// <param name="state">The scroll view state to update</param>
-	/// <param name="timetableHeight">The height of the timetable view</param>
-	/// <param name="pageHeight">The current page height</param>
-	public static void UpdateScrollViewHeight(ScrollViewState state, double timetableHeight, double pageHeight)
-	{
-		double heightRequest = TimetableDisplayLogic.CalculateScrollViewHeight(
-			pageHeight,
-			state.NonTimetableContentHeight,
-			timetableHeight
-		);
-
-		state.ContentHeightRequest = heightRequest;
 	}
 
 	/// <summary>
@@ -245,7 +208,6 @@ public static class VerticalPageStateFactory
 			NextDayIndicatorState = new(),
 			TimetableActivityIndicatorState = new(),
 			TimetableViewState = new(),
-			ScrollViewState = new(),
 			LocationServiceState = new(),
 			PageHeaderState = new(),
 			TrainDisplayInfo = new(),

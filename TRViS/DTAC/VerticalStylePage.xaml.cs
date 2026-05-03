@@ -135,7 +135,7 @@ public partial class VerticalStylePage : ContentView
 					sv.Content.HeightRequest = Math.Max(this.Height, heightRequest);
 				}
 
-				_presenter.OnTimetableBusyChanged(isBusy, TimetableView.HeightRequest);
+				_presenter.OnTimetableBusyChanged(isBusy);
 			}
 			catch (Exception ex)
 			{
@@ -176,7 +176,6 @@ public partial class VerticalStylePage : ContentView
 				{
 					logger.Debug("TimetableView.Height: {0}", TimetableView.HeightRequest);
 					TimetableView.ScrollViewHeight = TimetableAreaScrollView.Height;
-					_presenter.OnTimetableHeightChanged(TimetableView.HeightRequest, this.Height);
 				}
 			};
 		}

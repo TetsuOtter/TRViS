@@ -13,9 +13,6 @@ public class LocationMarkerDisplayState
 	/// <summary>Whether the connecting line below the box is visible.</summary>
 	public bool IsLineVisible { get; set; } = false;
 
-	/// <summary>Top margin (may be negative) of the marker box.</summary>
-	public double BoxMarginTop { get; set; } = 0;
-
 	/// <summary>Grid row the marker occupies (-1 = not set).</summary>
 	public int MarkerRow { get; set; } = -1;
 }
@@ -30,9 +27,6 @@ public class VerticalTimetableViewPageState
 
 	/// <summary>Number of Grid row definitions to maintain.</summary>
 	public int RowDefinitionCount { get; set; } = 0;
-
-	/// <summary>HeightRequest for the Grid.</summary>
-	public double GridHeightRequest { get; set; } = 0;
 
 	/// <summary>Grid row index for the AfterArrive row.</summary>
 	public int AfterArriveRowIndex { get; set; } = 1;

@@ -19,10 +19,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 
 	private VerticalPageState _currentState = new();
 	private TrainData? _lastTrainData = null;
-	private double _lastPageHeight = 0;
-	private double _lastTimetableHeight = 0;
-	// NOTE: This constant mirrors VerticalStylePage.CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
-	private const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT = 359;
 
 	private (int rowIndex, DateTime time)? _lastTapInfo = null;
 	private const double DOUBLE_TAP_DETECT_MS = 500;
@@ -116,9 +112,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		var newState = VerticalPageStateFactory.CreateStateFromTrainData(
 			trainData,
 			affectDate,
-			isLocationServiceEnabled,
-			_lastPageHeight,
-			CONTENT_OTHER_THAN_TIMETABLE_HEIGHT);
+			isLocationServiceEnabled);
 
 		newState.PageHeaderState.CanUseLocationService = canUseLocationService;
 		newState.TimetableViewState.CanUseLocationService = canUseLocationService;
@@ -290,43 +284,10 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	/// <summary>
 	/// Called when timetable busy state changes
 	/// </summary>
-	public void OnTimetableBusyChanged(bool isBusy, double timetableHeightHint)
+	public void OnTimetableBusyChanged(bool isBusy)
 	{
 		VerticalPageStateFactory.UpdateTimetableActivityIndicatorState(_currentState.TimetableActivityIndicatorState, isBusy);
-
-		if (timetableHeightHint > 0)
-		{
-			_lastTimetableHeight = timetableHeightHint;
-		}
-
-		VerticalPageStateFactory.UpdateScrollViewHeight(_currentState.ScrollViewState, _lastTimetableHeight, _lastPageHeight);
-
-		RaiseStateChanged(VerticalPageStateSection.ActivityIndicator | VerticalPageStateSection.ScrollView);
-	}
-
-	/// <summary>
-	/// Called when timetable height changes
-	/// </summary>
-	public void OnTimetableHeightChanged(double timetableHeight, double pageHeight)
-	{
-		_lastTimetableHeight = timetableHeight;
-		_lastPageHeight = pageHeight;
-
-		VerticalPageStateFactory.UpdateScrollViewHeight(_currentState.ScrollViewState, timetableHeight, pageHeight);
-
-		RaiseStateChanged(VerticalPageStateSection.ScrollView);
-	}
-
-	/// <summary>
-	/// Called when page height changes
-	/// </summary>
-	public void OnPageHeightChanged(double pageHeight)
-	{
-		_lastPageHeight = pageHeight;
-
-		VerticalPageStateFactory.UpdateScrollViewHeight(_currentState.ScrollViewState, _lastTimetableHeight, pageHeight);
-
-		RaiseStateChanged(VerticalPageStateSection.ScrollView);
+		RaiseStateChanged(VerticalPageStateSection.ActivityIndicator);
 	}
 
 	/// <summary>

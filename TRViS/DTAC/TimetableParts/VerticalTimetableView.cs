@@ -7,6 +7,7 @@ using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.DTAC.Logic.Presenter;
 using TRViS.DTAC.TimetableParts;
 using TRViS.DTAC.ViewModels;
@@ -634,34 +635,25 @@ public partial class VerticalTimetableView : Grid
 	private void EnsureRowDefinitions()
 	{
 		int currentCount = RowDefinitions.Count;
-		int newCount = ViewModel.CurrentRows.Count;
+		int rowCount = ViewModel.CurrentRows.Count;
 		bool hasAfterArrive = ViewModel.AfterArriveText is not null;
 		bool hasNextTrainButton = ViewModel.NextTrainId is not null;
-		logger.Debug("Count {0} -> {1}", currentCount, newCount);
+		bool isPhone = DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
+		logger.Debug("Count {0} -> {1}", currentCount, rowCount);
 
-		if (newCount < 0)
-			throw new ArgumentOutOfRangeException(nameof(newCount), "count must be 0 or more");
+		if (rowCount < 0)
+			throw new ArgumentOutOfRangeException(nameof(rowCount), "count must be 0 or more");
 
-		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
-		{
-			// AfterRemarks
-			newCount += 1;
-			if (hasAfterArrive)
-				newCount += 1;
-			if (hasNextTrainButton)
-				newCount += 1;
-		}
-		else
-		{
-			int minCount = (int)Math.Floor(ScrollViewHeight / RowHeight.Value);
-			int additionalRowsCount = Math.Max(2, (int)Math.Ceiling(ScrollViewHeight / RowHeight.Value) - 2);
-			logger.Debug("additionalRowsCount: {0}", additionalRowsCount);
+		int newCount = TimetableLayoutCalculator.CalculateRowDefinitionCount(
+			rowCount,
+			false,
+			hasAfterArrive,
+			hasNextTrainButton,
+			isPhone,
+			ScrollViewHeight,
+			RowHeight.Value);
 
-			newCount += additionalRowsCount;
-			newCount = Math.Max(minCount, newCount);
-		}
-
-		HeightRequest = newCount * RowHeight.Value;
+		HeightRequest = TimetableLayoutCalculator.CalculateGridHeightRequest(newCount, RowHeight.Value);
 		logger.Debug("HeightRequest: {0}", HeightRequest);
 
 		if (newCount <= 0)

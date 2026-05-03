@@ -12,7 +12,6 @@ public enum VerticalPageStateSection
 	NextDayIndicator = 4,
 	ActivityIndicator = 16,
 	TimetableView = 32,
-	ScrollView = 64,
 	LocationService = 128,
 	PageHeader = 256,
 	TrainDisplayInfo = 512,

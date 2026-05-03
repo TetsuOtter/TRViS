@@ -163,12 +163,6 @@ public static class TimetableLocationServiceFactory
       TimetableLocationServiceState.LocationStates.RunningToNextStation;
     state.LocationMarker.LineIsVisible = state.CurrentRunningRow.LocationState is
       TimetableLocationServiceState.LocationStates.RunningToNextStation;
-
-    // Adjust marker margin for running to next station
-    if (state.CurrentRunningRow.LocationState is TimetableLocationServiceState.LocationStates.RunningToNextStation)
-      state.LocationMarker.MarkerTopMargin = -(state.LocationMarker.RowHeight / 2);
-    else
-      state.LocationMarker.MarkerTopMargin = 0;
   }
 
   /// <summary>
@@ -221,7 +215,6 @@ public static class TimetableLocationServiceFactory
     state.LocationMarker.BoxIsVisible = false;
     state.LocationMarker.LineIsVisible = false;
     state.LocationMarker.MarkerRowIndex = -1;
-    state.LocationMarker.MarkerTopMargin = 0;
   }
 
   /// <summary>
@@ -336,12 +329,4 @@ public static class TimetableLocationServiceFactory
     }
   }
 
-  /// <summary>
-  /// Sets the row height used for marker margin calculations.
-  /// </summary>
-  public static void SetRowHeight(TimetableLocationServiceState state, double rowHeight)
-  {
-    if (rowHeight > 0)
-      state.LocationMarker.RowHeight = rowHeight;
-  }
 }
