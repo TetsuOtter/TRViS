@@ -13,7 +13,6 @@ using TRViS.ValueConverters.DTAC;
 namespace TRViS.DTAC;
 
 [DependencyProperty<TrainData>("SelectedTrainData")]
-[DependencyProperty<string>("AffectDate")]
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
@@ -393,12 +392,7 @@ public partial class VerticalStylePage : ContentView
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
 	{
 		_lastTrainData = newValue;
-		_presenter.OnSelectedTrainDataChanged(newValue, AffectDate);
-	}
-
-	partial void OnAffectDateChanged(string? newValue)
-	{
-		_presenter.OnSelectedTrainDataChanged(SelectedTrainData, newValue);
+		_presenter.OnSelectedTrainDataChanged(newValue);
 	}
 
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);

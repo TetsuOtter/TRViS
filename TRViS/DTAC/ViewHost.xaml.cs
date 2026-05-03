@@ -94,10 +94,6 @@ public partial class ViewHost : ContentPage
 		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
 		ApplyTabVisibility();
-		HakoView.WorkName = state.TitleText;
-		HakoView.WorkSpaceName = state.WorkSpaceName;
-		HakoView.AffectDate = state.AffectDateText;
-		VerticalStylePageView.AffectDate = state.AffectDateText;
 
 		if (Shell.Current is AppShell appShell)
 		{
@@ -278,18 +274,6 @@ public partial class ViewHost : ContentPage
 		{
 			TitleLabel.Text = state.TitleText;
 			Title = state.TitleText;
-			HakoView.WorkName = state.TitleText;
-		}
-
-		if ((changed & ViewHostStateSection.WorkSpaceName) != 0)
-		{
-			HakoView.WorkSpaceName = state.WorkSpaceName;
-		}
-
-		if ((changed & ViewHostStateSection.AffectDate) != 0)
-		{
-			HakoView.AffectDate = state.AffectDateText;
-			VerticalStylePageView.AffectDate = state.AffectDateText;
 		}
 
 		if ((changed & ViewHostStateSection.TimeLabel) != 0)

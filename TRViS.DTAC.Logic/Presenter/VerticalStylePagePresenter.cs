@@ -19,7 +19,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 
 	private VerticalPageState _currentState = new();
 	private TrainData? _lastTrainData = null;
-	private string? _lastAffectDate = null;
 	private double _lastPageHeight = 0;
 	private double _lastTimetableHeight = 0;
 	// NOTE: This constant mirrors VerticalStylePage.CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
@@ -97,12 +96,14 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	/// <summary>
 	/// Called when train data selection changes
 	/// </summary>
-	public void OnSelectedTrainDataChanged(TrainData? trainData, string? affectDate)
+	public void OnSelectedTrainDataChanged(TrainData? trainData)
 	{
-		_lastAffectDate = affectDate;
+		string affectDate = ViewHostStateFactory.FormatAffectDateOnly(
+			trainData?.AffectDate,
+			trainData?.DayCount ?? 0);
 
 		if (ReferenceEquals(_lastTrainData, trainData) && trainData != null
-			&& _currentState.PageHeaderState.AffectDateLabelText == (affectDate ?? string.Empty))
+			&& _currentState.PageHeaderState.AffectDateLabelText == affectDate)
 		{
 			return;
 		}

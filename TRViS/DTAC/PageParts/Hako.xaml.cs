@@ -1,5 +1,3 @@
-using DependencyPropertyGenerator;
-
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.HakoParts;
 using TRViS.DTAC.Logic.Presenter;
@@ -8,9 +6,6 @@ using TRViS.Utils;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<string>("AffectDate")]
-[DependencyProperty<string>("WorkName")]
-[DependencyProperty<string>("WorkSpaceName")]
 public partial class Hako : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
@@ -59,6 +54,10 @@ public partial class Hako : Grid
 
 		WorkInfoLabel = GenWorkInfoLabel();
 		Children.Add(WorkInfoLabel);
+
+		// Apply initial state computed by presenter before StateChanged was subscribed.
+		AffectDateLabel.Text = _presenter.CurrentState.AffectDateText;
+		WorkInfoLabel.Text = _presenter.CurrentState.WorkInfoText;
 
 		SimpleView.SetBinding(
 			WidthRequestProperty,
@@ -114,22 +113,5 @@ public partial class Hako : Grid
 			WorkInfoLabel.Text = _presenter.CurrentState.WorkInfoText;
 		}
 		// IsSimpleViewBusy is handled directly by the IsBusyChanged handler (animation is View-only).
-	}
-
-	partial void OnAffectDateChanged(string? newValue)
-	{
-		logger.Info("AffectDate: {0}", newValue);
-		_presenter.OnAffectDateChanged(newValue);
-	}
-
-	partial void OnWorkNameChanged(string? newValue)
-	{
-		logger.Info("WorkName: {0}", newValue);
-		_presenter.OnWorkNameChanged(newValue);
-	}
-	partial void OnWorkSpaceNameChanged(string? newValue)
-	{
-		logger.Info("WorkSpaceName: {0}", newValue);
-		_presenter.OnWorkSpaceNameChanged(newValue);
 	}
 }

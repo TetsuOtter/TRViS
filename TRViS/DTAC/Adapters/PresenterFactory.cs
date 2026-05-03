@@ -56,8 +56,9 @@ internal static class PresenterFactory
 	/// </summary>
 	public static HakoPresenter BuildHakoPresenter()
 	{
+		var appViewModel = new AppViewModelAdapter(InstanceManager.AppViewModel);
 		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
-		return new HakoPresenter(crashLogger);
+		return new HakoPresenter(appViewModel, crashLogger);
 	}
 
 	/// <summary>

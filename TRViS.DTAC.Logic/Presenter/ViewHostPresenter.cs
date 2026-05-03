@@ -43,8 +43,6 @@ public sealed class ViewHostPresenter : IDisposable
     private void ApplyInitialState()
     {
         _currentState.TitleText = _appViewModel.SelectedWork?.Name ?? string.Empty;
-        _currentState.WorkSpaceName = _appViewModel.SelectedWorkGroup?.Name ?? string.Empty;
-        _currentState.AffectDateText = ComputeAffectDate(_appViewModel.SelectedTrainData);
         _currentState.IsBgAppIconVisible = _appViewModel.IsBgAppIconVisible;
     }
 
@@ -52,26 +50,11 @@ public sealed class ViewHostPresenter : IDisposable
     {
         switch (e.PropertyName)
         {
-            case nameof(IAppViewModelProvider.SelectedWorkGroup):
-                _currentState.WorkSpaceName = _appViewModel.SelectedWorkGroup?.Name ?? string.Empty;
-                RaiseStateChanged(ViewHostStateSection.WorkSpaceName);
-                break;
-
             case nameof(IAppViewModelProvider.SelectedWork):
                 _currentState.TitleText = _appViewModel.SelectedWork?.Name ?? string.Empty;
                 RaiseStateChanged(ViewHostStateSection.TitleText);
                 break;
-
-            case nameof(IAppViewModelProvider.SelectedTrainData):
-                _currentState.AffectDateText = ComputeAffectDate(_appViewModel.SelectedTrainData);
-                RaiseStateChanged(ViewHostStateSection.AffectDate);
-                break;
         }
-    }
-
-    private static string ComputeAffectDate(TRViS.IO.Models.TrainData? trainData)
-    {
-        return ViewHostStateFactory.FormatAffectDateOnly(trainData?.AffectDate, trainData?.DayCount ?? 0);
     }
 
     private void OnTimeChanged(object? sender, int totalSeconds)

@@ -256,37 +256,6 @@ public class ViewHostPresenterTests
         Assert.True((eventArgs!.Changed & ViewHostStateSection.TitleText) != 0);
     }
 
-    [Fact]
-    public void AppViewModel_SelectedWorkGroupChanged_UpdatesWorkSpaceName()
-    {
-        var (presenter, appViewModel, _, _, _) = CreatePresenter();
-
-        ViewHostStateChangedEventArgs? eventArgs = null;
-        presenter.StateChanged += (_, e) => eventArgs = e;
-
-        appViewModel.SelectedWorkGroup = MakeWorkGroup("My Group");
-
-        Assert.Equal("My Group", presenter.CurrentState.WorkSpaceName);
-        Assert.NotNull(eventArgs);
-        Assert.True((eventArgs!.Changed & ViewHostStateSection.WorkSpaceName) != 0);
-    }
-
-    [Fact]
-    public void AppViewModel_SelectedTrainChanged_UpdatesAffectDate()
-    {
-        var (presenter, appViewModel, _, _, _) = CreatePresenter();
-
-        ViewHostStateChangedEventArgs? eventArgs = null;
-        presenter.StateChanged += (_, e) => eventArgs = e;
-
-        var trainData = MakeTrainData(affectDate: new DateOnly(2024, 3, 15));
-        appViewModel.SelectedTrainData = trainData;
-
-        Assert.Equal("2024年3月15日", presenter.CurrentState.AffectDateText);
-        Assert.NotNull(eventArgs);
-        Assert.True((eventArgs!.Changed & ViewHostStateSection.AffectDate) != 0);
-    }
-
     #endregion
 
     #region Time Label Tests

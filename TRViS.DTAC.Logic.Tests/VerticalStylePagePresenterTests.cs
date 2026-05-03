@@ -123,7 +123,7 @@ public class VerticalStylePagePresenterTests
 		return (presenter, locationService, markerToggle, clock);
 	}
 
-	private static TrainData CreateTrainData(string destination = "Tokyo", int rowCount = 3)
+	private static TrainData CreateTrainData(string destination = "Tokyo", int rowCount = 3, DateOnly? affectDate = null)
 	{
 		var rows = new TimetableRow[rowCount];
 		for (int i = 0; i < rowCount; i++)
@@ -153,6 +153,7 @@ public class VerticalStylePagePresenterTests
 			WorkName: "Test Work",
 			TrainNumber: "101",
 			Destination: destination,
+			AffectDate: affectDate,
 			Rows: rows
 		);
 	}
@@ -166,8 +167,8 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, locationService, markerToggle, _) = CreatePresenter();
 
-		var trainData = CreateTrainData("Osaka");
-		presenter.OnSelectedTrainDataChanged(trainData, "2024年1月15日");
+		var trainData = CreateTrainData("Osaka", affectDate: new DateOnly(2024, 1, 15));
+		presenter.OnSelectedTrainDataChanged(trainData);
 
 		var state = presenter.CurrentState;
 		Assert.Equal("Osaka", state.Destination.OriginalValue);
@@ -205,7 +206,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 
 		// Set a marker on row 1
 		presenter.CurrentState.RowStates[1].LocationState = 1;
@@ -225,7 +226,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 
 		// Ensure no active marker
 		foreach (var rowState in presenter.CurrentState.RowStates.Values)
@@ -249,7 +250,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, locationService, _, clock) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		presenter.OnRunStartedChanged(true);
 		presenter.OnLocationServiceEnabledChanged(true);
 
@@ -273,7 +274,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, locationService, _, clock) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		presenter.OnRunStartedChanged(true);
 		presenter.OnLocationServiceEnabledChanged(true);
 
@@ -290,7 +291,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, locationService, _, clock) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		presenter.OnRunStartedChanged(true);
 		presenter.OnLocationServiceEnabledChanged(true);
 
@@ -312,7 +313,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		presenter.OnRunStartedChanged(true);
 		// Location service NOT enabled
 
@@ -338,7 +339,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		presenter.OnRunStartedChanged(true);
 
 		// Tap last row (index 2) first time - Undefined -> AroundThisStation
@@ -359,7 +360,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		presenter.OnRunStartedChanged(true);
 
 		// Tap info row - should be ignored
@@ -374,7 +375,7 @@ public class VerticalStylePagePresenterTests
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		// Not calling OnRunStartedChanged(true)
 
 		presenter.OnRowTapped(0, false, 3);
@@ -430,7 +431,7 @@ public class VerticalStylePagePresenterTests
 		presenter.StateChanged += (_, _) => stateChangedCount++;
 
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		Assert.Equal(1, stateChangedCount);
 
 		// Dispose
@@ -471,7 +472,7 @@ public class VerticalStylePagePresenterTests
 
 		// Step 1: Select train data
 		var trainData = CreateTrainData("Nagoya", 5);
-		presenter.OnSelectedTrainDataChanged(trainData, "2024年1月15日");
+		presenter.OnSelectedTrainDataChanged(trainData);
 
 		var state = presenter.CurrentState;
 		Assert.Equal("Nagoya", state.Destination.OriginalValue);
@@ -531,7 +532,7 @@ public class VerticalStylePagePresenterTests
 		var (presenter, _, _, _) = CreatePresenter();
 
 		var trainData = CreateTrainData(rowCount: 4);
-		presenter.OnSelectedTrainDataChanged(trainData, null);
+		presenter.OnSelectedTrainDataChanged(trainData);
 		presenter.OnRunStartedChanged(true);
 		// Do NOT enable location service
 

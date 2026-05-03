@@ -8,8 +8,6 @@ public enum ViewHostStateSection
 {
     None = 0,
     TitleText = 1,
-    WorkSpaceName = 2,
-    AffectDate = 4,
     TimeLabel = 8,
     BgAppIcon = 64,
     All = ~0,

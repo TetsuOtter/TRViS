@@ -12,16 +12,6 @@ public class ViewHostPageState
     public string TitleText { get; set; } = string.Empty;
 
     /// <summary>
-    /// The workspace name (SelectedWorkGroup.Name).
-    /// </summary>
-    public string WorkSpaceName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// The formatted affect date string.
-    /// </summary>
-    public string AffectDateText { get; set; } = string.Empty;
-
-    /// <summary>
     /// The formatted time label text.
     /// </summary>
     public string TimeLabelText { get; set; } = "00:00:00";
