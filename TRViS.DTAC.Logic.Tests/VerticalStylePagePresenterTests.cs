@@ -34,6 +34,7 @@ public class VerticalStylePagePresenterTests
 		public event EventHandler<bool>? CanUseServiceChanged;
 		public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 		public event EventHandler<GpsLocationUpdate>? GpsLocationUpdated;
+		public event EventHandler<Exception>? ExceptionThrown;
 
 		public void RaiseCanUseServiceChanged(bool value)
 		{
@@ -156,8 +157,25 @@ public class VerticalStylePagePresenterTests
 	{
 		public int ResetCount { get; private set; } = 0;
 
+		private bool _isToggled = false;
+		public bool IsToggled
+		{
+			get => _isToggled;
+			set
+			{
+				if (_isToggled != value)
+				{
+					_isToggled = value;
+					PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsToggled)));
+				}
+			}
+		}
+
+		public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
 		public void ResetToggle()
 		{
+			IsToggled = false;
 			ResetCount++;
 		}
 	}

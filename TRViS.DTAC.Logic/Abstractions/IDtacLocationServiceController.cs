@@ -27,4 +27,9 @@ public interface IDtacLocationServiceController : ILocationService
 	/// Sets timetable rows for location service
 	/// </summary>
 	void SetTimetableRows(TimetableRow[]? rows);
+
+	/// <summary>
+	/// Fired when the location service encounters an exception.
+	/// </summary>
+	event EventHandler<Exception>? ExceptionThrown;
 }

@@ -68,6 +68,12 @@ internal class LocationServiceAdapter : IDtacLocationServiceController
 
 	public event EventHandler<GpsLocationUpdate>? GpsLocationUpdated;
 
+	public event EventHandler<Exception>? ExceptionThrown
+	{
+		add => _locationService.ExceptionThrown += value;
+		remove => _locationService.ExceptionThrown -= value;
+	}
+
 	public void ResetLocationInfo() => _locationService.CurrentService?.ResetLocationInfo();
 
 	public void ForceSetLocationInfo(int stationIndex, bool isRunningToNextStation)

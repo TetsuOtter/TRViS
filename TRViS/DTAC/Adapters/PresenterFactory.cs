@@ -78,6 +78,30 @@ internal static class PresenterFactory
 	}
 
 	/// <summary>
+	/// Builds a fully configured VerticalTimetableViewPresenter.
+	/// </summary>
+	public static VerticalTimetableViewPresenter BuildVerticalTimetableViewPresenter()
+	{
+		var markerToggle = new MarkerToggleAdapter(InstanceManager.DTACMarkerViewModel);
+		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
+		return new VerticalTimetableViewPresenter(markerToggle, crashLogger);
+	}
+
+	/// <summary>
+	/// Returns the shared DTACMarkerViewModel so View-layer components can access
+	/// MAUI-typed properties (Color, SelectedText) without referencing InstanceManager directly.
+	/// </summary>
+	public static TRViS.ViewModels.DTACMarkerViewModel GetDTACMarkerViewModel()
+		=> InstanceManager.DTACMarkerViewModel;
+
+	/// <summary>
+	/// Returns the shared LocationService adapter for subscribing to ExceptionThrown
+	/// from View-layer components.
+	/// </summary>
+	public static LocationServiceAdapter GetLocationServiceAdapter()
+		=> new LocationServiceAdapter(InstanceManager.LocationService);
+
+	/// <summary>
 	/// Simple clock implementation that delegates to DateTime.UtcNow.
 	/// </summary>
 	private class SystemClock : IClock
