@@ -16,6 +16,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	private readonly IMarkerToggleController _markerToggle;
 	private readonly IDtacCrashLogger _crashLogger;
 	private readonly IClock _clock;
+	private readonly IAppViewModelProvider _appViewModelProvider;
 
 	private VerticalPageState _currentState = new();
 	private TrainData? _lastTrainData = null;
@@ -26,6 +27,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	private bool _disposed = false;
 
 	public VerticalPageState CurrentState => _currentState;
+	public TrainData? CurrentTrainData => _lastTrainData;
 
 	public event EventHandler<VerticalPageStateChangedEventArgs>? StateChanged;
 
@@ -33,16 +35,25 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		IDtacLocationServiceController locationService,
 		IMarkerToggleController markerToggle,
 		IDtacCrashLogger crashLogger,
-		IClock clock)
+		IClock clock,
+		IAppViewModelProvider appViewModelProvider)
 	{
 		_locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
 		_markerToggle = markerToggle ?? throw new ArgumentNullException(nameof(markerToggle));
 		_crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
 		_clock = clock ?? throw new ArgumentNullException(nameof(clock));
+		_appViewModelProvider = appViewModelProvider ?? throw new ArgumentNullException(nameof(appViewModelProvider));
 
 		_locationService.CanUseServiceChanged += OnLocationServiceCanUseChanged_Internal;
 		_locationService.LocationStateChanged += OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated += OnGpsLocationUpdated_Internal;
+		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
+	}
+
+	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(IAppViewModelProvider.SelectedTrainData))
+			SetSelectedTrainData(_appViewModelProvider.SelectedTrainData);
 	}
 
 	private void OnLocationServiceCanUseChanged_Internal(object? sender, bool canUse)
@@ -89,10 +100,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		RaiseStateChanged(VerticalPageStateSection.LocationService);
 	}
 
-	/// <summary>
-	/// Called when train data selection changes
-	/// </summary>
-	public void OnSelectedTrainDataChanged(TrainData? trainData)
+	private void SetSelectedTrainData(TrainData? trainData)
 	{
 		string affectDate = ViewHostStateFactory.FormatAffectDateOnly(
 			trainData?.AffectDate,
@@ -336,5 +344,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		_locationService.CanUseServiceChanged -= OnLocationServiceCanUseChanged_Internal;
 		_locationService.LocationStateChanged -= OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated -= OnGpsLocationUpdated_Internal;
+		_appViewModelProvider.PropertyChanged -= OnAppViewModelPropertyChanged;
 	}
 }

@@ -323,8 +323,8 @@ public partial class VerticalStylePage : ContentView
 			{
 				TimetableAreaScrollView.ScrollToAsync(0, 0, false);
 			});
-			TimetableView.ViewModel.SetTrainData(_lastTrainData);
-			DebugMap?.SetTimetableRowList(_lastTrainData?.Rows);
+			TimetableView.ViewModel.SetTrainData(_presenter.CurrentTrainData);
+			DebugMap?.SetTimetableRowList(_presenter.CurrentTrainData?.Rows);
 		}
 	}
 
@@ -358,7 +358,7 @@ public partial class VerticalStylePage : ContentView
 				return;
 
 			DebugMap = new MyMap();
-			DebugMap.SetTimetableRowList(_lastTrainData?.Rows);
+			DebugMap.SetTimetableRowList(_presenter.CurrentTrainData?.Rows);
 			DebugMap.SetIsLocationServiceEnabled(PageHeaderArea.IsLocationServiceEnabled);
 			double mainWidth = 768;
 			MainColumnDefinition.Width = new(mainWidth);
@@ -380,18 +380,10 @@ public partial class VerticalStylePage : ContentView
 		}
 	}
 
-	TrainData? _lastTrainData = null;
-
 	private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
 		logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
 		_presenter.OnLocationServiceToggled();
-	}
-
-	partial void OnSelectedTrainDataChanged(TrainData? newValue)
-	{
-		_lastTrainData = newValue;
-		_presenter.OnSelectedTrainDataChanged(newValue);
 	}
 
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);

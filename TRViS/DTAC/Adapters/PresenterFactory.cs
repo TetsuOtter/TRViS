@@ -18,12 +18,14 @@ internal static class PresenterFactory
 		var markerToggle = new MarkerToggleAdapter(InstanceManager.DTACMarkerViewModel);
 		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
 		var clock = new SystemClock();
+		var appViewModelProvider = new AppViewModelAdapter(InstanceManager.AppViewModel);
 
 		return new VerticalStylePagePresenter(
 			locationService,
 			markerToggle,
 			crashLogger,
-			clock);
+			clock,
+			appViewModelProvider);
 	}
 
 	/// <summary>

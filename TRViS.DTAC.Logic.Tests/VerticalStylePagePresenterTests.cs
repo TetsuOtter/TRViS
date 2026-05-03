@@ -98,6 +98,25 @@ public class VerticalStylePagePresenterTests
 		public void Log(Exception ex, string? context = null) { }
 	}
 
+	private class FakeAppViewModelProvider : IAppViewModelProvider
+	{
+		public WorkGroup? SelectedWorkGroup { get; set; }
+		public Work? SelectedWork { get; set; }
+
+		private TrainData? _selectedTrainData;
+		public TrainData? SelectedTrainData
+		{
+			get => _selectedTrainData;
+			set
+			{
+				_selectedTrainData = value;
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedTrainData)));
+			}
+		}
+
+		public event PropertyChangedEventHandler? PropertyChanged;
+	}
+
 	#endregion
 
 	#region Helpers
@@ -106,21 +125,24 @@ public class VerticalStylePagePresenterTests
 		VerticalStylePagePresenter presenter,
 		FakeLocationService locationService,
 		FakeMarkerToggle markerToggle,
-		FakeClock clock
+		FakeClock clock,
+		FakeAppViewModelProvider appVm
 	) CreatePresenter()
 	{
 		var locationService = new FakeLocationService();
 		var markerToggle = new FakeMarkerToggle();
 		var crashLogger = new FakeCrashLogger();
 		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
 
 		var presenter = new VerticalStylePagePresenter(
 			locationService,
 			markerToggle,
 			crashLogger,
-			clock);
+			clock,
+			appVm);
 
-		return (presenter, locationService, markerToggle, clock);
+		return (presenter, locationService, markerToggle, clock, appVm);
 	}
 
 	private static TrainData CreateTrainData(string destination = "Tokyo", int rowCount = 3, DateOnly? affectDate = null)
@@ -160,15 +182,15 @@ public class VerticalStylePagePresenterTests
 
 	#endregion
 
-	#region OnSelectedTrainDataChanged Tests
+	#region SelectedTrainData change handling Tests
 
 	[Fact]
-	public void OnSelectedTrainDataChanged_AppliesAllStateFromTrainData()
+	public void SelectedTrainDataChanged_AppliesAllStateFromTrainData()
 	{
-		var (presenter, locationService, markerToggle, _) = CreatePresenter();
+		var (presenter, locationService, markerToggle, _, appVm) = CreatePresenter();
 
 		var trainData = CreateTrainData("Osaka", affectDate: new DateOnly(2024, 1, 15));
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 
 		var state = presenter.CurrentState;
 		Assert.Equal("Osaka", state.Destination.OriginalValue);
@@ -187,7 +209,7 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnStartButtonClicked_ToFalse_DisablesLocationService()
 	{
-		var (presenter, locationService, _, _) = CreatePresenter();
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
 
 		// First start running
 		presenter.OnStartButtonClicked();
@@ -204,9 +226,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnStartButtonClicked_ToFalse_ResetsRowMarkerStates()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 
 		// Set a marker on row 1
 		presenter.CurrentState.RowStates[1].LocationState = 1;
@@ -225,9 +247,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnStartButtonClicked_ToTrue_SetsFirstRowMarker_WhenNoActiveMarker()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 
 		// Ensure no active marker
 		foreach (var rowState in presenter.CurrentState.RowStates.Values)
@@ -249,9 +271,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnRowTapped_DoubleTapWithinThreshold_CallsForceSetLocationInfo()
 	{
-		var (presenter, locationService, _, clock) = CreatePresenter();
+		var (presenter, locationService, _, clock, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 		presenter.OnLocationServiceToggled();
 
@@ -273,9 +295,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnRowTapped_SingleTapBeforeThreshold_DoesNotCallForceSet()
 	{
-		var (presenter, locationService, _, clock) = CreatePresenter();
+		var (presenter, locationService, _, clock, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 		presenter.OnLocationServiceToggled();
 
@@ -290,9 +312,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnRowTapped_TwoTapsOutsideThreshold_DoesNotCallForceSet()
 	{
-		var (presenter, locationService, _, clock) = CreatePresenter();
+		var (presenter, locationService, _, clock, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 		presenter.OnLocationServiceToggled();
 
@@ -312,9 +334,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnRowTapped_LocationServiceDisabled_CyclesMarkerState()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 		// Location service NOT enabled
 
@@ -338,9 +360,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnRowTapped_LastRow_LocationServiceDisabled_StaysAtAroundThisStation()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 
 		// Tap last row (index 2) first time - Undefined -> AroundThisStation
@@ -359,9 +381,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnRowTapped_InfoRow_IsIgnored()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 
 		// Tap info row - should be ignored
@@ -374,9 +396,9 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnRowTapped_NotRunStarted_IsIgnored()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		// Not calling OnStartButtonClicked()
 
 		presenter.OnRowTapped(0, false, 3);
@@ -395,7 +417,7 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnLocationServiceToggled_ToTrue_UpdatesAllLocationServiceStates()
 	{
-		var (presenter, locationService, _, _) = CreatePresenter();
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
 
 		presenter.OnLocationServiceToggled();
 
@@ -408,7 +430,7 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnLocationServiceToggled_ToFalse_UpdatesAllLocationServiceStates()
 	{
-		var (presenter, locationService, _, _) = CreatePresenter();
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
 
 		presenter.OnLocationServiceToggled();
 		presenter.OnLocationServiceToggled();
@@ -426,13 +448,13 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void Dispose_UnsubscribesEvents()
 	{
-		var (presenter, locationService, _, _) = CreatePresenter();
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
 
 		var stateChangedCount = 0;
 		presenter.StateChanged += (_, _) => stateChangedCount++;
 
 		var trainData = CreateTrainData(rowCount: 3);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		Assert.Equal(1, stateChangedCount);
 
 		// Dispose
@@ -450,7 +472,7 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void Dispose_CalledTwice_DoesNotThrow()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 
 		presenter.Dispose();
 
@@ -466,14 +488,14 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void EndToEnd_TrainSelected_RunStarts_RowTapped_StateUpdates()
 	{
-		var (presenter, locationService, _, clock) = CreatePresenter();
+		var (presenter, locationService, _, clock, appVm) = CreatePresenter();
 
 		var stateChanges = new List<VerticalPageStateSection>();
 		presenter.StateChanged += (_, e) => stateChanges.Add(e.Changed);
 
 		// Step 1: Select train data
 		var trainData = CreateTrainData("Nagoya", 5);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 
 		var state = presenter.CurrentState;
 		Assert.Equal("Nagoya", state.Destination.OriginalValue);
@@ -530,10 +552,10 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void EndToEnd_TrainSelected_TapWithoutLocationService_CyclesMarkers()
 	{
-		var (presenter, _, _, _) = CreatePresenter();
+		var (presenter, _, _, _, appVm) = CreatePresenter();
 
 		var trainData = CreateTrainData(rowCount: 4);
-		presenter.OnSelectedTrainDataChanged(trainData);
+		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 		// Do NOT enable location service
 
@@ -561,7 +583,7 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnNetworkSyncAutoStartRequested_NetworkSyncCanStart_StartsRunAndLocationService()
 	{
-		var (presenter, locationService, _, _) = CreatePresenter();
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
 		locationService.NetworkSyncServiceCanStart = true;
 
 		presenter.OnNetworkSyncAutoStartRequested();
@@ -573,7 +595,7 @@ public class VerticalStylePagePresenterTests
 	[Fact]
 	public void OnNetworkSyncAutoStartRequested_NetworkSyncCanNotStart_DoesNothing()
 	{
-		var (presenter, locationService, _, _) = CreatePresenter();
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
 		locationService.NetworkSyncServiceCanStart = false;
 
 		presenter.OnNetworkSyncAutoStartRequested();
