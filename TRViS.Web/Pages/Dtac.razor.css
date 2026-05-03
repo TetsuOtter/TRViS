@@ -123,3 +123,47 @@
 .dtac-laststop {
     color: #d32f2f;
 }
+
+.dtac-selector {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    background: #fafafa;
+}
+
+.dtac-selector-section {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.dtac-selector-label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.dtac-selector-select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #bbb;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    background: white;
+}
+
+.dtac-selector-file {
+    font-size: 0.9rem;
+}
+
+.dtac-selector-loaded {
+    font-size: 0.85rem;
+    color: #2e7d32;
+}
+
+.dtac-selector-hint {
+    color: #666;
+    font-size: 0.9rem;
+}

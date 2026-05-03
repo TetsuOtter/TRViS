@@ -9,7 +9,75 @@
 
 @if (State.SelectedTrain is null)
 {
-    <p>列車が選択されていません。</p>
+    <div class="dtac-selector">
+        <div class="dtac-selector-section">
+            <label class="dtac-selector-label">JSONファイルを読み込む</label>
+            <InputFile OnChange="HandleFileSelected" accept=".json" class="dtac-selector-file" />
+            @if (State.LoadedSourceLabel is not null)
+            {
+                <span class="dtac-selector-loaded">読み込み済: @State.LoadedSourceLabel</span>
+            }
+        </div>
+
+        @if (State.Loader is { } loader)
+        {
+            var workGroups = loader.GetWorkGroupList();
+            <div class="dtac-selector-section">
+                <label class="dtac-selector-label">WorkGroup</label>
+                <select class="dtac-selector-select" value="@_selectedWorkGroupId"
+                        @onchange="OnWorkGroupChanged">
+                    <option value="">-- 選択してください --</option>
+                    @foreach (var wg in workGroups)
+                    {
+                        <option value="@wg.Id">@wg.Name</option>
+                    }
+                </select>
+            </div>
+
+            @if (_selectedWorkGroupId is not null)
+            {
+                var works = loader.GetWorkList(_selectedWorkGroupId);
+                <div class="dtac-selector-section">
+                    <label class="dtac-selector-label">Work (仕業)</label>
+                    <select class="dtac-selector-select" value="@_selectedWorkId"
+                            @onchange="OnWorkChanged">
+                        <option value="">-- 選択してください --</option>
+                        @foreach (var w in works)
+                        {
+                            <option value="@w.Id">@w.Name @(w.AffectDate?.ToString("yyyy/MM/dd") ?? "")</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @if (_selectedWorkId is not null)
+            {
+                var trains = loader.GetTrainDataList(_selectedWorkId);
+                <div class="dtac-selector-section">
+                    <label class="dtac-selector-label">列車</label>
+                    <select class="dtac-selector-select" value="@_selectedTrainId"
+                            @onchange="e => _selectedTrainId = e.Value?.ToString()">
+                        <option value="">-- 選択してください --</option>
+                        @foreach (var t in trains)
+                        {
+                            <option value="@t.Id">@t.TrainNumber @(t.Destination is not null ? $" → {t.Destination}" : "")</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @if (_selectedTrainId is not null)
+            {
+                <div class="dtac-selector-section">
+                    <button class="dtac-btn dtac-btn-success" @onclick="ConfirmSelection">列車を選択する</button>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="dtac-selector-hint">JSONファイルを選択して列車データを読み込んでください。</p>
+        }
+    </div>
 }
 else
 {
@@ -123,16 +191,23 @@ else
 @code {
     private VerticalStylePagePresenter _presenter = default!;
     private bool _gpsActive;
+    private string? _selectedWorkGroupId;
+    private string? _selectedWorkId;
+    private string? _selectedTrainId;
 
     protected override void OnInitialized()
     {
         _presenter = State.GetOrCreateVerticalPresenter();
         _presenter.StateChanged += OnPresenterChanged;
+        State.StateChanged += OnAppStateChanged;
         // Ensure presenter sees the currently-selected train (rebuilds state if needed)
         _presenter.OnSelectedTrainDataChanged(State.SelectedTrain, State.SelectedAffectDate);
     }
 
     private void OnPresenterChanged(object? sender, VerticalPageStateChangedEventArgs e)
+        => InvokeAsync(StateHasChanged);
+
+    private void OnAppStateChanged()
         => InvokeAsync(StateHasChanged);
 
     private void ToggleRun()
@@ -181,10 +256,43 @@ else
         return $"{row.RunInLimit?.ToString() ?? "-"}/{row.RunOutLimit?.ToString() ?? "-"}";
     }
 
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(ms);
+        State.LoadJson(ms.ToArray(), file.Name);
+        _selectedWorkGroupId = null;
+        _selectedWorkId = null;
+        _selectedTrainId = null;
+    }
+
+    private void OnWorkGroupChanged(ChangeEventArgs e)
+    {
+        _selectedWorkGroupId = e.Value?.ToString() is { Length: > 0 } v ? v : null;
+        _selectedWorkId = null;
+        _selectedTrainId = null;
+    }
+
+    private void OnWorkChanged(ChangeEventArgs e)
+    {
+        _selectedWorkId = e.Value?.ToString() is { Length: > 0 } v ? v : null;
+        _selectedTrainId = null;
+    }
+
+    private void ConfirmSelection()
+    {
+        if (_selectedTrainId is null || State.Loader is null) return;
+        var train = State.Loader.GetTrainData(_selectedTrainId);
+        var work = State.Loader.GetWorkList(_selectedWorkGroupId!).FirstOrDefault(w => w.Id == _selectedWorkId);
+        State.SelectTrain(train, work?.AffectDate?.ToString("yyyyMMdd"));
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_presenter is not null)
             _presenter.StateChanged -= OnPresenterChanged;
+        State.StateChanged -= OnAppStateChanged;
         if (_gpsActive)
         {
             try { await GpsBridge.StopAsync(); } catch { /* ignore */ }
