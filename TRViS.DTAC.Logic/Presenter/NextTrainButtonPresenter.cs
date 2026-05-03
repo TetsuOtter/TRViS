@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Formatters;
 
@@ -44,17 +46,40 @@ public class NextTrainButtonPresenter
 		_appViewModelProvider = appViewModelProvider ?? throw new ArgumentNullException(nameof(appViewModelProvider));
 		_crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
 		_userAlertService = userAlertService ?? throw new ArgumentNullException(nameof(userAlertService));
+
+		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
 	}
 
-	/// <summary>
-	/// Called when the next train ID changes (e.g. when the timetable row is set).
-	/// Looks up the train data, validates it, formats the button text, and updates state.
-	/// On lookup error the button is hidden; on missing data exceptions are thrown to the caller.
-	/// </summary>
-	/// <param name="newNextTrainId">The new next-train identifier.</param>
-	/// <exception cref="KeyNotFoundException">Thrown when no TrainData is found for <paramref name="newNextTrainId"/>.</exception>
-	/// <exception cref="NullReferenceException">Thrown when the found TrainData has a null TrainNumber.</exception>
-	public void OnNextTrainIdChanged(string newNextTrainId)
+	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName != nameof(IAppViewModelProvider.SelectedTrainData))
+			return;
+
+		string? nextTrainId = _appViewModelProvider.SelectedTrainData?.NextTrainId;
+		if (string.IsNullOrEmpty(nextTrainId))
+		{
+			UpdateState(new NextTrainButtonState(IsVisible: false, ButtonText: string.Empty, CurrentNextTrainId: string.Empty));
+			return;
+		}
+
+		try
+		{
+			OnNextTrainIdChanged(nextTrainId);
+		}
+		catch (Exception ex)
+		{
+			string msg = NextTrainButtonMessages.FormatSetterErrorMessage(
+				workGroupId: _appViewModelProvider.SelectedWorkGroup?.Id,
+				workId: _appViewModelProvider.SelectedWork?.Id,
+				trainId: _appViewModelProvider.SelectedTrainData?.Id,
+				currentNextTrainId: _currentState.CurrentNextTrainId,
+				givenNextTrainId: nextTrainId);
+			_crashLogger.Log(ex, msg);
+			UpdateState(new NextTrainButtonState(IsVisible: false, ButtonText: string.Empty, CurrentNextTrainId: _currentState.CurrentNextTrainId));
+		}
+	}
+
+	private void OnNextTrainIdChanged(string newNextTrainId)
 	{
 		TRViS.IO.Models.TrainData? nextTrainData;
 		try

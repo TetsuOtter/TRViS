@@ -151,7 +151,7 @@ public partial class VerticalStylePage : ContentView
 		PageHeaderArea.IsRunningChanged += (_, e) =>
 		{
 			logger.Info("IsRunningChanged: {0}", e.NewValue);
-			_presenter.OnRunStartedChanged(e.NewValue);
+			_presenter.OnStartButtonClicked();
 			if (e.NewValue && InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
 				InstanceManager.ScreenWakeLockService.EnableWakeLock();
 			else
@@ -219,7 +219,7 @@ public partial class VerticalStylePage : ContentView
 	/// </summary>
 	public void OnViewBecameActive()
 	{
-		_presenter.OnVerticalViewActivated();
+		ApplyPresenterState(VerticalPageStateSection.All);
 		UpdateDebugMapVisibility();
 	}
 
@@ -385,7 +385,7 @@ public partial class VerticalStylePage : ContentView
 	private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
 	{
 		logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
-		_presenter.OnLocationServiceEnabledChanged(e.NewValue);
+		_presenter.OnLocationServiceToggled();
 	}
 
 	partial void OnSelectedTrainDataChanged(TrainData? newValue)
@@ -407,8 +407,6 @@ public partial class VerticalStylePage : ContentView
 			start,
 			end
 		);
-
-		_presenter.OnTrainInfoOpenCloseToggled(isToOpen);
 
 		if (this.AnimationIsRunning(DateAndStartButton_AnimationName))
 		{
@@ -436,7 +434,6 @@ public partial class VerticalStylePage : ContentView
 				DateAndStartButton_AnimationName,
 				finished: (_, canceled) =>
 				{
-					_presenter.OnTrainInfoOpenCloseAnimationFinished(isToOpen, canceled);
 					if (!isToOpen && !canceled)
 					{
 						logger.Debug("Animation Successfully finished to close");

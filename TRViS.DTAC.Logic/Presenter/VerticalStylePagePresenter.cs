@@ -134,18 +134,15 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	}
 
 	/// <summary>
-	/// Called by View when the vertical tab becomes active.
-	/// Re-broadcasts all current state so the View can sync.
+	/// Called when the start/end run button is clicked.
+	/// Toggles the running state.
 	/// </summary>
-	public void OnVerticalViewActivated()
+	public void OnStartButtonClicked()
 	{
-		RaiseStateChanged(VerticalPageStateSection.All);
+		SetIsRunning(!_currentState.PageHeaderState.IsRunning);
 	}
 
-	/// <summary>
-	/// Called when run started state changes
-	/// </summary>
-	public void OnRunStartedChanged(bool isRunning)
+	private void SetIsRunning(bool isRunning)
 	{
 		_currentState.PageHeaderState.IsRunning = isRunning;
 		_currentState.TimetableViewState.IsRunStarted = isRunning;
@@ -245,9 +242,15 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	}
 
 	/// <summary>
-	/// Called when location service enabled state changes
+	/// Called when the location service button is clicked.
+	/// Toggles the location service enabled state.
 	/// </summary>
-	public void OnLocationServiceEnabledChanged(bool enabled)
+	public void OnLocationServiceToggled()
+	{
+		SetLocationServiceEnabled(!_currentState.LocationServiceState.IsEnabled);
+	}
+
+	private void SetLocationServiceEnabled(bool enabled)
 	{
 		_locationService.IsEnabled = enabled;
 		_currentState.LocationServiceState.IsEnabled = enabled;
@@ -258,27 +261,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 			VerticalPageStateSection.LocationService
 			| VerticalPageStateSection.PageHeader
 			| VerticalPageStateSection.TimetableView);
-	}
-
-	/// <summary>
-	/// Called when train info open/close is toggled
-	/// </summary>
-	public void OnTrainInfoOpenCloseToggled(bool isOpen)
-	{
-		VerticalPageStateFactory.UpdateTrainInfoAreaOpenCloseState(_currentState.TrainInfoAreaState, isOpen);
-		RaiseStateChanged(VerticalPageStateSection.TrainInfoArea);
-	}
-
-	/// <summary>
-	/// Called when train info open/close animation finishes
-	/// </summary>
-	public void OnTrainInfoOpenCloseAnimationFinished(bool wasOpen, bool canceled)
-	{
-		if (!canceled)
-		{
-			VerticalPageStateFactory.CompleteTrainInfoAreaAnimation(_currentState.TrainInfoAreaState, wasOpen);
-			RaiseStateChanged(VerticalPageStateSection.TrainInfoArea);
-		}
 	}
 
 	/// <summary>
@@ -299,11 +281,11 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		{
 			if (!_currentState.PageHeaderState.IsRunning)
 			{
-				OnRunStartedChanged(true);
+				SetIsRunning(true);
 			}
 			if (!_currentState.TimetableViewState.IsLocationServiceEnabled)
 			{
-				OnLocationServiceEnabledChanged(true);
+				SetLocationServiceEnabled(true);
 			}
 		}
 	}
@@ -320,11 +302,11 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		{
 			if (!_currentState.PageHeaderState.IsRunning)
 			{
-				OnRunStartedChanged(true);
+				SetIsRunning(true);
 			}
 			if (!_currentState.TimetableViewState.IsLocationServiceEnabled)
 			{
-				OnLocationServiceEnabledChanged(true);
+				SetLocationServiceEnabled(true);
 			}
 		}
 

@@ -416,7 +416,6 @@ public partial class VerticalTimetableView : Grid
 
 				if (ViewModel.NextTrainId is not null)
 				{
-					NextTrainButton.NextTrainId = ViewModel.NextTrainId;
 					Children.Add(NextTrainButton);
 				}
 				else

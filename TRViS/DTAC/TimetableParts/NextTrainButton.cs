@@ -1,11 +1,9 @@
 using TRViS.DTAC.Logic.Presenter;
-using TRViS.Services;
 
 namespace TRViS.DTAC.TimetableParts;
 
 public class NextTrainButton : Grid
 {
-	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	readonly Button _NextTrainButton = new()
 	{
 		FontFamily = DTACElementStyles.DefaultFontFamily,
@@ -45,18 +43,6 @@ public class NextTrainButton : Grid
 		}
 	}
 
-	public string NextTrainId
-	{
-		get => _presenter.CurrentState.CurrentNextTrainId;
-		set
-		{
-			logger.Trace("NextTrainId set to: {0}", value);
-			_presenter.OnNextTrainIdChanged(value);
-		}
-	}
-
 	private void NextTrainButton_Click(object? _, EventArgs e)
-	{
-		_presenter.OnButtonClicked();
-	}
+		=> _presenter.OnButtonClicked();
 }

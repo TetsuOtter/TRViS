@@ -182,18 +182,18 @@ public class VerticalStylePagePresenterTests
 
 	#endregion
 
-	#region OnRunStartedChanged Tests
+	#region OnStartButtonClicked Tests
 
 	[Fact]
-	public void OnRunStartedChanged_False_DisablesLocationService()
+	public void OnStartButtonClicked_ToFalse_DisablesLocationService()
 	{
 		var (presenter, locationService, _, _) = CreatePresenter();
 
 		// First start running
-		presenter.OnRunStartedChanged(true);
+		presenter.OnStartButtonClicked();
 
 		// Now stop running
-		presenter.OnRunStartedChanged(false);
+		presenter.OnStartButtonClicked();
 
 		Assert.False(locationService.IsEnabled);
 		Assert.False(presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
@@ -202,7 +202,7 @@ public class VerticalStylePagePresenterTests
 	}
 
 	[Fact]
-	public void OnRunStartedChanged_False_ResetsRowMarkerStates()
+	public void OnStartButtonClicked_ToFalse_ResetsRowMarkerStates()
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
@@ -211,8 +211,9 @@ public class VerticalStylePagePresenterTests
 		// Set a marker on row 1
 		presenter.CurrentState.RowStates[1].LocationState = 1;
 
-		// Stop running
-		presenter.OnRunStartedChanged(false);
+		// Start then stop running
+		presenter.OnStartButtonClicked();
+		presenter.OnStartButtonClicked();
 
 		// All row states should be reset to undefined
 		foreach (var rowState in presenter.CurrentState.RowStates.Values)
@@ -222,7 +223,7 @@ public class VerticalStylePagePresenterTests
 	}
 
 	[Fact]
-	public void OnRunStartedChanged_True_SetsFirstRowMarker_WhenNoActiveMarker()
+	public void OnStartButtonClicked_ToTrue_SetsFirstRowMarker_WhenNoActiveMarker()
 	{
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
@@ -235,7 +236,7 @@ public class VerticalStylePagePresenterTests
 		}
 
 		// Start running
-		presenter.OnRunStartedChanged(true);
+		presenter.OnStartButtonClicked();
 
 		// First row should have AroundThisStation marker
 		Assert.Equal(1, presenter.CurrentState.RowStates[0].LocationState);
@@ -251,8 +252,8 @@ public class VerticalStylePagePresenterTests
 		var (presenter, locationService, _, clock) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		presenter.OnRunStartedChanged(true);
-		presenter.OnLocationServiceEnabledChanged(true);
+		presenter.OnStartButtonClicked();
+		presenter.OnLocationServiceToggled();
 
 		var baseTime = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		clock.UtcNow = baseTime;
@@ -275,8 +276,8 @@ public class VerticalStylePagePresenterTests
 		var (presenter, locationService, _, clock) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		presenter.OnRunStartedChanged(true);
-		presenter.OnLocationServiceEnabledChanged(true);
+		presenter.OnStartButtonClicked();
+		presenter.OnLocationServiceToggled();
 
 		clock.UtcNow = DateTime.UtcNow;
 
@@ -292,8 +293,8 @@ public class VerticalStylePagePresenterTests
 		var (presenter, locationService, _, clock) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		presenter.OnRunStartedChanged(true);
-		presenter.OnLocationServiceEnabledChanged(true);
+		presenter.OnStartButtonClicked();
+		presenter.OnLocationServiceToggled();
 
 		var baseTime = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		clock.UtcNow = baseTime;
@@ -314,7 +315,7 @@ public class VerticalStylePagePresenterTests
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		presenter.OnRunStartedChanged(true);
+		presenter.OnStartButtonClicked();
 		// Location service NOT enabled
 
 		// Tap row 1 first time - Undefined -> AroundThisStation
@@ -340,7 +341,7 @@ public class VerticalStylePagePresenterTests
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		presenter.OnRunStartedChanged(true);
+		presenter.OnStartButtonClicked();
 
 		// Tap last row (index 2) first time - Undefined -> AroundThisStation
 		presenter.OnRowTapped(2, false, 3);
@@ -361,7 +362,7 @@ public class VerticalStylePagePresenterTests
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		presenter.OnRunStartedChanged(true);
+		presenter.OnStartButtonClicked();
 
 		// Tap info row - should be ignored
 		presenter.OnRowTapped(0, true, 3);
@@ -376,7 +377,7 @@ public class VerticalStylePagePresenterTests
 		var (presenter, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		// Not calling OnRunStartedChanged(true)
+		// Not calling OnStartButtonClicked()
 
 		presenter.OnRowTapped(0, false, 3);
 
@@ -389,14 +390,14 @@ public class VerticalStylePagePresenterTests
 
 	#endregion
 
-	#region OnLocationServiceEnabledChanged Tests
+	#region OnLocationServiceToggled Tests
 
 	[Fact]
-	public void OnLocationServiceEnabledChanged_True_UpdatesAllLocationServiceStates()
+	public void OnLocationServiceToggled_ToTrue_UpdatesAllLocationServiceStates()
 	{
 		var (presenter, locationService, _, _) = CreatePresenter();
 
-		presenter.OnLocationServiceEnabledChanged(true);
+		presenter.OnLocationServiceToggled();
 
 		Assert.True(locationService.IsEnabled);
 		Assert.True(presenter.CurrentState.LocationServiceState.IsEnabled);
@@ -405,12 +406,12 @@ public class VerticalStylePagePresenterTests
 	}
 
 	[Fact]
-	public void OnLocationServiceEnabledChanged_False_UpdatesAllLocationServiceStates()
+	public void OnLocationServiceToggled_ToFalse_UpdatesAllLocationServiceStates()
 	{
 		var (presenter, locationService, _, _) = CreatePresenter();
 
-		presenter.OnLocationServiceEnabledChanged(true);
-		presenter.OnLocationServiceEnabledChanged(false);
+		presenter.OnLocationServiceToggled();
+		presenter.OnLocationServiceToggled();
 
 		Assert.False(locationService.IsEnabled);
 		Assert.False(presenter.CurrentState.LocationServiceState.IsEnabled);
@@ -480,7 +481,7 @@ public class VerticalStylePagePresenterTests
 		Assert.False(state.PageHeaderState.IsRunning);
 
 		// Step 2: Start run
-		presenter.OnRunStartedChanged(true);
+		presenter.OnStartButtonClicked();
 
 		Assert.True(state.PageHeaderState.IsRunning);
 		Assert.True(state.TimetableViewState.IsRunStarted);
@@ -488,7 +489,7 @@ public class VerticalStylePagePresenterTests
 		Assert.Equal(1, state.RowStates[0].LocationState);
 
 		// Step 3: Enable location service
-		presenter.OnLocationServiceEnabledChanged(true);
+		presenter.OnLocationServiceToggled();
 
 		Assert.True(locationService.IsEnabled);
 		Assert.True(state.TimetableViewState.IsLocationServiceEnabled);
@@ -512,7 +513,7 @@ public class VerticalStylePagePresenterTests
 		Assert.Equal(1, state.RowStates[2].LocationState); // AroundThisStation
 
 		// Step 6: Stop run
-		presenter.OnRunStartedChanged(false);
+		presenter.OnStartButtonClicked();
 
 		Assert.False(state.PageHeaderState.IsRunning);
 		Assert.False(locationService.IsEnabled);
@@ -533,7 +534,7 @@ public class VerticalStylePagePresenterTests
 
 		var trainData = CreateTrainData(rowCount: 4);
 		presenter.OnSelectedTrainDataChanged(trainData);
-		presenter.OnRunStartedChanged(true);
+		presenter.OnStartButtonClicked();
 		// Do NOT enable location service
 
 		// Row 0 gets marker from run start
@@ -583,47 +584,4 @@ public class VerticalStylePagePresenterTests
 
 	#endregion
 
-	#region TrainInfo Open/Close Tests
-
-	[Fact]
-	public void OnTrainInfoOpenCloseToggled_SetsAnimationState()
-	{
-		var (presenter, _, _, _) = CreatePresenter();
-
-		VerticalPageStateChangedEventArgs? eventArgs = null;
-		presenter.StateChanged += (_, e) => eventArgs = e;
-
-		presenter.OnTrainInfoOpenCloseToggled(true);
-
-		Assert.True(presenter.CurrentState.TrainInfoAreaState.IsOpen);
-		Assert.True(presenter.CurrentState.TrainInfoAreaState.IsAnimationRunning);
-		Assert.NotNull(eventArgs);
-		Assert.True((eventArgs!.Changed & VerticalPageStateSection.TrainInfoArea) != 0);
-	}
-
-	[Fact]
-	public void OnTrainInfoOpenCloseAnimationFinished_NotCanceled_CompletesAnimation()
-	{
-		var (presenter, _, _, _) = CreatePresenter();
-		presenter.OnTrainInfoOpenCloseToggled(true);
-
-		presenter.OnTrainInfoOpenCloseAnimationFinished(true, false);
-
-		Assert.False(presenter.CurrentState.TrainInfoAreaState.IsAnimationRunning);
-		Assert.True(presenter.CurrentState.TrainInfoAreaState.IsVisible);
-	}
-
-	[Fact]
-	public void OnTrainInfoOpenCloseAnimationFinished_Canceled_DoesNotComplete()
-	{
-		var (presenter, _, _, _) = CreatePresenter();
-		presenter.OnTrainInfoOpenCloseToggled(true);
-
-		presenter.OnTrainInfoOpenCloseAnimationFinished(true, true);
-
-		// Canceled animation should not update state
-		Assert.True(presenter.CurrentState.TrainInfoAreaState.IsAnimationRunning);
-	}
-
-	#endregion
 }

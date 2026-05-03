@@ -40,7 +40,18 @@ public class NextTrainButtonPresenterTests
 	{
 		public WorkGroup? SelectedWorkGroup { get; set; }
 		public Work? SelectedWork { get; set; }
-		public TrainData? SelectedTrainData { get; set; }
+
+		private TrainData? _selectedTrainData;
+		public TrainData? SelectedTrainData
+		{
+			get => _selectedTrainData;
+			set
+			{
+				_selectedTrainData = value;
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedTrainData)));
+			}
+		}
+
 		public event PropertyChangedEventHandler? PropertyChanged;
 	}
 
@@ -72,6 +83,9 @@ public class NextTrainButtonPresenterTests
 	private static TrainData MakeTrainData(string id, string? trainNumber = "123A")
 		=> new TrainData(id, Direction.Outbound, TrainNumber: trainNumber);
 
+	private static TrainData MakeSelectedTrain(string nextTrainId)
+		=> new TrainData("selected", Direction.Outbound, TrainNumber: "selected") { NextTrainId = nextTrainId };
+
 	#endregion
 
 	// --- Initial state ---
@@ -97,93 +111,108 @@ public class NextTrainButtonPresenterTests
 		Assert.Equal(string.Empty, presenter.CurrentState.CurrentNextTrainId);
 	}
 
-	// --- OnNextTrainIdChanged ---
+	// --- SelectedTrainData change handling ---
 
 	[Fact]
-	public void OnNextTrainIdChanged_ValidTrain_SetsVisible()
+	public void SelectedTrainDataChanged_ValidNextTrain_SetsVisible()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
+		var presenter = CreatePresenter(out var td, out _, out _, out var appVm);
 		td.Add("T1", MakeTrainData("T1", "123A"));
 
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 
 		Assert.True(presenter.CurrentState.IsVisible);
 	}
 
 	[Fact]
-	public void OnNextTrainIdChanged_ValidTrain_SetsButtonText()
+	public void SelectedTrainDataChanged_ValidNextTrain_SetsButtonText()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
+		var presenter = CreatePresenter(out var td, out _, out _, out var appVm);
 		td.Add("T1", MakeTrainData("T1", "456B"));
 
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 
 		Assert.Contains("の時刻表へ", presenter.CurrentState.ButtonText);
 	}
 
 	[Fact]
-	public void OnNextTrainIdChanged_ValidTrain_SetsCurrentNextTrainId()
+	public void SelectedTrainDataChanged_ValidNextTrain_SetsCurrentNextTrainId()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
+		var presenter = CreatePresenter(out var td, out _, out _, out var appVm);
 		td.Add("T1", MakeTrainData("T1", "789C"));
 
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 
 		Assert.Equal("T1", presenter.CurrentState.CurrentNextTrainId);
 	}
 
 	[Fact]
-	public void OnNextTrainIdChanged_ValidTrain_FiresStateChanged()
+	public void SelectedTrainDataChanged_ValidNextTrain_FiresStateChanged()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
+		var presenter = CreatePresenter(out var td, out _, out _, out var appVm);
 		td.Add("T1", MakeTrainData("T1", "123"));
 		NextTrainButtonState? captured = null;
 		presenter.StateChanged += (_, s) => captured = s;
 
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 
 		Assert.NotNull(captured);
 		Assert.True(captured!.IsVisible);
 	}
 
 	[Fact]
-	public void OnNextTrainIdChanged_GetTrainDataThrows_SetsNotVisible()
+	public void SelectedTrainDataChanged_NullNextTrainId_HidesButton()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
-		td.SetThrowOnGet("T1", new InvalidOperationException("boom"));
-
-		presenter.OnNextTrainIdChanged("T1");
+		var presenter = CreatePresenter(out _, out _, out _, out var appVm);
+		appVm.SelectedTrainData = new TrainData("selected", Direction.Outbound, TrainNumber: "selected");
 
 		Assert.False(presenter.CurrentState.IsVisible);
 	}
 
 	[Fact]
-	public void OnNextTrainIdChanged_GetTrainDataThrows_LogsCrash()
+	public void SelectedTrainDataChanged_GetTrainDataThrows_SetsNotVisible()
 	{
-		var presenter = CreatePresenter(out var td, out var logger, out _, out _);
+		var presenter = CreatePresenter(out var td, out _, out _, out var appVm);
 		td.SetThrowOnGet("T1", new InvalidOperationException("boom"));
 
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
+
+		Assert.False(presenter.CurrentState.IsVisible);
+	}
+
+	[Fact]
+	public void SelectedTrainDataChanged_GetTrainDataThrows_LogsCrash()
+	{
+		var presenter = CreatePresenter(out var td, out var logger, out _, out var appVm);
+		td.SetThrowOnGet("T1", new InvalidOperationException("boom"));
+
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 
 		Assert.Single(logger.Calls);
 	}
 
 	[Fact]
-	public void OnNextTrainIdChanged_TrainDataNull_ThrowsKeyNotFoundException()
+	public void SelectedTrainDataChanged_TrainDataNull_HidesButtonAndLogsCrash()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
+		var presenter = CreatePresenter(out var td, out var logger, out _, out var appVm);
 		td.Add("T1", null);
 
-		Assert.Throws<KeyNotFoundException>(() => presenter.OnNextTrainIdChanged("T1"));
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
+
+		Assert.False(presenter.CurrentState.IsVisible);
+		Assert.Single(logger.Calls);
 	}
 
 	[Fact]
-	public void OnNextTrainIdChanged_TrainNumberNull_ThrowsNullReferenceException()
+	public void SelectedTrainDataChanged_TrainNumberNull_HidesButtonAndLogsCrash()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
+		var presenter = CreatePresenter(out var td, out var logger, out _, out var appVm);
 		td.Add("T1", MakeTrainData("T1", null));
 
-		Assert.Throws<NullReferenceException>(() => presenter.OnNextTrainIdChanged("T1"));
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
+
+		Assert.False(presenter.CurrentState.IsVisible);
+		Assert.Single(logger.Calls);
 	}
 
 	// --- OnButtonClicked ---
@@ -201,9 +230,9 @@ public class NextTrainButtonPresenterTests
 	[Fact]
 	public void OnButtonClicked_ValidNextTrainId_CallsSelectTrainData()
 	{
-		var presenter = CreatePresenter(out var td, out _, out _, out _);
+		var presenter = CreatePresenter(out var td, out _, out _, out var appVm);
 		td.Add("T1", MakeTrainData("T1", "123"));
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 
 		presenter.OnButtonClicked();
 
@@ -213,9 +242,9 @@ public class NextTrainButtonPresenterTests
 	[Fact]
 	public void OnButtonClicked_GetTrainDataThrows_ShowsAlert()
 	{
-		var presenter = CreatePresenter(out var td, out _, out var alerts, out _);
+		var presenter = CreatePresenter(out var td, out _, out var alerts, out var appVm);
 		td.Add("T1", MakeTrainData("T1", "123"));
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 
 		// Now make GetTrainData throw on the click
 		td.SetThrowOnGet("T1", new InvalidOperationException("click error"));
@@ -228,14 +257,14 @@ public class NextTrainButtonPresenterTests
 	[Fact]
 	public void OnButtonClicked_GetTrainDataThrows_LogsCrash()
 	{
-		var presenter = CreatePresenter(out var td, out var logger, out _, out _);
+		var presenter = CreatePresenter(out var td, out var logger, out _, out var appVm);
 		td.Add("T1", MakeTrainData("T1", "123"));
-		presenter.OnNextTrainIdChanged("T1");
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
 		td.SetThrowOnGet("T1", new InvalidOperationException("click error"));
 
 		presenter.OnButtonClicked();
 
-		// One from the click (setter succeeded, so no logger call from OnNextTrainIdChanged)
+		// One from the click (SelectedTrainData setter succeeded, so no logger call from that)
 		Assert.Single(logger.Calls);
 	}
 }
