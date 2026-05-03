@@ -86,6 +86,15 @@ public partial class VerticalTimetableView : Grid
 	public event EventHandler<bool>? IsBusyChanged;
 	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
+	public class UserRowTappedEventArgs(int rowIndex, bool isInfoRow, int totalRowCount) : EventArgs
+	{
+		public int RowIndex { get; } = rowIndex;
+		public bool IsInfoRow { get; } = isInfoRow;
+		public int TotalRowCount { get; } = totalRowCount;
+	}
+
+	public event EventHandler<UserRowTappedEventArgs>? UserRowTapped;
+
 	#endregion
 
 	#region Constructor
@@ -160,7 +169,10 @@ public partial class VerticalTimetableView : Grid
 
 		try
 		{
-			ViewModel.HandleRowTappedWithDoubleTapDetection(row.Model, RowViewList.Count);
+			UserRowTapped?.Invoke(this, new UserRowTappedEventArgs(
+				row.Model.RowIndex,
+				row.Model.IsInfoRow,
+				RowViewList.Count));
 		}
 		catch (Exception ex)
 		{
