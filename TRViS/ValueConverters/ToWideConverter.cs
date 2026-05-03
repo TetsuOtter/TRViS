@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
-using TRViS.Utils;
+using TRViS.Core;
 
 namespace TRViS.ValueConverters;
 
@@ -12,7 +12,7 @@ public class ToWideConverter : IValueConverter
 
 	[return: NotNullIfNotNull(nameof(value))]
 	public static string? Convert(string? value)
-		=> value is null ? null : Util.ToWide(value);
+		=> value is null ? null : StringUtils.ToWide(value);
 
 	public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
 		=> value;

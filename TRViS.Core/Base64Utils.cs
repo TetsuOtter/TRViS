@@ -1,9 +1,15 @@
 using System.Text;
 
-namespace TRViS.Utils;
+namespace TRViS.Core;
 
-public static partial class Util
+/// <summary>
+/// Utility methods for URL-safe Base64 encoding/decoding
+/// </summary>
+public static class Base64Utils
 {
+	/// <summary>
+	/// Encodes a byte array to a URL-safe Base64 string
+	/// </summary>
 	public static string UrlSafeBase64Encode(byte[] input)
 	{
 		return Convert.ToBase64String(input)
@@ -11,11 +17,18 @@ public static partial class Util
 			.Replace('/', '_')
 			.Replace("=", "");
 	}
+
+	/// <summary>
+	/// Encodes a string to a URL-safe Base64 string
+	/// </summary>
 	public static string UrlSafeBase64Encode(string input)
 	{
 		return UrlSafeBase64Encode(Encoding.UTF8.GetBytes(input));
 	}
 
+	/// <summary>
+	/// Decodes a URL-safe Base64 string to a byte array
+	/// </summary>
 	public static byte[] UrlSafeBase64Decode(string input)
 	{
 		string incoming = input.Replace('-', '+').Replace('_', '/');
@@ -31,6 +44,9 @@ public static partial class Util
 		return Convert.FromBase64String(incoming);
 	}
 
+	/// <summary>
+	/// Decodes a URL-safe Base64 string to a string
+	/// </summary>
 	public static string UrlSafeBase64DecodeToString(string input)
 	{
 		return Encoding.UTF8.GetString(UrlSafeBase64Decode(input));

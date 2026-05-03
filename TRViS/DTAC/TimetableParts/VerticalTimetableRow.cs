@@ -2,7 +2,7 @@ using TRViS.Controls;
 using TRViS.ValueConverters.DTAC;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.DTAC.ViewModels;
 using TRViS.ViewModels;
 using TRViS.Utils;
@@ -234,61 +234,6 @@ public class VerticalTimetableRow : IDisposable
 		MarkerBoxClicked?.Invoke(this, e);
 	}
 
-	/// <summary>
-	/// マーカーテキストを全角2文字（半角4文字相当）までに制限します
-	/// 全角文字は2、半角文字は1としてカウントします
-	/// </summary>
-	private static string? LimitMarkerText(string? text)
-	{
-		if (string.IsNullOrEmpty(text))
-			return text;
-
-		var elementEnumerator = StringInfo.GetTextElementEnumerator(text);
-		int width = 0;
-		int charIndex = 0;
-
-		while (elementEnumerator.MoveNext())
-		{
-			string element = elementEnumerator.GetTextElement();
-
-			// 文字の幅を判定（全角は2、半角は1）
-			int elementWidth = IsFullWidth(element) ? 2 : 1;
-
-			if (width + elementWidth > 4)
-			{
-				// 4文字相当を超えるので切断
-				return text.Substring(0, charIndex);
-			}
-
-			width += elementWidth;
-			charIndex += element.Length;
-		}
-
-		return text;
-	}
-
-	/// <summary>
-	/// 文字が全角かどうかを判定します
-	/// </summary>
-	private static bool IsFullWidth(string text)
-	{
-		if (string.IsNullOrEmpty(text))
-			return false;
-
-		// 最初の文字のUnicode カテゴリを確認
-		char ch = text[0];
-
-		// 一般的な全角文字の判定
-		// ひらがな、カタカナ、漢字、全角記号など
-		return char.GetUnicodeCategory(ch) switch
-		{
-			UnicodeCategory.OtherLetter => true,      // CJK文字など
-			UnicodeCategory.OtherSymbol => true,       // 全角記号
-			UnicodeCategory.OtherPunctuation => true,  // 全角句読点
-			_ => false
-		};
-	}
-
 	// Create系
 	private void EnsureDriveTimeComponents()
 	{
@@ -485,23 +430,11 @@ public class VerticalTimetableRow : IDisposable
 	{
 		if (!string.IsNullOrEmpty(Model.DriveTimeMM) && DriveTimeMMLabel is not null)
 		{
-			if (2 < Model.DriveTimeMM.Length)
-			{
-				DriveTimeMMLabel.Text = "**";
-			}
-			else
-			{
-				DriveTimeMMLabel.Text = Model.DriveTimeMM;
-			}
+			DriveTimeMMLabel.Text = DriveTimeFormatter.FormatMinutes(Model.DriveTimeMM);
 		}
 		if (!string.IsNullOrEmpty(Model.DriveTimeSS) && DriveTimeSSLabel is not null)
 		{
-			string text = Model.DriveTimeSS ?? "";
-			if (text.Length == 1)
-			{
-				text = "  " + text;
-			}
-			DriveTimeSSLabel.Text = text;
+			DriveTimeSSLabel.Text = DriveTimeFormatter.FormatSeconds(Model.DriveTimeSS);
 		}
 		UpdateDriveTimeTextColor();
 	}
@@ -708,7 +641,7 @@ public class VerticalTimetableRow : IDisposable
 			MarkerBox.TextColor = Util.GetTextColorFromBGColor(Model.MarkerColor);
 			BackgroundBoxView.Color = Model.MarkerColor;
 		}
-		MarkerBox.Text = LimitMarkerText(Model.MarkerText);
+		MarkerBox.Text = MarkerTextFormatter.LimitMarkerText(Model.MarkerText);
 	}
 
 	private void DisposeComponents()
