@@ -1,6 +1,5 @@
-using TRViS.IO.Models;
+using TRViS.DTAC.Logic.Presenter;
 using TRViS.Services;
-using TRViS.Utils;
 
 namespace TRViS.DTAC.TimetableParts;
 
@@ -20,8 +19,13 @@ public class NextTrainButton : Grid
 		FontAutoScalingEnabled = false,
 	};
 
+	private readonly NextTrainButtonPresenter _presenter;
+
 	public NextTrainButton()
 	{
+		_presenter = Adapters.PresenterFactory.BuildNextTrainButtonPresenter();
+		_presenter.StateChanged += OnPresenterStateChanged;
+
 		DTACElementStyles.SemiDarkGreen.Apply(_NextTrainButton, BackgroundColorProperty);
 		_NextTrainButton.Clicked += NextTrainButton_Click;
 
@@ -32,65 +36,27 @@ public class NextTrainButton : Grid
 		Children.Add(_NextTrainButton);
 	}
 
-	private string _NextTrainId = string.Empty;
+	private void OnPresenterStateChanged(object? _, NextTrainButtonState state)
+	{
+		this.IsVisible = state.IsVisible;
+		if (state.IsVisible)
+		{
+			_NextTrainButton.Text = state.ButtonText;
+		}
+	}
+
 	public string NextTrainId
 	{
-		get => _NextTrainId;
+		get => _presenter.CurrentState.CurrentNextTrainId;
 		set
 		{
-			TrainData? nextTrainData;
-			try
-			{
-				nextTrainData = InstanceManager.AppViewModel.Loader?.GetTrainData(value);
-			}
-			catch (Exception ex)
-			{
-				this.IsVisible = false;
-				string msg = "Cannot get the timetable of the next train.\n"
-					+ $"WorkGroupID: {InstanceManager.AppViewModel.SelectedWorkGroup?.Id}\n"
-					+ $"WorkID: {InstanceManager.AppViewModel.SelectedWork?.Id}\n"
-					+ $"TrainID: {InstanceManager.AppViewModel.SelectedTrainData?.Id}\n"
-					+ $"CurrentNextTrainID: {_NextTrainId}\n"
-					+ $"GivenNextTrainID: {value}";
-				logger.Error(ex, msg);
-				return;
-			}
-			if (nextTrainData is null)
-			{
-				throw new KeyNotFoundException($"Next TrainData not found (id: {value})");
-			}
-			else if (nextTrainData.TrainNumber is null)
-			{
-				throw new NullReferenceException($"Next TrainData has no TrainNumber (id: {value})");
-			}
-
-			_NextTrainId = value;
-			this.IsVisible = true;
-
-			string trainNumberToShow = TRViS.Core.StringUtils.InsertCharBetweenCharAndMakeWide(nextTrainData.TrainNumber, TRViS.Core.StringUtils.THIN_SPACE);
-			_NextTrainButton.Text = $"{trainNumberToShow}の時刻表へ";
+			logger.Trace("NextTrainId set to: {0}", value);
+			_presenter.OnNextTrainIdChanged(value);
 		}
 	}
 
 	private void NextTrainButton_Click(object? _, EventArgs e)
 	{
-		if (string.IsNullOrEmpty(_NextTrainId))
-			return;
-
-		try
-		{
-			InstanceManager.AppViewModel.SelectedTrainData = InstanceManager.AppViewModel.Loader?.GetTrainData(_NextTrainId);
-		}
-		catch (Exception ex)
-		{
-			string msg = "次の列車の時刻表を取得できませんでした。\n"
-				+ $"WorkGroupID: {InstanceManager.AppViewModel.SelectedWorkGroup?.Id}\n"
-				+ $"WorkID: {InstanceManager.AppViewModel.SelectedWork?.Id}\n"
-				+ $"TrainID: {InstanceManager.AppViewModel.SelectedTrainData?.Id}\n"
-				+ $"NextTrainID: {_NextTrainId}";
-			logger.Error(ex, "Unknown Exception: " + msg);
-			InstanceManager.CrashlyticsWrapper.Log(ex, "NextTrainButton.Click");
-			Util.DisplayAlertAsync("エラー", msg, "OK");
-		}
+		_presenter.OnButtonClicked();
 	}
 }

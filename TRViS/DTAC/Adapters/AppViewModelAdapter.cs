@@ -57,6 +57,8 @@ internal class AppViewModelAdapter : IAppViewModelProvider
         set => _viewModel.IsBgAppIconVisible = value;
     }
 
+    public double WindowWidth => _viewModel.WindowWidth;
+
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<LogicAppTheme>? CurrentAppThemeChanged;
 

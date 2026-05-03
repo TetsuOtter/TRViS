@@ -9,7 +9,7 @@ public partial class SelectMarkerPopup : ContentView
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	private IAnchorPopover? _popover;
 
-	public SelectMarkerPopup() : this(InstanceManager.DTACMarkerViewModel) { }
+	public SelectMarkerPopup() : this(Adapters.PresenterFactory.GetRawMarkerViewModel()) { }
 
 	public SelectMarkerPopup(DTACMarkerViewModel viewModel)
 	{

@@ -3,8 +3,9 @@ using System.Runtime.CompilerServices;
 
 using DependencyPropertyGenerator;
 
+using TRViS.DTAC.Logic.Abstractions;
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.Services;
-using TRViS.Utils;
 using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
@@ -20,17 +21,23 @@ public partial class TabButton : ContentView
 
 	public static readonly double NORMAL_MODE_WIDTH = 152;
 
+	private readonly IAppViewModelProvider _appViewModelProvider;
+	private readonly ITabModeController _tabModeController;
+
 	public TabButton()
 	{
 		logger.Trace("Creating...");
+
+		_appViewModelProvider = Adapters.PresenterFactory.GetAppViewModelProvider();
+		_tabModeController = Adapters.PresenterFactory.GetTabModeController();
 
 		InitializeComponent();
 
 		UpdateIsSelectedProperty();
 		DTACElementStyles.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
 
-		InstanceManager.AppViewModel.PropertyChanged += AppViewModel_PropertyChanged;
-		OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
+		_appViewModelProvider.PropertyChanged += AppViewModel_PropertyChanged;
+		OnWindowWidthChanged(_appViewModelProvider.WindowWidth);
 
 		OnIsEnabledChanged(IsEnabled);
 
@@ -42,7 +49,7 @@ public partial class TabButton : ContentView
 		switch (e.PropertyName)
 		{
 			case nameof(AppViewModel.WindowWidth):
-				OnWindowWidthChanged(InstanceManager.AppViewModel.WindowWidth);
+				OnWindowWidthChanged(_appViewModelProvider.WindowWidth);
 				break;
 		}
 	}
@@ -67,16 +74,15 @@ public partial class TabButton : ContentView
 			logger.Trace("newValue: {0}", newValue);
 
 			int tabButtonCount = 3;
-			double calcedMaxWidth = (newValue - 8) / tabButtonCount;
-			double widthRequestValue = Math.Min(calcedMaxWidth, NORMAL_MODE_WIDTH);
+			double widthRequestValue = TabButtonLayoutCalculator.CalculateWidthRequest(newValue, tabButtonCount, NORMAL_MODE_WIDTH);
 			logger.Trace("OnWindowWidthChanged WidthRequest newValue: {0}", widthRequestValue);
 			WidthRequest = widthRequestValue;
 		}
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "TabButton.OnWindowWidthChanged");
-			Util.ExitWithAlertAsync(ex);
+			Adapters.PresenterFactory.GetCrashLogger().Log(ex, "TabButton.OnWindowWidthChanged");
+			Utils.Util.ExitWithAlertAsync(ex);
 		}
 	}
 
@@ -133,7 +139,7 @@ public partial class TabButton : ContentView
 			ButtonLabel.Opacity = 0.5;
 			if (IsSelected)
 			{
-				InstanceManager.DTACViewHostViewModel.TabMode = DTACViewHostViewModel.Mode.Hako;
+				_tabModeController.ResetToHako();
 			}
 		}
 	}
@@ -154,8 +160,8 @@ public partial class TabButton : ContentView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "TabButton.BaseBox_Tapped");
-			Util.ExitWithAlertAsync(ex);
+			Adapters.PresenterFactory.GetCrashLogger().Log(ex, "TabButton.BaseBox_Tapped");
+			Utils.Util.ExitWithAlertAsync(ex);
 		}
 	}
 }

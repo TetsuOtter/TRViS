@@ -128,7 +128,7 @@ public class BeforeDeparture_AfterArrive
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "BeforeDeparture_AfterArrive.SetRow");
+			Adapters.PresenterFactory.GetCrashLogger().Log(ex, "BeforeDeparture_AfterArrive.SetRow");
 			Util.ExitWithAlertAsync(ex);
 		}
 	}

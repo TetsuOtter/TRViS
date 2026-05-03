@@ -6,9 +6,9 @@ using TRViS.ViewModels;
 namespace TRViS.DTAC.Adapters;
 
 /// <summary>
-/// Adapter that wraps DTACViewHostViewModel to implement IViewHostModeProvider and IViewHostNavigationSink.
+/// Adapter that wraps DTACViewHostViewModel to implement IViewHostModeProvider, IViewHostNavigationSink, and ITabModeController.
 /// </summary>
-internal class ViewHostModeAdapter : IViewHostModeProvider, IViewHostNavigationSink
+internal class ViewHostModeAdapter : IViewHostModeProvider, IViewHostNavigationSink, ITabModeController
 {
 	private readonly DTACViewHostViewModel _viewModel;
 
@@ -45,6 +45,15 @@ internal class ViewHostModeAdapter : IViewHostModeProvider, IViewHostNavigationS
 	public void NotifyNavigated(bool isCurrentPage)
 	{
 		_viewModel.IsViewHostVisible = isCurrentPage;
+	}
+
+	/// <summary>
+	/// Forces the active tab mode to Hako.
+	/// Called when a tab button becomes disabled while selected.
+	/// </summary>
+	public void ResetToHako()
+	{
+		_viewModel.TabMode = DTACViewHostViewModel.Mode.Hako;
 	}
 
 	public event PropertyChangedEventHandler? PropertyChanged;

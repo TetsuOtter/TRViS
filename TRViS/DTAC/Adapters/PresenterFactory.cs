@@ -88,6 +88,24 @@ internal static class PresenterFactory
 	}
 
 	/// <summary>
+	/// Builds a fully configured NextTrainButtonPresenter.
+	/// </summary>
+	public static NextTrainButtonPresenter BuildNextTrainButtonPresenter()
+	{
+		var rawAppViewModel = InstanceManager.AppViewModel;
+		var trainDataProvider = new NextTrainDataProviderAdapter(rawAppViewModel);
+		var appViewModelProvider = new AppViewModelAdapter(rawAppViewModel);
+		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
+		var userAlerts = new UserAlertAdapter();
+
+		return new NextTrainButtonPresenter(
+			trainDataProvider,
+			appViewModelProvider,
+			crashLogger,
+			userAlerts);
+	}
+
+	/// <summary>
 	/// Returns the shared DTACMarkerViewModel so View-layer components can access
 	/// MAUI-typed properties (Color, SelectedText) without referencing InstanceManager directly.
 	/// </summary>
@@ -100,6 +118,48 @@ internal static class PresenterFactory
 	/// </summary>
 	public static LocationServiceAdapter GetLocationServiceAdapter()
 		=> new LocationServiceAdapter(InstanceManager.LocationService);
+
+	/// <summary>
+	/// Returns a crash logger wrapping the global CrashlyticsWrapper.
+	/// Used by View-layer components that need to log exceptions to Crashlytics.
+	/// </summary>
+	public static IDtacCrashLogger GetCrashLogger()
+		=> new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
+
+	/// <summary>
+	/// Returns an IAppViewModelProvider wrapping the global AppViewModel.
+	/// Used by View-layer components that need to observe WindowWidth or other properties.
+	/// </summary>
+	public static IAppViewModelProvider GetAppViewModelProvider()
+		=> new AppViewModelAdapter(InstanceManager.AppViewModel);
+
+	/// <summary>
+	/// Returns an ITabModeController backed by DTACViewHostViewModel.
+	/// Used by View-layer components that need to write tab mode without referencing InstanceManager.
+	/// </summary>
+	public static ITabModeController GetTabModeController()
+		=> new ViewHostModeAdapter(InstanceManager.DTACViewHostViewModel);
+
+	/// <summary>
+	/// Returns the raw AppViewModel for View-layer components that need it as BindingContext.
+	/// InstanceManager is only referenced here, not scattered across View files.
+	/// </summary>
+	public static TRViS.ViewModels.AppViewModel GetRawAppViewModel()
+		=> InstanceManager.AppViewModel;
+
+	/// <summary>
+	/// Returns the raw DTACMarkerViewModel for View-layer components that need it as BindingContext.
+	/// InstanceManager is only referenced here, not scattered across View files.
+	/// </summary>
+	public static TRViS.ViewModels.DTACMarkerViewModel GetRawMarkerViewModel()
+		=> InstanceManager.DTACMarkerViewModel;
+
+	/// <summary>
+	/// Returns the raw DTACViewHostViewModel for View-layer components that need to write tab mode.
+	/// InstanceManager is only referenced here, not scattered across View files.
+	/// </summary>
+	public static TRViS.ViewModels.DTACViewHostViewModel GetRawViewHostViewModel()
+		=> InstanceManager.DTACViewHostViewModel;
 
 	/// <summary>
 	/// Simple clock implementation that delegates to DateTime.UtcNow.

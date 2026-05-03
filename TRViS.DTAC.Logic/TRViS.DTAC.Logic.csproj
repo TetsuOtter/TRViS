@@ -7,6 +7,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\TRViS.Core\TRViS.Core.csproj" />
 		<ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
 		<ProjectReference Include="..\TRViS.ILocationService\TRViS.ILocationService.csproj" />
 	</ItemGroup>

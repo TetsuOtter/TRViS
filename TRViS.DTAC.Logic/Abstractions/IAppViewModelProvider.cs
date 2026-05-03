@@ -36,6 +36,12 @@ public interface IAppViewModelProvider
     bool IsBgAppIconVisible { get; set; }
 
     /// <summary>
+    /// The current window width in device-independent pixels.
+    /// Defaults to 0 so existing implementations compile without change.
+    /// </summary>
+    double WindowWidth => 0;
+
+    /// <summary>
     /// Fired when any property changes.
     /// </summary>
     event PropertyChangedEventHandler? PropertyChanged;
