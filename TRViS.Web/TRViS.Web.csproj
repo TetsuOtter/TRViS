@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <RootNamespace>TRViS.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TRViS.Core\TRViS.Core.csproj" />
+    <ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
+    <ProjectReference Include="..\TRViS.ILocationService\TRViS.ILocationService.csproj" />
+    <ProjectReference Include="..\TRViS.LocationService\TRViS.LocationService.csproj" />
+    <ProjectReference Include="..\TRViS.NetworkSyncService\TRViS.NetworkSyncService.csproj" />
+    <ProjectReference Include="..\TRViS.DTAC.Logic\TRViS.DTAC.Logic.csproj" />
+  </ItemGroup>
+
+</Project>

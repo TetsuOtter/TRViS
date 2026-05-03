@@ -1,0 +1,193 @@
+@page "/"
+@page "/dtac"
+@using TRViS.DTAC.Logic.Presenter
+@inject DtacAppState State
+@inject GeolocationBridge GpsBridge
+@implements IAsyncDisposable
+
+<PageTitle>DTAC</PageTitle>
+
+@if (State.SelectedTrain is null)
+{
+    <p>列車が選択されていません。</p>
+}
+else
+{
+    var train = State.SelectedTrain;
+    var vp = _presenter.CurrentState;
+
+    <div class="dtac-header">
+        <div class="dtac-trainline">
+            <span class="dtac-tnum">@train.TrainNumber</span>
+            @if (vp.Destination.IsVisible)
+            {
+                <span class="dtac-dest"> @vp.Destination.Text 行</span>
+            }
+            @if (vp.NextDayIndicatorState.IsVisible)
+            {
+                <span class="dtac-nextday">+@(vp.NextDayIndicatorState.DayCount)日</span>
+            }
+            <span class="dtac-affect">@vp.PageHeaderState.AffectDateLabelText</span>
+        </div>
+        <div class="dtac-controls">
+            <button class="dtac-btn @(vp.PageHeaderState.IsRunning ? "dtac-btn-warning" : "dtac-btn-success")"
+                    @onclick="ToggleRun">
+                @(vp.PageHeaderState.IsRunning ? "運行終了" : "運行開始")
+            </button>
+            <button class="dtac-btn dtac-btn-info"
+                    disabled="@(!vp.PageHeaderState.CanUseLocationService || !vp.PageHeaderState.IsRunning)"
+                    @onclick="ToggleLocation">
+                位置情報: @(vp.PageHeaderState.IsLocationServiceEnabled ? "ON" : "OFF")
+            </button>
+            <button class="dtac-btn @(_gpsActive ? "dtac-btn-success" : "dtac-btn-secondary")"
+                    @onclick="ToggleGps">
+                GPS: @(_gpsActive ? "ON" : "OFF")
+            </button>
+        </div>
+    </div>
+
+    <div class="dtac-traininfo">
+        <div><strong>速度種別:</strong> @vp.TrainDisplayInfo.SpeedType / 最高 @vp.TrainDisplayInfo.MaxSpeed / @vp.TrainDisplayInfo.NominalTractiveCapacity</div>
+        @if (!string.IsNullOrEmpty(vp.TrainInfoAreaState.TrainInfoText))
+        {
+            <div class="dtac-traininfo-text">@vp.TrainInfoAreaState.TrainInfoText</div>
+        }
+        @if (!string.IsNullOrEmpty(vp.TrainInfoAreaState.BeforeDepartureText))
+        {
+            <div class="dtac-before-departure">出区前: @vp.TrainInfoAreaState.BeforeDepartureText</div>
+        }
+        @if (!string.IsNullOrEmpty(vp.TrainDisplayInfo.BeginRemarks))
+        {
+            <div class="dtac-remarks">@vp.TrainDisplayInfo.BeginRemarks</div>
+        }
+    </div>
+
+    @if (vp.LocationServiceState.IsEnabled && vp.LocationServiceState.CurrentLatitude is not null)
+    {
+        <div class="dtac-gps-readout">
+            GPS: lat @(vp.LocationServiceState.CurrentLatitude?.ToString("F6")),
+                 lon @(vp.LocationServiceState.CurrentLongitude?.ToString("F6"))
+                 (±@(vp.LocationServiceState.CurrentAccuracy?.ToString("F0")) m)
+        </div>
+    }
+
+    <table class="dtac-timetable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>駅</th>
+                <th>着</th>
+                <th>発</th>
+                <th>線</th>
+                <th>制限</th>
+                <th>備考</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var rows = train.Rows ?? Array.Empty<TimetableRow>();
+            }
+            @for (int i = 0; i < rows.Length; i++)
+            {
+                var idx = i;
+                var row = rows[idx];
+                int markerState = vp.RowStates.TryGetValue(idx, out var rs) ? rs.LocationState : 0;
+                string rowClass = markerState switch
+                {
+                    1 => "dtac-row dtac-row-around",
+                    2 => "dtac-row dtac-row-running",
+                    _ => "dtac-row",
+                };
+                if (row.IsInfoRow) rowClass += " dtac-row-info";
+                if (row.IsPass) rowClass += " dtac-row-pass";
+
+                <tr class="@rowClass" @onclick="() => OnRowClick(idx, row.IsInfoRow, rows.Length)">
+                    <td>@(idx + 1)</td>
+                    <td>
+                        @if (row.HasBracket) { @("(") }
+                        @row.StationName
+                        @if (row.HasBracket) { @(")") }
+                        @if (row.IsLastStop) { <span class="dtac-laststop"> ◇</span> }
+                    </td>
+                    <td>@FormatTime(row.ArriveTime)</td>
+                    <td>@FormatTime(row.DepartureTime)</td>
+                    <td>@row.TrackName</td>
+                    <td>@FormatLimits(row)</td>
+                    <td>@row.Remarks</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private VerticalStylePagePresenter _presenter = default!;
+    private bool _gpsActive;
+
+    protected override void OnInitialized()
+    {
+        _presenter = State.GetOrCreateVerticalPresenter();
+        _presenter.StateChanged += OnPresenterChanged;
+        // Ensure presenter sees the currently-selected train (rebuilds state if needed)
+        _presenter.OnSelectedTrainDataChanged(State.SelectedTrain, State.SelectedAffectDate);
+    }
+
+    private void OnPresenterChanged(object? sender, VerticalPageStateChangedEventArgs e)
+        => InvokeAsync(StateHasChanged);
+
+    private void ToggleRun()
+    {
+        _presenter.OnRunStartedChanged(!_presenter.CurrentState.PageHeaderState.IsRunning);
+    }
+
+    private void ToggleLocation()
+    {
+        _presenter.OnLocationServiceEnabledChanged(!_presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
+    }
+
+    private async Task ToggleGps()
+    {
+        if (_gpsActive)
+        {
+            await GpsBridge.StopAsync();
+            _gpsActive = false;
+        }
+        else
+        {
+            await GpsBridge.StartAsync();
+            _gpsActive = true;
+        }
+    }
+
+    private void OnRowClick(int index, bool isInfoRow, int total)
+    {
+        _presenter.OnRowTapped(index, isInfoRow, total);
+    }
+
+    private static string FormatTime(TimeData? t)
+    {
+        if (t is null) return string.Empty;
+        if (t.Hour is null && t.Minute is null && t.Second is null)
+            return t.Text ?? string.Empty;
+        var hh = t.Hour?.ToString("D2") ?? "  ";
+        var mm = t.Minute?.ToString("D2") ?? "  ";
+        var ss = t.Second;
+        return ss is null or 0 ? $"{hh}:{mm}" : $"{hh}:{mm}:{ss:D2}";
+    }
+
+    private static string FormatLimits(TimetableRow row)
+    {
+        if (row.RunInLimit is null && row.RunOutLimit is null) return string.Empty;
+        return $"{row.RunInLimit?.ToString() ?? "-"}/{row.RunOutLimit?.ToString() ?? "-"}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_presenter is not null)
+            _presenter.StateChanged -= OnPresenterChanged;
+        if (_gpsActive)
+        {
+            try { await GpsBridge.StopAsync(); } catch { /* ignore */ }
+        }
+    }
+}

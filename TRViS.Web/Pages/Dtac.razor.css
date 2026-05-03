@@ -1,0 +1,125 @@
+.dtac-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #333;
+    padding: 0.5rem;
+    background: #1a1a1a;
+    color: #fff;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dtac-trainline {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.dtac-tnum {
+    color: #ffd54f;
+}
+
+.dtac-dest {
+    color: #fff;
+}
+
+.dtac-nextday {
+    color: #f48fb1;
+    margin-left: 0.5rem;
+    font-size: 1rem;
+}
+
+.dtac-affect {
+    margin-left: 1rem;
+    font-size: 0.9rem;
+    color: #bdbdbd;
+}
+
+.dtac-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dtac-traininfo {
+    padding: 0.5rem;
+    background: #fff8e1;
+    border-bottom: 1px solid #ccc;
+    font-size: 0.95rem;
+}
+
+.dtac-traininfo-text {
+    margin-top: 0.25rem;
+}
+
+.dtac-before-departure {
+    color: #c2185b;
+    margin-top: 0.25rem;
+}
+
+.dtac-remarks {
+    color: #555;
+    margin-top: 0.25rem;
+}
+
+.dtac-gps-readout {
+    padding: 0.25rem 0.5rem;
+    background: #e0f2f1;
+    font-family: monospace;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #80cbc4;
+}
+
+.dtac-timetable {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+}
+
+.dtac-timetable th,
+.dtac-timetable td {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+.dtac-timetable thead {
+    background: #263238;
+    color: #fff;
+    position: sticky;
+    top: 0;
+}
+
+.dtac-row {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.dtac-row:hover {
+    background: #f5f5f5;
+}
+
+.dtac-row-info {
+    background: #fff3e0;
+    color: #5d4037;
+    font-style: italic;
+    cursor: default;
+}
+
+.dtac-row-pass td {
+    color: #888;
+}
+
+.dtac-row-around {
+    background: #fffde7 !important;
+    border-left: 6px solid #ff9800;
+}
+
+.dtac-row-running {
+    background: #e8f5e9 !important;
+    border-left: 6px solid #43a047;
+    border-bottom-style: dashed;
+}
+
+.dtac-laststop {
+    color: #d32f2f;
+}

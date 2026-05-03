@@ -1,0 +1,22 @@
+<nav style="background: #333; color: white; padding: 0.5rem 1rem; display: flex; align-items: center; justify-content: space-between;">
+    <span style="font-weight: bold;">TRViS.Web</span>
+    <button title="Navigation menu" @onclick="ToggleNavMenu" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;">☰</button>
+</nav>
+
+@if (!collapseNavMenu)
+{
+    <nav style="padding: 0.5rem 1rem;">
+        <a href="dtac" style="display: block; padding: 0.5rem 0; color: #0071c1; text-decoration: none;">DTAC</a>
+    </nav>
+}
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
