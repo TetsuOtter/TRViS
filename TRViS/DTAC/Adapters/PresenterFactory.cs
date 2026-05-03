@@ -62,11 +62,13 @@ internal static class PresenterFactory
 	/// <summary>
 	/// Builds a fully configured VerticalTimetableViewPresenter.
 	/// </summary>
-	public static VerticalTimetableViewPresenter BuildVerticalTimetableViewPresenter()
+	public static VerticalTimetableViewPresenter BuildVerticalTimetableViewPresenter(
+		TRViS.DTAC.ViewModels.VerticalTimetableViewModel viewModel)
 	{
 		var markerToggle = new MarkerToggleAdapter(InstanceManager.DTACMarkerViewModel);
 		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
-		return new VerticalTimetableViewPresenter(markerToggle, crashLogger);
+		var dataSource = new VerticalTimetableDataSourceAdapter(viewModel);
+		return new VerticalTimetableViewPresenter(markerToggle, crashLogger, dataSource);
 	}
 
 	/// <summary>

@@ -16,6 +16,7 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 {
 	private readonly IMarkerToggleController _markerToggle;
 	private readonly IDtacCrashLogger _crashLogger;
+	private readonly IVerticalTimetableDataSource _dataSource;
 
 	// Persisted layout inputs so we can re-compute on partial changes
 	private int _rowCount = 0;
@@ -39,37 +40,21 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 
 	public VerticalTimetableViewPresenter(
 		IMarkerToggleController markerToggle,
-		IDtacCrashLogger crashLogger)
+		IDtacCrashLogger crashLogger,
+		IVerticalTimetableDataSource dataSource)
 	{
 		_markerToggle = markerToggle ?? throw new ArgumentNullException(nameof(markerToggle));
 		_crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
+		_dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
 
 		_markerToggle.PropertyChanged += OnMarkerTogglePropertyChanged;
+		_dataSource.RowsChanged += OnDataSourceRowsChanged;
 
 		// Sync initial state
 		_currentState.IsMarkingMode = _markerToggle.IsToggled;
 	}
 
 	// ---------- Intents from View ----------
-
-	/// <summary>
-	/// Call when the row collection or any layout-affecting property changes.
-	/// Re-computes RowDefinitionCount, GridHeightRequest, and row indices.
-	/// </summary>
-	public void OnRowsChanged(
-		IReadOnlyList<bool> isInfoRowList,
-		bool hasAfterRemarksText,
-		bool hasAfterArriveText,
-		bool hasNextTrainId)
-	{
-		_rowCount = isInfoRowList?.Count ?? 0;
-		_hasAfterRemarks = hasAfterRemarksText;
-		_hasAfterArrive = hasAfterArriveText;
-		_hasNextTrainButton = hasNextTrainId;
-
-		RecalculateLayout();
-		RaiseStateChanged();
-	}
 
 	/// <summary>
 	/// Call when AfterArriveText changes (null ↔ non-null).
@@ -153,6 +138,17 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 
 	// ---------- Private helpers ----------
 
+	private void OnDataSourceRowsChanged(object? sender, EventArgs e)
+	{
+		_rowCount = _dataSource.IsInfoRowList.Count;
+		_hasAfterRemarks = _dataSource.HasAfterRemarksText;
+		_hasAfterArrive = _dataSource.HasAfterArriveText;
+		_hasNextTrainButton = _dataSource.HasNextTrainId;
+
+		RecalculateLayout();
+		RaiseStateChanged();
+	}
+
 	private void RecalculateLayout()
 	{
 		// Phone-idiom row count (tablet idiom is handled by View using TimetableLayoutCalculator)
@@ -187,5 +183,6 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 
 		_disposed = true;
 		_markerToggle.PropertyChanged -= OnMarkerTogglePropertyChanged;
+		_dataSource.RowsChanged -= OnDataSourceRowsChanged;
 	}
 }

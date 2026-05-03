@@ -110,7 +110,7 @@ public partial class VerticalTimetableView : Grid
 	{
 		logger.Trace("Creating...");
 
-		_presenter = PresenterFactory.BuildVerticalTimetableViewPresenter();
+		_presenter = PresenterFactory.BuildVerticalTimetableViewPresenter(ViewModel);
 		_locationServiceAdapter = PresenterFactory.GetLocationServiceAdapter();
 
 		// Initialize location marker views
@@ -447,36 +447,6 @@ public partial class VerticalTimetableView : Grid
 
 			int newCount = newValue?.Count ?? 0;
 			logger.Debug("newCount: {0}", newCount);
-			try
-			{
-				await MainThread.InvokeOnMainThreadAsync(() =>
-				{
-					EnsureRowDefinitions();
-					AddSeparatorLines();
-					AfterRemarks.SetRow(newCount);
-					AfterArrive.SetRow(newCount + 1);
-					Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? newCount + 2 : newCount + 1);
-
-					_presenter.OnRowsChanged(
-						newValue?.Select(r => r.IsInfoRow).ToList() ?? [],
-						ViewModel.AfterRemarksText is not null,
-						ViewModel.AfterArriveText is not null,
-						ViewModel.NextTrainId is not null);
-				});
-
-				logger.Trace("Starting RowViewInit Task...");
-			}
-			catch (OperationCanceledException)
-			{
-				logger.Debug("SetRowViews was cancelled during SetRowDefinitions or AddSeparatorLines");
-				return;
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.SetRowViews (SetRowDefinitions etc failed)");
-				await Util.ExitWithAlertAsync(ex);
-			}
 
 			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
 				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs, cancellationToken);

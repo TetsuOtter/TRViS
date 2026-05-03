@@ -41,14 +41,49 @@ public class VerticalTimetableViewPresenterTests
 			=> Calls.Add((ex, context));
 	}
 
+	private class FakeDataSource : IVerticalTimetableDataSource
+	{
+		private IReadOnlyList<bool> _isInfoRowList = [];
+		private bool _hasAfterRemarksText;
+		private bool _hasAfterArriveText;
+		private bool _hasNextTrainId;
+
+		public IReadOnlyList<bool> IsInfoRowList => _isInfoRowList;
+		public bool HasAfterRemarksText => _hasAfterRemarksText;
+		public bool HasAfterArriveText => _hasAfterArriveText;
+		public bool HasNextTrainId => _hasNextTrainId;
+
+		public event EventHandler? RowsChanged;
+
+		public void SetRows(
+			IReadOnlyList<bool> isInfoRowList,
+			bool hasAfterRemarksText = false,
+			bool hasAfterArriveText = false,
+			bool hasNextTrainId = false)
+		{
+			_isInfoRowList = isInfoRowList;
+			_hasAfterRemarksText = hasAfterRemarksText;
+			_hasAfterArriveText = hasAfterArriveText;
+			_hasNextTrainId = hasNextTrainId;
+			RowsChanged?.Invoke(this, EventArgs.Empty);
+		}
+	}
+
 	private static VerticalTimetableViewPresenter CreatePresenter(
 		out FakeMarkerToggle markerToggle,
-		out FakeCrashLogger crashLogger)
+		out FakeCrashLogger crashLogger,
+		out FakeDataSource dataSource)
 	{
 		markerToggle = new FakeMarkerToggle();
 		crashLogger = new FakeCrashLogger();
-		return new VerticalTimetableViewPresenter(markerToggle, crashLogger);
+		dataSource = new FakeDataSource();
+		return new VerticalTimetableViewPresenter(markerToggle, crashLogger, dataSource);
 	}
+
+	private static VerticalTimetableViewPresenter CreatePresenter(
+		out FakeMarkerToggle markerToggle,
+		out FakeCrashLogger crashLogger)
+		=> CreatePresenter(out markerToggle, out crashLogger, out _);
 
 	#endregion
 
@@ -75,43 +110,38 @@ public class VerticalTimetableViewPresenterTests
 		Assert.Equal(0, p.CurrentState.RowDefinitionCount);
 	}
 
-	// --- OnRowsChanged – phone idiom ---
+	// --- RowsChanged (via data source) ---
 
 	[Fact]
-	public void OnRowsChanged_PhoneIdiom_3Rows_HasAfterArrive_CalculatesRowDefinitionCount()
+	public void RowsChanged_PhoneIdiom_3Rows_HasAfterArrive_CalculatesRowDefinitionCount()
 	{
-		var p = CreatePresenter(out _, out _);
+		var p = CreatePresenter(out _, out _, out var ds);
 		// 3 rows + 1(AfterRemarks) + 1(AfterArrive) = 5
-		p.OnRowsChanged(
+		ds.SetRows(
 			isInfoRowList: new[] { false, true, false },
-			hasAfterRemarksText: false,
-			hasAfterArriveText: true,
-			hasNextTrainId: false);
+			hasAfterArriveText: true);
 
 		Assert.Equal(5, p.CurrentState.RowDefinitionCount);
 	}
 
 	[Fact]
-	public void OnRowsChanged_PhoneIdiom_SetsAfterArriveRowIndex()
+	public void RowsChanged_PhoneIdiom_SetsAfterArriveRowIndex()
 	{
-		var p = CreatePresenter(out _, out _);
-		p.OnRowsChanged(
+		var p = CreatePresenter(out _, out _, out var ds);
+		ds.SetRows(
 			isInfoRowList: new[] { false, false, false },
-			hasAfterRemarksText: false,
-			hasAfterArriveText: true,
-			hasNextTrainId: false);
+			hasAfterArriveText: true);
 
 		// AfterArriveRowIndex = rowCount + 1 = 4
 		Assert.Equal(4, p.CurrentState.AfterArriveRowIndex);
 	}
 
 	[Fact]
-	public void OnRowsChanged_PhoneIdiom_WithAfterArrive_SetsNextTrainButtonRow()
+	public void RowsChanged_PhoneIdiom_WithAfterArrive_SetsNextTrainButtonRow()
 	{
-		var p = CreatePresenter(out _, out _);
-		p.OnRowsChanged(
+		var p = CreatePresenter(out _, out _, out var ds);
+		ds.SetRows(
 			isInfoRowList: new[] { false, false },
-			hasAfterRemarksText: false,
 			hasAfterArriveText: true,
 			hasNextTrainId: true);
 
@@ -120,13 +150,13 @@ public class VerticalTimetableViewPresenterTests
 	}
 
 	[Fact]
-	public void OnRowsChanged_RaisesStateChanged()
+	public void RowsChanged_RaisesStateChanged()
 	{
-		var p = CreatePresenter(out _, out _);
+		var p = CreatePresenter(out _, out _, out var ds);
 		bool raised = false;
 		p.StateChanged += (_, _) => raised = true;
 
-		p.OnRowsChanged(new[] { false }, false, false, false);
+		ds.SetRows(new[] { false });
 
 		Assert.True(raised);
 	}
@@ -136,12 +166,8 @@ public class VerticalTimetableViewPresenterTests
 	[Fact]
 	public void OnAfterArriveTextChanged_RecalculatesRowIndex()
 	{
-		var p = CreatePresenter(out _, out _);
-		p.OnRowsChanged(
-			isInfoRowList: new[] { false, false },
-			hasAfterRemarksText: false,
-			hasAfterArriveText: false,
-			hasNextTrainId: false);
+		var p = CreatePresenter(out _, out _, out var ds);
+		ds.SetRows(isInfoRowList: new[] { false, false });
 
 		p.OnAfterArriveTextChanged(hasText: true);
 
@@ -273,7 +299,7 @@ public class VerticalTimetableViewPresenterTests
 	[Fact]
 	public void Dispose_UnsubscribesEvents()
 	{
-		var p = CreatePresenter(out var markerToggle, out _);
+		var p = CreatePresenter(out var markerToggle, out _, out var ds);
 		p.Dispose();
 
 		// After dispose, property changes should NOT propagate
@@ -281,6 +307,7 @@ public class VerticalTimetableViewPresenterTests
 		p.StateChanged += (_, _) => raised = true;
 
 		markerToggle.IsToggled = true;
+		ds.SetRows(new[] { false });
 
 		Assert.False(raised);
 	}
