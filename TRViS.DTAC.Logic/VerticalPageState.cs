@@ -23,11 +23,6 @@ public class VerticalPageState
 	public NextDayIndicatorState NextDayIndicatorState { get; set; } = new();
 
 	/// <summary>
-	/// Information about the debug map (easter egg feature)
-	/// </summary>
-	public DebugMapState DebugMapState { get; set; } = new();
-
-	/// <summary>
 	/// Information about the activity indicator for timetable loading
 	/// </summary>
 	public TimetableActivityIndicatorState TimetableActivityIndicatorState { get; set; } = new();
@@ -62,10 +57,6 @@ public class VerticalPageState
 	/// </summary>
 	public Dictionary<int, VerticalTimetableRowState> RowStates { get; set; } = new();
 
-	/// <summary>
-	/// Information about the ViewHost visibility and mode
-	/// </summary>
-	public ViewHostDisplayState ViewHostDisplayState { get; set; } = new();
 }
 
 /// <summary>
@@ -144,32 +135,6 @@ public class NextDayIndicatorState
 	/// The day count (0 for same day, &gt; 0 for next days)
 	/// </summary>
 	public int DayCount { get; set; } = 0;
-}
-
-/// <summary>
-/// Represents the state of the debug map (easter egg feature)
-/// </summary>
-public class DebugMapState
-{
-	/// <summary>
-	/// Whether the debug map should be visible
-	/// </summary>
-	public bool IsVisible { get; set; } = false;
-
-	/// <summary>
-	/// Whether the debug map is enabled for the easter egg
-	/// </summary>
-	public bool IsEnabled { get; set; } = false;
-
-	/// <summary>
-	/// The width of the debug map column when visible
-	/// </summary>
-	public double ColumnWidth { get; set; } = 0;
-
-	/// <summary>
-	/// Whether the device is in landscape mode
-	/// </summary>
-	public bool IsLandscapeMode { get; set; } = false;
 }
 
 /// <summary>
@@ -364,29 +329,4 @@ public class VerticalTimetableRowState
 	public bool IsEnabled { get; set; } = true;
 }
 
-/// <summary>
-/// Represents the display state of the ViewHost (DTAC main view)
-/// </summary>
-public class ViewHostDisplayState
-{
-	/// <summary>
-	/// Whether the ViewHost is currently visible
-	/// </summary>
-	public bool IsVisible { get; set; } = false;
-
-	/// <summary>
-	/// Whether the vertical view mode is currently active
-	/// </summary>
-	public bool IsVerticalViewMode { get; set; } = false;
-
-	/// <summary>
-	/// Whether the hako (box) view mode is currently active
-	/// </summary>
-	public bool IsHakoMode { get; set; } = false;
-
-	/// <summary>
-	/// Whether the work affix mode is currently active
-	/// </summary>
-	public bool IsWorkAffixMode { get; set; } = false;
-}
 

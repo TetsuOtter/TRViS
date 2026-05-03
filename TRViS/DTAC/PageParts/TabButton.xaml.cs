@@ -8,6 +8,8 @@ using TRViS.DTAC.Logic.Formatters;
 using TRViS.Services;
 using TRViS.ViewModels;
 
+
+
 namespace TRViS.DTAC;
 
 [DependencyProperty<DTACViewHostViewModel.Mode>("CurrentMode", DefaultBindingMode = DefaultBindingMode.TwoWay)]
@@ -22,14 +24,14 @@ public partial class TabButton : ContentView
 	public static readonly double NORMAL_MODE_WIDTH = 152;
 
 	private readonly IAppViewModelProvider _appViewModelProvider;
-	private readonly ITabModeController _tabModeController;
+	private readonly DTACViewHostViewModel _viewHostViewModel;
 
 	public TabButton()
 	{
 		logger.Trace("Creating...");
 
 		_appViewModelProvider = Adapters.PresenterFactory.GetAppViewModelProvider();
-		_tabModeController = Adapters.PresenterFactory.GetTabModeController();
+		_viewHostViewModel = Adapters.PresenterFactory.GetRawViewHostViewModel();
 
 		InitializeComponent();
 
@@ -139,7 +141,7 @@ public partial class TabButton : ContentView
 			ButtonLabel.Opacity = 0.5;
 			if (IsSelected)
 			{
-				_tabModeController.ResetToHako();
+				_viewHostViewModel.TabMode = DTACViewHostViewModel.Mode.Hako;
 			}
 		}
 	}

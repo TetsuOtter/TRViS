@@ -11,8 +11,6 @@ public enum ViewHostStateSection
     WorkSpaceName = 2,
     AffectDate = 4,
     TimeLabel = 8,
-    TabVisibility = 16,
-    Orientation = 32,
     BgAppIcon = 64,
     All = ~0,
 }

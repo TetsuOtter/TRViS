@@ -40,6 +40,7 @@ public partial class VerticalStylePage : ContentView
 
 	VerticalTimetableView TimetableView { get; } = [];
 	MyMap? DebugMap = null;
+	private bool _isLandscape;
 
 	private readonly VerticalStylePagePresenter _presenter;
 
@@ -69,16 +70,16 @@ public partial class VerticalStylePage : ContentView
 			DebugMapColumnDefinition
 		);
 
+		_isLandscape = DeviceDisplay.Current.MainDisplayInfo.Orientation == DisplayOrientation.Landscape;
+
 		DeviceDisplay.Current.MainDisplayInfoChanged += (_, e) =>
 		{
 			logger.Debug("MainDisplayInfoChanged: {0}", e.DisplayInfo);
-			bool isLandscape = e.DisplayInfo.Orientation == DisplayOrientation.Landscape;
-			_presenter.OnDeviceOrientationChanged(isLandscape);
+			_isLandscape = e.DisplayInfo.Orientation == DisplayOrientation.Landscape;
+			UpdateDebugMapVisibility();
 		};
 
-		// Initial orientation state
-		_presenter.OnDeviceOrientationChanged(
-			DeviceDisplay.Current.MainDisplayInfo.Orientation == DisplayOrientation.Landscape);
+		InstanceManager.EasterEggPageViewModel.PropertyChanged += OnEasterEggSettingChanged;
 
 		InstanceManager.LocationServiceGpsAdapter.OnGpsLocationUpdated += (_, e) =>
 		{
@@ -152,6 +153,10 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Info("IsRunningChanged: {0}", e.NewValue);
 			_presenter.OnRunStartedChanged(e.NewValue);
+			if (e.NewValue && InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
+				InstanceManager.ScreenWakeLockService.EnableWakeLock();
+			else
+				InstanceManager.ScreenWakeLockService.DisableWakeLock();
 		};
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
@@ -205,7 +210,43 @@ public partial class VerticalStylePage : ContentView
 		NominalTractiveCapacityLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 		BeginRemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 
+		// Initial debug map state
+		UpdateDebugMapVisibility();
+
 		logger.Trace("Created");
+	}
+
+	/// <summary>
+	/// Called by ViewHost when the vertical tab becomes active.
+	/// </summary>
+	public void OnViewBecameActive()
+	{
+		_presenter.OnVerticalViewActivated();
+		UpdateDebugMapVisibility();
+	}
+
+	private void OnEasterEggSettingChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		switch (e.PropertyName)
+		{
+			case nameof(ViewModels.EasterEggPageViewModel.ShowMapWhenLandscape):
+				UpdateDebugMapVisibility();
+				break;
+			case nameof(ViewModels.EasterEggPageViewModel.KeepScreenOnWhenRunning):
+				bool isRunning = _presenter.CurrentState.TimetableViewState.IsRunStarted;
+				bool keepOn = InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning;
+				if (isRunning && keepOn)
+					InstanceManager.ScreenWakeLockService.EnableWakeLock();
+				else
+					InstanceManager.ScreenWakeLockService.DisableWakeLock();
+				break;
+		}
+	}
+
+	private void UpdateDebugMapVisibility()
+	{
+		bool isVisible = InstanceManager.EasterEggPageViewModel.ShowMapWhenLandscape && _isLandscape;
+		MainThread.BeginInvokeOnMainThread(() => ApplyDebugMapState(isVisible));
 	}
 
 	private void OnPresenterStateChanged(object? sender, VerticalPageStateChangedEventArgs e)
@@ -270,11 +311,6 @@ public partial class VerticalStylePage : ContentView
 					state.LocationServiceState.CurrentLongitude.Value,
 					state.LocationServiceState.CurrentAccuracy ?? 20);
 			}
-		}
-
-		if ((changed & VerticalPageStateSection.DebugMap) != 0)
-		{
-			ApplyDebugMapState(state.DebugMapState.IsVisible);
 		}
 
 		if ((changed & VerticalPageStateSection.RowStates) != 0)

@@ -148,27 +148,6 @@ public static class ViewHostStateFactory
 	}
 
 	/// <summary>
-	/// Updates the ViewHost display state.
-	/// </summary>
-	/// <param name="state">The vertical page state to update</param>
-	/// <param name="isViewHostVisible">Whether the ViewHost is visible</param>
-	/// <param name="isVerticalViewMode">Whether vertical view mode is active</param>
-	/// <param name="isHakoMode">Whether hako mode is active</param>
-	/// <param name="isWorkAffixMode">Whether work affix mode is active</param>
-	public static void UpdateViewHostDisplayState(
-		VerticalPageState state,
-		bool isViewHostVisible,
-		bool isVerticalViewMode,
-		bool isHakoMode,
-		bool isWorkAffixMode)
-	{
-		state.ViewHostDisplayState.IsVisible = isViewHostVisible;
-		state.ViewHostDisplayState.IsVerticalViewMode = isVerticalViewMode;
-		state.ViewHostDisplayState.IsHakoMode = isHakoMode;
-		state.ViewHostDisplayState.IsWorkAffixMode = isWorkAffixMode;
-	}
-
-	/// <summary>
 	/// Updates the affect date in the page header.
 	/// </summary>
 	/// <param name="state">The page header state to update</param>

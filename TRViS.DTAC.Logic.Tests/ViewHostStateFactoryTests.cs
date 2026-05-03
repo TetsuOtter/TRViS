@@ -301,27 +301,6 @@ public class ViewHostStateFactoryTests
 	}
 
 	[Fact]
-	public void UpdateViewHostDisplayState_UpdatesAllProperties()
-	{
-		// Arrange
-		var verticalPageState = new VerticalPageState();
-
-		// Act
-		ViewHostStateFactory.UpdateViewHostDisplayState(
-			verticalPageState,
-			isViewHostVisible: true,
-			isVerticalViewMode: true,
-			isHakoMode: true,
-			isWorkAffixMode: false);
-
-		// Assert
-		Assert.True(verticalPageState.ViewHostDisplayState.IsVisible);
-		Assert.True(verticalPageState.ViewHostDisplayState.IsVerticalViewMode);
-		Assert.True(verticalPageState.ViewHostDisplayState.IsHakoMode);
-		Assert.False(verticalPageState.ViewHostDisplayState.IsWorkAffixMode);
-	}
-
-	[Fact]
 	public void UpdateAffectDate_SetsAffectDateInPageHeader()
 	{
 		// Arrange

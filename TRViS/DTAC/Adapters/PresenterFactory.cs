@@ -15,18 +15,12 @@ internal static class PresenterFactory
 	public static VerticalStylePagePresenter Build()
 	{
 		var locationService = new LocationServiceAdapter(InstanceManager.LocationService);
-		var wakeLock = new WakeLockAdapter(InstanceManager.ScreenWakeLockService);
-		var easterEgg = new EasterEggSettingsAdapter(InstanceManager.EasterEggPageViewModel);
-		var viewHostMode = new ViewHostModeAdapter(InstanceManager.DTACViewHostViewModel);
 		var markerToggle = new MarkerToggleAdapter(InstanceManager.DTACMarkerViewModel);
 		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
 		var clock = new SystemClock();
 
 		return new VerticalStylePagePresenter(
 			locationService,
-			wakeLock,
-			easterEgg,
-			viewHostMode,
 			markerToggle,
 			crashLogger,
 			clock);
@@ -34,9 +28,7 @@ internal static class PresenterFactory
 
 	/// <summary>
 	/// Builds a fully configured ViewHostPresenter.
-	/// The ViewHostModeAdapter acts as both IViewHostModeProvider and IViewHostNavigationSink.
-	/// Out parameters expose the underlying MAUI objects so that ViewHost.xaml.cs
-	/// can set up pure MAUI bindings without itself referencing InstanceManager.
+	/// Out parameters expose the underlying MAUI objects needed for pure UI bindings.
 	/// </summary>
 	public static ViewHostPresenter BuildViewHostPresenter(
 		out TRViS.ViewModels.AppViewModel rawAppViewModel,
@@ -48,24 +40,15 @@ internal static class PresenterFactory
 		rawViewHostViewModel = InstanceManager.DTACViewHostViewModel;
 
 		var appViewModelAdapter = new AppViewModelAdapter(rawAppViewModel);
-		var viewHostMode = new ViewHostModeAdapter(rawViewHostViewModel);
 		var timeProvider = new TimeProviderAdapter(InstanceManager.LocationService);
-		var easterEgg = new EasterEggSettingsAdapter(rawEasterEggViewModel);
-		var wakeLock = new WakeLockAdapter(InstanceManager.ScreenWakeLockService);
-		var orientation = new OrientationControllerAdapter(InstanceManager.OrientationService);
 		var userAlerts = new UserAlertAdapter();
 		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
 
 		return new ViewHostPresenter(
 			appViewModelAdapter,
-			viewHostMode,
 			timeProvider,
-			easterEgg,
-			wakeLock,
-			orientation,
 			userAlerts,
-			crashLogger,
-			navigationSink: viewHostMode);
+			crashLogger);
 	}
 
 	/// <summary>
@@ -132,13 +115,6 @@ internal static class PresenterFactory
 	/// </summary>
 	public static IAppViewModelProvider GetAppViewModelProvider()
 		=> new AppViewModelAdapter(InstanceManager.AppViewModel);
-
-	/// <summary>
-	/// Returns an ITabModeController backed by DTACViewHostViewModel.
-	/// Used by View-layer components that need to write tab mode without referencing InstanceManager.
-	/// </summary>
-	public static ITabModeController GetTabModeController()
-		=> new ViewHostModeAdapter(InstanceManager.DTACViewHostViewModel);
 
 	/// <summary>
 	/// Returns the raw AppViewModel for View-layer components that need it as BindingContext.

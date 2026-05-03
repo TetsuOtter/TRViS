@@ -29,26 +29,25 @@ public partial class ViewHost : ContentPage
 	readonly GradientStop TitleBG_Bottom = new(Colors.White.WithAlpha(0), 1);
 
 	private readonly ViewHostPresenter _presenter;
+	private readonly DTACViewHostViewModel _dtacViewModel;
 
 	public ViewHost()
 	{
 		logger.Trace("Creating...");
 
-		// Build presenter via factory — the only place that references InstanceManager.
-		// Out params expose underlying MAUI objects needed for pure UI bindings.
 		_presenter = PresenterFactory.BuildViewHostPresenter(
 			out AppViewModel vm,
 			out EasterEggPageViewModel eevm,
 			out DTACViewHostViewModel dtacViewModel);
 
+		_dtacViewModel = dtacViewModel;
+
 		_presenter.StateChanged += OnPresenterStateChanged;
-		_presenter.IsPhoneIdiom = DeviceInfo.Current.Idiom == DeviceIdiom.Phone;
 
 		Shell.SetNavBarIsVisible(this, false);
 
 		InitializeComponent();
 
-		// Initialise UI from current presenter state
 		var state = _presenter.CurrentState;
 		TitleLabel.Text = state.TitleText;
 		Title = state.TitleText;
@@ -82,15 +81,19 @@ public partial class ViewHost : ContentPage
 
 		Shell.Current.Navigated += (s, e) =>
 		{
-			_presenter.OnViewHostNavigatedTo(Shell.Current.CurrentPage is ViewHost);
+			bool isCurrentPage = Shell.Current.CurrentPage is ViewHost;
+			_dtacViewModel.IsViewHostVisible = isCurrentPage;
+			if (isCurrentPage && _dtacViewModel.IsVerticalViewMode)
+				VerticalStylePageView.OnViewBecameActive();
 		};
+
+		_dtacViewModel.PropertyChanged += OnDtacViewModelPropertyChanged;
 
 		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
 		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
-		// Apply initial state from presenter
-		ApplyTabVisibility(state);
+		ApplyTabVisibility();
 		HakoView.WorkName = state.TitleText;
 		HakoView.WorkSpaceName = state.WorkSpaceName;
 		HakoView.AffectDate = state.AffectDateText;
@@ -165,7 +168,6 @@ public partial class ViewHost : ContentPage
 	{
 		_presenter.OnToggleBgAppIconRequested();
 
-		// Update button appearance from current presenter state (pure UI)
 		bool newState = _presenter.CurrentState.IsBgAppIconVisible;
 		logger.Debug("IsBgAppIconVisible is now {0}", newState);
 		if (sender is VisualElement button)
@@ -213,6 +215,54 @@ public partial class ViewHost : ContentPage
 		_presenter.OnChangeThemeButtonClicked();
 	}
 
+	// ---------- DTACViewModel event handling (tab visibility, orientation) ----------
+
+	private void OnDtacViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		switch (e.PropertyName)
+		{
+			case nameof(DTACViewHostViewModel.IsHakoMode):
+			case nameof(DTACViewHostViewModel.IsVerticalViewMode):
+			case nameof(DTACViewHostViewModel.IsWorkAffixMode):
+				MainThread.BeginInvokeOnMainThread(ApplyTabVisibility);
+				break;
+			case nameof(DTACViewHostViewModel.TabMode):
+				MainThread.BeginInvokeOnMainThread(UpdateOrientation);
+				if (_dtacViewModel.IsVerticalViewMode)
+					VerticalStylePageView.OnViewBecameActive();
+				break;
+		}
+	}
+
+	private void ApplyTabVisibility()
+	{
+		HakoRemarksView.IsVisible = _dtacViewModel.IsHakoMode;
+		VerticalStylePageRemarksView.IsVisible = _dtacViewModel.IsVerticalViewMode;
+		WorkAffixView.IsVisible = _dtacViewModel.IsWorkAffixMode;
+
+		if (!_dtacViewModel.IsHakoMode && HakoRemarksView.IsOpen)
+			HakoRemarksView.IsOpen = false;
+		if (!_dtacViewModel.IsVerticalViewMode && VerticalStylePageRemarksView.IsOpen)
+			VerticalStylePageRemarksView.IsOpen = false;
+	}
+
+	private void UpdateOrientation()
+	{
+		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
+		{
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.Default);
+			return;
+		}
+
+		AppDisplayOrientation desired = _dtacViewModel.TabMode switch
+		{
+			DTACViewHostViewModel.Mode.Hako => AppDisplayOrientation.Portrait,
+			DTACViewHostViewModel.Mode.VerticalView => AppDisplayOrientation.Landscape,
+			_ => AppDisplayOrientation.Default,
+		};
+		InstanceManager.OrientationService.SetOrientation(desired);
+	}
+
 	// ---------- Presenter state change handling ----------
 
 	private void OnPresenterStateChanged(object? sender, ViewHostStateChangedEventArgs e)
@@ -246,28 +296,6 @@ public partial class ViewHost : ContentPage
 		{
 			TimeLabel.Text = state.TimeLabelText;
 		}
-
-		if ((changed & ViewHostStateSection.TabVisibility) != 0)
-		{
-			ApplyTabVisibility(state);
-		}
-	}
-
-	private void ApplyTabVisibility(ViewHostPageState state)
-	{
-		HakoRemarksView.IsVisible = state.IsHakoVisible;
-		VerticalStylePageRemarksView.IsVisible = state.IsTimetableVisible;
-		WorkAffixView.IsVisible = state.IsWorkAffixVisible;
-
-		// Close remarks if their mode is no longer active
-		if (!state.IsHakoVisible && HakoRemarksView.IsOpen)
-		{
-			HakoRemarksView.IsOpen = false;
-		}
-		if (!state.IsTimetableVisible && VerticalStylePageRemarksView.IsOpen)
-		{
-			VerticalStylePageRemarksView.IsOpen = false;
-		}
 	}
 
 	// ---------- MAUI lifecycle overrides ----------
@@ -275,13 +303,15 @@ public partial class ViewHost : ContentPage
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
-		_presenter.OnViewAppearing();
+		UpdateOrientation();
 	}
 
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
-		_presenter.OnViewDisappearing();
+		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.Default);
+		InstanceManager.ScreenWakeLockService.DisableWakeLock();
 	}
 
 	async void TitleLabel_Tapped(object sender, EventArgs e)

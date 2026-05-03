@@ -1,5 +1,3 @@
-using TRViS.DTAC.Logic.Abstractions;
-
 namespace TRViS.DTAC.Logic.Presenter;
 
 /// <summary>
@@ -27,26 +25,6 @@ public class ViewHostPageState
     /// The formatted time label text.
     /// </summary>
     public string TimeLabelText { get; set; } = "00:00:00";
-
-    /// <summary>
-    /// Whether the Hako tab content is visible.
-    /// </summary>
-    public bool IsHakoVisible { get; set; }
-
-    /// <summary>
-    /// Whether the Timetable (VerticalStylePage) tab content is visible.
-    /// </summary>
-    public bool IsTimetableVisible { get; set; }
-
-    /// <summary>
-    /// Whether the WorkAffix tab content is visible.
-    /// </summary>
-    public bool IsWorkAffixVisible { get; set; }
-
-    /// <summary>
-    /// The desired screen orientation. Logic emits this; View applies it via OS API.
-    /// </summary>
-    public DesiredOrientation DesiredOrientation { get; set; } = DesiredOrientation.All;
 
     /// <summary>
     /// Whether the background app icon is currently visible.

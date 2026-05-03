@@ -190,49 +190,6 @@ public class VerticalPageStateFactoryTests
 	}
 
 	[Fact]
-	public void UpdateDebugMapState_WithEasterEggEnabledAndLandscape_ShowsMap()
-	{
-		// Arrange
-		var debugMapState = new DebugMapState();
-
-		// Act
-		VerticalPageStateFactory.UpdateDebugMapState(debugMapState, isEasterEggEnabled: true, isLandscape: true);
-
-		// Assert
-		Assert.True(debugMapState.IsEnabled);
-		Assert.True(debugMapState.IsLandscapeMode);
-		Assert.True(debugMapState.IsVisible);
-	}
-
-	[Fact]
-	public void UpdateDebugMapState_WithEasterEggDisabled_HidesMap()
-	{
-		// Arrange
-		var debugMapState = new DebugMapState();
-
-		// Act
-		VerticalPageStateFactory.UpdateDebugMapState(debugMapState, isEasterEggEnabled: false, isLandscape: true);
-
-		// Assert
-		Assert.False(debugMapState.IsEnabled);
-		Assert.False(debugMapState.IsVisible);
-	}
-
-	[Fact]
-	public void UpdateDebugMapState_WithPortraitMode_HidesMap()
-	{
-		// Arrange
-		var debugMapState = new DebugMapState();
-
-		// Act
-		VerticalPageStateFactory.UpdateDebugMapState(debugMapState, isEasterEggEnabled: true, isLandscape: false);
-
-		// Assert
-		Assert.True(debugMapState.IsEnabled);
-		Assert.False(debugMapState.IsVisible);
-	}
-
-	[Fact]
 	public void UpdateTimetableActivityIndicatorState_WithBusy_ShowsIndicator()
 	{
 		// Arrange

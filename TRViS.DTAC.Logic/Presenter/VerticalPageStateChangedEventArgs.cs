@@ -10,7 +10,6 @@ public enum VerticalPageStateSection
 	Destination = 1,
 	TrainInfoArea = 2,
 	NextDayIndicator = 4,
-	DebugMap = 8,
 	ActivityIndicator = 16,
 	TimetableView = 32,
 	ScrollView = 64,

@@ -150,28 +150,6 @@ public static class VerticalPageStateFactory
 	}
 
 	/// <summary>
-	/// Updates the debug map state based on device orientation and easter egg settings.
-	/// </summary>
-	/// <param name="state">The debug map state to update</param>
-	/// <param name="isEasterEggEnabled">Whether the easter egg is enabled</param>
-	/// <param name="isLandscape">Whether the device is in landscape mode</param>
-	public static void UpdateDebugMapState(DebugMapState state, bool isEasterEggEnabled, bool isLandscape)
-	{
-		state.IsEnabled = isEasterEggEnabled;
-		state.IsLandscapeMode = isLandscape;
-		state.IsVisible = isEasterEggEnabled && isLandscape;
-
-		if (state.IsVisible)
-		{
-			state.ColumnWidth = 1; // Star unit (will be calculated as remaining space)
-		}
-		else
-		{
-			state.ColumnWidth = 0;
-		}
-	}
-
-	/// <summary>
 	/// Updates the timetable activity indicator state.
 	/// </summary>
 	/// <param name="state">The indicator state to update</param>
@@ -265,7 +243,6 @@ public static class VerticalPageStateFactory
 			Destination = new(),
 			TrainInfoAreaState = new(),
 			NextDayIndicatorState = new(),
-			DebugMapState = new(),
 			TimetableActivityIndicatorState = new(),
 			TimetableViewState = new(),
 			ScrollViewState = new(),
