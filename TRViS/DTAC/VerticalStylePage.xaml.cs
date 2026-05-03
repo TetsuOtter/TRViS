@@ -79,6 +79,16 @@ public partial class VerticalStylePage : ContentView
 		_presenter.OnDeviceOrientationChanged(
 			DeviceDisplay.Current.MainDisplayInfo.Orientation == DisplayOrientation.Landscape);
 
+		InstanceManager.LocationServiceGpsAdapter.OnGpsLocationUpdated += (_, e) =>
+		{
+			if (DebugMap is null || e is null)
+			{
+				return;
+			}
+			logger.Debug("OnGpsLocationUpdated: {0}", e);
+			DebugMap.SetCurrentLocation(e.Latitude, e.Longitude, e.Accuracy ?? 20);
+		};
+
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
 			logger.Info("Device is Phone or Unknown -> make it to fill-scrollable");

@@ -1,6 +1,8 @@
-namespace TRViS.Services.LocationService;
+using TRViS.Services;
 
-internal static partial class Utils
+namespace TRViS.LocationServiceInternal;
+
+internal static partial class LocationCalcUtils
 {
 	const double EARTH_RADIUS_m = 6378137;
 

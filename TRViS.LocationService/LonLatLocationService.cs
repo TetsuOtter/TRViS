@@ -1,5 +1,6 @@
 
-using TRViS.Services.LocationService;
+using TRViS.LocationServiceInternal;
+using static TRViS.LocationServiceInternal.LocationCalcUtils;
 
 namespace TRViS.Services;
 
@@ -137,7 +138,7 @@ public class LonLatLocationService : ILocationService
 		double[] distanceArray = StaLocationInfo.Select(
 			v =>
 				v.HasLonLatLocation
-				? Utils.CalculateDistance_m(lon_deg, lat_deg, v.Location_lon_deg, v.Location_lat_deg)
+				? CalculateDistance_m(lon_deg, lat_deg, v.Location_lon_deg, v.Location_lat_deg)
 				: double.NaN
 		).ToArray();
 
@@ -185,12 +186,12 @@ public class LonLatLocationService : ILocationService
 		{
 			// 最初の駅が一番近い場合
 			CurrentStationIndex = firstStationIndex;
-			IsRunningToNextStation = Utils.IsLeaved(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]);
+			IsRunningToNextStation = IsLeaved(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]);
 		}
 		else if (nearestStationIndex == lastStationIndex)
 		{
 			// 最後の駅が一番近い場合
-			if (Utils.IsNearBy(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]))
+			if (IsNearBy(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]))
 			{
 				CurrentStationIndex = nearestStationIndex;
 				IsRunningToNextStation = false;
@@ -204,7 +205,7 @@ public class LonLatLocationService : ILocationService
 		else
 		{
 			// 途中の駅が一番近い場合
-			if (Utils.IsNearBy(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]))
+			if (IsNearBy(StaLocationInfo[nearestStationIndex], distanceArray[nearestStationIndex]))
 			{
 				CurrentStationIndex = nearestStationIndex;
 				IsRunningToNextStation = false;
@@ -305,7 +306,7 @@ public class LonLatLocationService : ILocationService
 				return double.NaN;
 			}
 			StaLocationInfo nextStation = StaLocationInfo[nextStationIndex];
-			distance = Utils.CalculateDistance_m(nextStation, new LocationLonLat_deg(lon_deg, lat_deg));
+			distance = CalculateDistance_m(nextStation, new LocationLonLat_deg(lon_deg, lat_deg));
 			double distanceToNextStationAverage = GetDistanceToStationAverage(distance);
 			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=true: nextStation={2}, distance={3}, distanceToNextStationAverage={4}, useAverageDistance={5}", lat_deg, lon_deg, nextStation, distance, distanceToNextStationAverage, useAverageDistance);
 			if (!useAverageDistance)
@@ -314,7 +315,7 @@ public class LonLatLocationService : ILocationService
 			}
 
 			if (!double.IsNaN(distanceToNextStationAverage)
-				&& Utils.IsNearBy(nextStation, distanceToNextStationAverage))
+				&& IsNearBy(nextStation, distanceToNextStationAverage))
 			{
 				DistanceHistoryQueue.Clear();
 				CurrentStationIndex = nextStationIndex;
@@ -327,7 +328,7 @@ public class LonLatLocationService : ILocationService
 		{
 			StaLocationInfo currentStation = StaLocationInfo[CurrentStationIndex];
 
-			distance = Utils.CalculateDistance_m(currentStation, new LocationLonLat_deg(lon_deg, lat_deg));
+			distance = CalculateDistance_m(currentStation, new LocationLonLat_deg(lon_deg, lat_deg));
 			double distanceFromCurrentStationAverage = GetDistanceToStationAverage(distance);
 			locationServiceLogger.Info("SetCurrentLocation({0}, {1}): IsRunningToNextStation=false: currentStation={2}, distance={3}, distanceFromCurrentStationAverage={4}, useAverageDistance={5}", lat_deg, lon_deg, currentStation, distance, distanceFromCurrentStationAverage, useAverageDistance);
 			if (!useAverageDistance)
@@ -335,7 +336,7 @@ public class LonLatLocationService : ILocationService
 				distanceFromCurrentStationAverage = distance;
 			}
 			if (!double.IsNaN(distanceFromCurrentStationAverage)
-				&& Utils.IsLeaved(currentStation, distanceFromCurrentStationAverage))
+				&& IsLeaved(currentStation, distanceFromCurrentStationAverage))
 			{
 				DistanceHistoryQueue.Clear();
 				IsRunningToNextStation = true;

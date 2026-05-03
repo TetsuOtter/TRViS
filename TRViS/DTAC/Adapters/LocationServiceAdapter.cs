@@ -19,11 +19,8 @@ internal class LocationServiceAdapter : IDtacLocationServiceController
 		_locationService.OnGpsLocationUpdated += OnGpsLocationUpdatedInternal;
 	}
 
-	private void OnGpsLocationUpdatedInternal(object? sender, Location? location)
+	private void OnGpsLocationUpdatedInternal(object? sender, (double Longitude, double Latitude, double? Accuracy) location)
 	{
-		if (location is null)
-			return;
-
 		GpsLocationUpdated?.Invoke(this, new GpsLocationUpdate(
 			location.Latitude,
 			location.Longitude,
@@ -80,5 +77,15 @@ internal class LocationServiceAdapter : IDtacLocationServiceController
 		=> _locationService.ForceSetLocationInfo(stationIndex, isRunningToNextStation);
 
 	public void SetTimetableRows(TimetableRow[]? rows)
-		=> _locationService.SetTimetableRows(rows);
+	{
+		StaLocationInfo[]? locations = rows
+			?.Where(static v => !v.IsInfoRow)
+			.Select(static v => new StaLocationInfo(
+				v.Location.Location_m,
+				v.Location.Longitude_deg,
+				v.Location.Latitude_deg,
+				v.Location.OnStationDetectRadius_m))
+			.ToArray();
+		_locationService.SetStationLocations(locations);
+	}
 }
