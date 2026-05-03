@@ -4,7 +4,7 @@ using TRViS.DTAC.Logic.Presenter;
 namespace TRViS.DTAC.Adapters;
 
 /// <summary>
-/// Factory for building a VerticalStylePagePresenter with all its adapters.
+/// Factory for building Presenter instances with all their adapters.
 /// This is the only place in the View layer that references InstanceManager.
 /// </summary>
 internal static class PresenterFactory
@@ -30,6 +30,42 @@ internal static class PresenterFactory
 			markerToggle,
 			crashLogger,
 			clock);
+	}
+
+	/// <summary>
+	/// Builds a fully configured ViewHostPresenter.
+	/// The ViewHostModeAdapter acts as both IViewHostModeProvider and IViewHostNavigationSink.
+	/// Out parameters expose the underlying MAUI objects so that ViewHost.xaml.cs
+	/// can set up pure MAUI bindings without itself referencing InstanceManager.
+	/// </summary>
+	public static ViewHostPresenter BuildViewHostPresenter(
+		out TRViS.ViewModels.AppViewModel rawAppViewModel,
+		out TRViS.ViewModels.EasterEggPageViewModel rawEasterEggViewModel,
+		out TRViS.ViewModels.DTACViewHostViewModel rawViewHostViewModel)
+	{
+		rawAppViewModel = InstanceManager.AppViewModel;
+		rawEasterEggViewModel = InstanceManager.EasterEggPageViewModel;
+		rawViewHostViewModel = InstanceManager.DTACViewHostViewModel;
+
+		var appViewModelAdapter = new AppViewModelAdapter(rawAppViewModel);
+		var viewHostMode = new ViewHostModeAdapter(rawViewHostViewModel);
+		var timeProvider = new TimeProviderAdapter(InstanceManager.LocationService);
+		var easterEgg = new EasterEggSettingsAdapter(rawEasterEggViewModel);
+		var wakeLock = new WakeLockAdapter(InstanceManager.ScreenWakeLockService);
+		var orientation = new OrientationControllerAdapter(InstanceManager.OrientationService);
+		var userAlerts = new UserAlertAdapter();
+		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
+
+		return new ViewHostPresenter(
+			appViewModelAdapter,
+			viewHostMode,
+			timeProvider,
+			easterEgg,
+			wakeLock,
+			orientation,
+			userAlerts,
+			crashLogger,
+			navigationSink: viewHostMode);
 	}
 
 	/// <summary>

@@ -85,6 +85,30 @@ public static class ViewHostStateFactory
 	}
 
 	/// <summary>
+	/// Formats the affect date from train data (DateOnly variant).
+	/// </summary>
+	/// <param name="affectDate">The affect date (nullable DateOnly)</param>
+	/// <param name="dayCount">The day count</param>
+	/// <returns>The formatted affect date string</returns>
+	public static string FormatAffectDateOnly(DateOnly? affectDate, int dayCount)
+	{
+		try
+		{
+			if (affectDate.HasValue)
+			{
+				return affectDate.Value.ToString("yyyy年M月d日");
+			}
+
+			DateOnly calculatedDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount);
+			return calculatedDate.ToString("yyyy年M月d日");
+		}
+		catch
+		{
+			return string.Empty;
+		}
+	}
+
+	/// <summary>
 	/// Marks the work group state as unchanged (after it has been processed).
 	/// </summary>
 	/// <param name="state">The view host state to update</param>

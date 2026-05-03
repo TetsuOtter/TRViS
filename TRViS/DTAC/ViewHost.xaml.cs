@@ -2,7 +2,8 @@ using System.ComponentModel;
 
 using TR.Maui.AnchorPopover;
 
-using TRViS.IO.Models;
+using TRViS.DTAC.Adapters;
+using TRViS.DTAC.Logic.Presenter;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -27,35 +28,37 @@ public partial class ViewHost : ContentPage
 	readonly GradientStop TitleBG_MidBottom = new(Colors.White.WithAlpha(0.1f), 0.8f);
 	readonly GradientStop TitleBG_Bottom = new(Colors.White.WithAlpha(0), 1);
 
+	private readonly ViewHostPresenter _presenter;
+
 	public ViewHost()
 	{
 		logger.Trace("Creating...");
 
-		AppViewModel vm = InstanceManager.AppViewModel;
-		EasterEggPageViewModel eevm = InstanceManager.EasterEggPageViewModel;
+		// Build presenter via factory — the only place that references InstanceManager.
+		// Out params expose underlying MAUI objects needed for pure UI bindings.
+		_presenter = PresenterFactory.BuildViewHostPresenter(
+			out AppViewModel vm,
+			out EasterEggPageViewModel eevm,
+			out DTACViewHostViewModel dtacViewModel);
+
+		_presenter.StateChanged += OnPresenterStateChanged;
+		_presenter.IsPhoneIdiom = DeviceInfo.Current.Idiom == DeviceIdiom.Phone;
 
 		Shell.SetNavBarIsVisible(this, false);
 
 		InitializeComponent();
 
-		TitleLabel.Text = vm.SelectedWork?.Name;
+		// Initialise UI from current presenter state
+		var state = _presenter.CurrentState;
+		TitleLabel.Text = state.TitleText;
+		Title = state.TitleText;
+		TimeLabel.Text = state.TimeLabelText;
+
 		TitleLabel.TextColor
 			= MenuButton.TextColor
 			= ChangeThemeButton.TextColor
 			= TimeLabel.TextColor
 			= eevm.ShellTitleTextColor;
-
-		InstanceManager.LocationService.TimeChanged += (s, totalSeconds) =>
-		{
-			bool isMinus = totalSeconds < 0;
-			int Hour = Math.Abs(totalSeconds / 3600);
-			int Minute = Math.Abs((totalSeconds % 3600) / 60);
-			int Second = Math.Abs(totalSeconds % 60);
-
-			string text = isMinus ? "-" : string.Empty;
-			text += $"{Hour:D2}:{Minute:D2}:{Second:D2}";
-			TimeLabel.Text = text;
-		};
 
 		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
 
@@ -72,24 +75,26 @@ public partial class ViewHost : ContentPage
 
 		vm.CurrentAppThemeChanged += (s, e) => SetTitleBGGradientColor(e.NewValue);
 		SetTitleBGGradientColor(vm.CurrentAppTheme);
-		vm.PropertyChanged += Vm_PropertyChanged;
 		eevm.PropertyChanged += Eevm_PropertyChanged;
 
-		ViewModel = InstanceManager.DTACViewHostViewModel;
+		ViewModel = dtacViewModel;
 		BindingContext = ViewModel;
-
-		ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
 		Shell.Current.Navigated += (s, e) =>
 		{
-			ViewModel.IsViewHostVisible = Shell.Current.CurrentPage is ViewHost;
+			_presenter.OnViewHostNavigatedTo(Shell.Current.CurrentPage is ViewHost);
 		};
 
 		VerticalStylePageView.SetBinding(VerticalStylePage.SelectedTrainDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
 		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
-		UpdateContent();
+		// Apply initial state from presenter
+		ApplyTabVisibility(state);
+		HakoView.WorkName = state.TitleText;
+		HakoView.WorkSpaceName = state.WorkSpaceName;
+		HakoView.AffectDate = state.AffectDateText;
+		VerticalStylePageView.AffectDate = state.AffectDateText;
 
 		if (Shell.Current is AppShell appShell)
 		{
@@ -98,10 +103,6 @@ public partial class ViewHost : ContentPage
 		}
 
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
-
-		OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
-		OnSelectedWorkChanged(vm.SelectedWork);
-		OnSelectedTrainChanged(vm.SelectedTrainData);
 
 		ChangeChangeThemeButtonText(vm.CurrentAppTheme);
 		vm.CurrentAppThemeChanged += (s, e) => ChangeChangeThemeButtonText(e.NewValue);
@@ -150,7 +151,6 @@ public partial class ViewHost : ContentPage
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.OnSizeAllocated");
 			Util.ExitWithAlertAsync(ex);
 		}
 	}
@@ -163,16 +163,11 @@ public partial class ViewHost : ContentPage
 
 	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)
 	{
-		bool newState = !InstanceManager.AppViewModel.IsBgAppIconVisible;
-		if (InstanceManager.AppViewModel.CurrentAppTheme == AppTheme.Light
-			&& newState == false)
-		{
-			logger.Warn("IsBgAppIconVisible is not changed to false because CurrentAppTheme is Light");
-			Util.DisplayAlertAsync("背景を非表示にできません", "現在のテーマがライトモードのため、背景アイコンは非表示にできません。", "OK");
-			return;
-		}
-		InstanceManager.AppViewModel.IsBgAppIconVisible = newState;
-		logger.Debug("IsBgAppIconVisible is changed to {0}", newState);
+		_presenter.OnToggleBgAppIconRequested();
+
+		// Update button appearance from current presenter state (pure UI)
+		bool newState = _presenter.CurrentState.IsBgAppIconVisible;
+		logger.Debug("IsBgAppIconVisible is now {0}", newState);
 		if (sender is VisualElement button)
 		{
 			if (newState)
@@ -204,36 +199,6 @@ public partial class ViewHost : ContentPage
 		}
 	}
 
-	private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (sender is not AppViewModel vm)
-			return;
-
-		try
-		{
-			switch (e.PropertyName)
-			{
-				case nameof(AppViewModel.SelectedWorkGroup):
-					OnSelectedWorkGroupChanged(vm.SelectedWorkGroup);
-					break;
-
-				case nameof(AppViewModel.SelectedWork):
-					OnSelectedWorkChanged(vm.SelectedWork);
-					break;
-
-				case nameof(AppViewModel.SelectedTrainData):
-					OnSelectedTrainChanged(vm.SelectedTrainData);
-					break;
-			}
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.Vm_PropertyChanged");
-			Util.ExitWithAlertAsync(ex);
-		}
-	}
-
 	private void ChangeChangeThemeButtonText(AppTheme newTheme)
 	{
 		logger.Trace("newTheme: {0}", newTheme);
@@ -241,140 +206,82 @@ public partial class ViewHost : ContentPage
 			? CHANGE_THEME_BUTTON_TEXT_TO_LIGHT
 			: CHANGE_THEME_BUTTON_TEXT_TO_DARK;
 	}
+
 	private void OnChangeThemeButtonClicked(object? sender, EventArgs e)
 	{
-		AppViewModel vm = InstanceManager.AppViewModel;
-		AppTheme newTheme = vm.CurrentAppTheme == AppTheme.Dark
-			? AppTheme.Light
-			: AppTheme.Dark;
+		logger.Info("ChangeThemeButton clicked");
+		_presenter.OnChangeThemeButtonClicked();
+	}
 
-		if (Application.Current is not null)
+	// ---------- Presenter state change handling ----------
+
+	private void OnPresenterStateChanged(object? sender, ViewHostStateChangedEventArgs e)
+	{
+		MainThread.BeginInvokeOnMainThread(() => ApplyPresenterState(e.Changed));
+	}
+
+	private void ApplyPresenterState(ViewHostStateSection changed)
+	{
+		var state = _presenter.CurrentState;
+
+		if ((changed & ViewHostStateSection.TitleText) != 0)
 		{
-			logger.Info(
-				"CurrentAppTheme is changed to {0} (User: {1}, Platform: {2}, Requested: {3})",
-				newTheme,
-				Application.Current.UserAppTheme,
-				Application.Current.PlatformAppTheme,
-				Application.Current.RequestedTheme
-			);
-			vm.CurrentAppTheme = newTheme;
-			Application.Current.UserAppTheme = newTheme;
+			TitleLabel.Text = state.TitleText;
+			Title = state.TitleText;
+			HakoView.WorkName = state.TitleText;
 		}
-		else
+
+		if ((changed & ViewHostStateSection.WorkSpaceName) != 0)
 		{
-			logger.Warn("Application.Current is null -> do nothing");
+			HakoView.WorkSpaceName = state.WorkSpaceName;
+		}
+
+		if ((changed & ViewHostStateSection.AffectDate) != 0)
+		{
+			HakoView.AffectDate = state.AffectDateText;
+			VerticalStylePageView.AffectDate = state.AffectDateText;
+		}
+
+		if ((changed & ViewHostStateSection.TimeLabel) != 0)
+		{
+			TimeLabel.Text = state.TimeLabelText;
+		}
+
+		if ((changed & ViewHostStateSection.TabVisibility) != 0)
+		{
+			ApplyTabVisibility(state);
 		}
 	}
 
-	void OnSelectedWorkGroupChanged(WorkGroup? newValue)
+	private void ApplyTabVisibility(ViewHostPageState state)
 	{
-		string title = newValue?.Name ?? string.Empty;
-		logger.Info("SelectedWorkGroup is changed to {0}", title);
-		HakoView.WorkSpaceName = title;
-	}
+		HakoRemarksView.IsVisible = state.IsHakoVisible;
+		VerticalStylePageRemarksView.IsVisible = state.IsTimetableVisible;
+		WorkAffixView.IsVisible = state.IsWorkAffixVisible;
 
-	void OnSelectedWorkChanged(Work? newValue)
-	{
-		string title = newValue?.Name ?? string.Empty;
-		logger.Info("SelectedWork is changed to {0}", title);
-		TitleLabel.Text = title;
-		Title = title;
-
-		HakoView.WorkName = title;
-	}
-
-	void OnSelectedTrainChanged(TrainData? newValue)
-	{
-		int dayCount = newValue?.DayCount ?? 0;
-		string affectDate = (
-			newValue?.AffectDate
-			?? DateOnly.FromDateTime(DateTime.Now).AddDays(-dayCount)
-		).ToString("yyyy年M月d日");
-
-		logger.Debug(
-			"date: {0}, dayCount: {1}, AffectDate: {2}",
-			newValue?.AffectDate,
-			dayCount,
-			affectDate
-		);
-
-		VerticalStylePageView.AffectDate = affectDate;
-		HakoView.AffectDate = affectDate;
-	}
-
-	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (e.PropertyName == nameof(DTACViewHostViewModel.TabMode))
-			UpdateContent();
-	}
-
-	void UpdateContent()
-	{
-		logger.Debug("TabMode is changed to {0} (IsHakoMode: {1}/IsVerticalViewMode: {2}/IsWorkAffixMode: {3})",
-			ViewModel.TabMode,
-			ViewModel.IsHakoMode,
-			ViewModel.IsVerticalViewMode,
-			ViewModel.IsWorkAffixMode
-		);
-		HakoRemarksView.IsVisible = ViewModel.IsHakoMode;
-		VerticalStylePageRemarksView.IsVisible = ViewModel.IsVerticalViewMode;
-		WorkAffixView.IsVisible = ViewModel.IsWorkAffixMode;
-
-		if (!ViewModel.IsHakoMode && HakoRemarksView.IsOpen)
+		// Close remarks if their mode is no longer active
+		if (!state.IsHakoVisible && HakoRemarksView.IsOpen)
 		{
 			HakoRemarksView.IsOpen = false;
 		}
-		if (!ViewModel.IsVerticalViewMode && VerticalStylePageRemarksView.IsOpen)
+		if (!state.IsTimetableVisible && VerticalStylePageRemarksView.IsOpen)
 		{
 			VerticalStylePageRemarksView.IsOpen = false;
 		}
-
-		UpdateOrientation();
 	}
 
-	void UpdateOrientation()
-	{
-		// Apply orientation locking only for phone devices
-		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
-		{
-			logger.Debug("Device is not a phone, skipping orientation lock");
-			return;
-		}
-
-		AppDisplayOrientation orientation = ViewModel.TabMode switch
-		{
-			DTACViewHostViewModel.Mode.Hako => AppDisplayOrientation.Portrait,
-			DTACViewHostViewModel.Mode.VerticalView => AppDisplayOrientation.Landscape,
-			_ => AppDisplayOrientation.All
-		};
-
-		logger.Info("Setting orientation to {0} for TabMode {1}", orientation, ViewModel.TabMode);
-		InstanceManager.OrientationService.SetOrientation(orientation);
-	}
+	// ---------- MAUI lifecycle overrides ----------
 
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
-		UpdateOrientation();
+		_presenter.OnViewAppearing();
 	}
 
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
-
-		// Reset orientation to allow all when leaving ViewHost
-		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
-		{
-			logger.Debug("Leaving ViewHost, resetting orientation to All");
-			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
-		}
-
-		// Disable wake lock when leaving ViewHost
-		if (InstanceManager.ScreenWakeLockService.IsWakeLockEnabled)
-		{
-			logger.Debug("Leaving ViewHost, disabling wake lock");
-			InstanceManager.ScreenWakeLockService.DisableWakeLock();
-		}
+		_presenter.OnViewDisappearing();
 	}
 
 	async void TitleLabel_Tapped(object sender, EventArgs e)
@@ -399,7 +306,6 @@ public partial class ViewHost : ContentPage
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "ViewHost.TitleLabel_Tapped");
 			await Util.ExitWithAlertAsync(ex);
 		}
 	}
