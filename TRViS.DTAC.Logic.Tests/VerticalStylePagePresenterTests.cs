@@ -488,13 +488,17 @@ public class VerticalStylePagePresenterTests
 		presenter.OnRowTapped(1, false, 3);
 		Assert.Equal(2, presenter.CurrentState.RowStates[1].LocationState);
 
-		// Tap row 1 third time - RunningToNextStation -> Undefined
+		// Tap row 1 third time - RunningToNextStation -> AroundThisStation (marker never disappears during operation)
 		presenter.OnRowTapped(1, false, 3);
-		Assert.Equal(0, presenter.CurrentState.RowStates[1].LocationState);
+		Assert.Equal(1, presenter.CurrentState.RowStates[1].LocationState);
+
+		// Tap row 1 fourth time - AroundThisStation -> RunningToNextStation (continues cycling)
+		presenter.OnRowTapped(1, false, 3);
+		Assert.Equal(2, presenter.CurrentState.RowStates[1].LocationState);
 	}
 
 	[Fact]
-	public void OnRowTapped_LastRow_LocationServiceDisabled_DoesNotGoToRunningToNextStation()
+	public void OnRowTapped_LastRow_LocationServiceDisabled_StaysAtAroundThisStation()
 	{
 		var (presenter, _, _, _, _, _, _) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
@@ -505,9 +509,13 @@ public class VerticalStylePagePresenterTests
 		presenter.OnRowTapped(2, false, 3);
 		Assert.Equal(1, presenter.CurrentState.RowStates[2].LocationState);
 
-		// Tap last row second time - AroundThisStation on last row -> Undefined (not RunningToNextStation)
+		// Tap last row second time - AroundThisStation on last row stays AroundThisStation (marker never disappears)
 		presenter.OnRowTapped(2, false, 3);
-		Assert.Equal(0, presenter.CurrentState.RowStates[2].LocationState);
+		Assert.Equal(1, presenter.CurrentState.RowStates[2].LocationState);
+
+		// Tap last row third time - still stays AroundThisStation
+		presenter.OnRowTapped(2, false, 3);
+		Assert.Equal(1, presenter.CurrentState.RowStates[2].LocationState);
 	}
 
 	[Fact]

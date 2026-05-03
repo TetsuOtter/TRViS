@@ -319,12 +319,16 @@ public sealed class VerticalStylePagePresenter : IDisposable
 				{
 					rowState.LocationState = 2;
 				}
-				// else: reset (stays Undefined = 0)
+				else
+				{
+					// Last row: stay AroundThisStation (marker never disappears during operation)
+					rowState.LocationState = 1;
+				}
 			}
 			else if (currentMarkerRow == rowIndex && currentMarkerState == 2)
 			{
-				// RunningToNextStation -> Undefined (reset)
-				// rowState.LocationState stays 0
+				// RunningToNextStation -> AroundThisStation (cycle back, marker never disappears during operation)
+				rowState.LocationState = 1;
 			}
 			else
 			{
