@@ -1,6 +1,6 @@
 using System;
 
-namespace TRViS.Services;
+namespace TRViS.LocationService.Abstractions;
 
 public class StaLocationInfo : ILocationLonLat_deg, IEquatable<StaLocationInfo>
 {

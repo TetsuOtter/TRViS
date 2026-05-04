@@ -1,4 +1,4 @@
-namespace TRViS.DTAC.Logic.Formatters;
+namespace TRViS.DTAC.Logic.Layout;
 
 /// <summary>
 /// Pure layout calculator for TabButton width requests.

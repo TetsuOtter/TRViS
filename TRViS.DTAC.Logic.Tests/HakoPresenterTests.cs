@@ -60,26 +60,10 @@ public class HakoPresenterTests
 		public event PropertyChangedEventHandler? PropertyChanged;
 	}
 
-	private class FakeCrashLogger : IDtacCrashLogger
-	{
-		public List<(Exception ex, string? context)> Calls { get; } = [];
-
-		public void Log(Exception ex, string? context = null)
-			=> Calls.Add((ex, context));
-	}
-
 	private static (HakoPresenter presenter, FakeAppViewModelProvider appViewModel) CreatePresenter()
 	{
 		var appViewModel = new FakeAppViewModelProvider();
-		var logger = new FakeCrashLogger();
-		return (new HakoPresenter(appViewModel, logger), appViewModel);
-	}
-
-	private static (HakoPresenter presenter, FakeAppViewModelProvider appViewModel, FakeCrashLogger logger) CreatePresenterWithLogger()
-	{
-		var appViewModel = new FakeAppViewModelProvider();
-		var logger = new FakeCrashLogger();
-		return (new HakoPresenter(appViewModel, logger), appViewModel, logger);
+		return (new HakoPresenter(appViewModel), appViewModel);
 	}
 
 	private static Work MakeWork(string name) => new Work(Id: "w1", WorkGroupId: "wg1", Name: name);
@@ -104,13 +88,6 @@ public class HakoPresenterTests
 	{
 		var (presenter, _) = CreatePresenter();
 		Assert.Equal(string.Empty, presenter.CurrentState.WorkInfoText);
-	}
-
-	[Fact]
-	public void InitialState_IsSimpleViewBusy_IsFalse()
-	{
-		var (presenter, _) = CreatePresenter();
-		Assert.False(presenter.CurrentState.IsSimpleViewBusy);
 	}
 
 	[Fact]
@@ -218,67 +195,6 @@ public class HakoPresenterTests
 	public void AffectDateLabelTextPrefix_HasExpectedValue()
 	{
 		Assert.Equal("行路施行日\n", HakoPresenter.AffectDateLabelTextPrefix);
-	}
-
-	// --- OnSimpleViewBusyChanged ---
-
-	[Fact]
-	public void OnSimpleViewBusyChanged_True_SetsStateTrue()
-	{
-		var (presenter, _) = CreatePresenter();
-		presenter.OnSimpleViewBusyChanged(true);
-
-		Assert.True(presenter.CurrentState.IsSimpleViewBusy);
-	}
-
-	[Fact]
-	public void OnSimpleViewBusyChanged_False_SetsStateFalse()
-	{
-		var (presenter, _) = CreatePresenter();
-		presenter.OnSimpleViewBusyChanged(true);
-		presenter.OnSimpleViewBusyChanged(false);
-
-		Assert.False(presenter.CurrentState.IsSimpleViewBusy);
-	}
-
-	[Fact]
-	public void OnSimpleViewBusyChanged_RaisesStateChanged()
-	{
-		var (presenter, _) = CreatePresenter();
-		HakoStateChangedEventArgs? args = null;
-		presenter.StateChanged += (_, e) => args = e;
-
-		presenter.OnSimpleViewBusyChanged(true);
-
-		Assert.NotNull(args);
-		Assert.True(args.Changed.HasFlag(HakoStateSection.IsSimpleViewBusy));
-	}
-
-	// --- LogException ---
-
-	[Fact]
-	public void LogException_DelegatesToCrashLogger()
-	{
-		var (presenter, _, logger) = CreatePresenterWithLogger();
-		var ex = new InvalidOperationException("test");
-
-		presenter.LogException(ex, "Hako.Test");
-
-		Assert.Single(logger.Calls);
-		Assert.Same(ex, logger.Calls[0].ex);
-		Assert.Equal("Hako.Test", logger.Calls[0].context);
-	}
-
-	[Fact]
-	public void LogException_WithNullContext_DelegatesToCrashLogger()
-	{
-		var (presenter, _, logger) = CreatePresenterWithLogger();
-		var ex = new Exception("oops");
-
-		presenter.LogException(ex);
-
-		Assert.Single(logger.Calls);
-		Assert.Null(logger.Calls[0].context);
 	}
 
 	// --- Dispose ---

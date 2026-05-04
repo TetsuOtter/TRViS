@@ -22,7 +22,6 @@ public class NextTrainButtonPresenter
 	private readonly INextTrainDataProvider _trainDataProvider;
 	private readonly IAppViewModelProvider _appViewModelProvider;
 	private readonly IDtacCrashLogger _crashLogger;
-	private readonly IUserAlertService _userAlertService;
 
 	private NextTrainButtonState _currentState = new(IsVisible: false, ButtonText: string.Empty, CurrentNextTrainId: string.Empty);
 
@@ -39,13 +38,11 @@ public class NextTrainButtonPresenter
 	public NextTrainButtonPresenter(
 		INextTrainDataProvider trainDataProvider,
 		IAppViewModelProvider appViewModelProvider,
-		IDtacCrashLogger crashLogger,
-		IUserAlertService userAlertService)
+		IDtacCrashLogger crashLogger)
 	{
 		_trainDataProvider = trainDataProvider ?? throw new ArgumentNullException(nameof(trainDataProvider));
 		_appViewModelProvider = appViewModelProvider ?? throw new ArgumentNullException(nameof(appViewModelProvider));
 		_crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
-		_userAlertService = userAlertService ?? throw new ArgumentNullException(nameof(userAlertService));
 
 		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
 		OnAppViewModelPropertyChanged(this, new PropertyChangedEventArgs(nameof(IAppViewModelProvider.SelectedTrainData)));
@@ -138,7 +135,7 @@ public class NextTrainButtonPresenter
 				nextTrainId: nextTrainId);
 
 			_crashLogger.Log(ex, "NextTrainButton.Click");
-			_userAlertService.DisplayAlert("エラー", msg, "OK");
+			throw new UserAlertException("エラー", msg, "OK", ex);
 		}
 	}
 

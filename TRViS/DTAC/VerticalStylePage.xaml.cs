@@ -2,6 +2,7 @@ using DependencyPropertyGenerator;
 
 using TRViS.Controls;
 using TRViS.DTAC.Adapters;
+using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
 using TRViS.DTAC.ViewModels;
 using TRViS.IO.Models;
@@ -125,7 +126,7 @@ public partial class VerticalStylePage : ContentView
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.CrashLog(ex, "VerticalStylePage.TimetableView.IsBusyChanged");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalStylePage.TimetableView.IsBusyChanged");
 				Util.ExitWithAlertAsync(ex);
 			}
 		};
@@ -182,10 +183,10 @@ public partial class VerticalStylePage : ContentView
 			}
 		};
 
-		TimetableView.UserRowTapped += (_, e) =>
+		TimetableView.RowTappedCallback = (rowIndex, isInfoRow, totalRowCount) =>
 		{
-			logger.Debug("UserRowTapped: rowIndex={0}, isInfoRow={1}, totalRowCount={2}", e.RowIndex, e.IsInfoRow, e.TotalRowCount);
-			_presenter.OnRowTapped(e.RowIndex, e.IsInfoRow, e.TotalRowCount);
+			logger.Debug("UserRowTapped: rowIndex={0}, isInfoRow={1}, totalRowCount={2}", rowIndex, isInfoRow, totalRowCount);
+			_presenter.OnRowTapped(rowIndex, isInfoRow, totalRowCount);
 		};
 
 		MaxSpeedLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
@@ -347,10 +348,10 @@ public partial class VerticalStylePage : ContentView
 
 		foreach (var kvp in state.RowStates)
 		{
-			if (kvp.Value.LocationState != 0)
+			if (kvp.Value.LocationState != TimetableLocationState.Undefined)
 			{
 				markerRow = kvp.Key;
-				markerState = kvp.Value.LocationState == 1
+				markerState = kvp.Value.LocationState == TimetableLocationState.AroundThisStation
 					? VerticalTimetableRowModel.LocationStates.AroundThisStation
 					: VerticalTimetableRowModel.LocationStates.RunningToNextStation;
 				break;

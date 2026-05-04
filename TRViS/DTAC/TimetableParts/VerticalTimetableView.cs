@@ -14,6 +14,7 @@ using TRViS.DTAC.ViewModels;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
+using TRViS.DTAC.Logic.Layout;
 
 namespace TRViS.DTAC;
 
@@ -80,7 +81,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.OnIsBusyChanged");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnIsBusyChanged");
 				Util.ExitWithAlertAsync(ex);
 			}
 		}
@@ -93,14 +94,11 @@ public partial class VerticalTimetableView : Grid
 	public event EventHandler<bool>? IsBusyChanged;
 	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
-	public class UserRowTappedEventArgs(int rowIndex, bool isInfoRow, int totalRowCount) : EventArgs
-	{
-		public int RowIndex { get; } = rowIndex;
-		public bool IsInfoRow { get; } = isInfoRow;
-		public int TotalRowCount { get; } = totalRowCount;
-	}
-
-	public event EventHandler<UserRowTappedEventArgs>? UserRowTapped;
+	/// <summary>
+	/// Callback invoked when a row is tapped. Set by the parent page to forward
+	/// the tap directly to the page-level presenter (no event-bus indirection).
+	/// </summary>
+	public Action<int, bool, int>? RowTappedCallback { get; set; }
 
 	#endregion
 
@@ -180,15 +178,15 @@ public partial class VerticalTimetableView : Grid
 
 		try
 		{
-			UserRowTapped?.Invoke(this, new UserRowTappedEventArgs(
+			RowTappedCallback?.Invoke(
 				row.Model.RowIndex,
 				row.Model.IsInfoRow,
-				RowViewList.Count));
+				RowViewList.Count);
 		}
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			_presenter.LogException(ex, "VerticalTimetableView.RowTapped");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.RowTapped");
 			Util.ExitWithAlertAsync(ex);
 		}
 	}
@@ -205,7 +203,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			_presenter.LogException(ex, "VerticalTimetableView.OnMarkerBoxClicked");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnMarkerBoxClicked");
 			Util.ExitWithAlertAsync(ex);
 		}
 	}
@@ -257,7 +255,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			_presenter.LogException(ex, "VerticalTimetableView.OnViewModelCurrentRowsChanged.SetRowViewsAsync");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelCurrentRowsChanged.SetRowViewsAsync");
 			await Util.ExitWithAlertAsync(ex);
 		}
 	}
@@ -286,7 +284,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.OnViewModelAfterRemarksTextChanged");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelAfterRemarksTextChanged");
 				Util.ExitWithAlertAsync(ex);
 			}
 		});
@@ -313,7 +311,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.OnViewModelAfterArriveTextChanged");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelAfterArriveTextChanged");
 				Util.ExitWithAlertAsync(ex);
 			}
 		});
@@ -339,7 +337,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.OnViewModelNextTrainIdChanged");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelNextTrainIdChanged");
 				Util.ExitWithAlertAsync(ex);
 			}
 		});
@@ -433,7 +431,7 @@ public partial class VerticalTimetableView : Grid
 				catch (Exception ex)
 				{
 					logger.Fatal(ex, "Unknown Exception");
-					_presenter.LogException(ex, "VerticalTimetableView.SetRowViews");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews");
 					Util.ExitWithAlertAsync(ex);
 				}
 			});
@@ -481,7 +479,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.SetRowViews (AddNewRow failed)");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (AddNewRow failed)");
 				await Util.ExitWithAlertAsync(ex);
 			}
 			cancellationToken.ThrowIfCancellationRequested();
@@ -523,7 +521,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.AddNewRow");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.AddNewRow");
 				Util.ExitWithAlertAsync(ex);
 			}
 		});
@@ -574,7 +572,7 @@ public partial class VerticalTimetableView : Grid
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			_presenter.LogException(ex, "VerticalTimetableView.AddSeparatorLines");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.AddSeparatorLines");
 			Util.ExitWithAlertAsync(ex);
 		}
 	}
@@ -635,7 +633,7 @@ public partial class VerticalTimetableView : Grid
 			catch (Exception ex)
 			{
 				logger.Fatal(ex, "Unknown Exception");
-				_presenter.LogException(ex, "VerticalTimetableView.OnScrollViewHeightChanged(MainThread)");
+				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnScrollViewHeightChanged(MainThread)");
 				Util.ExitWithAlertAsync(ex);
 			}
 		});

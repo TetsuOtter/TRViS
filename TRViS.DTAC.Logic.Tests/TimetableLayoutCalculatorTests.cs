@@ -1,5 +1,6 @@
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Formatters;
+using TRViS.DTAC.Logic.Layout;
 
 namespace TRViS.DTAC.Logic.Tests;
 

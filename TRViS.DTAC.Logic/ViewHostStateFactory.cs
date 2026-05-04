@@ -7,7 +7,7 @@ using TRViS.IO.Models;
 /// This class contains business logic for managing state transitions
 /// in the main ViewHost (DTAC view host).
 /// </summary>
-public static class ViewHostStateFactory
+internal static class ViewHostStateFactory
 {
 	/// <summary>
 	/// Creates an initial empty ViewHostState.

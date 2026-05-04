@@ -1,4 +1,5 @@
-namespace TRViS.Services;
+using System;
+namespace TRViS.LocationService.Abstractions;
 
 /// <summary>
 /// 時間の進み方の倍率

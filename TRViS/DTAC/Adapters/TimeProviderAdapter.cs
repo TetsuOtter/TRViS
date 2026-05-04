@@ -1,6 +1,7 @@
 using TRViS.Services;
 
 using LogicITimeProvider = TRViS.DTAC.Logic.Abstractions.ITimeProvider;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.DTAC.Adapters;
 
@@ -9,10 +10,10 @@ namespace TRViS.DTAC.Adapters;
 /// </summary>
 internal class TimeProviderAdapter : LogicITimeProvider, IDisposable
 {
-    private readonly LocationService _locationService;
+    private readonly TRViS.Services.LocationService _locationService;
     private bool _disposed;
 
-    public TimeProviderAdapter(LocationService locationService)
+    public TimeProviderAdapter(TRViS.Services.LocationService locationService)
     {
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
         _locationService.TimeChanged += OnTimeChanged;

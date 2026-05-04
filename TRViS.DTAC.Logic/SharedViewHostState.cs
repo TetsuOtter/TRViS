@@ -6,7 +6,7 @@ using TRViS.IO.Models.DB;
 /// Singleton service for managing shared ViewHost state across the application.
 /// This is the single source of truth for selected work group, work, and train.
 /// </summary>
-public class SharedViewHostState
+internal class SharedViewHostState
 {
 	private static SharedViewHostState? _instance;
 	private static readonly object _lock = new object();
@@ -170,40 +170,33 @@ public class SharedViewHostState
 		RaiseStateChanged();
 	}
 
-	/// <summary>
-	/// Checks if two work groups are equal by ID
-	/// </summary>
+	// IDが同じでも中身（駅情報・列番・備考等）が変わっている可能性があるため、
+	// それぞれの IEquatable 実装に委譲して内容まで比較する。
 	private static bool AreWorkGroupsEqual(WorkGroup? a, WorkGroup? b)
 	{
-		if (a is null && b is null)
+		if (ReferenceEquals(a, b))
 			return true;
 		if (a is null || b is null)
 			return false;
-		return a.Id == b.Id;
+		return a.Equals(b);
 	}
 
-	/// <summary>
-	/// Checks if two works are equal by ID
-	/// </summary>
 	private static bool AreWorksEqual(Work? a, Work? b)
 	{
-		if (a is null && b is null)
+		if (ReferenceEquals(a, b))
 			return true;
 		if (a is null || b is null)
 			return false;
-		return a.Id == b.Id;
+		return a.Equals(b);
 	}
 
-	/// <summary>
-	/// Checks if two train data are equal by ID
-	/// </summary>
 	private static bool AreTrainDataEqual(TrainData? a, TrainData? b)
 	{
-		if (a is null && b is null)
+		if (ReferenceEquals(a, b))
 			return true;
 		if (a is null || b is null)
 			return false;
-		return a.Id == b.Id;
+		return a.Equals(b);
 	}
 
 	/// <summary>

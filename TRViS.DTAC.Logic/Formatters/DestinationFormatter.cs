@@ -1,9 +1,9 @@
-namespace TRViS.DTAC.Logic;
+namespace TRViS.DTAC.Logic.Formatters;
 
 /// <summary>
 /// Formats destination strings for D-TAC display
 /// </summary>
-public static class DestinationFormatter
+internal static class DestinationFormatter
 {
 	public const string SPACE_CHAR = "\x2002";
 

@@ -1,4 +1,7 @@
+using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
+using TRViS.Services;
+using TRViS.Utils;
 
 namespace TRViS.DTAC.TimetableParts;
 
@@ -45,5 +48,14 @@ public class NextTrainButton : Grid
 	}
 
 	private void NextTrainButton_Click(object? _, EventArgs e)
-		=> _presenter.OnButtonClicked();
+	{
+		try
+		{
+			_presenter.OnButtonClicked();
+		}
+		catch (UserAlertException ex)
+		{
+			Util.DisplayAlertAsync(ex.Title, ex.Message, ex.CancelLabel);
+		}
+	}
 }

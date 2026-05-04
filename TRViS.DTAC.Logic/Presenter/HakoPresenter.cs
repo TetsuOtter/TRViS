@@ -16,7 +16,6 @@ public sealed class HakoPresenter : IDisposable
 	public const string AffectDateLabelTextPrefix = "行路施行日\n";
 
 	private readonly IAppViewModelProvider _appViewModel;
-	private readonly IDtacCrashLogger _crashLogger;
 
 	private HakoPageState _currentState = new();
 
@@ -29,10 +28,9 @@ public sealed class HakoPresenter : IDisposable
 
 	public event EventHandler<HakoStateChangedEventArgs>? StateChanged;
 
-	public HakoPresenter(IAppViewModelProvider appViewModel, IDtacCrashLogger crashLogger)
+	public HakoPresenter(IAppViewModelProvider appViewModel)
 	{
 		_appViewModel = appViewModel ?? throw new ArgumentNullException(nameof(appViewModel));
-		_crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
 
 		_appViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
 
@@ -77,28 +75,6 @@ public sealed class HakoPresenter : IDisposable
 			trainData?.DayCount ?? 0);
 		_currentState.AffectDateText = AffectDateLabelTextPrefix + affectDate;
 		RaiseStateChanged(HakoStateSection.AffectDate);
-	}
-
-	// ---------- Intents from View ----------
-
-	/// <summary>
-	/// Called when the SimpleView IsBusy state changes.
-	/// Updates <see cref="HakoPageState.IsSimpleViewBusy"/> and raises StateChanged.
-	/// Animation is handled by the View; this only tracks the logical state.
-	/// </summary>
-	public void OnSimpleViewBusyChanged(bool isBusy)
-	{
-		_currentState.IsSimpleViewBusy = isBusy;
-		RaiseStateChanged(HakoStateSection.IsSimpleViewBusy);
-	}
-
-	/// <summary>
-	/// Logs an exception that occurred in View code (e.g. animation failure).
-	/// Routes through the crash logger adapter without exposing InstanceManager to the View.
-	/// </summary>
-	public void LogException(Exception ex, string? context = null)
-	{
-		_crashLogger.Log(ex, context);
 	}
 
 	// ---------- Helpers ----------

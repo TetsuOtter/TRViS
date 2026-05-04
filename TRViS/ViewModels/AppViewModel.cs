@@ -120,7 +120,7 @@ public partial class AppViewModel : ObservableObject
 		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _, StringListJsonSourceGenerationContext.Default.ListString);
 	}
 
-	internal void SubscribeToLocationService(LocationService locationService)
+	internal void SubscribeToLocationService(TRViS.Services.LocationService locationService)
 	{
 		locationService.TimetableUpdated += OnTimetableUpdated;
 	}

@@ -1,3 +1,5 @@
+using TRViS.DTAC.Logic.Layout;
+
 namespace TRViS.DTAC.Logic.Tests;
 
 public class TimetableDisplayLogicTests

@@ -1,6 +1,6 @@
 using System;
 
-namespace TRViS.Services;
+namespace TRViS.LocationService.Abstractions;
 
 public interface ILocationLonLat_deg : IEquatable<ILocationLonLat_deg>
 {

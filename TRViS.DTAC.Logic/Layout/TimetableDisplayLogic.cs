@@ -1,4 +1,4 @@
-namespace TRViS.DTAC.Logic;
+namespace TRViS.DTAC.Logic.Layout;
 
 /// <summary>
 /// Contains logic for displaying timetable information in D-TAC

@@ -7,6 +7,7 @@ using NUnit.Framework;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.LocationService.Tests;
 
@@ -206,7 +207,7 @@ public class LocationServiceIntegrationTests
 	public async Task SetTargetIds_AfterNetworkSync_UpdatesNetworkSyncServiceIds()
 	{
 		var fakeNs = new FakeNetworkSyncService();
-		await _locationService.SetNetworkSyncServiceAsync(fakeNs);
+		_locationService.SetNetworkSyncService(fakeNs);
 
 		_locationService.SetTargetIds("wg1", "w1", "t1");
 
@@ -228,7 +229,7 @@ public class LocationServiceIntegrationTests
 		_locationService.SetTargetIds("wg2", "w2", "t2");
 
 		var fakeNs = new FakeNetworkSyncService();
-		await _locationService.SetNetworkSyncServiceAsync(fakeNs);
+		_locationService.SetNetworkSyncService(fakeNs);
 
 		Assert.Multiple(() =>
 		{
@@ -245,7 +246,7 @@ public class LocationServiceIntegrationTests
 	public async Task ConnectionClosed_FiresAlertRequested_AndSwitchesToLonLat()
 	{
 		var fakeNs = new FakeNetworkSyncService();
-		await _locationService.SetNetworkSyncServiceAsync(fakeNs);
+		_locationService.SetNetworkSyncService(fakeNs);
 
 		UserAlertRequestedEventArgs? alertArgs = null;
 		_locationService.AlertRequested += (_, e) => alertArgs = e;
@@ -266,7 +267,7 @@ public class LocationServiceIntegrationTests
 	public async Task WebSocketCanStart_AutomaticallyEnablesLocationService()
 	{
 		var fakeWs = new FakeWebSocketNetworkSyncService();
-		await _locationService.SetNetworkSyncServiceAsync(fakeWs);
+		_locationService.SetNetworkSyncService(fakeWs);
 
 		Assert.That(_locationService.IsEnabled, Is.False, "Initially should be disabled");
 
@@ -284,45 +285,6 @@ public class LocationServiceIntegrationTests
 	{
 		_locationService.Interval = TimeSpan.FromSeconds(5);
 		Assert.That(_locationService.Interval, Is.EqualTo(TimeSpan.FromSeconds(5)));
-	}
-
-	// -------------------------------------------------------
-	// 9a. Dispatcher null → イベント同期発火
-	// -------------------------------------------------------
-	[Test]
-	public void Dispatcher_Null_SynchronousExecution()
-	{
-		_locationService.Dispatcher = null;
-
-		// Set stations to enable CanUseService
-		_locationService.SetStationLocations(SampleStations());
-
-		// CanUseService should fire synchronously (via SetLonLatLocationService or SetStationLocations)
-		// Just verify no exception and it works synchronously
-		Assert.DoesNotThrow(() =>
-		{
-			_locationService.SetStationLocations(null);
-		});
-	}
-
-	// -------------------------------------------------------
-	// 9b. Dispatcher設定 → marshaling経由発火（spy確認）
-	// -------------------------------------------------------
-	[Test]
-	public void Dispatcher_Set_IsCalledWhenEventFires()
-	{
-		int dispatchCallCount = 0;
-		_locationService.Dispatcher = a =>
-		{
-			dispatchCallCount++;
-			a();
-		};
-
-		// Trigger CanUseServiceChanged via SetStationLocations
-		_locationService.SetStationLocations(SampleStations());
-
-		// Dispatcher should have been called at least once
-		Assert.That(dispatchCallCount, Is.GreaterThan(0));
 	}
 
 	// -------------------------------------------------------
@@ -351,7 +313,7 @@ public class LocationServiceIntegrationTests
 	public async Task ConnectionFailed_FiresAlertRequested_AndSwitchesToLonLat()
 	{
 		var fakeNs = new FakeNetworkSyncService();
-		await _locationService.SetNetworkSyncServiceAsync(fakeNs);
+		_locationService.SetNetworkSyncService(fakeNs);
 
 		UserAlertRequestedEventArgs? alertArgs = null;
 		_locationService.AlertRequested += (_, e) => alertArgs = e;

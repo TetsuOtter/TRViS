@@ -70,7 +70,6 @@ public partial class Hako : Grid
 				return;
 
 			logger.Info("IsBusyChanged: {0}", v.IsBusy);
-			_presenter.OnSimpleViewBusyChanged(v.IsBusy);
 
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
@@ -93,7 +92,7 @@ public partial class Hako : Grid
 				catch (Exception ex)
 				{
 					logger.Fatal(ex, "Unknown Exception");
-					_presenter.LogException(ex, "Hako.SimpleView.IsBusyChanged");
+					InstanceManager.CrashlyticsWrapper.Log(ex, "Hako.SimpleView.IsBusyChanged");
 					Util.ExitWithAlertAsync(ex);
 				}
 			});

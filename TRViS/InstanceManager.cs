@@ -1,6 +1,7 @@
 using TRViS.FirebaseWrapper;
 using TRViS.Services;
 using TRViS.ViewModels;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS;
 
@@ -21,8 +22,8 @@ internal static class InstanceManager
 	private static EasterEggPageViewModel? _EasterEggPageViewModel = null;
 	public static EasterEggPageViewModel EasterEggPageViewModel { get => _EasterEggPageViewModel ??= new(); }
 
-	private static LocationService? _LocationService = null;
-	public static LocationService LocationService
+	private static TRViS.Services.LocationService? _LocationService = null;
+	public static TRViS.Services.LocationService LocationService
 	{
 		get
 		{
@@ -34,16 +35,13 @@ internal static class InstanceManager
 			var eevm = EasterEggPageViewModel;
 			var appViewModel = AppViewModel;
 
-			_LocationService = new LocationService(
-				LoggerService.GetGeneralLoggerT<LocationService>(),
-				LoggerService.GetLocationServiceLoggerT<LocationService>(),
+			_LocationService = new TRViS.Services.LocationService(
+				LoggerService.GetGeneralLoggerT<TRViS.Services.LocationService>(),
+				LoggerService.GetLocationServiceLoggerT<TRViS.Services.LocationService>(),
 				LoggerService.GetLocationServiceLoggerT<TRViS.Services.LonLatLocationService>(),
 				httpClient,
 				timeProvider
 			);
-
-			// SHIP-BLOCKING: Dispatcher must be set before any UI event fires
-			_LocationService.Dispatcher = a => MainThread.BeginInvokeOnMainThread(a);
 
 			// Interval: sync with EasterEggPageViewModel
 			_LocationService.Interval = TimeSpan.FromSeconds(eevm.LocationServiceInterval_Seconds);

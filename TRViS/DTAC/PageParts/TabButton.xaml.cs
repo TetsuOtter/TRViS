@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 using DependencyPropertyGenerator;
 
-using TRViS.DTAC.Logic.Formatters;
+using TRViS.DTAC.Logic.Layout;
 using TRViS.Services;
 using TRViS.ViewModels;
 
@@ -82,7 +82,7 @@ public partial class TabButton : ContentView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Adapters.PresenterFactory.GetCrashLogger().Log(ex, "TabButton.OnWindowWidthChanged");
+			InstanceManager.CrashlyticsWrapper.Log(ex,"TabButton.OnWindowWidthChanged");
 			Utils.Util.ExitWithAlertAsync(ex);
 		}
 	}
@@ -161,7 +161,7 @@ public partial class TabButton : ContentView
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			Adapters.PresenterFactory.GetCrashLogger().Log(ex, "TabButton.BaseBox_Tapped");
+			InstanceManager.CrashlyticsWrapper.Log(ex,"TabButton.BaseBox_Tapped");
 			Utils.Util.ExitWithAlertAsync(ex);
 		}
 	}

@@ -15,9 +15,4 @@ public class HakoPageState
 	/// The formatted work-info label text (workName + newline + workSpaceName).
 	/// </summary>
 	public string WorkInfoText { get; set; } = string.Empty;
-
-	/// <summary>
-	/// Whether the SimpleView activity indicator should be shown (IsBusy = true).
-	/// </summary>
-	public bool IsSimpleViewBusy { get; set; }
 }

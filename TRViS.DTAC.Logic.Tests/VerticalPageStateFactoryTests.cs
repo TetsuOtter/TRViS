@@ -1,5 +1,6 @@
 using Xunit;
 using TRViS.DTAC.Logic;
+using TRViS.DTAC.Logic.Abstractions;
 using System;
 using TRViS.IO.Models;
 
@@ -72,7 +73,7 @@ public class VerticalPageStateFactoryTests
 		var destinationInfo = new DestinationInfo();
 
 		// Act
-		VerticalPageStateFactory.UpdateDestinationState(destinationInfo, "Tokyo Station");
+		VerticalPageStateUpdater.UpdateDestinationState(destinationInfo, "Tokyo Station");
 
 		// Assert
 		Assert.NotNull(destinationInfo);
@@ -86,7 +87,7 @@ public class VerticalPageStateFactoryTests
 		var destinationInfo = new DestinationInfo();
 
 		// Act
-		VerticalPageStateFactory.UpdateDestinationState(destinationInfo, null);
+		VerticalPageStateUpdater.UpdateDestinationState(destinationInfo, null);
 
 		// Assert
 		Assert.False(destinationInfo.IsVisible);
@@ -100,7 +101,7 @@ public class VerticalPageStateFactoryTests
 		var nextDayState = new NextDayIndicatorState();
 
 		// Act
-		VerticalPageStateFactory.UpdateNextDayIndicatorState(nextDayState, 3);
+		VerticalPageStateUpdater.UpdateNextDayIndicatorState(nextDayState, 3);
 
 		// Assert
 		Assert.Equal(3, nextDayState.DayCount);
@@ -113,69 +114,10 @@ public class VerticalPageStateFactoryTests
 		var nextDayState = new NextDayIndicatorState();
 
 		// Act
-		VerticalPageStateFactory.UpdateNextDayIndicatorState(nextDayState, 0);
+		VerticalPageStateUpdater.UpdateNextDayIndicatorState(nextDayState, 0);
 
 		// Assert
 		Assert.Equal(0, nextDayState.DayCount);
-	}
-
-	[Fact]
-	public void UpdateTrainInfoAreaOpenCloseState_ToOpen_SetsOpenState()
-	{
-		// Arrange
-		var trainInfoState = new TrainInfoAreaState();
-
-		// Act
-		VerticalPageStateFactory.UpdateTrainInfoAreaOpenCloseState(trainInfoState, isToOpen: true);
-
-		// Assert
-		Assert.True(trainInfoState.IsOpen);
-		Assert.True(trainInfoState.IsVisible);
-		Assert.True(trainInfoState.IsAnimationRunning);
-	}
-
-	[Fact]
-	public void UpdateTrainInfoAreaOpenCloseState_ToClose_SetsClosedState()
-	{
-		// Arrange
-		var trainInfoState = new TrainInfoAreaState();
-		trainInfoState.IsOpen = true;
-		trainInfoState.IsVisible = true;
-
-		// Act
-		VerticalPageStateFactory.UpdateTrainInfoAreaOpenCloseState(trainInfoState, isToOpen: false);
-
-		// Assert
-		Assert.False(trainInfoState.IsOpen);
-		Assert.True(trainInfoState.IsAnimationRunning);
-	}
-
-	[Fact]
-	public void CompleteTrainInfoAreaAnimation_AfterOpenAnimation_SetsFinalOpenState()
-	{
-		// Arrange
-		var trainInfoState = new TrainInfoAreaState { IsAnimationRunning = true };
-
-		// Act
-		VerticalPageStateFactory.CompleteTrainInfoAreaAnimation(trainInfoState, wasOpenAnimation: true);
-
-		// Assert
-		Assert.False(trainInfoState.IsAnimationRunning);
-		Assert.True(trainInfoState.IsVisible);
-	}
-
-	[Fact]
-	public void CompleteTrainInfoAreaAnimation_AfterCloseAnimation_SetsFinalClosedState()
-	{
-		// Arrange
-		var trainInfoState = new TrainInfoAreaState { IsAnimationRunning = true };
-
-		// Act
-		VerticalPageStateFactory.CompleteTrainInfoAreaAnimation(trainInfoState, wasOpenAnimation: false);
-
-		// Assert
-		Assert.False(trainInfoState.IsAnimationRunning);
-		Assert.False(trainInfoState.IsVisible);
 	}
 
 	[Fact]
@@ -185,7 +127,7 @@ public class VerticalPageStateFactoryTests
 		var indicatorState = new TimetableActivityIndicatorState();
 
 		// Act
-		VerticalPageStateFactory.UpdateTimetableActivityIndicatorState(indicatorState, isTimetableBusy: true);
+		VerticalPageStateUpdater.UpdateTimetableActivityIndicatorState(indicatorState, isTimetableBusy: true);
 
 		// Assert
 		Assert.True(indicatorState.IsBusy);
@@ -202,7 +144,7 @@ public class VerticalPageStateFactoryTests
 		indicatorState.IsVisible = true;
 
 		// Act
-		VerticalPageStateFactory.UpdateTimetableActivityIndicatorState(indicatorState, isTimetableBusy: false);
+		VerticalPageStateUpdater.UpdateTimetableActivityIndicatorState(indicatorState, isTimetableBusy: false);
 
 		// Assert
 		Assert.False(indicatorState.IsBusy);
@@ -217,7 +159,7 @@ public class VerticalPageStateFactoryTests
 		var pageHeaderState = new PageHeaderState();
 
 		// Act
-		VerticalPageStateFactory.UpdatePageHeaderRunState(pageHeaderState, isRunning: true);
+		VerticalPageStateUpdater.UpdatePageHeaderRunState(pageHeaderState, isRunning: true);
 
 		// Assert
 		Assert.True(pageHeaderState.IsRunning);
@@ -231,7 +173,7 @@ public class VerticalPageStateFactoryTests
 		pageHeaderState.IsRunning = true;
 
 		// Act
-		VerticalPageStateFactory.UpdatePageHeaderRunState(pageHeaderState, isRunning: false);
+		VerticalPageStateUpdater.UpdatePageHeaderRunState(pageHeaderState, isRunning: false);
 
 		// Assert
 		Assert.False(pageHeaderState.IsRunning);
@@ -244,7 +186,7 @@ public class VerticalPageStateFactoryTests
 		var locationState = new LocationServiceState();
 
 		// Act
-		VerticalPageStateFactory.UpdateGpsLocation(locationState, latitude: 35.6762, longitude: 139.7674, accuracy: 10.5);
+		VerticalPageStateUpdater.UpdateGpsLocation(locationState, latitude: 35.6762, longitude: 139.7674, accuracy: 10.5);
 
 		// Assert
 		Assert.Equal(35.6762, locationState.CurrentLatitude);
@@ -259,7 +201,7 @@ public class VerticalPageStateFactoryTests
 		var locationState = new LocationServiceState();
 
 		// Act
-		VerticalPageStateFactory.UpdateGpsLocation(locationState, latitude: 35.0, longitude: 139.0, accuracy: 0);
+		VerticalPageStateUpdater.UpdateGpsLocation(locationState, latitude: 35.0, longitude: 139.0, accuracy: 0);
 
 		// Assert
 		Assert.Equal(35.0, locationState.CurrentLatitude);
@@ -272,17 +214,17 @@ public class VerticalPageStateFactoryTests
 	{
 		// Arrange
 		var pageState = new VerticalPageState();
-		pageState.RowStates[0] = new VerticalTimetableRowState { LocationState = 1 };
-		pageState.RowStates[1] = new VerticalTimetableRowState { LocationState = 2 };
-		pageState.RowStates[2] = new VerticalTimetableRowState { LocationState = 3 };
+		pageState.RowStates[0] = new VerticalTimetableRowState { LocationState = TimetableLocationState.AroundThisStation };
+		pageState.RowStates[1] = new VerticalTimetableRowState { LocationState = TimetableLocationState.RunningToNextStation };
+		pageState.RowStates[2] = new VerticalTimetableRowState { LocationState = TimetableLocationState.AroundThisStation };
 
 		// Act
-		VerticalPageStateFactory.ResetAllRowLocationStates(pageState);
+		VerticalPageStateUpdater.ResetAllRowLocationStates(pageState);
 
 		// Assert
 		foreach (var rowState in pageState.RowStates.Values)
 		{
-			Assert.Equal(0, rowState.LocationState); // 0 = Undefined
+			Assert.Equal(TimetableLocationState.Undefined, rowState.LocationState);
 		}
 	}
 
@@ -293,7 +235,7 @@ public class VerticalPageStateFactoryTests
 		var pageState = new VerticalPageState();
 
 		// Act & Assert - Should not throw
-		VerticalPageStateFactory.ResetAllRowLocationStates(pageState);
+		VerticalPageStateUpdater.ResetAllRowLocationStates(pageState);
 		Assert.Empty(pageState.RowStates);
 	}
 
@@ -581,8 +523,8 @@ public class VerticalPageStateFactoryTests
 		var locationState = new LocationServiceState();
 
 		// Act
-		VerticalPageStateFactory.UpdateGpsLocation(locationState, latitude: 35.0, longitude: 139.0, accuracy: 5);
-		VerticalPageStateFactory.UpdateGpsLocation(locationState, latitude: 36.0, longitude: 140.0, accuracy: 10);
+		VerticalPageStateUpdater.UpdateGpsLocation(locationState, latitude: 35.0, longitude: 139.0, accuracy: 5);
+		VerticalPageStateUpdater.UpdateGpsLocation(locationState, latitude: 36.0, longitude: 140.0, accuracy: 10);
 
 		// Assert - Latest values should be preserved
 		Assert.Equal(36.0, locationState.CurrentLatitude);
@@ -597,7 +539,7 @@ public class VerticalPageStateFactoryTests
 		var pageState = new VerticalPageState();
 
 		// Act
-		VerticalPageStateFactory.UpdateLocationServiceEnabledState(pageState, isEnabled: true);
+		VerticalPageStateUpdater.UpdateLocationServiceEnabledState(pageState, isEnabled: true);
 
 		// Assert
 		Assert.True(pageState.LocationServiceState.IsEnabled);
@@ -610,10 +552,10 @@ public class VerticalPageStateFactoryTests
 	{
 		// Arrange
 		var pageState = new VerticalPageState();
-		VerticalPageStateFactory.UpdateLocationServiceEnabledState(pageState, isEnabled: true);
+		VerticalPageStateUpdater.UpdateLocationServiceEnabledState(pageState, isEnabled: true);
 
 		// Act
-		VerticalPageStateFactory.UpdateLocationServiceEnabledState(pageState, isEnabled: false);
+		VerticalPageStateUpdater.UpdateLocationServiceEnabledState(pageState, isEnabled: false);
 
 		// Assert
 		Assert.False(pageState.LocationServiceState.IsEnabled);

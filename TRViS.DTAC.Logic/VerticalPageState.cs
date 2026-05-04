@@ -1,5 +1,7 @@
 namespace TRViS.DTAC.Logic;
 
+using TRViS.DTAC.Logic.Abstractions;
+
 /// <summary>
 /// Represents the complete state of the D-TAC vertical page display.
 /// This model encapsulates all display-related flags and properties that control
@@ -81,16 +83,6 @@ public class DestinationInfo
 public class TrainInfoAreaState
 {
 	/// <summary>
-	/// Whether the before departure area is currently open
-	/// </summary>
-	public bool IsOpen { get; set; } = false;
-
-	/// <summary>
-	/// Whether the before departure area is visible
-	/// </summary>
-	public bool IsVisible { get; set; } = false;
-
-	/// <summary>
 	/// The train info text to display
 	/// </summary>
 	public string TrainInfoText { get; set; } = string.Empty;
@@ -99,11 +91,6 @@ public class TrainInfoAreaState
 	/// The before departure text to display
 	/// </summary>
 	public string BeforeDepartureText { get; set; } = string.Empty;
-
-	/// <summary>
-	/// Whether an animation is currently running for opening/closing
-	/// </summary>
-	public bool IsAnimationRunning { get; set; } = false;
 }
 
 /// <summary>
@@ -141,11 +128,6 @@ public class TimetableActivityIndicatorState
 	/// Current opacity of the indicator (0-1)
 	/// </summary>
 	public double Opacity { get; set; } = 0;
-
-	/// <summary>
-	/// Maximum opacity when showing the indicator
-	/// </summary>
-	public double MaxOpacity { get; set; } = 0.6;
 }
 
 /// <summary>
@@ -268,9 +250,9 @@ public class TrainDisplayInfo
 public class VerticalTimetableRowState
 {
 	/// <summary>
-	/// The location state of this row (Undefined, AroundThisStation, RunningToNextStation)
+	/// The location state of this row
 	/// </summary>
-	public int LocationState { get; set; } = 0; // 0: Undefined, 1: AroundThisStation, 2: RunningToNextStation
+	public TimetableLocationState LocationState { get; set; } = TimetableLocationState.Undefined;
 
 	/// <summary>
 	/// Whether the row is currently enabled for user interaction

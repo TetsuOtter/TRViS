@@ -1,5 +1,6 @@
 using TRViS.NetworkSyncService;
 using TRViS.Utils;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.Services;
 
@@ -69,12 +70,6 @@ public partial class LocationService : IDisposable
 	/// </summary>
 	public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(1);
 
-	/// <summary>
-	/// UI スレッドへのディスパッチャ。null の場合は同期実行。
-	/// メインアプリ側で `a => MainThread.BeginInvokeOnMainThread(a)` をセットすること。
-	/// </summary>
-	public Action<Action>? Dispatcher { get; set; }
-
 	ILocationService? _CurrentService;
 	CancellationTokenSource? serviceCancellation = null;
 	CancellationTokenSource? timeProviderCancellation = null;
@@ -103,9 +98,7 @@ public partial class LocationService : IDisposable
 		logger.Debug("LocationService is created");
 	}
 
-	private void Dispatch(Action a) => (Dispatcher ?? (x => x()))(a);
-
-	void OnIsEnabledChanged(bool value)
+void OnIsEnabledChanged(bool value)
 	{
 		if (_CurrentService is null)
 		{
@@ -141,22 +134,22 @@ public partial class LocationService : IDisposable
 	void OnCanUseServiceChanged(object? sender, bool e)
 	{
 		logger.Debug("CanUseService is changed to {0}", e);
-		Dispatch(() => CanUseServiceChanged?.Invoke(sender, e));
+		CanUseServiceChanged?.Invoke(sender, e);
 	}
 	void OnLocationStateChanged(object? sender, LocationStateChangedEventArgs e)
 	{
 		logger.Debug("LocationStateChanged: Station[{0}] IsRunningToNextStation:{1}", e.NewStationIndex, e.IsRunningToNextStation);
-		Dispatch(() => LocationStateChanged?.Invoke(sender, e));
+		LocationStateChanged?.Invoke(sender, e);
 	}
 	void OnTimeChanged(object? sender, int second)
 	{
-		Dispatch(() => TimeChanged?.Invoke(sender, second));
+		TimeChanged?.Invoke(sender, second);
 	}
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
 	{
 		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
 			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
-		Dispatch(() => TimetableUpdated?.Invoke(sender, timetableData));
+		TimetableUpdated?.Invoke(sender, timetableData);
 	}
 
 	void OnNetworkSyncServiceCanStartChanged(object? sender, bool canStart)
@@ -167,10 +160,7 @@ public partial class LocationService : IDisposable
 		if (canStart && _CurrentService is WebSocketNetworkSyncService)
 		{
 			logger.Info("CanStart is true and WebSocket is being used -> automatically enable location service");
-			Dispatch(() =>
-			{
-				IsEnabled = true;
-			});
+			IsEnabled = true;
 		}
 	}
 
@@ -285,7 +275,7 @@ public partial class LocationService : IDisposable
 	}
 
 	/// <summary>
-	/// 駅位置情報を設定する（TimetableRow → StaLocationInfo 変換はView側で行うこと）
+	/// 駅位置情報を設定する。TimetableRow → StaLocationInfo 変換はLogic層で行うこと。
 	/// </summary>
 	public void SetStationLocations(StaLocationInfo[]? locations)
 	{
@@ -313,10 +303,10 @@ public partial class LocationService : IDisposable
 
 		NetworkSyncServiceBase nextService = await NetworkSyncServiceUtil.CreateFromUriAsync(uri, httpClient, token);
 
-		await ChangeNetworkSyncServiceAsync(nextService);
+		ChangeNetworkSyncService(nextService);
 	}
 
-	public Task SetNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	public void SetNetworkSyncService(NetworkSyncServiceBase nextService)
 	{
 		logger.Trace("Setting NetworkSyncService...");
 
@@ -326,10 +316,10 @@ public partial class LocationService : IDisposable
 			IsEnabled = false;
 		}
 
-		return ChangeNetworkSyncServiceAsync(nextService);
+		ChangeNetworkSyncService(nextService);
 	}
 
-	private async Task ChangeNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	private void ChangeNetworkSyncService(NetworkSyncServiceBase nextService)
 	{
 		logger.Trace("Changing NetworkSyncService...");
 
@@ -357,8 +347,7 @@ public partial class LocationService : IDisposable
 		_CurrentService = nextService;
 		if (nextService.CanUseService != currentService?.CanUseService)
 		{
-			// fire-and-forget でディスパッチ（意図的な変更：元は await、今は fire-and-forget）
-			Dispatch(() => CanUseServiceChanged?.Invoke(this, nextService.CanUseService));
+			CanUseServiceChanged?.Invoke(this, nextService.CanUseService);
 		}
 
 		timeProviderCancellation?.Cancel();
@@ -385,8 +374,6 @@ public partial class LocationService : IDisposable
 			// バックグラウンドで実行し続ける
 			_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
 		}
-
-		await Task.CompletedTask;
 	}
 
 	/// <summary>

@@ -1,6 +1,6 @@
 using System;
 
-namespace TRViS.Services;
+namespace TRViS.LocationService.Abstractions;
 
 public class LocationLonLat_deg : ILocationLonLat_deg, IEquatable<LocationLonLat_deg>
 {

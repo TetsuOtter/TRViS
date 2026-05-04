@@ -9,7 +9,6 @@ public enum HakoStateSection
 	None = 0,
 	AffectDate = 1,
 	WorkInfo = 2,
-	IsSimpleViewBusy = 4,
 	All = ~0,
 }
 

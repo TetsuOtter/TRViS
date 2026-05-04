@@ -57,8 +57,6 @@ public class TimetableService : ITimetableService
 		Rows = new List<TimetableRowItem>(source.Rows),
 		Direction = source.Direction,
 		AfterArrive = source.AfterArrive,
-		BeforeDepartureOnStationTrackCol = source.BeforeDepartureOnStationTrackCol,
-		AfterArriveOnStationTrackCol = source.AfterArriveOnStationTrackCol,
 		DayCount = source.DayCount,
 		IsRideOnMoving = source.IsRideOnMoving,
 		LineColor_RGB = source.LineColor_RGB,

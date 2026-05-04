@@ -1,6 +1,6 @@
-using TRViS.Services;
+using TRViS.LocationService.Abstractions;
 
-namespace TRViS.LocationServiceInternal;
+namespace TRViS.LocationService.Internals;
 
 internal static partial class LocationCalcUtils
 {

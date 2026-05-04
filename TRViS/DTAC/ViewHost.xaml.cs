@@ -3,6 +3,7 @@ using System.ComponentModel;
 using TR.Maui.AnchorPopover;
 
 using TRViS.DTAC.Adapters;
+using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
 using TRViS.Services;
 using TRViS.Utils;

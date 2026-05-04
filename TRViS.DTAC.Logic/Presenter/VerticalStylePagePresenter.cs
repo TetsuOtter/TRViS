@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.IO.Models;
-using TRViS.Services;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.DTAC.Logic.Presenter;
 
@@ -14,7 +14,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 {
 	private readonly IDtacLocationServiceController _locationService;
 	private readonly IMarkerToggleController _markerToggle;
-	private readonly IDtacCrashLogger _crashLogger;
 	private readonly IClock _clock;
 	private readonly IAppViewModelProvider _appViewModelProvider;
 
@@ -34,13 +33,11 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	public VerticalStylePagePresenter(
 		IDtacLocationServiceController locationService,
 		IMarkerToggleController markerToggle,
-		IDtacCrashLogger crashLogger,
 		IClock clock,
 		IAppViewModelProvider appViewModelProvider)
 	{
 		_locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
 		_markerToggle = markerToggle ?? throw new ArgumentNullException(nameof(markerToggle));
-		_crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
 		_clock = clock ?? throw new ArgumentNullException(nameof(clock));
 		_appViewModelProvider = appViewModelProvider ?? throw new ArgumentNullException(nameof(appViewModelProvider));
 
@@ -84,15 +81,17 @@ public sealed class VerticalStylePagePresenter : IDisposable
 			return;
 		}
 
-		VerticalPageStateFactory.ResetAllRowLocationStates(_currentState);
-		_currentState.RowStates[e.NewStationIndex].LocationState = e.IsRunningToNextStation ? 2 : 1;
+		VerticalPageStateUpdater.ResetAllRowLocationStates(_currentState);
+		_currentState.RowStates[e.NewStationIndex].LocationState = e.IsRunningToNextStation
+			? TimetableLocationState.RunningToNextStation
+			: TimetableLocationState.AroundThisStation;
 
 		RaiseStateChanged(VerticalPageStateSection.RowStates | VerticalPageStateSection.TimetableView);
 	}
 
 	private void OnGpsLocationUpdated_Internal(object? sender, GpsLocationUpdate e)
 	{
-		VerticalPageStateFactory.UpdateGpsLocation(
+		VerticalPageStateUpdater.UpdateGpsLocation(
 			_currentState.LocationServiceState,
 			e.Latitude,
 			e.Longitude,
@@ -162,14 +161,14 @@ public sealed class VerticalStylePagePresenter : IDisposable
 			_currentState.LocationServiceState.IsEnabled = false;
 			_currentState.TimetableViewState.IsLocationServiceEnabled = false;
 
-			VerticalPageStateFactory.ResetAllRowLocationStates(_currentState);
+			VerticalPageStateUpdater.ResetAllRowLocationStates(_currentState);
 		}
 		else
 		{
-			bool hasActiveMarker = _currentState.RowStates.Values.Any(r => r.LocationState != 0);
+			bool hasActiveMarker = _currentState.RowStates.Values.Any(r => r.LocationState != TimetableLocationState.Undefined);
 			if (!hasActiveMarker && _currentState.RowStates.Count > 0)
 			{
-				_currentState.RowStates[0].LocationState = 1; // AroundThisStation
+				_currentState.RowStates[0].LocationState = TimetableLocationState.AroundThisStation;
 			}
 		}
 
@@ -215,10 +214,10 @@ public sealed class VerticalStylePagePresenter : IDisposable
 			bool isLastRow = rowIndex == totalRowCount - 1;
 
 			int currentMarkerRow = -1;
-			int currentMarkerState = 0;
+			TimetableLocationState currentMarkerState = TimetableLocationState.Undefined;
 			foreach (var kvp in _currentState.RowStates)
 			{
-				if (kvp.Value.LocationState != 0)
+				if (kvp.Value.LocationState != TimetableLocationState.Undefined)
 				{
 					currentMarkerRow = kvp.Key;
 					currentMarkerState = kvp.Value.LocationState;
@@ -226,23 +225,23 @@ public sealed class VerticalStylePagePresenter : IDisposable
 				}
 			}
 
-			VerticalPageStateFactory.ResetAllRowLocationStates(_currentState);
+			VerticalPageStateUpdater.ResetAllRowLocationStates(_currentState);
 
-			if (currentMarkerState == 0)
+			if (currentMarkerState == TimetableLocationState.Undefined)
 			{
-				rowState.LocationState = 1;
+				rowState.LocationState = TimetableLocationState.AroundThisStation;
 			}
-			else if (currentMarkerRow == rowIndex && currentMarkerState == 1)
+			else if (currentMarkerRow == rowIndex && currentMarkerState == TimetableLocationState.AroundThisStation)
 			{
-				rowState.LocationState = isLastRow ? 1 : 2;
+				rowState.LocationState = isLastRow ? TimetableLocationState.AroundThisStation : TimetableLocationState.RunningToNextStation;
 			}
-			else if (currentMarkerRow == rowIndex && currentMarkerState == 2)
+			else if (currentMarkerRow == rowIndex && currentMarkerState == TimetableLocationState.RunningToNextStation)
 			{
-				rowState.LocationState = 1;
+				rowState.LocationState = TimetableLocationState.AroundThisStation;
 			}
 			else
 			{
-				rowState.LocationState = 1;
+				rowState.LocationState = TimetableLocationState.AroundThisStation;
 			}
 		}
 
@@ -276,7 +275,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	/// </summary>
 	public void OnTimetableBusyChanged(bool isBusy)
 	{
-		VerticalPageStateFactory.UpdateTimetableActivityIndicatorState(_currentState.TimetableActivityIndicatorState, isBusy);
+		VerticalPageStateUpdater.UpdateTimetableActivityIndicatorState(_currentState.TimetableActivityIndicatorState, isBusy);
 		RaiseStateChanged(VerticalPageStateSection.ActivityIndicator);
 	}
 
@@ -319,14 +318,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		}
 
 		RaiseStateChanged(VerticalPageStateSection.PageHeader | VerticalPageStateSection.TimetableView);
-	}
-
-	/// <summary>
-	/// Logs an exception via the crash logger.
-	/// </summary>
-	public void CrashLog(Exception ex, string? context = null)
-	{
-		_crashLogger.Log(ex, context);
 	}
 
 	private void RaiseStateChanged(VerticalPageStateSection changed)

@@ -6,7 +6,7 @@ namespace TRViS.DTAC.Logic.Formatters;
 /// Pure helper for formatting NextTrainButton display text and error messages.
 /// No UI or InstanceManager dependencies — fully unit-testable.
 /// </summary>
-public static class NextTrainButtonMessages
+internal static class NextTrainButtonMessages
 {
 	/// <summary>
 	/// The suffix appended to the formatted train number on the button label.

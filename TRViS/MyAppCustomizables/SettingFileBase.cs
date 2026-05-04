@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.MyAppCustomizables;
 

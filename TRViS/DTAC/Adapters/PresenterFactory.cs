@@ -16,14 +16,12 @@ internal static class PresenterFactory
 	{
 		var locationService = new LocationServiceAdapter(InstanceManager.LocationService);
 		var markerToggle = new MarkerToggleAdapter(InstanceManager.DTACMarkerViewModel);
-		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
 		var clock = new SystemClock();
 		var appViewModelProvider = new AppViewModelAdapter(InstanceManager.AppViewModel);
 
 		return new VerticalStylePagePresenter(
 			locationService,
 			markerToggle,
-			crashLogger,
 			clock,
 			appViewModelProvider);
 	}
@@ -55,8 +53,7 @@ internal static class PresenterFactory
 	public static HakoPresenter BuildHakoPresenter()
 	{
 		var appViewModel = new AppViewModelAdapter(InstanceManager.AppViewModel);
-		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
-		return new HakoPresenter(appViewModel, crashLogger);
+		return new HakoPresenter(appViewModel);
 	}
 
 	/// <summary>
@@ -80,13 +77,11 @@ internal static class PresenterFactory
 		var trainDataProvider = new NextTrainDataProviderAdapter(rawAppViewModel);
 		var appViewModelProvider = new AppViewModelAdapter(rawAppViewModel);
 		var crashLogger = new CrashLoggerAdapter(InstanceManager.CrashlyticsWrapper);
-		var userAlerts = new UserAlertAdapter();
 
 		return new NextTrainButtonPresenter(
 			trainDataProvider,
 			appViewModelProvider,
-			crashLogger,
-			userAlerts);
+			crashLogger);
 	}
 
 	/// <summary>

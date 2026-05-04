@@ -1,6 +1,7 @@
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.DTAC.Adapters;
 
@@ -9,9 +10,9 @@ namespace TRViS.DTAC.Adapters;
 /// </summary>
 internal class LocationServiceAdapter : IDtacLocationServiceController
 {
-	private readonly LocationService _locationService;
+	private readonly TRViS.Services.LocationService _locationService;
 
-	public LocationServiceAdapter(LocationService locationService)
+	public LocationServiceAdapter(TRViS.Services.LocationService locationService)
 	{
 		_locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
 

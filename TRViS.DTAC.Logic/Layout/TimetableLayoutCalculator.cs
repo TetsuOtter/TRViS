@@ -1,6 +1,6 @@
 using TRViS.DTAC.Logic.Abstractions;
 
-namespace TRViS.DTAC.Logic.Formatters;
+namespace TRViS.DTAC.Logic.Layout;
 
 /// <summary>
 /// Pure static helper for layout calculations in the vertical timetable view.

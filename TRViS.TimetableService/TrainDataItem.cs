@@ -23,8 +23,6 @@ public class TrainDataItem
 	public List<TimetableRowItem> Rows { get; set; } = new();
 	public int Direction { get; set; }
 	public string? AfterArrive { get; set; }
-	public string? BeforeDepartureOnStationTrackCol { get; set; }
-	public string? AfterArriveOnStationTrackCol { get; set; }
 	public int DayCount { get; set; }
 	public bool? IsRideOnMoving { get; set; }
 	public int? LineColor_RGB { get; set; }

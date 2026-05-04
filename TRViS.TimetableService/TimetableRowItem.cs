@@ -32,15 +32,20 @@ public class LocationInfoItem
 {
 	public double Lat { get; set; }
 	public double Lon { get; set; }
-	public int? Radius { get; set; }
+	public int? OnStationDetectRadius { get; set; }
 }
 
 /// <summary>
-/// Time data
+/// Time data. Either a structured (Hour/Minutes/Seconds) value or a free-form Text label.
 /// </summary>
 public class TimeDataItem
 {
 	public int? Hour { get; set; }
 	public int? Minutes { get; set; }
 	public int? Seconds { get; set; }
+
+	/// <summary>
+	/// Optional free-form text representation when the time is not numeric (e.g. "通過", "～").
+	/// </summary>
+	public string? Text { get; set; }
 }
