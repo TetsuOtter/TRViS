@@ -230,6 +230,59 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task SyncedData_CanUseService_MatchesCanStart()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			await _control.SetStateAsync(time_ms: 0, canStart: false);
+			await _control.BroadcastSyncedDataAsync();
+			await Task.Delay(200);
+			Assert.That(service.CanUseService, Is.False);
+
+			await _control.SetStateAsync(canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+			await Task.Delay(200);
+			Assert.That(service.CanUseService, Is.True);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task SyncedData_CanUseServiceChanged_FiredWhenCanStartChanges()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			await _control.SetStateAsync(time_ms: 0, canStart: false);
+			await _control.BroadcastSyncedDataAsync();
+			await Task.Delay(200);
+
+			var canUseTask = WaitForEventAsync<bool>(
+				h => service.CanUseServiceChanged += h,
+				h => service.CanUseServiceChanged -= h
+			);
+
+			await _control.SetStateAsync(canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+
+			bool receivedValue = await canUseTask;
+			Assert.That(receivedValue, Is.True);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
 	public async Task SyncedData_Location_StationIndexUpdated()
 	{
 		var service = await ConnectServiceAsync();
@@ -510,6 +563,144 @@ public class WebSocketIntegrationTests
 
 			var state = await locationTask;
 			Assert.That(state.NewStationIndex, Is.EqualTo(0));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_WorkGroupScope_MatchingWorkGroup_ResetsLocationState()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.WorkGroupId = TestData.WorkGroupId;
+
+			service.ForceSetLocationInfo(1, false);
+
+			var locationTask = WaitForEventAsync<LocationStateChangedEventArgs>(
+				h => service.LocationStateChanged += h,
+				h => service.LocationStateChanged -= h
+			);
+
+			// 現在選択中の WorkGroupId と一致する WorkGroup スコープ更新 → リセットされる
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkGroupScopeJson,
+				workGroupId: TestData.WorkGroupId
+			);
+
+			var state = await locationTask;
+			Assert.That(state.NewStationIndex, Is.EqualTo(0));
+			Assert.That(state.IsRunningToNextStation, Is.False);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_WorkGroupScope_NonMatchingWorkGroup_DoesNotResetLocationState()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.WorkGroupId = "other-wg-id";
+
+			service.ForceSetLocationInfo(1, false);
+			int locationChangedCount = 0;
+			service.LocationStateChanged += (_, _) => locationChangedCount++;
+
+			// 別の WorkGroupId で時刻表更新 → リセットされないはず
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkGroupScopeJson,
+				workGroupId: TestData.WorkGroupId
+			);
+
+			await timetableTask;
+			await Task.Delay(300);
+
+			Assert.That(locationChangedCount, Is.EqualTo(0));
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_WorkScope_MatchingWork_ResetsLocationState()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.WorkId = TestData.WorkId;
+
+			service.ForceSetLocationInfo(1, false);
+
+			var locationTask = WaitForEventAsync<LocationStateChangedEventArgs>(
+				h => service.LocationStateChanged += h,
+				h => service.LocationStateChanged -= h
+			);
+
+			// 現在選択中の WorkId と一致する Work スコープ更新 → リセットされる
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkScopeJson,
+				workGroupId: TestData.WorkGroupId,
+				workId: TestData.WorkId
+			);
+
+			var state = await locationTask;
+			Assert.That(state.NewStationIndex, Is.EqualTo(0));
+			Assert.That(state.IsRunningToNextStation, Is.False);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_WorkScope_NonMatchingWork_DoesNotResetLocationState()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.WorkId = "other-work-id";
+
+			service.ForceSetLocationInfo(1, false);
+			int locationChangedCount = 0;
+			service.LocationStateChanged += (_, _) => locationChangedCount++;
+
+			// 別の WorkId で時刻表更新 → リセットされないはず
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkScopeJson,
+				workGroupId: TestData.WorkGroupId,
+				workId: TestData.WorkId
+			);
+
+			await timetableTask;
+			await Task.Delay(300);
+
+			Assert.That(locationChangedCount, Is.EqualTo(0));
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
 		}
 		finally
 		{

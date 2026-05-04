@@ -123,6 +123,52 @@ public class HttpIntegrationTests
 		Assert.That(receivedCanStart, Is.True);
 	}
 
+	[Test]
+	public async Task CanStart_TransitionFromTrueToFalse_CanStartChangedEventFired()
+	{
+		await _control.SetStateAsync(time_ms: 0, canStart: true);
+		await _service.TickAsync();
+
+		bool? receivedCanStart = null;
+		_service.CanStartChanged += (_, v) => receivedCanStart = v;
+
+		await _control.SetStateAsync(canStart: false);
+		await _service.TickAsync();
+
+		Assert.That(receivedCanStart, Is.False);
+	}
+
+	// ================================================================
+	// CanUseService
+	// ================================================================
+
+	[Test]
+	public async Task CanUseService_MatchesCanStart()
+	{
+		await _control.SetStateAsync(time_ms: 0, canStart: false);
+		await _service.TickAsync();
+		Assert.That(_service.CanUseService, Is.False);
+
+		await _control.SetStateAsync(canStart: true);
+		await _service.TickAsync();
+		Assert.That(_service.CanUseService, Is.True);
+	}
+
+	[Test]
+	public async Task CanUseServiceChanged_FiredWhenCanStartChanges()
+	{
+		await _control.SetStateAsync(time_ms: 0, canStart: false);
+		await _service.TickAsync();
+
+		bool? receivedValue = null;
+		_service.CanUseServiceChanged += (_, v) => receivedValue = v;
+
+		await _control.SetStateAsync(canStart: true);
+		await _service.TickAsync();
+
+		Assert.That(receivedValue, Is.True);
+	}
+
 	// ================================================================
 	// クエリパラメータ転送
 	// ================================================================
