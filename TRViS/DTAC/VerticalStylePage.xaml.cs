@@ -1,5 +1,3 @@
-using DependencyPropertyGenerator;
-
 using TRViS.Controls;
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
@@ -13,7 +11,6 @@ using TRViS.ValueConverters.DTAC;
 
 namespace TRViS.DTAC;
 
-[DependencyProperty<TrainData>("SelectedTrainData")]
 public partial class VerticalStylePage : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
