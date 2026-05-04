@@ -1,6 +1,8 @@
-namespace TRViS.Services.LocationService;
+using TRViS.Services;
 
-internal static partial class Utils
+namespace TRViS.LocationServiceInternal;
+
+internal static partial class LocationCalcUtils
 {
 	public static bool IsNearBy(StaLocationInfo target, ILocationLonLat_deg currentLocation)
 		=> IsNearBy(target, CalculateDistance_m(target, currentLocation));
