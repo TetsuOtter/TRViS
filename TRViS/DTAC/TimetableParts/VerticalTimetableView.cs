@@ -6,7 +6,6 @@ using DependencyPropertyGenerator;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.DTAC.Adapters;
-using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Formatters;
 using TRViS.DTAC.Logic.Presenter;
 using TRViS.DTAC.TimetableParts;
@@ -219,12 +218,6 @@ public partial class VerticalTimetableView : Grid
 			case nameof(ViewModel.CurrentRows):
 				await OnViewModelCurrentRowsChangedAsync();
 				break;
-			case nameof(ViewModel.LocationMarkerState):
-				_presenter.OnLocationMarkerStateChanged(ToTimetableLocationState(ViewModel.LocationMarkerState));
-				break;
-			case nameof(ViewModel.LocationMarkerPosition):
-				_presenter.OnLocationMarkerPositionChanged(ViewModel.LocationMarkerPosition);
-				break;
 			case nameof(ViewModel.AfterRemarksText):
 				OnViewModelAfterRemarksTextChanged();
 				break;
@@ -265,8 +258,6 @@ public partial class VerticalTimetableView : Grid
 
 	private void OnViewModelAfterRemarksTextChanged()
 	{
-		_presenter.OnAfterRemarksTextChanged(ViewModel.AfterRemarksText is not null);
-
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			try
@@ -292,8 +283,6 @@ public partial class VerticalTimetableView : Grid
 
 	private void OnViewModelAfterArriveTextChanged()
 	{
-		_presenter.OnAfterArriveTextChanged(ViewModel.AfterArriveText is not null);
-
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			try
@@ -319,8 +308,6 @@ public partial class VerticalTimetableView : Grid
 
 	private void OnViewModelNextTrainIdChanged()
 	{
-		_presenter.OnNextTrainIdChanged(ViewModel.NextTrainId is not null);
-
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			try
@@ -393,14 +380,6 @@ public partial class VerticalTimetableView : Grid
 		if (shouldHaptic)
 			Util.PerformHaptic(HapticFeedbackType.Click);
 	}
-
-	private static TimetableLocationState ToTimetableLocationState(VerticalTimetableRowModel.LocationStates state)
-		=> state switch
-		{
-			VerticalTimetableRowModel.LocationStates.AroundThisStation => TimetableLocationState.AroundThisStation,
-			VerticalTimetableRowModel.LocationStates.RunningToNextStation => TimetableLocationState.RunningToNextStation,
-			_ => TimetableLocationState.Undefined,
-		};
 
 	#endregion
 

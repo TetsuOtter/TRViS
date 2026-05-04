@@ -49,42 +49,14 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 
 		_markerToggle.PropertyChanged += OnMarkerTogglePropertyChanged;
 		_dataSource.RowsChanged += OnDataSourceRowsChanged;
+		_dataSource.LocationMarkerStateChanged += OnDataSourceLocationMarkerStateChanged;
+		_dataSource.LocationMarkerPositionChanged += OnDataSourceLocationMarkerPositionChanged;
 
 		// Sync initial state
 		_currentState.IsMarkingMode = _markerToggle.IsToggled;
 	}
 
 	// ---------- Intents from View ----------
-
-	/// <summary>
-	/// Call when AfterArriveText changes (null ↔ non-null).
-	/// </summary>
-	public void OnAfterArriveTextChanged(bool hasText)
-	{
-		_hasAfterArrive = hasText;
-		RecalculateLayout();
-		RaiseStateChanged();
-	}
-
-	/// <summary>
-	/// Call when NextTrainId changes (null ↔ non-null).
-	/// </summary>
-	public void OnNextTrainIdChanged(bool hasId)
-	{
-		_hasNextTrainButton = hasId;
-		RecalculateLayout();
-		RaiseStateChanged();
-	}
-
-	/// <summary>
-	/// Call when AfterRemarksText changes (null ↔ non-null).
-	/// </summary>
-	public void OnAfterRemarksTextChanged(bool hasText)
-	{
-		_hasAfterRemarks = hasText;
-		RecalculateLayout();
-		RaiseStateChanged();
-	}
 
 	/// <summary>
 	/// Call when the location marker state changes.
@@ -153,6 +125,12 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 		_currentState.NextTrainButtonRowIndex = TimetableLayoutCalculator.CalculateNextTrainButtonRowIndex(_rowCount, _hasAfterArrive);
 	}
 
+	private void OnDataSourceLocationMarkerStateChanged(object? sender, TimetableLocationState state)
+		=> OnLocationMarkerStateChanged(state);
+
+	private void OnDataSourceLocationMarkerPositionChanged(object? sender, int position)
+		=> OnLocationMarkerPositionChanged(position);
+
 	private void OnMarkerTogglePropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
 		if (e.PropertyName == nameof(IMarkerToggleController.IsToggled))
@@ -174,5 +152,7 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 		_disposed = true;
 		_markerToggle.PropertyChanged -= OnMarkerTogglePropertyChanged;
 		_dataSource.RowsChanged -= OnDataSourceRowsChanged;
+		_dataSource.LocationMarkerStateChanged -= OnDataSourceLocationMarkerStateChanged;
+		_dataSource.LocationMarkerPositionChanged -= OnDataSourceLocationMarkerPositionChanged;
 	}
 }

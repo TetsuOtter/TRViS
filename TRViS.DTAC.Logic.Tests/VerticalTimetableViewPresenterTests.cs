@@ -55,6 +55,8 @@ public class VerticalTimetableViewPresenterTests
 		public bool HasNextTrainId => _hasNextTrainId;
 
 		public event EventHandler? RowsChanged;
+		public event EventHandler<TimetableLocationState>? LocationMarkerStateChanged;
+		public event EventHandler<int>? LocationMarkerPositionChanged;
 
 		public void SetRows(
 			IReadOnlyList<bool> isInfoRowList,
@@ -68,6 +70,12 @@ public class VerticalTimetableViewPresenterTests
 			_hasNextTrainId = hasNextTrainId;
 			RowsChanged?.Invoke(this, EventArgs.Empty);
 		}
+
+		public void RaiseLocationMarkerStateChanged(TimetableLocationState state)
+			=> LocationMarkerStateChanged?.Invoke(this, state);
+
+		public void RaiseLocationMarkerPositionChanged(int position)
+			=> LocationMarkerPositionChanged?.Invoke(this, position);
 	}
 
 	private static VerticalTimetableViewPresenter CreatePresenter(
@@ -153,21 +161,6 @@ public class VerticalTimetableViewPresenterTests
 		ds.SetRows(new[] { false });
 
 		Assert.True(raised);
-	}
-
-	// --- OnAfterArriveTextChanged ---
-
-	[Fact]
-	public void OnAfterArriveTextChanged_RecalculatesRowIndex()
-	{
-		var p = CreatePresenter(out _, out _, out var ds);
-		ds.SetRows(isInfoRowList: new[] { false, false });
-
-		p.OnAfterArriveTextChanged(hasText: true);
-
-		// rowCount=2 → AfterArriveRowIndex = 3, NextTrainButtonRowIndex = 4 (hasAfterArrive=true)
-		Assert.Equal(3, p.CurrentState.AfterArriveRowIndex);
-		Assert.Equal(4, p.CurrentState.NextTrainButtonRowIndex);
 	}
 
 	// --- OnLocationMarkerPositionChanged ---
