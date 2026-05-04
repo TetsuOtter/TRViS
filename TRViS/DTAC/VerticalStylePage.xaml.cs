@@ -131,15 +131,8 @@ public partial class VerticalStylePage : ContentView
 		TimetableView.SafeAreaEdges = SafeAreaEdges.Default;
 		TimetableView.VerticalOptions = LayoutOptions.Start;
 
-		PageHeaderArea.IsRunningChanged += (_, e) =>
-		{
-			logger.Info("IsRunningChanged: {0}", e.NewValue);
-			_presenter.OnStartButtonClicked();
-			if (e.NewValue && InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
-				InstanceManager.ScreenWakeLockService.EnableWakeLock();
-			else
-				InstanceManager.ScreenWakeLockService.DisableWakeLock();
-		};
+		PageHeaderArea.StartButtonTappedCallback = _presenter.OnStartButtonClicked;
+		PageHeaderArea.LocationServiceButtonTappedCallback = _presenter.OnLocationServiceToggled;
 
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
 		{
@@ -162,8 +155,6 @@ public partial class VerticalStylePage : ContentView
 				}
 			};
 		}
-
-		PageHeaderArea.IsLocationServiceEnabledChanged += OnIsLocationServiceEnabledChanged;
 
 		TimetableView.ScrollRequested += async (_, e) =>
 		{
@@ -274,6 +265,11 @@ public partial class VerticalStylePage : ContentView
 			PageHeaderArea.IsRunning = state.PageHeaderState.IsRunning;
 			PageHeaderArea.IsLocationServiceEnabled = state.PageHeaderState.IsLocationServiceEnabled;
 			PageHeaderArea.CanUseLocationService = state.PageHeaderState.CanUseLocationService;
+
+			if (state.PageHeaderState.IsRunning && InstanceManager.EasterEggPageViewModel.KeepScreenOnWhenRunning)
+				InstanceManager.ScreenWakeLockService.EnableWakeLock();
+			else
+				InstanceManager.ScreenWakeLockService.DisableWakeLock();
 		}
 
 		if ((changed & VerticalPageStateSection.TimetableView) != 0)
@@ -387,12 +383,6 @@ public partial class VerticalStylePage : ContentView
 				logger.Debug("DebugMap removed");
 			}
 		}
-	}
-
-	private void OnIsLocationServiceEnabledChanged(object? sender, ValueChangedEventArgs<bool> e)
-	{
-		logger.Info("IsLocationServiceEnabledChanged: {0}", e.NewValue);
-		_presenter.OnLocationServiceToggled();
 	}
 
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
