@@ -7,7 +7,7 @@ namespace TRViS.DTAC.Logic.Presenter;
 
 /// <summary>
 /// Lightweight presenter for <c>VerticalTimetableView</c>.
-/// Handles layout calculations and marker/IsBusy state aggregation.
+/// Handles layout calculations and marker state aggregation.
 /// Row interaction (run/location service state machine) is handled by
 /// <see cref="VerticalStylePagePresenter"/>; this presenter focuses only on
 /// what is exclusive to the timetable grid widget.
@@ -107,16 +107,6 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 		_currentState.Marker.MarkerRow = position;
 		RaiseStateChanged();
 		ScrollRequested?.Invoke(this, position);
-	}
-
-	/// <summary>
-	/// Sets the Logic-side busy state independently of the View's own busy state.
-	/// The View manages its own busy flag; this is for Logic-driven operations.
-	/// </summary>
-	public void OnSetBusy(bool isBusy)
-	{
-		_currentState.IsBusy = isBusy;
-		RaiseStateChanged();
 	}
 
 	/// <summary>

@@ -25,11 +25,6 @@ public class VerticalPageState
 	public NextDayIndicatorState NextDayIndicatorState { get; set; } = new();
 
 	/// <summary>
-	/// Information about the activity indicator for timetable loading
-	/// </summary>
-	public TimetableActivityIndicatorState TimetableActivityIndicatorState { get; set; } = new();
-
-	/// <summary>
 	/// Information about the timetable view
 	/// </summary>
 	public TimetableViewState TimetableViewState { get; set; } = new();
@@ -110,26 +105,10 @@ public class NextDayIndicatorState
 }
 
 /// <summary>
-/// Represents the state of the timetable activity indicator
-/// </summary>
-public class TimetableActivityIndicatorState
-{
-	/// <summary>
-	/// Whether the timetable is currently busy loading data
-	/// </summary>
-	public bool IsBusy { get; set; } = false;
-}
-
-/// <summary>
 /// Represents the state of the timetable view
 /// </summary>
 public class TimetableViewState
 {
-	/// <summary>
-	/// Whether the timetable is currently busy loading data
-	/// </summary>
-	public bool IsBusy { get; set; } = false;
-
 	/// <summary>
 	/// Whether the run has started
 	/// </summary>

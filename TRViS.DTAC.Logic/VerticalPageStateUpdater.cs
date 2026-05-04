@@ -43,26 +43,6 @@ internal static class VerticalPageStateUpdater
 	}
 
 	/// <summary>
-	/// Updates the timetable activity indicator state.
-	/// </summary>
-	/// <param name="state">The indicator state to update</param>
-	/// <param name="isTimetableBusy">Whether the timetable is busy loading</param>
-	public static void UpdateTimetableActivityIndicatorState(TimetableActivityIndicatorState state, bool isTimetableBusy)
-	{
-		state.IsBusy = isTimetableBusy;
-	}
-
-	/// <summary>
-	/// Updates the timetable view state when location service capability changes.
-	/// </summary>
-	/// <param name="state">The timetable view state to update</param>
-	/// <param name="canUseLocationService">Whether location service can be used</param>
-	public static void UpdateTimetableLocationServiceCapability(TimetableViewState state, bool canUseLocationService)
-	{
-		state.CanUseLocationService = canUseLocationService;
-	}
-
-	/// <summary>
 	/// Updates the run state in page header.
 	/// </summary>
 	/// <param name="state">The page header state to update</param>
@@ -96,56 +76,6 @@ internal static class VerticalPageStateUpdater
 		state.CurrentLatitude = latitude;
 		state.CurrentLongitude = longitude;
 		state.CurrentAccuracy = accuracy ?? 20;
-	}
-
-	/// <summary>
-	/// Updates the location state of a specific row.
-	/// </summary>
-	/// <param name="rowState">The row state to update</param>
-	/// <param name="locationState">The new location state</param>
-	/// <param name="isLastRow">Whether this is the last row (prevents transition to RunningToNextStation)</param>
-	/// <returns>True if state was updated, false if update was prevented</returns>
-	public static bool UpdateRowLocationState(VerticalTimetableRowState rowState, TimetableLocationState locationState, bool isLastRow = false)
-	{
-		if (locationState == TimetableLocationState.Undefined)
-		{
-			rowState.LocationState = TimetableLocationState.Undefined;
-			return true;
-		}
-
-		if (isLastRow && locationState == TimetableLocationState.RunningToNextStation)
-		{
-			return false;
-		}
-
-		if (rowState.LocationState != locationState)
-		{
-			rowState.LocationState = locationState;
-			return true;
-		}
-
-		return false;
-	}
-
-	/// <summary>
-	/// Advances the location state to the next state (used for manual row selection when location service is disabled).
-	/// </summary>
-	/// <param name="rowState">The row state to update</param>
-	/// <param name="isLastRow">Whether this is the last row</param>
-	public static void AdvanceRowLocationState(VerticalTimetableRowState rowState, bool isLastRow = false)
-	{
-		if (rowState.LocationState == TimetableLocationState.Undefined)
-		{
-			rowState.LocationState = TimetableLocationState.AroundThisStation;
-		}
-		else if (rowState.LocationState == TimetableLocationState.AroundThisStation && !isLastRow)
-		{
-			rowState.LocationState = TimetableLocationState.RunningToNextStation;
-		}
-		else
-		{
-			rowState.LocationState = TimetableLocationState.Undefined;
-		}
 	}
 
 	/// <summary>

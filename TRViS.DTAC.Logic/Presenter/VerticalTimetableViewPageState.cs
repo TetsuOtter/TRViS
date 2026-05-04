@@ -22,9 +22,6 @@ public class LocationMarkerDisplayState
 /// </summary>
 public class VerticalTimetableViewPageState
 {
-	/// <summary>Whether the view is currently busy (e.g. loading rows).</summary>
-	public bool IsBusy { get; set; } = false;
-
 	/// <summary>Number of Grid row definitions to maintain.</summary>
 	public int RowDefinitionCount { get; set; } = 0;
 

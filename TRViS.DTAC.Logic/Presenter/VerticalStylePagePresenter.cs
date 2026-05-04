@@ -271,15 +271,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	}
 
 	/// <summary>
-	/// Called when timetable busy state changes
-	/// </summary>
-	public void OnTimetableBusyChanged(bool isBusy)
-	{
-		VerticalPageStateUpdater.UpdateTimetableActivityIndicatorState(_currentState.TimetableActivityIndicatorState, isBusy);
-		RaiseStateChanged(VerticalPageStateSection.ActivityIndicator);
-	}
-
-	/// <summary>
 	/// Called when network sync auto start is requested
 	/// </summary>
 	public void OnNetworkSyncAutoStartRequested()

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
 
@@ -88,13 +89,6 @@ public class VerticalTimetableViewPresenterTests
 	#endregion
 
 	// --- Initial state ---
-
-	[Fact]
-	public void InitialState_IsBusy_IsFalse()
-	{
-		var p = CreatePresenter(out _, out _);
-		Assert.False(p.CurrentState.IsBusy);
-	}
 
 	[Fact]
 	public void InitialState_IsMarkingMode_IsFalse()
@@ -232,31 +226,6 @@ public class VerticalTimetableViewPresenterTests
 
 		Assert.False(p.CurrentState.Marker.IsBoxVisible);
 		Assert.False(p.CurrentState.Marker.IsLineVisible);
-	}
-
-	// --- OnSetBusy ---
-
-	[Fact]
-	public void OnSetBusy_True_FiresStateChanged()
-	{
-		var p = CreatePresenter(out _, out _);
-		bool raised = false;
-		p.StateChanged += (_, _) => raised = true;
-
-		p.OnSetBusy(true);
-
-		Assert.True(raised);
-		Assert.True(p.CurrentState.IsBusy);
-	}
-
-	[Fact]
-	public void OnSetBusy_False_SetsIsBusyFalse()
-	{
-		var p = CreatePresenter(out _, out _);
-		p.OnSetBusy(true);
-		p.OnSetBusy(false);
-
-		Assert.False(p.CurrentState.IsBusy);
 	}
 
 	// --- OnMarkerToggleChanged ---

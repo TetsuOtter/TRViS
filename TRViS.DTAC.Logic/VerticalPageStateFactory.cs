@@ -69,7 +69,6 @@ internal static class VerticalPageStateFactory
 			Destination = new(),
 			TrainInfoAreaState = new(),
 			NextDayIndicatorState = new(),
-			TimetableActivityIndicatorState = new(),
 			TimetableViewState = new(),
 			LocationServiceState = new(),
 			PageHeaderState = new(),

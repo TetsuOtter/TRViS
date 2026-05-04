@@ -121,33 +121,6 @@ public class VerticalPageStateFactoryTests
 	}
 
 	[Fact]
-	public void UpdateTimetableActivityIndicatorState_WithBusy_ShowsIndicator()
-	{
-		// Arrange
-		var indicatorState = new TimetableActivityIndicatorState();
-
-		// Act
-		VerticalPageStateUpdater.UpdateTimetableActivityIndicatorState(indicatorState, isTimetableBusy: true);
-
-		// Assert
-		Assert.True(indicatorState.IsBusy);
-	}
-
-	[Fact]
-	public void UpdateTimetableActivityIndicatorState_NotBusy_HidesIndicator()
-	{
-		// Arrange
-		var indicatorState = new TimetableActivityIndicatorState();
-		indicatorState.IsBusy = true;
-
-		// Act
-		VerticalPageStateUpdater.UpdateTimetableActivityIndicatorState(indicatorState, isTimetableBusy: false);
-
-		// Assert
-		Assert.False(indicatorState.IsBusy);
-	}
-
-	[Fact]
 	public void UpdatePageHeaderRunState_SetsRunState()
 	{
 		// Arrange

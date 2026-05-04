@@ -321,7 +321,7 @@ public partial class VerticalStylePage : ContentView
 
 	private void UpdateTimetableActivityIndicator()
 	{
-		bool isBusy = _isTimetableViewBusy || _presenter.CurrentState.TimetableActivityIndicatorState.IsBusy;
+		bool isBusy = _isTimetableViewBusy;
 		if (isBusy)
 		{
 			TimetableViewActivityIndicatorBorder.IsVisible = true;
