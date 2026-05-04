@@ -45,6 +45,9 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		_locationService.LocationStateChanged += OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated += OnGpsLocationUpdated_Internal;
 		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
+
+		// Sync initial train: PropertyChanged may have fired before this presenter subscribed.
+		SetSelectedTrainData(_appViewModelProvider.SelectedTrainData);
 	}
 
 	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
