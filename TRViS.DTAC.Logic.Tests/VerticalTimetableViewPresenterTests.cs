@@ -32,6 +32,11 @@ public class VerticalTimetableViewPresenterTests
 		{
 			IsToggled = false;
 		}
+
+		public void Toggle()
+		{
+			IsToggled = !IsToggled;
+		}
 	}
 
 	private class FakeCrashLogger : IDtacCrashLogger
@@ -55,8 +60,6 @@ public class VerticalTimetableViewPresenterTests
 		public bool HasNextTrainId => _hasNextTrainId;
 
 		public event EventHandler? RowsChanged;
-		public event EventHandler<TimetableLocationState>? LocationMarkerStateChanged;
-		public event EventHandler<int>? LocationMarkerPositionChanged;
 
 		public void SetRows(
 			IReadOnlyList<bool> isInfoRowList,
@@ -70,29 +73,58 @@ public class VerticalTimetableViewPresenterTests
 			_hasNextTrainId = hasNextTrainId;
 			RowsChanged?.Invoke(this, EventArgs.Empty);
 		}
+	}
 
-		public void RaiseLocationMarkerStateChanged(TimetableLocationState state)
-			=> LocationMarkerStateChanged?.Invoke(this, state);
+	private class FakeLocationMarkerSource : ILocationMarkerStateSource
+	{
+		private readonly Dictionary<int, VerticalTimetableRowState> _rowStates = new();
+		public IReadOnlyDictionary<int, VerticalTimetableRowState> RowStates => _rowStates;
 
-		public void RaiseLocationMarkerPositionChanged(int position)
-			=> LocationMarkerPositionChanged?.Invoke(this, position);
+		public event EventHandler<VerticalPageStateChangedEventArgs>? StateChanged;
+
+		public void SetMarker(int row, TimetableLocationState state)
+		{
+			foreach (var rs in _rowStates.Values)
+				rs.LocationState = TimetableLocationState.Undefined;
+
+			if (!_rowStates.ContainsKey(row))
+				_rowStates[row] = new VerticalTimetableRowState();
+
+			_rowStates[row].LocationState = state;
+			StateChanged?.Invoke(this, new VerticalPageStateChangedEventArgs(VerticalPageStateSection.RowStates));
+		}
+
+		public void ClearMarker()
+		{
+			foreach (var rs in _rowStates.Values)
+				rs.LocationState = TimetableLocationState.Undefined;
+			StateChanged?.Invoke(this, new VerticalPageStateChangedEventArgs(VerticalPageStateSection.RowStates));
+		}
+	}
+
+	private static VerticalTimetableViewPresenter CreatePresenter(
+		out FakeMarkerToggle markerToggle,
+		out FakeCrashLogger crashLogger,
+		out FakeDataSource dataSource,
+		out FakeLocationMarkerSource markerSource)
+	{
+		markerToggle = new FakeMarkerToggle();
+		crashLogger = new FakeCrashLogger();
+		dataSource = new FakeDataSource();
+		markerSource = new FakeLocationMarkerSource();
+		return new VerticalTimetableViewPresenter(markerToggle, crashLogger, dataSource, markerSource);
 	}
 
 	private static VerticalTimetableViewPresenter CreatePresenter(
 		out FakeMarkerToggle markerToggle,
 		out FakeCrashLogger crashLogger,
 		out FakeDataSource dataSource)
-	{
-		markerToggle = new FakeMarkerToggle();
-		crashLogger = new FakeCrashLogger();
-		dataSource = new FakeDataSource();
-		return new VerticalTimetableViewPresenter(markerToggle, crashLogger, dataSource);
-	}
+		=> CreatePresenter(out markerToggle, out crashLogger, out dataSource, out _);
 
 	private static VerticalTimetableViewPresenter CreatePresenter(
 		out FakeMarkerToggle markerToggle,
 		out FakeCrashLogger crashLogger)
-		=> CreatePresenter(out markerToggle, out crashLogger, out _);
+		=> CreatePresenter(out markerToggle, out crashLogger, out _, out _);
 
 	#endregion
 
@@ -163,73 +195,73 @@ public class VerticalTimetableViewPresenterTests
 		Assert.True(raised);
 	}
 
-	// --- OnLocationMarkerPositionChanged ---
+	// --- Location marker via ILocationMarkerStateSource ---
 
 	[Fact]
-	public void OnLocationMarkerPositionChanged_FiresScrollRequested()
+	public void LocationMarkerSource_PositionChange_FiresScrollRequested()
 	{
-		var p = CreatePresenter(out _, out _);
+		var p = CreatePresenter(out _, out _, out _, out var markerSource);
 		int? receivedRow = null;
 		p.ScrollRequested += (_, row) => receivedRow = row;
 
-		p.OnLocationMarkerPositionChanged(3);
+		markerSource.SetMarker(3, TimetableLocationState.AroundThisStation);
 
 		Assert.NotNull(receivedRow);
 		Assert.Equal(3, receivedRow!.Value);
 	}
 
 	[Fact]
-	public void OnLocationMarkerPositionChanged_UpdatesMarkerRow()
+	public void LocationMarkerSource_PositionChange_UpdatesMarkerRow()
 	{
-		var p = CreatePresenter(out _, out _);
-		p.OnLocationMarkerPositionChanged(5);
+		var p = CreatePresenter(out _, out _, out _, out var markerSource);
+		markerSource.SetMarker(5, TimetableLocationState.AroundThisStation);
 		Assert.Equal(5, p.CurrentState.Marker.MarkerRow);
 	}
 
-	// --- OnLocationMarkerStateChanged ---
-
 	[Fact]
-	public void OnLocationMarkerStateChanged_AroundThisStation_UpdatesMarkerDisplay()
+	public void LocationMarkerSource_AroundThisStation_UpdatesMarkerDisplay()
 	{
-		var p = CreatePresenter(out _, out _);
-		p.OnLocationMarkerStateChanged(TimetableLocationState.AroundThisStation);
+		var p = CreatePresenter(out _, out _, out _, out var markerSource);
+		markerSource.SetMarker(0, TimetableLocationState.AroundThisStation);
 
 		Assert.True(p.CurrentState.Marker.IsBoxVisible);
 		Assert.False(p.CurrentState.Marker.IsLineVisible);
 	}
 
 	[Fact]
-	public void OnLocationMarkerStateChanged_RunningToNextStation_ShowsLineAndBox()
+	public void LocationMarkerSource_RunningToNextStation_ShowsLineAndBox()
 	{
-		var p = CreatePresenter(out _, out _);
-		p.OnLocationMarkerStateChanged(TimetableLocationState.RunningToNextStation);
+		var p = CreatePresenter(out _, out _, out _, out var markerSource);
+		markerSource.SetMarker(0, TimetableLocationState.RunningToNextStation);
 
 		Assert.True(p.CurrentState.Marker.IsBoxVisible);
 		Assert.True(p.CurrentState.Marker.IsLineVisible);
 	}
 
 	[Fact]
-	public void OnLocationMarkerStateChanged_Undefined_HidesMarker()
+	public void LocationMarkerSource_ClearMarker_HidesMarker()
 	{
-		var p = CreatePresenter(out _, out _);
-		// First set to a visible state
-		p.OnLocationMarkerStateChanged(TimetableLocationState.AroundThisStation);
-		// Then reset to undefined
-		p.OnLocationMarkerStateChanged(TimetableLocationState.Undefined);
+		var p = CreatePresenter(out _, out _, out _, out var markerSource);
+		markerSource.SetMarker(0, TimetableLocationState.AroundThisStation);
+		markerSource.ClearMarker();
 
 		Assert.False(p.CurrentState.Marker.IsBoxVisible);
 		Assert.False(p.CurrentState.Marker.IsLineVisible);
 	}
 
-	// --- OnMarkerToggleChanged ---
+	// --- OnMarkerToggled ---
 
 	[Fact]
-	public void OnMarkerToggleChanged_UpdatesIsMarkingMode()
+	public void OnMarkerToggled_TogglesIsMarkingMode()
 	{
 		var p = CreatePresenter(out _, out _);
-		p.OnMarkerToggleChanged(true);
+		Assert.False(p.CurrentState.IsMarkingMode);
 
+		p.OnMarkerToggled();
 		Assert.True(p.CurrentState.IsMarkingMode);
+
+		p.OnMarkerToggled();
+		Assert.False(p.CurrentState.IsMarkingMode);
 	}
 
 	[Fact]

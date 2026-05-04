@@ -97,17 +97,17 @@ public partial class VerticalTimetableView : Grid
 	/// Callback invoked when a row is tapped. Set by the parent page to forward
 	/// the tap directly to the page-level presenter (no event-bus indirection).
 	/// </summary>
-	public Action<int, bool, int>? RowTappedCallback { get; set; }
+	public Action<int>? RowTappedCallback { get; set; }
 
 	#endregion
 
 	#region Constructor
 
-	public VerticalTimetableView()
+	public VerticalTimetableView(TRViS.DTAC.Logic.Abstractions.ILocationMarkerStateSource locationMarkerSource)
 	{
 		logger.Trace("Creating...");
 
-		_presenter = PresenterFactory.BuildVerticalTimetableViewPresenter(ViewModel);
+		_presenter = PresenterFactory.BuildVerticalTimetableViewPresenter(ViewModel, locationMarkerSource);
 		_locationServiceAdapter = PresenterFactory.GetLocationServiceAdapter();
 
 		// Initialize location marker views
@@ -177,10 +177,7 @@ public partial class VerticalTimetableView : Grid
 
 		try
 		{
-			RowTappedCallback?.Invoke(
-				row.Model.RowIndex,
-				row.Model.IsInfoRow,
-				RowViewList.Count);
+			RowTappedCallback?.Invoke(row.Model.RowIndex);
 		}
 		catch (Exception ex)
 		{
@@ -372,6 +369,11 @@ public partial class VerticalTimetableView : Grid
 		int markerRow = Math.Max(0, state.Marker.MarkerRow);
 		Grid.SetRow(CurrentLocationBoxView, markerRow);
 		Grid.SetRow(CurrentLocationLine, markerRow);
+
+		// Update per-row highlight directly — no ViewModel round-trip
+		int effectiveMarkerRow = state.Marker.IsBoxVisible ? markerRow : -1;
+		for (int i = 0; i < RowViewList.Count; i++)
+			RowViewList[i].Model.IsLocationMarkerOnThisRow = (i == effectiveMarkerRow);
 
 		bool shouldHaptic = state.Marker.IsBoxVisible
 			&& (prevBoxVisible != state.Marker.IsBoxVisible

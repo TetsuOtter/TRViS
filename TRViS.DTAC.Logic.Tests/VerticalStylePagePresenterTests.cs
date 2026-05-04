@@ -91,6 +91,11 @@ public class VerticalStylePagePresenterTests
 			IsToggled = false;
 			ResetCount++;
 		}
+
+		public void Toggle()
+		{
+			IsToggled = !IsToggled;
+		}
 	}
 
 	private class FakeAppViewModelProvider : IAppViewModelProvider
@@ -169,6 +174,41 @@ public class VerticalStylePagePresenterTests
 			TrainNumber: "101",
 			Destination: destination,
 			AffectDate: affectDate,
+			Rows: rows
+		);
+	}
+
+	private static TrainData CreateTrainDataWithInfoRow(int rowCount = 3, int infoRowIndex = 0)
+	{
+		var rows = new TimetableRow[rowCount];
+		for (int i = 0; i < rowCount; i++)
+		{
+			rows[i] = new TimetableRow(
+				Id: $"row-{i}",
+				Location: new LocationInfo(i * 1000.0),
+				DriveTimeMM: 10,
+				DriveTimeSS: 0,
+				StationName: $"Station {i}",
+				IsOperationOnlyStop: false,
+				IsPass: false,
+				HasBracket: false,
+				IsLastStop: i == rowCount - 1,
+				ArriveTime: null,
+				DepartureTime: null,
+				TrackName: "1",
+				RunInLimit: null,
+				RunOutLimit: null,
+				Remarks: null,
+				IsInfoRow: i == infoRowIndex
+			);
+		}
+
+		return new TrainData(
+			Id: "train-001",
+			Direction: 0,
+			WorkName: "Test Work",
+			TrainNumber: "101",
+			Destination: "Tokyo",
 			Rows: rows
 		);
 	}
@@ -273,13 +313,11 @@ public class VerticalStylePagePresenterTests
 		var baseTime = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		clock.UtcNow = baseTime;
 
-		// First tap
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 		Assert.Equal(0, locationService.ForceSetLocationInfoCallCount);
 
-		// Second tap within threshold (200ms later)
 		clock.UtcNow = baseTime.AddMilliseconds(200);
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 
 		Assert.Equal(1, locationService.ForceSetLocationInfoCallCount);
 		Assert.Equal(1, locationService.LastForceSetRow);
@@ -295,9 +333,7 @@ public class VerticalStylePagePresenterTests
 		presenter.OnLocationServiceToggled();
 
 		clock.UtcNow = DateTime.UtcNow;
-
-		// Single tap only
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 
 		Assert.Equal(0, locationService.ForceSetLocationInfoCallCount);
 	}
@@ -314,12 +350,10 @@ public class VerticalStylePagePresenterTests
 		var baseTime = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		clock.UtcNow = baseTime;
 
-		// First tap
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 
-		// Second tap outside threshold (600ms later)
 		clock.UtcNow = baseTime.AddMilliseconds(600);
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 
 		Assert.Equal(0, locationService.ForceSetLocationInfoCallCount);
 	}
@@ -331,22 +365,17 @@ public class VerticalStylePagePresenterTests
 		var trainData = CreateTrainData(rowCount: 3);
 		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
-		// Location service NOT enabled
 
-		// Tap row 1 first time - Undefined -> AroundThisStation
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[1].LocationState);
 
-		// Tap row 1 second time - AroundThisStation -> RunningToNextStation
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 		Assert.Equal(TimetableLocationState.RunningToNextStation, presenter.CurrentState.RowStates[1].LocationState);
 
-		// Tap row 1 third time - RunningToNextStation -> AroundThisStation (marker never disappears during operation)
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[1].LocationState);
 
-		// Tap row 1 fourth time - AroundThisStation -> RunningToNextStation (continues cycling)
-		presenter.OnRowTapped(1, false, 3);
+		presenter.OnRowTapped(1);
 		Assert.Equal(TimetableLocationState.RunningToNextStation, presenter.CurrentState.RowStates[1].LocationState);
 	}
 
@@ -358,16 +387,13 @@ public class VerticalStylePagePresenterTests
 		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 
-		// Tap last row (index 2) first time - Undefined -> AroundThisStation
-		presenter.OnRowTapped(2, false, 3);
+		presenter.OnRowTapped(2);
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[2].LocationState);
 
-		// Tap last row second time - AroundThisStation on last row stays AroundThisStation (marker never disappears)
-		presenter.OnRowTapped(2, false, 3);
+		presenter.OnRowTapped(2);
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[2].LocationState);
 
-		// Tap last row third time - still stays AroundThisStation
-		presenter.OnRowTapped(2, false, 3);
+		presenter.OnRowTapped(2);
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[2].LocationState);
 	}
 
@@ -375,15 +401,19 @@ public class VerticalStylePagePresenterTests
 	public void OnRowTapped_InfoRow_IsIgnored()
 	{
 		var (presenter, _, _, _, appVm) = CreatePresenter();
-		var trainData = CreateTrainData(rowCount: 3);
+		// Row 0 is info row; rows 1-2 are station rows
+		var trainData = CreateTrainDataWithInfoRow(rowCount: 3, infoRowIndex: 0);
 		appVm.SelectedTrainData = trainData;
 		presenter.OnStartButtonClicked();
 
-		// Tap info row - should be ignored
-		presenter.OnRowTapped(0, true, 3);
+		// First non-info row (1) gets the initial marker
+		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[1].LocationState);
 
-		// After run started, row 0 has AroundThisStation; tapping info row should not change state
-		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[0].LocationState);
+		// Tap info row 0 - should be ignored
+		presenter.OnRowTapped(0);
+
+		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[1].LocationState);
+		Assert.Equal(TimetableLocationState.Undefined, presenter.CurrentState.RowStates[0].LocationState);
 	}
 
 	[Fact]
@@ -392,11 +422,9 @@ public class VerticalStylePagePresenterTests
 		var (presenter, _, _, _, appVm) = CreatePresenter();
 		var trainData = CreateTrainData(rowCount: 3);
 		appVm.SelectedTrainData = trainData;
-		// Not calling OnStartButtonClicked()
 
-		presenter.OnRowTapped(0, false, 3);
+		presenter.OnRowTapped(0);
 
-		// All rows should remain undefined
 		foreach (var rowState in presenter.CurrentState.RowStates.Values)
 		{
 			Assert.Equal(TimetableLocationState.Undefined, rowState.LocationState);
@@ -512,12 +540,12 @@ public class VerticalStylePagePresenterTests
 		// Step 4: Double tap row to force set location
 		var baseTime = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		clock.UtcNow = baseTime;
-		presenter.OnRowTapped(2, false, 5);  // First tap
+		presenter.OnRowTapped(2);  // First tap
 
 		Assert.Equal(0, locationService.ForceSetLocationInfoCallCount);
 
 		clock.UtcNow = baseTime.AddMilliseconds(300);
-		presenter.OnRowTapped(2, false, 5);  // Second tap within threshold
+		presenter.OnRowTapped(2);  // Second tap within threshold
 
 		Assert.Equal(1, locationService.ForceSetLocationInfoCallCount);
 		Assert.Equal(2, locationService.LastForceSetRow);
@@ -556,16 +584,16 @@ public class VerticalStylePagePresenterTests
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[0].LocationState);
 
 		// Tap row 2 - should move marker there
-		presenter.OnRowTapped(2, false, 4);
+		presenter.OnRowTapped(2);
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[2].LocationState);
 		Assert.Equal(TimetableLocationState.Undefined, presenter.CurrentState.RowStates[0].LocationState);
 
 		// Tap row 2 again - AroundThisStation -> RunningToNextStation
-		presenter.OnRowTapped(2, false, 4);
+		presenter.OnRowTapped(2);
 		Assert.Equal(TimetableLocationState.RunningToNextStation, presenter.CurrentState.RowStates[2].LocationState);
 
 		// Tap row 2 again - RunningToNextStation -> AroundThisStation (marker never disappears mid-run)
-		presenter.OnRowTapped(2, false, 4);
+		presenter.OnRowTapped(2);
 		Assert.Equal(TimetableLocationState.AroundThisStation, presenter.CurrentState.RowStates[2].LocationState);
 	}
 

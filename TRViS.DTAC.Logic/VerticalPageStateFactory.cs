@@ -78,16 +78,14 @@ internal static class VerticalPageStateFactory
 	}
 
 	/// <summary>
-	/// Initializes row states for all rows in the timetable.
+	/// Initializes row states from the timetable rows, preserving per-row IsInfoRow.
 	/// </summary>
-	/// <param name="pageState">The page state to update</param>
-	/// <param name="rowCount">The number of rows in the timetable</param>
-	public static void InitializeRowStates(VerticalPageState pageState, int rowCount)
+	public static void InitializeRowStates(VerticalPageState pageState, TimetableRow[] rows)
 	{
 		pageState.RowStates.Clear();
-		for (int i = 0; i < rowCount; i++)
+		for (int i = 0; i < rows.Length; i++)
 		{
-			pageState.RowStates[i] = new VerticalTimetableRowState();
+			pageState.RowStates[i] = new VerticalTimetableRowState { IsInfoRow = rows[i].IsInfoRow };
 		}
 	}
 

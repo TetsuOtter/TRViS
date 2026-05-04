@@ -31,7 +31,7 @@ public class ViewHostStateFactoryTests
 		var state = ViewHostStateFactory.CreateEmptyState();
 
 		// Act
-		ViewHostStateFactory.UpdateSelectedWorkGroup(state, "Work Group 1");
+		ViewHostStateUpdater.\1(state, "Work Group 1");
 
 		// Assert
 		Assert.Equal("Work Group 1", state.SelectedWorkGroup.Name);
@@ -45,7 +45,7 @@ public class ViewHostStateFactoryTests
 		var state = ViewHostStateFactory.CreateEmptyState();
 
 		// Act
-		ViewHostStateFactory.UpdateSelectedWorkGroup(state, null);
+		ViewHostStateUpdater.\1(state, null);
 
 		// Assert
 		Assert.Empty(state.SelectedWorkGroup.Name);
@@ -59,7 +59,7 @@ public class ViewHostStateFactoryTests
 		var state = ViewHostStateFactory.CreateEmptyState();
 
 		// Act
-		ViewHostStateFactory.UpdateSelectedWork(state, "Work 1");
+		ViewHostStateUpdater.\1(state, "Work 1");
 
 		// Assert
 		Assert.Equal("Work 1", state.SelectedWork.Name);
@@ -73,7 +73,7 @@ public class ViewHostStateFactoryTests
 		var state = ViewHostStateFactory.CreateEmptyState();
 
 		// Act
-		ViewHostStateFactory.UpdateSelectedWork(state, null);
+		ViewHostStateUpdater.\1(state, null);
 
 		// Assert
 		Assert.Empty(state.SelectedWork.Name);
@@ -87,7 +87,7 @@ public class ViewHostStateFactoryTests
 		var state = ViewHostStateFactory.CreateEmptyState();
 
 		// Act
-		ViewHostStateFactory.UpdateSelectedTrain(state, "2024年1月15日", 2);
+		ViewHostStateUpdater.\1(state, "2024年1月15日", 2);
 
 		// Assert
 		Assert.Equal("2024年1月15日", state.SelectedTrain.AffectDate);
@@ -102,7 +102,7 @@ public class ViewHostStateFactoryTests
 		var state = ViewHostStateFactory.CreateEmptyState();
 
 		// Act
-		ViewHostStateFactory.UpdateSelectedTrain(state, null, 3);
+		ViewHostStateUpdater.\1(state, null, 3);
 
 		// Assert
 		Assert.Empty(state.SelectedTrain.AffectDate);
@@ -117,7 +117,7 @@ public class ViewHostStateFactoryTests
 		var providedDate = new DateTime(2024, 1, 15);
 
 		// Act
-		var result = ViewHostStateFactory.FormatAffectDate(providedDate, dayCount: 0);
+		var result = ViewHostStateUpdater.\1(providedDate, dayCount: 0);
 
 		// Assert
 		Assert.Equal("2024年1月15日", result);
@@ -130,7 +130,7 @@ public class ViewHostStateFactoryTests
 		int dayCount = 3;
 
 		// Act
-		var result = ViewHostStateFactory.FormatAffectDate(affectDate: null, dayCount);
+		var result = ViewHostStateUpdater.\1(affectDate: null, dayCount);
 
 		// Assert
 		// Should be today - 3 days
@@ -145,7 +145,7 @@ public class ViewHostStateFactoryTests
 		int dayCount = 0;
 
 		// Act
-		var result = ViewHostStateFactory.FormatAffectDate(null, dayCount);
+		var result = ViewHostStateUpdater.\1(null, dayCount);
 
 		// Assert
 		var expectedDate = DateTime.Now.ToString("yyyy年M月d日");
@@ -157,11 +157,11 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedWorkGroup(state, "Group 1");
+		ViewHostStateUpdater.\1(state, "Group 1");
 		Assert.True(state.SelectedWorkGroup.IsChanged);
 
 		// Act
-		ViewHostStateFactory.MarkWorkGroupProcessed(state);
+		ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.False(state.SelectedWorkGroup.IsChanged);
@@ -172,11 +172,11 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedWork(state, "Work 1");
+		ViewHostStateUpdater.\1(state, "Work 1");
 		Assert.True(state.SelectedWork.IsChanged);
 
 		// Act
-		ViewHostStateFactory.MarkWorkProcessed(state);
+		ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.False(state.SelectedWork.IsChanged);
@@ -187,11 +187,11 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedTrain(state, "2024年1月15日", 2);
+		ViewHostStateUpdater.\1(state, "2024年1月15日", 2);
 		Assert.True(state.SelectedTrain.IsChanged);
 
 		// Act
-		ViewHostStateFactory.MarkTrainProcessed(state);
+		ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.False(state.SelectedTrain.IsChanged);
@@ -222,7 +222,7 @@ public class ViewHostStateFactoryTests
 		);
 
 		// Act
-		var result = ViewHostStateFactory.ShouldApplyTrainData(trainData, true, true);
+		var result = ViewHostStateUpdater.\1(trainData, true, true);
 
 		// Assert
 		Assert.True(result);
@@ -232,7 +232,7 @@ public class ViewHostStateFactoryTests
 	public void ShouldApplyTrainData_TrainDataNull_ReturnsFalse()
 	{
 		// Act
-		var result = ViewHostStateFactory.ShouldApplyTrainData(null, true, true);
+		var result = ViewHostStateUpdater.\1(null, true, true);
 
 		// Assert
 		Assert.False(result);
@@ -263,7 +263,7 @@ public class ViewHostStateFactoryTests
 		);
 
 		// Act
-		var result = ViewHostStateFactory.ShouldApplyTrainData(trainData, false, true);
+		var result = ViewHostStateUpdater.\1(trainData, false, true);
 
 		// Assert
 		Assert.False(result);
@@ -294,7 +294,7 @@ public class ViewHostStateFactoryTests
 		);
 
 		// Act
-		var result = ViewHostStateFactory.ShouldApplyTrainData(trainData, true, false);
+		var result = ViewHostStateUpdater.\1(trainData, true, false);
 
 		// Assert
 		Assert.False(result);
@@ -307,7 +307,7 @@ public class ViewHostStateFactoryTests
 		var pageHeaderState = new PageHeaderState();
 
 		// Act
-		ViewHostStateFactory.UpdateAffectDate(pageHeaderState, "2024年1月15日");
+		ViewHostStateUpdater.\1(pageHeaderState, "2024年1月15日");
 
 		// Assert
 		Assert.Equal("2024年1月15日", pageHeaderState.AffectDateLabelText);
@@ -320,7 +320,7 @@ public class ViewHostStateFactoryTests
 		var pageHeaderState = new PageHeaderState();
 
 		// Act
-		ViewHostStateFactory.UpdateAffectDate(pageHeaderState, null);
+		ViewHostStateUpdater.\1(pageHeaderState, null);
 
 		// Assert
 		Assert.Empty(pageHeaderState.AffectDateLabelText);
@@ -334,10 +334,10 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedWorkGroup(state, "Group 1");
+		ViewHostStateUpdater.\1(state, "Group 1");
 
 		// Act
-		var hasChanged = ViewHostStateFactory.HasWorkGroupChanged(state);
+		var hasChanged = ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.True(hasChanged);
@@ -348,11 +348,11 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedWorkGroup(state, "Group 1");
-		ViewHostStateFactory.MarkWorkGroupProcessed(state);
+		ViewHostStateUpdater.\1(state, "Group 1");
+		ViewHostStateUpdater.\1(state);
 
 		// Act
-		var hasChanged = ViewHostStateFactory.HasWorkGroupChanged(state);
+		var hasChanged = ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.False(hasChanged);
@@ -363,10 +363,10 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedWork(state, "Work 1");
+		ViewHostStateUpdater.\1(state, "Work 1");
 
 		// Act
-		var hasChanged = ViewHostStateFactory.HasWorkChanged(state);
+		var hasChanged = ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.True(hasChanged);
@@ -377,11 +377,11 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedWork(state, "Work 1");
-		ViewHostStateFactory.MarkWorkProcessed(state);
+		ViewHostStateUpdater.\1(state, "Work 1");
+		ViewHostStateUpdater.\1(state);
 
 		// Act
-		var hasChanged = ViewHostStateFactory.HasWorkChanged(state);
+		var hasChanged = ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.False(hasChanged);
@@ -392,10 +392,10 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedTrain(state, "2024年1月15日", 2);
+		ViewHostStateUpdater.\1(state, "2024年1月15日", 2);
 
 		// Act
-		var hasChanged = ViewHostStateFactory.HasTrainChanged(state);
+		var hasChanged = ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.True(hasChanged);
@@ -406,11 +406,11 @@ public class ViewHostStateFactoryTests
 	{
 		// Arrange
 		var state = ViewHostStateFactory.CreateEmptyState();
-		ViewHostStateFactory.UpdateSelectedTrain(state, "2024年1月15日", 2);
-		ViewHostStateFactory.MarkTrainProcessed(state);
+		ViewHostStateUpdater.\1(state, "2024年1月15日", 2);
+		ViewHostStateUpdater.\1(state);
 
 		// Act
-		var hasChanged = ViewHostStateFactory.HasTrainChanged(state);
+		var hasChanged = ViewHostStateUpdater.\1(state);
 
 		// Assert
 		Assert.False(hasChanged);
@@ -423,16 +423,16 @@ public class ViewHostStateFactoryTests
 		var state = ViewHostStateFactory.CreateEmptyState();
 
 		// Act & Assert - First update
-		ViewHostStateFactory.UpdateSelectedWorkGroup(state, "Group 1");
+		ViewHostStateUpdater.\1(state, "Group 1");
 		Assert.True(state.SelectedWorkGroup.IsChanged);
 		Assert.Equal("Group 1", state.SelectedWorkGroup.Name);
 
 		// Mark processed
-		ViewHostStateFactory.MarkWorkGroupProcessed(state);
+		ViewHostStateUpdater.\1(state);
 		Assert.False(state.SelectedWorkGroup.IsChanged);
 
 		// Second update
-		ViewHostStateFactory.UpdateSelectedWorkGroup(state, "Group 2");
+		ViewHostStateUpdater.\1(state, "Group 2");
 		Assert.True(state.SelectedWorkGroup.IsChanged);
 		Assert.Equal("Group 2", state.SelectedWorkGroup.Name);
 	}
@@ -441,7 +441,7 @@ public class ViewHostStateFactoryTests
 	public void FormatAffectDate_WithStringValue_FormatsSuccessfully()
 	{
 		// Act - FormatAffectDate now expects DateTime? parameter
-		var result = ViewHostStateFactory.FormatAffectDate(null, dayCount: 0);
+		var result = ViewHostStateUpdater.\1(null, dayCount: 0);
 
 		// Assert - Should gracefully handle and return formatted date
 		Assert.NotEmpty(result);

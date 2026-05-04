@@ -17,12 +17,6 @@ public partial class VerticalTimetableViewModel : ObservableObject
 	public partial ObservableCollection<VerticalTimetableRowModel> CurrentRows { get; set; } = [];
 
 	[ObservableProperty]
-	public partial VerticalTimetableRowModel.LocationStates LocationMarkerState { get; set; } = VerticalTimetableRowModel.LocationStates.Undefined;
-
-	[ObservableProperty]
-	public partial int LocationMarkerPosition { get; set; } = -1;
-
-	[ObservableProperty]
 	public partial bool IsMarkingMode { get; set; } = false;
 
 	[ObservableProperty]
@@ -45,22 +39,6 @@ public partial class VerticalTimetableViewModel : ObservableObject
 		foreach (var row in CurrentRows)
 		{
 			row.IsMarkingMode = value;
-		}
-	}
-
-	partial void OnLocationMarkerPositionChanged(int value)
-	{
-		for (int i = 0; i < CurrentRows.Count; i++)
-		{
-			CurrentRows[i].IsLocationMarkerOnThisRow = (i == value);
-		}
-	}
-
-	partial void OnLocationMarkerStateChanged(VerticalTimetableRowModel.LocationStates value)
-	{
-		if (value == VerticalTimetableRowModel.LocationStates.Undefined)
-		{
-			LocationMarkerPosition = -1;
 		}
 	}
 
@@ -97,10 +75,6 @@ public partial class VerticalTimetableViewModel : ObservableObject
 		AfterRemarksText = trainData?.AfterRemarks;
 		AfterArriveText = trainData?.AfterArrive;
 		NextTrainId = trainData?.NextTrainId;
-
-		// Reset location marker state
-		LocationMarkerPosition = -1;
-		LocationMarkerState = VerticalTimetableRowModel.LocationStates.Undefined;
 
 		// Reset run started state
 		IsRunStarted = false;

@@ -14,6 +14,4 @@ public interface IVerticalTimetableDataSource
 	bool HasNextTrainId { get; }
 
 	event EventHandler? RowsChanged;
-	event EventHandler<TimetableLocationState>? LocationMarkerStateChanged;
-	event EventHandler<int>? LocationMarkerPositionChanged;
 }

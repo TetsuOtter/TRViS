@@ -104,7 +104,7 @@ internal class SharedViewHostState
 	/// </summary>
 	private void UpdateSelectedWorkGroup(string? workGroupName)
 	{
-		ViewHostStateFactory.UpdateSelectedWorkGroup(_state, workGroupName);
+		ViewHostStateUpdater.UpdateSelectedWorkGroup(_state, workGroupName);
 		RaiseStateChanged();
 	}
 
@@ -113,7 +113,7 @@ internal class SharedViewHostState
 	/// </summary>
 	private void UpdateSelectedWork(string? workName)
 	{
-		ViewHostStateFactory.UpdateSelectedWork(_state, workName);
+		ViewHostStateUpdater.UpdateSelectedWork(_state, workName);
 		RaiseStateChanged();
 	}
 
@@ -134,11 +134,11 @@ internal class SharedViewHostState
 				}
 			}
 
-			string affectDate = ViewHostStateFactory.FormatAffectDate(
+			string affectDate = ViewHostStateUpdater.FormatAffectDate(
 				affectDateTime,
 				trainData.DayCount ?? 0
 			);
-			ViewHostStateFactory.UpdateSelectedTrain(_state, affectDate, trainData.DayCount ?? 0);
+			ViewHostStateUpdater.UpdateSelectedTrain(_state, affectDate, trainData.DayCount ?? 0);
 		}
 		RaiseStateChanged();
 	}
@@ -148,7 +148,7 @@ internal class SharedViewHostState
 	/// </summary>
 	public void MarkWorkGroupProcessed()
 	{
-		ViewHostStateFactory.MarkWorkGroupProcessed(_state);
+		ViewHostStateUpdater.MarkWorkGroupProcessed(_state);
 		RaiseStateChanged();
 	}
 
@@ -157,7 +157,7 @@ internal class SharedViewHostState
 	/// </summary>
 	public void MarkWorkProcessed()
 	{
-		ViewHostStateFactory.MarkWorkProcessed(_state);
+		ViewHostStateUpdater.MarkWorkProcessed(_state);
 		RaiseStateChanged();
 	}
 
@@ -166,7 +166,7 @@ internal class SharedViewHostState
 	/// </summary>
 	public void MarkTrainProcessed()
 	{
-		ViewHostStateFactory.MarkTrainProcessed(_state);
+		ViewHostStateUpdater.MarkTrainProcessed(_state);
 		RaiseStateChanged();
 	}
 

@@ -27,6 +27,11 @@ internal class MarkerToggleAdapter : IMarkerToggleController
 		_viewModel.IsToggled = false;
 	}
 
+	public void Toggle()
+	{
+		_viewModel.IsToggled = !_viewModel.IsToggled;
+	}
+
 	// INotifyPropertyChanged
 
 	public event PropertyChangedEventHandler? PropertyChanged;

@@ -16,4 +16,9 @@ public interface IMarkerToggleController : INotifyPropertyChanged
 	/// Resets the toggle state
 	/// </summary>
 	void ResetToggle();
+
+	/// <summary>
+	/// Toggles the current state.
+	/// </summary>
+	void Toggle();
 }

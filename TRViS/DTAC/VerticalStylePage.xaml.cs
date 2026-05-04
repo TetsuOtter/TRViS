@@ -35,7 +35,7 @@ public partial class VerticalStylePage : ContentView
 
 	public static double TimetableViewActivityIndicatorBorderMaxOpacity { get; } = 0.6;
 
-	VerticalTimetableView TimetableView { get; } = [];
+	VerticalTimetableView TimetableView { get; }
 	MyMap? DebugMap = null;
 	private bool _isLandscape;
 
@@ -48,6 +48,7 @@ public partial class VerticalStylePage : ContentView
 
 		// Build presenter - all InstanceManager references are inside PresenterFactory
 		_presenter = PresenterFactory.Build();
+		TimetableView = new VerticalTimetableView(_presenter);
 		_presenter.StateChanged += OnPresenterStateChanged;
 
 		InitializeComponent();
@@ -171,10 +172,10 @@ public partial class VerticalStylePage : ContentView
 			}
 		};
 
-		TimetableView.RowTappedCallback = (rowIndex, isInfoRow, totalRowCount) =>
+		TimetableView.RowTappedCallback = rowIndex =>
 		{
-			logger.Debug("UserRowTapped: rowIndex={0}, isInfoRow={1}, totalRowCount={2}", rowIndex, isInfoRow, totalRowCount);
-			_presenter.OnRowTapped(rowIndex, isInfoRow, totalRowCount);
+			logger.Debug("UserRowTapped: rowIndex={0}", rowIndex);
+			_presenter.OnRowTapped(rowIndex);
 		};
 
 		MaxSpeedLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
@@ -295,11 +296,6 @@ public partial class VerticalStylePage : ContentView
 			UpdateTimetableActivityIndicator();
 		}
 
-		if ((changed & VerticalPageStateSection.RowStates) != 0)
-		{
-			ApplyRowStates(state);
-		}
-
 		// Apply scroll position on All change (train data changed)
 		if (changed == VerticalPageStateSection.All)
 		{
@@ -331,28 +327,6 @@ public partial class VerticalStylePage : ContentView
 				});
 			});
 		}
-	}
-
-	private void ApplyRowStates(TRViS.DTAC.Logic.VerticalPageState state)
-	{
-		// Find the active marker row
-		int markerRow = -1;
-		VerticalTimetableRowModel.LocationStates markerState = VerticalTimetableRowModel.LocationStates.Undefined;
-
-		foreach (var kvp in state.RowStates)
-		{
-			if (kvp.Value.LocationState != TimetableLocationState.Undefined)
-			{
-				markerRow = kvp.Key;
-				markerState = kvp.Value.LocationState == TimetableLocationState.AroundThisStation
-					? VerticalTimetableRowModel.LocationStates.AroundThisStation
-					: VerticalTimetableRowModel.LocationStates.RunningToNextStation;
-				break;
-			}
-		}
-
-		TimetableView.ViewModel.LocationMarkerPosition = markerRow;
-		TimetableView.ViewModel.LocationMarkerState = markerState;
 	}
 
 	private void ApplyDebugMapState(bool isVisible)

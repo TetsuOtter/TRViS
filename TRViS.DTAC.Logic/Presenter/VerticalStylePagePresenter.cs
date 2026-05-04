@@ -10,7 +10,7 @@ namespace TRViS.DTAC.Logic.Presenter;
 /// Presenter for the vertical style page that manages all business logic.
 /// Wake lock, debug map, and orientation are View responsibilities.
 /// </summary>
-public sealed class VerticalStylePagePresenter : IDisposable
+public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDisposable
 {
 	private readonly IDtacLocationServiceController _locationService;
 	private readonly IMarkerToggleController _markerToggle;
@@ -28,6 +28,9 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	public VerticalPageState CurrentState => _currentState;
 	public TrainData? CurrentTrainData => _lastTrainData;
 
+	// ILocationMarkerStateSource
+	IReadOnlyDictionary<int, VerticalTimetableRowState> ILocationMarkerStateSource.RowStates => _currentState.RowStates;
+
 	public event EventHandler<VerticalPageStateChangedEventArgs>? StateChanged;
 
 	public VerticalStylePagePresenter(
@@ -41,7 +44,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		_clock = clock ?? throw new ArgumentNullException(nameof(clock));
 		_appViewModelProvider = appViewModelProvider ?? throw new ArgumentNullException(nameof(appViewModelProvider));
 
-		_locationService.CanUseServiceChanged += OnLocationServiceCanUseChanged_Internal;
+		_locationService.CanUseServiceChanged += OnLocationServiceCanUseChanged;
 		_locationService.LocationStateChanged += OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated += OnGpsLocationUpdated_Internal;
 		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
@@ -54,11 +57,6 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	{
 		if (e.PropertyName == nameof(IAppViewModelProvider.SelectedTrainData))
 			SetSelectedTrainData(_appViewModelProvider.SelectedTrainData);
-	}
-
-	private void OnLocationServiceCanUseChanged_Internal(object? sender, bool canUse)
-	{
-		OnLocationServiceCanUseChanged(canUse);
 	}
 
 	private void OnLocationStateChanged_Internal(object? sender, LocationStateChangedEventArgs e)
@@ -104,7 +102,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 
 	private void SetSelectedTrainData(TrainData? trainData)
 	{
-		string affectDate = ViewHostStateFactory.FormatAffectDateOnly(
+		string affectDate = ViewHostStateUpdater.FormatAffectDateOnly(
 			trainData?.AffectDate,
 			trainData?.DayCount ?? 0);
 
@@ -129,7 +127,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 
 		if (trainData?.Rows != null)
 		{
-			VerticalPageStateFactory.InitializeRowStates(newState, trainData.Rows.Length);
+			VerticalPageStateFactory.InitializeRowStates(newState, trainData.Rows);
 		}
 
 		_currentState = newState;
@@ -169,9 +167,14 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		else
 		{
 			bool hasActiveMarker = _currentState.RowStates.Values.Any(r => r.LocationState != TimetableLocationState.Undefined);
-			if (!hasActiveMarker && _currentState.RowStates.Count > 0)
+			if (!hasActiveMarker)
 			{
-				_currentState.RowStates[0].LocationState = TimetableLocationState.AroundThisStation;
+				var firstStationKey = _currentState.RowStates
+					.Where(kvp => !kvp.Value.IsInfoRow)
+					.Select(kvp => (int?)kvp.Key)
+					.FirstOrDefault();
+				if (firstStationKey.HasValue)
+					_currentState.RowStates[firstStationKey.Value].LocationState = TimetableLocationState.AroundThisStation;
 			}
 		}
 
@@ -183,11 +186,14 @@ public sealed class VerticalStylePagePresenter : IDisposable
 	}
 
 	/// <summary>
-	/// Called when a timetable row is tapped
+	/// Called when a timetable row is tapped.
 	/// </summary>
-	public void OnRowTapped(int rowIndex, bool isInfoRow, int totalRowCount)
+	public void OnRowTapped(int rowIndex)
 	{
-		if (!_currentState.TimetableViewState.IsRunStarted || isInfoRow)
+		if (!_currentState.TimetableViewState.IsRunStarted)
+			return;
+
+		if (!_currentState.RowStates.TryGetValue(rowIndex, out var rowState) || rowState.IsInfoRow)
 			return;
 
 		bool isLocationServiceEnabled = _currentState.TimetableViewState.IsLocationServiceEnabled;
@@ -211,10 +217,12 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		{
 			_lastTapInfo = null;
 
-			if (!_currentState.RowStates.TryGetValue(rowIndex, out var rowState))
-				return;
-
-			bool isLastRow = rowIndex == totalRowCount - 1;
+			int lastStationRow = _currentState.RowStates
+				.Where(kvp => !kvp.Value.IsInfoRow)
+				.Select(kvp => kvp.Key)
+				.DefaultIfEmpty(-1)
+				.Max();
+			bool isLastRow = rowIndex == lastStationRow;
 
 			int currentMarkerRow = -1;
 			TimetableLocationState currentMarkerState = TimetableLocationState.Undefined;
@@ -291,10 +299,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 		}
 	}
 
-	/// <summary>
-	/// Called when location service can-use state changes
-	/// </summary>
-	public void OnLocationServiceCanUseChanged(bool canUse)
+	private void OnLocationServiceCanUseChanged(object? sender, bool canUse)
 	{
 		_currentState.PageHeaderState.CanUseLocationService = canUse;
 		_currentState.TimetableViewState.CanUseLocationService = canUse;
@@ -326,7 +331,7 @@ public sealed class VerticalStylePagePresenter : IDisposable
 
 		_disposed = true;
 
-		_locationService.CanUseServiceChanged -= OnLocationServiceCanUseChanged_Internal;
+		_locationService.CanUseServiceChanged -= OnLocationServiceCanUseChanged;
 		_locationService.LocationStateChanged -= OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated -= OnGpsLocationUpdated_Internal;
 		_appViewModelProvider.PropertyChanged -= OnAppViewModelPropertyChanged;

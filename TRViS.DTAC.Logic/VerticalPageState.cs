@@ -227,6 +227,12 @@ public class VerticalTimetableRowState
 	/// Whether the row is currently enabled for user interaction
 	/// </summary>
 	public bool IsEnabled { get; set; } = true;
+
+	/// <summary>
+	/// Whether this is a header/info row (not a station row).
+	/// Info rows do not participate in location marker logic.
+	/// </summary>
+	public bool IsInfoRow { get; set; } = false;
 }
 
 

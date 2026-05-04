@@ -17,6 +17,7 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 	private readonly IMarkerToggleController _markerToggle;
 	private readonly IDtacCrashLogger _crashLogger;
 	private readonly IVerticalTimetableDataSource _dataSource;
+	private readonly ILocationMarkerStateSource _locationMarkerSource;
 
 	// Persisted layout inputs so we can re-compute on partial changes
 	private int _rowCount = 0;
@@ -41,16 +42,17 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 	public VerticalTimetableViewPresenter(
 		IMarkerToggleController markerToggle,
 		IDtacCrashLogger crashLogger,
-		IVerticalTimetableDataSource dataSource)
+		IVerticalTimetableDataSource dataSource,
+		ILocationMarkerStateSource locationMarkerSource)
 	{
 		_markerToggle = markerToggle ?? throw new ArgumentNullException(nameof(markerToggle));
 		_crashLogger = crashLogger ?? throw new ArgumentNullException(nameof(crashLogger));
 		_dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
+		_locationMarkerSource = locationMarkerSource ?? throw new ArgumentNullException(nameof(locationMarkerSource));
 
 		_markerToggle.PropertyChanged += OnMarkerTogglePropertyChanged;
 		_dataSource.RowsChanged += OnDataSourceRowsChanged;
-		_dataSource.LocationMarkerStateChanged += OnDataSourceLocationMarkerStateChanged;
-		_dataSource.LocationMarkerPositionChanged += OnDataSourceLocationMarkerPositionChanged;
+		_locationMarkerSource.StateChanged += OnLocationMarkerSourceStateChanged;
 
 		// Sync initial state
 		_currentState.IsMarkingMode = _markerToggle.IsToggled;
@@ -59,35 +61,13 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 	// ---------- Intents from View ----------
 
 	/// <summary>
-	/// Call when the location marker state changes.
-	/// Updates <see cref="VerticalTimetableViewPageState.Marker"/> box/line visibility.
+	/// Called when the user activates the marker toggle.
+	/// Delegates to <see cref="IMarkerToggleController.Toggle"/>; the resulting
+	/// <see cref="IMarkerToggleController.IsToggled"/> change is observed internally.
 	/// </summary>
-	public void OnLocationMarkerStateChanged(TimetableLocationState state)
+	public void OnMarkerToggled()
 	{
-		_currentState.Marker.IsBoxVisible = state != TimetableLocationState.Undefined;
-		_currentState.Marker.IsLineVisible = state == TimetableLocationState.RunningToNextStation;
-		RaiseStateChanged();
-	}
-
-	/// <summary>
-	/// Call when the location marker row position changes.
-	/// Updates <see cref="VerticalTimetableViewPageState.Marker"/> row and fires
-	/// <see cref="ScrollRequested"/> with the row index.
-	/// </summary>
-	public void OnLocationMarkerPositionChanged(int position)
-	{
-		_currentState.Marker.MarkerRow = position;
-		RaiseStateChanged();
-		ScrollRequested?.Invoke(this, position);
-	}
-
-	/// <summary>
-	/// Call when the marker toggle changes externally.
-	/// </summary>
-	public void OnMarkerToggleChanged(bool isToggled)
-	{
-		_currentState.IsMarkingMode = isToggled;
-		RaiseStateChanged();
+		_markerToggle.Toggle();
 	}
 
 	// ---------- Private helpers ----------
@@ -117,17 +97,52 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 		_currentState.NextTrainButtonRowIndex = TimetableLayoutCalculator.CalculateNextTrainButtonRowIndex(_rowCount, _hasAfterArrive);
 	}
 
-	private void OnDataSourceLocationMarkerStateChanged(object? sender, TimetableLocationState state)
-		=> OnLocationMarkerStateChanged(state);
+	private void OnLocationMarkerSourceStateChanged(object? sender, VerticalPageStateChangedEventArgs e)
+	{
+		if ((e.Changed & VerticalPageStateSection.RowStates) == 0
+			&& e.Changed != VerticalPageStateSection.All)
+			return;
 
-	private void OnDataSourceLocationMarkerPositionChanged(object? sender, int position)
-		=> OnLocationMarkerPositionChanged(position);
+		var rowStates = _locationMarkerSource.RowStates;
+
+		int markerRow = -1;
+		TimetableLocationState markerState = TimetableLocationState.Undefined;
+		foreach (var kvp in rowStates)
+		{
+			if (kvp.Value.LocationState != TimetableLocationState.Undefined)
+			{
+				markerRow = kvp.Key;
+				markerState = kvp.Value.LocationState;
+				break;
+			}
+		}
+
+		bool newBoxVisible = markerState != TimetableLocationState.Undefined;
+		bool newLineVisible = markerState == TimetableLocationState.RunningToNextStation;
+
+		bool boxChanged = _currentState.Marker.IsBoxVisible != newBoxVisible;
+		bool lineChanged = _currentState.Marker.IsLineVisible != newLineVisible;
+		bool rowChanged = _currentState.Marker.MarkerRow != markerRow;
+
+		if (!boxChanged && !lineChanged && !rowChanged)
+			return;
+
+		int prevMarkerRow = _currentState.Marker.MarkerRow;
+		_currentState.Marker.IsBoxVisible = newBoxVisible;
+		_currentState.Marker.IsLineVisible = newLineVisible;
+		_currentState.Marker.MarkerRow = markerRow;
+		RaiseStateChanged();
+
+		if (newBoxVisible && markerRow >= 0 && prevMarkerRow != markerRow)
+			ScrollRequested?.Invoke(this, markerRow);
+	}
 
 	private void OnMarkerTogglePropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
 		if (e.PropertyName == nameof(IMarkerToggleController.IsToggled))
 		{
-			OnMarkerToggleChanged(_markerToggle.IsToggled);
+			_currentState.IsMarkingMode = _markerToggle.IsToggled;
+			RaiseStateChanged();
 		}
 	}
 
@@ -144,7 +159,6 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 		_disposed = true;
 		_markerToggle.PropertyChanged -= OnMarkerTogglePropertyChanged;
 		_dataSource.RowsChanged -= OnDataSourceRowsChanged;
-		_dataSource.LocationMarkerStateChanged -= OnDataSourceLocationMarkerStateChanged;
-		_dataSource.LocationMarkerPositionChanged -= OnDataSourceLocationMarkerPositionChanged;
+		_locationMarkerSource.StateChanged -= OnLocationMarkerSourceStateChanged;
 	}
 }
