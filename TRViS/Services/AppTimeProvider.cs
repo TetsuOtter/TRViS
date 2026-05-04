@@ -1,3 +1,5 @@
+using TRViS.LocationService.Abstractions;
+
 namespace TRViS.Services;
 
 /// <summary>

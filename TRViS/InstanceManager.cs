@@ -1,6 +1,7 @@
 using TRViS.FirebaseWrapper;
 using TRViS.Services;
 using TRViS.ViewModels;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS;
 
@@ -20,8 +21,53 @@ internal static class InstanceManager
 
 	private static EasterEggPageViewModel? _EasterEggPageViewModel = null;
 	public static EasterEggPageViewModel EasterEggPageViewModel { get => _EasterEggPageViewModel ??= new(); }
-	private static LocationService? _LocationService = null;
-	public static LocationService LocationService { get => _LocationService ??= new(); }
+
+	private static TRViS.Services.LocationService? _LocationService = null;
+	public static TRViS.Services.LocationService LocationService
+	{
+		get
+		{
+			if (_LocationService is not null)
+				return _LocationService;
+
+			var timeProvider = TimeProvider;
+			var httpClient = HttpClient;
+			var eevm = EasterEggPageViewModel;
+			var appViewModel = AppViewModel;
+
+			_LocationService = new TRViS.Services.LocationService(
+				LoggerService.GetGeneralLoggerT<TRViS.Services.LocationService>(),
+				LoggerService.GetLocationServiceLoggerT<TRViS.Services.LocationService>(),
+				LoggerService.GetLocationServiceLoggerT<TRViS.Services.LonLatLocationService>(),
+				httpClient,
+				timeProvider
+			);
+
+			// Interval: sync with EasterEggPageViewModel
+			_LocationService.Interval = TimeSpan.FromSeconds(eevm.LocationServiceInterval_Seconds);
+			eevm.PropertyChanged += (_, e) =>
+			{
+				if (e.PropertyName == nameof(EasterEggPageViewModel.LocationServiceInterval_Seconds))
+				{
+					_LocationService.Interval = TimeSpan.FromSeconds(eevm.LocationServiceInterval_Seconds);
+				}
+			};
+
+			// Create adapters
+			_LocationServiceGpsAdapter = new LocationServiceGpsAdapter(_LocationService);
+			_LocationServiceIdSyncAdapter = new LocationServiceIdSyncAdapter(_LocationService, appViewModel);
+			_LocationServiceAlertSubscriber = new LocationServiceAlertSubscriber(_LocationService);
+			appViewModel.SubscribeToLocationService(_LocationService);
+
+			return _LocationService;
+		}
+	}
+
+	private static LocationServiceGpsAdapter? _LocationServiceGpsAdapter = null;
+	public static LocationServiceGpsAdapter LocationServiceGpsAdapter => _LocationServiceGpsAdapter ?? throw new InvalidOperationException("LocationService must be initialized first");
+
+	private static LocationServiceIdSyncAdapter? _LocationServiceIdSyncAdapter = null;
+	private static LocationServiceAlertSubscriber? _LocationServiceAlertSubscriber = null;
 
 	private static ITimeProvider? _TimeProvider = null;
 	public static ITimeProvider TimeProvider { get => _TimeProvider ??= new AppTimeProvider(); }
@@ -102,6 +148,10 @@ internal static class InstanceManager
 	}
 	public static void Dispose()
 	{
+		DisposeValue(ref _LocationServiceGpsAdapter);
+		DisposeValue(ref _LocationServiceIdSyncAdapter);
+		DisposeValue(ref _LocationServiceAlertSubscriber);
+		DisposeValue(ref _LocationService);
 		DisposeValue(ref _HttpClient);
 	}
 

@@ -6,7 +6,6 @@ using TRViS.Utils;
 namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsOpen")]
-[DependencyProperty<bool>("IsLocationServiceEnabled")]
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
@@ -46,19 +45,15 @@ public partial class PageHeader : Grid
 	#region Start / End Run Button
 	readonly StartEndRunButton StartEndRunButton = new();
 
-	public event EventHandler<ValueChangedEventArgs<bool>>? IsRunningChanged
-	{
-		add => StartEndRunButton.IsCheckedChanged += value;
-		remove => StartEndRunButton.IsCheckedChanged -= value;
-	}
+	public Action? StartButtonTappedCallback { get; set; }
 
 	public bool IsRunning
 	{
 		get => StartEndRunButton.IsChecked;
 		set
 		{
-			// UpdateLocationServiceButtonStatus はイベントハンドラ側で行う
 			StartEndRunButton.IsChecked = value;
+			UpdateLocationServiceButtonStatus();
 			logger.Info("IsRunning: {0}", value);
 		}
 	}
@@ -90,22 +85,20 @@ public partial class PageHeader : Grid
 	}
 	void UpdateLocationServiceButtonStatus() => LocationServiceButton.IsEnabled = CanUseLocationService && IsRunning;
 
-	public event EventHandler<ValueChangedEventArgs<bool>>? IsLocationServiceEnabledChanged
-	{
-		add => LocationServiceButton.IsCheckedChanged += value;
-		remove => LocationServiceButton.IsCheckedChanged -= value;
-	}
+	public Action? LocationServiceButtonTappedCallback { get; set; }
 
-	partial void OnIsLocationServiceEnabledChanged(bool newValue)
+	private bool _isLocationServiceEnabled = false;
+	public bool IsLocationServiceEnabled
 	{
-		logger.Info("IsLocationServiceEnabled: {0}", newValue);
-		LocationServiceButton.IsChecked = newValue;
-	}
-
-	private void LocationServiceButton_IsCheckedChanged(object? sender, ValueChangedEventArgs<bool> e)
-	{
-		logger.Trace("newValue: {0}", e.NewValue);
-		IsLocationServiceEnabled = e.NewValue;
+		get => _isLocationServiceEnabled;
+		set
+		{
+			if (_isLocationServiceEnabled == value)
+				return;
+			_isLocationServiceEnabled = value;
+			LocationServiceButton.IsChecked = value;
+			logger.Info("IsLocationServiceEnabled: {0}", value);
+		}
 	}
 	#endregion
 
@@ -139,10 +132,19 @@ public partial class PageHeader : Grid
 
 		StartEndRunButton.Margin = new(2, 8);
 		StartEndRunButton.IsCheckedChanged += StartEndRunButton_IsCheckedChanged;
+		StartEndRunButton.Tapped += (_, _) =>
+		{
+			logger.Info("StartEndRunButton tapped");
+			StartButtonTappedCallback?.Invoke();
+		};
 
 		LocationServiceButton.IsEnabled = false;
 		LocationServiceButton.Margin = new(4, 8, 4, 10);
-		LocationServiceButton.IsCheckedChanged += LocationServiceButton_IsCheckedChanged;
+		LocationServiceButton.Tapped += (_, _) =>
+		{
+			logger.Info("LocationServiceButton tapped");
+			LocationServiceButtonTappedCallback?.Invoke();
+		};
 
 		OpenCloseButton.TextWhenOpen = "\xe5ce";
 		OpenCloseButton.TextWhenClosed = "\xe5cf";

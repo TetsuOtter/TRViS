@@ -5,12 +5,9 @@
 	xmlns:root="clr-namespace:TRViS"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
-	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO.ILoader"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
-	xmlns:conv="clr-namespace:TRViS.ValueConverters"
 	x:Class="TRViS.DTAC.VerticalStylePage"
-	x:Name="this"
-	x:DataType="models:TrainData">
+	x:Name="this">
 	<ContentView.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
@@ -71,8 +68,8 @@
 			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
 			<Label
+				x:Name="TrainNumberLabel"
 				Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
-				Text="{Binding TrainNumber, Converter={StaticResource TrainNumberConverter}}"
 				TextColor="{x:Static dtac:DTACElementStyles.TrainNumNextDayTextColor}"
 				FontSize="24"
 				FontAttributes="Bold"
@@ -142,7 +139,8 @@
 				Grid.Column="0"/>
 
 			<Border
-				IsVisible="{Binding CarCount, Converter={x:Static conv:IsOneOrMoreIntConverter.Default}}"
+				x:Name="CarCountBorder"
+				IsVisible="False"
 				Grid.Column="1"
 				BackgroundColor="{x:Static dtac:DTACElementStyles.CarCountBGColor}"
 				Stroke="Transparent"
@@ -155,9 +153,9 @@
 					Margin="0"
 					Padding="4">
 					<Label
+						x:Name="CarCountLabel"
 						Style="{x:Static dtac:DTACElementStyles.TimetableLargeNumberLabelStyleResource}"
-						VerticalOptions="Center"
-						Text="{Binding CarCount}"/>
+						VerticalOptions="Center"/>
 
 					<Label
 						Style="{x:Static dtac:DTACElementStyles.LabelStyleResource}"
