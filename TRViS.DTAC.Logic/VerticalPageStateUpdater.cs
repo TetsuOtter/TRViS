@@ -50,8 +50,6 @@ internal static class VerticalPageStateUpdater
 	public static void UpdateTimetableActivityIndicatorState(TimetableActivityIndicatorState state, bool isTimetableBusy)
 	{
 		state.IsBusy = isTimetableBusy;
-		state.IsVisible = isTimetableBusy;
-		state.Opacity = isTimetableBusy ? 1.0 : 0;
 	}
 
 	/// <summary>

@@ -118,16 +118,6 @@ public class TimetableActivityIndicatorState
 	/// Whether the timetable is currently busy loading data
 	/// </summary>
 	public bool IsBusy { get; set; } = false;
-
-	/// <summary>
-	/// Whether the activity indicator border is visible
-	/// </summary>
-	public bool IsVisible { get; set; } = false;
-
-	/// <summary>
-	/// Current opacity of the indicator (0-1)
-	/// </summary>
-	public double Opacity { get; set; } = 0;
 }
 
 /// <summary>

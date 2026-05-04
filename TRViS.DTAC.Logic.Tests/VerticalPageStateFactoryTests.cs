@@ -131,8 +131,6 @@ public class VerticalPageStateFactoryTests
 
 		// Assert
 		Assert.True(indicatorState.IsBusy);
-		Assert.True(indicatorState.IsVisible);
-		Assert.True(indicatorState.Opacity > 0);
 	}
 
 	[Fact]
@@ -141,15 +139,12 @@ public class VerticalPageStateFactoryTests
 		// Arrange
 		var indicatorState = new TimetableActivityIndicatorState();
 		indicatorState.IsBusy = true;
-		indicatorState.IsVisible = true;
 
 		// Act
 		VerticalPageStateUpdater.UpdateTimetableActivityIndicatorState(indicatorState, isTimetableBusy: false);
 
 		// Assert
 		Assert.False(indicatorState.IsBusy);
-		Assert.False(indicatorState.IsVisible);
-		Assert.Equal(0, indicatorState.Opacity);
 	}
 
 	[Fact]
