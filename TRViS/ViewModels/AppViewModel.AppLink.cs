@@ -213,7 +213,7 @@ public partial class AppViewModel
 			lastLoader?.Dispose();
 			logger.Debug("Last Loader Disposed");
 
-			await InstanceManager.LocationService.SetNetworkSyncServiceAsync(service);
+			InstanceManager.LocationService.SetNetworkSyncService(service);
 
 			// WebSocketのAppLinkを履歴に追加
 			if (originalAppLink is not null)

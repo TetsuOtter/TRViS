@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 using NLog;
 
-using TRViS.Services;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.NetworkSyncService;
 

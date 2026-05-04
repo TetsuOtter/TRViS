@@ -7,6 +7,7 @@ using Microsoft.Maui.Maps;
 
 using TRViS.IO.Models;
 using TRViS.Services;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.Controls;
 

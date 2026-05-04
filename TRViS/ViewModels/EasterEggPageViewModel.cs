@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls;
 using TRViS.MyAppCustomizables;
 using TRViS.Services;
 using TRViS.Utils;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.ViewModels;
 
