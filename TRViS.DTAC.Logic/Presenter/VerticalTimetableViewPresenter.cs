@@ -90,14 +90,6 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 		RaiseStateChanged();
 	}
 
-	/// <summary>
-	/// Logs an exception that occurred in View code via the crash logger adapter.
-	/// </summary>
-	public void LogException(Exception ex, string? context = null)
-	{
-		_crashLogger.Log(ex, context);
-	}
-
 	// ---------- Private helpers ----------
 
 	private void OnDataSourceRowsChanged(object? sender, EventArgs e)

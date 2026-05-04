@@ -241,21 +241,6 @@ public class VerticalTimetableViewPresenterTests
 		Assert.True(p.CurrentState.IsMarkingMode);
 	}
 
-	// --- LogException ---
-
-	[Fact]
-	public void LogException_DelegatesToCrashLogger()
-	{
-		var p = CreatePresenter(out _, out var logger);
-		var ex = new InvalidOperationException("test");
-
-		p.LogException(ex, "ctx");
-
-		Assert.Single(logger.Calls);
-		Assert.Same(ex, logger.Calls[0].ex);
-		Assert.Equal("ctx", logger.Calls[0].ctx);
-	}
-
 	// --- Dispose ---
 
 	[Fact]
