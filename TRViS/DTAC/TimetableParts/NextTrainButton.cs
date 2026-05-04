@@ -23,6 +23,7 @@ public class NextTrainButton : Grid
 	{
 		_presenter = Adapters.PresenterFactory.BuildNextTrainButtonPresenter();
 		_presenter.StateChanged += OnPresenterStateChanged;
+		OnPresenterStateChanged(null, _presenter.CurrentState);
 
 		DTACElementStyles.SemiDarkGreen.Apply(_NextTrainButton, BackgroundColorProperty);
 		_NextTrainButton.Clicked += NextTrainButton_Click;

@@ -19,6 +19,11 @@ internal class LocationServiceIdSyncAdapter : IDisposable
 		_locationService = locationService;
 		_appViewModel = appViewModel;
 		_appViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
+		_locationService.SetTargetIds(
+			_appViewModel.SelectedWorkGroup?.Id,
+			_appViewModel.SelectedWork?.Id,
+			_appViewModel.SelectedTrainData?.Id
+		);
 	}
 
 	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

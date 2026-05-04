@@ -7,9 +7,10 @@ namespace TRViS.DTAC.Adapters;
 /// <summary>
 /// Adapter that bridges LocationService.TimeChanged to ITimeProvider.
 /// </summary>
-internal class TimeProviderAdapter : LogicITimeProvider
+internal class TimeProviderAdapter : LogicITimeProvider, IDisposable
 {
     private readonly LocationService _locationService;
+    private bool _disposed;
 
     public TimeProviderAdapter(LocationService locationService)
     {
@@ -23,4 +24,12 @@ internal class TimeProviderAdapter : LogicITimeProvider
     }
 
     public event EventHandler<int>? TimeChanged;
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        _locationService.TimeChanged -= OnTimeChanged;
+    }
 }

@@ -45,6 +45,7 @@ public partial class ViewHost : ContentPage
 		_dtacViewModel = dtacViewModel;
 
 		_presenter.StateChanged += OnPresenterStateChanged;
+		Unloaded += (_, _) => _presenter.Dispose();
 
 		Shell.SetNavBarIsVisible(this, false);
 

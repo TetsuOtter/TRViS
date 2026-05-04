@@ -75,5 +75,7 @@ public sealed class ViewHostPresenter : IDisposable
 
         _appViewModel.PropertyChanged -= OnAppViewModelPropertyChanged;
         _timeProvider.TimeChanged -= OnTimeChanged;
+        if (_timeProvider is IDisposable disposable)
+            disposable.Dispose();
     }
 }

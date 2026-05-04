@@ -13,7 +13,7 @@ public class TimetableService : ITimetableService
 	{
 		lock (_lock)
 		{
-			return _trainDataStore.TryGetValue(trainDataId, out var data) ? data : null;
+			return _trainDataStore.TryGetValue(trainDataId, out var data) ? CopyTrainData(data) : null;
 		}
 	}
 
@@ -21,7 +21,7 @@ public class TimetableService : ITimetableService
 	{
 		lock (_lock)
 		{
-			return _trainDataStore.Values.ToList();
+			return _trainDataStore.Values.Select(CopyTrainData).ToList();
 		}
 	}
 
@@ -34,9 +34,36 @@ public class TimetableService : ITimetableService
 
 		lock (_lock)
 		{
-			_trainDataStore[trainData.Id] = trainData;
+			_trainDataStore[trainData.Id] = CopyTrainData(trainData);
 		}
 	}
+
+	private static TrainDataItem CopyTrainData(TrainDataItem source) => new()
+	{
+		Id = source.Id,
+		WorkName = source.WorkName,
+		AffectDate = source.AffectDate,
+		TrainNumber = source.TrainNumber,
+		MaxSpeed = source.MaxSpeed,
+		SpeedType = source.SpeedType,
+		NominalTractiveCapacity = source.NominalTractiveCapacity,
+		CarCount = source.CarCount,
+		Destination = source.Destination,
+		BeginRemarks = source.BeginRemarks,
+		AfterRemarks = source.AfterRemarks,
+		Remarks = source.Remarks,
+		BeforeDeparture = source.BeforeDeparture,
+		TrainInfo = source.TrainInfo,
+		Rows = new List<TimetableRowItem>(source.Rows),
+		Direction = source.Direction,
+		AfterArrive = source.AfterArrive,
+		BeforeDepartureOnStationTrackCol = source.BeforeDepartureOnStationTrackCol,
+		AfterArriveOnStationTrackCol = source.AfterArriveOnStationTrackCol,
+		DayCount = source.DayCount,
+		IsRideOnMoving = source.IsRideOnMoving,
+		LineColor_RGB = source.LineColor_RGB,
+		NextTrainId = source.NextTrainId,
+	};
 
 	public bool RemoveTrainData(string trainDataId)
 	{

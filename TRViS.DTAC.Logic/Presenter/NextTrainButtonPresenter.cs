@@ -48,6 +48,7 @@ public class NextTrainButtonPresenter
 		_userAlertService = userAlertService ?? throw new ArgumentNullException(nameof(userAlertService));
 
 		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
+		OnAppViewModelPropertyChanged(this, new PropertyChangedEventArgs(nameof(IAppViewModelProvider.SelectedTrainData)));
 	}
 
 	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
