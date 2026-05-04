@@ -5,9 +5,9 @@ namespace TRViS.DTAC.Logic.Abstractions;
 /// </summary>
 public interface ITimeProvider
 {
-    /// <summary>
-    /// Fired when the timetable clock time changes.
-    /// The event argument is total seconds (may be negative before departure).
-    /// </summary>
-    event EventHandler<int>? TimeChanged;
+	/// <summary>
+	/// Fired when the timetable clock time changes.
+	/// The event argument is total seconds (may be negative before departure).
+	/// </summary>
+	event EventHandler<int>? TimeChanged;
 }

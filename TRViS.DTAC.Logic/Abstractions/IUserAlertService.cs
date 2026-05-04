@@ -7,20 +7,20 @@ namespace TRViS.DTAC.Logic.Abstractions;
 /// </summary>
 public sealed class UserAlertException : Exception
 {
-    public string Title { get; }
-    public string CancelLabel { get; }
+	public string Title { get; }
+	public string CancelLabel { get; }
 
-    public UserAlertException(string title, string message, string cancel)
-        : base(message)
-    {
-        Title = title;
-        CancelLabel = cancel;
-    }
+	public UserAlertException(string title, string message, string cancel)
+			: base(message)
+	{
+		Title = title;
+		CancelLabel = cancel;
+	}
 
-    public UserAlertException(string title, string message, string cancel, Exception innerException)
-        : base(message, innerException)
-    {
-        Title = title;
-        CancelLabel = cancel;
-    }
+	public UserAlertException(string title, string message, string cancel, Exception innerException)
+			: base(message, innerException)
+	{
+		Title = title;
+		CancelLabel = cancel;
+	}
 }
