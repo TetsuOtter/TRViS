@@ -13,7 +13,7 @@ public partial class MarkerButton : Border
 	{
 		logger.Trace("Creating...");
 
-		MarkerSettings = InstanceManager.DTACMarkerViewModel;
+		MarkerSettings = Adapters.PresenterFactory.GetRawMarkerViewModel();
 		BindingContext = MarkerSettings;
 		InitializeComponent();
 
@@ -51,7 +51,7 @@ public partial class MarkerButton : Border
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "MarkerButton.Tap");
+			Adapters.PresenterFactory.GetCrashLogger().Log(ex, "MarkerButton.Tap");
 			await Util.ExitWithAlertAsync(ex);
 		}
 	}

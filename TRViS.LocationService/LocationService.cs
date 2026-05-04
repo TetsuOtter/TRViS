@@ -1,9 +1,6 @@
-using System.ComponentModel;
-
-using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
 using TRViS.Utils;
-using TRViS.ViewModels;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.Services;
 
@@ -19,9 +16,11 @@ public class ExceptionThrownEventArgs : EventArgs
 
 public partial class LocationService : IDisposable
 {
-	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	private static readonly NLog.Logger locationServiceLogger = LoggerService.GetLocationServiceLogger();
-	private static readonly NLog.Logger lonLatLocationServiceLogger = LoggerService.GetLocationServiceLoggerT<LonLatLocationService>();
+	private readonly NLog.Logger logger;
+	private readonly NLog.Logger locationServiceLogger;
+	private readonly NLog.Logger lonLatLocationServiceLogger;
+	private readonly HttpClient httpClient;
+	private readonly ITimeProvider timeProvider;
 
 	public bool IsEnabled
 	{
@@ -46,6 +45,17 @@ public partial class LocationService : IDisposable
 	public event EventHandler<Exception>? ExceptionThrown;
 	public event EventHandler<TimetableData>? TimetableUpdated;
 
+	/// <summary>
+	/// GPS位置情報が更新された際に発生するイベント。
+	/// 引数は (longitude, latitude, accuracy?) の tuple。
+	/// </summary>
+	public event EventHandler<(double Longitude, double Latitude, double? Accuracy)>? OnGpsLocationUpdated;
+
+	/// <summary>
+	/// ユーザーへのアラート要求イベント（MAUI非依存）。メインアプリ側で購読してUIを表示する。
+	/// </summary>
+	public event EventHandler<UserAlertRequestedEventArgs>? AlertRequested;
+
 	public bool CanUseService => _CurrentService?.CanUseService ?? false;
 
 	public ILocationService? CurrentService => _CurrentService;
@@ -55,12 +65,31 @@ public partial class LocationService : IDisposable
 	/// </summary>
 	public bool NetworkSyncServiceCanStart => (_CurrentService as NetworkSyncServiceBase)?.CanStart ?? false;
 
+	/// <summary>
+	/// GPS位置情報の更新間隔
+	/// </summary>
+	public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(1);
+
 	ILocationService? _CurrentService;
 	CancellationTokenSource? serviceCancellation = null;
 	CancellationTokenSource? timeProviderCancellation = null;
 
-	public LocationService()
+	// GPS isFirst リセット追跡
+	bool _isFirstGps = true;
+
+	// SetTargetIds キャッシュ
+	string? _lastWorkGroupId;
+	string? _lastWorkId;
+	string? _lastTrainId;
+
+	public LocationService(NLog.Logger logger, NLog.Logger locationServiceLogger, NLog.Logger lonLatLocationServiceLogger, HttpClient httpClient, ITimeProvider timeProvider)
 	{
+		this.logger = logger;
+		this.locationServiceLogger = locationServiceLogger;
+		this.lonLatLocationServiceLogger = lonLatLocationServiceLogger;
+		this.httpClient = httpClient;
+		this.timeProvider = timeProvider;
+
 		logger.Trace("Creating...");
 
 		IsEnabled = false;
@@ -69,7 +98,7 @@ public partial class LocationService : IDisposable
 		logger.Debug("LocationService is created");
 	}
 
-	void OnIsEnabledChanged(bool value)
+void OnIsEnabledChanged(bool value)
 	{
 		if (_CurrentService is null)
 		{
@@ -92,12 +121,12 @@ public partial class LocationService : IDisposable
 			}
 			else
 			{
+				_isFirstGps = true;
 				serviceCancellation?.Cancel();
 				serviceCancellation?.Dispose();
-				logger.Info("IsEnabled is changed to true -> start LocationService");
+				logger.Info("IsEnabled is changed to true -> start LocationService (GPS will be driven externally)");
 				CancellationTokenSource nextTokenSource = new();
 				serviceCancellation = nextTokenSource;
-				Task.Run(() => GpsPositioningTask(targetService, nextTokenSource.Token));
 			}
 		}
 	}
@@ -105,23 +134,22 @@ public partial class LocationService : IDisposable
 	void OnCanUseServiceChanged(object? sender, bool e)
 	{
 		logger.Debug("CanUseService is changed to {0}", e);
-		MainThread.BeginInvokeOnMainThread(() => CanUseServiceChanged?.Invoke(sender, e));
+		CanUseServiceChanged?.Invoke(sender, e);
 	}
 	void OnLocationStateChanged(object? sender, LocationStateChangedEventArgs e)
 	{
 		logger.Debug("LocationStateChanged: Station[{0}] IsRunningToNextStation:{1}", e.NewStationIndex, e.IsRunningToNextStation);
-		MainThread.BeginInvokeOnMainThread(() => LocationStateChanged?.Invoke(sender, e));
+		LocationStateChanged?.Invoke(sender, e);
 	}
 	void OnTimeChanged(object? sender, int second)
 	{
-		// logger.Debug("TimeChanged: {0}", second);
-		MainThread.BeginInvokeOnMainThread(() => TimeChanged?.Invoke(sender, second));
+		TimeChanged?.Invoke(sender, second);
 	}
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
 	{
 		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
 			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
-		MainThread.BeginInvokeOnMainThread(() => TimetableUpdated?.Invoke(sender, timetableData));
+		TimetableUpdated?.Invoke(sender, timetableData);
 	}
 
 	void OnNetworkSyncServiceCanStartChanged(object? sender, bool canStart)
@@ -132,59 +160,31 @@ public partial class LocationService : IDisposable
 		if (canStart && _CurrentService is WebSocketNetworkSyncService)
 		{
 			logger.Info("CanStart is true and WebSocket is being used -> automatically enable location service");
-			MainThread.BeginInvokeOnMainThread(() =>
-			{
-				IsEnabled = true;
-			});
-		}
-	}
-
-	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
-		{
-			switch (e.PropertyName)
-			{
-				case nameof(AppViewModel.SelectedWorkGroup):
-					networkSyncService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
-					break;
-				case nameof(AppViewModel.SelectedWork):
-					networkSyncService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
-					break;
-				case nameof(AppViewModel.SelectedTrainData):
-					networkSyncService.TrainId = InstanceManager.AppViewModel.SelectedTrainData?.Id;
-					break;
-			}
+			IsEnabled = true;
 		}
 	}
 
 	void OnNetworkSyncServiceConnectionClosed(object? sender, EventArgs e)
 	{
 		logger.Info("NetworkSyncService connection closed -> switching to LonLatLocationService");
-		MainThread.BeginInvokeOnMainThread(async () =>
-		{
-			await Util.DisplayAlertAsync(
-				"接続切断",
-				"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
-				"OK"
-			);
-			SetLonLatLocationService();
-		});
+		AlertRequested?.Invoke(this, new UserAlertRequestedEventArgs(
+			"接続切断",
+			"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
+			"OK"
+		));
+		SetLonLatLocationService();
 	}
 
 	void OnNetworkSyncServiceConnectionFailed(object? sender, EventArgs e)
 	{
 		logger.Warn("NetworkSyncService connection failed after reconnection attempts -> showing dialog");
-		MainThread.BeginInvokeOnMainThread(async () =>
-		{
-			await Util.DisplayAlertAsync(
-				"接続失敗",
-				"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
-				"OK"
-			);
-			logger.Info("NetworkSyncService connection failed -> switching to LonLatLocationService");
-			SetLonLatLocationService();
-		});
+		AlertRequested?.Invoke(this, new UserAlertRequestedEventArgs(
+			"接続失敗",
+			"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
+			"OK"
+		));
+		logger.Info("NetworkSyncService connection failed -> switching to LonLatLocationService");
+		SetLonLatLocationService();
 	}
 
 	public void SetLonLatLocationService()
@@ -210,6 +210,8 @@ public partial class LocationService : IDisposable
 		nextService.LocationStateChanged += OnLocationStateChanged;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		_CurrentService = nextService;
+		_isFirstGps = true;
+
 		if (nextService.CanUseService != currentService?.CanUseService)
 			CanUseServiceChanged?.Invoke(this, nextService.CanUseService);
 
@@ -235,8 +237,6 @@ public partial class LocationService : IDisposable
 			int lastTime_s = -1;
 			while (!nextTokenSource.Token.IsCancellationRequested)
 			{
-				// logger.Trace("TimeProviderTask Loop");
-
 				if (nextTokenSource.Token.IsCancellationRequested)
 				{
 					logger.Debug("Cancellation is requested -> break");
@@ -245,13 +245,12 @@ public partial class LocationService : IDisposable
 
 				try
 				{
-					int currentTime_s = InstanceManager.TimeProvider.GetCurrentTimeSeconds();
+					int currentTime_s = timeProvider.GetCurrentTimeSeconds();
 					if (lastTime_s != currentTime_s)
 					{
 						lastTime_s = currentTime_s;
 						OnTimeChanged(this, currentTime_s);
 					}
-					// 複雑なロジックは面倒なので、単純に100ms待つ
 					await Task.Delay(100, nextTokenSource.Token);
 				}
 				catch (TaskCanceledException)
@@ -275,7 +274,23 @@ public partial class LocationService : IDisposable
 		});
 	}
 
-	bool isIdChangedEventHandlerSet = false;
+	/// <summary>
+	/// 駅位置情報を設定する。TimetableRow → StaLocationInfo 変換はLogic層で行うこと。
+	/// </summary>
+	public void SetStationLocations(StaLocationInfo[]? locations)
+	{
+		logger.Trace("Setting StationLocations...");
+
+		IsEnabled = false;
+		if (_CurrentService is null)
+		{
+			logger.Debug("_CurrentService is null -> do nothing");
+			return;
+		}
+
+		_CurrentService.StaLocationInfo = locations;
+	}
+
 	public async Task SetNetworkSyncServiceAsync(Uri uri, CancellationToken? token = null)
 	{
 		logger.Trace("Setting NetworkSyncService...");
@@ -286,12 +301,12 @@ public partial class LocationService : IDisposable
 			IsEnabled = false;
 		}
 
-		NetworkSyncServiceBase nextService = await NetworkSyncServiceUtil.CreateFromUriAsync(uri, InstanceManager.HttpClient, token);
+		NetworkSyncServiceBase nextService = await NetworkSyncServiceUtil.CreateFromUriAsync(uri, httpClient, token);
 
-		await ChangeNetworkSyncServiceAsync(nextService);
+		ChangeNetworkSyncService(nextService);
 	}
 
-	public Task SetNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	public void SetNetworkSyncService(NetworkSyncServiceBase nextService)
 	{
 		logger.Trace("Setting NetworkSyncService...");
 
@@ -301,10 +316,10 @@ public partial class LocationService : IDisposable
 			IsEnabled = false;
 		}
 
-		return ChangeNetworkSyncServiceAsync(nextService);
+		ChangeNetworkSyncService(nextService);
 	}
 
-	private async Task ChangeNetworkSyncServiceAsync(NetworkSyncServiceBase nextService)
+	private void ChangeNetworkSyncService(NetworkSyncServiceBase nextService)
 	{
 		logger.Trace("Changing NetworkSyncService...");
 
@@ -324,18 +339,16 @@ public partial class LocationService : IDisposable
 		nextService.ConnectionFailed += OnNetworkSyncServiceConnectionFailed;
 		nextService.CanStartChanged += OnNetworkSyncServiceCanStartChanged;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
-		nextService.WorkGroupId = InstanceManager.AppViewModel.SelectedWorkGroup?.Id;
-		nextService.WorkId = InstanceManager.AppViewModel.SelectedWork?.Id;
-		nextService.TrainId = InstanceManager.AppViewModel.SelectedTrainData?.Id;
-		if (!isIdChangedEventHandlerSet)
-		{
-			logger.Debug("Add EventHandlers for AppViewModel.PropertyChanged");
-			InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
-			isIdChangedEventHandlerSet = true;
-		}
+		// キャッシュされた ID を設定
+		nextService.WorkGroupId = _lastWorkGroupId;
+		nextService.WorkId = _lastWorkId;
+		nextService.TrainId = _lastTrainId;
+
 		_CurrentService = nextService;
 		if (nextService.CanUseService != currentService?.CanUseService)
-			await MainThread.InvokeOnMainThreadAsync(() => CanUseServiceChanged?.Invoke(this, nextService.CanUseService));
+		{
+			CanUseServiceChanged?.Invoke(this, nextService.CanUseService);
+		}
 
 		timeProviderCancellation?.Cancel();
 		timeProviderCancellation?.Dispose();
@@ -363,35 +376,79 @@ public partial class LocationService : IDisposable
 		}
 	}
 
-	public void SetTimetableRows(TimetableRow[]? timetableRows)
+	/// <summary>
+	/// 対象 WorkGroupId / WorkId / TrainId を設定する。
+	/// NetworkSyncService が現在使用中の場合は即座に反映する。
+	/// </summary>
+	public void SetTargetIds(string? workGroupId, string? workId, string? trainId)
 	{
-		logger.Trace("Setting TimetableRows...");
+		logger.Debug("SetTargetIds: workGroupId={0}, workId={1}, trainId={2}", workGroupId, workId, trainId);
+		_lastWorkGroupId = workGroupId;
+		_lastWorkId = workId;
+		_lastTrainId = trainId;
 
-		IsEnabled = false;
-		if (_CurrentService is null)
+		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
 		{
-			logger.Debug("_CurrentService is null -> do nothing");
+			networkSyncService.WorkGroupId = workGroupId;
+			networkSyncService.WorkId = workId;
+			networkSyncService.TrainId = trainId;
+		}
+	}
+
+	/// <summary>
+	/// GPS位置情報を外部（メインアプリ側）から push する。
+	/// isFirst が true のとき ForceSetLocationInfo を呼ぶ。
+	/// </summary>
+	/// <param name="longitude">経度</param>
+	/// <param name="latitude">緯度</param>
+	/// <param name="accuracy">精度（任意）</param>
+	/// <param name="useAverageDistance">移動距離の平均を使用するか（listen=false, polling=true）</param>
+	public void SetGpsLocation(double longitude, double latitude, double? accuracy, bool useAverageDistance = true)
+	{
+		locationServiceLogger.Info(
+			"SetGpsLocation (lon: {0}, lat: {1}, accuracy: {2}, useAverageDistance: {3})",
+			longitude, latitude, accuracy, useAverageDistance
+		);
+		OnGpsLocationUpdated?.Invoke(this, (longitude, latitude, accuracy));
+
+		if (!IsEnabled)
+		{
+			locationServiceLogger.Debug("IsEnabled is false -> skip GPS location update");
 			return;
 		}
 
-		_CurrentService.StaLocationInfo = timetableRows?.Where(static v => !v.IsInfoRow).Select(static v => new StaLocationInfo(v.Location.Location_m, v.Location.Longitude_deg, v.Location.Latitude_deg, v.Location.OnStationDetectRadius_m)).ToArray();
+		if (_CurrentService is not LonLatLocationService gpsService)
+		{
+			locationServiceLogger.Debug("CurrentService is not LonLatLocationService -> skip GPS location update");
+			return;
+		}
+
+		if (_isFirstGps)
+		{
+			logger.Info("SetGpsLocation: First call -> ForceSetLocationInfo");
+			_isFirstGps = false;
+			gpsService.ForceSetLocationInfo(longitude, latitude);
+		}
+		else
+		{
+			double distance = gpsService.SetCurrentLocation(longitude, latitude, useAverageDistance);
+			if (double.IsNaN(distance))
+			{
+				IsEnabled = false;
+			}
+		}
 	}
 
-	static EasterEggPageViewModel EasterEggPageViewModel { get; } = InstanceManager.EasterEggPageViewModel;
-	static double lastInterval = 1;
-	static TimeSpan lastIntervalTimeSpan = TimeSpan.FromSeconds(lastInterval);
-	static TimeSpan Interval
+	/// <summary>
+	/// GPS リスニング失敗を通知する（メインアプリ側の GPS adapter から呼ぶ）
+	/// </summary>
+	public void OnGpsListeningFailed(Exception ex)
 	{
-		get
-		{
-			if (lastInterval == EasterEggPageViewModel.LocationServiceInterval_Seconds)
-				return lastIntervalTimeSpan;
-
-			logger.Info("Interval is changed to {0}[s]", EasterEggPageViewModel.LocationServiceInterval_Seconds);
-			lastInterval = EasterEggPageViewModel.LocationServiceInterval_Seconds;
-			lastIntervalTimeSpan = TimeSpan.FromSeconds(lastInterval);
-			return lastIntervalTimeSpan;
-		}
+		logger.Error(ex, "GPS Listening Failed");
+		locationServiceLogger.Error("GPS Listening Failed: {0}", ex.Message);
+		IsEnabled = false;
+		serviceCancellation?.Cancel();
+		ExceptionThrown?.Invoke(this, ex);
 	}
 
 	public void ForceSetLocationInfo(int row, bool isRunningToNextStation)
@@ -414,16 +471,14 @@ public partial class LocationService : IDisposable
 		if (!disposedValue)
 		{
 			serviceCancellation?.Cancel();
+			timeProviderCancellation?.Cancel();
 
 			if (disposing)
 			{
 				serviceCancellation?.Dispose();
 				serviceCancellation = null;
-				if (isIdChangedEventHandlerSet)
-				{
-					InstanceManager.AppViewModel.PropertyChanged -= OnAppViewModelPropertyChanged;
-					isIdChangedEventHandlerSet = false;
-				}
+				timeProviderCancellation?.Dispose();
+				timeProviderCancellation = null;
 			}
 
 			disposedValue = true;

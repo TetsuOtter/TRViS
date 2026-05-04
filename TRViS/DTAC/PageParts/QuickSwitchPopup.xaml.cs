@@ -26,7 +26,7 @@ public partial class QuickSwitchPopup : ContentView
 	{
 		logger.Trace("Creating...");
 
-		ViewModel = InstanceManager.AppViewModel;
+		ViewModel = Adapters.PresenterFactory.GetRawAppViewModel();
 
 		InitializeComponent();
 
