@@ -45,10 +45,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private SyncedData _LatestData = new(double.NaN, 0, false);
 	private CancellationTokenSource? _ReceiveLoopCts;
 	private Task? _ReceiveLoopTask;
+	private volatile bool _isDisconnecting = false;
 
 	// 再接続管理用
-	private const int RECONNECT_ATTEMPT_MAX = 3;  // 最大再接続試行回数
-	private const int RECONNECT_INTERVAL_MS = 5000;  // 再接続間隔（5秒）
+	private readonly int _reconnectAttemptMax;  // 最大再接続試行回数
+	private readonly int _reconnectIntervalMs;  // 再接続間隔
 	private const int KEEP_ALIVE_INTERVAL_MS = 10000;  // ハートビート間隔（10秒）
 	private const int KEEP_ALIVE_TIMEOUT_MS = 15000;  // ハートビート応答タイムアウト（15秒）
 
@@ -65,10 +66,13 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private readonly Dictionary<string, TrainData> _TrainDataCache = [];
 	private readonly Dictionary<string, List<TrainData>> _TrainListByWorkIdCache = [];
 
-	public WebSocketNetworkSyncService(Uri uri, ClientWebSocket webSocket)
+	public WebSocketNetworkSyncService(Uri uri, ClientWebSocket webSocket,
+		int reconnectIntervalMs = 5000, int reconnectAttemptMax = 3)
 	{
 		_Uri = uri;
 		_WebSocket = webSocket;
+		_reconnectIntervalMs = reconnectIntervalMs;
+		_reconnectAttemptMax = reconnectAttemptMax;
 		logger.Info("WebSocketNetworkSyncService created with URI: {0}", uri);
 	}
 
@@ -103,59 +107,53 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
 	{
 		int reconnectAttempt = 0;
-		bool shouldExit = false;
 
-		while (!cancellationToken.IsCancellationRequested && !shouldExit)
+		while (!cancellationToken.IsCancellationRequested)
 		{
-			bool shouldRaiseConnectionClosed = false;
-			bool shouldRaiseConnectionFailed = false;
-
+			bool lostConnection = false;
 			try
 			{
 				reconnectAttempt = await ReceiveMessagesAsync(reconnectAttempt, cancellationToken);
-				shouldRaiseConnectionClosed = true;
+				lostConnection = true;  // サーバーからのクリーンクローズ
 			}
 			catch (OperationCanceledException)
 			{
 				logger.Info("ReceiveLoopAsync: Cancelled");
-				shouldRaiseConnectionClosed = true;
-				// Expected when cancellation is requested
+				RaiseConnectionClosed();
+				return;
 			}
 			catch (Exception ex)
 			{
 				logger.Error(ex, "ReceiveLoopAsync: WebSocket exception");
-				// 接続が切断された場合、再接続を試みる
-				int result = await AttemptReconnectAsync(reconnectAttempt, cancellationToken);
-				if (result < 0)
-				{
-					logger.Warn("ReceiveLoopAsync: Failed to reconnect after {0} attempts", RECONNECT_ATTEMPT_MAX);
-					shouldRaiseConnectionFailed = true;
-					shouldExit = true;
-				}
-				else
-				{
-					// 再接続成功時は次のループを継続
-					logger.Info("ReceiveLoopAsync: Reconnected successfully, restarting receive loop");
-					continue;
-				}
+				lostConnection = true;
 			}
-			finally
+
+			if (!lostConnection) continue;
+
+			// 接続が失われた場合: ConnectionClosed を発火してから再接続を試みる
+			logger.Info("ReceiveLoopAsync: Connection lost, raising ConnectionClosed");
+			RaiseConnectionClosed();
+
+			if (_isDisconnecting || cancellationToken.IsCancellationRequested)
 			{
-				// イベントを発火（再接続失敗と正常終了は相互排他的）
-				if (shouldRaiseConnectionFailed)
-				{
-					logger.Info("ReceiveLoopAsync: Connection failed");
-					RaiseConnectionFailed();
-					shouldExit = true;
-				}
-				else if (shouldRaiseConnectionClosed)
-				{
-					logger.Info("ReceiveLoopAsync: Connection closed");
-					RaiseConnectionClosed();
-					shouldExit = true;
-				}
+				logger.Info("ReceiveLoopAsync: Client-initiated disconnect, not reconnecting");
+				return;
 			}
+
+			logger.Info("ReceiveLoopAsync: Attempting to reconnect...");
+			int result = await AttemptReconnectAsync(reconnectAttempt, cancellationToken);
+			if (result < 0)
+			{
+				logger.Warn("ReceiveLoopAsync: Failed to reconnect after {0} attempts", _reconnectAttemptMax);
+				RaiseConnectionFailed();
+				return;
+			}
+
+			reconnectAttempt = result;
+			logger.Info("ReceiveLoopAsync: Reconnected successfully, continuing receive loop");
 		}
+
+		RaiseConnectionClosed();
 	}
 
 	private async Task<int> ReceiveMessagesAsync(int reconnectAttempt, CancellationToken cancellationToken)
@@ -302,18 +300,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 		catch (FormatException) { }
 
-		// スコープを取得（WorkGroup > Work > Train の優先度で判定）
-		if (timetableData.WorkGroupId is not null)
+		// スコープを最も詳細なIDで判定 (Train > Work > WorkGroup > All)
+		if (timetableData.TrainId is not null)
 		{
-			timetableData.Scope = TimetableScopeType.WorkGroup;
+			timetableData.Scope = TimetableScopeType.Train;
 		}
 		else if (timetableData.WorkId is not null)
 		{
 			timetableData.Scope = TimetableScopeType.Work;
 		}
-		else if (timetableData.TrainId is not null)
+		else if (timetableData.WorkGroupId is not null)
 		{
-			timetableData.Scope = TimetableScopeType.Train;
+			timetableData.Scope = TimetableScopeType.WorkGroup;
 		}
 		else
 		{
@@ -609,17 +607,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 	private async Task<int> AttemptReconnectAsync(int reconnectAttempt, CancellationToken cancellationToken)
 	{
-		logger.Info("AttemptReconnectAsync: Starting reconnection attempts (max: {0})", RECONNECT_ATTEMPT_MAX);
+		logger.Info("AttemptReconnectAsync: Starting reconnection attempts (max: {0})", _reconnectAttemptMax);
 
-		while (reconnectAttempt < RECONNECT_ATTEMPT_MAX && !cancellationToken.IsCancellationRequested)
+		while (reconnectAttempt < _reconnectAttemptMax && !cancellationToken.IsCancellationRequested)
 		{
 			reconnectAttempt++;
-			logger.Info("AttemptReconnectAsync: Attempt {0}/{1}", reconnectAttempt, RECONNECT_ATTEMPT_MAX);
+			logger.Info("AttemptReconnectAsync: Attempt {0}/{1}", reconnectAttempt, _reconnectAttemptMax);
 
 			try
 			{
 				// 再接続間隔を待つ
-				await Task.Delay(RECONNECT_INTERVAL_MS, cancellationToken);
+				await Task.Delay(_reconnectIntervalMs, cancellationToken);
 
 				// WebSocketが閉じられていれば新しいものを作成
 				if (_WebSocket.State != WebSocketState.Open && _WebSocket.State != WebSocketState.Connecting)
@@ -636,10 +634,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				await _WebSocket.ConnectAsync(_Uri, cancellationToken);
 
 				logger.Info("AttemptReconnectAsync: Successfully reconnected on attempt {0}", reconnectAttempt);
-
-				// Receive と Ping ループを再開
-				StartReceiveLoop();
-				return reconnectAttempt;  // 再接続成功
+				return reconnectAttempt;  // 再接続成功 (ReceiveLoopAsync がループを再開する)
 			}
 			catch (OperationCanceledException)
 			{
@@ -649,17 +644,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			catch (WebSocketException ex)
 			{
 				logger.Warn(ex, "AttemptReconnectAsync: Reconnection attempt {0} failed", reconnectAttempt);
-				if (reconnectAttempt < RECONNECT_ATTEMPT_MAX)
+				if (reconnectAttempt < _reconnectAttemptMax)
 				{
-					logger.Info("AttemptReconnectAsync: Retrying in {0}ms", RECONNECT_INTERVAL_MS);
+					logger.Info("AttemptReconnectAsync: Retrying in {0}ms", _reconnectIntervalMs);
 				}
 			}
 			catch (Exception ex)
 			{
 				logger.Error(ex, "AttemptReconnectAsync: Unexpected exception during reconnection attempt {0}", reconnectAttempt);
-				if (reconnectAttempt < RECONNECT_ATTEMPT_MAX)
+				if (reconnectAttempt < _reconnectAttemptMax)
 				{
-					logger.Info("AttemptReconnectAsync: Retrying in {0}ms", RECONNECT_INTERVAL_MS);
+					logger.Info("AttemptReconnectAsync: Retrying in {0}ms", _reconnectIntervalMs);
 				}
 			}
 		}
@@ -671,6 +666,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	public async Task DisconnectAsync(CancellationToken cancellationToken = default)
 	{
 		logger.Info("DisconnectAsync: Disconnecting");
+		_isDisconnecting = true;
 		_ReceiveLoopCts?.Cancel();
 
 		if (_WebSocket.State == WebSocketState.Open)
@@ -712,6 +708,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 		logger.Info("Dispose: Disposing WebSocketNetworkSyncService");
 		_IsDisposed = true;
+		_isDisconnecting = true;
 		_ReceiveLoopCts?.Cancel();
 		_ReceiveLoopCts?.Dispose();
 		_WebSocket.Dispose();
