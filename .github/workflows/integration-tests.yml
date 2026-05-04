@@ -1,0 +1,56 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  integration-tests:
+    name: Run Integration Tests (Docker Compose)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build images
+        run: |
+          docker compose -f docker-compose.integration-tests.yml build \
+            --progress=plain
+
+      - name: Run integration tests
+        run: |
+          docker compose -f docker-compose.integration-tests.yml up \
+            --abort-on-container-exit \
+            --exit-code-from integration-tests \
+            --no-build
+        # test-results ディレクトリに TRX ファイルが出力される
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: test-results/*.trx
+          if-no-files-found: warn
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: test-results/*.trx
+          check_name: Integration Test Results
+
+      - name: Clean up Docker Compose
+        if: always()
+        run: |
+          docker compose -f docker-compose.integration-tests.yml down \
+            --remove-orphans \
+            --volumes
