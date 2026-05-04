@@ -1,6 +1,7 @@
 using System.ComponentModel;
 
 using TRViS.DTAC.Logic.Abstractions;
+using TRViS.DTAC.Logic.Formatters;
 
 namespace TRViS.DTAC.Logic.Presenter;
 
@@ -43,7 +44,7 @@ public sealed class HakoPresenter : IDisposable
 		_workSpaceName = _appViewModel.SelectedWorkGroup?.Name;
 		_currentState.WorkInfoText = BuildWorkInfoText();
 
-		string affectDate = ViewHostStateFactory.FormatAffectDateOnly(
+		string affectDate = AffectDateFormatter.FormatAffectDateOnly(
 			_appViewModel.SelectedTrainData?.AffectDate,
 			_appViewModel.SelectedTrainData?.DayCount ?? 0);
 		_currentState.AffectDateText = AffectDateLabelTextPrefix + affectDate;
@@ -70,7 +71,7 @@ public sealed class HakoPresenter : IDisposable
 	private void OnTrainDataChanged()
 	{
 		var trainData = _appViewModel.SelectedTrainData;
-		string affectDate = ViewHostStateFactory.FormatAffectDateOnly(
+		string affectDate = AffectDateFormatter.FormatAffectDateOnly(
 			trainData?.AffectDate,
 			trainData?.DayCount ?? 0);
 		_currentState.AffectDateText = AffectDateLabelTextPrefix + affectDate;

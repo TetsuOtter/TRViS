@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TRViS.IO.ILoader\TRViS.IO.ILoader.csproj" />
+  </ItemGroup>
+
 </Project>

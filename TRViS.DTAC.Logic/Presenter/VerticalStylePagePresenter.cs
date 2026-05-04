@@ -1,6 +1,7 @@
 using System.ComponentModel;
 
 using TRViS.DTAC.Logic.Abstractions;
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.IO.Models;
 using TRViS.LocationService.Abstractions;
 
@@ -102,12 +103,12 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 
 	private void SetSelectedTrainData(TrainData? trainData)
 	{
-		string affectDate = ViewHostStateUpdater.FormatAffectDateOnly(
+		string affectDate = AffectDateFormatter.FormatAffectDateOnly(
 			trainData?.AffectDate,
 			trainData?.DayCount ?? 0);
 
-		if (ReferenceEquals(_lastTrainData, trainData) && trainData != null
-			&& _currentState.PageHeaderState.AffectDateLabelText == affectDate)
+		if (ReferenceEquals(_lastTrainData, trainData)
+			&& (trainData is null || _currentState.PageHeaderState.AffectDateLabelText == affectDate))
 		{
 			return;
 		}
