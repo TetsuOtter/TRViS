@@ -59,7 +59,7 @@ public class WebSocketIntegrationTests
 	/// <summary>
 	/// EventHandler&lt;T&gt; イベントが発火するまで最大 <paramref name="timeoutMs"/> ms 待機する。
 	/// </summary>
-	private static Task<T> WaitForEventAsync<T>(
+	private static async Task<T> WaitForEventAsync<T>(
 		Action<EventHandler<T>> subscribe,
 		Action<EventHandler<T>> unsubscribe,
 		int timeoutMs = 5000)
@@ -72,14 +72,21 @@ public class WebSocketIntegrationTests
 			tcs.TrySetResult(v);
 		};
 		subscribe(handler);
-		return tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs));
+		try
+		{
+			return await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs));
+		}
+		finally
+		{
+			unsubscribe(handler);
+		}
 	}
 
 	/// <summary>
 	/// 非ジェネリック EventHandler イベント (ConnectionClosed / ConnectionFailed 等) が
 	/// 発火するまで最大 <paramref name="timeoutMs"/> ms 待機する。
 	/// </summary>
-	private static Task WaitForNonGenericEventAsync(
+	private static async Task WaitForNonGenericEventAsync(
 		Action<EventHandler> subscribe,
 		Action<EventHandler> unsubscribe,
 		int timeoutMs = 5000)
@@ -92,7 +99,14 @@ public class WebSocketIntegrationTests
 			tcs.TrySetResult(true);
 		};
 		subscribe(handler);
-		return tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs));
+		try
+		{
+			await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs));
+		}
+		finally
+		{
+			unsubscribe(handler);
+		}
 	}
 
 	private static async Task WaitForWsClientCountAsync(

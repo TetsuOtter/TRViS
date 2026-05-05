@@ -69,6 +69,8 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	public WebSocketNetworkSyncService(Uri uri, ClientWebSocket webSocket,
 		int reconnectIntervalMs = 5000, int reconnectAttemptMax = 3)
 	{
+		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(reconnectIntervalMs);
+		ArgumentOutOfRangeException.ThrowIfNegative(reconnectAttemptMax);
 		_Uri = uri;
 		_WebSocket = webSocket;
 		_reconnectIntervalMs = reconnectIntervalMs;
@@ -84,6 +86,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			return;
 		}
 
+		_isDisconnecting = false;
 		logger.Info("ConnectAsync: Connecting to {0}", _Uri);
 		ConfigureWebSocketOptions(_WebSocket);
 		await _WebSocket.ConnectAsync(_Uri, cancellationToken);
@@ -632,6 +635,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				// 再接続を試みる
 				logger.Info("AttemptReconnectAsync: Reconnecting to {0}", _Uri);
 				await _WebSocket.ConnectAsync(_Uri, cancellationToken);
+
+				// 再接続後にIDを再送信し、サーバーが正しいスコープで配信できるようにする
+				await SendIdUpdateAsync();
 
 				logger.Info("AttemptReconnectAsync: Successfully reconnected on attempt {0}", reconnectAttempt);
 				return reconnectAttempt;  // 再接続成功 (ReceiveLoopAsync がループを再開する)

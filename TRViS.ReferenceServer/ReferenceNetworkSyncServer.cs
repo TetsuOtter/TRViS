@@ -17,10 +17,10 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 {
 	private readonly HttpServer _httpServer;
 
-	// --- サーバー状態 ---
-	private long _time_ms = 0;
-	private double _location_m = double.NaN;
-	private bool _canStart = false;
+	// --- サーバー状態 (immutable record + lock で一貫性を保証) ---
+	private sealed record ServerState(long Time_ms, double Location_m, bool CanStart);
+	private readonly object _stateLock = new();
+	private ServerState _state = new(0, double.NaN, false);
 
 	// --- HTTP クエリログ ---
 	private readonly ConcurrentQueue<ReceivedHttpQueryDto> _httpQueryLog = new();
@@ -74,13 +74,13 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			ReceivedAt: DateTime.UtcNow
 		));
 
-		// NaN は JSON で表現できないため null に変換
-		double? locationForJson = double.IsNaN(_location_m) ? null : _location_m;
+		var state = _state;
+		double? locationForJson = double.IsNaN(state.Location_m) ? null : state.Location_m;
 		string json = JsonSerializer.Serialize(new
 		{
 			Location_m = locationForJson,
-			Time_ms = _time_ms,
-			CanStart = _canStart,
+			Time_ms = state.Time_ms,
+			CanStart = state.CanStart,
 		});
 		return OkJson(json);
 	}
@@ -113,12 +113,13 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 
 	private HttpResponse GetState()
 	{
-		double? locationForJson = double.IsNaN(_location_m) ? null : _location_m;
+		var state = _state;
+		double? locationForJson = double.IsNaN(state.Location_m) ? null : state.Location_m;
 		return OkJson(JsonSerializer.Serialize(new
 		{
-			Time_ms = _time_ms,
+			Time_ms = state.Time_ms,
 			Location_m = locationForJson,
-			CanStart = _canStart,
+			CanStart = state.CanStart,
 		}));
 	}
 
@@ -130,12 +131,19 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			using var doc = JsonDocument.Parse(body);
 			var root = doc.RootElement;
 
-			if (root.TryGetProperty("Time_ms", out var t) && t.ValueKind != JsonValueKind.Null)
-				_time_ms = t.GetInt64();
-			if (root.TryGetProperty("Location_m", out var l))
-				_location_m = l.ValueKind == JsonValueKind.Null ? double.NaN : l.GetDouble();
-			if (root.TryGetProperty("CanStart", out var cs) && cs.ValueKind != JsonValueKind.Null)
-				_canStart = cs.GetBoolean();
+			lock (_stateLock)
+			{
+				var (time, location, canStart) = (_state.Time_ms, _state.Location_m, _state.CanStart);
+
+				if (root.TryGetProperty("Time_ms", out var t) && t.ValueKind != JsonValueKind.Null)
+					time = t.GetInt64();
+				if (root.TryGetProperty("Location_m", out var l))
+					location = l.ValueKind == JsonValueKind.Null ? double.NaN : l.GetDouble();
+				if (root.TryGetProperty("CanStart", out var cs) && cs.ValueKind != JsonValueKind.Null)
+					canStart = cs.GetBoolean();
+
+				_state = new ServerState(time, location, canStart);
+			}
 
 			return OkJson("{\"ok\":true}");
 		}
@@ -147,13 +155,14 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 
 	private async Task<HttpResponse> BroadcastSyncedAsync()
 	{
-		double? locationForJson = double.IsNaN(_location_m) ? null : _location_m;
+		var state = _state;
+		double? locationForJson = double.IsNaN(state.Location_m) ? null : state.Location_m;
 		string json = JsonSerializer.Serialize(new
 		{
 			MessageType = "SyncedData",
 			Location_m = locationForJson,
-			Time_ms = _time_ms,
-			CanStart = _canStart,
+			Time_ms = state.Time_ms,
+			CanStart = state.CanStart,
 		});
 		await BroadcastTextAsync(json);
 		return OkJson("{\"ok\":true}");
@@ -242,9 +251,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 
 	private HttpResponse Reset()
 	{
-		_time_ms = 0;
-		_location_m = double.NaN;
-		_canStart = false;
+		_state = new ServerState(0, double.NaN, false);
 		while (_httpQueryLog.TryDequeue(out _)) { }
 		return OkJson("{\"ok\":true}");
 	}
