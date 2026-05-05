@@ -1,0 +1,25 @@
+name: trvis-integration-tests
+
+services:
+  reference-server:
+    build:
+      context: .
+      dockerfile: TRViS.ReferenceServer/Dockerfile
+    environment:
+      PORT: "8080"
+    expose:
+      - "8080"
+    # HEALTHCHECK は Dockerfile 内で定義 (curl -sf http://localhost:8080/)
+
+  integration-tests:
+    build:
+      context: .
+      dockerfile: TRViS.NetworkSyncService.IntegrationTests/Dockerfile
+    depends_on:
+      reference-server:
+        condition: service_healthy
+    environment:
+      REFERENCE_SERVER_HTTP_URL: "http://reference-server:8080"
+      REFERENCE_SERVER_WS_URL: "ws://reference-server:8080"
+    volumes:
+      - ./test-results:/test-results
