@@ -13,7 +13,7 @@ env:
   # .NET / tooling versions
   SDK_VERSION: "10.0.x"
   NODE_VERSION: "24"
-  XCODE_VERSION: "26.3"
+  XCODE_VERSION: "26.4"
 
   # Project paths
   CSPROJ_PATH: ./TRViS/TRViS.csproj
