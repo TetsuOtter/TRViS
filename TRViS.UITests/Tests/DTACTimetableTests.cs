@@ -21,7 +21,10 @@ public class DTACTimetableTests : BaseUITest
 		base.SetUp();
 
 		var firebasePage = new FirebaseSettingPageObject(Driver);
-		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(120)))
+		// FirebaseSettingPageObject picks a platform-appropriate timeout
+		// (120 s on Android for Mono JIT, 15 s on Windows where the consent
+		// page may be skipped because Preferences aren't reliably reset).
+		if (firebasePage.IsDisplayed())
 			_selectTrainPage = firebasePage.SaveAndAccept();
 		else
 			_selectTrainPage = new SelectTrainPageObject(Driver);

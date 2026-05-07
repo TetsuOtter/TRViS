@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Windows;
 
 namespace TRViS.UITests.Infrastructure;
 
@@ -14,10 +15,18 @@ public abstract class PageObject
 	/// </summary>
 	protected bool IsAndroid { get; }
 
+	/// <summary>
+	/// True when running on Windows. WinUI 3 surfaces a MAUI <c>ContentView</c>'s
+	/// AutomationId as a non-control Pane element that Appium's AccessibilityId
+	/// search does not always reach — callers may need an XPath/Name fallback.
+	/// </summary>
+	protected bool IsWindows { get; }
+
 	protected PageObject(AppiumDriver driver)
 	{
 		Driver = driver;
 		IsAndroid = driver is AndroidDriver;
+		IsWindows = driver is WindowsDriver;
 	}
 
 	/// <summary>

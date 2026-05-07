@@ -11,9 +11,42 @@ public class DTACViewHostPageObject : PageObject
 	public AppiumElement MenuButton => WaitForElement(AutomationIds.DTAC.MenuButton);
 	public AppiumElement TimeLabel => FindByAutomationId(AutomationIds.DTAC.TimeLabel);
 	public AppiumElement TitleLabel => FindByAutomationId(AutomationIds.DTAC.TitleLabel);
-	public AppiumElement TabHako => FindByAutomationId(AutomationIds.DTAC.TabHako);
-	public AppiumElement TabTimetable => FindByAutomationId(AutomationIds.DTAC.TabTimetable);
-	public AppiumElement TabWorkAffix => FindByAutomationId(AutomationIds.DTAC.TabWorkAffix);
+	public AppiumElement TabHako => FindTabButton(AutomationIds.DTAC.TabHako, "ハ　コ");
+	public AppiumElement TabTimetable => FindTabButton(AutomationIds.DTAC.TabTimetable, "時刻表");
+	public AppiumElement TabWorkAffix => FindTabButton(AutomationIds.DTAC.TabWorkAffix, "行路添付");
+
+	/// <summary>
+	/// Finds a TabButton (a MAUI <c>ContentView</c> wrapping a <c>Label</c>).
+	/// On Windows the outer ContentView's AutomationId is exposed as a Pane that
+	/// Appium's AccessibilityId search does not match, so fall back to locating
+	/// the inner Label by its visible text via UIA's Name property.
+	/// </summary>
+	private AppiumElement FindTabButton(string automationId, string visibleText)
+	{
+		if (IsWindows)
+		{
+			var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(
+				Driver, TimeSpan.FromSeconds(15));
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			try
+			{
+				return (AppiumElement)wait.Until(d =>
+				{
+					try
+					{
+						var el = d.FindElement(By.XPath($"//*[@Name='{visibleText}']"));
+						return el.Displayed ? el : null!;
+					}
+					catch (NoSuchElementException) { return null!; }
+				});
+			}
+			finally
+			{
+				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+			}
+		}
+		return FindByAutomationId(automationId);
+	}
 
 	public AppiumElement StartEndRunButton => FindByAutomationId(AutomationIds.DTAC.StartEndRunButton);
 	public AppiumElement LocationServiceButton => FindByAutomationId(AutomationIds.DTAC.LocationServiceButton);

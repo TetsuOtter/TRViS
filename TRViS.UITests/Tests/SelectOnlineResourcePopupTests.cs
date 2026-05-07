@@ -22,7 +22,9 @@ public class SelectOnlineResourcePopupTests : BaseUITest
 		base.SetUp();
 
 		var firebasePage = new FirebaseSettingPageObject(Driver);
-		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(120)))
+		// Use the page object's platform-aware default timeout (120 s on Android,
+		// 15 s on Windows where MAUI Preferences may not have been reset).
+		if (firebasePage.IsDisplayed())
 			_selectTrainPage = firebasePage.SaveAndAccept();
 		else
 			_selectTrainPage = new SelectTrainPageObject(Driver);
