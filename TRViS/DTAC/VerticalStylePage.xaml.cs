@@ -96,6 +96,10 @@ public partial class VerticalStylePage : ContentView
 			this.Content.VerticalOptions = LayoutOptions.Start;
 			Content = new ScrollView()
 			{
+				// Inner TimetableAreaScrollView is hidden on Phone; expose this
+				// outer wrapper under the same id so UI tests can locate the
+				// active scroll container regardless of idiom.
+				AutomationId = "DTAC.TimetableScrollView",
 				Content = this.Content,
 			};
 			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);

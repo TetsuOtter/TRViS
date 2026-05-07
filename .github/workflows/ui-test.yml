@@ -269,10 +269,28 @@ jobs:
 
   # ─────────────────────────────────────────────
   # iOS Simulator UI Tests
+  #
+  # Runs the same suite in parallel across an iPhone and two iPad mini
+  # device classes. iPad mini 5th gen needs an iPadOS 17 runtime which is
+  # not pre-installed on macos-26 runners; the job attempts to download
+  # it but tolerates failure (continue-on-error) since macos-26 runners
+  # may not be able to install older runtimes.
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
     timeout-minutes: 40
+    strategy:
+      # Run all device classes regardless of one failing — useful while a class
+      # is being added/stabilized (e.g. iPad mini 5th gen runtime availability).
+      fail-fast: false
+      matrix:
+        device-class:
+          - iphone
+          - ipad-mini-6
+          - ipad-mini-a17
+          # ipad-mini-5: runtime download is best-effort; allow it to fail
+          # without blocking the other matrix entries.
+          - ipad-mini-5
 
     steps:
       - name: Checkout code
@@ -311,15 +329,41 @@ jobs:
           else
             echo "No iOS simulator runtime found. Downloading..."
             xcodebuild -downloadPlatform iOS
-            echo "Download complete. Available runtimes:"
-            xcrun simctl list runtimes
+            echo "Download complete."
           fi
+          xcrun simctl list runtimes
+
+      - name: Download iPadOS 17 runtime (iPad mini 5th gen only)
+        if: matrix.device-class == 'ipad-mini-5'
+        # 5th-gen iPad mini caps at iPadOS 17. macos-26 ships iOS 26.x by default,
+        # so we need an explicit iPadOS 17 runtime. xcodebuild -downloadPlatform
+        # supports -buildVersion in Xcode 16+. This step is best-effort: if the
+        # runtime is unavailable, the test job will fail when simctl create can't
+        # match the device type to a runtime — we let it fail so the issue is visible
+        # but mark the step continue-on-error so the iPhone / 6th-gen / A17 jobs
+        # are not blocked by an iPadOS 17 download regression.
+        continue-on-error: true
+        run: |
+          set -euxo pipefail
+          # Use an iPadOS 17.x runtime if available. Try common build numbers.
+          for VERSION in "17.5" "17.4" "17.0"; do
+            if xcodebuild -downloadPlatform iOS -buildVersion "$VERSION"; then
+              echo "Successfully downloaded iPadOS $VERSION runtime."
+              break
+            fi
+            echo "Failed to download iPadOS $VERSION runtime; trying next..."
+          done
+          xcrun simctl list runtimes
 
       - name: Install Appium globally
-        run: npm install -g appium
+        # Pin to avoid an upstream regression in Appium 3.4.x + xcuitest 11.x
+        # where doNativeFind passes a null context to unwrapElement and
+        # @appium/support throws "Cannot convert undefined or null to object"
+        # on every root-level findElement call.
+        run: npm install -g appium@3.2.2
 
       - name: Install XCUITest driver
-        run: appium driver install xcuitest
+        run: appium driver install xcuitest@10.32.1
 
       - name: Create placeholder GoogleService-Info.plist
         run: |
@@ -358,14 +402,14 @@ jobs:
           </plist>
           EOF
 
-      - name: Run iOS UI Tests
-        run: ./run-ui-tests.sh ios --skip-install
+      - name: Run iOS UI Tests (${{ matrix.device-class }})
+        run: ./run-ui-tests.sh ios --skip-install --device-class=${{ matrix.device-class }}
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ios-ui-test-results
+          name: ios-ui-test-results-${{ matrix.device-class }}
           path: "**/*.trx"
 
   # ─────────────────────────────────────────────

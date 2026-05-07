@@ -206,6 +206,7 @@
 			Grid.Row="6"/>
 
 		<ScrollView
+			AutomationId="DTAC.TimetableScrollView"
 			x:Name="TimetableAreaScrollView"
 			Grid.Row="6"/>
 

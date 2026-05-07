@@ -57,7 +57,10 @@ public class SampleDataLoader : TRViS.IO.ILoader
 		{
 			new TimetableRow(
 				Id: "1",
-				Location: new(1),
+				// lon/lat populated for the GPS auto-scroll UI test (a Tokyo-area
+				// gradient through the first 6 rows). Existing flows that don't use
+				// GPS are unaffected — these fields default to null when omitted.
+				Location: new(Location_m: 1, Longitude_deg: 139.750, Latitude_deg: 35.650, OnStationDetectRadius_m: 200),
 				DriveTimeMM: 0,
 				DriveTimeSS: 0,
 				StationName: "駅１",
@@ -76,7 +79,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Id: "2",
-				Location: new(2),
+				Location: new(Location_m: 2, Longitude_deg: 139.760, Latitude_deg: 35.660, OnStationDetectRadius_m: 200),
 				DriveTimeMM: 10,
 				DriveTimeSS: 50,
 				StationName: "駅２",
@@ -95,7 +98,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Id: "3",
-				Location: new(3),
+				Location: new(Location_m: 3, Longitude_deg: 139.770, Latitude_deg: 35.670, OnStationDetectRadius_m: 200),
 				DriveTimeMM: 100,
 				DriveTimeSS: 50,
 				StationName: "駅３",
@@ -112,7 +115,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Id: "4",
-				Location: new(4),
+				Location: new(Location_m: 4, Longitude_deg: 139.767125, Latitude_deg: 35.681236, OnStationDetectRadius_m: 200),
 				DriveTimeMM: 1,
 				DriveTimeSS: null,
 				StationName: "東京",
@@ -129,7 +132,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Id: "5",
-				Location: new(5),
+				Location: new(Location_m: 5, Longitude_deg: 139.780, Latitude_deg: 35.690, OnStationDetectRadius_m: 200),
 				DriveTimeMM: null,
 				DriveTimeSS: 5,
 				StationName: "津",
@@ -146,7 +149,7 @@ public class SampleDataLoader : TRViS.IO.ILoader
 			),
 			new TimetableRow(
 				Id: "6",
-				Location: new(6),
+				Location: new(Location_m: 6, Longitude_deg: 139.790, Latitude_deg: 35.700, OnStationDetectRadius_m: 200),
 				DriveTimeMM: 4,
 				DriveTimeSS: 30,
 				StationName: "大宮",
