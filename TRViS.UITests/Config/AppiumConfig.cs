@@ -47,10 +47,13 @@ public static class AppiumConfig
 				// timeout has a chance to fire.
 				options.AddAdditionalAppiumOption("simulatorStartupTimeout", 900000);
 				options.AddAdditionalAppiumOption("wdaLaunchTimeout", 900000);
-				// Retrying WDA after a 15 min build doesn't help — if the build can
-				// finish at all, it'll finish on the first attempt. Skip retries so a
-				// real failure surfaces fast instead of doubling the wait.
-				options.AddAdditionalAppiumOption("wdaStartupRetries", 1);
+				// wdaStartupRetries is the WDA *launch* retry count, not a rebuild —
+				// the second attempt reuses the existing xcodebuild output, so it
+				// is cheap and is exactly what recovers from
+				// FBSOpenApplicationServiceErrorDomain Code=1 ("app unknown to
+				// FrontBoard") when Springboard hasn't yet refreshed its app
+				// database after a fresh install. Keep at 2.
+				options.AddAdditionalAppiumOption("wdaStartupRetries", 2);
 				// Specifying the simulator UDID directly lets xcuitest bypass SDK version
 				// matching (which would fail when the app's DTPlatformVersion differs from
 				// the only available simulator runtime).
