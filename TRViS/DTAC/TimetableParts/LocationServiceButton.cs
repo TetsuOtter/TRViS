@@ -49,6 +49,8 @@ public class LocationServiceButton : ToggleButton
 	{
 		logger.Trace("Creating...");
 
+		AutomationId = "DTAC.LocationServiceButton";
+
 		IsCheckedChanged += OnIsCheckedChanged;
 
 		Grid grid = new()

@@ -107,6 +107,8 @@ public partial class VerticalTimetableView : Grid
 	{
 		logger.Trace("Creating...");
 
+		AutomationId = "DTAC.VerticalTimetableView";
+
 		_presenter = PresenterFactory.BuildVerticalTimetableViewPresenter(ViewModel, locationMarkerSource);
 		_locationServiceAdapter = PresenterFactory.GetLocationServiceAdapter();
 

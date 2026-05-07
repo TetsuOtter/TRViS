@@ -36,6 +36,9 @@ public static class AutomationIds
 		public const string SelectDatabaseButton = "SelectTrain.SelectDatabaseButton";
 		public const string WorkGroupList = "SelectTrain.WorkGroupList";
 		public const string WorkList = "SelectTrain.WorkList";
+		// DEBUG/DISABLE_FIREBASE-only seed buttons used by UI tests.
+		public const string TestSeedButton = "SelectTrain.TestSeedButton";
+		public const string TestSeedGpsButton = "SelectTrain.TestSeedGpsButton";
 	}
 
 	public static class DTAC
@@ -46,6 +49,23 @@ public static class AutomationIds
 		public const string TabHako = "DTAC.TabHako";
 		public const string TabTimetable = "DTAC.TabTimetable";
 		public const string TabWorkAffix = "DTAC.TabWorkAffix";
+
+		public const string StartEndRunButton = "DTAC.StartEndRunButton";
+		public const string LocationServiceButton = "DTAC.LocationServiceButton";
+		public const string OpenCloseButton = "DTAC.OpenCloseButton";
+		public const string TimetableScrollView = "DTAC.TimetableScrollView";
+		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
+	}
+
+	public static class SelectOnlineResource
+	{
+		public const string CloseButton = "SelectOnlineResource.CloseButton";
+		public const string LoadButton = "SelectOnlineResource.LoadButton";
+		public const string UrlInput = "SelectOnlineResource.UrlInput";
+		public const string UrlHistoryList = "SelectOnlineResource.UrlHistoryList";
+		public const string AdviceLabel = "SelectOnlineResource.AdviceLabel";
+		// Per-row id is "<UrlHistoryItemPrefix><url>".
+		public const string UrlHistoryItemPrefix = "SelectOnlineResource.UrlHistoryItem.";
 	}
 
 	public static class Settings

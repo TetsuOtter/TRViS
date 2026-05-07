@@ -16,7 +16,14 @@ public class FirebaseSettingPageObject : PageObject
 	{
 		// Default to 120 s: on Android, EmbedAssembliesIntoApk=true triggers Mono JIT
 		// compilation on first launch, which can delay page rendering by 90+ seconds.
-		var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(120);
+		// Windows reset of MAUI Preferences is unreliable (storage path varies by
+		// SDK version), so on subsequent test sessions IsAppCenterEnabled may be
+		// already true and the consent page is skipped — using the same 120 s wait
+		// here would burn the full 20-minute job timeout.
+		var effectiveTimeout = timeout
+			?? (Driver is OpenQA.Selenium.Appium.Windows.WindowsDriver
+				? TimeSpan.FromSeconds(15)
+				: TimeSpan.FromSeconds(120));
 		try
 		{
 			return WaitForElement(AutomationIds.Firebase.Title, effectiveTimeout).Displayed;
