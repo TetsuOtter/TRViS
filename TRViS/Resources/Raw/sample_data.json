@@ -1,0 +1,874 @@
+[
+  {
+    "Id": "1",
+    "Name": "WorkGroup1",
+    "Works": [
+      {
+        "Id": "1-1",
+        "Name": "Work1-1",
+        "AffectDate": "20220916",
+        "Remarks": "Sample [b][i]Work[/i][/b] [color=#FF0000 dark=#00FF00]Remark[size=32]s[/size][/color]\nLine 2\nLine 3",
+        "Trains": [
+          {
+            "Id": "1-1-1",
+            "Direction": 1,
+            "TrainNumber": "試単9091",
+            "MaxSpeed": "130\nオオ~  15",
+            "SpeedType": "特定\nトウ~　　　＊＊\nオオ~　　　特定",
+            "NominalTractiveCapacity": "ＨＰ９９９形\n現車　　　１両\n換算　２０.０",
+            "CarCount": 1,
+            "Destination": "終点",
+            "BeginRemarks": "(入換1行目)\n(入換2行目)",
+            "AfterRemarks": "(入区)",
+            "Remarks": "サンプルデータです。\n車掌省略",
+            "BeforeDeparture": "転線   10分",
+            "TrainInfo": "<span style=\"color:red\">車掌省略</span>",
+            "AfterArrive": "入換   20分",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "Longitude_deg": 139.750,
+                "Latitude_deg": 35.650,
+                "OnStationDetectRadius_m": 200,
+                "DriveTime_MM": 0,
+                "DriveTime_SS": 0,
+                "StationName": "駅１",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": true,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "1",
+                "RunOutLimit": 30,
+                "Remarks": "記事",
+                "MarkerColor": "3366CC",
+                "MarkerText": "確認"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "Longitude_deg": 139.760,
+                "Latitude_deg": 35.660,
+                "OnStationDetectRadius_m": 200,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 50,
+                "StationName": "駅２",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "",
+                "Departure": ":26:10",
+                "TrackName": "10",
+                "RunInLimit": 30,
+                "RunOutLimit": 30,
+                "Remarks": "<b>記事</b>",
+                "MarkerColor": "F04020",
+                "MarkerText": "注意"
+              },
+              {
+                "Id": "3",
+                "Location_m": 3,
+                "Longitude_deg": 139.770,
+                "Latitude_deg": 35.670,
+                "OnStationDetectRadius_m": 200,
+                "DriveTime_MM": 100,
+                "DriveTime_SS": 50,
+                "StationName": "駅３",
+                "IsOperationOnlyStop": true,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": ":23:",
+                "Departure": "12:25:",
+                "TrackName": "<span>着２<br/>発３</span>",
+                "RunInLimit": 5,
+                "RunOutLimit": 5,
+                "Remarks": "転線"
+              },
+              {
+                "Id": "4",
+                "Location_m": 4,
+                "Longitude_deg": 139.767125,
+                "Latitude_deg": 35.681236,
+                "OnStationDetectRadius_m": 200,
+                "DriveTime_MM": 1,
+                "StationName": "東京",
+                "IsOperationOnlyStop": true,
+                "IsPass": false,
+                "HasBracket": true,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "12:34:56",
+                "TrackName": "<span style=\"color: aqua\">1</span>",
+                "Remarks": "記事"
+              },
+              {
+                "Id": "5",
+                "Location_m": 5,
+                "Longitude_deg": 139.780,
+                "Latitude_deg": 35.690,
+                "OnStationDetectRadius_m": 200,
+                "DriveTime_SS": 5,
+                "StationName": "津",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "外",
+                "RunOutLimit": 30,
+                "Remarks": "記事\n任意の内容"
+              },
+              {
+                "Id": "6",
+                "Location_m": 6,
+                "Longitude_deg": 139.790,
+                "Latitude_deg": 35.700,
+                "OnStationDetectRadius_m": 200,
+                "DriveTime_MM": 4,
+                "DriveTime_SS": 30,
+                "StationName": "大宮",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "1",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "7",
+                "Location_m": 6,
+                "StationName": "<span style=\"color:royalblue\">交  直  切  換</span>",
+                "RecordType": 2
+              },
+              {
+                "Id": "8",
+                "Location_m": 7,
+                "StationName": "南浦和",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "3文字",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "9",
+                "Location_m": 8,
+                "DriveTime_SS": 5,
+                "StationName": "さ新都心",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "四文字版",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "10",
+                "Location_m": 6,
+                "StationName": "[b][color=#FF0000 dark=#FF0000]　　　　　交　直　切　換　2[/color][/b]",
+                "RecordType": 2
+              },
+              {
+                "Id": "11",
+                "Location_m": 6,
+                "StationName": "<span style=\"color:royalblue\">交  直  切  換  3</span>",
+                "RecordType": 2
+              },
+              {
+                "Id": "12",
+                "Location_m": 9,
+                "DriveTime_MM": 1,
+                "StationName": "赤羽",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "1\n三文字",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "13",
+                "Location_m": 10,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅１０",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "1\n四文字版",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "14",
+                "Location_m": 11,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅１１",
+                "IsOperationOnlyStop": true,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "11\n三文字",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "15",
+                "Location_m": 12,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅１２",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "::45",
+                "Departure": "1::5",
+                "RunOutLimit": 130,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "16",
+                "Location_m": 13,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅１３",
+                "IsOperationOnlyStop": false,
+                "IsPass": true,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "↓",
+                "Departure": "通過",
+                "TrackName": "123\n四文字版",
+                "RunInLimit": 130,
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "17",
+                "Location_m": 14,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅１４",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "TrackName": "1",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "18",
+                "Location_m": 15,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅１５",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": true,
+                "Arrive": "1:23:45",
+                "TrackName": "1",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              }
+            ]
+          },
+          {
+            "Id": "1-1-2",
+            "Direction": 1,
+            "TrainNumber": "試単9092",
+            "Destination": "長い駅名",
+            "BeginRemarks": "(入換)\n(入換)",
+            "AfterRemarks": "(入換)\n(入換)",
+            "NextTrainId": "1-1-1",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅１",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": true,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "1",
+                "RunOutLimit": 30,
+                "Remarks": "記事",
+                "MarkerColor": "40F020",
+                "MarkerText": "発車"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅２",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "",
+                "Departure": ":26:10",
+                "TrackName": "10",
+                "RunInLimit": 30,
+                "RunOutLimit": 30,
+                "Remarks": "<b>記事</b>"
+              },
+              {
+                "Id": "3",
+                "Location_m": 3,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅３",
+                "IsOperationOnlyStop": true,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": ":23:",
+                "Departure": "12:25:",
+                "TrackName": "<span>着２<br/>発３</span>",
+                "RunInLimit": 5,
+                "RunOutLimit": 5,
+                "Remarks": "転線"
+              },
+              {
+                "Id": "4",
+                "Location_m": 4,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "東京",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "1",
+                "Remarks": "記事"
+              },
+              {
+                "Id": "5",
+                "Location_m": 5,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "津",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "外",
+                "RunOutLimit": 30,
+                "Remarks": "記事\n任意の内容"
+              }
+            ]
+          },
+          {
+            "Id": "1-1-3",
+            "Direction": 1,
+            "TrainNumber": "試単9093",
+            "AfterArrive": "入換   20分",
+            "DayCount": 1,
+            "NextTrainId": "1-1-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅１",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": true,
+                "IsLastStop": false,
+                "Arrive": "1:23:45",
+                "Departure": "1:25:",
+                "TrackName": "1",
+                "RunOutLimit": 30,
+                "Remarks": "記事"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 1,
+                "DriveTime_SS": 5,
+                "StationName": "駅２",
+                "IsOperationOnlyStop": false,
+                "IsPass": false,
+                "HasBracket": false,
+                "IsLastStop": false,
+                "Arrive": "",
+                "Departure": ":26:10",
+                "TrackName": "10",
+                "RunInLimit": 30,
+                "RunOutLimit": 30,
+                "Remarks": "<b>記事</b>"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "Id": "hako-order-test",
+    "Name": "ハコタブ順序確認",
+    "Works": [
+      {
+        "Id": "work-linear",
+        "Name": "線形連結リスト",
+        "Trains": [
+          {
+            "Id": "linear-train-1",
+            "Direction": 1,
+            "TrainNumber": "Linear01",
+            "NextTrainId": "linear-train-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "linear-train-2",
+            "Direction": 1,
+            "TrainNumber": "Linear02",
+            "NextTrainId": "linear-train-3",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "linear-train-3",
+            "Direction": 1,
+            "TrainNumber": "Linear03",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "3",
+                "Location_m": 3,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅C",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "work-reverse",
+        "Name": "逆順連結リスト",
+        "Trains": [
+          {
+            "Id": "reverse-train-1",
+            "Direction": 1,
+            "TrainNumber": "Reverse01",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "reverse-train-2",
+            "Direction": 1,
+            "TrainNumber": "Reverse02",
+            "NextTrainId": "reverse-train-1",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "reverse-train-3",
+            "Direction": 1,
+            "TrainNumber": "Reverse03",
+            "NextTrainId": "reverse-train-2",
+            "TimetableRows": [
+              {
+                "Id": "3",
+                "Location_m": 3,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅C",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "work-multiple",
+        "Name": "複数連結リスト",
+        "Trains": [
+          {
+            "Id": "chain-a-train-1",
+            "Direction": 1,
+            "TrainNumber": "ChainA01",
+            "NextTrainId": "chain-a-train-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "chain-b-train-1",
+            "Direction": 1,
+            "TrainNumber": "ChainB01",
+            "NextTrainId": "chain-b-train-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "chain-a-train-2",
+            "Direction": 1,
+            "TrainNumber": "ChainA02",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "chain-b-train-2",
+            "Direction": 1,
+            "TrainNumber": "ChainB02",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "work-isolated",
+        "Name": "孤立列車",
+        "Trains": [
+          {
+            "Id": "isolated-train-1",
+            "Direction": 1,
+            "TrainNumber": "Isolated01",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "isolated-train-2",
+            "Direction": 1,
+            "TrainNumber": "Isolated02",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "work-partial",
+        "Name": "部分連結リスト",
+        "Trains": [
+          {
+            "Id": "partial-train-1",
+            "Direction": 1,
+            "TrainNumber": "Partial01",
+            "NextTrainId": "partial-train-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "partial-train-2",
+            "Direction": 1,
+            "TrainNumber": "Partial02",
+            "NextTrainId": "nonexistent-train-id",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "partial-train-3",
+            "Direction": 1,
+            "TrainNumber": "PartialInv",
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "work-circular",
+        "Name": "循環参照",
+        "Trains": [
+          {
+            "Id": "circular-train-1",
+            "Direction": 1,
+            "TrainNumber": "Circular01",
+            "NextTrainId": "circular-train-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "circular-train-2",
+            "Direction": 1,
+            "TrainNumber": "Circular02",
+            "NextTrainId": "circular-train-1",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "work-daycount",
+        "Name": "日付跨ぎ連結リスト",
+        "Trains": [
+          {
+            "Id": "daycount-a-train-1",
+            "Direction": 1,
+            "TrainNumber": "DayCountA01",
+            "DayCount": 1,
+            "NextTrainId": "daycount-a-train-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "daycount-b-train-1",
+            "Direction": 1,
+            "TrainNumber": "DayCountB01",
+            "DayCount": 0,
+            "NextTrainId": "daycount-b-train-2",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "daycount-a-train-2",
+            "Direction": 1,
+            "TrainNumber": "DayCountA02",
+            "DayCount": 1,
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          },
+          {
+            "Id": "daycount-b-train-2",
+            "Direction": 1,
+            "TrainNumber": "DayCountB02",
+            "DayCount": 0,
+            "NextTrainId": "",
+            "TimetableRows": [
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 10,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

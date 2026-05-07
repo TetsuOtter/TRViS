@@ -24,12 +24,21 @@ public partial class SelectTrainPage : ContentPage
 		logger.Trace("Created");
 	}
 
-	void LoadSampleButton_Clicked(object sender, EventArgs e)
+	async void LoadSampleButton_Clicked(object sender, EventArgs e)
 	{
 		logger.Info("Load Sample Button Clicked");
 
-		viewModel.Loader?.Dispose();
-		viewModel.Loader = new SampleDataLoader();
+		try
+		{
+			viewModel.Loader?.Dispose();
+			viewModel.Loader = await SampleDataLoader.CreateAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Failed to load sample data");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.LoadSampleButton_Clicked (CreateAsync failed)");
+			await Util.DisplayAlertAsync(this, "エラー", $"サンプルデータの読み込みに失敗しました: {ex.Message}", "OK");
+		}
 
 		logger.Info("Load Sample Button Clicked Processing Complete");
 	}
@@ -124,20 +133,27 @@ public partial class SelectTrainPage : ContentPage
 				if (errorMessage == "PrivacyPolicyNotAccepted")
 				{
 					logger.Info("Privacy policy not accepted yet - will load default timetable after user accepts policy");
-					// Set SampleDataLoader as fallback
-					viewModel.Loader = new SampleDataLoader();
+					viewModel.Loader = await SampleDataLoader.CreateAsync();
 					return;
 				}
 
 				// No default timetable found or error occurred
 				logger.Info("No default timetable found or error occurred - setting SampleDataLoader as fallback");
-				viewModel.Loader = new SampleDataLoader();
+				viewModel.Loader = await SampleDataLoader.CreateAsync();
 			}
 			catch (Exception ex)
 			{
 				logger.Error(ex, "Error loading default timetable");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.OnAppearing (TryLoadDefaultTimetableAsync failed)");
-				viewModel.Loader = new SampleDataLoader();
+				try
+				{
+					viewModel.Loader = await SampleDataLoader.CreateAsync();
+				}
+				catch (Exception fallbackEx)
+				{
+					logger.Error(fallbackEx, "Fallback SampleDataLoader.CreateAsync also failed");
+					InstanceManager.CrashlyticsWrapper.Log(fallbackEx, "SelectTrainPage.OnAppearing (fallback SampleDataLoader.CreateAsync failed)");
+				}
 			}
 		}
 	}
@@ -166,7 +182,7 @@ public partial class SelectTrainPage : ContentPage
 			if (jsonFiles.Length == 0)
 			{
 				logger.Warn("No JSON files found for selection");
-				viewModel.Loader = new SampleDataLoader();
+				viewModel.Loader = await SampleDataLoader.CreateAsync();
 				return;
 			}
 
@@ -183,7 +199,7 @@ public partial class SelectTrainPage : ContentPage
 			if (string.IsNullOrEmpty(selectedFileName) || selectedFileName == "キャンセル")
 			{
 				logger.Info("File selection cancelled");
-				viewModel.Loader = new SampleDataLoader();
+				viewModel.Loader = await SampleDataLoader.CreateAsync();
 				return;
 			}
 
@@ -202,13 +218,13 @@ public partial class SelectTrainPage : ContentPage
 				{
 					logger.Warn("Failed to load selected timetable file");
 					await Util.DisplayAlertAsync(this, "エラー", "ファイルの読み込みに失敗しました", "OK");
-					viewModel.Loader = new SampleDataLoader();
+					viewModel.Loader = await SampleDataLoader.CreateAsync();
 				}
 			}
 			else
 			{
 				logger.Warn("Invalid file selection index");
-				viewModel.Loader = new SampleDataLoader();
+				viewModel.Loader = await SampleDataLoader.CreateAsync();
 			}
 		}
 		catch (Exception ex)
@@ -216,7 +232,7 @@ public partial class SelectTrainPage : ContentPage
 			logger.Error(ex, "Error in ShowFileSelectionDialogAsync");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.ShowFileSelectionDialogAsync failed");
 			await Util.DisplayAlertAsync(this, "エラー", $"ファイル選択に失敗しました: {ex.Message}", "OK");
-			viewModel.Loader = new SampleDataLoader();
+			viewModel.Loader = await SampleDataLoader.CreateAsync();
 		}
 	}
 
