@@ -169,10 +169,20 @@ jobs:
           # renders at a realistic size. The default AVD (no --device flag) uses
           # 320x640 @ 160dpi, which is extremely small and causes slow rendering
           # and element-detection failures during UI tests.
-          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
+          # hw.ramSize=4096 (default ~1536) prevents OOM crashes when MAUI's
+          # debug build, the UIA2 server, and the timetable view are all live —
+          # a smaller heap caused the UIA2 instrumentation to die mid-test (exit
+          # code 255) once DTAC tests started rendering the timetable.
+          # vm.heapSize=512 raises the per-process Dalvik heap so the MAUI app's
+          # debug-mode managed heap doesn't collide with the same ceiling.
+          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\nhw.ramSize=4096\nvm.heapSize=512\ndisk.dataPartition.size=4096M\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
 
       - name: Start Android emulator
         run: |
+          # -memory mirrors hw.ramSize in config.ini for older emulator versions
+          # that ignore the config value when the flag isn't passed explicitly.
+          # Redirect output so we can grep it from the diagnostics step if the
+          # emulator crashes during the run (it dies silently otherwise).
           $ANDROID_SDK_ROOT/emulator/emulator \
             -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
             -no-window \
@@ -180,7 +190,8 @@ jobs:
             -no-snapshot \
             -noaudio \
             -no-boot-anim \
-            &
+            -memory 4096 \
+            > emulator.log 2>&1 &
           EMULATOR_PID=$!
           echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
           echo "Emulator started with PID $EMULATOR_PID"
@@ -211,7 +222,9 @@ jobs:
           fi
           echo "APK: $APK_PATH"
 
-          appium &
+          # Redirect appium output so we can inspect it after a UIA2 crash.
+          # The "Dump logcat on failure" step prints the tail.
+          appium > appium.log 2>&1 &
           APPIUM_PID=$!
           echo "Appium PID: $APPIUM_PID"
 
@@ -241,11 +254,33 @@ jobs:
           kill "$APPIUM_PID" 2>/dev/null || true
           exit $TEST_EXIT_CODE
 
-      - name: Dump logcat on failure
+      - name: Dump diagnostics on failure
         if: failure()
+        # If the emulator process has died, `adb logcat` will block indefinitely
+        # waiting for a device. Wrap each adb call in `timeout` so the step
+        # cannot stall the whole job (previously caused a 36-minute hang until
+        # the 45-minute job timeout cancelled everything).
+        timeout-minutes: 3
         run: |
-          echo "=== logcat (last 500 lines) ==="
-          $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 500 2>/dev/null || true
+          echo "=== adb devices ==="
+          timeout 15 $ANDROID_SDK_ROOT/platform-tools/adb devices -l 2>&1 || echo "(adb devices timed out)"
+          echo "=== logcat (last 2000 lines) ==="
+          timeout 30 $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 2000 2>&1 || echo "(adb logcat timed out — emulator likely dead)"
+          echo "=== appium.log (last 500 lines) ==="
+          tail -n 500 appium.log 2>/dev/null || echo "(no appium.log)"
+          echo "=== emulator.log (last 200 lines) ==="
+          tail -n 200 emulator.log 2>/dev/null || echo "(no emulator.log)"
+
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-ui-test-diagnostics
+          path: |
+            appium.log
+            emulator.log
+            **/*.trx
+          if-no-files-found: ignore
 
       - name: Stop Android emulator
         if: always()
