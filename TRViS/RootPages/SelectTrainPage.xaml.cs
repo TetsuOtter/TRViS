@@ -28,8 +28,17 @@ public partial class SelectTrainPage : ContentPage
 	{
 		logger.Info("Load Sample Button Clicked");
 
-		viewModel.Loader?.Dispose();
-		viewModel.Loader = await SampleDataLoader.CreateAsync();
+		try
+		{
+			viewModel.Loader?.Dispose();
+			viewModel.Loader = await SampleDataLoader.CreateAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Failed to load sample data");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.LoadSampleButton_Clicked (CreateAsync failed)");
+			await Util.DisplayAlertAsync(this, "エラー", $"サンプルデータの読み込みに失敗しました: {ex.Message}", "OK");
+		}
 
 		logger.Info("Load Sample Button Clicked Processing Complete");
 	}
@@ -78,7 +87,15 @@ public partial class SelectTrainPage : ContentPage
 			{
 				logger.Error(ex, "Error loading default timetable");
 				InstanceManager.CrashlyticsWrapper.Log(ex, "SelectTrainPage.OnAppearing (TryLoadDefaultTimetableAsync failed)");
-				viewModel.Loader = await SampleDataLoader.CreateAsync();
+				try
+				{
+					viewModel.Loader = await SampleDataLoader.CreateAsync();
+				}
+				catch (Exception fallbackEx)
+				{
+					logger.Error(fallbackEx, "Fallback SampleDataLoader.CreateAsync also failed");
+					InstanceManager.CrashlyticsWrapper.Log(fallbackEx, "SelectTrainPage.OnAppearing (fallback SampleDataLoader.CreateAsync failed)");
+				}
 			}
 		}
 	}
