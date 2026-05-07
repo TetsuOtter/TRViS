@@ -356,10 +356,14 @@ jobs:
           xcrun simctl list runtimes
 
       - name: Install Appium globally
-        run: npm install -g appium
+        # Pin to avoid an upstream regression in Appium 3.4.x + xcuitest 11.x
+        # where doNativeFind passes a null context to unwrapElement and
+        # @appium/support throws "Cannot convert undefined or null to object"
+        # on every root-level findElement call.
+        run: npm install -g appium@3.2.2
 
       - name: Install XCUITest driver
-        run: appium driver install xcuitest
+        run: appium driver install xcuitest@10.32.1
 
       - name: Create placeholder GoogleService-Info.plist
         run: |
