@@ -73,4 +73,42 @@ public abstract class PageObject
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
 		}
 	}
+
+	/// <summary>
+	/// Windows-specific helper: locate an element by its visible text via UIA's
+	/// <c>Name</c> property. Used as a fallback for MAUI custom controls
+	/// (<c>ContentView</c>, <c>ToggleButton</c>) whose AutomationId is exposed
+	/// as a non-control Pane that <c>MobileBy.AccessibilityId</c> doesn't match.
+	/// Pass one or more candidate texts (e.g. for buttons whose label changes
+	/// between toggled states) and the first match wins.
+	/// </summary>
+	protected AppiumElement WaitForElementByVisibleText(TimeSpan timeout, params string[] candidateTexts)
+	{
+		if (candidateTexts.Length == 0)
+			throw new ArgumentException("At least one candidate text is required", nameof(candidateTexts));
+
+		// Build "//*[@Name='a' or @Name='b' or ...]"
+		string predicate = string.Join(" or ",
+			candidateTexts.Select(t => $"@Name='{t}'"));
+		var xpath = By.XPath($"//*[{predicate}]");
+
+		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(Driver, timeout);
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			return (AppiumElement)wait.Until(d =>
+			{
+				try
+				{
+					var el = d.FindElement(xpath);
+					return el.Displayed ? el : null!;
+				}
+				catch (NoSuchElementException) { return null!; }
+			});
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
 }

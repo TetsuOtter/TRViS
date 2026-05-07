@@ -8,51 +8,44 @@ public class DTACViewHostPageObject : PageObject
 {
 	public DTACViewHostPageObject(AppiumDriver driver) : base(driver) { }
 
+	// Tab buttons (TabButton = MAUI ContentView) and the StartEndRun /
+	// LocationService toggles (custom ToggleButton : ContentView) all expose
+	// their AutomationId as a non-control Pane on WinUI that Appium's
+	// AccessibilityId search doesn't match. Fall back to UIA Name lookup
+	// using the visible label text on Windows.
+	private const int WindowsXPathTimeoutSeconds = 15;
+
 	public AppiumElement MenuButton => WaitForElement(AutomationIds.DTAC.MenuButton);
 	public AppiumElement TimeLabel => FindByAutomationId(AutomationIds.DTAC.TimeLabel);
 	public AppiumElement TitleLabel => FindByAutomationId(AutomationIds.DTAC.TitleLabel);
-	public AppiumElement TabHako => FindTabButton(AutomationIds.DTAC.TabHako, "ハ　コ");
-	public AppiumElement TabTimetable => FindTabButton(AutomationIds.DTAC.TabTimetable, "時刻表");
-	public AppiumElement TabWorkAffix => FindTabButton(AutomationIds.DTAC.TabWorkAffix, "行路添付");
+	public AppiumElement TabHako => FindCustomControl(AutomationIds.DTAC.TabHako, "ハ　コ");
+	public AppiumElement TabTimetable => FindCustomControl(AutomationIds.DTAC.TabTimetable, "時刻表");
+	public AppiumElement TabWorkAffix => FindCustomControl(AutomationIds.DTAC.TabWorkAffix, "行路添付");
 
-	/// <summary>
-	/// Finds a TabButton (a MAUI <c>ContentView</c> wrapping a <c>Label</c>).
-	/// On Windows the outer ContentView's AutomationId is exposed as a Pane that
-	/// Appium's AccessibilityId search does not match, so fall back to locating
-	/// the inner Label by its visible text via UIA's Name property.
-	/// </summary>
-	private AppiumElement FindTabButton(string automationId, string visibleText)
-	{
-		if (IsWindows)
-		{
-			var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(
-				Driver, TimeSpan.FromSeconds(15));
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			try
-			{
-				return (AppiumElement)wait.Until(d =>
-				{
-					try
-					{
-						var el = d.FindElement(By.XPath($"//*[@Name='{visibleText}']"));
-						return el.Displayed ? el : null!;
-					}
-					catch (NoSuchElementException) { return null!; }
-				});
-			}
-			finally
-			{
-				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-			}
-		}
-		return FindByAutomationId(automationId);
-	}
+	// StartEndRunButton's visible label flips between "運行開始" and "運行終了"
+	// as the IsChecked state toggles, so XPath must accept either text.
+	public AppiumElement StartEndRunButton
+		=> FindCustomControl(AutomationIds.DTAC.StartEndRunButton, "運行開始", "運行終了");
 
-	public AppiumElement StartEndRunButton => FindByAutomationId(AutomationIds.DTAC.StartEndRunButton);
-	public AppiumElement LocationServiceButton => FindByAutomationId(AutomationIds.DTAC.LocationServiceButton);
+	// LocationServiceButton has three labels stacked inside it: a Material
+	// Icons glyph (U+E0C8) and the literal "ON" / "OFF" strings. Any of
+	// them being present in the UIA tree is sufficient to satisfy the
+	// caller's `.Displayed` check, so include all three as candidates.
+	public AppiumElement LocationServiceButton
+		=> FindCustomControl(AutomationIds.DTAC.LocationServiceButton, "", "ON", "OFF");
+
 	public AppiumElement OpenCloseButton => FindByAutomationId(AutomationIds.DTAC.OpenCloseButton);
 	public AppiumElement TimetableScrollView => FindByAutomationId(AutomationIds.DTAC.TimetableScrollView);
 	public AppiumElement VerticalTimetableView => FindByAutomationId(AutomationIds.DTAC.VerticalTimetableView);
+
+	private AppiumElement FindCustomControl(string automationId, params string[] candidateTexts)
+	{
+		if (IsWindows)
+			return WaitForElementByVisibleText(
+				TimeSpan.FromSeconds(WindowsXPathTimeoutSeconds),
+				candidateTexts);
+		return FindByAutomationId(automationId);
+	}
 
 	public bool IsDisplayed()
 	{
