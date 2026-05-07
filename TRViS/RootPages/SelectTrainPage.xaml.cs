@@ -34,9 +34,67 @@ public partial class SelectTrainPage : ContentPage
 		logger.Info("Load Sample Button Clicked Processing Complete");
 	}
 
+	/// <summary>
+	/// Test seam: tapped from UI tests via AutomationId "SelectTrain.TestSeedButton".
+	/// Seeds the URL history with two well-known fixtures so the connection-history
+	/// selection bug fix can be exercised without typing a long URI through Appium
+	/// SendKeys (which is flaky on iOS XCUITest).
+	/// </summary>
+	void TestSeedButton_Clicked(object sender, EventArgs e)
+	{
+#if DEBUG || DISABLE_FIREBASE
+		logger.Info("TestSeedButton clicked: seeding URL history fixtures");
+		viewModel.SeedUrlHistoryForTesting(new[]
+		{
+			"https://example.com/timetable-a.json",
+			"https://example.com/timetable-b.json",
+		});
+#endif
+	}
+
+	/// <summary>
+	/// Test seam: tapped from UI tests via "SelectTrain.TestSeedGpsButton". Force-
+	/// enables LocationService and pushes a hard-coded GPS coord so the auto-scroll
+	/// pipeline can be exercised without typing a deeplink through Appium SendKeys.
+	/// The coord matches sample-data row 6 (大宮: 139.790, 35.700).
+	/// </summary>
+	void TestSeedGpsButton_Clicked(object sender, EventArgs e)
+	{
+#if DEBUG || DISABLE_FIREBASE
+		logger.Info("TestSeedGpsButton clicked: pushing fixture GPS coord");
+		try
+		{
+			var locationService = InstanceManager.LocationService;
+			locationService.SetLonLatLocationService();
+			// Do NOT toggle IsEnabled here. On iOS, IsEnabled = true fires
+			// IsEnabledChanged which wakes up LocationServiceGpsAdapter; that
+			// adapter calls Geolocation.Default.StartListening which prompts
+			// the system CoreLocation permission alert and stalls the test.
+			// Calling SetGpsLocation still fires OnGpsLocationUpdated (the
+			// observable side effect tests care about) before the IsEnabled
+			// gate would early-return.
+			locationService.SetGpsLocation(longitude: 139.790, latitude: 35.700, accuracy: 10.0, useAverageDistance: false);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedGpsButton failed");
+		}
+#endif
+	}
+
 	protected override async void OnAppearing()
 	{
 		base.OnAppearing();
+
+#if DEBUG || DISABLE_FIREBASE
+		// Make the DEBUG-only test seed buttons findable. In a Release build
+		// (no DEBUG, no DISABLE_FIREBASE) this branch is removed and the
+		// buttons stay IsVisible="False" → unreachable from Appium.
+		if (TestSeedButton is not null)
+			TestSeedButton.IsVisible = true;
+		if (TestSeedGpsButton is not null)
+			TestSeedGpsButton.IsVisible = true;
+#endif
 
 		if (viewModel.Loader is null)
 		{
