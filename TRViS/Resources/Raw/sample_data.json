@@ -29,6 +29,9 @@
               {
                 "Id": "1",
                 "Location_m": 1,
+                "Longitude_deg": 139.750,
+                "Latitude_deg": 35.650,
+                "OnStationDetectRadius_m": 200,
                 "DriveTime_MM": 0,
                 "DriveTime_SS": 0,
                 "StationName": "駅１",
@@ -47,6 +50,9 @@
               {
                 "Id": "2",
                 "Location_m": 2,
+                "Longitude_deg": 139.760,
+                "Latitude_deg": 35.660,
+                "OnStationDetectRadius_m": 200,
                 "DriveTime_MM": 10,
                 "DriveTime_SS": 50,
                 "StationName": "駅２",
@@ -66,6 +72,9 @@
               {
                 "Id": "3",
                 "Location_m": 3,
+                "Longitude_deg": 139.770,
+                "Latitude_deg": 35.670,
+                "OnStationDetectRadius_m": 200,
                 "DriveTime_MM": 100,
                 "DriveTime_SS": 50,
                 "StationName": "駅３",
@@ -83,6 +92,9 @@
               {
                 "Id": "4",
                 "Location_m": 4,
+                "Longitude_deg": 139.767125,
+                "Latitude_deg": 35.681236,
+                "OnStationDetectRadius_m": 200,
                 "DriveTime_MM": 1,
                 "StationName": "東京",
                 "IsOperationOnlyStop": true,
@@ -97,6 +109,9 @@
               {
                 "Id": "5",
                 "Location_m": 5,
+                "Longitude_deg": 139.780,
+                "Latitude_deg": 35.690,
+                "OnStationDetectRadius_m": 200,
                 "DriveTime_SS": 5,
                 "StationName": "津",
                 "IsOperationOnlyStop": false,
@@ -112,6 +127,9 @@
               {
                 "Id": "6",
                 "Location_m": 6,
+                "Longitude_deg": 139.790,
+                "Latitude_deg": 35.700,
+                "OnStationDetectRadius_m": 200,
                 "DriveTime_MM": 4,
                 "DriveTime_SS": 30,
                 "StationName": "大宮",
