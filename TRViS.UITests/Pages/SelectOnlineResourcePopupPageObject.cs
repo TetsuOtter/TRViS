@@ -28,16 +28,11 @@ public class SelectOnlineResourcePopupPageObject : PageObject
 
 	/// <summary>
 	/// Returns the AutomationId-tagged history-row element matching <paramref name="url"/>,
-	/// waiting up to 30 s for it to appear. On Windows the Label inside the
-	/// CollectionView's DataTemplate doesn't expose its AutomationId via UIA,
-	/// so fall back to locating the row by its visible URL text.
+	/// waiting up to 30 s for it to appear. Not supported on Windows — see
+	/// <see cref="Tests.SelectOnlineResourcePopupTests"/> for the [Platform] skip.
 	/// </summary>
 	public AppiumElement HistoryItem(string url)
-	{
-		if (IsWindows)
-			return WaitForElementByVisibleText(TimeSpan.FromSeconds(30), url);
-		return WaitForElement(AutomationIds.SelectOnlineResource.UrlHistoryItemPrefix + url);
-	}
+		=> WaitForElement(AutomationIds.SelectOnlineResource.UrlHistoryItemPrefix + url);
 
 	/// <summary>
 	/// Reads the value from the URL input. Across platforms the Entry's text appears
