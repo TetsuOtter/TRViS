@@ -37,12 +37,20 @@ public static class AppiumConfig
 				options.App = appPath;
 				options.AddAdditionalAppiumOption("bundleId", AppPackage);
 				options.AddAdditionalAppiumOption("autoAcceptAlerts", true);
-				// On macos-26 with Xcode 26.3 the fresh simulator boot + WDA installation
-				// exceeds the 120 s default. Raise both timeouts to 10 min so that the
-				// very first session does not fail while WDA is still starting up.
-				options.AddAdditionalAppiumOption("simulatorStartupTimeout", 600000);
-				options.AddAdditionalAppiumOption("wdaLaunchTimeout", 300000);
-				options.AddAdditionalAppiumOption("wdaStartupRetries", 2);
+				// On macos-26 with Xcode 26.4 the fresh simulator boot + WDA xcodebuild
+				// has been observed to take >10 minutes on the matrix runners, so raise
+				// each phase's timeout well past those upper bounds. The total
+				// session-creation budget on the client side is set by
+				// BaseUITest.SetUpDriver's IOSDriver commandTimeout (20 min) — these
+				// caps must stay below that or a server-side abort will surface as a
+				// confusing "response ended prematurely" error before the client
+				// timeout has a chance to fire.
+				options.AddAdditionalAppiumOption("simulatorStartupTimeout", 900000);
+				options.AddAdditionalAppiumOption("wdaLaunchTimeout", 900000);
+				// Retrying WDA after a 15 min build doesn't help — if the build can
+				// finish at all, it'll finish on the first attempt. Skip retries so a
+				// real failure surfaces fast instead of doubling the wait.
+				options.AddAdditionalAppiumOption("wdaStartupRetries", 1);
 				// Specifying the simulator UDID directly lets xcuitest bypass SDK version
 				// matching (which would fail when the app's DTPlatformVersion differs from
 				// the only available simulator runtime).
