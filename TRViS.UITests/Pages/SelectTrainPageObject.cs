@@ -7,7 +7,10 @@ public class SelectTrainPageObject : PageObject
 {
 	public SelectTrainPageObject(AppiumDriver driver) : base(driver) { }
 
-	public AppiumElement Title => WaitForElement(AutomationIds.SelectTrain.Title);
+	// iPhone iOS simulator on macos-26 is markedly slower than the iPad variants —
+	// the post-SaveAndAccept navigation from FirebaseSettingPage to SelectTrainPage
+	// has been observed to take >30 s, so give Title's wait extra headroom.
+	public AppiumElement Title => WaitForElement(AutomationIds.SelectTrain.Title, TimeSpan.FromSeconds(60));
 	public AppiumElement LoadSampleButton => FindByAutomationId(AutomationIds.SelectTrain.LoadSampleButton);
 	// Use WaitForElement for LoadFromWebButton because it may be temporarily not
 	// findable while the popup is still dismissing back to this page.
