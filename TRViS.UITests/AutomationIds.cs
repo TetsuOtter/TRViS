@@ -91,15 +91,28 @@ public static class AutomationIds
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
 	}
 
-	public static class SelectOnlineResource
+	/// <summary>
+	/// Connect-to-Server modal dialog (replaces the legacy SelectOnlineResource popup).
+	/// Two states: history list (rich cards keyed by URL) and a new-connection form
+	/// (URL Entry + "save connection" Switch + Connect button).
+	/// </summary>
+	public static class ConnectServer
 	{
-		public const string CloseButton = "SelectOnlineResource.CloseButton";
-		public const string LoadButton = "SelectOnlineResource.LoadButton";
-		public const string UrlInput = "SelectOnlineResource.UrlInput";
-		public const string UrlHistoryList = "SelectOnlineResource.UrlHistoryList";
-		public const string AdviceLabel = "SelectOnlineResource.AdviceLabel";
-		// Per-row id is "<UrlHistoryItemPrefix><url>".
-		public const string UrlHistoryItemPrefix = "SelectOnlineResource.UrlHistoryItem.";
+		public const string Title = "ConnectServer.Title";
+		public const string CloseButton = "ConnectServer.CloseButton";
+
+		// History list state
+		public const string HistoryList = "ConnectServer.HistoryList";
+		// Per-row id is "<HistoryItemPrefix><url>" — entire card is tappable
+		// (no shared Entry, so tap loads directly).
+		public const string HistoryItemPrefix = "ConnectServer.HistoryItem.";
+		public const string NewConnectionButton = "ConnectServer.NewConnectionButton";
+
+		// New-connection form state
+		public const string BackToHistoryButton = "ConnectServer.BackToHistoryButton";
+		public const string UrlInput = "ConnectServer.UrlInput";
+		public const string SaveConnectionSwitch = "ConnectServer.SaveConnectionSwitch";
+		public const string ConnectButton = "ConnectServer.ConnectButton";
 	}
 
 	public static class Settings

@@ -315,11 +315,7 @@ public partial class StartHomePage : ContentPage
 
 		try
 		{
-			// Phase 1: re-use the existing online-resource popup. Phase 2 replaces it
-			// with a richer in-page overlay backed by ExternalResourceUrlHistory.
-			var popup = new SelectOnlineResourcePopup();
-			popup.OnOpened();
-			await Navigation.PushModalAsync(popup);
+			await Navigation.PushModalAsync(new ConnectServerDialog());
 		}
 		catch (Exception ex)
 		{

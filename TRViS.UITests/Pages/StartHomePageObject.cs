@@ -122,13 +122,12 @@ public class StartHomePageObject : PageObject
 	public void LoadSample() => LoadDemoButton.Click();
 
 	/// <summary>
-	/// Taps "Connect to Server" and returns the popup page object. (Phase 1 still uses
-	/// the SelectOnlineResourcePopup; Phase 2 replaces it with an in-page overlay.)
+	/// Taps "Connect to Server" and returns the dialog's page object.
 	/// </summary>
-	public SelectOnlineResourcePopupPageObject OpenLoadFromWebPopup()
+	public ConnectServerDialogPageObject OpenConnectServerDialog()
 	{
 		ConnectServerButton.Click();
-		return new SelectOnlineResourcePopupPageObject(Driver);
+		return new ConnectServerDialogPageObject(Driver);
 	}
 
 	/// <summary>

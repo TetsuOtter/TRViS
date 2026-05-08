@@ -30,8 +30,9 @@
 			<Button
 				AutomationId="PrivacyDialog.CloseButton"
 				Grid.Column="1"
-				Text="✕"
-				FontSize="18"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
 				WidthRequest="40"
 				HeightRequest="40"
 				Padding="0"

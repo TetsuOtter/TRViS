@@ -134,9 +134,9 @@
 				x:Name="PrivacyReconfirmBanner"
 				AutomationId="StartHome.PrivacyReconfirmBanner"
 				Grid.Row="0"
-				Stroke="#FFB800"
+				Stroke="{AppThemeBinding Light=#FF9A00, Dark=#FFB800}"
 				StrokeThickness="2"
-				BackgroundColor="#3A2400"
+				BackgroundColor="{AppThemeBinding Light=#FFF4D6, Dark=#3A2400}"
 				Padding="16"
 				Margin="0,0,0,4"
 				IsVisible="False">
@@ -149,34 +149,37 @@
 				<Grid ColumnDefinitions="Auto,*,Auto"
 							ColumnSpacing="12"
 							RowDefinitions="Auto,Auto">
+					<!-- &#xe002; = warning, &#xe5cc; = chevron_right (Material Icons) -->
 					<Label
 						Grid.Column="0"
 						Grid.RowSpan="2"
-						Text="⚠"
+						Text="&#xe002;"
+						FontFamily="MaterialIconsRegular"
 						FontSize="40"
-						TextColor="#FFD05A"
+						TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
 						VerticalOptions="Center"/>
 					<Label
 						Grid.Column="1"
 						Grid.Row="0"
 						AutomationId="StartHome.PrivacyReconfirmText"
 						Text="プライバシーポリシーへの同意が必要です"
-						TextColor="#FFE99B"
+						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
 						FontSize="18"
 						FontAttributes="Bold"/>
 					<Label
 						Grid.Column="1"
 						Grid.Row="1"
 						Text="アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。"
-						TextColor="#FFE99B"
+						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
 						FontSize="13"
 						LineBreakMode="WordWrap"/>
 					<Label
 						Grid.Column="2"
 						Grid.RowSpan="2"
-						Text="›"
+						Text="&#xe5cc;"
+						FontFamily="MaterialIconsRegular"
 						FontSize="32"
-						TextColor="#FFD05A"
+						TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
 						VerticalOptions="Center"/>
 				</Grid>
 			</Border>
@@ -193,7 +196,7 @@
 				<Button
 					x:Name="ConnectServerButton"
 					AutomationId="StartHome.ConnectServerButton"
-					Text="サーバーに接続"
+					Text="サーバーから読み込み"
 					Style="{StaticResource PrimaryActionButton}"
 					Clicked="OnConnectServerClicked"/>
 				<Button
