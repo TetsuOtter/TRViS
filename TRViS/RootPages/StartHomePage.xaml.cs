@@ -1,11 +1,21 @@
+using System.Collections.ObjectModel;
+
 using TRViS.DTAC;
 using TRViS.IO;
+using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
 
 namespace TRViS.RootPages;
+
+// Lightweight presenter records used by the WorkGroup / Work CollectionView
+// templates. Subtitle aggregates whatever rich detail is available from the
+// loader (Work count for groups; Train count + AffectDate for works) so the
+// picker rows aren't just bare names.
+public sealed record WorkGroupListItem(WorkGroup Source, string Name, string Subtitle);
+public sealed record WorkListItem(Work Source, string Name, string Subtitle);
 
 public partial class StartHomePage : ContentPage
 {
@@ -18,12 +28,26 @@ public partial class StartHomePage : ContentPage
 	enum PageMode { Start, Home }
 	PageMode _currentMode = PageMode.Start;
 
-	// Auto-fill guards. Set to true when the user manually clears their selection via
-	// the chip-tap, so the auto-fill code does not immediately re-pick it on the next
-	// list update (e.g. WebSocket pushes a Refresh while the user is mid-deselect).
-	// Both flags reset to false whenever Loader changes (fresh data, fresh intent).
-	bool _userClearedWorkGroup;
-	bool _userClearedWork;
+	// ----- Tentative (pre-Open) selection state -----
+	// The Home page deliberately does NOT mirror its picker state into
+	// AppViewModel.SelectedWorkGroup / SelectedWork. Those are the *committed*
+	// selections used by DTAC; they only change when the user presses 開く.
+	// This lets the user explore the picker without polluting DTAC, and gives
+	// the 開く button real semantic weight ("commit my choice").
+	WorkGroup? _pendingWorkGroup;
+	Work? _pendingWork;
+	readonly ObservableCollection<WorkGroupListItem> _workGroupItems = new();
+	readonly ObservableCollection<WorkListItem> _workItems = new();
+	// Re-entrancy guard: we set CollectionView.SelectedItem programmatically when
+	// restoring tentative state from the AppViewModel, and that fires SelectionChanged.
+	// The flag prevents that synthetic change from being treated as a user pick.
+	bool _suppressSelectionChanged;
+	// Guard: 開く's commit sets SelectedWorkGroup -> the cascade auto-picks the first
+	// Work of that group BEFORE we then set SelectedWork to the user's pending pick.
+	// Without this guard, the intermediate SelectedWork PropertyChanged would yank
+	// _pendingWork to the auto-picked one via SyncPendingFromCommitted, causing a
+	// brief visible flicker.
+	bool _committingOpen;
 
 	// Animation tunables. Header is centered slightly above middle in Start mode;
 	// pinned to top in Home mode.
@@ -55,6 +79,9 @@ public partial class StartHomePage : ContentPage
 		viewModel = InstanceManager.AppViewModel;
 		BindingContext = viewModel;
 
+		WorkGroupListView.ItemsSource = _workGroupItems;
+		WorkListView.ItemsSource = _workItems;
+
 		// Apply initial header layout once we have a measured size.
 		SizeChanged += OnSizeChangedFirstLayout;
 		AppHeader.SizeChanged += (_, __) => UpdateHomeBodyTopSpacer();
@@ -76,9 +103,9 @@ public partial class StartHomePage : ContentPage
 		{
 			case nameof(AppViewModel.Loader):
 				logger.Debug("Loader changed -> evaluate page mode");
-				// New loader -> fresh selection intent, drop any user-cleared sticky flags.
-				_userClearedWorkGroup = false;
-				_userClearedWork = false;
+				// New loader -> wipe tentative state and rebuild the WorkGroup picker.
+				ResetPendingSelection();
+				RebuildWorkGroupItems();
 				_ = ApplyModeForCurrentLoaderAsync();
 				break;
 
@@ -87,18 +114,26 @@ public partial class StartHomePage : ContentPage
 				break;
 
 			case nameof(AppViewModel.WorkGroupList):
-				TryAutoFillWorkGroup();
-				RefreshStepUi();
-				break;
-
-			case nameof(AppViewModel.WorkList):
-				TryAutoFillWork();
+				// WorkGroupList changes can come from a Refresh() (websocket) which
+				// may also reset committed AppViewModel selections. Rebuild the items
+				// and re-sync tentative state from committed.
+				RebuildWorkGroupItems();
+				SyncPendingFromCommitted();
 				RefreshStepUi();
 				break;
 
 			case nameof(AppViewModel.SelectedWorkGroup):
 			case nameof(AppViewModel.SelectedWork):
-				RefreshStepUi();
+				// Committed selection moved underneath us (e.g. websocket Refresh chose
+				// a different fallback). Re-sync the tentative state so the user sees
+				// what's actually committed when they return to this page.
+				// Skip during 開く's own commit, where the cascade between SetSelectedWorkGroup
+				// and SetSelectedWork would otherwise overwrite the user's pending pick.
+				if (!_committingOpen)
+				{
+					SyncPendingFromCommitted();
+					RefreshStepUi();
+				}
 				break;
 		}
 	}
@@ -129,10 +164,17 @@ public partial class StartHomePage : ContentPage
 			TestSeedButton.IsVisible = true;
 		if (TestSeedGpsButton is not null)
 			TestSeedGpsButton.IsVisible = true;
+		if (TestAutoOpenButton is not null)
+			TestAutoOpenButton.IsVisible = true;
 #endif
 
 		UpdatePrivacyDependentControls();
 		UpdateHomeBodyTopSpacer();
+
+		// Reflect any current loader / committed selection state. If we're returning
+		// here from DTAC, the user's last commit becomes their initial pending state.
+		RebuildWorkGroupItems();
+		SyncPendingFromCommitted();
 
 		// First-appearing default-timetable load (preserves SelectTrainPage behavior).
 		// Only run when we don't yet have a Loader.
@@ -147,8 +189,8 @@ public partial class StartHomePage : ContentPage
 
 				if (success && !requiresFileSelection)
 				{
-					logger.Info("Default timetable loaded -> navigate to DTAC");
-					await NavigateToDTACAsync();
+					logger.Info("Default timetable loaded -> show Home picker (no auto-navigate)");
+					await ApplyModeForCurrentLoaderAsync();
 					return;
 				}
 
@@ -208,6 +250,7 @@ public partial class StartHomePage : ContentPage
 		{
 			// Refresh derived UI in case Loader was swapped to a new instance.
 			UpdateLoaderInfoLabels();
+			RefreshStepUi();
 			return Task.CompletedTask;
 		}
 		return TransitionToAsync(target);
@@ -331,7 +374,7 @@ public partial class StartHomePage : ContentPage
 		// (file name, URL) set atomically with the loader via AppViewModel.SetLoader.
 		(string title, string glyph) = loader switch
 		{
-			SampleDataLoader => ("デモデータ", ""),                  // settings_input_component
+			SampleDataLoader => ("デモデータ", ""),                  // settings_input_component
 			LoaderJson => ("JSON ファイル", ""),                       // description
 			LoaderSQL => ("SQLite ファイル", ""),                      // storage
 			WebSocketNetworkSyncService => ("サーバー接続中", ""),     // wifi
@@ -343,72 +386,164 @@ public partial class StartHomePage : ContentPage
 	}
 
 	// ----- Two-step picker (WorkGroup -> Work) -----
+	//
+	// The CollectionViews bind to ObservableCollection<WorkGroupListItem> /
+	// <WorkListItem> presenters built from the active loader's lists. Selection
+	// is captured in _pendingWorkGroup / _pendingWork — those drive the chip vs
+	// list visual state and the 開く commit.
+
+	void ResetPendingSelection()
+	{
+		_pendingWorkGroup = null;
+		_pendingWork = null;
+		_workItems.Clear();
+	}
+
+	void SyncPendingFromCommitted()
+	{
+		// Mirror the AppViewModel's *committed* selection into our tentative state.
+		// Called when we appear or when the committed state changes underneath us.
+		// Does not propagate back — this is intentionally one-way.
+		var committedWG = viewModel.SelectedWorkGroup;
+		var committedWork = viewModel.SelectedWork;
+
+		if (!Equals(_pendingWorkGroup, committedWG))
+		{
+			_pendingWorkGroup = committedWG;
+			RebuildWorkItems();
+		}
+		if (!Equals(_pendingWork, committedWork))
+		{
+			_pendingWork = committedWork;
+		}
+
+		SyncListViewSelections();
+		RefreshStepUi();
+	}
+
+	void SyncListViewSelections()
+	{
+		// Reflect _pendingWorkGroup / _pendingWork onto the CollectionViews without
+		// re-triggering OnXxxSelectionChanged (which would reset the user-pick flow).
+		_suppressSelectionChanged = true;
+		try
+		{
+			WorkGroupListView.SelectedItem = _pendingWorkGroup is null
+				? null
+				: _workGroupItems.FirstOrDefault(i => Equals(i.Source, _pendingWorkGroup));
+			WorkListView.SelectedItem = _pendingWork is null
+				? null
+				: _workItems.FirstOrDefault(i => Equals(i.Source, _pendingWork));
+		}
+		finally
+		{
+			_suppressSelectionChanged = false;
+		}
+	}
+
+	void RebuildWorkGroupItems()
+	{
+		_workGroupItems.Clear();
+		var loader = viewModel.Loader;
+		var groups = viewModel.WorkGroupList;
+		if (loader is null || groups is null)
+		{
+			RebuildWorkItems();
+			return;
+		}
+		foreach (var wg in groups)
+		{
+			int workCount;
+			try { workCount = loader.GetWorkList(wg.Id).Count; }
+			catch { workCount = 0; }
+			string subtitle = $"Work 数: {workCount}";
+			_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
+		}
+		RebuildWorkItems();
+	}
+
+	void RebuildWorkItems()
+	{
+		_workItems.Clear();
+		var loader = viewModel.Loader;
+		var wg = _pendingWorkGroup;
+		if (loader is null || wg is null)
+			return;
+
+		IReadOnlyList<Work> works;
+		try { works = loader.GetWorkList(wg.Id); }
+		catch { works = Array.Empty<Work>(); }
+
+		foreach (var w in works)
+		{
+			int trainCount;
+			try { trainCount = loader.GetTrainDataList(w.Id).Count; }
+			catch { trainCount = 0; }
+
+			List<string> parts = new(2);
+			if (w.AffectDate is { } d)
+				parts.Add($"施行日: {d:yyyy/MM/dd}");
+			parts.Add($"列車数: {trainCount}");
+			_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
+		}
+	}
 
 	void RefreshStepUi()
 	{
-		var selectedWorkGroup = viewModel.SelectedWorkGroup;
-		var selectedWork = viewModel.SelectedWork;
+		var pendingWG = _pendingWorkGroup;
+		var pendingW = _pendingWork;
 
-		// Work Group: chip when a selection exists; list otherwise.
-		bool hasWorkGroup = selectedWorkGroup is not null;
+		bool hasWorkGroup = pendingWG is not null;
 		WorkGroupChip.IsVisible = hasWorkGroup;
 		WorkGroupListBorder.IsVisible = !hasWorkGroup;
-		WorkGroupChipNameLabel.Text = selectedWorkGroup?.Name ?? string.Empty;
+		WorkGroupChipNameLabel.Text = pendingWG?.Name ?? string.Empty;
 
-		// Work: only meaningful once a Work Group is selected. Show chip when a Work
-		// is picked, the list when one isn't, and a hint when no Work Group is set.
-		bool hasWork = selectedWork is not null;
-		bool workSectionEnabled = hasWorkGroup;
-		WorkChip.IsVisible = workSectionEnabled && hasWork;
-		WorkListBorder.IsVisible = workSectionEnabled && !hasWork;
-		WorkPendingHint.IsVisible = !workSectionEnabled;
-		WorkChipNameLabel.Text = selectedWork?.Name ?? string.Empty;
+		bool hasWork = pendingW is not null;
+		WorkChip.IsVisible = hasWorkGroup && hasWork;
+		WorkListBorder.IsVisible = hasWorkGroup && !hasWork;
+		WorkPendingHint.IsVisible = !hasWorkGroup;
+		WorkChipNameLabel.Text = pendingW?.Name ?? string.Empty;
 	}
 
-	void TryAutoFillWorkGroup()
+	void OnWorkGroupSelectionChanged(object? sender, SelectionChangedEventArgs e)
 	{
-		// Auto-fill only when (a) the user has not explicitly cleared a prior
-		// selection during this loader session and (b) there is exactly one option.
-		// Guards against re-firing when WebSocket loaders push a Refresh after
-		// the user just tapped to clear (sticky _userClearedWorkGroup).
-		if (_userClearedWorkGroup)
+		if (_suppressSelectionChanged)
 			return;
-		if (viewModel.SelectedWorkGroup is not null)
-			return;
-		var list = viewModel.WorkGroupList;
-		if (list is null || list.Count != 1)
-			return;
-		logger.Info("Auto-selecting the only Work Group: {0}", list[0].Name);
-		viewModel.SelectedWorkGroup = list[0];
+		var item = WorkGroupListView.SelectedItem as WorkGroupListItem;
+		_pendingWorkGroup = item?.Source;
+		// Switching Work Group invalidates any prior Work pick and rebuilds the
+		// Work list for the new group.
+		_pendingWork = null;
+		RebuildWorkItems();
+		SyncListViewSelections();
+		RefreshStepUi();
 	}
 
-	void TryAutoFillWork()
+	void OnWorkSelectionChanged(object? sender, SelectionChangedEventArgs e)
 	{
-		if (_userClearedWork)
+		if (_suppressSelectionChanged)
 			return;
-		if (viewModel.SelectedWork is not null)
-			return;
-		var list = viewModel.WorkList;
-		if (list is null || list.Count != 1)
-			return;
-		logger.Info("Auto-selecting the only Work: {0}", list[0].Name);
-		viewModel.SelectedWork = list[0];
+		var item = WorkListView.SelectedItem as WorkListItem;
+		_pendingWork = item?.Source;
+		RefreshStepUi();
 	}
 
 	void OnWorkGroupChipTapped(object? sender, TappedEventArgs e)
 	{
-		logger.Info("Work Group chip tapped -> clearing selection");
-		_userClearedWorkGroup = true;
-		// Clearing the Work Group also drops any downstream Work selection — the
-		// visible list will swap automatically via SelectionManager's chained update.
-		viewModel.SelectedWorkGroup = null;
+		logger.Info("Work Group chip tapped -> clearing tentative selection");
+		_pendingWorkGroup = null;
+		_pendingWork = null;
+		_workItems.Clear();
+		SyncListViewSelections();
+		RefreshStepUi();
 	}
 
 	void OnWorkChipTapped(object? sender, TappedEventArgs e)
 	{
-		logger.Info("Work chip tapped -> clearing selection");
-		_userClearedWork = true;
-		viewModel.SelectedWork = null;
+		logger.Info("Work chip tapped -> clearing tentative selection");
+		_pendingWork = null;
+		SyncListViewSelections();
+		RefreshStepUi();
 	}
 
 	// ----- Button handlers -----
@@ -499,14 +634,32 @@ public partial class StartHomePage : ContentPage
 	async void OnOpenClicked(object sender, EventArgs e)
 	{
 		logger.Info("Open clicked");
-		// SelectTrain still happens on DTAC; gating Open on SelectedWork keeps the
-		// minimize UX honest (no jumping into DTAC with a half-filled selection).
-		if (viewModel.SelectedWork is null)
+		var pendingWG = _pendingWorkGroup;
+		var pendingW = _pendingWork;
+
+		if (pendingWG is null || pendingW is null)
 		{
-			logger.Info("Open ignored: SelectedWork is null");
-			await Util.DisplayAlertAsync(this, "選択されていません", "Work を選択してから開いてください。", "OK");
+			logger.Info("Open ignored: pending selection incomplete (WG={0}, W={1})", pendingWG, pendingW);
+			await Util.DisplayAlertAsync(this, "選択されていません", "Work Group と Work を選択してから「開く」を押してください。", "OK");
 			return;
 		}
+
+		// Commit tentative -> AppViewModel. Setting SelectedWorkGroup cascades
+		// (TimetableSelectionManager.OnWorkGroupChanged auto-picks the first Work
+		// of that group); we then immediately overwrite with the user's pending
+		// Work, which cascades again to pick its first TrainData. Net effect:
+		// committed (WG, W, first-Train) — the same shape DTAC has always seen.
+		_committingOpen = true;
+		try
+		{
+			viewModel.SelectedWorkGroup = pendingWG;
+			viewModel.SelectedWork = pendingW;
+		}
+		finally
+		{
+			_committingOpen = false;
+		}
+
 		await NavigateToDTACAsync();
 	}
 
@@ -571,7 +724,7 @@ public partial class StartHomePage : ContentPage
 
 			bool loaded = await viewModel.LoadSelectedTimetableFileAsync(filePaths[idx]);
 			if (loaded)
-				await NavigateToDTACAsync();
+				await ApplyModeForCurrentLoaderAsync();
 		}
 		catch (Exception ex)
 		{
@@ -594,6 +747,38 @@ public partial class StartHomePage : ContentPage
 #endif
 	}
 
+	async void TestAutoOpenButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestAutoOpenButton clicked: auto-pick first WG/Work and navigate to DTAC");
+		try
+		{
+			var groups = viewModel.WorkGroupList;
+			var firstGroup = groups?.FirstOrDefault();
+			if (firstGroup is null)
+			{
+				logger.Warn("TestAutoOpenButton: no WorkGroup available — ignoring");
+				return;
+			}
+			viewModel.SelectedWorkGroup = firstGroup;
+			// SelectedWorkGroup setter cascades and auto-picks the first Work.
+			// SelectedWork is therefore non-null at this point if the WorkGroup has any Works.
+			if (viewModel.SelectedWork is null)
+			{
+				logger.Warn("TestAutoOpenButton: WorkGroup has no Work — aborting navigate");
+				return;
+			}
+			await NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestAutoOpenButton failed");
+		}
+#else
+		await Task.CompletedTask;
+#endif
+	}
+
 	void TestSeedGpsButton_Clicked(object sender, EventArgs e)
 	{
 #if UI_TEST
@@ -611,4 +796,3 @@ public partial class StartHomePage : ContentPage
 #endif
 	}
 }
-

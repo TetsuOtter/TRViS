@@ -13,7 +13,6 @@ namespace TRViS.UITests.Tests;
 public class DTACTimetableTests : BaseUITest
 {
 	private StartHomePageObject _startHomePage = null!;
-	private AppShellPage _shell = null!;
 
 	[SetUp]
 	public override void SetUp()
@@ -22,8 +21,6 @@ public class DTACTimetableTests : BaseUITest
 
 		_startHomePage = new StartHomePageObject(Driver);
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
-
-		_shell = new AppShellPage(Driver);
 	}
 
 	private DTACViewHostPageObject LoadSampleAndOpenDTAC()
@@ -32,7 +29,11 @@ public class DTACTimetableTests : BaseUITest
 		_startHomePage.LoadSample();
 		// Sample data populates the work-group list synchronously.
 		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
-		return _shell.NavigateToDTAC();
+		// Use the UI_TEST auto-open seam: picks first WorkGroup + first Work and
+		// commits via the same code path as 開く, then navigates to DTAC. Avoids
+		// flaky CollectionView row tapping on iOS while still exercising the
+		// Home -> commit -> DTAC pipeline.
+		return _startHomePage.AutoOpenForTesting();
 	}
 
 	[Test]
@@ -145,10 +146,10 @@ public class DTACTimetableTests : BaseUITest
 		_startHomePage.SeedGpsLocationForTesting();
 		Thread.Sleep(500);
 
-		// Open DTAC and verify the timetable still renders. If anything in the
-		// pipeline (LocationService → presenter) had crashed, DTAC navigation
-		// would fail to find the timetable container.
-		var dtac = _shell.NavigateToDTAC();
+		// Commit a selection via the auto-open seam (selecting on Home is now
+		// tentative until 開く). Verifying GPS pipeline survives requires DTAC
+		// to have a real Work selected.
+		var dtac = _startHomePage.AutoOpenForTesting();
 		Assert.That(dtac.IsDisplayed(), Is.True);
 		dtac.SwitchToTimetableTab();
 		Assert.That(dtac.TimetableScrollView.Displayed, Is.True,

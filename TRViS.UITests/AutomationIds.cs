@@ -70,6 +70,10 @@ public static class AutomationIds
 		// UI_TEST-only seed seams.
 		public const string TestSeedButton = "StartHome.TestSeedButton";
 		public const string TestSeedGpsButton = "StartHome.TestSeedGpsButton";
+		// Picks the first WorkGroup + first Work and commits via the same code path
+		// as 開く. Lets DTAC-focused tests skip the picker UI without depending on
+		// auto-cascade behavior in TimetableSelectionManager.
+		public const string TestAutoOpenButton = "StartHome.TestAutoOpenButton";
 	}
 
 	public static class PrivacyDialog

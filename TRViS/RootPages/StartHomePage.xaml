@@ -2,8 +2,8 @@
 <ContentPage
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO.ILoader"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:rootpages="clr-namespace:TRViS.RootPages"
 	xmlns:local="clr-namespace:TRViS"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
 	x:DataType="viewmodels:AppViewModel"
@@ -274,6 +274,16 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedGpsButton_Clicked"/>
+			<Button
+				x:Name="TestAutoOpenButton"
+				AutomationId="StartHome.TestAutoOpenButton"
+				Grid.Row="3"
+				IsVisible="False"
+				HeightRequest="1"
+				WidthRequest="1"
+				Padding="0"
+				Margin="0"
+				Clicked="TestAutoOpenButton_Clicked"/>
 		</Grid>
 
 		<!-- ========== Home body ========== -->
@@ -402,23 +412,37 @@
 						</Grid>
 					</Border>
 
-					<!-- List: Work Group picker. -->
+					<!-- List: Work Group picker. ItemsSource is set in code-behind to
+					     a list of WorkGroupListItem presenters so each row can show
+					     the name plus a count of contained Works. Selection is
+					     handled imperatively (SelectionChanged) so the chosen item
+					     stays *tentative* on this page and is only committed to the
+					     AppViewModel when the user taps the "開く" button. -->
 					<Border
 						x:Name="WorkGroupListBorder"
 						Style="{StaticResource StepListBorder}">
 						<CollectionView
+							x:Name="WorkGroupListView"
 							AutomationId="StartHome.WorkGroupList"
 							HeightRequest="220"
-							ItemsSource="{Binding WorkGroupList}"
-							SelectedItem="{Binding SelectedWorkGroup, Mode=TwoWay}"
-							SelectionMode="Single">
+							SelectionMode="Single"
+							SelectionChanged="OnWorkGroupSelectionChanged">
 							<CollectionView.ItemTemplate>
-								<DataTemplate x:DataType="models:WorkGroup">
-									<Grid Padding="8,6">
+								<DataTemplate x:DataType="rootpages:WorkGroupListItem">
+									<Grid Padding="10,8"
+												RowDefinitions="Auto,Auto"
+												ColumnDefinitions="*">
 										<Label
+											Grid.Row="0"
 											Text="{Binding Name}"
-											TextColor="{x:Static local:RootStyles.TableTextColor}"
-											VerticalTextAlignment="Center"/>
+											FontSize="15"
+											FontAttributes="Bold"
+											TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+										<Label
+											Grid.Row="1"
+											Text="{Binding Subtitle}"
+											FontSize="12"
+											TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 									</Grid>
 								</DataTemplate>
 							</CollectionView.ItemTemplate>
@@ -469,24 +493,34 @@
 						</Grid>
 					</Border>
 
-					<!-- List: Work picker. Hidden until a Work Group is selected. -->
+					<!-- List: Work picker. Hidden until a Work Group is selected. ItemsSource
+					     and SelectedItem are managed in code-behind (tentative selection). -->
 					<Border
 						x:Name="WorkListBorder"
 						Style="{StaticResource StepListBorder}"
 						IsVisible="False">
 						<CollectionView
+							x:Name="WorkListView"
 							AutomationId="StartHome.WorkList"
 							HeightRequest="220"
-							ItemsSource="{Binding WorkList}"
-							SelectedItem="{Binding SelectedWork, Mode=TwoWay}"
-							SelectionMode="Single">
+							SelectionMode="Single"
+							SelectionChanged="OnWorkSelectionChanged">
 							<CollectionView.ItemTemplate>
-								<DataTemplate x:DataType="models:Work">
-									<Grid Padding="8,6">
+								<DataTemplate x:DataType="rootpages:WorkListItem">
+									<Grid Padding="10,8"
+												RowDefinitions="Auto,Auto"
+												ColumnDefinitions="*">
 										<Label
+											Grid.Row="0"
 											Text="{Binding Name}"
-											TextColor="{x:Static local:RootStyles.TableTextColor}"
-											VerticalTextAlignment="Center"/>
+											FontSize="15"
+											FontAttributes="Bold"
+											TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+										<Label
+											Grid.Row="1"
+											Text="{Binding Subtitle}"
+											FontSize="12"
+											TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 									</Grid>
 								</DataTemplate>
 							</CollectionView.ItemTemplate>

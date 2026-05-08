@@ -43,6 +43,7 @@ public class StartHomePageObject : PageObject
 	// UI_TEST seed seams.
 	public AppiumElement TestSeedButton => FindByAutomationId(AutomationIds.StartHome.TestSeedButton);
 	public AppiumElement TestSeedGpsButton => FindByAutomationId(AutomationIds.StartHome.TestSeedGpsButton);
+	public AppiumElement TestAutoOpenButton => FindByAutomationId(AutomationIds.StartHome.TestAutoOpenButton);
 
 	public bool IsDisplayed()
 	{
@@ -154,6 +155,17 @@ public class StartHomePageObject : PageObject
 	/// without typing through Appium SendKeys.
 	/// </summary>
 	public void SeedGpsLocationForTesting() => TestSeedGpsButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only auto-open button. Picks the first WorkGroup +
+	/// first Work and commits via the same code path as 開く, then navigates
+	/// to DTAC. Lets DTAC tests bypass the picker UI.
+	/// </summary>
+	public DTACViewHostPageObject AutoOpenForTesting()
+	{
+		TestAutoOpenButton.Click();
+		return new DTACViewHostPageObject(Driver);
+	}
 
 	/// <summary>
 	/// URLs that <see cref="SeedUrlHistoryForTesting"/> writes into history.
