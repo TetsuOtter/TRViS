@@ -34,7 +34,16 @@ env:
   APP_PACKAGE: dev.t0r.trvis
 
   # Build flags
-  DISABLE_FIREBASE: DISABLE_FIREBASE
+  # UI_TEST gates the in-app test seed buttons and deeplink handlers
+  # (see RootPages/SelectTrainPage.xaml.cs and
+  # ViewModels/AppViewModel.AppLink.cs); DISABLE_FIREBASE swaps Firebase
+  # SDKs for the no-op wrappers so the placeholder google-services.json
+  # works end-to-end. The semicolon is URL-encoded (%3B) because dotnet's
+  # CLI parser splits unescaped semicolons in /p: values into separate
+  # arguments. Note: passing /p:DefineConstants=... overrides the
+  # implicit DEBUG/TRACE that `-c Debug` would otherwise add — anything
+  # gated on `#if DEBUG` will not compile in these builds.
+  UI_TEST_DEFINES: "DISABLE_FIREBASE%3BUI_TEST"
 
   # Appium
   # Use 127.0.0.1 (not localhost) on Windows because PowerShell's
@@ -123,7 +132,7 @@ jobs:
           -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
           -r ${{ env.TARGET_RUNTIME_ANDROID }}
           -c Debug
-          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
           /p:AndroidCreatePackagePerAbi=false
           /p:EmbedAssembliesIntoApk=true
 
@@ -169,10 +178,20 @@ jobs:
           # renders at a realistic size. The default AVD (no --device flag) uses
           # 320x640 @ 160dpi, which is extremely small and causes slow rendering
           # and element-detection failures during UI tests.
-          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
+          # hw.ramSize=4096 (default ~1536) prevents OOM crashes when MAUI's
+          # debug build, the UIA2 server, and the timetable view are all live —
+          # a smaller heap caused the UIA2 instrumentation to die mid-test (exit
+          # code 255) once DTAC tests started rendering the timetable.
+          # vm.heapSize=512 raises the per-process Dalvik heap so the MAUI app's
+          # debug-mode managed heap doesn't collide with the same ceiling.
+          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\nhw.ramSize=4096\nvm.heapSize=512\ndisk.dataPartition.size=4096M\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
 
       - name: Start Android emulator
         run: |
+          # -memory mirrors hw.ramSize in config.ini for older emulator versions
+          # that ignore the config value when the flag isn't passed explicitly.
+          # Redirect output so we can grep it from the diagnostics step if the
+          # emulator crashes during the run (it dies silently otherwise).
           $ANDROID_SDK_ROOT/emulator/emulator \
             -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
             -no-window \
@@ -180,7 +199,8 @@ jobs:
             -no-snapshot \
             -noaudio \
             -no-boot-anim \
-            &
+            -memory 4096 \
+            > emulator.log 2>&1 &
           EMULATOR_PID=$!
           echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
           echo "Emulator started with PID $EMULATOR_PID"
@@ -211,7 +231,9 @@ jobs:
           fi
           echo "APK: $APK_PATH"
 
-          appium &
+          # Redirect appium output so we can inspect it after a UIA2 crash.
+          # The "Dump logcat on failure" step prints the tail.
+          appium > appium.log 2>&1 &
           APPIUM_PID=$!
           echo "Appium PID: $APPIUM_PID"
 
@@ -241,11 +263,33 @@ jobs:
           kill "$APPIUM_PID" 2>/dev/null || true
           exit $TEST_EXIT_CODE
 
-      - name: Dump logcat on failure
+      - name: Dump diagnostics on failure
         if: failure()
+        # If the emulator process has died, `adb logcat` will block indefinitely
+        # waiting for a device. Wrap each adb call in `timeout` so the step
+        # cannot stall the whole job (previously caused a 36-minute hang until
+        # the 45-minute job timeout cancelled everything).
+        timeout-minutes: 3
         run: |
-          echo "=== logcat (last 500 lines) ==="
-          $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 500 2>/dev/null || true
+          echo "=== adb devices ==="
+          timeout 15 $ANDROID_SDK_ROOT/platform-tools/adb devices -l 2>&1 || echo "(adb devices timed out)"
+          echo "=== logcat (last 2000 lines) ==="
+          timeout 30 $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 2000 2>&1 || echo "(adb logcat timed out — emulator likely dead)"
+          echo "=== appium.log (last 500 lines) ==="
+          tail -n 500 appium.log 2>/dev/null || echo "(no appium.log)"
+          echo "=== emulator.log (last 200 lines) ==="
+          tail -n 200 emulator.log 2>/dev/null || echo "(no emulator.log)"
+
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-ui-test-diagnostics
+          path: |
+            appium.log
+            emulator.log
+            **/*.trx
+          if-no-files-found: ignore
 
       - name: Stop Android emulator
         if: always()
@@ -269,10 +313,28 @@ jobs:
 
   # ─────────────────────────────────────────────
   # iOS Simulator UI Tests
+  #
+  # Runs the same suite in parallel across an iPhone and two iPad mini
+  # device classes. iPad mini 5th gen needs an iPadOS 17 runtime which is
+  # not pre-installed on macos-26 runners; the job attempts to download
+  # it but tolerates failure (continue-on-error) since macos-26 runners
+  # may not be able to install older runtimes.
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
     timeout-minutes: 40
+    strategy:
+      # Run all device classes regardless of one failing — useful while a class
+      # is being added/stabilized (e.g. iPad mini 5th gen runtime availability).
+      fail-fast: false
+      matrix:
+        device-class:
+          - iphone
+          - ipad-mini-6
+          - ipad-mini-a17
+          # ipad-mini-5: runtime download is best-effort; allow it to fail
+          # without blocking the other matrix entries.
+          - ipad-mini-5
 
     steps:
       - name: Checkout code
@@ -311,15 +373,41 @@ jobs:
           else
             echo "No iOS simulator runtime found. Downloading..."
             xcodebuild -downloadPlatform iOS
-            echo "Download complete. Available runtimes:"
-            xcrun simctl list runtimes
+            echo "Download complete."
           fi
+          xcrun simctl list runtimes
+
+      - name: Download iPadOS 17 runtime (iPad mini 5th gen only)
+        if: matrix.device-class == 'ipad-mini-5'
+        # 5th-gen iPad mini caps at iPadOS 17. macos-26 ships iOS 26.x by default,
+        # so we need an explicit iPadOS 17 runtime. xcodebuild -downloadPlatform
+        # supports -buildVersion in Xcode 16+. This step is best-effort: if the
+        # runtime is unavailable, the test job will fail when simctl create can't
+        # match the device type to a runtime — we let it fail so the issue is visible
+        # but mark the step continue-on-error so the iPhone / 6th-gen / A17 jobs
+        # are not blocked by an iPadOS 17 download regression.
+        continue-on-error: true
+        run: |
+          set -euxo pipefail
+          # Use an iPadOS 17.x runtime if available. Try common build numbers.
+          for VERSION in "17.5" "17.4" "17.0"; do
+            if xcodebuild -downloadPlatform iOS -buildVersion "$VERSION"; then
+              echo "Successfully downloaded iPadOS $VERSION runtime."
+              break
+            fi
+            echo "Failed to download iPadOS $VERSION runtime; trying next..."
+          done
+          xcrun simctl list runtimes
 
       - name: Install Appium globally
-        run: npm install -g appium
+        # Pin to avoid an upstream regression in Appium 3.4.x + xcuitest 11.x
+        # where doNativeFind passes a null context to unwrapElement and
+        # @appium/support throws "Cannot convert undefined or null to object"
+        # on every root-level findElement call.
+        run: npm install -g appium@3.2.2
 
       - name: Install XCUITest driver
-        run: appium driver install xcuitest
+        run: appium driver install xcuitest@10.32.1
 
       - name: Create placeholder GoogleService-Info.plist
         run: |
@@ -358,14 +446,14 @@ jobs:
           </plist>
           EOF
 
-      - name: Run iOS UI Tests
-        run: ./run-ui-tests.sh ios --skip-install
+      - name: Run iOS UI Tests (${{ matrix.device-class }})
+        run: ./run-ui-tests.sh ios --skip-install --device-class=${{ matrix.device-class }}
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ios-ui-test-results
+          name: ios-ui-test-results-${{ matrix.device-class }}
           path: "**/*.trx"
 
   # ─────────────────────────────────────────────
@@ -457,7 +545,7 @@ jobs:
           -c Debug
           /p:WindowsPackageType=None
           /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WIN }}
-          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
 
       - name: Install Appium and Windows driver
         run: |

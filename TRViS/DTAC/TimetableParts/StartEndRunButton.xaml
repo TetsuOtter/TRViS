@@ -5,6 +5,7 @@
 	x:Name="this"
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	xmlns:local="clr-namespace:TRViS.DTAC"
+	AutomationId="DTAC.StartEndRunButton"
 	x:Class="TRViS.DTAC.StartEndRunButton">
 	<Border
 		x:Name="BaseBorder"

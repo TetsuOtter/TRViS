@@ -37,11 +37,22 @@ public static class AppiumConfig
 				options.App = appPath;
 				options.AddAdditionalAppiumOption("bundleId", AppPackage);
 				options.AddAdditionalAppiumOption("autoAcceptAlerts", true);
-				// On macos-26 with Xcode 26.3 the fresh simulator boot + WDA installation
-				// exceeds the 120 s default. Raise both timeouts to 10 min so that the
-				// very first session does not fail while WDA is still starting up.
-				options.AddAdditionalAppiumOption("simulatorStartupTimeout", 600000);
-				options.AddAdditionalAppiumOption("wdaLaunchTimeout", 300000);
+				// On macos-26 with Xcode 26.4 the fresh simulator boot + WDA xcodebuild
+				// has been observed to take >10 minutes on the matrix runners, so raise
+				// each phase's timeout well past those upper bounds. The total
+				// session-creation budget on the client side is set by
+				// BaseUITest.SetUpDriver's IOSDriver commandTimeout (20 min) — these
+				// caps must stay below that or a server-side abort will surface as a
+				// confusing "response ended prematurely" error before the client
+				// timeout has a chance to fire.
+				options.AddAdditionalAppiumOption("simulatorStartupTimeout", 900000);
+				options.AddAdditionalAppiumOption("wdaLaunchTimeout", 900000);
+				// wdaStartupRetries is the WDA *launch* retry count, not a rebuild —
+				// the second attempt reuses the existing xcodebuild output, so it
+				// is cheap and is exactly what recovers from
+				// FBSOpenApplicationServiceErrorDomain Code=1 ("app unknown to
+				// FrontBoard") when Springboard hasn't yet refreshed its app
+				// database after a fresh install. Keep at 2.
 				options.AddAdditionalAppiumOption("wdaStartupRetries", 2);
 				// Specifying the simulator UDID directly lets xcuitest bypass SDK version
 				// matching (which would fail when the app's DTPlatformVersion differs from

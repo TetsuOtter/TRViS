@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Windows;
 
 namespace TRViS.UITests.Infrastructure;
 
@@ -14,10 +15,18 @@ public abstract class PageObject
 	/// </summary>
 	protected bool IsAndroid { get; }
 
+	/// <summary>
+	/// True when running on Windows. WinUI 3 surfaces a MAUI <c>ContentView</c>'s
+	/// AutomationId as a non-control Pane element that Appium's AccessibilityId
+	/// search does not always reach — callers may need an XPath/Name fallback.
+	/// </summary>
+	protected bool IsWindows { get; }
+
 	protected PageObject(AppiumDriver driver)
 	{
 		Driver = driver;
 		IsAndroid = driver is AndroidDriver;
+		IsWindows = driver is WindowsDriver;
 	}
 
 	/// <summary>
@@ -57,6 +66,44 @@ public abstract class PageObject
 				{
 					return null!;
 				}
+			});
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
+
+	/// <summary>
+	/// Windows-specific helper: locate an element by its visible text via UIA's
+	/// <c>Name</c> property. Used as a fallback for MAUI custom controls
+	/// (<c>ContentView</c>, <c>ToggleButton</c>) whose AutomationId is exposed
+	/// as a non-control Pane that <c>MobileBy.AccessibilityId</c> doesn't match.
+	/// Pass one or more candidate texts (e.g. for buttons whose label changes
+	/// between toggled states) and the first match wins.
+	/// </summary>
+	protected AppiumElement WaitForElementByVisibleText(TimeSpan timeout, params string[] candidateTexts)
+	{
+		if (candidateTexts.Length == 0)
+			throw new ArgumentException("At least one candidate text is required", nameof(candidateTexts));
+
+		// Build "//*[@Name='a' or @Name='b' or ...]"
+		string predicate = string.Join(" or ",
+			candidateTexts.Select(t => $"@Name='{t}'"));
+		var xpath = By.XPath($"//*[{predicate}]");
+
+		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(Driver, timeout);
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			return (AppiumElement)wait.Until(d =>
+			{
+				try
+				{
+					var el = d.FindElement(xpath);
+					return el.Displayed ? el : null!;
+				}
+				catch (NoSuchElementException) { return null!; }
 			});
 		}
 		finally
