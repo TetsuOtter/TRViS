@@ -115,6 +115,37 @@ public static class AutomationIds
 		public const string ConnectButton = "ConnectServer.ConnectButton";
 	}
 
+	/// <summary>
+	/// Select-File modal dialog (replaces the direct OS FilePicker behaviour).
+	/// Lists JSON/SQLite files from the app documents folder as rich cards plus
+	/// a "他の場所からファイルを開く" button that falls back to the OS picker.
+	/// </summary>
+	public static class SelectFile
+	{
+		public const string Title = "SelectFile.Title";
+		public const string CloseButton = "SelectFile.CloseButton";
+
+		// File list state
+		public const string FileList = "SelectFile.FileList";
+		// Per-row ids — entire card is tappable. Folder cards drill into the folder;
+		// the up-folder card is rendered above sibling cards when not at root.
+		public const string FileItemPrefix = "SelectFile.FileItem.";
+		public const string FolderItemPrefix = "SelectFile.FolderItem.";
+		public const string UpFolderItem = "SelectFile.UpFolderItem";
+
+		// Breadcrumb showing the current relative path (only visible when not at root).
+		public const string Breadcrumb = "SelectFile.Breadcrumb";
+
+		// Empty state (visible when the current folder has no folders or supported files).
+		public const string EmptyMessage = "SelectFile.EmptyMessage";
+
+		// Always-visible footer actions.
+		// Browse: opens the OS FilePicker for files outside the documents folder.
+		// OpenStorageLocation: reveals the documents folder in the OS file manager.
+		public const string BrowseButton = "SelectFile.BrowseButton";
+		public const string OpenStorageLocationButton = "SelectFile.OpenStorageLocationButton";
+	}
+
 	public static class Settings
 	{
 		public const string ReloadSavedButton = "Settings.ReloadSavedButton";

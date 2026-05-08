@@ -131,6 +131,15 @@ public class StartHomePageObject : PageObject
 	}
 
 	/// <summary>
+	/// Taps "ファイルを選択" and returns the dialog's page object.
+	/// </summary>
+	public SelectFileDialogPageObject OpenSelectFileDialog()
+	{
+		SelectFileButton.Click();
+		return new SelectFileDialogPageObject(Driver);
+	}
+
+	/// <summary>
 	/// Taps the UI_TEST-only test-seed button so tests can populate URL history
 	/// without typing through Appium SendKeys (flaky on iOS XCUITest).
 	/// </summary>

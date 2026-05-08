@@ -329,45 +329,15 @@ public partial class StartHomePage : ContentPage
 	{
 		logger.Info("Select File clicked");
 
-		ILoader? lastLoader = viewModel.Loader;
 		try
 		{
-			var result = await FilePicker.Default.PickAsync();
-			if (result is null)
-			{
-				logger.Info("File picker cancelled");
-				return;
-			}
-
-			logger.Info("File Selected: {0}", result.FullPath);
-			if (result.FullPath.EndsWith(".json"))
-			{
-				viewModel.Loader = await LoaderJson.InitFromFileAsync(result.FullPath);
-			}
-			else if (result.FullPath.EndsWith(".sqlite") || result.FullPath.EndsWith(".db") || result.FullPath.EndsWith(".sqlite3"))
-			{
-				viewModel.Loader = new LoaderSQL(result.FullPath);
-			}
-			else
-			{
-				logger.Warn("Unknown file type");
-				await Util.DisplayAlertAsync(this, "Unknown File Type", "The selected file is not a supported file type.", "OK");
-				return;
-			}
-
-			if (!ReferenceEquals(lastLoader, viewModel.Loader))
-				lastLoader?.Dispose();
+			await Navigation.PushModalAsync(new SelectFileDialog());
 		}
 		catch (Exception ex)
 		{
-			if (!ReferenceEquals(lastLoader, viewModel.Loader))
-			{
-				viewModel.Loader?.Dispose();
-				viewModel.Loader = lastLoader;
-			}
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnSelectFileClicked (PickAsync failed)");
-			logger.Error(ex, "File selection failed");
-			await Util.DisplayAlertAsync(this, "Cannot Open File", ex.ToString(), "OK");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnSelectFileClicked (PushModalAsync failed)");
+			logger.Error(ex, "PushModalAsync failed");
+			await Util.DisplayAlertAsync(this, "Open Dialog Failed", ex.ToString(), "OK");
 		}
 	}
 
