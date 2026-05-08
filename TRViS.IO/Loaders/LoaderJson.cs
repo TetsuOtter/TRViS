@@ -107,18 +107,24 @@ public class LoaderJson : ILoader
 			{
 				WorkData workData = workList[workIndex];
 				string workId = workIdList[workIdIndex++];
+				DateOnly? affectDate = Utils.StringToDateOnlyOrNull(workData.AffectDate);
+				// 日付として解釈できない任意の文字列は AffectDateText に格納する
+				string? affectDateText = (affectDate is null && !string.IsNullOrEmpty(workData.AffectDate))
+					? workData.AffectDate
+					: null;
 				WorkData[workId] = new(
 					WorkGroupId: workGroupId,
 					Id: workId,
 					Name: workData.Name,
 
-					AffectDate: Utils.StringToDateOnlyOrNull(workData.AffectDate),
+					AffectDate: affectDate,
 					AffixContent: null, // workData.AffixContent,
 					AffixContentType: workData.AffixContentType,
 					ETrainTimetableContent: null, // workData.ETrainTimetableContent,
 					ETrainTimetableContentType: workData.ETrainTimetableContentType,
 					HasETrainTimetable: workData.HasETrainTimetable,
-					Remarks: workData.Remarks
+					Remarks: workData.Remarks,
+					AffectDateText: affectDateText
 				);
 				WorkGroupIdByWorkId[workId] = workGroupId;
 				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name}");

@@ -10,7 +10,11 @@ public record Work(
 	string? Remarks = null,
 	bool? HasETrainTimetable = null,
 	int? ETrainTimetableContentType = null,
-	byte[]? ETrainTimetableContent = null
+	byte[]? ETrainTimetableContent = null,
+	// 「施行日」に日付ではない任意の文字列を表示したい場合のテキスト。
+	// 設定されていればこちらが優先表示される (UI 側のレンダリング規約)。
+	// JSON 上の AffectDate が日付として解釈できない場合、ConvertWork が自動で埋める。
+	string? AffectDateText = null
 ) : IHasRemarksProperty
 {
 }

@@ -25,6 +25,12 @@ public interface IAppViewModelProvider
 	TrainData? SelectedTrainData { get; }
 
 	/// <summary>
+	/// サーバーから指定された、タイトルバー時刻表示のフォーマット。
+	/// 例: "HH:mm:ss" / "HH:mm" / null は実装側既定 ("HH:mm:ss")。
+	/// </summary>
+	string? HeaderTimeFormat { get; }
+
+	/// <summary>
 	/// Fired when any property changes.
 	/// </summary>
 	event PropertyChangedEventHandler? PropertyChanged;

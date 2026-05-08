@@ -54,6 +54,11 @@ public static partial class JsonModelsConverter
 			: jsonWork.Id;
 
 		DateOnly? affectDate = StringToDateOnlyUtil.StringToDateOnlyOrNull(jsonWork.AffectDate);
+		// JSON 上の AffectDate が日付として解釈できなかった場合は、その文字列をそのまま
+		// AffectDateText に格納する。空文字列は無視。
+		string? affectDateText = (affectDate is null && !string.IsNullOrEmpty(jsonWork.AffectDate))
+			? jsonWork.AffectDate
+			: null;
 
 		return new(
 			Id: workId,
@@ -65,7 +70,8 @@ public static partial class JsonModelsConverter
 			Remarks: jsonWork.Remarks,
 			HasETrainTimetable: jsonWork.HasETrainTimetable,
 			ETrainTimetableContentType: jsonWork.ETrainTimetableContentType,
-			ETrainTimetableContent: null  // JSONには含まれない
+			ETrainTimetableContent: null,  // JSONには含まれない
+			AffectDateText: affectDateText
 		);
 	}
 

@@ -141,4 +141,131 @@ public static class TestData
 		  ]
 		}
 		""";
+
+	/// <summary>
+	/// Train スコープ配信用 (リアルタイム編集): TrainNumber は維持しつつ、行の TrackName を変更する。
+	/// AC-1 (TimetableRow の番線変更がリアルタイム反映される) のテストで使う。
+	/// </summary>
+	public const string UpdatedTrackName = "TRACK-X-UPDATED";
+	public static readonly string TrainScopeJson_TrackNameOnly = $$"""
+		{
+		  "Id": "{{TrainId}}",
+		  "TrainNumber": "T-001",
+		  "Direction": 1,
+		  "TimetableRows": [
+		    {
+		      "StationName": "テスト駅A",
+		      "Location_m": 0.0,
+		      "Longitude_deg": 135.0,
+		      "Latitude_deg": 35.0,
+		      "OnStationDetectRadius_m": 300.0,
+		      "Departure": "10:00:00",
+		      "TrackName": "{{UpdatedTrackName}}"
+		    },
+		    {
+		      "StationName": "テスト駅B",
+		      "Location_m": 1000.0,
+		      "Longitude_deg": 135.01,
+		      "Latitude_deg": 35.01,
+		      "OnStationDetectRadius_m": 300.0,
+		      "Arrive": "10:10:00",
+		      "Departure": "10:12:00"
+		    },
+		    {
+		      "StationName": "テスト駅C",
+		      "Location_m": 2000.0,
+		      "Longitude_deg": 135.02,
+		      "Latitude_deg": 35.02,
+		      "OnStationDetectRadius_m": 300.0,
+		      "Arrive": "10:20:00"
+		    }
+		  ]
+		}
+		""";
+
+	/// <summary>
+	/// Work スコープ配信用 (フル): 配下の Trains 配列を含む完全な Work データ。
+	/// AC-2 / AC-5 の検証で、配下の Trains キャッシュが再構築されることを確認する。
+	/// </summary>
+	public static readonly string WorkScopeJsonFull = $$"""
+		{
+		  "Id": "{{WorkId}}",
+		  "Name": "統合テスト用 Work (フル更新)",
+		  "AffectDate": "20240301",
+		  "Trains": [
+		    {
+		      "Id": "{{TrainId}}",
+		      "TrainNumber": "T-001-Work",
+		      "Direction": 1,
+		      "TimetableRows": [
+		        {
+		          "StationName": "テスト駅A",
+		          "Location_m": 0.0,
+		          "Longitude_deg": 135.0,
+		          "Latitude_deg": 35.0,
+		          "OnStationDetectRadius_m": 300.0,
+		          "Departure": "10:00:00"
+		        }
+		      ]
+		    },
+		    {
+		      "Id": "{{TrainId2}}",
+		      "TrainNumber": "T-002-Work",
+		      "Direction": -1,
+		      "TimetableRows": [
+		        {
+		          "StationName": "テスト駅C",
+		          "Location_m": 2000.0,
+		          "Longitude_deg": 135.02,
+		          "Latitude_deg": 35.02,
+		          "OnStationDetectRadius_m": 300.0,
+		          "Departure": "11:00:00"
+		        }
+		      ]
+		    }
+		  ]
+		}
+		""";
+
+	/// <summary>
+	/// WorkGroup スコープ配信用 (フル): 配下の Works/Trains 構造を含む完全な WorkGroup データ。
+	/// AC-3 / AC-5 の検証で、配下の Works/Trains キャッシュが再構築されることを確認する。
+	/// </summary>
+	public static readonly string WorkGroupScopeJsonFull = $$"""
+		{
+		  "Id": "{{WorkGroupId}}",
+		  "Name": "統合テスト用 WorkGroup (フル更新)",
+		  "DBVersion": 3,
+		  "Works": [
+		    {
+		      "Id": "{{WorkId}}",
+		      "Name": "統合テスト用 Work (WG経由)",
+		      "AffectDate": "20240401",
+		      "Trains": [
+		        {
+		          "Id": "{{TrainId}}",
+		          "TrainNumber": "T-001-WG",
+		          "Direction": 1,
+		          "TimetableRows": [
+		            {
+		              "StationName": "テスト駅A",
+		              "Location_m": 0.0,
+		              "Longitude_deg": 135.0,
+		              "Latitude_deg": 35.0,
+		              "OnStationDetectRadius_m": 300.0,
+		              "Departure": "10:00:00"
+		            }
+		          ]
+		        },
+		        {
+		          "Id": "{{TrainId2}}",
+		          "TrainNumber": "T-002-WG",
+		          "Direction": -1,
+		          "TimetableRows": []
+		        }
+		      ]
+		    }
+		  ]
+		}
+		""";
 }
