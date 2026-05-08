@@ -44,6 +44,13 @@ public partial class LocationService : IDisposable
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<Exception>? ExceptionThrown;
 	public event EventHandler<TimetableData>? TimetableUpdated;
+	public event EventHandler<ServerInfo>? ServerInfoUpdated;
+	public event EventHandler<DiagramInfo>? DiagramInfoUpdated;
+	public event EventHandler<SelectTrainCommand>? TrainSelectionRequested;
+	public event EventHandler<OperationCommand>? OperationCommandReceived;
+	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
+	public event EventHandler<NotificationData>? NotificationReceived;
+	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 
 	/// <summary>
 	/// GPS位置情報が更新された際に発生するイベント。
@@ -152,6 +159,36 @@ void OnIsEnabledChanged(bool value)
 		TimetableUpdated?.Invoke(sender, timetableData);
 	}
 
+	void OnServerInfoUpdated(object? sender, ServerInfo info) => ServerInfoUpdated?.Invoke(sender, info);
+	void OnDiagramInfoUpdated(object? sender, DiagramInfo info) => DiagramInfoUpdated?.Invoke(sender, info);
+	void OnTrainSelectionRequested(object? sender, SelectTrainCommand cmd) => TrainSelectionRequested?.Invoke(sender, cmd);
+
+	/// <summary>
+	/// 運行操作コマンドを受信したときの処理。
+	/// 位置情報サービスの有効/無効はここで適用し、運行開始/終了は AppViewModel 側に委譲する。
+	/// </summary>
+	void OnOperationCommandReceived(object? sender, OperationCommand cmd)
+	{
+		logger.Info("OperationCommandReceived: Action={0}", cmd.Action);
+		switch (cmd.Action)
+		{
+			case OperationCommandType.EnableLocationService:
+			case OperationCommandType.StartOperation:
+				// StartOperation は位置情報サービスを ON にすることで運行を開始する
+				IsEnabled = true;
+				break;
+			case OperationCommandType.DisableLocationService:
+			case OperationCommandType.EndOperation:
+				IsEnabled = false;
+				break;
+		}
+		OperationCommandReceived?.Invoke(sender, cmd);
+	}
+
+	void OnHeaderColorChangeRequested(object? sender, HeaderColorCommand cmd) => HeaderColorChangeRequested?.Invoke(sender, cmd);
+	void OnNotificationReceived(object? sender, NotificationData n) => NotificationReceived?.Invoke(sender, n);
+	void OnTimeFormatChangeRequested(object? sender, TimeFormatCommand cmd) => TimeFormatChangeRequested?.Invoke(sender, cmd);
+
 	void OnNetworkSyncServiceCanStartChanged(object? sender, bool canStart)
 	{
 		logger.Debug("NetworkSyncServiceCanStartChanged: {0}", canStart);
@@ -225,6 +262,13 @@ void OnIsEnabledChanged(bool value)
 		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
 			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
+			networkSyncService.ServerInfoUpdated -= OnServerInfoUpdated;
+			networkSyncService.DiagramInfoUpdated -= OnDiagramInfoUpdated;
+			networkSyncService.TrainSelectionRequested -= OnTrainSelectionRequested;
+			networkSyncService.OperationCommandReceived -= OnOperationCommandReceived;
+			networkSyncService.HeaderColorChangeRequested -= OnHeaderColorChangeRequested;
+			networkSyncService.NotificationReceived -= OnNotificationReceived;
+			networkSyncService.TimeFormatChangeRequested -= OnTimeFormatChangeRequested;
 		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
@@ -335,6 +379,13 @@ void OnIsEnabledChanged(bool value)
 		nextService.LocationStateChanged += OnLocationStateChanged;
 		nextService.TimeChanged += OnTimeChanged;
 		nextService.TimetableUpdated += OnTimetableUpdated;
+		nextService.ServerInfoUpdated += OnServerInfoUpdated;
+		nextService.DiagramInfoUpdated += OnDiagramInfoUpdated;
+		nextService.TrainSelectionRequested += OnTrainSelectionRequested;
+		nextService.OperationCommandReceived += OnOperationCommandReceived;
+		nextService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
+		nextService.NotificationReceived += OnNotificationReceived;
+		nextService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
 		nextService.ConnectionClosed += OnNetworkSyncServiceConnectionClosed;
 		nextService.ConnectionFailed += OnNetworkSyncServiceConnectionFailed;
 		nextService.CanStartChanged += OnNetworkSyncServiceCanStartChanged;
@@ -360,6 +411,13 @@ void OnIsEnabledChanged(bool value)
 		{
 			networkSyncService.TimeChanged -= OnTimeChanged;
 			networkSyncService.TimetableUpdated -= OnTimetableUpdated;
+			networkSyncService.ServerInfoUpdated -= OnServerInfoUpdated;
+			networkSyncService.DiagramInfoUpdated -= OnDiagramInfoUpdated;
+			networkSyncService.TrainSelectionRequested -= OnTrainSelectionRequested;
+			networkSyncService.OperationCommandReceived -= OnOperationCommandReceived;
+			networkSyncService.HeaderColorChangeRequested -= OnHeaderColorChangeRequested;
+			networkSyncService.NotificationReceived -= OnNotificationReceived;
+			networkSyncService.TimeFormatChangeRequested -= OnTimeFormatChangeRequested;
 			networkSyncService.ConnectionClosed -= OnNetworkSyncServiceConnectionClosed;
 			networkSyncService.ConnectionFailed -= OnNetworkSyncServiceConnectionFailed;
 			networkSyncService.CanStartChanged -= OnNetworkSyncServiceCanStartChanged;

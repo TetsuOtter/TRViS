@@ -109,6 +109,13 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 	public event EventHandler<int>? TimeChanged;
 	public event EventHandler<TimetableData>? TimetableUpdated;
+	public event EventHandler<ServerInfo>? ServerInfoUpdated;
+	public event EventHandler<DiagramInfo>? DiagramInfoUpdated;
+	public event EventHandler<SelectTrainCommand>? TrainSelectionRequested;
+	public event EventHandler<OperationCommand>? OperationCommandReceived;
+	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
+	public event EventHandler<NotificationData>? NotificationReceived;
+	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? ConnectionClosed;
 	public event EventHandler? ConnectionFailed;
 	public event EventHandler<bool>? CanStartChanged;
@@ -119,6 +126,22 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	/// Get the latest synced data from the service
 	/// </summary>
 	protected abstract Task<SyncedData> GetSyncedDataAsync(CancellationToken token);
+
+	/// <summary>
+	/// サーバー情報を要求する。
+	/// 結果は <see cref="ServerInfoUpdated"/> イベントで通知される。
+	/// </summary>
+	public virtual Task RequestServerInfoAsync(CancellationToken cancellationToken = default)
+		=> Task.CompletedTask;
+
+	/// <summary>
+	/// ダイヤ情報を要求する。
+	/// </summary>
+	/// <param name="diagramId">取得対象のダイヤID。null を渡すと現在のダイヤを取得する</param>
+	/// <param name="cancellationToken">キャンセルトークン</param>
+	/// <remarks>結果は <see cref="DiagramInfoUpdated"/> イベントで通知される。</remarks>
+	public virtual Task RequestDiagramInfoAsync(string? diagramId = null, CancellationToken cancellationToken = default)
+		=> Task.CompletedTask;
 
 	/// <summary>
 	/// Called when WorkGroupId property changes
@@ -215,18 +238,63 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	protected void RaiseTimetableUpdated(TimetableData timetableData)
 	{
 		Logger.Info("RaiseTimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}", timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
-		// 時刻表の変更スコープに応じて、表示継続可能か判定する
-		bool canContinue = CanContinueCurrentTimetable(timetableData);
+		// 時刻表の変更スコープに応じて、現在の位置情報をリセットすべきか判定する。
+		// リアルタイム編集対応のため、自スコープの一致更新では位置情報を維持する。
+		bool shouldResetLocation = ShouldResetLocationOnTimetableUpdate(timetableData);
 
-		if (!canContinue)
+		if (shouldResetLocation)
 		{
-			// 表示継続不可の場合は初期状態に戻す
-			Logger.Warn("RaiseTimetableUpdated: Cannot continue current timetable, resetting location info");
+			// 全体更新など影響範囲が大きい場合のみ初期状態に戻す
+			Logger.Warn("RaiseTimetableUpdated: Resetting location info due to global scope update");
 			ResetLocationInfo();
 		}
 
 		// 時刻表更新イベントを外部に通知
 		TimetableUpdated?.Invoke(this, timetableData);
+	}
+
+	protected void RaiseServerInfoUpdated(ServerInfo serverInfo)
+	{
+		Logger.Info("RaiseServerInfoUpdated: Name={0}, Version={1}", serverInfo.Name, serverInfo.Version);
+		ServerInfoUpdated?.Invoke(this, serverInfo);
+	}
+
+	protected void RaiseDiagramInfoUpdated(DiagramInfo diagramInfo)
+	{
+		Logger.Info("RaiseDiagramInfoUpdated: Id={0}, Name={1}", diagramInfo.Id, diagramInfo.Name);
+		DiagramInfoUpdated?.Invoke(this, diagramInfo);
+	}
+
+	protected void RaiseTrainSelectionRequested(SelectTrainCommand command)
+	{
+		Logger.Info("RaiseTrainSelectionRequested: WorkGroupId={0}, WorkId={1}, TrainId={2}",
+			command.WorkGroupId, command.WorkId, command.TrainId);
+		TrainSelectionRequested?.Invoke(this, command);
+	}
+
+	protected void RaiseOperationCommandReceived(OperationCommand command)
+	{
+		Logger.Info("RaiseOperationCommandReceived: Action={0}", command.Action);
+		OperationCommandReceived?.Invoke(this, command);
+	}
+
+	protected void RaiseHeaderColorChangeRequested(HeaderColorCommand command)
+	{
+		Logger.Info("RaiseHeaderColorChangeRequested: ResetToDefault={0}, Color_RGB={1}",
+			command.ResetToDefault, command.Color_RGB);
+		HeaderColorChangeRequested?.Invoke(this, command);
+	}
+
+	protected void RaiseNotificationReceived(NotificationData notification)
+	{
+		Logger.Info("RaiseNotificationReceived: Id={0}, Title={1}", notification.Id, notification.Title);
+		NotificationReceived?.Invoke(this, notification);
+	}
+
+	protected void RaiseTimeFormatChangeRequested(TimeFormatCommand command)
+	{
+		Logger.Info("RaiseTimeFormatChangeRequested: Format={0}", command.Format);
+		TimeFormatChangeRequested?.Invoke(this, command);
 	}
 
 	protected void RaiseConnectionClosed()
@@ -239,21 +307,24 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 		ConnectionFailed?.Invoke(this, EventArgs.Empty);
 	}
 
-	private bool CanContinueCurrentTimetable(TimetableData timetableData)
+	/// <summary>
+	/// 時刻表の更新を受信したとき、位置情報を初期状態にリセットすべきかを判定する。
+	/// リアルタイム編集対応のため、自スコープと一致する更新では位置情報を維持する
+	/// (例: 編集中の Train が更新されても駅 index を保持する)。
+	/// 全体更新 (<see cref="TimetableScopeType.All"/>) の場合のみリセットする。
+	/// </summary>
+	private bool ShouldResetLocationOnTimetableUpdate(TimetableData timetableData)
 	{
-		// 変更スコープに基づいて判定する
 		return timetableData.Scope switch
 		{
-			TimetableScopeType.All => false,
-			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
-			TimetableScopeType.WorkGroup => _WorkGroupId != timetableData.WorkGroupId,
-
-			// Work単位の変更：現在の選択がこのWorkと異なる場合のみ継続可能
-			TimetableScopeType.Work => _WorkId != timetableData.WorkId,
-
-			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
-			TimetableScopeType.Train => _TrainId != timetableData.TrainId,
-
+			// 全体更新: 構造が変わるため位置情報をリセットする
+			TimetableScopeType.All => true,
+			// WorkGroup / Work / Train 単位の更新: 自スコープと一致するか否かに関わらず維持する。
+			//   - 一致する場合 → ユーザーが今見ているデータの再描画を期待しているのでリセットしない
+			//   - 一致しない場合 → そもそも現在の表示と無関係なのでリセットしない
+			TimetableScopeType.WorkGroup => false,
+			TimetableScopeType.Work => false,
+			TimetableScopeType.Train => false,
 			_ => false,
 		};
 	}

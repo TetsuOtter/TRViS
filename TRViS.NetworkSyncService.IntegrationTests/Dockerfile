@@ -12,6 +12,8 @@ COPY TRViS.IO.ILoader/TRViS.IO.ILoader.csproj \
      TRViS.IO.ILoader/
 COPY TRViS.ILocationService/TRViS.ILocationService.csproj \
      TRViS.ILocationService/
+COPY TRViS.Core/TRViS.Core.csproj \
+     TRViS.Core/
 
 RUN dotnet restore TRViS.NetworkSyncService.IntegrationTests/TRViS.NetworkSyncService.IntegrationTests.csproj
 
