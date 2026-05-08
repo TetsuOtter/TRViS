@@ -26,12 +26,12 @@ public partial class AppViewModel
 
 	public async Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
 	{
-#if DEBUG
+#if UI_TEST
 		// Test-only: seed the URL history list so UI tests can exercise the
 		// "tap a history item" flow without standing up a real HTTP server.
 		// Format: trvis://_test/seed-url-history?urls=<url1>|<url2>|...
 		// The "|" separator avoids URL-encoding ambiguity with comma in URIs.
-		// Guarded by #if DEBUG so this never ships in release builds.
+		// Guarded by #if UI_TEST so this only ships in CI test builds.
 		const string TestSeedHistoryPrefix = "trvis://_test/seed-url-history";
 		if (uri.StartsWith(TestSeedHistoryPrefix, StringComparison.OrdinalIgnoreCase))
 		{
@@ -411,7 +411,7 @@ public partial class AppViewModel
 		return remoteNetworkAddress.SequenceEqual(localNetworkAddress);
 	}
 
-#if DEBUG
+#if UI_TEST
 	/// <summary>
 	/// Test-only seed for ExternalResourceUrlHistory. Invoked when a UI test
 	/// passes a "trvis://_test/seed-url-history?urls=a|b|c" deeplink through

@@ -51,7 +51,7 @@ public partial class SelectTrainPage : ContentPage
 	/// </summary>
 	void TestSeedButton_Clicked(object sender, EventArgs e)
 	{
-#if DEBUG
+#if UI_TEST
 		logger.Info("TestSeedButton clicked: seeding URL history fixtures");
 		viewModel.SeedUrlHistoryForTesting(new[]
 		{
@@ -69,7 +69,7 @@ public partial class SelectTrainPage : ContentPage
 	/// </summary>
 	void TestSeedGpsButton_Clicked(object sender, EventArgs e)
 	{
-#if DEBUG
+#if UI_TEST
 		logger.Info("TestSeedGpsButton clicked: pushing fixture GPS coord");
 		try
 		{
@@ -95,9 +95,10 @@ public partial class SelectTrainPage : ContentPage
 	{
 		base.OnAppearing();
 
-#if DEBUG
-		// Make the DEBUG-only test seed buttons findable. In a Release build
-		// (no DEBUG) this branch is removed and the
+#if UI_TEST
+		// Make the test seed buttons findable. UI_TEST is defined only by the
+		// CI workflow (or a developer building with /p:DefineConstants=UI_TEST);
+		// in a normal Debug or Release build this branch is removed and the
 		// buttons stay IsVisible="False" → unreachable from Appium.
 		if (TestSeedButton is not null)
 			TestSeedButton.IsVisible = true;

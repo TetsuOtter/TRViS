@@ -34,7 +34,16 @@ env:
   APP_PACKAGE: dev.t0r.trvis
 
   # Build flags
-  DISABLE_FIREBASE: DISABLE_FIREBASE
+  # UI_TEST gates the in-app test seed buttons and deeplink handlers
+  # (see RootPages/SelectTrainPage.xaml.cs and
+  # ViewModels/AppViewModel.AppLink.cs); DISABLE_FIREBASE swaps Firebase
+  # SDKs for the no-op wrappers so the placeholder google-services.json
+  # works end-to-end. The semicolon is URL-encoded (%3B) because dotnet's
+  # CLI parser splits unescaped semicolons in /p: values into separate
+  # arguments. Note: passing /p:DefineConstants=... overrides the
+  # implicit DEBUG/TRACE that `-c Debug` would otherwise add — anything
+  # gated on `#if DEBUG` will not compile in these builds.
+  UI_TEST_DEFINES: "DISABLE_FIREBASE%3BUI_TEST"
 
   # Appium
   # Use 127.0.0.1 (not localhost) on Windows because PowerShell's
@@ -123,7 +132,7 @@ jobs:
           -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
           -r ${{ env.TARGET_RUNTIME_ANDROID }}
           -c Debug
-          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
           /p:AndroidCreatePackagePerAbi=false
           /p:EmbedAssembliesIntoApk=true
 
@@ -536,7 +545,7 @@ jobs:
           -c Debug
           /p:WindowsPackageType=None
           /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WIN }}
-          /p:DefineConstants=${{ env.DISABLE_FIREBASE }}
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
 
       - name: Install Appium and Windows driver
         run: |

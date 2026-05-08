@@ -267,7 +267,7 @@ else
       -f "$TARGET_FRAMEWORK" \
       -r "$TARGET_RUNTIME" \
       -c Debug \
-      /p:DefineConstants=DISABLE_FIREBASE \
+      /p:DefineConstants="DISABLE_FIREBASE%3BUI_TEST" \
       /p:_RequireCodeSigning=false \
       /p:CodesignKey="-"
   elif [[ "$PLATFORM_VALUE" == "ios" && "$IS_SIMULATOR" == false ]]; then
@@ -276,12 +276,12 @@ else
       -f "$TARGET_FRAMEWORK" \
       -r "$TARGET_RUNTIME" \
       -c Debug \
-      /p:DefineConstants=DISABLE_FIREBASE
+      /p:DefineConstants="DISABLE_FIREBASE%3BUI_TEST"
   else
     dotnet build "$CSPROJ_PATH" \
       -f "$TARGET_FRAMEWORK" \
       -c Debug \
-      /p:DefineConstants=DISABLE_FIREBASE
+      /p:DefineConstants="DISABLE_FIREBASE%3BUI_TEST"
   fi
   log "Build complete."
 fi
