@@ -81,17 +81,17 @@ public class SelectOnlineResourcePopupPageObject : PageObject
 	public void TapHistoryItem(string url) => HistoryItem(url).Click();
 
 	/// <summary>
-	/// Closes the popup and returns to SelectTrainPage.
+	/// Closes the popup and returns to StartHomePage.
 	/// </summary>
-	public SelectTrainPageObject Close()
+	public StartHomePageObject Close()
 	{
 		CloseButton.Click();
-		return new SelectTrainPageObject(Driver);
+		return new StartHomePageObject(Driver);
 	}
 
 	/// <summary>
 	/// Convenience: seed the URL history list using the DEBUG-only deeplink,
-	/// then ensure the popup is dismissed back to SelectTrainPage. Pass an empty
+	/// then ensure the popup is dismissed back to StartHomePage. Pass an empty
 	/// array to just close the popup (no-op seed).
 	/// </summary>
 	public void SeedHistoryAndClose(IEnumerable<string> urls)
@@ -119,8 +119,8 @@ public class SelectOnlineResourcePopupPageObject : PageObject
 		catch (NoSuchElementException) { /* popup already gone */ }
 		catch (StaleElementReferenceException) { /* popup torn down mid-find */ }
 
-		// Block until SelectTrainPage controls are reachable again so the next
+		// Block until StartHomePage controls are reachable again so the next
 		// test step doesn't race the modal-dismiss animation.
-		new SelectTrainPageObject(Driver).WaitForElement(AutomationIds.SelectTrain.LoadFromWebButton);
+		new StartHomePageObject(Driver).WaitForElement(AutomationIds.StartHome.ConnectServerButton);
 	}
 }

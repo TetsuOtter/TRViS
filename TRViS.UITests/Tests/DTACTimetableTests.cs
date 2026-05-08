@@ -12,7 +12,7 @@ namespace TRViS.UITests.Tests;
 [TestFixture]
 public class DTACTimetableTests : BaseUITest
 {
-	private SelectTrainPageObject _selectTrainPage = null!;
+	private StartHomePageObject _startHomePage = null!;
 	private AppShellPage _shell = null!;
 
 	[SetUp]
@@ -20,37 +20,31 @@ public class DTACTimetableTests : BaseUITest
 	{
 		base.SetUp();
 
-		var firebasePage = new FirebaseSettingPageObject(Driver);
-		// FirebaseSettingPageObject picks a platform-appropriate timeout
-		// (120 s on Android for Mono JIT, 15 s on Windows where the consent
-		// page may be skipped because Preferences aren't reliably reset).
-		if (firebasePage.IsDisplayed())
-			_selectTrainPage = firebasePage.SaveAndAccept();
-		else
-			_selectTrainPage = new SelectTrainPageObject(Driver);
+		_startHomePage = new StartHomePageObject(Driver);
+		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 
 		_shell = new AppShellPage(Driver);
 	}
 
 	private DTACViewHostPageObject LoadSampleAndOpenDTAC()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
-		_selectTrainPage.LoadSample();
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
 		// Sample data populates the work-group list synchronously.
-		_selectTrainPage.WaitForElement(AutomationIds.SelectTrain.WorkGroupList);
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
 		return _shell.NavigateToDTAC();
 	}
 
 	[Test]
 	public void LoadSample_PopulatesWorkGroupList_DisplayCountSane()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
-		_selectTrainPage.LoadSample();
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
 
 		// Sample data ships with 2 WorkGroups. Ensure both surface in the list.
 		// Use >=2 rather than ==2 so platform-specific cell wrappers don't cause
 		// a false negative if extra layout primitives expose their text.
-		int count = _selectTrainPage.CountWorkGroups();
+		int count = _startHomePage.CountWorkGroups();
 		Assert.That(count, Is.GreaterThanOrEqualTo(2),
 			"Sample data should produce at least 2 work-group rows.");
 	}
@@ -141,14 +135,14 @@ public class DTACTimetableTests : BaseUITest
 	[Test]
 	public void GpsLocation_DeeplinkReachesLocationService()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
-		_selectTrainPage.LoadSample();
-		_selectTrainPage.WaitForElement(AutomationIds.SelectTrain.WorkGroupList);
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
 
 		// Push a fixture GPS coord through the DEBUG-only seed button. The button
 		// force-enables LocationService and calls SetGpsLocation directly — no
 		// CoreLocation, no permissions, no SendKeys.
-		_selectTrainPage.SeedGpsLocationForTesting();
+		_startHomePage.SeedGpsLocationForTesting();
 		Thread.Sleep(500);
 
 		// Open DTAC and verify the timetable still renders. If anything in the

@@ -11,31 +11,26 @@ namespace TRViS.UITests.Tests;
 [TestFixture]
 public class SelectOnlineResourcePopupTests : BaseUITest
 {
-	private static string SampleUrlA => SelectTrainPageObject.SeededHistoryUrls[0];
-	private static string SampleUrlB => SelectTrainPageObject.SeededHistoryUrls[1];
+	private static string SampleUrlA => StartHomePageObject.SeededHistoryUrls[0];
+	private static string SampleUrlB => StartHomePageObject.SeededHistoryUrls[1];
 
-	private SelectTrainPageObject _selectTrainPage = null!;
+	private StartHomePageObject _startHomePage = null!;
 
 	[SetUp]
 	public override void SetUp()
 	{
 		base.SetUp();
 
-		var firebasePage = new FirebaseSettingPageObject(Driver);
-		// Use the page object's platform-aware default timeout (120 s on Android,
-		// 15 s on Windows where MAUI Preferences may not have been reset).
-		if (firebasePage.IsDisplayed())
-			_selectTrainPage = firebasePage.SaveAndAccept();
-		else
-			_selectTrainPage = new SelectTrainPageObject(Driver);
+		_startHomePage = new StartHomePageObject(Driver);
+		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 	}
 
 	[Test]
 	public void OpenPopup_ShowsAllExpectedControls()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
 
-		var popup = _selectTrainPage.OpenLoadFromWebPopup();
+		var popup = _startHomePage.OpenLoadFromWebPopup();
 
 		Assert.That(popup.IsDisplayed(), Is.True, "Popup should be displayed.");
 		Assert.That(popup.UrlInput.Displayed, Is.True);
@@ -59,14 +54,14 @@ public class SelectOnlineResourcePopupTests : BaseUITest
 	[Platform(Exclude = "Win", Reason = "MAUI CollectionView items don't surface in WinUI UIA tree.")]
 	public void TapHistoryItem_PopulatesUrlInput()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
 
 		// Seed two URLs into history via the DEBUG-only hidden button (avoids
 		// SendKeys, which is flaky on iOS XCUITest for long URLs).
-		_selectTrainPage.SeedUrlHistoryForTesting();
+		_startHomePage.SeedUrlHistoryForTesting();
 		Thread.Sleep(300);
 
-		var popup = _selectTrainPage.OpenLoadFromWebPopup();
+		var popup = _startHomePage.OpenLoadFromWebPopup();
 
 		// Tap the seeded URL. After the bug fix, the Entry should reflect this URL.
 		popup.TapHistoryItem(SampleUrlA);
@@ -83,12 +78,12 @@ public class SelectOnlineResourcePopupTests : BaseUITest
 	[Platform(Exclude = "Win", Reason = "MAUI CollectionView items don't surface in WinUI UIA tree.")]
 	public void TapDifferentHistoryItem_UpdatesUrlInput()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
 
-		_selectTrainPage.SeedUrlHistoryForTesting();
+		_startHomePage.SeedUrlHistoryForTesting();
 		Thread.Sleep(300);
 
-		var popup = _selectTrainPage.OpenLoadFromWebPopup();
+		var popup = _startHomePage.OpenLoadFromWebPopup();
 
 		popup.TapHistoryItem(SampleUrlA);
 		Thread.Sleep(300);
@@ -101,13 +96,13 @@ public class SelectOnlineResourcePopupTests : BaseUITest
 	}
 
 	[Test]
-	public void Close_ReturnsToSelectTrainPage()
+	public void Close_ReturnsToStartHomePage()
 	{
-		var popup = _selectTrainPage.OpenLoadFromWebPopup();
+		var popup = _startHomePage.OpenLoadFromWebPopup();
 		Assert.That(popup.IsDisplayed(), Is.True);
 
 		var back = popup.Close();
 		Thread.Sleep(300);
-		Assert.That(back.IsDisplayed(), Is.True, "After Close the SelectTrainPage should be visible again.");
+		Assert.That(back.IsDisplayed(), Is.True, "After Close the StartHomePage should be visible again.");
 	}
 }
