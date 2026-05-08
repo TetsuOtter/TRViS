@@ -8,6 +8,10 @@
 #                               Developer certificate + provisioning)
 #   options:  --skip-build   Skip the build step
 #             --skip-install Skip Appium driver installation
+#             --device-class=<class>
+#                            (iOS only) which simulator to target.
+#                            One of: iphone (default), ipad-mini-5,
+#                            ipad-mini-6, ipad-mini-a17.
 # ================================================================
 
 set -euo pipefail
@@ -33,6 +37,12 @@ PLATFORM="${1:-mac}"
 DEVICE_UDID_OVERRIDE=""  # Optional explicit device UDID (for real device)
 SKIP_BUILD=false
 SKIP_INSTALL=false
+# iOS simulator device class. Affects iPad-vs-iPhone selection only.
+# "iphone"        -> iPhone 16 (default; matches the historical behavior)
+# "ipad-mini-5"   -> iPad mini (5th generation)
+# "ipad-mini-6"   -> iPad mini (6th generation)
+# "ipad-mini-a17" -> iPad mini (A17 Pro)
+DEVICE_CLASS="iphone"
 
 # Consume positional device UDID if provided after "device"
 if [[ "$PLATFORM" == "device" && -n "${2:-}" && "${2}" != --* ]]; then
@@ -43,8 +53,18 @@ for arg in "$@"; do
   case "$arg" in
     --skip-build)   SKIP_BUILD=true ;;
     --skip-install) SKIP_INSTALL=true ;;
+    --device-class=*) DEVICE_CLASS="${arg#*=}" ;;
   esac
 done
+
+# Map device class to a friendly name suffix used for the result file and logs.
+case "$DEVICE_CLASS" in
+  iphone)        DEVICE_CLASS_SUFFIX="iphone" ;;
+  ipad-mini-5)   DEVICE_CLASS_SUFFIX="ipad-mini-5" ;;
+  ipad-mini-6)   DEVICE_CLASS_SUFFIX="ipad-mini-6" ;;
+  ipad-mini-a17) DEVICE_CLASS_SUFFIX="ipad-mini-a17" ;;
+  *)             die "Unknown --device-class: '$DEVICE_CLASS' (allowed: iphone, ipad-mini-5, ipad-mini-6, ipad-mini-a17)" ;;
+esac
 
 # ── Constants ───────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -131,16 +151,58 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
     log "Download complete."
   fi
 
-  log "Selecting iOS simulator..."
+  log "Selecting iOS simulator (class: $DEVICE_CLASS)..."
+
+  # Map device class -> simctl device-type identifier prefix and a friendly name regex.
+  # 5th-gen iPad mini caps at iPadOS 17, so it requires an iOS 17 runtime to be installed.
+  case "$DEVICE_CLASS" in
+    iphone)
+      SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
+      SIM_NAME_REGEX="^iPhone 16$"
+      SIM_DEVICE_NAME="iPhone 16"
+      ;;
+    ipad-mini-5)
+      SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini--5th-generation-"
+      SIM_NAME_REGEX="^iPad mini \(5th generation\)$"
+      SIM_DEVICE_NAME="iPad mini (5th generation)"
+      ;;
+    ipad-mini-6)
+      SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini-6th-generation"
+      SIM_NAME_REGEX="^iPad mini \(6th generation\)$"
+      SIM_DEVICE_NAME="iPad mini (6th generation)"
+      ;;
+    ipad-mini-a17)
+      SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro"
+      SIM_NAME_REGEX="^iPad mini \(A17 Pro\)$"
+      SIM_DEVICE_NAME="iPad mini (A17 Pro)"
+      ;;
+  esac
+
+  # Try to reuse an existing simulator that matches the friendly name; otherwise
+  # create one with the most-recent compatible runtime.
   DEVICE_ID=$(xcrun simctl list devices available --json \
-    | jq -r '.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name == "iPhone 16") | .udid' \
+    | jq -r --arg pat "$SIM_NAME_REGEX" \
+        '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name | test($pat)) | .udid' \
     | head -1)
-  if [[ -z "$DEVICE_ID" ]]; then
-    DEVICE_ID=$(xcrun simctl list devices available --json \
-      | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[]] | .[0] | .udid')
+
+  if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
+    log "No matching simulator for '$SIM_DEVICE_NAME' — attempting to create one."
+    # Pick the highest available iOS runtime first (works for iPhone 16, iPad mini 6, iPad mini A17).
+    SIM_RUNTIME=$(xcrun simctl list runtimes --json \
+      | jq -r '[.runtimes[] | select(.platform == "iOS" or (.identifier | contains("iOS")))] | sort_by(.version) | reverse | .[0].identifier')
+    if [[ -z "$SIM_RUNTIME" || "$SIM_RUNTIME" == "null" ]]; then
+      die "No iOS runtime available to create simulator '$SIM_DEVICE_NAME'."
+    fi
+    log "Creating simulator '$SIM_DEVICE_NAME' on runtime '$SIM_RUNTIME'..."
+    if ! DEVICE_ID=$(xcrun simctl create "trvis-$DEVICE_CLASS" "$SIM_DEVICE_TYPE" "$SIM_RUNTIME" 2>&1); then
+      log "create failed: $DEVICE_ID"
+      die "Failed to create simulator for $DEVICE_CLASS. The device type may require an older iOS runtime that is not installed (e.g. iPad mini 5th gen → iOS 17)."
+    fi
+    log "Created simulator: $DEVICE_ID"
   fi
+
   [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
-  log "Selected simulator: $DEVICE_ID"
+  log "Selected simulator: $DEVICE_ID ($SIM_DEVICE_NAME)"
 
   log "Available simulator runtimes (for diagnostics):"
   xcrun simctl list runtimes | grep -i ios || log "(no iOS runtimes listed)"
@@ -205,7 +267,7 @@ else
       -f "$TARGET_FRAMEWORK" \
       -r "$TARGET_RUNTIME" \
       -c Debug \
-      /p:DefineConstants=DISABLE_FIREBASE \
+      /p:DefineConstants="DISABLE_FIREBASE%3BUI_TEST" \
       /p:_RequireCodeSigning=false \
       /p:CodesignKey="-"
   elif [[ "$PLATFORM_VALUE" == "ios" && "$IS_SIMULATOR" == false ]]; then
@@ -214,12 +276,12 @@ else
       -f "$TARGET_FRAMEWORK" \
       -r "$TARGET_RUNTIME" \
       -c Debug \
-      /p:DefineConstants=DISABLE_FIREBASE
+      /p:DefineConstants="DISABLE_FIREBASE%3BUI_TEST"
   else
     dotnet build "$CSPROJ_PATH" \
       -f "$TARGET_FRAMEWORK" \
       -c Debug \
-      /p:DefineConstants=DISABLE_FIREBASE
+      /p:DefineConstants="DISABLE_FIREBASE%3BUI_TEST"
   fi
   log "Build complete."
 fi
@@ -362,7 +424,12 @@ for i in {1..30}; do
 done
 
 # ── Run tests ───────────────────────────────────────────────────
-LOG_FILE="${PLATFORM_VALUE}-results.trx"
+# Distinct file per device class so iPad/iPhone matrix runs don't overwrite each other.
+if [[ "$PLATFORM_VALUE" == "ios" && "$IS_SIMULATOR" == true ]]; then
+  LOG_FILE="${PLATFORM_VALUE}-${DEVICE_CLASS_SUFFIX}-results.trx"
+else
+  LOG_FILE="${PLATFORM_VALUE}-results.trx"
+fi
 log "Running UI tests... (results -> $LOG_FILE)"
 
 # Build the dotnet test argument list incrementally to avoid empty-array

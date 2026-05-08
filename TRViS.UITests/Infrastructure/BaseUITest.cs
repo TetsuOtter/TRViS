@@ -116,10 +116,18 @@ public abstract class BaseUITest
 		var options = AppiumConfig.CreateOptions(platform, appPath, deviceUdid);
 		var serverUri = new Uri(appiumUrl);
 
+		// On iOS the first session has to build WebDriverAgent via xcodebuild,
+		// install the .app, and boot the simulator. On macos-26 + Xcode 26.4
+		// the iPhone simulator has been observed to take >10 minutes for that
+		// cold start, exceeding the .NET Appium client's default 600 s
+		// HTTP timeout. Bump it for iOS so the very first session-creation
+		// HTTP request doesn't bail out before WDA finishes coming up.
+		var iOSCommandTimeout = TimeSpan.FromMinutes(20);
+
 		Driver = platform switch
 		{
 			TestPlatform.Android => new AndroidDriver(serverUri, options),
-			TestPlatform.iOS => new IOSDriver(serverUri, options),
+			TestPlatform.iOS => new IOSDriver(serverUri, options, iOSCommandTimeout),
 			TestPlatform.MacCatalyst => new MacDriver(serverUri, options),
 			TestPlatform.Windows => new WindowsDriver(serverUri, options),
 			_ => throw new ArgumentOutOfRangeException(nameof(platform)),

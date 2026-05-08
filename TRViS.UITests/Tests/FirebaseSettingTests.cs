@@ -2,7 +2,9 @@ using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
 
+// See AppLaunchTests for why [Order] is required.
 [TestFixture]
+[Order(2)]
 public class FirebaseSettingTests : BaseUITest
 {
 	[Test]

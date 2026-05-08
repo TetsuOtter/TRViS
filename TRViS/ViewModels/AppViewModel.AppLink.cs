@@ -26,6 +26,30 @@ public partial class AppViewModel
 
 	public async Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
 	{
+#if UI_TEST
+		// Test-only: seed the URL history list so UI tests can exercise the
+		// "tap a history item" flow without standing up a real HTTP server.
+		// Format: trvis://_test/seed-url-history?urls=<url1>|<url2>|...
+		// The "|" separator avoids URL-encoding ambiguity with comma in URIs.
+		// Guarded by #if UI_TEST so this only ships in CI test builds.
+		const string TestSeedHistoryPrefix = "trvis://_test/seed-url-history";
+		if (uri.StartsWith(TestSeedHistoryPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestSeedUrlHistory(uri);
+			return true;
+		}
+
+		// Test-only: push a GPS coord into LocationService so UI tests can
+		// exercise the GPS-driven auto-scroll path without CoreLocation/permissions.
+		// Format: trvis://_test/set-gps-location?lon=<num>&lat=<num>[&acc=<num>]
+		const string TestSetGpsLocationPrefix = "trvis://_test/set-gps-location";
+		if (uri.StartsWith(TestSetGpsLocationPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestSetGpsLocation(uri);
+			return true;
+		}
+#endif
+
 		AppLinkInfo appLinkInfo;
 		try
 		{
@@ -386,5 +410,111 @@ public partial class AppViewModel
 		byte[] localNetworkAddress = localIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
 		return remoteNetworkAddress.SequenceEqual(localNetworkAddress);
 	}
+
+#if UI_TEST
+	/// <summary>
+	/// Test-only seed for ExternalResourceUrlHistory. Invoked when a UI test
+	/// passes a "trvis://_test/seed-url-history?urls=a|b|c" deeplink through
+	/// the LoadFromWeb popup. Adds the URLs to history and persists, mimicking
+	/// what HandleAppLinkUriAsync does on a successful load.
+	/// </summary>
+	private void HandleTestSeedUrlHistory(string uri)
+	{
+		logger.Info("Test seed URL history invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		if (qIndex < 0)
+		{
+			logger.Warn("Test seed URL history: no query string");
+			return;
+		}
+
+		var query = HttpUtility.ParseQueryString(uri.Substring(qIndex + 1));
+		string? urlsRaw = query["urls"];
+		if (string.IsNullOrEmpty(urlsRaw))
+		{
+			logger.Warn("Test seed URL history: 'urls' parameter missing");
+			return;
+		}
+
+		// "|" separator chosen because it does not require percent-encoding
+		// inside a query value and won't conflict with URL chars in entries.
+		string[] urls = urlsRaw.Split('|', StringSplitOptions.RemoveEmptyEntries);
+		foreach (string url in urls)
+		{
+			_ExternalResourceUrlHistory.Remove(url);
+			_ExternalResourceUrlHistory.Add(url);
+		}
+		AppPreferenceService.SetToJson(
+			AppPreferenceKeys.ExternalResourceUrlHistory,
+			_ExternalResourceUrlHistory,
+			StringListJsonSourceGenerationContext.Default.ListString);
+
+		logger.Info("Test seed URL history: persisted {0} URLs", urls.Length);
+	}
+
+	/// <summary>
+	/// Public test-only seed for ExternalResourceUrlHistory. Called from the
+	/// SelectTrainPage's hidden test button; lets UI tests bypass the popup's
+	/// SendKeys-based path (which is flaky on iOS XCUITest for long URLs).
+	/// </summary>
+	public void SeedUrlHistoryForTesting(IEnumerable<string> urls)
+	{
+		foreach (string url in urls)
+		{
+			if (string.IsNullOrWhiteSpace(url))
+				continue;
+			_ExternalResourceUrlHistory.Remove(url);
+			_ExternalResourceUrlHistory.Add(url);
+		}
+		AppPreferenceService.SetToJson(
+			AppPreferenceKeys.ExternalResourceUrlHistory,
+			_ExternalResourceUrlHistory,
+			StringListJsonSourceGenerationContext.Default.ListString);
+		logger.Info("SeedUrlHistoryForTesting: persisted {0} URLs", _ExternalResourceUrlHistory.Count);
+	}
+
+	/// <summary>
+	/// Test-only: push a GPS coord into LocationService.SetGpsLocation. Used by
+	/// the UI test that exercises GPS-driven auto-scroll without CoreLocation
+	/// or runtime permission prompts.
+	/// </summary>
+	private void HandleTestSetGpsLocation(string uri)
+	{
+		logger.Info("Test set GPS location invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		if (qIndex < 0)
+		{
+			logger.Warn("Test set GPS location: no query string");
+			return;
+		}
+
+		var query = HttpUtility.ParseQueryString(uri.Substring(qIndex + 1));
+		string? lonStr = query["lon"];
+		string? latStr = query["lat"];
+		if (!double.TryParse(lonStr, System.Globalization.CultureInfo.InvariantCulture, out double lon)
+			|| !double.TryParse(latStr, System.Globalization.CultureInfo.InvariantCulture, out double lat))
+		{
+			logger.Warn("Test set GPS location: invalid lon/lat ('{0}'/'{1}')", lonStr, latStr);
+			return;
+		}
+
+		double? acc = null;
+		if (double.TryParse(query["acc"], System.Globalization.CultureInfo.InvariantCulture, out double parsedAcc))
+			acc = parsedAcc;
+
+		// Initialize the LonLatLocationService first so SetGpsLocation has a
+		// _CurrentService to dispatch to. Do NOT toggle IsEnabled — on iOS that
+		// triggers LocationServiceGpsAdapter.StartListening which prompts the
+		// system CoreLocation permission alert and stalls the test. The
+		// OnGpsLocationUpdated event still fires at the top of SetGpsLocation
+		// before the IsEnabled gate would early-return.
+		var locationService = InstanceManager.LocationService;
+		locationService.SetLonLatLocationService();
+		locationService.SetGpsLocation(lon, lat, acc, useAverageDistance: false);
+		logger.Info("Test set GPS location: dispatched (lon={0}, lat={1}, acc={2})", lon, lat, acc);
+	}
+#endif
 
 }

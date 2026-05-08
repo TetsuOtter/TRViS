@@ -8,8 +8,17 @@ public class SelectOnlineResourcePopup : ContentPage
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
+	// AutomationIds. Mirrored in TRViS.UITests/AutomationIds.cs (SelectOnlineResource).
+	internal const string AutomationId_CloseButton = "SelectOnlineResource.CloseButton";
+	internal const string AutomationId_LoadButton = "SelectOnlineResource.LoadButton";
+	internal const string AutomationId_UrlInput = "SelectOnlineResource.UrlInput";
+	internal const string AutomationId_UrlHistoryList = "SelectOnlineResource.UrlHistoryList";
+	internal const string AutomationId_AdviceLabel = "SelectOnlineResource.AdviceLabel";
+	internal const string AutomationId_UrlHistoryItemPrefix = "SelectOnlineResource.UrlHistoryItem.";
+
 	readonly Button CloseButton = new()
 	{
+		AutomationId = AutomationId_CloseButton,
 		Text = "Close",
 		HorizontalOptions = LayoutOptions.End,
 		Margin = new(4),
@@ -17,6 +26,7 @@ public class SelectOnlineResourcePopup : ContentPage
 
 	readonly Button LoadButton = new()
 	{
+		AutomationId = AutomationId_LoadButton,
 		Text = "Load🌍",
 		HorizontalOptions = LayoutOptions.End,
 		Margin = new(4),
@@ -24,6 +34,7 @@ public class SelectOnlineResourcePopup : ContentPage
 
 	readonly Entry UrlInput = new()
 	{
+		AutomationId = AutomationId_UrlInput,
 		Placeholder = "https://",
 		Margin = new(4),
 		ClearButtonVisibility = ClearButtonVisibility.Never,
@@ -36,16 +47,26 @@ public class SelectOnlineResourcePopup : ContentPage
 
 	readonly CollectionView UrlHistoryListView = new()
 	{
+		AutomationId = AutomationId_UrlHistoryList,
+		SelectionMode = SelectionMode.Single,
 		Margin = new(4),
 	};
 
 	readonly Label AdviceLabel = new()
 	{
+		AutomationId = AutomationId_AdviceLabel,
 		Text = "URLを入力するか、履歴から選択してください。",
 		Margin = new(4),
 		HorizontalOptions = LayoutOptions.Start,
 		VerticalOptions = LayoutOptions.Center,
 	};
+
+	// Re-entrancy guard for selection <-> text-input synchronization.
+	// Without this, SelectionChanged sets UrlInput.Text -> TextChanged sets
+	// UrlHistoryListView.SelectedItem -> SelectionChanged fires again with
+	// the same value but a fresh SelectedItems collection, which on some
+	// MAUI handlers visually clears the row highlight before the user sees it.
+	private bool _isSyncingSelectionAndText = false;
 
 	readonly ActivityIndicator LoadingIndicator = new()
 	{
@@ -71,9 +92,20 @@ public class SelectOnlineResourcePopup : ContentPage
 
 		UrlHistoryListView.ItemTemplate = new DataTemplate(() =>
 		{
-			Label label = new();
+			// Per-row AutomationId is "SelectOnlineResource.UrlHistoryItem.<url>" so
+			// UI tests can locate a known seeded URL by accessibility id.
+			Label label = new()
+			{
+				Padding = new(4),
+			};
 			RootStyles.TableTextColor.Apply(label, Label.TextColorProperty);
 			label.SetBinding(Label.TextProperty, static (string? v) => v);
+			// Use the classic Binding form with a converter so the compiled-binding
+			// generator (BSG) doesn't choke on ternary/null-coalescing expressions.
+			label.SetBinding(Label.AutomationIdProperty, new Binding(
+				path: ".",
+				mode: BindingMode.OneWay,
+				converter: UrlHistoryItemAutomationIdConverter.Instance));
 			return label;
 		});
 
@@ -108,17 +140,43 @@ public class SelectOnlineResourcePopup : ContentPage
 		UrlHistoryListView.SelectionChanged += (_, e) =>
 		{
 			logger.Debug("UrlHistoryListView.SelectionChanged");
+			if (_isSyncingSelectionAndText)
+			{
+				logger.Trace("Selection change is part of a text->selection sync; skipping");
+				return;
+			}
 			if (e.CurrentSelection.FirstOrDefault() is string selectedItem)
 			{
-				UrlInput.Text = selectedItem;
-				logger.Trace("UrlInput.Text = {0}", UrlInput.Text);
+				_isSyncingSelectionAndText = true;
+				try
+				{
+					UrlInput.Text = selectedItem;
+					logger.Trace("UrlInput.Text = {0}", UrlInput.Text);
+				}
+				finally
+				{
+					_isSyncingSelectionAndText = false;
+				}
 			}
 		};
 
 		UrlInput.TextChanged += (_, e) =>
 		{
 			logger.Debug("UrlInput.TextChanged -> set UrlHistoryListView.SelectedItem = {0}", e.NewTextValue);
-			UrlHistoryListView.SelectedItem = e.NewTextValue;
+			if (_isSyncingSelectionAndText)
+			{
+				logger.Trace("Text change is part of a selection->text sync; skipping");
+				return;
+			}
+			_isSyncingSelectionAndText = true;
+			try
+			{
+				UrlHistoryListView.SelectedItem = e.NewTextValue;
+			}
+			finally
+			{
+				_isSyncingSelectionAndText = false;
+			}
 		};
 
 		grid.Add(CloseButton, column: 1);
@@ -162,14 +220,23 @@ public class SelectOnlineResourcePopup : ContentPage
 			}
 
 			string urlText = UrlInput.Text;
-			AppLinkInfo appLinkInfo = urlText.StartsWith("trvis://")
-				? AppLinkInfo.FromAppLink(urlText)
-				: new(
+			bool execResult;
+			if (urlText.StartsWith("trvis://"))
+			{
+				// String overload runs the full pipeline including the test-only
+				// seed-url-history handler (DEBUG builds), then falls through to
+				// AppLinkInfo.FromAppLink for normal trvis:// links.
+				execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(urlText, CancellationToken.None);
+			}
+			else
+			{
+				AppLinkInfo appLinkInfo = new(
 					AppLinkInfo.FileType.Json,
 					Version: new(1, 0),
 					ResourceUri: new(urlText)
 				);
-			bool execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, CancellationToken.None);
+				execResult = await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, CancellationToken.None);
+			}
 			if (execResult)
 			{
 				await Close();
@@ -192,12 +259,33 @@ public class SelectOnlineResourcePopup : ContentPage
 		await Navigation.PopModalAsync();
 	}
 
+	/// <summary>
+	/// Converts a URL string to its per-row AutomationId. Defined as a classic
+	/// IValueConverter so MAUI's compiled-binding generator can process the data
+	/// template without rejecting an inline ternary expression.
+	/// </summary>
+	private sealed class UrlHistoryItemAutomationIdConverter : IValueConverter
+	{
+		public static readonly UrlHistoryItemAutomationIdConverter Instance = new();
+
+		public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+			=> value is string s
+				? AutomationId_UrlHistoryItemPrefix + s
+				: AutomationId_UrlHistoryItemPrefix;
+
+		public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+			=> throw new NotSupportedException();
+	}
+
 	internal void OnOpened()
 	{
 		logger.Debug("SelectOnlineResourcePopup.Opened");
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
-			UrlHistoryListView.ItemsSource = InstanceManager.AppViewModel.ExternalResourceUrlHistory.Reverse();
+			// Materialize into a List so CollectionView's selection mapping
+			// uses stable string references (a fresh IEnumerable each enumeration
+			// can confuse SelectedItem reference equality on some MAUI handlers).
+			UrlHistoryListView.ItemsSource = InstanceManager.AppViewModel.ExternalResourceUrlHistory.Reverse().ToList();
 		});
 	}
 }
