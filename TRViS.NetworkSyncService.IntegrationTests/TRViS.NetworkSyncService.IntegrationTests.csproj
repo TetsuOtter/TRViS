@@ -24,6 +24,8 @@
   <ItemGroup>
     <!-- クライアント側のテスト対象 -->
     <ProjectReference Include="..\TRViS.NetworkSyncService\TRViS.NetworkSyncService.csproj" />
+    <!-- TimetableSelectionManager (Refresh 経路) の AC 検証で使用 -->
+    <ProjectReference Include="..\TRViS.Core\TRViS.Core.csproj" />
     <!-- ローカル開発時: in-process でサーバーを起動するために参照 -->
     <ProjectReference Include="..\TRViS.ReferenceServer\TRViS.ReferenceServer.csproj" />
   </ItemGroup>

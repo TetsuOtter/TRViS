@@ -131,6 +131,160 @@ public sealed class ReferenceServerClient : IDisposable
 	}
 
 	// ================================================================
+	// サーバー情報・ダイヤ情報
+	// ================================================================
+
+	public async Task<ServerInfoDto> GetServerInfoAsync(CancellationToken ct = default)
+	{
+		var resp = await _http.GetAsync("/control/server-info", ct);
+		resp.EnsureSuccessStatusCode();
+		return JsonSerializer.Deserialize<ServerInfoDto>(
+			await resp.Content.ReadAsStringAsync(ct), JsonOptions)!;
+	}
+
+	public async Task SetServerInfoAsync(
+		string? name = null,
+		string? admin = null,
+		string? version = null,
+		string? protocolVersion = null,
+		CancellationToken ct = default)
+	{
+		var payload = new
+		{
+			Name = name,
+			Admin = admin,
+			Version = version,
+			ProtocolVersion = protocolVersion,
+		};
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/server-info", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastServerInfoAsync(CancellationToken ct = default)
+	{
+		var resp = await _http.PostAsync("/control/broadcast-server-info", null, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task<DiagramListDto> GetDiagramsAsync(CancellationToken ct = default)
+	{
+		var resp = await _http.GetAsync("/control/diagrams", ct);
+		resp.EnsureSuccessStatusCode();
+		return JsonSerializer.Deserialize<DiagramListDto>(
+			await resp.Content.ReadAsStringAsync(ct), JsonOptions)!;
+	}
+
+	public async Task SetDiagramAsync(
+		string id,
+		string? name = null,
+		string? description = null,
+		string[]? workGroupIds = null,
+		bool makeCurrent = false,
+		CancellationToken ct = default)
+	{
+		var payload = new
+		{
+			Id = id,
+			Name = name,
+			Description = description,
+			WorkGroupIds = workGroupIds,
+			MakeCurrent = makeCurrent,
+		};
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/diagrams", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastDiagramAsync(string? diagramId = null, CancellationToken ct = default)
+	{
+		string url = diagramId is null
+			? "/control/broadcast-diagram"
+			: $"/control/broadcast-diagram?id={Uri.EscapeDataString(diagramId)}";
+		var resp = await _http.PostAsync(url, null, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task<List<ReceivedRequestDto>> GetReceivedRequestsAsync(CancellationToken ct = default)
+	{
+		var resp = await _http.GetAsync("/control/received-requests", ct);
+		resp.EnsureSuccessStatusCode();
+		return JsonSerializer.Deserialize<List<ReceivedRequestDto>>(
+			await resp.Content.ReadAsStringAsync(ct), JsonOptions)!;
+	}
+
+	public async Task ClearReceivedRequestsAsync(CancellationToken ct = default)
+	{
+		using var req = new HttpRequestMessage(HttpMethod.Delete, "/control/received-requests");
+		var resp = await _http.SendAsync(req, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	// ================================================================
+	// リモートコマンド配信
+	// ================================================================
+
+	public async Task BroadcastSelectTrainAsync(
+		string? workGroupId = null,
+		string? workId = null,
+		string? trainId = null,
+		CancellationToken ct = default)
+	{
+		var payload = new { WorkGroupId = workGroupId, WorkId = workId, TrainId = trainId };
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-select-train", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastOperationCommandAsync(string action, CancellationToken ct = default)
+	{
+		var payload = new { Action = action };
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-operation-command", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastHeaderColorAsync(
+		bool resetToDefault = false,
+		int? color_RGB = null,
+		CancellationToken ct = default)
+	{
+		var payload = new { ResetToDefault = resetToDefault, Color_RGB = color_RGB };
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-header-color", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastNotificationAsync(
+		string? id = null,
+		string? title = null,
+		string? body = null,
+		int priority = 0,
+		string? issuedAt = null,
+		CancellationToken ct = default)
+	{
+		var payload = new { Id = id, Title = title, Body = body, Priority = priority, IssuedAt = issuedAt };
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-notification", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastTimeFormatAsync(string? format = null, CancellationToken ct = default)
+	{
+		var payload = new { Format = format };
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-time-format", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	// ================================================================
 	// ユーティリティ
 	// ================================================================
 
@@ -180,4 +334,23 @@ public sealed record ServerStateDto(
 	[property: JsonPropertyName("Time_ms")] long Time_ms,
 	[property: JsonPropertyName("Location_m")] double? Location_m,
 	[property: JsonPropertyName("CanStart")] bool CanStart
+);
+
+public sealed record ServerInfoDto(
+	[property: JsonPropertyName("Name")] string? Name,
+	[property: JsonPropertyName("Admin")] string? Admin,
+	[property: JsonPropertyName("Version")] string? Version,
+	[property: JsonPropertyName("ProtocolVersion")] string? ProtocolVersion
+);
+
+public sealed record DiagramListDto(
+	[property: JsonPropertyName("CurrentDiagramId")] string? CurrentDiagramId,
+	[property: JsonPropertyName("Diagrams")] DiagramEntryDto[] Diagrams
+);
+
+public sealed record DiagramEntryDto(
+	[property: JsonPropertyName("Id")] string Id,
+	[property: JsonPropertyName("Name")] string? Name,
+	[property: JsonPropertyName("Description")] string? Description,
+	[property: JsonPropertyName("WorkGroupIds")] string[]? WorkGroupIds
 );

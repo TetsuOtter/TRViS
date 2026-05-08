@@ -44,7 +44,8 @@ public sealed class HakoPresenter : IDisposable
 		_workSpaceName = _appViewModel.SelectedWorkGroup?.Name;
 		_currentState.WorkInfoText = BuildWorkInfoText();
 
-		string affectDate = AffectDateFormatter.FormatAffectDateOnly(
+		string affectDate = AffectDateFormatter.FormatAffectDateOrText(
+			_appViewModel.SelectedWork?.AffectDateText,
 			_appViewModel.SelectedTrainData?.AffectDate,
 			_appViewModel.SelectedTrainData?.DayCount ?? 0);
 		_currentState.AffectDateText = AffectDateLabelTextPrefix + affectDate;
@@ -55,8 +56,12 @@ public sealed class HakoPresenter : IDisposable
 		switch (e.PropertyName)
 		{
 			case nameof(IAppViewModelProvider.SelectedWork):
+				// Work が変わると WorkInfo と AffectDate (= AffectDateText) の両方に影響しうるので、
+				// 1 回の StateChanged にまとめて変更フラグを立てる。
 				_workName = _appViewModel.SelectedWork?.Name;
-				UpdateWorkInfoText();
+				_currentState.WorkInfoText = BuildWorkInfoText();
+				UpdateAffectDateText();
+				RaiseStateChanged(HakoStateSection.WorkInfo | HakoStateSection.AffectDate);
 				break;
 			case nameof(IAppViewModelProvider.SelectedWorkGroup):
 				_workSpaceName = _appViewModel.SelectedWorkGroup?.Name;
@@ -70,12 +75,18 @@ public sealed class HakoPresenter : IDisposable
 
 	private void OnTrainDataChanged()
 	{
+		UpdateAffectDateText();
+		RaiseStateChanged(HakoStateSection.AffectDate);
+	}
+
+	private void UpdateAffectDateText()
+	{
 		var trainData = _appViewModel.SelectedTrainData;
-		string affectDate = AffectDateFormatter.FormatAffectDateOnly(
+		string affectDate = AffectDateFormatter.FormatAffectDateOrText(
+			_appViewModel.SelectedWork?.AffectDateText,
 			trainData?.AffectDate,
 			trainData?.DayCount ?? 0);
 		_currentState.AffectDateText = AffectDateLabelTextPrefix + affectDate;
-		RaiseStateChanged(HakoStateSection.AffectDate);
 	}
 
 	// ---------- Helpers ----------

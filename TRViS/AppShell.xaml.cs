@@ -57,6 +57,17 @@ public partial class AppShell : Shell
 		FlyoutIconImage.BindingContext = easterEggPageViewModel;
 		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, static (EasterEggPageViewModel vm) => vm.ShellTitleTextColor);
 
+		// サーバーから HeaderColor コマンドを受信したときに、タイトルバー色を上書きする。
+		// null (= ResetToDefault) の場合は EasterEgg の設定にフォールバックする。
+		var appVm = InstanceManager.AppViewModel;
+		appVm.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName == nameof(AppViewModel.HeaderColorOverride_RGB))
+				ApplyHeaderColorOverride(appVm.HeaderColorOverride_RGB, easterEggPageViewModel);
+		};
+		// 起動時の値も反映する (通常は null)
+		ApplyHeaderColorOverride(appVm.HeaderColorOverride_RGB, easterEggPageViewModel);
+
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
 		logger.Trace("Display Width/Height: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);
@@ -76,6 +87,31 @@ public partial class AppShell : Shell
 #endif
 
 		logger.Trace("AppShell Created");
+	}
+
+	/// <summary>
+	/// サーバー指示の色 (0xRRGGBB) でタイトルバーを上書きする。null の場合は
+	/// EasterEgg ベースのバインディングを再有効化して端末設定に戻す。
+	/// WebSocket 受信スレッドから呼ばれうるため、UI 操作は必ず MainThread に dispatch する。
+	/// </summary>
+	void ApplyHeaderColorOverride(int? rgbOrNull, EasterEggPageViewModel easterEggPageViewModel)
+	{
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			if (rgbOrNull is int rgb)
+			{
+				byte r = (byte)((rgb >> 16) & 0xff);
+				byte g = (byte)((rgb >> 8) & 0xff);
+				byte b = (byte)(rgb & 0xff);
+				this.RemoveBinding(BackgroundColorProperty);
+				BackgroundColor = Color.FromRgb(r, g, b);
+			}
+			else
+			{
+				// バインディングを再設定して既定挙動に戻す
+				this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
+			}
+		});
 	}
 
 	void ApplyFlyoutBehavior(object? sender, bool oldValue, bool newValue)

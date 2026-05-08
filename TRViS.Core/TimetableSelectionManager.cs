@@ -108,7 +108,46 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		_selectedWorkGroup = null;
 		RaisePropertyChanged(nameof(SelectedWorkGroup));
 		WorkGroupList = loader?.GetWorkGroupList();
-		SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
+		var first = WorkGroupList?.FirstOrDefault();
+		SelectedWorkGroup = first;
+		// WorkGroup が空 (= ダイヤが空) の場合、setter の早期 return により OnWorkGroupChanged が
+		// 呼ばれず、配下の Work/Train が古い状態のままになる。明示的に空に揃える。
+		if (first is null)
+			ClearChildSelectionsBelowWorkGroup();
+	}
+
+	/// <summary>
+	/// SelectedWorkGroup が null のときに、配下の WorkList / SelectedWork /
+	/// OrderedTrainDataList / SelectedTrainData を明示的に空にする。
+	/// 「親が空ならば子も必ず空」の不変条件を保つ。
+	/// </summary>
+	private void ClearChildSelectionsBelowWorkGroup()
+	{
+		WorkList = null;
+		if (_selectedWork is not null)
+		{
+			_selectedWork = null;
+			RaisePropertyChanged(nameof(SelectedWork));
+		}
+		OrderedTrainDataList = null;
+		if (_selectedTrainData is not null)
+		{
+			_selectedTrainData = null;
+			RaisePropertyChanged(nameof(SelectedTrainData));
+		}
+	}
+
+	/// <summary>
+	/// SelectedWork が null のときに、配下の OrderedTrainDataList / SelectedTrainData を明示的に空にする。
+	/// </summary>
+	private void ClearChildSelectionsBelowWork()
+	{
+		OrderedTrainDataList = null;
+		if (_selectedTrainData is not null)
+		{
+			_selectedTrainData = null;
+			RaisePropertyChanged(nameof(SelectedTrainData));
+		}
 	}
 
 	private void OnWorkGroupChanged(WorkGroup? workGroup)
@@ -129,18 +168,48 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 	private void OnWorkChanged(Work? work)
 	{
-		if (work is not null && _loader is not null)
-		{
-			var trainDataList = _loader.GetTrainDataList(work.Id);
-			var orderedList = BuildOrderedTrainDataList(trainDataList, _loader);
-			OrderedTrainDataList = orderedList;
-			SelectedTrainData = orderedList.Count > 0 ? orderedList[0] : null;
-		}
-		else
+		// 通常のWork選択切り替え時: 先頭の列車を自動選択する
+		RefreshTrainDataForWork(work, preserveSelection: false);
+	}
+
+	/// <summary>
+	/// 指定の Work に紐づく <see cref="OrderedTrainDataList"/> を再構築する。
+	/// </summary>
+	/// <param name="work">対象のWork。null の場合はリスト/選択を null にする。</param>
+	/// <param name="preserveSelection">
+	/// true の場合、現在の <see cref="SelectedTrainData"/> の Id が新リスト内に存在すれば
+	/// そのまま選択を維持する (リアルタイム更新時の挙動)。
+	/// false の場合、常に先頭の列車を選択する。
+	/// </param>
+	private void RefreshTrainDataForWork(Work? work, bool preserveSelection)
+	{
+		if (work is null || _loader is null)
 		{
 			OrderedTrainDataList = null;
 			SelectedTrainData = null;
+			return;
 		}
+
+		var trainDataList = _loader.GetTrainDataList(work.Id);
+		var orderedList = BuildOrderedTrainDataList(trainDataList, _loader);
+		OrderedTrainDataList = orderedList;
+
+		if (preserveSelection)
+		{
+			// 既存の選択を Id で引き直し、まだ存在すれば最新インスタンスに更新する
+			string? previousId = _selectedTrainData?.Id;
+			if (previousId is not null)
+			{
+				var matched = orderedList.FirstOrDefault(t => t.Id == previousId);
+				if (matched is not null)
+				{
+					SelectedTrainData = matched;
+					return;
+				}
+			}
+		}
+
+		SelectedTrainData = orderedList.Count > 0 ? orderedList[0] : null;
 	}
 
 	// ---------- Refresh / Reset ----------
@@ -149,6 +218,11 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 	/// Re-reads lists from the current Loader, preserving valid current selections.
 	/// Falls back to the first item when the current selection is no longer present.
 	/// </summary>
+	/// <remarks>
+	/// リアルタイム編集対応: 各階層で現在の選択 Id がまだ存在すれば保持し、
+	/// その階層のオブジェクトは最新インスタンスに差し替える。
+	/// 選択を保持する場合は public setter を経由しない (cascade を避けるため)。
+	/// </remarks>
 	public void Refresh()
 	{
 		if (_loader is null)
@@ -157,29 +231,57 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		var newWorkGroupList = _loader.GetWorkGroupList();
 		WorkGroupList = newWorkGroupList;
 
-		bool workGroupStillValid = _selectedWorkGroup is not null
-			&& newWorkGroupList.Any(wg => wg.Id == _selectedWorkGroup.Id);
+		string? prevWorkGroupId = _selectedWorkGroup?.Id;
+		var matchedWorkGroup = prevWorkGroupId is null
+			? null
+			: newWorkGroupList.FirstOrDefault(wg => wg.Id == prevWorkGroupId);
 
-		if (!workGroupStillValid)
+		if (matchedWorkGroup is null)
 		{
-			SelectedWorkGroup = newWorkGroupList.FirstOrDefault();
+			// 既存選択が消えた → 先頭にフォールバック (cascade で配下も再構築される)
+			var fallback = newWorkGroupList.FirstOrDefault();
+			SelectedWorkGroup = fallback;
+			// WorkGroup が空ならば、setter の早期 return で配下が初期化されないため明示的に空にする
+			if (fallback is null)
+				ClearChildSelectionsBelowWorkGroup();
 			return;
 		}
 
-		var newWorkList = _loader.GetWorkList(_selectedWorkGroup!.Id);
+		// WorkGroup を維持: setter を経由するとカスケードして配下が初期化されるため、
+		// フィールドに直接代入して PropertyChanged だけを発火させる。
+		if (!Equals(_selectedWorkGroup, matchedWorkGroup))
+		{
+			_selectedWorkGroup = matchedWorkGroup;
+			RaisePropertyChanged(nameof(SelectedWorkGroup));
+		}
+
+		var newWorkList = _loader.GetWorkList(matchedWorkGroup.Id);
 		WorkList = newWorkList;
 
-		bool workStillValid = _selectedWork is not null
-			&& newWorkList.Any(w => w.Id == _selectedWork.Id);
+		string? prevWorkId = _selectedWork?.Id;
+		var matchedWork = prevWorkId is null
+			? null
+			: newWorkList.FirstOrDefault(w => w.Id == prevWorkId);
 
-		if (!workStillValid)
+		if (matchedWork is null)
 		{
-			SelectedWork = newWorkList.FirstOrDefault();
+			var fallback = newWorkList.FirstOrDefault();
+			SelectedWork = fallback;
+			// Work が空ならば、配下の Train も明示的に空にする
+			if (fallback is null)
+				ClearChildSelectionsBelowWork();
 			return;
 		}
 
-		// Work is still valid — refresh TrainData list
-		OnWorkChanged(_selectedWork);
+		// Work を維持: 同様にフィールド直接代入で cascade を避ける。
+		if (!Equals(_selectedWork, matchedWork))
+		{
+			_selectedWork = matchedWork;
+			RaisePropertyChanged(nameof(SelectedWork));
+		}
+
+		// Train リストは再構築しつつ、Id が一致すれば選択を保持する。
+		RefreshTrainDataForWork(matchedWork, preserveSelection: true);
 	}
 
 	/// <summary>
