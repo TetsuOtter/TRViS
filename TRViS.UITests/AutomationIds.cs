@@ -36,7 +36,7 @@ public static class AutomationIds
 		public const string SelectDatabaseButton = "SelectTrain.SelectDatabaseButton";
 		public const string WorkGroupList = "SelectTrain.WorkGroupList";
 		public const string WorkList = "SelectTrain.WorkList";
-		// DEBUG/DISABLE_FIREBASE-only seed buttons used by UI tests.
+		// DEBUG-only seed buttons used by UI tests.
 		public const string TestSeedButton = "SelectTrain.TestSeedButton";
 		public const string TestSeedGpsButton = "SelectTrain.TestSeedGpsButton";
 	}

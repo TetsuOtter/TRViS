@@ -51,7 +51,7 @@ public partial class SelectTrainPage : ContentPage
 	/// </summary>
 	void TestSeedButton_Clicked(object sender, EventArgs e)
 	{
-#if DEBUG || DISABLE_FIREBASE
+#if DEBUG
 		logger.Info("TestSeedButton clicked: seeding URL history fixtures");
 		viewModel.SeedUrlHistoryForTesting(new[]
 		{
@@ -69,7 +69,7 @@ public partial class SelectTrainPage : ContentPage
 	/// </summary>
 	void TestSeedGpsButton_Clicked(object sender, EventArgs e)
 	{
-#if DEBUG || DISABLE_FIREBASE
+#if DEBUG
 		logger.Info("TestSeedGpsButton clicked: pushing fixture GPS coord");
 		try
 		{
@@ -95,9 +95,9 @@ public partial class SelectTrainPage : ContentPage
 	{
 		base.OnAppearing();
 
-#if DEBUG || DISABLE_FIREBASE
+#if DEBUG
 		// Make the DEBUG-only test seed buttons findable. In a Release build
-		// (no DEBUG, no DISABLE_FIREBASE) this branch is removed and the
+		// (no DEBUG) this branch is removed and the
 		// buttons stay IsVisible="False" → unreachable from Appium.
 		if (TestSeedButton is not null)
 			TestSeedButton.IsVisible = true;
