@@ -20,6 +20,23 @@ public partial class AppViewModel : ObservableObject
 	[ObservableProperty]
 	ILoader? _Loader;
 
+	// Human-readable label for the current Loader's source. Set atomically alongside
+	// Loader via SetLoader() so the Home info card cannot momentarily show a stale
+	// source between the two assignments. Cleared automatically when Loader becomes null.
+	[ObservableProperty]
+	string? _LoaderSourceLabel;
+
+	/// <summary>
+	/// Atomically replaces <see cref="Loader"/> and <see cref="LoaderSourceLabel"/>.
+	/// Call sites should prefer this over assigning Loader directly so the Home info
+	/// card metadata stays in sync with the active loader.
+	/// </summary>
+	public void SetLoader(ILoader? loader, string? sourceLabel)
+	{
+		LoaderSourceLabel = sourceLabel;
+		Loader = loader;
+	}
+
 	public IReadOnlyList<WorkGroup>? WorkGroupList => SelectionManager.WorkGroupList;
 	public IReadOnlyList<Work>? WorkList => SelectionManager.WorkList;
 	public IReadOnlyList<TrainData>? OrderedTrainDataList => SelectionManager.OrderedTrainDataList;
@@ -123,6 +140,8 @@ public partial class AppViewModel : ObservableObject
 	partial void OnLoaderChanged(ILoader? value)
 	{
 		SelectionManager.Loader = value;
+		if (value is null)
+			LoaderSourceLabel = null;
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
@@ -196,7 +215,7 @@ public partial class AppViewModel : ObservableObject
 			if (loader is not null)
 			{
 				logger.Info("Successfully loaded default timetable: {0}", selectedFilePath);
-				Loader = loader;
+				SetLoader(loader, selectedFilePath is not null ? System.IO.Path.GetFileName(selectedFilePath) : null);
 				return (true, false, selectedFilePath, null);
 			}
 
@@ -234,7 +253,7 @@ public partial class AppViewModel : ObservableObject
 
 			if (loader is not null)
 			{
-				Loader = loader;
+				SetLoader(loader, System.IO.Path.GetFileName(filePath));
 				logger.Trace("Successfully loaded selected timetable file");
 				return true;
 			}

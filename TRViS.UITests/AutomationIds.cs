@@ -11,7 +11,7 @@ public static class AutomationIds
 
 		public static class Flyout
 		{
-			public const string SelectTrain = "Shell.Flyout.SelectTrain";
+			public const string StartHome = "Shell.Flyout.StartHome";
 			public const string DTAC = "Shell.Flyout.DTAC";
 			public const string ThirdPartyLicenses = "Shell.Flyout.ThirdPartyLicenses";
 			public const string Settings = "Shell.Flyout.Settings";
@@ -28,17 +28,61 @@ public static class AutomationIds
 		public const string SaveButton = "Firebase.SaveButton";
 	}
 
-	public static class SelectTrain
+	/// <summary>
+	/// Start/Home page (replaces the legacy SelectTrain page). The same page
+	/// renders two visual states; the Start-mode buttons (Connect/SelectFile/Demo,
+	/// Privacy/TPL links) live in StartBody, the Home-mode list/buttons live in
+	/// HomeBody. Both share the animated app-header at the top.
+	/// </summary>
+	public static class StartHome
 	{
-		public const string Title = "SelectTrain.Title";
-		public const string LoadSampleButton = "SelectTrain.LoadSampleButton";
-		public const string LoadFromWebButton = "SelectTrain.LoadFromWebButton";
-		public const string SelectDatabaseButton = "SelectTrain.SelectDatabaseButton";
-		public const string WorkGroupList = "SelectTrain.WorkGroupList";
-		public const string WorkList = "SelectTrain.WorkList";
-		// DEBUG-only seed buttons used by UI tests.
-		public const string TestSeedButton = "SelectTrain.TestSeedButton";
-		public const string TestSeedGpsButton = "SelectTrain.TestSeedGpsButton";
+		public const string AppHeader = "StartHome.AppHeader";
+		public const string AppIcon = "StartHome.AppIcon";
+		public const string Title = "StartHome.Title";
+		public const string StartBody = "StartHome.StartBody";
+		public const string HomeBody = "StartHome.HomeBody";
+
+		// Start mode — primary buttons
+		public const string ConnectServerButton = "StartHome.ConnectServerButton";
+		public const string SelectFileButton = "StartHome.SelectFileButton";
+		public const string LoadDemoButton = "StartHome.LoadDemoButton";
+
+		// Start mode — privacy banner + footer links
+		public const string PrivacyReconfirmBanner = "StartHome.PrivacyReconfirmBanner";
+		public const string PrivacyReconfirmText = "StartHome.PrivacyReconfirmText";
+		public const string PrivacyPolicyButton = "StartHome.PrivacyPolicyButton";
+		public const string ThirdPartyLicensesButton = "StartHome.ThirdPartyLicensesButton";
+
+		// Home mode — selection lists and action buttons
+		public const string LoaderInfoTitle = "StartHome.LoaderInfoTitle";
+		public const string LoaderInfoDetail = "StartHome.LoaderInfoDetail";
+		// Two-step picker: each step has a list (full picker) and a chip (compact summary
+		// shown after selection). Tapping the chip clears the selection and re-opens
+		// the list. Auto-fill happens when a list arrives with exactly one item AND
+		// the user has not previously cleared their selection.
+		public const string WorkGroupList = "StartHome.WorkGroupList";
+		public const string WorkGroupChip = "StartHome.WorkGroupChip";
+		public const string WorkList = "StartHome.WorkList";
+		public const string WorkChip = "StartHome.WorkChip";
+		public const string OpenButton = "StartHome.OpenButton";
+		public const string DisconnectButton = "StartHome.DisconnectButton";
+
+		// UI_TEST-only seed seams.
+		public const string TestSeedButton = "StartHome.TestSeedButton";
+		public const string TestSeedGpsButton = "StartHome.TestSeedGpsButton";
+		// Picks the first WorkGroup + first Work and commits via the same code path
+		// as 開く. Lets DTAC-focused tests skip the picker UI without depending on
+		// auto-cascade behavior in TimetableSelectionManager.
+		public const string TestAutoOpenButton = "StartHome.TestAutoOpenButton";
+	}
+
+	public static class PrivacyDialog
+	{
+		public const string Title = "PrivacyDialog.Title";
+		public const string CloseButton = "PrivacyDialog.CloseButton";
+		public const string AnalyticsSwitch = "PrivacyDialog.AnalyticsSwitch";
+		public const string ResetButton = "PrivacyDialog.ResetButton";
+		public const string SaveButton = "PrivacyDialog.SaveButton";
 	}
 
 	public static class DTAC
@@ -57,15 +101,59 @@ public static class AutomationIds
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
 	}
 
-	public static class SelectOnlineResource
+	/// <summary>
+	/// Connect-to-Server modal dialog (replaces the legacy SelectOnlineResource popup).
+	/// Two states: history list (rich cards keyed by URL) and a new-connection form
+	/// (URL Entry + "save connection" Switch + Connect button).
+	/// </summary>
+	public static class ConnectServer
 	{
-		public const string CloseButton = "SelectOnlineResource.CloseButton";
-		public const string LoadButton = "SelectOnlineResource.LoadButton";
-		public const string UrlInput = "SelectOnlineResource.UrlInput";
-		public const string UrlHistoryList = "SelectOnlineResource.UrlHistoryList";
-		public const string AdviceLabel = "SelectOnlineResource.AdviceLabel";
-		// Per-row id is "<UrlHistoryItemPrefix><url>".
-		public const string UrlHistoryItemPrefix = "SelectOnlineResource.UrlHistoryItem.";
+		public const string Title = "ConnectServer.Title";
+		public const string CloseButton = "ConnectServer.CloseButton";
+
+		// History list state
+		public const string HistoryList = "ConnectServer.HistoryList";
+		// Per-row id is "<HistoryItemPrefix><url>" — entire card is tappable
+		// (no shared Entry, so tap loads directly).
+		public const string HistoryItemPrefix = "ConnectServer.HistoryItem.";
+		public const string NewConnectionButton = "ConnectServer.NewConnectionButton";
+
+		// New-connection form state
+		public const string BackToHistoryButton = "ConnectServer.BackToHistoryButton";
+		public const string UrlInput = "ConnectServer.UrlInput";
+		public const string SaveConnectionSwitch = "ConnectServer.SaveConnectionSwitch";
+		public const string ConnectButton = "ConnectServer.ConnectButton";
+	}
+
+	/// <summary>
+	/// Select-File modal dialog (replaces the direct OS FilePicker behaviour).
+	/// Lists JSON/SQLite files from the app documents folder as rich cards plus
+	/// a "他の場所からファイルを開く" button that falls back to the OS picker.
+	/// </summary>
+	public static class SelectFile
+	{
+		public const string Title = "SelectFile.Title";
+		public const string CloseButton = "SelectFile.CloseButton";
+
+		// File list state
+		public const string FileList = "SelectFile.FileList";
+		// Per-row ids — entire card is tappable. Folder cards drill into the folder;
+		// the up-folder card is rendered above sibling cards when not at root.
+		public const string FileItemPrefix = "SelectFile.FileItem.";
+		public const string FolderItemPrefix = "SelectFile.FolderItem.";
+		public const string UpFolderItem = "SelectFile.UpFolderItem";
+
+		// Breadcrumb showing the current relative path (only visible when not at root).
+		public const string Breadcrumb = "SelectFile.Breadcrumb";
+
+		// Empty state (visible when the current folder has no folders or supported files).
+		public const string EmptyMessage = "SelectFile.EmptyMessage";
+
+		// Always-visible footer actions.
+		// Browse: opens the OS FilePicker for files outside the documents folder.
+		// OpenStorageLocation: reveals the documents folder in the OS file manager.
+		public const string BrowseButton = "SelectFile.BrowseButton";
+		public const string OpenStorageLocationButton = "SelectFile.OpenStorageLocationButton";
 	}
 
 	public static class Settings
@@ -77,5 +165,7 @@ public static class AutomationIds
 	public static class ThirdParty
 	{
 		public const string LicenseList = "ThirdParty.LicenseList";
+		// Visible only when the page is hosted as a modal (asModal:true).
+		public const string ModalCloseButton = "ThirdParty.ModalCloseButton";
 	}
 }
