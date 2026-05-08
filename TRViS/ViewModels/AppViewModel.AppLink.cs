@@ -160,7 +160,7 @@ public partial class AppViewModel
 		}
 
 		ILoader? lastLoader = this.Loader;
-		this.Loader = loader;
+		this.SetLoader(loader, decodedUrl ?? appLinkInfo.ResourceUri?.ToString() ?? appLinkString);
 		logger.Info("Loader Initialized");
 		lastLoader?.Dispose();
 		logger.Debug("Last Loader Disposed");
@@ -244,7 +244,7 @@ public partial class AppViewModel
 			WebSocketNetworkSyncService service = await openFile.OpenWebSocketAppLinkAsync(appLinkInfo, token);
 
 			ILoader? lastLoader = this.Loader;
-			this.Loader = service;
+			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
 			logger.Info("Loader Initialized from WebSocket");
 			lastLoader?.Dispose();
 			logger.Debug("Last Loader Disposed");

@@ -363,6 +363,7 @@ public partial class SelectFileDialog : ContentPage
 	{
 		var viewModel = InstanceManager.AppViewModel;
 		ILoader? lastLoader = viewModel.Loader;
+		string? lastLoaderLabel = viewModel.LoaderSourceLabel;
 		try
 		{
 			ILoader? newLoader;
@@ -382,7 +383,7 @@ public partial class SelectFileDialog : ContentPage
 				return false;
 			}
 
-			viewModel.Loader = newLoader;
+			viewModel.SetLoader(newLoader, System.IO.Path.GetFileName(fullPath));
 			if (!ReferenceEquals(lastLoader, viewModel.Loader))
 				lastLoader?.Dispose();
 			return true;
@@ -394,7 +395,7 @@ public partial class SelectFileDialog : ContentPage
 			if (!ReferenceEquals(lastLoader, viewModel.Loader))
 			{
 				viewModel.Loader?.Dispose();
-				viewModel.Loader = lastLoader;
+				viewModel.SetLoader(lastLoader, lastLoaderLabel);
 			}
 			await Util.DisplayAlertAsync("読み込めませんでした", $"ファイルの読み込みに失敗しました: {ex.Message}", "OK");
 			return false;

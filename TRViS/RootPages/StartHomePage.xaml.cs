@@ -1,5 +1,6 @@
 using TRViS.DTAC;
 using TRViS.IO;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -16,6 +17,13 @@ public partial class StartHomePage : ContentPage
 	// Mode tracks whether the body shows Start (no Loader) or Home (Loader present).
 	enum PageMode { Start, Home }
 	PageMode _currentMode = PageMode.Start;
+
+	// Auto-fill guards. Set to true when the user manually clears their selection via
+	// the chip-tap, so the auto-fill code does not immediately re-pick it on the next
+	// list update (e.g. WebSocket pushes a Refresh while the user is mid-deselect).
+	// Both flags reset to false whenever Loader changes (fresh data, fresh intent).
+	bool _userClearedWorkGroup;
+	bool _userClearedWork;
 
 	// Animation tunables. Header is centered slightly above middle in Start mode;
 	// pinned to top in Home mode.
@@ -64,10 +72,34 @@ public partial class StartHomePage : ContentPage
 
 	void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(AppViewModel.Loader))
+		switch (e.PropertyName)
 		{
-			logger.Debug("Loader changed -> evaluate page mode");
-			_ = ApplyModeForCurrentLoaderAsync();
+			case nameof(AppViewModel.Loader):
+				logger.Debug("Loader changed -> evaluate page mode");
+				// New loader -> fresh selection intent, drop any user-cleared sticky flags.
+				_userClearedWorkGroup = false;
+				_userClearedWork = false;
+				_ = ApplyModeForCurrentLoaderAsync();
+				break;
+
+			case nameof(AppViewModel.LoaderSourceLabel):
+				UpdateLoaderInfoLabels();
+				break;
+
+			case nameof(AppViewModel.WorkGroupList):
+				TryAutoFillWorkGroup();
+				RefreshStepUi();
+				break;
+
+			case nameof(AppViewModel.WorkList):
+				TryAutoFillWork();
+				RefreshStepUi();
+				break;
+
+			case nameof(AppViewModel.SelectedWorkGroup):
+			case nameof(AppViewModel.SelectedWork):
+				RefreshStepUi();
+				break;
 		}
 	}
 
@@ -203,6 +235,7 @@ public partial class StartHomePage : ContentPage
 		}
 		_currentMode = mode;
 		UpdateLoaderInfoLabels();
+		RefreshStepUi();
 	}
 
 	async Task TransitionToAsync(PageMode target)
@@ -290,21 +323,92 @@ public partial class StartHomePage : ContentPage
 		{
 			LoaderInfoTitleLabel.Text = "読み込み済みデータ";
 			LoaderInfoDetailLabel.Text = "";
+			LoaderInfoGlyphLabel.Text = ""; // description (generic file)
 			return;
 		}
 
-		// Phase 1 placeholder: show the loader type. Phase 4 will populate with
-		// connection address / file metadata.
-		string typeName = loader.GetType().Name;
-		LoaderInfoTitleLabel.Text = typeName switch
+		// Title = loader type, glyph = matching Material Icon, detail = source label
+		// (file name, URL) set atomically with the loader via AppViewModel.SetLoader.
+		(string title, string glyph) = loader switch
 		{
-			"SampleDataLoader" => "デモデータ",
-			"LoaderJson" => "JSON ファイル",
-			"LoaderSQL" => "SQLite ファイル",
-			"WebSocketNetworkSyncService" => "サーバー接続中",
-			_ => typeName,
+			SampleDataLoader => ("デモデータ", ""),                  // settings_input_component
+			LoaderJson => ("JSON ファイル", ""),                       // description
+			LoaderSQL => ("SQLite ファイル", ""),                      // storage
+			WebSocketNetworkSyncService => ("サーバー接続中", ""),     // wifi
+			_ => (loader.GetType().Name, ""),
 		};
-		LoaderInfoDetailLabel.Text = "";
+		LoaderInfoTitleLabel.Text = title;
+		LoaderInfoGlyphLabel.Text = glyph;
+		LoaderInfoDetailLabel.Text = viewModel.LoaderSourceLabel ?? string.Empty;
+	}
+
+	// ----- Two-step picker (WorkGroup -> Work) -----
+
+	void RefreshStepUi()
+	{
+		var selectedWorkGroup = viewModel.SelectedWorkGroup;
+		var selectedWork = viewModel.SelectedWork;
+
+		// Work Group: chip when a selection exists; list otherwise.
+		bool hasWorkGroup = selectedWorkGroup is not null;
+		WorkGroupChip.IsVisible = hasWorkGroup;
+		WorkGroupListBorder.IsVisible = !hasWorkGroup;
+		WorkGroupChipNameLabel.Text = selectedWorkGroup?.Name ?? string.Empty;
+
+		// Work: only meaningful once a Work Group is selected. Show chip when a Work
+		// is picked, the list when one isn't, and a hint when no Work Group is set.
+		bool hasWork = selectedWork is not null;
+		bool workSectionEnabled = hasWorkGroup;
+		WorkChip.IsVisible = workSectionEnabled && hasWork;
+		WorkListBorder.IsVisible = workSectionEnabled && !hasWork;
+		WorkPendingHint.IsVisible = !workSectionEnabled;
+		WorkChipNameLabel.Text = selectedWork?.Name ?? string.Empty;
+	}
+
+	void TryAutoFillWorkGroup()
+	{
+		// Auto-fill only when (a) the user has not explicitly cleared a prior
+		// selection during this loader session and (b) there is exactly one option.
+		// Guards against re-firing when WebSocket loaders push a Refresh after
+		// the user just tapped to clear (sticky _userClearedWorkGroup).
+		if (_userClearedWorkGroup)
+			return;
+		if (viewModel.SelectedWorkGroup is not null)
+			return;
+		var list = viewModel.WorkGroupList;
+		if (list is null || list.Count != 1)
+			return;
+		logger.Info("Auto-selecting the only Work Group: {0}", list[0].Name);
+		viewModel.SelectedWorkGroup = list[0];
+	}
+
+	void TryAutoFillWork()
+	{
+		if (_userClearedWork)
+			return;
+		if (viewModel.SelectedWork is not null)
+			return;
+		var list = viewModel.WorkList;
+		if (list is null || list.Count != 1)
+			return;
+		logger.Info("Auto-selecting the only Work: {0}", list[0].Name);
+		viewModel.SelectedWork = list[0];
+	}
+
+	void OnWorkGroupChipTapped(object? sender, TappedEventArgs e)
+	{
+		logger.Info("Work Group chip tapped -> clearing selection");
+		_userClearedWorkGroup = true;
+		// Clearing the Work Group also drops any downstream Work selection — the
+		// visible list will swap automatically via SelectionManager's chained update.
+		viewModel.SelectedWorkGroup = null;
+	}
+
+	void OnWorkChipTapped(object? sender, TappedEventArgs e)
+	{
+		logger.Info("Work chip tapped -> clearing selection");
+		_userClearedWork = true;
+		viewModel.SelectedWork = null;
 	}
 
 	// ----- Button handlers -----
@@ -348,7 +452,7 @@ public partial class StartHomePage : ContentPage
 		try
 		{
 			viewModel.Loader?.Dispose();
-			viewModel.Loader = await SampleDataLoader.CreateAsync();
+			viewModel.SetLoader(await SampleDataLoader.CreateAsync(), null);
 		}
 		catch (Exception ex)
 		{
@@ -395,6 +499,14 @@ public partial class StartHomePage : ContentPage
 	async void OnOpenClicked(object sender, EventArgs e)
 	{
 		logger.Info("Open clicked");
+		// SelectTrain still happens on DTAC; gating Open on SelectedWork keeps the
+		// minimize UX honest (no jumping into DTAC with a half-filled selection).
+		if (viewModel.SelectedWork is null)
+		{
+			logger.Info("Open ignored: SelectedWork is null");
+			await Util.DisplayAlertAsync(this, "選択されていません", "Work を選択してから開いてください。", "OK");
+			return;
+		}
 		await NavigateToDTACAsync();
 	}
 

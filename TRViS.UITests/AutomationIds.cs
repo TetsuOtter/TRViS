@@ -56,8 +56,14 @@ public static class AutomationIds
 		// Home mode — selection lists and action buttons
 		public const string LoaderInfoTitle = "StartHome.LoaderInfoTitle";
 		public const string LoaderInfoDetail = "StartHome.LoaderInfoDetail";
+		// Two-step picker: each step has a list (full picker) and a chip (compact summary
+		// shown after selection). Tapping the chip clears the selection and re-opens
+		// the list. Auto-fill happens when a list arrives with exactly one item AND
+		// the user has not previously cleared their selection.
 		public const string WorkGroupList = "StartHome.WorkGroupList";
+		public const string WorkGroupChip = "StartHome.WorkGroupChip";
 		public const string WorkList = "StartHome.WorkList";
+		public const string WorkChip = "StartHome.WorkChip";
 		public const string OpenButton = "StartHome.OpenButton";
 		public const string DisconnectButton = "StartHome.DisconnectButton";
 

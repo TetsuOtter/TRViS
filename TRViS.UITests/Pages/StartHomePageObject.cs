@@ -30,9 +30,13 @@ public class StartHomePageObject : PageObject
 	public AppiumElement PrivacyPolicyButton => FindByAutomationId(AutomationIds.StartHome.PrivacyPolicyButton);
 	public AppiumElement ThirdPartyLicensesButton => FindByAutomationId(AutomationIds.StartHome.ThirdPartyLicensesButton);
 
-	// Home mode.
+	// Home mode. Two-step picker: each step has either a list (full picker) or a
+	// chip (compact summary, shown after selection). Only one of {List, Chip} per
+	// step is visible at any time; assertions should branch on which is reachable.
 	public AppiumElement WorkGroupList => FindByAutomationId(AutomationIds.StartHome.WorkGroupList);
+	public AppiumElement WorkGroupChip => FindByAutomationId(AutomationIds.StartHome.WorkGroupChip);
 	public AppiumElement WorkList => FindByAutomationId(AutomationIds.StartHome.WorkList);
+	public AppiumElement WorkChip => FindByAutomationId(AutomationIds.StartHome.WorkChip);
 	public AppiumElement OpenButton => FindByAutomationId(AutomationIds.StartHome.OpenButton);
 	public AppiumElement DisconnectButton => FindByAutomationId(AutomationIds.StartHome.DisconnectButton);
 
