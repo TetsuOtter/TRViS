@@ -39,6 +39,7 @@ public static class AutomationIds
 		// DEBUG-only seed buttons used by UI tests.
 		public const string TestSeedButton = "SelectTrain.TestSeedButton";
 		public const string TestSeedGpsButton = "SelectTrain.TestSeedGpsButton";
+		public const string TestSeedNextTrainSelectionButton = "SelectTrain.TestSeedNextTrainSelectionButton";
 	}
 
 	public static class DTAC
@@ -55,6 +56,7 @@ public static class AutomationIds
 		public const string OpenCloseButton = "DTAC.OpenCloseButton";
 		public const string TimetableScrollView = "DTAC.TimetableScrollView";
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
+		public const string NextTrainButton = "DTAC.NextTrainButton";
 	}
 
 	public static class SelectOnlineResource

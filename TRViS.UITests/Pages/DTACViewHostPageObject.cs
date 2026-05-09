@@ -37,6 +37,37 @@ public class DTACViewHostPageObject : PageObject
 	public AppiumElement OpenCloseButton => FindByAutomationId(AutomationIds.DTAC.OpenCloseButton);
 	public AppiumElement TimetableScrollView => FindByAutomationId(AutomationIds.DTAC.TimetableScrollView);
 	public AppiumElement VerticalTimetableView => FindByAutomationId(AutomationIds.DTAC.VerticalTimetableView);
+	public AppiumElement NextTrainButton => WaitForElement(AutomationIds.DTAC.NextTrainButton);
+
+	/// <summary>
+	/// Returns true when the NextTrainButton is present and visible. Returns false
+	/// (after a short timeout) when it isn't — used to assert the button is hidden
+	/// for trains without a NextTrainId.
+	/// </summary>
+	public bool IsNextTrainButtonDisplayed(TimeSpan? timeout = null)
+	{
+		var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(3));
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			while (DateTime.UtcNow < deadline)
+			{
+				try
+				{
+					var el = Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
+					if (el.Displayed)
+						return true;
+				}
+				catch (NoSuchElementException) { }
+				Thread.Sleep(200);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
 
 	private AppiumElement FindCustomControl(string automationId, params string[] candidateTexts)
 	{

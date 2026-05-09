@@ -129,6 +129,46 @@ public class DTACTimetableTests : BaseUITest
 	}
 
 	/// <summary>
+	/// Regression for #225: when the selected train has a non-empty NextTrainId,
+	/// the NextTrainButton must be visible after switching to the timetable tab.
+	/// Reproduces the user-visible bug from the 8bdfc56 refactor where the
+	/// button stopped appearing even on default sample data.
+	/// </summary>
+	[Test]
+	public void NextTrainButton_Visible_WhenSelectedTrainHasNextTrainId()
+	{
+		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
+		_selectTrainPage.LoadSample();
+		_selectTrainPage.WaitForElement(AutomationIds.SelectTrain.WorkGroupList);
+
+		// Cascade to a sample-data train known to have NextTrainId set:
+		// linear-train-1 (NextTrainId = "linear-train-2").
+		_selectTrainPage.SeedTrainSelectionWithNextTrain();
+		Thread.Sleep(300);
+
+		var dtac = _shell.NavigateToDTAC();
+		dtac.SwitchToTimetableTab();
+
+		Assert.That(dtac.IsNextTrainButtonDisplayed(), Is.True,
+			"NextTrainButton must be visible when SelectedTrainData.NextTrainId is non-empty.");
+	}
+
+	/// <summary>
+	/// Negative: the default sample-data first train (1-1-1) has NextTrainId = "",
+	/// so the button must NOT be visible. Guards against the inverse regression
+	/// where a fix accidentally always shows the button.
+	/// </summary>
+	[Test]
+	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
+	{
+		var dtac = LoadSampleAndOpenDTAC();
+		dtac.SwitchToTimetableTab();
+
+		Assert.That(dtac.IsNextTrainButtonDisplayed(TimeSpan.FromSeconds(2)), Is.False,
+			"NextTrainButton must be hidden when SelectedTrainData.NextTrainId is empty.");
+	}
+
+	/// <summary>
 	/// Verifies the GPS auto-scroll pipeline survives a fake GPS coord injected
 	/// via the test deeplink. The deeplink handler force-enables LocationService
 	/// and calls SetGpsLocation directly — no CoreLocation, no permissions.

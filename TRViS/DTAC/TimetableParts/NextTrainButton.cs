@@ -24,6 +24,8 @@ public class NextTrainButton : Grid
 
 	public NextTrainButton()
 	{
+		AutomationId = "DTAC.NextTrainButton";
+
 		_presenter = Adapters.PresenterFactory.BuildNextTrainButtonPresenter();
 		_presenter.StateChanged += OnPresenterStateChanged;
 		OnPresenterStateChanged(null, _presenter.CurrentState);
