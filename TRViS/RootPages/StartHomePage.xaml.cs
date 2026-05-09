@@ -243,11 +243,12 @@ public partial class StartHomePage : ContentPage
 			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 3);
 			Grid.SetColumn(HomeBody, 1); Grid.SetColumnSpan(HomeBody, 1);
 			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
-			// StartBody anchored to the top of its column instead of the bottom —
-			// VerticalOptions=End was useful when body sat below header in a row
-			// layout, but in two-column layout End would push content below the
-			// fold whenever the body is shorter than the column.
-			StartBody.VerticalOptions = LayoutOptions.Start;
+			// StartBody centered vertically in its column. Top-anchored looked
+			// too top-heavy on landscape phones (the warning banner and the
+			// privacy/TPL link row both sat against the top of the column with
+			// empty space below); End would push them below the fold when the
+			// body is shorter than the column. Center splits the difference.
+			StartBody.VerticalOptions = LayoutOptions.Center;
 			LoaderInfoCard.VerticalOptions = LayoutOptions.Start;
 			// Home mode no longer needs the top spacer (header is on the left,
 			// not on top) — recompute since UpdateHomeBodyTopSpacer keys off
