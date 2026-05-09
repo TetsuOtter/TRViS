@@ -414,7 +414,6 @@ public partial class SelectFileDialog : ContentPage
 	{
 		var viewModel = InstanceManager.AppViewModel;
 		ILoader? lastLoader = viewModel.Loader;
-		string? lastLoaderLabel = viewModel.LoaderSourceLabel;
 		try
 		{
 			ILoader? newLoader;
@@ -441,13 +440,12 @@ public partial class SelectFileDialog : ContentPage
 		}
 		catch (Exception ex)
 		{
+			// SetLoader is the only mutation; if we throw before reaching it,
+			// viewModel.Loader still references lastLoader and no rollback is
+			// needed. (A prior version had a rollback block here, but with the
+			// current control flow it was dead code.)
 			logger.Error(ex, "TryLoadFileAsync failed: {0}", fullPath);
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectFileDialog.TryLoadFileAsync");
-			if (!ReferenceEquals(lastLoader, viewModel.Loader))
-			{
-				viewModel.Loader?.Dispose();
-				viewModel.SetLoader(lastLoader, lastLoaderLabel);
-			}
 			await Util.DisplayAlertAsync("読み込めませんでした", $"ファイルの読み込みに失敗しました: {ex.Message}", "OK");
 			return false;
 		}

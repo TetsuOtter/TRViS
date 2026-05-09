@@ -91,8 +91,16 @@ if [ -z "$UDID" ]; then
   echo "... DeviceName: $DeviceName (Run on Physical Device)"
   RUNTIME_IDENTIFIER='ios-arm64'
 else
-  echo "... UDID: $UDID (Run on Simulator)"
-  RUNTIME_IDENTIFIER='iossimulator-arm64'
+  # Pick the simulator runtime that matches the host arch. Apple Silicon uses
+  # arm64; Intel Macs need x64 — hardcoding either breaks the other.
+  HOST_ARCH=`uname -m`
+  case "$HOST_ARCH" in
+    arm64)  RUNTIME_IDENTIFIER='iossimulator-arm64' ;;
+    x86_64) RUNTIME_IDENTIFIER='iossimulator-x64' ;;
+    *)      echo "Warning: unrecognised host arch '$HOST_ARCH'; defaulting to iossimulator-arm64" 1>&2
+            RUNTIME_IDENTIFIER='iossimulator-arm64' ;;
+  esac
+  echo "... UDID: $UDID (Run on Simulator, runtime=$RUNTIME_IDENTIFIER)"
 fi
 
 if [ ! -z "$DeviceName" ]; then

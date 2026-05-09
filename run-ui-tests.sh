@@ -11,7 +11,7 @@
 #             --device-class=<class>
 #                            (iOS only) which simulator to target.
 #                            One of: iphone (default), ipad-mini-5,
-#                            ipad-mini-6, ipad-mini-a17.
+#                            ipad-mini-a17.
 # ================================================================
 
 set -euo pipefail
@@ -40,7 +40,6 @@ SKIP_INSTALL=false
 # iOS simulator device class. Affects iPad-vs-iPhone selection only.
 # "iphone"        -> iPhone 16 (default; matches the historical behavior)
 # "ipad-mini-5"   -> iPad mini (5th generation)
-# "ipad-mini-6"   -> iPad mini (6th generation)
 # "ipad-mini-a17" -> iPad mini (A17 Pro)
 DEVICE_CLASS="iphone"
 
@@ -61,9 +60,8 @@ done
 case "$DEVICE_CLASS" in
   iphone)        DEVICE_CLASS_SUFFIX="iphone" ;;
   ipad-mini-5)   DEVICE_CLASS_SUFFIX="ipad-mini-5" ;;
-  ipad-mini-6)   DEVICE_CLASS_SUFFIX="ipad-mini-6" ;;
   ipad-mini-a17) DEVICE_CLASS_SUFFIX="ipad-mini-a17" ;;
-  *)             die "Unknown --device-class: '$DEVICE_CLASS' (allowed: iphone, ipad-mini-5, ipad-mini-6, ipad-mini-a17)" ;;
+  *)             die "Unknown --device-class: '$DEVICE_CLASS' (allowed: iphone, ipad-mini-5, ipad-mini-a17)" ;;
 esac
 
 # ── Constants ───────────────────────────────────────────────────
@@ -165,11 +163,6 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
       SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini--5th-generation-"
       SIM_NAME_REGEX="^iPad mini \(5th generation\)$"
       SIM_DEVICE_NAME="iPad mini (5th generation)"
-      ;;
-    ipad-mini-6)
-      SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini-6th-generation"
-      SIM_NAME_REGEX="^iPad mini \(6th generation\)$"
-      SIM_DEVICE_NAME="iPad mini (6th generation)"
       ;;
     ipad-mini-a17)
       SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro"

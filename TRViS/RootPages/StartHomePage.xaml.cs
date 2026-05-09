@@ -38,6 +38,15 @@ public partial class StartHomePage : ContentPage
 	Work? _pendingWork;
 	readonly ObservableCollection<WorkGroupListItem> _workGroupItems = new();
 	readonly ObservableCollection<WorkListItem> _workItems = new();
+	// Per-loader caches for the subtitle counts. RebuildWorkGroupItems is called on
+	// every WorkGroupList PropertyChanged (e.g. each websocket Refresh), and each
+	// item's subtitle calls loader.GetWorkList(wg.Id).Count — a DB roundtrip on
+	// LoaderSQL. With N WorkGroups and M Works per WG, an unguarded rebuild costs
+	// O(N+N*M) DB reads per push. Cache by Id, scoped to the *current* loader so
+	// a swap clears stale entries.
+	ILoader? _countCacheLoader;
+	readonly Dictionary<string, int> _workCountByGroupId = new();
+	readonly Dictionary<string, int> _trainCountByWorkId = new();
 	// Re-entrancy guard: we set CollectionView.SelectedItem programmatically when
 	// restoring tentative state from the AppViewModel, and that fires SelectionChanged.
 	// The flag prevents that synthetic change from being treated as a user pick.
@@ -72,7 +81,11 @@ public partial class StartHomePage : ContentPage
 	// row 1. Targets iPad Slide Over (~568h logical), iPad split-view in narrow
 	// configurations, and Mac Catalyst windows the user has resized small. iPhone
 	// portrait (≥844) stays at the full-size hero treatment.
-	const double COMPACT_HEIGHT_MAX = 800;
+	// We use slightly different enter/exit thresholds (hysteresis) so a window
+	// dragged across the boundary on Mac Catalyst doesn't flicker styles every
+	// pixel while crossing — enter compact at <800, exit at ≥820.
+	const double COMPACT_HEIGHT_ENTER = 800;
+	const double COMPACT_HEIGHT_EXIT = 820;
 
 	// Tracks whether we're currently laid out for phone-landscape (header on the
 	// left, body on the right) or the default vertical layout. Updated from
@@ -205,6 +218,9 @@ public partial class StartHomePage : ContentPage
 				// value — otherwise a websocket Refresh would silently clobber the
 				// user's mid-pick on Home (committed is null -> _pendingWorkGroup
 				// would be forced to null).
+				// A Refresh may also have added/removed Works/Trains under the
+				// same loader instance, so drop count caches to force fresh reads.
+				InvalidateCountCaches();
 				RebuildWorkGroupItems();
 				if (viewModel.SelectedWorkGroup is not null || viewModel.SelectedWork is not null)
 					SyncPendingFromCommitted();
@@ -343,7 +359,25 @@ public partial class StartHomePage : ContentPage
 		// Only compact in portrait/square layouts. Landscape-phone has its own
 		// horizontal split layout (header column + body column) which already
 		// avoids the overlap, so leave it at full size.
-		bool isCompact = !_isLandscapePhone && Width <= Height && Height < COMPACT_HEIGHT_MAX;
+		bool isPortrait = !_isLandscapePhone && Width <= Height;
+		bool isCompact;
+		if (!_compactHeightApplied)
+		{
+			// First measurement: pick the appropriate side of the band based
+			// solely on the enter threshold, then both sticky branches below
+			// will hold us there until we cross the opposite threshold.
+			isCompact = isPortrait && Height < COMPACT_HEIGHT_ENTER;
+		}
+		else if (_isCompactHeight)
+		{
+			// Currently compact: exit only when we comfortably clear EXIT.
+			isCompact = isPortrait && Height < COMPACT_HEIGHT_EXIT;
+		}
+		else
+		{
+			// Currently full-size: enter compact only below the lower threshold.
+			isCompact = isPortrait && Height < COMPACT_HEIGHT_ENTER;
+		}
 		if (isCompact == _isCompactHeight && _compactHeightApplied)
 			return;
 		_isCompactHeight = isCompact;
@@ -482,6 +516,13 @@ public partial class StartHomePage : ContentPage
 		// observed not to repaint the existing nav bar after a value flip
 		// (the toggle stays hidden after acceptance), so we also poke
 		// Shell.Current.FlyoutBehavior to force a Shell-level redraw.
+		// Mac Catalyst limitation: AppShell starts with FlyoutBehavior=Flyout,
+		// so on Catalyst the flyout toggle is *always* visible — including
+		// before privacy acceptance. ThirdPartyLicenses / Settings / Privacy
+		// flyout entries are reachable, but D-TAC has no committed selection
+		// pre-acceptance so it shows nothing harmful. This is a deliberate
+		// trade-off vs. the alternative (no flyout reachable for the rest of
+		// the session because Catalyst's nav bar can't be re-built mid-flight).
 		if (!OperatingSystem.IsMacCatalyst())
 		{
 			var target = accepted ? FlyoutBehavior.Flyout : FlyoutBehavior.Disabled;
@@ -725,11 +766,51 @@ public partial class StartHomePage : ContentPage
 		}
 	}
 
+	void EnsureCountCacheLoader(ILoader? loader)
+	{
+		if (ReferenceEquals(_countCacheLoader, loader))
+			return;
+		_countCacheLoader = loader;
+		InvalidateCountCaches();
+	}
+
+	void InvalidateCountCaches()
+	{
+		// Called whenever the underlying lists may have changed: loader swap or
+		// WorkGroupList PropertyChanged (which fires after a websocket Refresh
+		// that may have added/removed Works/Trains).
+		_workCountByGroupId.Clear();
+		_trainCountByWorkId.Clear();
+	}
+
+	int GetWorkCountCached(ILoader loader, string workGroupId)
+	{
+		if (_workCountByGroupId.TryGetValue(workGroupId, out int cached))
+			return cached;
+		int count;
+		try { count = loader.GetWorkList(workGroupId).Count; }
+		catch { count = 0; }
+		_workCountByGroupId[workGroupId] = count;
+		return count;
+	}
+
+	int GetTrainCountCached(ILoader loader, string workId)
+	{
+		if (_trainCountByWorkId.TryGetValue(workId, out int cached))
+			return cached;
+		int count;
+		try { count = loader.GetTrainDataList(workId).Count; }
+		catch { count = 0; }
+		_trainCountByWorkId[workId] = count;
+		return count;
+	}
+
 	void RebuildWorkGroupItems()
 	{
 		_workGroupItems.Clear();
 		var loader = viewModel.Loader;
 		var groups = viewModel.WorkGroupList;
+		EnsureCountCacheLoader(loader);
 		if (loader is null || groups is null)
 		{
 			RebuildWorkItems();
@@ -737,9 +818,7 @@ public partial class StartHomePage : ContentPage
 		}
 		foreach (var wg in groups)
 		{
-			int workCount;
-			try { workCount = loader.GetWorkList(wg.Id).Count; }
-			catch { workCount = 0; }
+			int workCount = GetWorkCountCached(loader, wg.Id);
 			string subtitle = $"Work 数: {workCount}";
 			_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
 		}
@@ -753,6 +832,7 @@ public partial class StartHomePage : ContentPage
 		var wg = _pendingWorkGroup;
 		if (loader is null || wg is null)
 			return;
+		EnsureCountCacheLoader(loader);
 
 		IReadOnlyList<Work> works;
 		try { works = loader.GetWorkList(wg.Id); }
@@ -760,9 +840,7 @@ public partial class StartHomePage : ContentPage
 
 		foreach (var w in works)
 		{
-			int trainCount;
-			try { trainCount = loader.GetTrainDataList(w.Id).Count; }
-			catch { trainCount = 0; }
+			int trainCount = GetTrainCountCached(loader, w.Id);
 
 			List<string> parts = new(2);
 			if (w.AffectDate is { } d)
