@@ -41,39 +41,39 @@ public class ConnectServerDialogPageObject : PageObject
 	}
 
 	/// <summary>
-	/// Returns true when the history list is the active sub-view.
+	/// Returns true when the history list is the active sub-view. Polls briefly
+	/// to absorb modal-open animation latency: the previous zero-wait probe could
+	/// race the dialog's PopulateHistory and report false even when seeded URLs
+	/// were about to render.
 	/// </summary>
-	public bool IsHistoryViewVisible()
-	{
-		var prevWait = TimeSpan.FromSeconds(10);
-		try
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.ConnectServer.HistoryList).Displayed;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
-	}
+	public bool IsHistoryViewVisible() => PollAutomationIdDisplayed(AutomationIds.ConnectServer.HistoryList);
 
 	/// <summary>
 	/// Returns true when the new-connection form is the active sub-view.
 	/// </summary>
-	public bool IsNewConnectionFormVisible()
+	public bool IsNewConnectionFormVisible() => PollAutomationIdDisplayed(AutomationIds.ConnectServer.UrlInput);
+
+	/// <summary>
+	/// Wait up to <paramref name="timeoutSeconds"/> for an element to be findable
+	/// AND Displayed=true. Returns false on timeout or any error.
+	/// </summary>
+	private bool PollAutomationIdDisplayed(string automationId, double timeoutSeconds = 5)
 	{
 		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
 		try
 		{
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.ConnectServer.UrlInput).Displayed;
-		}
-		catch
-		{
+			while (DateTime.UtcNow < deadline)
+			{
+				try
+				{
+					if (FindByAutomationId(automationId).Displayed)
+						return true;
+				}
+				catch { }
+				Thread.Sleep(100);
+			}
 			return false;
 		}
 		finally

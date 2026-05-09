@@ -48,22 +48,7 @@ public class StartHomePageObject : PageObject
 	/// Mirrors <see cref="IsPrivacyReconfirmBannerVisible"/>'s zero-implicit-wait pattern.
 	/// </summary>
 	public bool IsWorkGroupChipVisible()
-	{
-		var prevWait = TimeSpan.FromSeconds(10);
-		try
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.StartHome.WorkGroupChip).Displayed;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
-	}
+		=> PollAutomationIdDisplayed(AutomationIds.StartHome.WorkGroupChip, timeoutSeconds: 1);
 
 	// UI_TEST seed seams.
 	public AppiumElement TestSeedButton => FindByAutomationId(AutomationIds.StartHome.TestSeedButton);
@@ -85,18 +70,34 @@ public class StartHomePageObject : PageObject
 	/// <summary>
 	/// Returns true when the privacy-policy reconfirm banner is currently visible
 	/// (i.e. the user has not yet accepted the current PRIVACY_POLICY_REVISION).
-	/// Returns false on any lookup error so callers can treat "absent" as "accepted".
+	/// Polls briefly so a slow first-appearance OnAppearing doesn't lose the race
+	/// against the test's first probe. Returns false on timeout / any error so
+	/// callers can treat "absent" as "accepted".
 	/// </summary>
 	public bool IsPrivacyReconfirmBannerVisible()
+		=> PollAutomationIdDisplayed(AutomationIds.StartHome.PrivacyReconfirmBanner);
+
+	/// <summary>
+	/// Wait up to <paramref name="timeoutSeconds"/> for an element to be findable
+	/// AND Displayed=true. Returns false on timeout or any error.
+	/// </summary>
+	private bool PollAutomationIdDisplayed(string automationId, double timeoutSeconds = 5)
 	{
 		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
 		try
 		{
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.StartHome.PrivacyReconfirmBanner).Displayed;
-		}
-		catch
-		{
+			while (DateTime.UtcNow < deadline)
+			{
+				try
+				{
+					if (FindByAutomationId(automationId).Displayed)
+						return true;
+				}
+				catch { }
+				Thread.Sleep(100);
+			}
 			return false;
 		}
 		finally
