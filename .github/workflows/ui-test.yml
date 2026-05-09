@@ -668,4 +668,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-ui-test-results
-          path: "**/*.trx"
+          # Include screenshots and page-source dumps from BaseUITest.TearDown
+          # so we can diagnose layout-specific failures (Windows MAUI's
+          # ScrollView visibility quirks needed this once already).
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml

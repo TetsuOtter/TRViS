@@ -374,6 +374,7 @@
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="*"/>
 				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
 			<!-- Spacer reserving space for the small (scaled) app header in Home mode.
@@ -555,22 +556,28 @@
 						</CollectionView>
 					</Border>
 
-					<!-- Hint shown when no Work Group is selected yet. -->
-					<Label
-						x:Name="WorkPendingHint"
-						AutomationId="StartHome.WorkPendingHint"
-						FontSize="12"
-						Margin="4,4,4,8"
-						HorizontalTextAlignment="Center"
-						TextColor="{x:Static local:RootStyles.TableDetailColor}"
-						Text="Work Group を選択してください"/>
-
 				</VerticalStackLayout>
 			</ScrollView>
 
+			<!-- Hint shown when no Work Group is selected yet. Lives outside
+			     the ScrollView (in HomeBody Row=2) so it's always visible
+			     regardless of how the picker scroll content sizes — the
+			     in-scroll placement scrolled it off-screen on Windows CI
+			     and on iPhone when the picker content exceeded the
+			     viewport. -->
+			<Label
+				x:Name="WorkPendingHint"
+				AutomationId="StartHome.WorkPendingHint"
+				Grid.Row="2"
+				FontSize="12"
+				Margin="4,4,4,8"
+				HorizontalTextAlignment="Center"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"
+				Text="Work Group を選択してください"/>
+
 			<!-- Open / Disconnect buttons -->
 			<Grid
-				Grid.Row="2"
+				Grid.Row="3"
 				ColumnSpacing="8"
 				ColumnDefinitions="*,*">
 				<Button
