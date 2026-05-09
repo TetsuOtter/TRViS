@@ -86,12 +86,6 @@ public partial class ConnectServerDialog : ContentPage
 		// Parse the scheme so we can show a Material icon + host as the primary
 		// line. Falls back to the raw URL if parsing fails (defensive: a
 		// malformed stored entry shouldn't crash the dialog).
-		// Glyphs come from MaterialIcons-Regular.ttf (registered in MauiProgram
-		// as "MaterialIconsRegular"):
-		//   \uE894 = language  (globe — http/https web fetch)
-		//   \uE3E7 = flash_on  (lightning — ws/wss realtime stream)
-		//   \uE324 = phone_iphone (trvis:// app deeplink)
-		//   \uE157 = link      (fallback — unknown scheme)
 		string glyph;
 		string title;
 		// UriKind.Absolute so a malformed stored entry actually trips the catch;
@@ -102,16 +96,16 @@ public partial class ConnectServerDialog : ContentPage
 			string scheme = uri.Scheme;
 			glyph = scheme switch
 			{
-				"https" or "http" => "\uE894",
-				"wss" or "ws" => "\uE3E7",
-				"trvis" => "\uE324",
-				_ => "\uE157",
+				"https" or "http" => MaterialIcons.Language,
+				"wss" or "ws" => MaterialIcons.FlashOn,
+				"trvis" => MaterialIcons.PhoneIphone,
+				_ => MaterialIcons.Link,
 			};
 			title = !string.IsNullOrEmpty(uri.Host) ? uri.Host : url;
 		}
 		catch
 		{
-			glyph = "\uE157";
+			glyph = MaterialIcons.Link;
 			title = url;
 		}
 

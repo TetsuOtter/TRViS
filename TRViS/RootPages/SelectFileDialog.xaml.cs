@@ -181,10 +181,9 @@ public partial class SelectFileDialog : ContentPage
 
 	View CreateUpFolderCard()
 	{
-		// arrow_upward = e5d8 (Material Icons)
 		var (border, grid) = CreateCardShell(AutomationId_UpFolderItem);
 
-		var glyphLabel = NewGlyphLabel("");
+		var glyphLabel = NewGlyphLabel(MaterialIcons.ArrowUpward);
 		Grid.SetColumn(glyphLabel, 0);
 		Grid.SetRowSpan(glyphLabel, 2);
 		grid.Children.Add(glyphLabel);
@@ -209,10 +208,9 @@ public partial class SelectFileDialog : ContentPage
 
 	View CreateFolderCard(DirectoryInfo folder)
 	{
-		// folder = e2c7 (Material Icons)
 		var (border, grid) = CreateCardShell(AutomationId_FolderItemPrefix + folder.Name);
 
-		var glyphLabel = NewGlyphLabel("");
+		var glyphLabel = NewGlyphLabel(MaterialIcons.Folder);
 		Grid.SetColumn(glyphLabel, 0);
 		Grid.SetRowSpan(glyphLabel, 2);
 		grid.Children.Add(glyphLabel);
@@ -264,12 +262,11 @@ public partial class SelectFileDialog : ContentPage
 
 	View CreateFileCard(FileInfo file)
 	{
-		// e86f code (.json), e1db storage (.sqlite/.db/.sqlite3), e873 description (fallback)
 		string glyph = file.Extension.ToLowerInvariant() switch
 		{
-			".json" => "",
-			".sqlite" or ".db" or ".sqlite3" => "",
-			_ => "",
+			".json" => MaterialIcons.Code,
+			".sqlite" or ".db" or ".sqlite3" => MaterialIcons.Storage,
+			_ => MaterialIcons.Description,
 		};
 
 		var (border, grid) = CreateCardShell(AutomationId_FileItemPrefix + file.Name);

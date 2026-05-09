@@ -666,7 +666,7 @@ public partial class StartHomePage : ContentPage
 		{
 			LoaderInfoTitleLabel.Text = "読み込み済みデータ";
 			LoaderInfoDetailLabel.Text = "";
-			LoaderInfoGlyphLabel.Text = ""; // description (generic file)
+			LoaderInfoGlyphLabel.Text = MaterialIcons.Description;
 			return;
 		}
 
@@ -674,11 +674,11 @@ public partial class StartHomePage : ContentPage
 		// (file name, URL) set atomically with the loader via AppViewModel.SetLoader.
 		(string title, string glyph) = loader switch
 		{
-			SampleDataLoader => ("デモデータ", ""),                  // settings_input_component
-			LoaderJson => ("JSON ファイル", ""),                       // description
-			LoaderSQL => ("SQLite ファイル", ""),                      // storage
-			WebSocketNetworkSyncService => ("サーバー接続中", ""),     // wifi
-			_ => (loader.GetType().Name, ""),
+			SampleDataLoader => ("デモデータ", MaterialIcons.Science),
+			LoaderJson => ("JSON ファイル", MaterialIcons.Description),
+			LoaderSQL => ("SQLite ファイル", MaterialIcons.Storage),
+			WebSocketNetworkSyncService => ("サーバー接続中", MaterialIcons.Wifi),
+			_ => (loader.GetType().Name, MaterialIcons.Description),
 		};
 		LoaderInfoTitleLabel.Text = title;
 		LoaderInfoGlyphLabel.Text = glyph;
