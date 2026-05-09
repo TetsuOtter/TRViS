@@ -27,6 +27,26 @@ public static class AppiumConfig
 				// means the first-launch Mono JIT compilation is slow.
 				options.AddAdditionalAppiumOption("appWaitDuration", 300000);
 				options.AddAdditionalAppiumOption("autoGrantPermissions", true);
+				// Stability tuning — defaults are optimised for short, snappy native
+				// apps. MAUI's Mono runtime + accessibility tree size produces commands
+				// that intermittently overshoot the defaults; raising these reduces
+				// "socket hang up" / instrumentation-crash flakes that the runner has
+				// to recover from via [Retry(2)] on the test fixtures:
+				// - newCommandTimeout: how long Appium waits for the next command from
+				//   the client before tearing down the session. 60 s default; bumping
+				//   to 180 s covers test bodies that include several Thread.Sleep gaps.
+				// - adbExecTimeout: per-adb-call timeout. 20 s default; the emulator
+				//   under heavy DTAC load can take ~25 s for a single AccessibilityNode
+				//   walk.
+				// - uiautomator2ServerLaunchTimeout: cold start of the UIA2 server
+				//   APK. 30 s default is tight on an EmbedAssembliesIntoApk MAUI build.
+				// - uiautomator2ServerInstallTimeout: same idea but for the install
+				//   step (a freshly-restarted instrumentation process needs to be
+				//   re-installed by the driver).
+				options.AddAdditionalAppiumOption("newCommandTimeout", 180);
+				options.AddAdditionalAppiumOption("adbExecTimeout", 60000);
+				options.AddAdditionalAppiumOption("uiautomator2ServerLaunchTimeout", 90000);
+				options.AddAdditionalAppiumOption("uiautomator2ServerInstallTimeout", 90000);
 				if (!string.IsNullOrEmpty(deviceUdid))
 					options.AddAdditionalAppiumOption("udid", deviceUdid);
 				break;
@@ -47,13 +67,18 @@ public static class AppiumConfig
 				// timeout has a chance to fire.
 				options.AddAdditionalAppiumOption("simulatorStartupTimeout", 900000);
 				options.AddAdditionalAppiumOption("wdaLaunchTimeout", 900000);
-				// wdaStartupRetries is the WDA *launch* retry count, not a rebuild —
-				// the second attempt reuses the existing xcodebuild output, so it
-				// is cheap and is exactly what recovers from
-				// FBSOpenApplicationServiceErrorDomain Code=1 ("app unknown to
-				// FrontBoard") when Springboard hasn't yet refreshed its app
-				// database after a fresh install. Keep at 2.
+				// wdaStartupRetries: retry WDA launch on transient failures (e.g.
+				// the WDA process crashes during startup). Keep at 2 for cheap recovery.
 				options.AddAdditionalAppiumOption("wdaStartupRetries", 2);
+				// noReset:true — do not uninstall/reinstall the app between sessions.
+				// run-ui-tests.sh pre-installs the app once (xcrun simctl install) so
+				// FrontBoard always knows about the bundle. The xcuitest driver then
+				// only terminates and relaunches the app per session, avoiding the
+				// repeated uninstall/reinstall cycle that leaves FrontBoard in an
+				// inconsistent state and causes "Application is unknown to FrontBoard"
+				// session-creation failures mid-run. App data is cleared per-test via
+				// BaseUITest.ResetAppState (xcrun simctl spawn defaults delete).
+				options.AddAdditionalAppiumOption("noReset", true);
 				// Specifying the simulator UDID directly lets xcuitest bypass SDK version
 				// matching (which would fail when the app's DTPlatformVersion differs from
 				// the only available simulator runtime).
