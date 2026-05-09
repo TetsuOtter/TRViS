@@ -234,6 +234,11 @@ jobs:
           echo "Logcat streaming started with PID $LOGCAT_PID"
 
       - name: Run Android UI Tests
+        # `bash -e` (the GitHub Actions default) terminates the script on the
+        # first non-zero exit. Disable errexit so the retry loop below can
+        # observe `dotnet test`'s failure code instead of being killed by it.
+        # Pipefail is still desirable, so set it explicitly.
+        shell: bash --noprofile --norc -o pipefail {0}
         run: |
           APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
           if [ -z "$APK_PATH" ]; then
