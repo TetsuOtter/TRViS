@@ -130,12 +130,13 @@ public class DTACTimetableTests : BaseUITest
 
 	/// <summary>
 	/// Regression for #225: when the selected train has a non-empty NextTrainId,
-	/// the NextTrainButton must be visible after switching to the timetable tab.
-	/// Reproduces the user-visible bug from the 8bdfc56 refactor where the
-	/// button stopped appearing even on default sample data.
+	/// the NextTrainButton must appear in the accessibility tree after switching
+	/// to the timetable tab. The button sits at the bottom of the timetable Grid
+	/// and may be off-screen on small viewports, so the helper scrolls as needed
+	/// before failing.
 	/// </summary>
 	[Test]
-	public void NextTrainButton_Visible_WhenSelectedTrainHasNextTrainId()
+	public void NextTrainButton_Present_WhenSelectedTrainHasNextTrainId()
 	{
 		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
 		_selectTrainPage.LoadSample();
@@ -149,23 +150,25 @@ public class DTACTimetableTests : BaseUITest
 		var dtac = _shell.NavigateToDTAC();
 		dtac.SwitchToTimetableTab();
 
-		Assert.That(dtac.IsNextTrainButtonDisplayed(), Is.True,
-			"NextTrainButton must be visible when SelectedTrainData.NextTrainId is non-empty.");
+		Assert.That(dtac.IsNextTrainButtonPresent(), Is.True,
+			"NextTrainButton must be reachable when SelectedTrainData.NextTrainId is non-empty " +
+			"(scroll-to-bottom retries are built into IsNextTrainButtonPresent).");
 	}
 
 	/// <summary>
 	/// Negative: the default sample-data first train (1-1-1) has NextTrainId = "",
-	/// so the button must NOT be visible. Guards against the inverse regression
+	/// so the button must be absent from the accessibility tree (IsVisible=false
+	/// in MAUI removes the element entirely). Guards against the inverse regression
 	/// where a fix accidentally always shows the button.
 	/// </summary>
 	[Test]
-	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
+	public void NextTrainButton_Absent_WhenSelectedTrainHasNoNextTrainId()
 	{
 		var dtac = LoadSampleAndOpenDTAC();
 		dtac.SwitchToTimetableTab();
 
-		Assert.That(dtac.IsNextTrainButtonDisplayed(TimeSpan.FromSeconds(2)), Is.False,
-			"NextTrainButton must be hidden when SelectedTrainData.NextTrainId is empty.");
+		Assert.That(dtac.IsNextTrainButtonPresent(TimeSpan.FromSeconds(3)), Is.False,
+			"NextTrainButton must not be in the tree when SelectedTrainData.NextTrainId is empty.");
 	}
 
 	/// <summary>

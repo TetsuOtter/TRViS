@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Interactions;
 using TRViS.UITests.Infrastructure;
 
 namespace TRViS.UITests.Pages;
@@ -40,13 +41,22 @@ public class DTACViewHostPageObject : PageObject
 	public AppiumElement NextTrainButton => WaitForElement(AutomationIds.DTAC.NextTrainButton);
 
 	/// <summary>
-	/// Returns true when the NextTrainButton is present and visible. Returns false
-	/// (after a short timeout) when it isn't — used to assert the button is hidden
-	/// for trains without a NextTrainId.
+	/// Returns true when the NextTrainButton exists in the accessibility tree —
+	/// either visible on screen or scrollable into view. Returns false when it
+	/// remains absent after several scroll attempts.
+	///
+	/// The button sits at the bottom of the timetable Grid and is often outside
+	/// the initial viewport, so a strict "Displayed=true" check would yield
+	/// false-negatives. The bug we guard against is "<c>IsVisible=false</c>" —
+	/// in MAUI that removes the element from the accessibility tree entirely,
+	/// so <c>FindElement</c> existence is the right signal.
 	/// </summary>
-	public bool IsNextTrainButtonDisplayed(TimeSpan? timeout = null)
+	public bool IsNextTrainButtonPresent(TimeSpan? timeout = null)
 	{
-		var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(3));
+		var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(8));
+		int swipeAttempts = 0;
+		const int maxSwipes = 4;
+
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
@@ -54,18 +64,65 @@ public class DTACViewHostPageObject : PageObject
 			{
 				try
 				{
-					var el = Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
-					if (el.Displayed)
-						return true;
+					Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
+					return true;
 				}
-				catch (NoSuchElementException) { }
-				Thread.Sleep(200);
+				catch (NoSuchElementException)
+				{
+					// The element might be off-screen and not yet surfaced in the
+					// accessibility tree on platforms that prune off-screen scroll
+					// children. Swipe up a few times to bring it into reach.
+					if (swipeAttempts < maxSwipes)
+					{
+						TrySwipeUp();
+						swipeAttempts++;
+					}
+					Thread.Sleep(200);
+				}
 			}
 			return false;
 		}
 		finally
 		{
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
+
+	/// <summary>
+	/// Best-effort upward swipe in the centre of the screen to scroll the
+	/// timetable toward the bottom. Cross-platform via W3C PointerActions;
+	/// falls back to a no-op on platforms that don't accept the gesture
+	/// (Windows / macOS desktop), where the timetable usually fits anyway.
+	/// </summary>
+	private void TrySwipeUp()
+	{
+		try
+		{
+			if (IsWindows)
+			{
+				// Windows desktop uses a wide window; the button typically fits.
+				// Skip swipe to avoid unsupported pointer-input errors.
+				return;
+			}
+
+			var size = Driver.Manage().Window.Size;
+			int x = size.Width / 2;
+			int startY = (int)(size.Height * 0.75);
+			int endY = (int)(size.Height * 0.25);
+
+			var touch = new PointerInputDevice(PointerKind.Touch, "finger");
+			var seq = new ActionSequence(touch);
+			seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, startY, TimeSpan.Zero));
+			seq.AddAction(touch.CreatePointerDown(MouseButton.Left));
+			seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, endY, TimeSpan.FromMilliseconds(400)));
+			seq.AddAction(touch.CreatePointerUp(MouseButton.Left));
+			Driver.PerformActions(new List<ActionSequence> { seq });
+			Thread.Sleep(300);
+		}
+		catch
+		{
+			// Best-effort; swallow driver-specific failures so the caller can
+			// proceed to the next attempt.
 		}
 	}
 
