@@ -122,7 +122,9 @@ public class StartHomePageObject : PageObject
 	{
 		PrivacyPolicyButton.Click();
 		// Wait for the dialog's Save button (acts as ready-signal that the modal is up).
-		var save = WaitForElement(AutomationIds.PrivacyDialog.SaveButton);
+		// Use a 60 s budget for the same reason Title uses 60 s — modal-push +
+		// markdown render + first-paint can exceed 30 s on a constrained CI emulator.
+		var save = WaitForElement(AutomationIds.PrivacyDialog.SaveButton, TimeSpan.FromSeconds(60));
 		save.Click();
 
 		// Accept any "Success!" alert dialog the save handler raises (DISABLE_FIREBASE
