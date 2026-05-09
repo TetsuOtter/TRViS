@@ -1199,4 +1199,47 @@ public partial class StartHomePage : ContentPage
 		}
 #endif
 	}
+
+	/// <summary>
+	/// Test seam: tapped from UI tests via "StartHome.TestSeedNextTrainSelectionButton".
+	/// Commits selection to a sample-data train whose NextTrainId is non-empty
+	/// (WorkGroup "hako-order-test" → Work "work-linear" → Train "linear-train-1",
+	/// NextTrainId = "linear-train-2") and navigates to DTAC. Mirrors the
+	/// TestAutoOpenButton pattern but targets a specific Work so the regression
+	/// test for #225 doesn't rely on the default first train (which has an empty
+	/// NextTrainId).
+	/// </summary>
+	async void TestSeedNextTrainSelectionButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedNextTrainSelection clicked: committing linear-train-1 and navigating to DTAC");
+		try
+		{
+			var wg = viewModel.WorkGroupList?.FirstOrDefault(w => w.Id == "hako-order-test");
+			if (wg is null)
+			{
+				logger.Warn("TestSeedNextTrainSelection: hako-order-test WorkGroup not found");
+				return;
+			}
+			var loader = viewModel.Loader;
+			if (loader is null)
+				return;
+			var work = loader.GetWorkList(wg.Id)?.FirstOrDefault(w => w.Id == "work-linear");
+			if (work is null)
+			{
+				logger.Warn("TestSeedNextTrainSelection: work-linear not found under hako-order-test");
+				return;
+			}
+
+			CommitPendingSelection(wg, work);
+			await NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedNextTrainSelection failed");
+		}
+#else
+		await Task.CompletedTask;
+#endif
+	}
 }
