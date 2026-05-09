@@ -84,6 +84,15 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedGpsButton_Clicked"/>
+			<Button
+				x:Name="TestSeedNextTrainSelectionButton"
+				AutomationId="SelectTrain.TestSeedNextTrainSelectionButton"
+				IsVisible="False"
+				HeightRequest="1"
+				WidthRequest="1"
+				Padding="0"
+				Margin="0"
+				Clicked="TestSeedNextTrainSelectionButton_Clicked"/>
 		</FlexLayout>
 
 

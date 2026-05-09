@@ -313,12 +313,14 @@ public partial class VerticalTimetableView : Grid
 			{
 				if (ViewModel.NextTrainId is not null)
 				{
-					Children.Add(NextTrainButton);
+					if (!Children.Contains(NextTrainButton))
+						Children.Add(NextTrainButton);
 				}
 				else
 				{
 					Children.Remove(NextTrainButton);
 				}
+				NextTrainButton.Refresh();
 			}
 			catch (Exception ex)
 			{

@@ -62,6 +62,37 @@ public partial class SelectTrainPage : ContentPage
 	}
 
 	/// <summary>
+	/// Test seam: tapped from UI tests via "SelectTrain.TestSeedNextTrainSelectionButton".
+	/// Cascades selection to a sample-data train whose NextTrainId is non-empty
+	/// (WorkGroup "hako-order-test" → Work "work-linear" → Train "linear-train-1",
+	/// NextTrainId = "linear-train-2"). Used to verify the NextTrainButton displays
+	/// without depending on platform-flaky CollectionView taps.
+	/// </summary>
+	void TestSeedNextTrainSelectionButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedNextTrainSelection clicked: selecting a train with NextTrainId");
+		try
+		{
+			var wg = viewModel.WorkGroupList?.FirstOrDefault(w => w.Id == "hako-order-test");
+			if (wg is null)
+			{
+				logger.Warn("hako-order-test WorkGroup not found in sample data");
+				return;
+			}
+			viewModel.SelectedWorkGroup = wg;
+			// SelectedWork / SelectedTrainData cascade automatically; the first work
+			// of "hako-order-test" is "work-linear" whose first train ("linear-train-1")
+			// has NextTrainId = "linear-train-2".
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedNextTrainSelection failed");
+		}
+#endif
+	}
+
+	/// <summary>
 	/// Test seam: tapped from UI tests via "SelectTrain.TestSeedGpsButton". Force-
 	/// enables LocationService and pushes a hard-coded GPS coord so the auto-scroll
 	/// pipeline can be exercised without typing a deeplink through Appium SendKeys.
@@ -104,6 +135,8 @@ public partial class SelectTrainPage : ContentPage
 			TestSeedButton.IsVisible = true;
 		if (TestSeedGpsButton is not null)
 			TestSeedGpsButton.IsVisible = true;
+		if (TestSeedNextTrainSelectionButton is not null)
+			TestSeedNextTrainSelectionButton.IsVisible = true;
 #endif
 
 		if (viewModel.Loader is null)

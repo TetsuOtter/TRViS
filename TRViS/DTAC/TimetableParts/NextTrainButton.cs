@@ -24,6 +24,8 @@ public class NextTrainButton : Grid
 
 	public NextTrainButton()
 	{
+		AutomationId = "DTAC.NextTrainButton";
+
 		_presenter = Adapters.PresenterFactory.BuildNextTrainButtonPresenter();
 		_presenter.StateChanged += OnPresenterStateChanged;
 		OnPresenterStateChanged(null, _presenter.CurrentState);
@@ -46,6 +48,13 @@ public class NextTrainButton : Grid
 			_NextTrainButton.Text = state.ButtonText;
 		}
 	}
+
+	/// <summary>
+	/// Asks the Presenter to re-evaluate its state from the latest AppViewModel.
+	/// The Presenter remains the source of truth for NextTrainId; this method
+	/// only signals "lifecycle event happened, please re-evaluate".
+	/// </summary>
+	public void Refresh() => _presenter.Refresh();
 
 	private void NextTrainButton_Click(object? _, EventArgs e)
 	{
