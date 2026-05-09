@@ -82,11 +82,9 @@ public partial class StartHomePage : ContentPage
 		double pageHeight = Height > 0 ? Height : InstanceManager.AppViewModel.WindowHeight;
 		double headerHeight = AppHeader.Height > 0 ? AppHeader.Height : 220;
 		double bodyHeight = StartBody.Height > 0 ? StartBody.Height : 0;
-		// RootGrid uses RowDefinitions="Auto,*"; AppHeader lives in Row 0, which is
-		// (pageHeight - bodyHeight) tall. Center the header in that upper region
-		// (clamped so a tall body on a small screen never pushes the header down
-		// into StartBody's row, where its lower portion — including the AppTitle —
-		// would be Z-ordered under StartBody and reported as visible=false).
+		// RootGrid uses RowDefinitions="Auto,*,Auto"; AppHeader lives in Row 0
+		// at its natural height. Translate downward so its center lands at
+		// START_HEADER_CENTER_FRACTION of the available space above StartBody.
 		double upperRegion = Math.Max(headerHeight, pageHeight - bodyHeight);
 		double centered = (upperRegion * START_HEADER_CENTER_FRACTION) - (headerHeight / 2);
 		double maxTranslation = upperRegion - headerHeight;
@@ -230,75 +228,64 @@ public partial class StartHomePage : ContentPage
 		if (Width <= 0 || Height <= 0)
 			return;
 		bool isLandscapePhone = Width > Height && Math.Min(Width, Height) < PHONE_SHORT_SIDE_MAX;
-		// Idempotent: skip the row/column reshuffle when the orientation hasn't
-		// changed AND we have a populated grid (first call always populates).
-		if (isLandscapePhone == _isLandscapePhone &&
-			(RootGrid.RowDefinitions.Count > 0 || RootGrid.ColumnDefinitions.Count > 0))
+		// Idempotent: skip the reshuffle when the orientation hasn't changed
+		// after the initial layout has been applied.
+		if (isLandscapePhone == _isLandscapePhone && _orientationLayoutApplied)
 			return;
 		_isLandscapePhone = isLandscapePhone;
-		RootGrid.RowDefinitions.Clear();
-		RootGrid.ColumnDefinitions.Clear();
+		_orientationLayoutApplied = true;
+		// RowDefinitions / ColumnDefinitions live in XAML — only adjust each
+		// child's Grid.Row / Column / Span attached properties here.
 		if (isLandscapePhone)
 		{
-			// Phone landscape: 3 rows × 2 cols. The left column hosts AppHeader
-			// (top) and LoaderInfoCard (just below) — the user-requested
-			// "アイコンなどとダイヤ情報を左に" layout. StartBody / HomeBody fill
-			// the right column.
-			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
+			// Phone landscape: AppHeader and LoaderInfoCard share Row 0 in the
+			// left column (header at the top, loader-info card pinned to the
+			// bottom of the row via VerticalOptions=End — Home mode shrinks
+			// the header to ~55% of its natural height which leaves room
+			// below it for the card without overflowing into Row 1). Row 1
+			// is empty in the left column and the Auto height of Row 2 holds
+			// the FooterLinks. StartBody / HomeBody fill the right column
+			// across all three rows so Open/Close land on the same y as
+			// FooterLinks at the bottom-left.
 			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
 			Grid.SetColumn(AppHeader, 0); Grid.SetColumnSpan(AppHeader, 1);
-			Grid.SetRow(LoaderInfoCard, 1); Grid.SetRowSpan(LoaderInfoCard, 1);
+			Grid.SetRow(LoaderInfoCard, 0); Grid.SetRowSpan(LoaderInfoCard, 1);
 			Grid.SetColumn(LoaderInfoCard, 0); Grid.SetColumnSpan(LoaderInfoCard, 1);
+			LoaderInfoCard.VerticalOptions = LayoutOptions.End;
 			Grid.SetRow(StartBody, 0); Grid.SetRowSpan(StartBody, 3);
 			Grid.SetColumn(StartBody, 1); Grid.SetColumnSpan(StartBody, 1);
+			StartBody.VerticalOptions = LayoutOptions.Center;
 			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 3);
 			Grid.SetColumn(HomeBody, 1); Grid.SetColumnSpan(HomeBody, 1);
+			Grid.SetRow(FooterLinks, 2); Grid.SetRowSpan(FooterLinks, 1);
+			Grid.SetColumn(FooterLinks, 0); Grid.SetColumnSpan(FooterLinks, 1);
 			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
-			// Fill the right column so StartBody's internal flexible spacer
-			// (the * row between LoadDemo and the privacy/TPL link row) can
-			// expand. Result: banner stays near the top of the column, link
-			// row pins to the bottom — natural distribution instead of the
-			// top-heavy bunch we'd get from VerticalOptions=Start or the
-			// half-empty Center we'd get without the spacer.
-			StartBody.VerticalOptions = LayoutOptions.Fill;
-			LoaderInfoCard.VerticalOptions = LayoutOptions.Start;
-			// Home mode no longer needs the top spacer (header is on the left,
-			// not on top) — recompute since UpdateHomeBodyTopSpacer keys off
-			// _isLandscapePhone.
 			UpdateHomeBodyTopSpacer();
 		}
 		else
 		{
-			// Portrait / tablet: 3 rows × 1 col — header, optional loader-info
-			// card, body. HomeBody spans all three rows so the picker
-			// ScrollView keeps the same vertical real estate it had before
-			// the LoaderInfoCard refactor (the * row alone is too small on
-			// some platforms — Windows desktop ended up scrolling
-			// WorkPendingHint off-screen). HomeBodyTopSpacer reserves room
-			// above for AppHeader and LoaderInfoCard, which are rendered on
-			// top of HomeBody (XAML declaration order) within that
-			// transparent reserved area.
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
+			// Portrait / tablet: every visible element spans both columns.
+			// HomeBody RowSpan=2 covers the AppHeader row + buttons row so
+			// the picker keeps room and the LoaderInfoCard / AppHeader render
+			// on top of HomeBody's transparent top-spacer area.
 			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
-			Grid.SetColumn(AppHeader, 0); Grid.SetColumnSpan(AppHeader, 1);
-			Grid.SetRow(LoaderInfoCard, 1); Grid.SetRowSpan(LoaderInfoCard, 1);
-			Grid.SetColumn(LoaderInfoCard, 0); Grid.SetColumnSpan(LoaderInfoCard, 1);
-			Grid.SetRow(StartBody, 2); Grid.SetRowSpan(StartBody, 1);
-			Grid.SetColumn(StartBody, 0); Grid.SetColumnSpan(StartBody, 1);
-			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 3);
-			Grid.SetColumn(HomeBody, 0); Grid.SetColumnSpan(HomeBody, 1);
-			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
+			Grid.SetColumn(AppHeader, 0); Grid.SetColumnSpan(AppHeader, 2);
+			Grid.SetRow(LoaderInfoCard, 0); Grid.SetRowSpan(LoaderInfoCard, 1);
+			Grid.SetColumn(LoaderInfoCard, 0); Grid.SetColumnSpan(LoaderInfoCard, 2);
+			LoaderInfoCard.VerticalOptions = LayoutOptions.End;
+			Grid.SetRow(StartBody, 1); Grid.SetRowSpan(StartBody, 1);
+			Grid.SetColumn(StartBody, 0); Grid.SetColumnSpan(StartBody, 2);
 			StartBody.VerticalOptions = LayoutOptions.End;
-			LoaderInfoCard.VerticalOptions = LayoutOptions.Center;
+			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 2);
+			Grid.SetColumn(HomeBody, 0); Grid.SetColumnSpan(HomeBody, 2);
+			Grid.SetRow(FooterLinks, 2); Grid.SetRowSpan(FooterLinks, 1);
+			Grid.SetColumn(FooterLinks, 0); Grid.SetColumnSpan(FooterLinks, 2);
+			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
 			UpdateHomeBodyTopSpacer();
 		}
 	}
+
+	bool _orientationLayoutApplied;
 
 	protected override async void OnAppearing()
 	{
@@ -459,7 +446,6 @@ public partial class StartHomePage : ContentPage
 		logger.Info("Transitioning page mode {0} -> {1}", _currentMode, target);
 
 		double centeredOffset = ComputeStartHeaderTranslationY();
-
 		double headerFromY, headerToY, headerFromScale, headerToScale;
 		double startBodyFrom, startBodyTo, homeBodyFrom, homeBodyTo;
 

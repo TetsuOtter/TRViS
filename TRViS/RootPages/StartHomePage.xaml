@@ -99,17 +99,21 @@
 		</ResourceDictionary>
 	</ContentPage.Resources>
 
-	<!-- RowDefinitions split header from start-mode body so they cannot occlude
-	     each other on small screens. The single-cell layout that came before
-	     this had StartBody's privacy banner Z-ordered over the AppTitle on
-	     iPhone (where StartBody is tall enough to reach up into AppHeader's
-	     visual area), making XCUITest report the Title as visible=false even
-	     though it was in the accessibility tree — that broke every IsDisplayed
-	     check. Auto,* gives AppHeader its natural size at the top and lets
-	     StartBody fill the remainder. HomeBody intentionally spans both rows
-	     because Home mode shrinks the header so body content can extend up
-	     into the upper region. -->
-	<Grid x:Name="RootGrid" RowDefinitions="Auto,*">
+	<!-- 3-row × 2-col layout per the design feedback:
+	       Row 0: * — AppHeader / icon area
+	       Row 1: Auto — buttons or privacy-warning banner (Start mode) /
+	              picker (Home mode)
+	       Row 2: Auto — privacy/TPL footer links
+	       Col 0/1: 0.5* each — split into halves so phone-landscape can
+	              place AppHeader on the left and StartBody on the right.
+	     Portrait/tablet: every visible element uses ColumnSpan=2 (full
+	     width). Phone landscape (ApplyOrientationLayout): only StartBody
+	     moves to Row=0 RowSpan=2 Column=1, putting it in the right column
+	     and freeing the left column for the header. The footer always
+	     spans both columns at the bottom. -->
+	<Grid x:Name="RootGrid"
+				RowDefinitions="Auto,*,Auto"
+				ColumnDefinitions="*,*">
 
 		<!-- ========== Animated app header (icon + title) ========== -->
 		<!-- VerticalOptions=Start; TranslationY/Scale animated in code-behind to switch between
@@ -118,7 +122,8 @@
 			x:Name="AppHeader"
 			AutomationId="StartHome.AppHeader"
 			Grid.Row="0"
-			VerticalOptions="Start"
+			Grid.ColumnSpan="2"
+			VerticalOptions="Center"
 			HorizontalOptions="Center"
 			Spacing="8"
 			Padding="16,32,16,0"
@@ -142,23 +147,21 @@
 		</VerticalStackLayout>
 
 		<!-- ========== Start body ========== -->
-		<!-- Row 2 is a flexible spacer that collapses to 0 when StartBody is
-		     anchored (VerticalOptions=End in portrait) and expands when StartBody
-		     is allocated extra height (VerticalOptions=Fill in landscape phone).
-		     That keeps the warning banner near the top and the privacy/TPL link
-		     row pinned to the bottom of the right column on landscape phones,
-		     instead of bunching everything against the top. -->
+		<!-- Lives in RootGrid Row=1 (Auto) which sizes to its natural height,
+		     so banner/buttons/demo stack without needing an internal spacer.
+		     The footer link row was promoted to RootGrid Row=2 so it always
+		     pins to the bottom of the page regardless of StartBody's row
+		     allocation; that fixes the landscape-phone "demo overlapping
+		     footer" report. -->
 		<Grid
 			x:Name="StartBody"
 			AutomationId="StartHome.StartBody"
 			Grid.Row="1"
-			VerticalOptions="End"
+			Grid.ColumnSpan="2"
 			Padding="24,8,24,24"
 			RowSpacing="8">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="*"/>
 				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
@@ -266,30 +269,34 @@
 				Style="{StaticResource SecondaryActionButton}"
 				Clicked="OnLoadDemoClicked"/>
 
-			<!-- Footer links: Privacy / TPL — Row=3 because Row=2 is the
-			     flexible spacer that lets landscape-phone push this to the
-			     bottom of the column. -->
-			<HorizontalStackLayout
-				Grid.Row="3"
-				HorizontalOptions="Center"
-				Spacing="4">
-				<Button
-					AutomationId="StartHome.PrivacyPolicyButton"
-					Text="プライバシーポリシー"
-					Style="{StaticResource LinkButton}"
-					Clicked="OnPrivacyPolicyClicked"/>
-				<Label
-					Text="·"
-					VerticalOptions="Center"
-					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-				<Button
-					AutomationId="StartHome.ThirdPartyLicensesButton"
-					Text="Third Party Licenses"
-					Style="{StaticResource LinkButton}"
-					Clicked="OnThirdPartyLicensesClicked"/>
-			</HorizontalStackLayout>
-
 		</Grid>
+
+		<!-- Footer links: Privacy / TPL pinned to the bottom of the page in
+		     RootGrid Row=2 — out of StartBody so it doesn't get repositioned
+		     when StartBody moves into the right column on landscape phone.
+		     ColumnSpan=2 keeps it full-width in both orientations. -->
+		<HorizontalStackLayout
+			x:Name="FooterLinks"
+			Grid.Row="2"
+			Grid.ColumnSpan="2"
+			HorizontalOptions="Center"
+			Padding="0,4"
+			Spacing="4">
+			<Button
+				AutomationId="StartHome.PrivacyPolicyButton"
+				Text="プライバシーポリシー"
+				Style="{StaticResource LinkButton}"
+				Clicked="OnPrivacyPolicyClicked"/>
+			<Label
+				Text="·"
+				VerticalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			<Button
+				AutomationId="StartHome.ThirdPartyLicensesButton"
+				Text="Third Party Licenses"
+				Style="{StaticResource LinkButton}"
+				Clicked="OnThirdPartyLicensesClicked"/>
+		</HorizontalStackLayout>
 
 		<!-- ========== Loader info card ==========
 		     Lives at RootGrid level (not inside HomeBody) so on landscape phones
@@ -302,6 +309,9 @@
 		     detail shows the source path / URL set by SetLoader. -->
 		<Border
 			x:Name="LoaderInfoCard"
+			Grid.Row="0"
+			Grid.ColumnSpan="2"
+			VerticalOptions="End"
 			Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
 			BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
 			Padding="12"
@@ -355,6 +365,7 @@
 			AutomationId="StartHome.HomeBody"
 			Grid.Row="0"
 			Grid.RowSpan="2"
+			Grid.ColumnSpan="2"
 			Padding="16,0,16,16"
 			RowSpacing="8"
 			IsVisible="False"
@@ -381,7 +392,8 @@
 			     manually cleared their selection, the code-behind auto-selects it.
 			     Tapping a chip clears the selection (chip-cleared = re-shows the list). -->
 			<ScrollView Grid.Row="1">
-				<VerticalStackLayout Padding="4,0" Spacing="0">
+				<VerticalStackLayout Padding="4,0"
+						Spacing="0">
 
 					<!-- Step 1: Work Group -->
 					<Label
@@ -440,7 +452,7 @@
 						<CollectionView
 							x:Name="WorkGroupListView"
 							AutomationId="StartHome.WorkGroupList"
-							HeightRequest="220"
+							HeightRequest="160"
 							SelectionMode="Single"
 							SelectionChanged="OnWorkGroupSelectionChanged">
 							<CollectionView.ItemTemplate>
@@ -518,7 +530,7 @@
 						<CollectionView
 							x:Name="WorkListView"
 							AutomationId="StartHome.WorkList"
-							HeightRequest="220"
+							HeightRequest="160"
 							SelectionMode="Single"
 							SelectionChanged="OnWorkSelectionChanged">
 							<CollectionView.ItemTemplate>
