@@ -66,12 +66,28 @@ public partial class StartHomePage : ContentPage
 	// hard-coding.
 	const double PHONE_SHORT_SIDE_MAX = 500;
 
+	// Compact-portrait threshold. When the page is portrait (or square) AND the
+	// page height is below this value, AppIcon / Title / button heights / body
+	// padding all shrink so the hero icon and primary buttons stop colliding in
+	// row 1. Targets iPad Slide Over (~568h logical), iPad split-view in narrow
+	// configurations, and Mac Catalyst windows the user has resized small. iPhone
+	// portrait (≥844) stays at the full-size hero treatment.
+	const double COMPACT_HEIGHT_MAX = 800;
+
 	// Tracks whether we're currently laid out for phone-landscape (header on the
 	// left, body on the right) or the default vertical layout. Updated from
 	// ApplyOrientationLayout; consumed by ComputeStartHeaderTranslationY (which
 	// returns 0 in landscape because the header has no vertical "centering"
 	// translation to apply when it owns its own column) and ApplyHeaderLayoutInstant.
 	bool _isLandscapePhone;
+
+	// Tracks whether the compact-portrait styling (smaller icon / shorter
+	// buttons / tighter padding) is currently applied. Updated from
+	// ApplyHeightCompactStyling — the bool guard keeps the per-property writes
+	// idempotent across SizeChanged events that don't actually cross the
+	// threshold.
+	bool _isCompactHeight;
+	bool _compactHeightApplied;
 
 	double ComputeStartHeaderTranslationY()
 	{
@@ -203,6 +219,11 @@ public partial class StartHomePage : ContentPage
 		// before we recompute the header translation (which depends on them).
 		ApplyOrientationLayout();
 
+		// Compact-portrait styling tweaks (icon / button heights / padding) run
+		// after the orientation is decided so they can short-circuit on
+		// landscape-phone, where we already use a separate horizontal layout.
+		ApplyHeightCompactStyling();
+
 		// Apply initial state without animation. We do this on every size change in case the
 		// window resizes (desktop) or device rotates — but only animate when the *mode* changes;
 		// pure size changes get a snap-update.
@@ -286,6 +307,60 @@ public partial class StartHomePage : ContentPage
 	}
 
 	bool _orientationLayoutApplied;
+
+	/// <summary>
+	/// Tightens the AppHeader / StartBody styling for narrow-portrait windows
+	/// (iPad Slide Over, multitasking split, manually resized Mac Catalyst).
+	/// In those cases the natural 160px hero icon plus 80px primary buttons
+	/// don't both fit in the available vertical space, so the Star row
+	/// collapses and StartBody overlaps the icon. Shrinking the icon, button
+	/// heights, and vertical padding restores breathing room without changing
+	/// the standard portrait look on phones / full iPad.
+	/// </summary>
+	void ApplyHeightCompactStyling()
+	{
+		if (Width <= 0 || Height <= 0)
+			return;
+		// Only compact in portrait/square layouts. Landscape-phone has its own
+		// horizontal split layout (header column + body column) which already
+		// avoids the overlap, so leave it at full size.
+		bool isCompact = !_isLandscapePhone && Width <= Height && Height < COMPACT_HEIGHT_MAX;
+		if (isCompact == _isCompactHeight && _compactHeightApplied)
+			return;
+		_isCompactHeight = isCompact;
+		_compactHeightApplied = true;
+
+		if (isCompact)
+		{
+			AppIcon.HeightRequest = 96;
+			AppIcon.WidthRequest = 96;
+			AppTitle.FontSize = 32;
+			AppHeader.Padding = new Thickness(16, 16, 16, 0);
+			AppHeader.Spacing = 4;
+			ConnectServerButton.HeightRequest = 56;
+			ConnectServerButton.FontSize = 17;
+			SelectFileButton.HeightRequest = 56;
+			SelectFileButton.FontSize = 17;
+			LoadDemoButton.HeightRequest = 36;
+			StartBody.Padding = new Thickness(24, 4, 24, 8);
+			StartBody.RowSpacing = 4;
+		}
+		else
+		{
+			AppIcon.HeightRequest = 160;
+			AppIcon.WidthRequest = 160;
+			AppTitle.FontSize = 44;
+			AppHeader.Padding = new Thickness(16, 32, 16, 0);
+			AppHeader.Spacing = 8;
+			ConnectServerButton.HeightRequest = 80;
+			ConnectServerButton.FontSize = 20;
+			SelectFileButton.HeightRequest = 80;
+			SelectFileButton.FontSize = 20;
+			LoadDemoButton.HeightRequest = 44;
+			StartBody.Padding = new Thickness(24, 8, 24, 24);
+			StartBody.RowSpacing = 8;
+		}
+	}
 
 	protected override async void OnAppearing()
 	{
