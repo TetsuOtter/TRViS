@@ -107,16 +107,19 @@ public class StartHomePageObject : PageObject
 	}
 
 	/// <summary>
-	/// If the privacy banner is visible, opens the privacy dialog and taps Save.
-	/// On a clean install the app launches into Start with the banner shown — tests
-	/// that need any feature button (Connect, SelectFile, LoadDemo) must call this
-	/// first because those buttons gate on privacy acceptance.
+	/// Opens the privacy dialog and taps Save so all "feature" buttons
+	/// (Connect, SelectFile, LoadDemo) become enabled. Idempotent: re-saving
+	/// when privacy is already accepted just re-writes the same values.
+	///
+	/// We always run the accept flow rather than gating on banner visibility,
+	/// because Windows MAUI does not expose Border elements via UIA — the
+	/// banner-visible probe always returns false there even on fresh installs,
+	/// and conditioning on it leaves Windows tests stuck with feature buttons
+	/// disabled. Re-saving on Mac/Android/iOS where privacy was already
+	/// accepted is a harmless no-op.
 	/// </summary>
 	public void AcceptPrivacyPolicyIfNeeded()
 	{
-		if (!IsPrivacyReconfirmBannerVisible())
-			return;
-
 		PrivacyPolicyButton.Click();
 		// Wait for the dialog's Save button (acts as ready-signal that the modal is up).
 		var save = WaitForElement(AutomationIds.PrivacyDialog.SaveButton);

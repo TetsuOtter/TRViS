@@ -8,6 +8,7 @@ namespace TRViS.UITests.Tests;
 public class FirebaseSettingTests : BaseUITest
 {
 	[Test]
+	[Platform(Exclude = "Win", Reason = "MAUI Border has no UIA AutomationPeer on Windows; banner visibility cannot be probed via Appium AccessibilityId.")]
 	public void PrivacyDialog_AcceptsAndDismissesReconfirmBanner()
 	{
 		// First launch lands on StartHomePage with the privacy reconfirm banner

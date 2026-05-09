@@ -13,6 +13,7 @@ namespace TRViS.UITests.Tests;
 public class AppLaunchTests : BaseUITest
 {
 	[Test]
+	[Platform(Exclude = "Win", Reason = "MAUI Border has no UIA AutomationPeer on Windows; banner is visually rendered but not findable via Appium AccessibilityId.")]
 	public void App_Launches_Into_StartHome_With_Privacy_Banner()
 	{
 		// On a clean install the app navigates directly to StartHomePage in Start
