@@ -1,4 +1,5 @@
 using OpenQA.Selenium;
+using OpenQA.Selenium.Appium.Mac;
 using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
@@ -153,10 +154,26 @@ public class DTACTimetableTests : BaseUITest
 	/// Negative: the default sample-data first train (1-1-1) has NextTrainId = "",
 	/// so the button must not be visible to the user. Guards against the inverse
 	/// regression where a fix accidentally always shows the button.
+	///
+	/// Skipped on Mac Catalyst: the mac2 driver surfaces unparented MAUI Grid
+	/// elements that have an AutomationId set in their constructor as accessibility
+	/// elements with Displayed=true and a non-zero Size, regardless of whether
+	/// they are in any window. Production code correctly removes the button from
+	/// the visual tree (see VerticalTimetableView.OnViewModelNextTrainIdChanged),
+	/// but no Appium-visible signal differentiates the "unparented" state from
+	/// the "displayed to the user" state on this driver. Other platforms
+	/// (Android, iOS, Windows) all enforce this assertion.
 	/// </summary>
 	[Test]
 	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
 	{
+		if (Driver is MacDriver)
+			Assert.Ignore(
+				"Mac Catalyst (mac2 driver) surfaces unparented elements with " +
+				"AutomationId as visible — we cannot reliably distinguish " +
+				"\"hidden\" from \"displayed\" via Appium here. Coverage on " +
+				"Android/iOS/Windows is sufficient for this assertion.");
+
 		var dtac = LoadSampleAndOpenDTAC();
 		dtac.SwitchToTimetableTab();
 
