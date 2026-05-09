@@ -54,6 +54,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestSeedButton => FindByAutomationId(AutomationIds.StartHome.TestSeedButton);
 	public AppiumElement TestSeedGpsButton => FindByAutomationId(AutomationIds.StartHome.TestSeedGpsButton);
 	public AppiumElement TestAutoOpenButton => FindByAutomationId(AutomationIds.StartHome.TestAutoOpenButton);
+	public AppiumElement TestClearHistoryButton => FindByAutomationId(AutomationIds.StartHome.TestClearHistoryButton);
 
 	public bool IsDisplayed()
 	{
@@ -180,6 +181,14 @@ public class StartHomePageObject : PageObject
 	/// without typing through Appium SendKeys (flaky on iOS XCUITest).
 	/// </summary>
 	public void SeedUrlHistoryForTesting() => TestSeedButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only history-clear button. Use before any test whose
+	/// expectation depends on an empty URL history list — on iOS the noReset:true
+	/// session option means simctl-level preference deletion isn't always enough
+	/// to clear AppViewModel's in-memory list before the test starts.
+	/// </summary>
+	public void ClearUrlHistoryForTesting() => TestClearHistoryButton.Click();
 
 	/// <summary>
 	/// Taps the UI_TEST-only GPS-seed button so tests can push a fake GPS coord

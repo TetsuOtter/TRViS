@@ -136,21 +136,40 @@ public partial class PrivacyPolicyDialog : ContentPage
 	private async void OnSaveButtonClicked(object? sender, EventArgs e)
 	{
 		logger.Trace("Save clicked");
-		FirebaseSettingViewModel.IsEnabled = true;
-		FirebaseSettingViewModel.LastAcceptedPrivacyPolicyRevision = Constants.PRIVACY_POLICY_REVISION;
+		try
+		{
+			FirebaseSettingViewModel.IsEnabled = true;
+			FirebaseSettingViewModel.LastAcceptedPrivacyPolicyRevision = Constants.PRIVACY_POLICY_REVISION;
 
-		InstanceManager.FirebaseSettingViewModel.CopyFrom(FirebaseSettingViewModel);
-		InstanceManager.FirebaseSettingViewModel.SaveAndApplySettings(true);
+			InstanceManager.FirebaseSettingViewModel.CopyFrom(FirebaseSettingViewModel);
+			InstanceManager.FirebaseSettingViewModel.SaveAndApplySettings(true);
 
-		MauiProgram.ConfigureFirebase();
-		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.PrivacyPolicyAccepted);
+			MauiProgram.ConfigureFirebase();
+			InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.PrivacyPolicyAccepted);
 
-		await Navigation.PopModalAsync();
+			await Navigation.PopModalAsync();
+		}
+		catch (Exception ex)
+		{
+			// async void: an exception bubbles to the SynchronizationContext and
+			// can crash the process on some platforms (e.g. when a double-tap
+			// triggers PopModalAsync on an already-popped page).
+			logger.Error(ex, "OnSaveButtonClicked failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "PrivacyPolicyDialog.OnSaveButtonClicked");
+		}
 	}
 
 	private async void OnCloseClicked(object? sender, EventArgs e)
 	{
 		logger.Trace("Close clicked");
-		await Navigation.PopModalAsync();
+		try
+		{
+			await Navigation.PopModalAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "OnCloseClicked failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "PrivacyPolicyDialog.OnCloseClicked");
+		}
 	}
 }

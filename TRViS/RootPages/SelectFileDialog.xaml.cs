@@ -34,6 +34,19 @@ public partial class SelectFileDialog : ContentPage
 	// is not allowed (we don't want users wandering into the rest of the sandbox).
 	private DirectoryInfo _rootDirectory = DirectoryPathProvider.TimetableFileDirectory;
 	private DirectoryInfo _currentDirectory = DirectoryPathProvider.TimetableFileDirectory;
+	// Re-entrancy guard for card / browse / open-storage taps. SetInputEnabled
+	// disables the Buttons but TapGestureRecognizers on Border cards stay live —
+	// a second tap during an in-flight load could queue a duplicate
+	// TryLoadFileAsync, race on viewModel.SetLoader, and PopModalAsync after
+	// the page is already disposed. The flag short-circuits at the top of every
+	// tap handler.
+	private bool _isBusy;
+	// Tracks whether OnAppearing has already initialised drill-down state. The
+	// OS file picker (Browse) and unsupported-extension alert each re-fire
+	// OnAppearing on dismissal, and unconditionally resetting _currentDirectory
+	// would bounce the user back to the root — losing the folder they had
+	// drilled into. Only reset on the first appearance.
+	private bool _initialAppearanceDone;
 
 	public SelectFileDialog()
 	{
@@ -44,13 +57,37 @@ public partial class SelectFileDialog : ContentPage
 		// doesn't take the whole screen. iPhone falls back to fullscreen
 		// automatically because UIKit ignores FormSheet on compact widths.
 		IOSPage.SetModalPresentationStyle(this.On<iOS>(), UIModalPresentationStyle.FormSheet);
+
+		// Set initial sub-view visibility BEFORE first paint. The XAML defaults
+		// elements to IsVisible=true so each gets a UIA peer on Windows (where
+		// IsVisible='False' XAML defaults skip peer creation and miss the
+		// runtime flip), but BreadcrumbBorder and EmptyStateView would visually
+		// overlap FileListView if all three stayed visible. Hide them
+		// synchronously here; OnAppearing → PopulateFileList toggles them based
+		// on the actual directory contents.
+		BreadcrumbBorder.IsVisible = false;
+		EmptyStateView.IsVisible = false;
 	}
 
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
-		_rootDirectory = DirectoryPathProvider.TimetableFileDirectory;
-		_currentDirectory = _rootDirectory;
+		if (!_initialAppearanceDone)
+		{
+			_rootDirectory = DirectoryPathProvider.TimetableFileDirectory;
+			_currentDirectory = _rootDirectory;
+			_initialAppearanceDone = true;
+		}
+		else
+		{
+			// Subsequent re-appearance (e.g. after an OS picker dismiss): refresh
+			// the listing in case files were added/removed externally, but keep
+			// the user's drill-down position. If the directory has been deleted
+			// out from under us, fall back to root rather than render nothing.
+			_currentDirectory.Refresh();
+			if (!_currentDirectory.Exists)
+				_currentDirectory = _rootDirectory;
+		}
 		PopulateFileList();
 	}
 
@@ -348,6 +385,7 @@ public partial class SelectFileDialog : ContentPage
 
 	void SetInputEnabled(bool isEnabled)
 	{
+		_isBusy = !isEnabled;
 		BrowseButton.IsEnabled = isEnabled;
 		OpenStorageLocationButton.IsEnabled = isEnabled;
 		LoadingIndicator.IsRunning = !isEnabled;
@@ -356,6 +394,8 @@ public partial class SelectFileDialog : ContentPage
 
 	async Task LoadFromCardAsync(string fullPath)
 	{
+		if (_isBusy)
+			return;
 		logger.Info("Loading from card: {0}", fullPath);
 		try
 		{
@@ -486,12 +526,17 @@ public partial class SelectFileDialog : ContentPage
 		// iOS Files.app: requires UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace
 		// in Info.plist (already set so the user can browse the documents folder).
 		// The shareddocuments:// scheme jumps straight into the app's documents folder.
-		var uri = new Uri("shareddocuments://" + fullPath);
-		return Launcher.Default.OpenAsync(uri);
+		// Use UriBuilder so spaces/# in the path are correctly percent-encoded.
+		var iosUri = new UriBuilder("shareddocuments", host: string.Empty) { Path = fullPath }.Uri;
+		return Launcher.Default.OpenAsync(iosUri);
 #else
 		// Mac Catalyst → Finder, Windows → Explorer, Android → ACTION_VIEW (best-effort
 		// — Android may not have a registered handler; Launcher returns false in that case).
-		var uri = new Uri("file://" + fullPath);
+		// new Uri(string) with an absolute filesystem path infers file:// and handles
+		// percent-encoding + cross-platform separator quirks (Windows "\\", paths with
+		// spaces, "#", "%", etc.) — the previous "file://" + fullPath concat threw
+		// UriFormatException on those cases.
+		var uri = new Uri(fullPath);
 		return Launcher.Default.OpenAsync(uri);
 #endif
 	}

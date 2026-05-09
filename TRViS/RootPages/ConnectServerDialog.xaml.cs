@@ -22,6 +22,13 @@ public partial class ConnectServerDialog : ContentPage
 
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
+	// Re-entrancy guard for history-card taps. SetInputEnabled disables the
+	// form Buttons but the TapGestureRecognizer on each history Border stays
+	// live — a second tap during an in-flight load could queue a duplicate
+	// HandleAppLinkUriAsync, race on viewModel.SetLoader, and PopModalAsync
+	// after the page is already disposed.
+	private bool _isBusy;
+
 	public ConnectServerDialog()
 	{
 		logger.Trace("Creating");
@@ -194,6 +201,7 @@ public partial class ConnectServerDialog : ContentPage
 
 	void SetInputEnabled(bool isEnabled)
 	{
+		_isBusy = !isEnabled;
 		UrlInput.IsEnabled = isEnabled;
 		ConnectButton.IsEnabled = isEnabled;
 		SaveConnectionSwitch.IsEnabled = isEnabled;
@@ -205,6 +213,8 @@ public partial class ConnectServerDialog : ContentPage
 
 	async Task LoadFromHistoryAsync(string url)
 	{
+		if (_isBusy)
+			return;
 		logger.Info("Loading from history: {0}", url);
 		try
 		{
@@ -255,6 +265,12 @@ public partial class ConnectServerDialog : ContentPage
 		{
 			logger.Error(ex, "TryLoadAsync failed");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "ConnectServerDialog.TryLoadAsync");
+			// HandleAppLinkUriAsync owns most user-facing alerts (Cannot Open File,
+			// Timeout, etc.) — but a fall-through exception (e.g. unexpected
+			// HttpRequestException, generic IO failure) reaches us with the
+			// spinner still spinning and no feedback. Tell the user something
+			// went wrong instead of silently re-enabling input.
+			await Util.DisplayAlertAsync("接続できませんでした", $"読み込みに失敗しました: {ex.Message}", "OK");
 			return false;
 		}
 	}

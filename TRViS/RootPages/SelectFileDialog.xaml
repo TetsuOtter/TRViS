@@ -62,13 +62,18 @@
 
 		<!-- Breadcrumb / current relative path. Shown when not at the root directory.
 		     Format: "📁 root / sub / current". Tapping a parent segment is *not*
-		     supported (kept simple) — use the "上の階層へ" card to navigate up. -->
+		     supported (kept simple) — use the "上の階層へ" card to navigate up.
+		     IsVisible is controlled exclusively from code-behind (PopulateFileList).
+		     Do NOT set IsVisible="False" here: on Windows MAUI a Border that starts
+		     collapsed never gets a UIA peer, so the runtime flip to true is
+		     invisible to Appium. PopulateFileList in OnAppearing toggles it
+		     synchronously before paint, so the brief pre-paint visibility is
+		     invisible to the user. -->
 		<Border
 			x:Name="BreadcrumbBorder"
 			Grid.Row="1"
 			Margin="4,0"
 			Padding="8,4"
-			IsVisible="False"
 			BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
 			Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
 			StrokeThickness="0">
@@ -103,11 +108,12 @@
 			</ScrollView>
 		</Grid>
 
-		<!-- ===== Empty state view ===== -->
+		<!-- ===== Empty state view =====
+		     IsVisible is controlled by PopulateFileList. Same UIA-peer rule as
+		     BreadcrumbBorder: don't default to False or Windows skips the peer. -->
 		<Grid
 			x:Name="EmptyStateView"
 			Grid.Row="2"
-			IsVisible="False"
 			RowSpacing="8"
 			Padding="24">
 			<Grid.RowDefinitions>

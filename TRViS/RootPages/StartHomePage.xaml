@@ -600,25 +600,25 @@
 		</Grid>
 
 		<!-- ========== UI_TEST seam buttons ==========
-		     Three Buttons placed in an explicit Grid at the top-left corner of
-		     RootGrid. Each occupies its own row of the host grid so layout makes
-		     them independent (no StackLayout pass that may collapse 1×1 children
-		     on Mac Catalyst). Sized 24×24 with full opacity so the platform
+		     Buttons placed in an explicit Grid at the top-left corner of RootGrid.
+		     Each occupies its own row of the host grid so layout makes them
+		     independent (no StackLayout pass that may collapse 1×1 children on
+		     Mac Catalyst). Sized 24×24 with full opacity so the platform
 		     accessibility peer is reliably created and the click hit-test is
 		     wide enough on every platform — Mac Catalyst's mac2 driver
 		     dispatches Appium taps via coordinate hit-testing, and we observed
 		     sub-pixel/0.01-opacity targets being silently dropped there.
-		     The 24×72 visible footprint sits at (0,0) where AppHeader content
-		     does NOT occlude (AppHeader is HorizontalOptions="Center" and its
-		     own padding leaves the corner clear). In production builds the
-		     Click handlers are no-ops (gated on #if UI_TEST), so accidental
-		     discovery has no effect. -->
+		     The 24-wide column sits at (0,0) where AppHeader content does NOT
+		     occlude (AppHeader is HorizontalOptions="Center" and its own padding
+		     leaves the corner clear). In production builds the Click handlers
+		     are no-ops (gated on #if UI_TEST), so accidental discovery has no
+		     effect. -->
 		<Grid
 			x:Name="TestSeamHost"
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24"
+			RowDefinitions="24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -651,6 +651,15 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestAutoOpenButton_Clicked"/>
+			<Button
+				x:Name="TestClearHistoryButton"
+				AutomationId="StartHome.TestClearHistoryButton"
+				Grid.Row="3"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestClearHistoryButton_Clicked"/>
 		</Grid>
 
 	</Grid>

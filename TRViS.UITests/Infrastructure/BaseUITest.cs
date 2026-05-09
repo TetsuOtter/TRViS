@@ -42,19 +42,46 @@ public abstract class BaseUITest
 				// noReset:true keeps the app installed between sessions, so we
 				// reset app data explicitly here instead of relying on reinstall.
 				var iosUdid = TestContext.Parameters["deviceUdid"] ?? "";
-				if (!string.IsNullOrEmpty(iosUdid))
+				if (string.IsNullOrEmpty(iosUdid))
 				{
-					// Terminate any leftover app process from the previous session
-					// (noReset:true may leave the app running after Driver.Quit()).
-					RunProcess("xcrun", $"simctl terminate {iosUdid} {AppPackage}");
-					Thread.Sleep(300);
-					// Clear NSUserDefaults (MAUI Preferences) so each test starts
-					// with a fresh-install state (privacy banner visible, etc.).
-					// "defaults delete" exits non-zero when the domain is absent;
-					// RunProcess swallows that, so this is safe for the first test.
-					RunProcess("xcrun", $"simctl spawn {iosUdid} defaults delete {AppPackage}");
-					Thread.Sleep(200);
+					// Without a UDID we cannot target the right simulator; the next
+					// session will inherit prior state (URL history, privacy flag,
+					// etc.) and tests assuming "clean install" will fail. Surface
+					// it instead of silently no-oping.
+					TestContext.Out.WriteLine("ResetAppState(iOS): TestParameter 'deviceUdid' is empty — skipping app-data reset. Tests assuming a clean install will likely fail.");
+					break;
 				}
+				// Terminate any leftover app process from the previous session
+				// (noReset:true may leave the app running after Driver.Quit()).
+				RunProcess("xcrun", $"simctl terminate {iosUdid} {AppPackage}");
+				Thread.Sleep(300);
+				// Clear NSUserDefaults (MAUI Preferences) directly inside the app's
+				// data container. `simctl spawn defaults delete` writes to the
+				// simulator's user defaults database, but MAUI Preferences on iOS
+				// are persisted to the app's sandboxed
+				// Library/Preferences/<bundle>.plist — defaults delete does not
+				// reliably wipe that file, leaving URL history and other prefs
+				// stale across sessions. Resolve the data container, then rm the
+				// Library/Preferences folder so the app re-creates it fresh on
+				// next launch.
+				string? dataContainer = GetAppDataContainer(iosUdid, AppPackage);
+				if (!string.IsNullOrEmpty(dataContainer))
+				{
+					string prefsDir = Path.Combine(dataContainer, "Library", "Preferences");
+					try
+					{
+						if (Directory.Exists(prefsDir))
+							Directory.Delete(prefsDir, recursive: true);
+					}
+					catch (Exception ex)
+					{
+						TestContext.Out.WriteLine($"ResetAppState(iOS): failed to clear {prefsDir}: {ex.Message}");
+					}
+				}
+				// Belt-and-braces: also try the global defaults database in case
+				// any code path falls back to it.
+				RunProcess("xcrun", $"simctl spawn {iosUdid} defaults delete {AppPackage}");
+				Thread.Sleep(200);
 				break;
 
 			case TestPlatform.Windows:
@@ -108,6 +135,34 @@ public abstract class BaseUITest
 		catch (Exception ex)
 		{
 			TestContext.Out.WriteLine($"ResetAppState: {fileName} {arguments} failed: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Returns the absolute path to the simulator app's data container, or null
+	/// if the lookup failed. simctl prints the path on stdout for an installed
+	/// app; absent → non-zero exit and empty stdout.
+	/// </summary>
+	private static string? GetAppDataContainer(string udid, string bundleId)
+	{
+		try
+		{
+			using var p = Process.Start(new ProcessStartInfo("xcrun", $"simctl get_app_container {udid} {bundleId} data")
+			{
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+			});
+			if (p is null)
+				return null;
+			string stdout = p.StandardOutput.ReadToEnd().Trim();
+			p.WaitForExit(3000);
+			return p.ExitCode == 0 && !string.IsNullOrEmpty(stdout) ? stdout : null;
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"GetAppDataContainer({udid}, {bundleId}) failed: {ex.Message}");
+			return null;
 		}
 	}
 

@@ -467,8 +467,8 @@ public partial class AppViewModel
 
 	/// <summary>
 	/// Public test-only seed for ExternalResourceUrlHistory. Called from the
-	/// SelectTrainPage's hidden test button; lets UI tests bypass the popup's
-	/// SendKeys-based path (which is flaky on iOS XCUITest for long URLs).
+	/// StartHomePage's hidden test seed button; lets UI tests bypass typing
+	/// through Appium SendKeys (which is flaky on iOS XCUITest for long URLs).
 	/// </summary>
 	public void SeedUrlHistoryForTesting(IEnumerable<string> urls)
 	{
@@ -484,6 +484,23 @@ public partial class AppViewModel
 			_ExternalResourceUrlHistory,
 			StringListJsonSourceGenerationContext.Default.ListString);
 		logger.Info("SeedUrlHistoryForTesting: persisted {0} URLs", _ExternalResourceUrlHistory.Count);
+	}
+
+	/// <summary>
+	/// Public test-only clear for ExternalResourceUrlHistory. Lets the
+	/// "empty history" code path tests start from a known-clean state without
+	/// relying on per-session filesystem resets — on iOS, simctl-level
+	/// preference deletion has been observed to race with the app's in-memory
+	/// list when noReset:true is set.
+	/// </summary>
+	public void ClearUrlHistoryForTesting()
+	{
+		_ExternalResourceUrlHistory.Clear();
+		AppPreferenceService.SetToJson(
+			AppPreferenceKeys.ExternalResourceUrlHistory,
+			_ExternalResourceUrlHistory,
+			StringListJsonSourceGenerationContext.Default.ListString);
+		logger.Info("ClearUrlHistoryForTesting: cleared in-memory + persisted history");
 	}
 
 	/// <summary>

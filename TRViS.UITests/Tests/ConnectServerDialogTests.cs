@@ -35,6 +35,15 @@ public class ConnectServerDialogTests : BaseUITest
 		// single, clear path forward.
 		Assume.That(_startHomePage.IsDisplayed(), Is.True);
 
+		// Explicitly clear URL history before opening the dialog. iOS uses
+		// noReset:true for FrontBoard stability (AppiumConfig.cs); BaseUITest's
+		// per-test preference wipe operates on the simulator filesystem, but
+		// the AppViewModel singleton has been observed to retain in-memory
+		// history across sessions because the XCUITest driver relaunches the
+		// app rather than killing+reinstalling. Clearing in-memory + persisted
+		// state via the test seam removes that race for this assertion.
+		_startHomePage.ClearUrlHistoryForTesting();
+
 		var dialog = _startHomePage.OpenConnectServerDialog();
 
 		Assert.That(dialog.IsDisplayed(), Is.True, "Dialog should be displayed.");

@@ -77,6 +77,10 @@ public static class AutomationIds
 		// as 開く. Lets DTAC-focused tests skip the picker UI without depending on
 		// auto-cascade behavior in TimetableSelectionManager.
 		public const string TestAutoOpenButton = "StartHome.TestAutoOpenButton";
+		// Clears AppViewModel.ExternalResourceUrlHistory in-memory + on disk so
+		// "empty history" tests can guarantee an empty list regardless of prior
+		// noReset:true session state.
+		public const string TestClearHistoryButton = "StartHome.TestClearHistoryButton";
 	}
 
 	public static class PrivacyDialog

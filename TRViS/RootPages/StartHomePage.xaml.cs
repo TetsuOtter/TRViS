@@ -165,7 +165,26 @@ public partial class StartHomePage : ContentPage
 
 	void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
-		switch (e.PropertyName)
+		// WebSocketNetworkSyncService raises TimetableUpdated synchronously on
+		// the WS receive task; that cascades into AppViewModel/SelectionManager
+		// PropertyChanged here, where we mutate CollectionView.SelectedItem,
+		// IsVisible, animations, etc. All of that must happen on the UI thread —
+		// hop now so off-thread WS callbacks don't trigger MAUI dispatcher
+		// assertions or visual glitches.
+		if (MainThread.IsMainThread)
+		{
+			HandleViewModelPropertyChanged(e.PropertyName);
+		}
+		else
+		{
+			string? propertyName = e.PropertyName;
+			MainThread.BeginInvokeOnMainThread(() => HandleViewModelPropertyChanged(propertyName));
+		}
+	}
+
+	void HandleViewModelPropertyChanged(string? propertyName)
+	{
+		switch (propertyName)
 		{
 			case nameof(AppViewModel.Loader):
 				logger.Debug("Loader changed -> evaluate page mode");
@@ -384,8 +403,8 @@ public partial class StartHomePage : ContentPage
 		RebuildWorkGroupItems();
 		SyncPendingFromCommitted();
 
-		// First-appearing default-timetable load (preserves SelectTrainPage behavior).
-		// Only run when we don't yet have a Loader.
+		// First-appearing default-timetable load. Only run when we don't yet have
+		// a Loader (e.g. fresh launch or after disconnect).
 		if (viewModel.Loader is null)
 		{
 			logger.Info("Loader is null -> attempt default timetable load");
@@ -644,15 +663,21 @@ public partial class StartHomePage : ContentPage
 		// Mirror the AppViewModel's *committed* selection into our tentative state.
 		// Called when we appear or when the committed state changes underneath us.
 		// Does not propagate back — this is intentionally one-way.
+		// Compare by Id rather than Equals: WorkGroup/Work are records whose
+		// auto-generated equality compares positional members (incl. byte[]
+		// AffixContent / ETrainTimetableContent on Work) by reference. After a
+		// websocket Refresh, the manager's new instance won't reference-match
+		// the cached one even though it represents the same logical row, so
+		// Equals returns false and we'd needlessly rebuild lists.
 		var committedWG = viewModel.SelectedWorkGroup;
 		var committedWork = viewModel.SelectedWork;
 
-		if (!Equals(_pendingWorkGroup, committedWG))
+		if (!IsSameWorkGroup(_pendingWorkGroup, committedWG))
 		{
 			_pendingWorkGroup = committedWG;
 			RebuildWorkItems();
 		}
-		if (!Equals(_pendingWork, committedWork))
+		if (!IsSameWork(_pendingWork, committedWork))
 		{
 			_pendingWork = committedWork;
 		}
@@ -661,19 +686,38 @@ public partial class StartHomePage : ContentPage
 		RefreshStepUi();
 	}
 
+	static bool IsSameWorkGroup(WorkGroup? a, WorkGroup? b)
+	{
+		if (ReferenceEquals(a, b))
+			return true;
+		if (a is null || b is null)
+			return false;
+		return string.Equals(a.Id, b.Id, StringComparison.Ordinal);
+	}
+
+	static bool IsSameWork(Work? a, Work? b)
+	{
+		if (ReferenceEquals(a, b))
+			return true;
+		if (a is null || b is null)
+			return false;
+		return string.Equals(a.Id, b.Id, StringComparison.Ordinal);
+	}
+
 	void SyncListViewSelections()
 	{
 		// Reflect _pendingWorkGroup / _pendingWork onto the CollectionViews without
 		// re-triggering OnXxxSelectionChanged (which would reset the user-pick flow).
+		// Match by Id (see SyncPendingFromCommitted for why record Equals is unsafe).
 		_suppressSelectionChanged = true;
 		try
 		{
 			WorkGroupListView.SelectedItem = _pendingWorkGroup is null
 				? null
-				: _workGroupItems.FirstOrDefault(i => Equals(i.Source, _pendingWorkGroup));
+				: _workGroupItems.FirstOrDefault(i => IsSameWorkGroup(i.Source, _pendingWorkGroup));
 			WorkListView.SelectedItem = _pendingWork is null
 				? null
-				: _workItems.FirstOrDefault(i => Equals(i.Source, _pendingWork));
+				: _workItems.FirstOrDefault(i => IsSameWork(i.Source, _pendingWork));
 		}
 		finally
 		{
@@ -826,8 +870,15 @@ public partial class StartHomePage : ContentPage
 
 		try
 		{
-			viewModel.Loader?.Dispose();
-			viewModel.SetLoader(await SampleDataLoader.CreateAsync(), null);
+			// Dispose AFTER the new loader is built so any in-flight property
+			// reads on viewModel.Loader during the await don't hit a disposed
+			// instance. SetLoader swaps atomically; we then dispose what was
+			// previously installed.
+			ILoader? previous = viewModel.Loader;
+			var newLoader = await SampleDataLoader.CreateAsync();
+			viewModel.SetLoader(newLoader, null);
+			if (!ReferenceEquals(previous, viewModel.Loader))
+				previous?.Dispose();
 		}
 		catch (Exception ex)
 		{
@@ -1052,6 +1103,21 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSeedGpsButton failed");
+		}
+#endif
+	}
+
+	void TestClearHistoryButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestClearHistoryButton clicked: clearing URL history");
+		try
+		{
+			viewModel.ClearUrlHistoryForTesting();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearHistoryButton failed");
 		}
 #endif
 	}

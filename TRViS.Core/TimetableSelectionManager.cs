@@ -108,7 +108,7 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		// Selection is intentionally cleared rather than auto-picking the first
 		// WorkGroup. The Home page presents a tentative-selection picker; the
 		// committed selection on this manager only changes when the user presses
-		// "Open" (StartHomePage) or via Refresh()/ResetToFirst() (websocket flows).
+		// "Open" (StartHomePage) or via Refresh() (websocket flows).
 		_selectedWorkGroup = null;
 		_selectedWork = null;
 		_selectedTrainData = null;
@@ -295,19 +295,6 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 		// Train リストは再構築しつつ、Id が一致すれば選択を保持する。
 		RefreshTrainDataForWork(matchedWork, preserveSelection: true);
-	}
-
-	/// <summary>
-	/// Resets selection to the first WorkGroup, but only if a prior commit exists.
-	/// Called from <c>AppViewModel.OnTimetableUpdated</c> when a scope-invalidating
-	/// timetable change arrives. With no prior commit there is nothing to reset to —
-	/// leave the selection null so the Home picker doesn't get a default forced on it.
-	/// </summary>
-	public void ResetToFirst()
-	{
-		if (_selectedWorkGroup is null)
-			return;
-		SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
 	}
 
 	// ---------- Helpers ----------
