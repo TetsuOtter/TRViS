@@ -81,10 +81,10 @@ public partial class ConnectServerDialog : ContentPage
 		// malformed stored entry shouldn't crash the dialog).
 		// Glyphs come from MaterialIcons-Regular.ttf (registered in MauiProgram
 		// as "MaterialIconsRegular"):
-		//    = language  (globe — http/https web fetch)
-		//    = flash_on  (lightning — ws/wss realtime stream)
-		//    = phone_iphone (trvis:// app deeplink)
-		//    = link      (fallback — unknown scheme)
+		//   \uE894 = language  (globe — http/https web fetch)
+		//   \uE3E7 = flash_on  (lightning — ws/wss realtime stream)
+		//   \uE324 = phone_iphone (trvis:// app deeplink)
+		//   \uE157 = link      (fallback — unknown scheme)
 		string glyph;
 		string title;
 		// UriKind.Absolute so a malformed stored entry actually trips the catch;
@@ -95,16 +95,16 @@ public partial class ConnectServerDialog : ContentPage
 			string scheme = uri.Scheme;
 			glyph = scheme switch
 			{
-				"https" or "http" => "",
-				"wss" or "ws" => "",
-				"trvis" => "",
-				_ => "",
+				"https" or "http" => "\uE894",
+				"wss" or "ws" => "\uE3E7",
+				"trvis" => "\uE324",
+				_ => "\uE157",
 			};
 			title = !string.IsNullOrEmpty(uri.Host) ? uri.Host : url;
 		}
 		catch
 		{
-			glyph = "";
+			glyph = "\uE157";
 			title = url;
 		}
 
