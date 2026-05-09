@@ -43,4 +43,27 @@ public class StartHomeTests : BaseUITest
 		Assert.That(items, Is.Not.Empty,
 			"WorkGroupList should have items after loading the sample database.");
 	}
+
+	/// <summary>
+	/// Regression: after a fresh load no WorkGroup should be auto-picked. The
+	/// WorkGroupChip stays hidden and the WorkPendingHint ("Work Group を選択してください")
+	/// stays visible until the user taps a row. If the auto-cascade in
+	/// <c>TimetableSelectionManager.OnLoaderChanged</c> ever comes back, this
+	/// test fails immediately.
+	/// </summary>
+	[Test]
+	public void LoadSample_DoesNotAutoSelectWorkGroup()
+	{
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+
+		Assert.That(_startHomePage.IsWorkGroupChipVisible(), Is.False,
+			"WorkGroupChip should NOT be visible right after load — no tentative selection has been made.");
+
+		var hint = _startHomePage.WorkPendingHint;
+		Assert.That(hint.Displayed, Is.True,
+			"WorkPendingHint should be visible while no WorkGroup is selected.");
+	}
 }

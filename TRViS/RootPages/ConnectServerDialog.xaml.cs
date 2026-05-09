@@ -11,7 +11,7 @@ using IOSPage = Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific.Page;
 namespace TRViS.RootPages;
 
 /// <summary>
-/// Modal page used by Start/Home → "サーバーに接続". Two-state UI: a
+/// Modal page used by Start/Home → "サーバーから読み込み". Two-state UI: a
 /// rich-card history list (one card per past URL) and a new-connection
 /// form with a "接続先を保存する" toggle that gates whether the URL is
 /// added to <see cref="ViewModels.AppViewModel.ExternalResourceUrlHistory"/>.
@@ -76,10 +76,12 @@ public partial class ConnectServerDialog : ContentPage
 		//    = link      (fallback — unknown scheme)
 		string glyph;
 		string title;
+		// UriKind.Absolute so a malformed stored entry actually trips the catch;
+		// the previous RelativeOrAbsolute swallowed everything (catch was dead code).
 		try
 		{
-			Uri uri = new(url, UriKind.RelativeOrAbsolute);
-			string scheme = uri.IsAbsoluteUri ? uri.Scheme : "";
+			Uri uri = new(url, UriKind.Absolute);
+			string scheme = uri.Scheme;
 			glyph = scheme switch
 			{
 				"https" or "http" => "",
@@ -87,7 +89,7 @@ public partial class ConnectServerDialog : ContentPage
 				"trvis" => "",
 				_ => "",
 			};
-			title = uri.IsAbsoluteUri && !string.IsNullOrEmpty(uri.Host) ? uri.Host : url;
+			title = !string.IsNullOrEmpty(uri.Host) ? uri.Host : url;
 		}
 		catch
 		{
@@ -287,7 +289,9 @@ public partial class ConnectServerDialog : ContentPage
 
 	async Task SubmitNewConnectionAsync()
 	{
-		string urlText = UrlInput.Text ?? string.Empty;
+		// Trim before submit: clipboard paste on mobile commonly carries a leading/trailing
+		// whitespace which makes new Uri(...) throw UriFormatException.
+		string urlText = (UrlInput.Text ?? string.Empty).Trim();
 		bool addToHistory = SaveConnectionSwitch.IsToggled;
 		logger.Info("Connect clicked: addToHistory={0}", addToHistory);
 

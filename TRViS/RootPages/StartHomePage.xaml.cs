@@ -115,10 +115,16 @@ public partial class StartHomePage : ContentPage
 
 			case nameof(AppViewModel.WorkGroupList):
 				// WorkGroupList changes can come from a Refresh() (websocket) which
-				// may also reset committed AppViewModel selections. Rebuild the items
-				// and re-sync tentative state from committed.
+				// may also reset committed AppViewModel selections. Rebuild the items;
+				// only sync tentative from committed when committed actually has a
+				// value — otherwise a websocket Refresh would silently clobber the
+				// user's mid-pick on Home (committed is null -> _pendingWorkGroup
+				// would be forced to null).
 				RebuildWorkGroupItems();
-				SyncPendingFromCommitted();
+				if (viewModel.SelectedWorkGroup is not null || viewModel.SelectedWork is not null)
+					SyncPendingFromCommitted();
+				else
+					SyncListViewSelections();
 				RefreshStepUi();
 				break;
 
@@ -159,13 +165,12 @@ public partial class StartHomePage : ContentPage
 		viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
 #if UI_TEST
-		// Make the test seed buttons findable by Appium.
-		if (TestSeedButton is not null)
-			TestSeedButton.IsVisible = true;
-		if (TestSeedGpsButton is not null)
-			TestSeedGpsButton.IsVisible = true;
-		if (TestAutoOpenButton is not null)
-			TestAutoOpenButton.IsVisible = true;
+		// Make the test seed buttons findable by Appium. We toggle the host
+		// container instead of each button: when the host stays IsVisible=false
+		// in production builds the children aren't laid out at all (zero accessibility
+		// tree footprint), and in UI_TEST builds a single flip exposes all three.
+		if (TestSeamHost is not null)
+			TestSeamHost.IsVisible = true;
 #endif
 
 		UpdatePrivacyDependentControls();
@@ -644,34 +649,47 @@ public partial class StartHomePage : ContentPage
 			return;
 		}
 
-		// Commit tentative -> AppViewModel. Setting SelectedWorkGroup cascades
-		// (TimetableSelectionManager.OnWorkGroupChanged auto-picks the first Work
-		// of that group); we then immediately overwrite with the user's pending
-		// Work, which cascades again to pick its first TrainData. Net effect:
-		// committed (WG, W, first-Train) — the same shape DTAC has always seen.
+		CommitPendingSelection(pendingWG, pendingW);
+		await NavigateToDTACAsync();
+	}
+
+	// Commit tentative -> AppViewModel. Setting SelectedWorkGroup cascades
+	// (TimetableSelectionManager.OnWorkGroupChanged auto-picks the first Work
+	// of that group); we then immediately overwrite with the user's pending
+	// Work, which cascades again to pick its first TrainData. Net effect:
+	// committed (WG, W, first-Train) — the same shape DTAC has always seen.
+	// Wrapped in _committingOpen so the cascade-fired SelectedWork PropertyChanged
+	// doesn't yank our pending state via SyncPendingFromCommitted.
+	void CommitPendingSelection(WorkGroup workGroup, Work work)
+	{
 		_committingOpen = true;
 		try
 		{
-			viewModel.SelectedWorkGroup = pendingWG;
-			viewModel.SelectedWork = pendingW;
+			viewModel.SelectedWorkGroup = workGroup;
+			viewModel.SelectedWork = work;
 		}
 		finally
 		{
 			_committingOpen = false;
 		}
-
-		await NavigateToDTACAsync();
 	}
 
 	async void OnDisconnectClicked(object sender, EventArgs e)
 	{
 		logger.Info("Disconnect/Close clicked");
-		var loader = viewModel.Loader;
-		if (loader is null)
+		if (viewModel.Loader is null)
 			return;
 
 		bool confirm = await Util.DisplayAlertAsync(this, "確認", "現在のデータを閉じますか？", "閉じる", "キャンセル");
 		if (!confirm)
+			return;
+
+		// Re-read Loader AFTER the await: an AppLink or websocket reconnect could
+		// have swapped (and disposed) the old one while the confirm dialog was
+		// open. Disposing the captured value would then double-dispose the old
+		// loader and orphan the new one.
+		var loader = viewModel.Loader;
+		if (loader is null)
 			return;
 
 		viewModel.Loader = null;
@@ -753,6 +771,10 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestAutoOpenButton clicked: auto-pick first WG/Work and navigate to DTAC");
 		try
 		{
+			// Mimic the user flow exactly: pick first WG, materialize its Work list,
+			// pick first Work, then commit through the same code path 開く uses.
+			// This keeps the seam honest as a "skip the picker UI" shortcut, not a
+			// parallel path that could survive a refactor of the real Open button.
 			var groups = viewModel.WorkGroupList;
 			var firstGroup = groups?.FirstOrDefault();
 			if (firstGroup is null)
@@ -760,14 +782,17 @@ public partial class StartHomePage : ContentPage
 				logger.Warn("TestAutoOpenButton: no WorkGroup available — ignoring");
 				return;
 			}
-			viewModel.SelectedWorkGroup = firstGroup;
-			// SelectedWorkGroup setter cascades and auto-picks the first Work.
-			// SelectedWork is therefore non-null at this point if the WorkGroup has any Works.
-			if (viewModel.SelectedWork is null)
+			var loader = viewModel.Loader;
+			if (loader is null)
+				return;
+			var firstWork = loader.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+			if (firstWork is null)
 			{
-				logger.Warn("TestAutoOpenButton: WorkGroup has no Work — aborting navigate");
+				logger.Warn("TestAutoOpenButton: first WorkGroup has no Work — aborting navigate");
 				return;
 			}
+
+			CommitPendingSelection(firstGroup, firstWork);
 			await NavigateToDTACAsync();
 		}
 		catch (Exception ex)

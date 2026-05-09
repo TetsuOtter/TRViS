@@ -117,13 +117,19 @@ public partial class SelectFileDialog : ContentPage
 			if (!_currentDirectory.Exists)
 				return (Array.Empty<DirectoryInfo>(), Array.Empty<FileInfo>());
 
+			// Hide both Windows-style hidden attribute AND POSIX-style dot-prefixed
+			// names (.DS_Store, ._foo.json, .git, etc.). FileAttributes.Hidden alone
+			// catches almost nothing on iOS/macOS/Linux because the file system
+			// convention there is name-based, not attribute-based.
 			DirectoryInfo[] folders = _currentDirectory.GetDirectories()
-				.Where(d => (d.Attributes & FileAttributes.Hidden) == 0)
+				.Where(d => !d.Name.StartsWith('.') && (d.Attributes & FileAttributes.Hidden) == 0)
 				.OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
 				.ToArray();
 
 			FileInfo[] files = _currentDirectory.GetFiles()
-				.Where(f => s_listedExtensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase))
+				.Where(f => !f.Name.StartsWith('.')
+					&& (f.Attributes & FileAttributes.Hidden) == 0
+					&& s_listedExtensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase))
 				.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
 				.ToArray();
 

@@ -253,37 +253,6 @@
 					Clicked="OnThirdPartyLicensesClicked"/>
 			</HorizontalStackLayout>
 
-			<!-- DEBUG/UI_TEST seam buttons (zero-sized, toggled visible in code-behind under #if UI_TEST). -->
-			<Button
-				x:Name="TestSeedButton"
-				AutomationId="StartHome.TestSeedButton"
-				Grid.Row="3"
-				IsVisible="False"
-				HeightRequest="1"
-				WidthRequest="1"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedButton_Clicked"/>
-			<Button
-				x:Name="TestSeedGpsButton"
-				AutomationId="StartHome.TestSeedGpsButton"
-				Grid.Row="3"
-				IsVisible="False"
-				HeightRequest="1"
-				WidthRequest="1"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedGpsButton_Clicked"/>
-			<Button
-				x:Name="TestAutoOpenButton"
-				AutomationId="StartHome.TestAutoOpenButton"
-				Grid.Row="3"
-				IsVisible="False"
-				HeightRequest="1"
-				WidthRequest="1"
-				Padding="0"
-				Margin="0"
-				Clicked="TestAutoOpenButton_Clicked"/>
 		</Grid>
 
 		<!-- ========== Home body ========== -->
@@ -530,6 +499,7 @@
 					<!-- Hint shown when no Work Group is selected yet. -->
 					<Label
 						x:Name="WorkPendingHint"
+						AutomationId="StartHome.WorkPendingHint"
 						FontSize="12"
 						Margin="4,4,4,8"
 						HorizontalTextAlignment="Center"
@@ -562,6 +532,47 @@
 					Clicked="OnOpenClicked"/>
 			</Grid>
 		</Grid>
+
+		<!-- ========== UI_TEST seam buttons ==========
+		     Zero-sized invisible anchors that bypass the picker UI for tests.
+		     Placed at the top-level RootGrid so they remain reachable regardless
+		     of Start/Home mode (StartBody is set IsVisible=false in Home mode,
+		     which on Mac Catalyst removed nested children from Appium's
+		     accessibility tree even after the runtime IsVisible flip).
+		     Toggled visible by code-behind under #if UI_TEST. -->
+		<VerticalStackLayout
+			x:Name="TestSeamHost"
+			HorizontalOptions="Start"
+			VerticalOptions="Start"
+			IsVisible="False"
+			Spacing="0"
+			Padding="0"
+			Margin="0">
+			<Button
+				x:Name="TestSeedButton"
+				AutomationId="StartHome.TestSeedButton"
+				HeightRequest="1"
+				WidthRequest="1"
+				Padding="0"
+				Margin="0"
+				Clicked="TestSeedButton_Clicked"/>
+			<Button
+				x:Name="TestSeedGpsButton"
+				AutomationId="StartHome.TestSeedGpsButton"
+				HeightRequest="1"
+				WidthRequest="1"
+				Padding="0"
+				Margin="0"
+				Clicked="TestSeedGpsButton_Clicked"/>
+			<Button
+				x:Name="TestAutoOpenButton"
+				AutomationId="StartHome.TestAutoOpenButton"
+				HeightRequest="1"
+				WidthRequest="1"
+				Padding="0"
+				Margin="0"
+				Clicked="TestAutoOpenButton_Clicked"/>
+		</VerticalStackLayout>
 
 	</Grid>
 </ContentPage>

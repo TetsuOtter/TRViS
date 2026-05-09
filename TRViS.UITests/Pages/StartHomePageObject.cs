@@ -37,8 +37,33 @@ public class StartHomePageObject : PageObject
 	public AppiumElement WorkGroupChip => FindByAutomationId(AutomationIds.StartHome.WorkGroupChip);
 	public AppiumElement WorkList => FindByAutomationId(AutomationIds.StartHome.WorkList);
 	public AppiumElement WorkChip => FindByAutomationId(AutomationIds.StartHome.WorkChip);
+	public AppiumElement WorkPendingHint => FindByAutomationId(AutomationIds.StartHome.WorkPendingHint);
 	public AppiumElement OpenButton => FindByAutomationId(AutomationIds.StartHome.OpenButton);
 	public AppiumElement DisconnectButton => FindByAutomationId(AutomationIds.StartHome.DisconnectButton);
+
+	/// <summary>
+	/// Returns true when the WorkGroupChip is currently visible (i.e. a tentative
+	/// WorkGroup has been selected). Returns false on any lookup error so callers
+	/// can treat "absent" as "no tentative selection".
+	/// Mirrors <see cref="IsPrivacyReconfirmBannerVisible"/>'s zero-implicit-wait pattern.
+	/// </summary>
+	public bool IsWorkGroupChipVisible()
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			return FindByAutomationId(AutomationIds.StartHome.WorkGroupChip).Displayed;
+		}
+		catch
+		{
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
 
 	// UI_TEST seed seams.
 	public AppiumElement TestSeedButton => FindByAutomationId(AutomationIds.StartHome.TestSeedButton);

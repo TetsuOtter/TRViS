@@ -41,7 +41,13 @@ public partial class AppShell : Shell
 		// privacy-policy-not-accepted case via an in-page banner + modal dialog,
 		// so the dedicated FirebaseSettingPage is no longer the launch destination
 		// (it remains accessible from the flyout for re-entry).
-		GoToAsync("//" + nameof(StartHomePage)).ConfigureAwait(false);
+		// Fire-and-forget: the Shell ctor cannot be async; we discard the Task and
+		// log via continuation so a navigation failure doesn't vanish.
+		_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
+		{
+			if (t.IsFaulted)
+				logger.Error(t.Exception, "Initial GoToAsync(StartHomePage) failed");
+		}, TaskScheduler.Default);
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
 		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBehavior;
