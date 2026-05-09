@@ -51,7 +51,17 @@ public partial class AppShell : Shell
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
 		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBehavior;
-		ApplyFlyoutBehavior(this, false, FirebaseSettingViewModel.IsEnabled);
+		// Always start with the flyout enabled. On Mac Catalyst the navigation bar /
+		// flyout toggle button is created during Shell initialization based on the
+		// current FlyoutBehavior — switching from Disabled→Flyout later (when the
+		// user accepts privacy) does NOT re-create the navbar, leaving the flyout
+		// unreachable for the rest of the session.
+		// Privacy gating now happens at the *button* level inside StartHomePage
+		// (Connect/SelectFile/Demo are disabled until accepted) and at Firebase
+		// analytics opt-in, not at the Shell navigation level. Letting users tap
+		// through to ThirdPartyLicenses / Settings / D-TAC before accepting is
+		// acceptable: D-TAC has no committed selection so it shows nothing.
+		ApplyFlyoutBehavior(this, false, true);
 
 		this.BindingContext = easterEggPageViewModel;
 		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
@@ -84,13 +94,22 @@ public partial class AppShell : Shell
 	void ApplyFlyoutBehavior(object? sender, bool oldValue, bool newValue)
 	{
 		logger.Trace("{0} -> {1}", oldValue, newValue);
-		if (newValue == true)
+		// The flyout is always enabled now. The legacy code disabled it when
+		// IsEnabled=false (first-run firebase consent gate) but the new design
+		// uses an in-page banner + modal for privacy gating, so a hidden flyout
+		// served no purpose — and on Mac Catalyst the Shell navbar fails to
+		// re-render when FlyoutBehavior is flipped post-init, breaking flyout
+		// navigation for the rest of the session. We keep this method (and its
+		// IsEnabledChanged subscription) for symmetry / future per-flag logic;
+		// currently it's a no-op once initialized to Flyout.
+		if (newValue == true || FlyoutBehavior != FlyoutBehavior.Flyout)
 		{
 			FlyoutIcon = FlyoutIconImage;
 			FlyoutBehavior = FlyoutBehavior.Flyout;
 		}
 		else
 		{
+			// Retained for completeness; not entered under current callers.
 			FlyoutIcon = null;
 			FlyoutBehavior = FlyoutBehavior.Disabled;
 			FlyoutIsPresented = false;
