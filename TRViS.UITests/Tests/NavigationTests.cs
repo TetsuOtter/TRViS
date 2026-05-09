@@ -7,6 +7,7 @@ namespace TRViS.UITests.Tests;
 /// Each test accepts Firebase consent at the beginning.
 /// </summary>
 [TestFixture]
+[Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class NavigationTests : BaseUITest
 {
 	private AppShellPage _shell = null!;
@@ -16,13 +17,12 @@ public class NavigationTests : BaseUITest
 	{
 		base.SetUp();
 
-		// Accept Firebase consent so we can reach the main shell.
-		// Use a 120 s timeout: on Android, EmbedAssembliesIntoApk=true triggers
-		// Mono JIT compilation on first launch after APK install, which can take
-		// 90+ s before the Firebase consent page renders.
-		var firebasePage = new FirebaseSettingPageObject(Driver);
-		if (firebasePage.IsDisplayed(TimeSpan.FromSeconds(120)))
-			firebasePage.SaveAndAccept();
+		// The app launches into StartHomePage. Accept privacy via the in-page dialog
+		// so feature buttons (Connect, SelectFile, etc.) aren't gated on the privacy
+		// modal during navigation tests.
+		var startHome = new StartHomePageObject(Driver);
+		_ = startHome.Title; // wait for first render
+		startHome.AcceptPrivacyPolicyIfNeeded();
 
 		_shell = new AppShellPage(Driver);
 	}
