@@ -541,44 +541,50 @@
 		</Grid>
 
 		<!-- ========== UI_TEST seam buttons ==========
-		     1×1 anchors at top-left of RootGrid that bypass the picker UI for tests.
+		     Anchors at top-left of RootGrid that bypass the picker UI for tests.
 		     Always rendered (not flipped via IsVisible) because:
 		      - Mac Catalyst nested children of an IsVisible=False container are
 		        not exposed via the accessibility tree even after a runtime flip.
 		      - Windows MAUI similarly creates no UIA peer for IsVisible=False
 		        elements until they are visible, missing the runtime flip.
 		     Placed at top-level RootGrid so the host isn't affected by Start/Home
-		     mode visibility changes. The 1×1 buttons are visually negligible, and
-		     in production builds the Click handlers are no-ops (gated on
-		     #if UI_TEST), so accidental discovery has no effect. -->
+		     mode visibility changes. Sized 16×16 (not 1×1) because Mac Catalyst's
+		     XCUITest dispatches clicks via coordinates derived from the element's
+		     bounding box; sub-pixel buttons silently fail to receive the tap event
+		     even though Appium reports the click as sent. Opacity=0.01 keeps them
+		     visually negligible (effectively invisible against any background) but
+		     above the renderer's "skip painting" threshold so the platform peer
+		     remains responsive. In production builds the Click handlers are no-ops
+		     (gated on #if UI_TEST), so accidental discovery has no effect. -->
 		<VerticalStackLayout
 			x:Name="TestSeamHost"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
 			Spacing="0"
 			Padding="0"
-			Margin="0">
+			Margin="0"
+			Opacity="0.01">
 			<Button
 				x:Name="TestSeedButton"
 				AutomationId="StartHome.TestSeedButton"
-				HeightRequest="1"
-				WidthRequest="1"
+				HeightRequest="16"
+				WidthRequest="16"
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedButton_Clicked"/>
 			<Button
 				x:Name="TestSeedGpsButton"
 				AutomationId="StartHome.TestSeedGpsButton"
-				HeightRequest="1"
-				WidthRequest="1"
+				HeightRequest="16"
+				WidthRequest="16"
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedGpsButton_Clicked"/>
 			<Button
 				x:Name="TestAutoOpenButton"
 				AutomationId="StartHome.TestAutoOpenButton"
-				HeightRequest="1"
-				WidthRequest="1"
+				HeightRequest="16"
+				WidthRequest="16"
 				Padding="0"
 				Margin="0"
 				Clicked="TestAutoOpenButton_Clicked"/>
