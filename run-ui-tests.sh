@@ -315,7 +315,10 @@ fi
 # ── Wait for iOS Simulator boot ────────────────────────────────
 # Boot was started before the build to overlap boot time with compile time.
 # Do NOT erase the simulator: a full erase forces an OS-image reinstall
-# that takes >10 min in CI. Reinstalling the app per-test is sufficient.
+# that takes >10 min in CI. The app is pre-installed once (below) and
+# AppiumConfig uses noReset:true so the xcuitest driver only terminates
+# and relaunches the app between sessions instead of uninstalling it.
+# Per-test app state is reset in BaseUITest.ResetAppState via simctl.
 #
 # NOTE: `xcrun simctl bootstatus -b` can hang indefinitely in some CI
 # environments (e.g., GitHub Actions macos-26 runners with Xcode 26).
@@ -349,6 +352,20 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
     xcrun simctl list devices | grep -A2 -B2 "$DEVICE_ID" || true
     die "Simulator $DEVICE_ID failed to boot within 20 minutes (state: $SIM_STATE)"
   fi
+fi
+
+# ── Pre-install iOS app on simulator ───────────────────────────
+# Register the app with FrontBoard once before Appium starts.
+# AppiumConfig uses noReset:true so the xcuitest driver will not
+# uninstall/reinstall the app between sessions — it only terminates and
+# relaunches. This avoids the repeated uninstall/reinstall cycle that
+# leaves FrontBoard in an inconsistent state and causes
+# "Application is unknown to FrontBoard" session-creation failures.
+# Per-test app state (NSUserDefaults) is cleared by BaseUITest.ResetAppState.
+if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
+  log "Pre-installing app on simulator $DEVICE_ID..."
+  xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+  log "App pre-installed."
 fi
 
 # ── Install Mac Catalyst app ────────────────────────────────────

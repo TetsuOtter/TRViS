@@ -39,7 +39,22 @@ public abstract class BaseUITest
 				break;
 
 			case TestPlatform.iOS:
-				// XCUITest reinstalls the .app on session creation.
+				// noReset:true keeps the app installed between sessions, so we
+				// reset app data explicitly here instead of relying on reinstall.
+				var iosUdid = TestContext.Parameters["deviceUdid"] ?? "";
+				if (!string.IsNullOrEmpty(iosUdid))
+				{
+					// Terminate any leftover app process from the previous session
+					// (noReset:true may leave the app running after Driver.Quit()).
+					RunProcess("xcrun", $"simctl terminate {iosUdid} {AppPackage}");
+					Thread.Sleep(300);
+					// Clear NSUserDefaults (MAUI Preferences) so each test starts
+					// with a fresh-install state (privacy banner visible, etc.).
+					// "defaults delete" exits non-zero when the domain is absent;
+					// RunProcess swallows that, so this is safe for the first test.
+					RunProcess("xcrun", $"simctl spawn {iosUdid} defaults delete {AppPackage}");
+					Thread.Sleep(200);
+				}
 				break;
 
 			case TestPlatform.Windows:
