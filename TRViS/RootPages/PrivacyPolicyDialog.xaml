@@ -9,16 +9,15 @@
 	x:DataType="vm:FirebaseSettingViewModel"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
 	Title="プライバシーポリシー">
-	<Grid Padding="8">
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
-		</Grid.RowDefinitions>
+	<!-- RowDefinitions / ColumnDefinitions and per-child Grid placement are
+	     applied from code-behind in ApplyOrientationLayout. The vertical
+	     (portrait/tablet) layout uses 4 rows × 1 column; the landscape-phone
+	     layout switches to 4 rows × 2 columns with the markdown filling the
+	     left half and the description + settings stacked on the right. -->
+	<Grid x:Name="RootGrid" Padding="8">
 
 		<!-- Header with close button -->
-		<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="4">
+		<Grid x:Name="HeaderRow" ColumnDefinitions="*,Auto" Padding="4">
 			<Label
 				AutomationId="PrivacyDialog.Title"
 				Grid.Column="0"
@@ -42,7 +41,7 @@
 		</Grid>
 
 		<Label
-			Grid.Row="1"
+			x:Name="DescLabel"
 			Margin="4"
 			TextColor="{x:Static local:RootStyles.TableTextColor}">
 			TRViSでは、アプリの品質向上のため、アプリのクラッシュやエラー情報を収集します。
@@ -52,7 +51,7 @@
 		</Label>
 
 		<Border
-			Grid.Row="2"
+			x:Name="MarkdownBorder"
 			Margin="4"
 			Padding="4"
 			Stroke="{x:Static local:RootStyles.BorderStrokeColor}">
@@ -61,7 +60,7 @@
 		</Border>
 
 		<Border
-			Grid.Row="3"
+			x:Name="SettingsBorder"
 			HorizontalOptions="Center"
 			Padding="8"
 			Margin="8"
