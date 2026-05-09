@@ -330,7 +330,6 @@ jobs:
       matrix:
         device-class:
           - iphone
-          - ipad-mini-6
           - ipad-mini-a17
           # ipad-mini-5: runtime download is best-effort; allow it to fail
           # without blocking the other matrix entries.
