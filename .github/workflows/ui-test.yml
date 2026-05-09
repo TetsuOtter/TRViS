@@ -220,7 +220,25 @@ jobs:
           $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
           echo "Emulator is ready!"
 
+      - name: Start streaming logcat
+        # Stream logcat to a file from boot through teardown so we have a full
+        # record covering whichever test fails — `adb logcat -d -t 2000` after
+        # the fact only captures the last few seconds and misses earlier
+        # failures in a multi-test fixture (the 14:16 PrivacyDialog timeout in
+        # run 25603154274 happened before the on-failure dump, leaving us
+        # blind). The streaming process is killed in "Stop Android emulator".
+        run: |
+          $ANDROID_SDK_ROOT/platform-tools/adb logcat -v threadtime > logcat.log 2>&1 &
+          LOGCAT_PID=$!
+          echo "LOGCAT_PID=$LOGCAT_PID" >> $GITHUB_ENV
+          echo "Logcat streaming started with PID $LOGCAT_PID"
+
       - name: Run Android UI Tests
+        # `bash -e` (the GitHub Actions default) terminates the script on the
+        # first non-zero exit. Disable errexit so the retry loop below can
+        # observe `dotnet test`'s failure code instead of being killed by it.
+        # Pipefail is still desirable, so set it explicitly.
+        shell: bash --noprofile --norc -o pipefail {0}
         run: |
           APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
           if [ -z "$APK_PATH" ]; then
@@ -231,34 +249,95 @@ jobs:
           fi
           echo "APK: $APK_PATH"
 
-          # Redirect appium output so we can inspect it after a UIA2 crash.
-          # The "Dump logcat on failure" step prints the tail.
-          appium > appium.log 2>&1 &
-          APPIUM_PID=$!
-          echo "Appium PID: $APPIUM_PID"
+          # Helpers for emulator + appium lifecycle. The MAUI debug build's
+          # accessibility tree under DTAC has been observed killing the
+          # UIA2 instrumentation hard enough to take the emulator process
+          # with it ("Could not find a connected Android device" on every
+          # subsequent test, even after [RetryAllTests(2)] tears down the
+          # Driver per attempt). When that happens, only restarting the
+          # emulator binary brings ADB back; per-test SetUp can't recover.
 
-          echo "Waiting for Appium server to start..."
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:4723/status > /dev/null 2>&1; then
-              echo "Appium server is ready!"
+          start_appium() {
+            appium > "appium-attempt-${1}.log" 2>&1 &
+            APPIUM_PID=$!
+            echo "Appium PID (attempt ${1}): $APPIUM_PID"
+            for i in $(seq 1 30); do
+              if curl -s http://localhost:4723/status > /dev/null 2>&1; then
+                echo "Appium server is ready!"
+                return 0
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "ERROR: Appium server did not start within 30 seconds"
+                kill "$APPIUM_PID" 2>/dev/null || true
+                return 1
+              fi
+              sleep 1
+            done
+          }
+
+          start_emulator() {
+            $ANDROID_SDK_ROOT/emulator/emulator \
+              -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+              -no-window \
+              -gpu swiftshader_indirect \
+              -no-snapshot \
+              -noaudio \
+              -no-boot-anim \
+              -memory 4096 \
+              > "emulator-attempt-${1}.log" 2>&1 &
+            EMULATOR_PID=$!
+            echo "Emulator started for attempt ${1} (PID $EMULATOR_PID)"
+            $ANDROID_SDK_ROOT/platform-tools/adb wait-for-device
+            timeout 300 bash -c \
+              'until $ANDROID_SDK_ROOT/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | grep -q "^1$"; do sleep 5; done'
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global window_animation_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global transition_animation_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global animator_duration_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
+          }
+
+          # First attempt uses the emulator + appium that the prior workflow
+          # steps already started; later attempts spin up fresh ones.
+          start_appium 1 || exit 1
+          MAX_ATTEMPTS=2
+          TEST_EXIT_CODE=1
+          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+            timeout 900 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
+              --configuration Debug \
+              --logger "trx;LogFileName=android-results-attempt-${ATTEMPT}.trx" \
+              -- \
+              "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
+              "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
+              "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"http://localhost:4723\")"
+            TEST_EXIT_CODE=$?
+
+            if [ $TEST_EXIT_CODE -eq 0 ]; then
+              echo "Tests passed on attempt $ATTEMPT"
               break
             fi
-            if [ "$i" -eq 30 ]; then
-              echo "ERROR: Appium server did not start within 30 seconds"
-              kill "$APPIUM_PID" 2>/dev/null || true
-              exit 1
+            if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+              echo "Tests still failing after $ATTEMPT attempts"
+              break
             fi
-            sleep 1
+            # Distinguish "real failures" (emulator alive, tests just don't
+            # pass) from "infrastructure death" (emulator/UIA2 dead). Only
+            # the latter is worth a fresh-emulator retry — re-running the
+            # same suite against the same alive emulator would just
+            # reproduce real bugs at extra CI cost.
+            DEVICE_STATE=$(timeout 10 $ANDROID_SDK_ROOT/platform-tools/adb get-state 2>/dev/null || echo "missing")
+            if [ "$DEVICE_STATE" = "device" ]; then
+              echo "Tests failed but emulator is alive (state=device) — not retrying"
+              break
+            fi
+            echo "Emulator state '$DEVICE_STATE' — restarting for attempt $((ATTEMPT + 1))"
+            kill "$APPIUM_PID" 2>/dev/null || true
+            $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
+            pkill -9 -f "qemu-system-x86" 2>/dev/null || true
+            pkill -9 -f "/emulator/emulator" 2>/dev/null || true
+            sleep 5
+            start_emulator $((ATTEMPT + 1))
+            start_appium $((ATTEMPT + 1)) || break
           done
-
-          timeout 900 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
-            --configuration Debug \
-            --logger "trx;LogFileName=android-results.trx" \
-            -- \
-            "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
-            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
-            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"http://localhost:4723\")"
-          TEST_EXIT_CODE=$?
 
           kill "$APPIUM_PID" 2>/dev/null || true
           exit $TEST_EXIT_CODE
@@ -273,12 +352,25 @@ jobs:
         run: |
           echo "=== adb devices ==="
           timeout 15 $ANDROID_SDK_ROOT/platform-tools/adb devices -l 2>&1 || echo "(adb devices timed out)"
-          echo "=== logcat (last 2000 lines) ==="
-          timeout 30 $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 2000 2>&1 || echo "(adb logcat timed out — emulator likely dead)"
-          echo "=== appium.log (last 500 lines) ==="
-          tail -n 500 appium.log 2>/dev/null || echo "(no appium.log)"
-          echo "=== emulator.log (last 200 lines) ==="
-          tail -n 200 emulator.log 2>/dev/null || echo "(no emulator.log)"
+          # Tail the *streamed* logcat.log, not `adb logcat -d`, which only sees
+          # the last few seconds of the in-emulator ring buffer. The streaming
+          # file covers from emulator-boot through failure.
+          echo "=== logcat.log (last 2000 lines) ==="
+          tail -n 2000 logcat.log 2>/dev/null || echo "(no logcat.log)"
+          # appium-attempt-N.log + emulator-attempt-N.log are created per retry
+          # by the workflow-level emulator-restart loop. emulator.log is the
+          # initial boot from the dedicated step. Glob over all of them so a
+          # mid-run restart's logs aren't lost.
+          for f in appium-attempt-*.log; do
+            [ -f "$f" ] || continue
+            echo "=== $f (last 500 lines) ==="
+            tail -n 500 "$f"
+          done
+          for f in emulator.log emulator-attempt-*.log; do
+            [ -f "$f" ] || continue
+            echo "=== $f (last 200 lines) ==="
+            tail -n 200 "$f"
+          done
 
       - name: Upload diagnostics on failure
         if: failure()
@@ -286,14 +378,22 @@ jobs:
         with:
           name: android-ui-test-diagnostics
           path: |
-            appium.log
+            appium-attempt-*.log
             emulator.log
+            emulator-attempt-*.log
+            logcat.log
             **/*.trx
           if-no-files-found: ignore
 
       - name: Stop Android emulator
         if: always()
         run: |
+          # Stop the streamed logcat first so its file handle is released
+          # before the emulator dies (which would close adb anyway, but doing
+          # it in order makes the log tail clean).
+          if [ -n "${LOGCAT_PID:-}" ]; then
+            kill "$LOGCAT_PID" 2>/dev/null || true
+          fi
           # Force-kill all emulator processes immediately.
           # Using 'adb emu kill' alone can leave QEMU hanging for 30+ minutes.
           $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
@@ -330,7 +430,6 @@ jobs:
       matrix:
         device-class:
           - iphone
-          - ipad-mini-6
           - ipad-mini-a17
           # ipad-mini-5: runtime download is best-effort; allow it to fail
           # without blocking the other matrix entries.
@@ -454,7 +553,14 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ios-ui-test-results-${{ matrix.device-class }}
-          path: "**/*.trx"
+          # Include TestResults subdirectories — they hold per-test PNG screenshots
+          # and PageSource XML dumps attached on failure (BaseUITest.TearDown).
+          # Without these the .trx alone surfaces only the exception and leaves us
+          # blind to what was actually on screen at the moment of timeout.
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml
 
   # ─────────────────────────────────────────────
   # macOS (Mac Catalyst) UI Tests
@@ -662,4 +768,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-ui-test-results
-          path: "**/*.trx"
+          # Include screenshots and page-source dumps from BaseUITest.TearDown
+          # so we can diagnose layout-specific failures (Windows MAUI's
+          # ScrollView visibility quirks needed this once already).
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml

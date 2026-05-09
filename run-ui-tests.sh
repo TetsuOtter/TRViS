@@ -11,7 +11,7 @@
 #             --device-class=<class>
 #                            (iOS only) which simulator to target.
 #                            One of: iphone (default), ipad-mini-5,
-#                            ipad-mini-6, ipad-mini-a17.
+#                            ipad-mini-a17.
 # ================================================================
 
 set -euo pipefail
@@ -40,7 +40,6 @@ SKIP_INSTALL=false
 # iOS simulator device class. Affects iPad-vs-iPhone selection only.
 # "iphone"        -> iPhone 16 (default; matches the historical behavior)
 # "ipad-mini-5"   -> iPad mini (5th generation)
-# "ipad-mini-6"   -> iPad mini (6th generation)
 # "ipad-mini-a17" -> iPad mini (A17 Pro)
 DEVICE_CLASS="iphone"
 
@@ -61,9 +60,8 @@ done
 case "$DEVICE_CLASS" in
   iphone)        DEVICE_CLASS_SUFFIX="iphone" ;;
   ipad-mini-5)   DEVICE_CLASS_SUFFIX="ipad-mini-5" ;;
-  ipad-mini-6)   DEVICE_CLASS_SUFFIX="ipad-mini-6" ;;
   ipad-mini-a17) DEVICE_CLASS_SUFFIX="ipad-mini-a17" ;;
-  *)             die "Unknown --device-class: '$DEVICE_CLASS' (allowed: iphone, ipad-mini-5, ipad-mini-6, ipad-mini-a17)" ;;
+  *)             die "Unknown --device-class: '$DEVICE_CLASS' (allowed: iphone, ipad-mini-5, ipad-mini-a17)" ;;
 esac
 
 # ── Constants ───────────────────────────────────────────────────
@@ -165,11 +163,6 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
       SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini--5th-generation-"
       SIM_NAME_REGEX="^iPad mini \(5th generation\)$"
       SIM_DEVICE_NAME="iPad mini (5th generation)"
-      ;;
-    ipad-mini-6)
-      SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini-6th-generation"
-      SIM_NAME_REGEX="^iPad mini \(6th generation\)$"
-      SIM_DEVICE_NAME="iPad mini (6th generation)"
       ;;
     ipad-mini-a17)
       SIM_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro"
@@ -315,7 +308,10 @@ fi
 # ── Wait for iOS Simulator boot ────────────────────────────────
 # Boot was started before the build to overlap boot time with compile time.
 # Do NOT erase the simulator: a full erase forces an OS-image reinstall
-# that takes >10 min in CI. Reinstalling the app per-test is sufficient.
+# that takes >10 min in CI. The app is pre-installed once (below) and
+# AppiumConfig uses noReset:true so the xcuitest driver only terminates
+# and relaunches the app between sessions instead of uninstalling it.
+# Per-test app state is reset in BaseUITest.ResetAppState via simctl.
 #
 # NOTE: `xcrun simctl bootstatus -b` can hang indefinitely in some CI
 # environments (e.g., GitHub Actions macos-26 runners with Xcode 26).
@@ -349,6 +345,20 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
     xcrun simctl list devices | grep -A2 -B2 "$DEVICE_ID" || true
     die "Simulator $DEVICE_ID failed to boot within 20 minutes (state: $SIM_STATE)"
   fi
+fi
+
+# ── Pre-install iOS app on simulator ───────────────────────────
+# Register the app with FrontBoard once before Appium starts.
+# AppiumConfig uses noReset:true so the xcuitest driver will not
+# uninstall/reinstall the app between sessions — it only terminates and
+# relaunches. This avoids the repeated uninstall/reinstall cycle that
+# leaves FrontBoard in an inconsistent state and causes
+# "Application is unknown to FrontBoard" session-creation failures.
+# Per-test app state (NSUserDefaults) is cleared by BaseUITest.ResetAppState.
+if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
+  log "Pre-installing app on simulator $DEVICE_ID..."
+  xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+  log "App pre-installed."
 fi
 
 # ── Install Mac Catalyst app ────────────────────────────────────

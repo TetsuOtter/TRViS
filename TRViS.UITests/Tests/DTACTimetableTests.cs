@@ -10,47 +10,43 @@ namespace TRViS.UITests.Tests;
 /// scroll view (the GPS auto-scroll target).
 /// </summary>
 [TestFixture]
+[Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class DTACTimetableTests : BaseUITest
 {
-	private SelectTrainPageObject _selectTrainPage = null!;
-	private AppShellPage _shell = null!;
+	private StartHomePageObject _startHomePage = null!;
 
 	[SetUp]
 	public override void SetUp()
 	{
 		base.SetUp();
 
-		var firebasePage = new FirebaseSettingPageObject(Driver);
-		// FirebaseSettingPageObject picks a platform-appropriate timeout
-		// (120 s on Android for Mono JIT, 15 s on Windows where the consent
-		// page may be skipped because Preferences aren't reliably reset).
-		if (firebasePage.IsDisplayed())
-			_selectTrainPage = firebasePage.SaveAndAccept();
-		else
-			_selectTrainPage = new SelectTrainPageObject(Driver);
-
-		_shell = new AppShellPage(Driver);
+		_startHomePage = new StartHomePageObject(Driver);
+		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 	}
 
 	private DTACViewHostPageObject LoadSampleAndOpenDTAC()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
-		_selectTrainPage.LoadSample();
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
 		// Sample data populates the work-group list synchronously.
-		_selectTrainPage.WaitForElement(AutomationIds.SelectTrain.WorkGroupList);
-		return _shell.NavigateToDTAC();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+		// Use the UI_TEST auto-open seam: picks first WorkGroup + first Work and
+		// commits via the same code path as 開く, then navigates to DTAC. Avoids
+		// flaky CollectionView row tapping on iOS while still exercising the
+		// Home -> commit -> DTAC pipeline.
+		return _startHomePage.AutoOpenForTesting();
 	}
 
 	[Test]
 	public void LoadSample_PopulatesWorkGroupList_DisplayCountSane()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
-		_selectTrainPage.LoadSample();
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
 
 		// Sample data ships with 2 WorkGroups. Ensure both surface in the list.
 		// Use >=2 rather than ==2 so platform-specific cell wrappers don't cause
 		// a false negative if extra layout primitives expose their text.
-		int count = _selectTrainPage.CountWorkGroups();
+		int count = _startHomePage.CountWorkGroups();
 		Assert.That(count, Is.GreaterThanOrEqualTo(2),
 			"Sample data should produce at least 2 work-group rows.");
 	}
@@ -138,16 +134,14 @@ public class DTACTimetableTests : BaseUITest
 	[Test]
 	public void NextTrainButton_Present_WhenSelectedTrainHasNextTrainId()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
-		_selectTrainPage.LoadSample();
-		_selectTrainPage.WaitForElement(AutomationIds.SelectTrain.WorkGroupList);
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
 
 		// Cascade to a sample-data train known to have NextTrainId set:
-		// linear-train-1 (NextTrainId = "linear-train-2").
-		_selectTrainPage.SeedTrainSelectionWithNextTrain();
-		Thread.Sleep(300);
-
-		var dtac = _shell.NavigateToDTAC();
+		// linear-train-1 (NextTrainId = "linear-train-2"). The seam commits and
+		// navigates to DTAC, mirroring the AutoOpenForTesting pattern.
+		var dtac = _startHomePage.SeedTrainSelectionWithNextTrain();
 		dtac.SwitchToTimetableTab();
 
 		Assert.That(dtac.IsNextTrainButtonPresent(), Is.True,
@@ -183,20 +177,20 @@ public class DTACTimetableTests : BaseUITest
 	[Test]
 	public void GpsLocation_DeeplinkReachesLocationService()
 	{
-		Assert.That(_selectTrainPage.IsDisplayed(), Is.True);
-		_selectTrainPage.LoadSample();
-		_selectTrainPage.WaitForElement(AutomationIds.SelectTrain.WorkGroupList);
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
 
 		// Push a fixture GPS coord through the DEBUG-only seed button. The button
 		// force-enables LocationService and calls SetGpsLocation directly — no
 		// CoreLocation, no permissions, no SendKeys.
-		_selectTrainPage.SeedGpsLocationForTesting();
+		_startHomePage.SeedGpsLocationForTesting();
 		Thread.Sleep(500);
 
-		// Open DTAC and verify the timetable still renders. If anything in the
-		// pipeline (LocationService → presenter) had crashed, DTAC navigation
-		// would fail to find the timetable container.
-		var dtac = _shell.NavigateToDTAC();
+		// Commit a selection via the auto-open seam (selecting on Home is now
+		// tentative until 開く). Verifying GPS pipeline survives requires DTAC
+		// to have a real Work selected.
+		var dtac = _startHomePage.AutoOpenForTesting();
 		Assert.That(dtac.IsDisplayed(), Is.True);
 		dtac.SwitchToTimetableTab();
 		Assert.That(dtac.TimetableScrollView.Displayed, Is.True,

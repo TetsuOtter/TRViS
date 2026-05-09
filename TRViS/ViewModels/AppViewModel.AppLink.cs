@@ -24,7 +24,17 @@ public partial class AppViewModel
 	private readonly List<string> _ExternalResourceUrlHistory;
 	public IReadOnlyList<string> ExternalResourceUrlHistory => _ExternalResourceUrlHistory;
 
-	public async Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
+	public Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
+		=> HandleAppLinkUriAsync(uri, addToHistory: true, token);
+
+	/// <summary>
+	/// <paramref name="addToHistory"/> controls whether a successful load is
+	/// added to <see cref="ExternalResourceUrlHistory"/>. Default <c>true</c>
+	/// preserves OS-deeplink / App.xaml.cs entry points; the in-app
+	/// "Connect to Server" dialog passes <c>false</c> when the user
+	/// unticks "接続先を保存する".
+	/// </summary>
+	public async Task<bool> HandleAppLinkUriAsync(string uri, bool addToHistory, CancellationToken token)
 	{
 #if UI_TEST
 		// Test-only: seed the URL history list so UI tests can exercise the
@@ -84,12 +94,14 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
-		return await HandleAppLinkUriAsync(appLinkInfo, uri, token);
+		return await HandleAppLinkUriAsync(appLinkInfo, uri, addToHistory, token);
 	}
-	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
-		=> await HandleAppLinkUriAsync(appLinkInfo, null, token);
+	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
+		=> HandleAppLinkUriAsync(appLinkInfo, addToHistory: true, token);
+	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, bool addToHistory, CancellationToken token)
+		=> HandleAppLinkUriAsync(appLinkInfo, null, addToHistory, token);
 
-	private async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
+	private async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
 	{
 		string? decodedUrl = null;
 		string? appLinkString = originalAppLink;
@@ -105,7 +117,7 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "ws" or "wss")
 		{
 			logger.Info("ResourceUri is WebSocket -> Connect to NetworkSyncService directly");
-			return await HandleWebSocketAppLinkAsync(appLinkInfo, appLinkString, token);
+			return await HandleWebSocketAppLinkAsync(appLinkInfo, appLinkString, addToHistory, token);
 		}
 
 		OpenFile openFile = new(InstanceManager.HttpClient)
@@ -148,13 +160,13 @@ public partial class AppViewModel
 		}
 
 		ILoader? lastLoader = this.Loader;
-		this.Loader = loader;
+		this.SetLoader(loader, decodedUrl ?? appLinkInfo.ResourceUri?.ToString() ?? appLinkString);
 		logger.Info("Loader Initialized");
 		lastLoader?.Dispose();
 		logger.Debug("Last Loader Disposed");
 
 		// 履歴に追加（HTTPSのURLまたはAppLink）
-		string? historyEntry = decodedUrl ?? appLinkString;
+		string? historyEntry = addToHistory ? (decodedUrl ?? appLinkString) : null;
 		if (historyEntry is not null)
 		{
 			// pathがListに存在しない場合は、Removeは何も実行されずに終了する
@@ -209,7 +221,7 @@ public partial class AppViewModel
 		return true;
 	}
 
-	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
+	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
 	{
 		if (appLinkInfo.ResourceUri is null)
 		{
@@ -232,7 +244,7 @@ public partial class AppViewModel
 			WebSocketNetworkSyncService service = await openFile.OpenWebSocketAppLinkAsync(appLinkInfo, token);
 
 			ILoader? lastLoader = this.Loader;
-			this.Loader = service;
+			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
 			logger.Info("Loader Initialized from WebSocket");
 			lastLoader?.Dispose();
 			logger.Debug("Last Loader Disposed");
@@ -240,7 +252,7 @@ public partial class AppViewModel
 			InstanceManager.LocationService.SetNetworkSyncService(service);
 
 			// WebSocketのAppLinkを履歴に追加
-			if (originalAppLink is not null)
+			if (addToHistory && originalAppLink is not null)
 			{
 				_ExternalResourceUrlHistory.Remove(originalAppLink);
 				if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
@@ -455,8 +467,8 @@ public partial class AppViewModel
 
 	/// <summary>
 	/// Public test-only seed for ExternalResourceUrlHistory. Called from the
-	/// SelectTrainPage's hidden test button; lets UI tests bypass the popup's
-	/// SendKeys-based path (which is flaky on iOS XCUITest for long URLs).
+	/// StartHomePage's hidden test seed button; lets UI tests bypass typing
+	/// through Appium SendKeys (which is flaky on iOS XCUITest for long URLs).
 	/// </summary>
 	public void SeedUrlHistoryForTesting(IEnumerable<string> urls)
 	{
@@ -472,6 +484,23 @@ public partial class AppViewModel
 			_ExternalResourceUrlHistory,
 			StringListJsonSourceGenerationContext.Default.ListString);
 		logger.Info("SeedUrlHistoryForTesting: persisted {0} URLs", _ExternalResourceUrlHistory.Count);
+	}
+
+	/// <summary>
+	/// Public test-only clear for ExternalResourceUrlHistory. Lets the
+	/// "empty history" code path tests start from a known-clean state without
+	/// relying on per-session filesystem resets — on iOS, simctl-level
+	/// preference deletion has been observed to race with the app's in-memory
+	/// list when noReset:true is set.
+	/// </summary>
+	public void ClearUrlHistoryForTesting()
+	{
+		_ExternalResourceUrlHistory.Clear();
+		AppPreferenceService.SetToJson(
+			AppPreferenceKeys.ExternalResourceUrlHistory,
+			_ExternalResourceUrlHistory,
+			StringListJsonSourceGenerationContext.Default.ListString);
+		logger.Info("ClearUrlHistoryForTesting: cleared in-memory + persisted history");
 	}
 
 	/// <summary>
