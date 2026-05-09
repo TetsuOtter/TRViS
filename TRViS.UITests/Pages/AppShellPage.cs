@@ -22,7 +22,7 @@ public class AppShellPage : PageObject
 	/// Used by Windows keyboard navigation to calculate arrow-key presses.
 	/// </summary>
 	private static readonly string[] FlyoutItemOrder = [
-		"Select Train",
+		"Home",
 		"D-TAC",
 		"Third Party Licenses",
 		"Settings",
@@ -219,10 +219,10 @@ public class AppShellPage : PageObject
 		if (targetIndex < 0)
 			throw new ArgumentException($"Unknown flyout item title: '{title}'");
 
-		// The currently selected item is "Select Train" (index 0) after Firebase consent.
+		// The currently selected item is "Home" (index 0) after launch.
 		// When the pane opens, the selected item gets keyboard focus.
 		// ArrowDown moves through items sequentially.
-		int arrowDownCount = targetIndex; // 0-based: Select Train=0, D-TAC=1, etc.
+		int arrowDownCount = targetIndex; // 0-based: Home=0, D-TAC=1, etc.
 
 		for (int attempt = 0; attempt < 3; attempt++)
 		{
