@@ -19,7 +19,7 @@ iOS Simulator Launcher
 If you don't specify UDID/DeviceName, you can select Device from available device list.
 
 dotnet command will executed like below ...
-	dotnet build -t:Run $TARGET_PROJ -f $TARGET_FRAMEWORK -r iossimulator-x64 --no-self-contained --nologo "/p:_DeviceName=[DeviceName|:v2:udid=UDID]" [dotnet command options]
+	dotnet build -t:Run $TARGET_PROJ -f $TARGET_FRAMEWORK -r iossimulator-arm64 --no-self-contained --nologo "/p:_DeviceName=[DeviceName|:v2:udid=UDID]" [dotnet command options]
 
 ---
 
@@ -92,7 +92,7 @@ if [ -z "$UDID" ]; then
   RUNTIME_IDENTIFIER='ios-arm64'
 else
   echo "... UDID: $UDID (Run on Simulator)"
-  RUNTIME_IDENTIFIER='iossimulator-x64'
+  RUNTIME_IDENTIFIER='iossimulator-arm64'
 fi
 
 if [ ! -z "$DeviceName" ]; then
