@@ -126,12 +126,27 @@ public partial class StartHomePage : ContentPage
 
 	void UpdateHomeBodyTopSpacer()
 	{
-		// HomeBody now lives in its own row/column (no longer RowSpan=2 over
-		// AppHeader's row), so the top spacer that used to reserve space for
-		// the home-mode small header is no longer needed in either orientation.
-		// Kept zero rather than removed entirely so the XAML can stay in sync
-		// with future tweaks without revisiting the spacer.
-		HomeBodyTopSpacer.HeightRequest = 0;
+		// In landscape phone HomeBody sits in its own column to the right of
+		// the header — no top spacer needed because nothing renders above it.
+		if (_isLandscapePhone)
+		{
+			HomeBodyTopSpacer.HeightRequest = 0;
+			return;
+		}
+		// Portrait: HomeBody RowSpan=3 covers the AppHeader and LoaderInfoCard
+		// rows too, so reserve enough space at the top of HomeBody to keep
+		// its ScrollView clear of *both* upper rows. The card is declared
+		// before HomeBody and would otherwise be z-ordered behind it; the
+		// transparent spacer area lets it (and the AppHeader) show through,
+		// and the picker starts below it. We use the full AppHeader.Height
+		// (not the scaled visual) because Row 0 of RootGrid sizes to the
+		// unscaled header regardless of Scale, and the spacer must cover
+		// the whole row.
+		double headerHeight = AppHeader.Height > 0 ? AppHeader.Height : 220;
+		double loaderInfoHeight = LoaderInfoCard.IsVisible
+			? (LoaderInfoCard.Height > 0 ? LoaderInfoCard.Height : 80)
+			: 0;
+		HomeBodyTopSpacer.HeightRequest = headerHeight + loaderInfoHeight + 12;
 	}
 
 	void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -243,12 +258,13 @@ public partial class StartHomePage : ContentPage
 			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 3);
 			Grid.SetColumn(HomeBody, 1); Grid.SetColumnSpan(HomeBody, 1);
 			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
-			// StartBody centered vertically in its column. Top-anchored looked
-			// too top-heavy on landscape phones (the warning banner and the
-			// privacy/TPL link row both sat against the top of the column with
-			// empty space below); End would push them below the fold when the
-			// body is shorter than the column. Center splits the difference.
-			StartBody.VerticalOptions = LayoutOptions.Center;
+			// Fill the right column so StartBody's internal flexible spacer
+			// (the * row between LoadDemo and the privacy/TPL link row) can
+			// expand. Result: banner stays near the top of the column, link
+			// row pins to the bottom — natural distribution instead of the
+			// top-heavy bunch we'd get from VerticalOptions=Start or the
+			// half-empty Center we'd get without the spacer.
+			StartBody.VerticalOptions = LayoutOptions.Fill;
 			LoaderInfoCard.VerticalOptions = LayoutOptions.Start;
 			// Home mode no longer needs the top spacer (header is on the left,
 			// not on top) — recompute since UpdateHomeBodyTopSpacer keys off
@@ -258,9 +274,14 @@ public partial class StartHomePage : ContentPage
 		else
 		{
 			// Portrait / tablet: 3 rows × 1 col — header, optional loader-info
-			// card (auto-collapses to 0 height when hidden), body. Body is
-			// row 2 (the *) so HomeBody and StartBody share the bottom region
-			// without overlapping AppHeader; HomeBody no longer needs RowSpan.
+			// card, body. HomeBody spans all three rows so the picker
+			// ScrollView keeps the same vertical real estate it had before
+			// the LoaderInfoCard refactor (the * row alone is too small on
+			// some platforms — Windows desktop ended up scrolling
+			// WorkPendingHint off-screen). HomeBodyTopSpacer reserves room
+			// above for AppHeader and LoaderInfoCard, which are rendered on
+			// top of HomeBody (XAML declaration order) within that
+			// transparent reserved area.
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
@@ -270,7 +291,7 @@ public partial class StartHomePage : ContentPage
 			Grid.SetColumn(LoaderInfoCard, 0); Grid.SetColumnSpan(LoaderInfoCard, 1);
 			Grid.SetRow(StartBody, 2); Grid.SetRowSpan(StartBody, 1);
 			Grid.SetColumn(StartBody, 0); Grid.SetColumnSpan(StartBody, 1);
-			Grid.SetRow(HomeBody, 2); Grid.SetRowSpan(HomeBody, 1);
+			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 3);
 			Grid.SetColumn(HomeBody, 0); Grid.SetColumnSpan(HomeBody, 1);
 			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
 			StartBody.VerticalOptions = LayoutOptions.End;
