@@ -61,41 +61,32 @@ public class DTACViewHostPageObject : PageObject
 		int swipeAttempts = 0;
 		const int maxSwipes = 4;
 
+		// Suffix of the button's visible label (e.g. "Ｌｉｎｅａｒ ０ ２の時刻表へ").
+		// Stable across train-number variations and used as the Windows fallback,
+		// because WinUI 3 surfaces a MAUI Grid's AutomationId as a non-control
+		// Pane that AccessibilityId search doesn't always reach.
+		const string ButtonTextSuffix = "の時刻表へ";
+
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
 			while (DateTime.UtcNow < deadline)
 			{
-				try
+				if (TryFindVisibleNextTrainButton(ButtonTextSuffix))
+					return true;
+
+				// Element either not in tree or in tree but not visible
+				// (off-screen, unparented, or hidden via IsVisible=false).
+				// Swipe up to bring it on-screen if possible; otherwise
+				// keep polling until the deadline.
+				if (swipeAttempts < maxSwipes)
 				{
-					var el = Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
-					if (el.Displayed)
-						return true;
-					// Found in tree but not visible — could be off-screen, or
-					// unparented (Mac Catalyst quirk). Swipe and retry; if the
-					// element is genuinely hidden (negative case) Displayed
-					// will stay false through every attempt.
-					if (swipeAttempts < maxSwipes)
-					{
-						TrySwipeUp();
-						swipeAttempts++;
-					}
-					else
-					{
-						return false;
-					}
+					TrySwipeUp();
+					swipeAttempts++;
 				}
-				catch (NoSuchElementException)
+				else
 				{
-					// Not in the tree at all (Android / iOS prune IsVisible=false
-					// elements). Try scrolling in case it's lazily surfaced, then
-					// give up.
-					if (swipeAttempts < maxSwipes)
-					{
-						TrySwipeUp();
-						swipeAttempts++;
-					}
-					Thread.Sleep(200);
+					return false;
 				}
 			}
 			return false;
@@ -104,6 +95,35 @@ public class DTACViewHostPageObject : PageObject
 		{
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
 		}
+	}
+
+	private bool TryFindVisibleNextTrainButton(string buttonTextSuffix)
+	{
+		// Primary: AutomationId lookup. Works on iOS/Android/macOS.
+		try
+		{
+			var el = Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
+			if (el.Displayed)
+				return true;
+		}
+		catch (NoSuchElementException) { }
+
+		// Windows fallback: search by the constant Japanese suffix in the
+		// inner Button's visible label using XPath contains() against the
+		// UIA Name property.
+		if (IsWindows)
+		{
+			try
+			{
+				var el = Driver.FindElement(By.XPath(
+					$"//*[contains(@Name, '{buttonTextSuffix}')]"));
+				if (el.Displayed)
+					return true;
+			}
+			catch (NoSuchElementException) { }
+		}
+
+		return false;
 	}
 
 	/// <summary>
