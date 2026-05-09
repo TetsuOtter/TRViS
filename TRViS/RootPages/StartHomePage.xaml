@@ -146,6 +146,14 @@
 
 			<!-- Privacy policy reconfirm banner. High-prominence treatment when shown:
 			     bigger font, warning glyph, vivid border. Tapping it opens the dialog. -->
+			<!-- IsVisible is controlled exclusively from code-behind
+			     (UpdatePrivacyDependentControls). Do NOT set IsVisible="False"
+			     in XAML: on Windows MAUI a Border that starts collapsed never
+			     gets a UIA peer, so the runtime flip to true is invisible to
+			     Appium and the banner remains "absent" for tests even when
+			     visually rendered. Starting with the default (true) lets MAUI
+			     create the platform peer up-front, and code-behind hides it
+			     before paint via UpdatePrivacyDependentControls in OnAppearing. -->
 			<Border
 				x:Name="PrivacyReconfirmBanner"
 				AutomationId="StartHome.PrivacyReconfirmBanner"
@@ -154,8 +162,7 @@
 				StrokeThickness="2"
 				BackgroundColor="{AppThemeBinding Light=#FFF4D6, Dark=#3A2400}"
 				Padding="16"
-				Margin="0,0,0,4"
-				IsVisible="False">
+				Margin="0,0,0,4">
 				<Border.StrokeShape>
 					<RoundRectangle CornerRadius="12"/>
 				</Border.StrokeShape>
@@ -534,17 +541,20 @@
 		</Grid>
 
 		<!-- ========== UI_TEST seam buttons ==========
-		     Zero-sized invisible anchors that bypass the picker UI for tests.
-		     Placed at the top-level RootGrid so they remain reachable regardless
-		     of Start/Home mode (StartBody is set IsVisible=false in Home mode,
-		     which on Mac Catalyst removed nested children from Appium's
-		     accessibility tree even after the runtime IsVisible flip).
-		     Toggled visible by code-behind under #if UI_TEST. -->
+		     1×1 anchors at top-left of RootGrid that bypass the picker UI for tests.
+		     Always rendered (not flipped via IsVisible) because:
+		      - Mac Catalyst nested children of an IsVisible=False container are
+		        not exposed via the accessibility tree even after a runtime flip.
+		      - Windows MAUI similarly creates no UIA peer for IsVisible=False
+		        elements until they are visible, missing the runtime flip.
+		     Placed at top-level RootGrid so the host isn't affected by Start/Home
+		     mode visibility changes. The 1×1 buttons are visually negligible, and
+		     in production builds the Click handlers are no-ops (gated on
+		     #if UI_TEST), so accidental discovery has no effect. -->
 		<VerticalStackLayout
 			x:Name="TestSeamHost"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			IsVisible="False"
 			Spacing="0"
 			Padding="0"
 			Margin="0">

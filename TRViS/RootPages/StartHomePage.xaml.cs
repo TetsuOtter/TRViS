@@ -164,14 +164,10 @@ public partial class StartHomePage : ContentPage
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 		viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-#if UI_TEST
-		// Make the test seed buttons findable by Appium. We toggle the host
-		// container instead of each button: when the host stays IsVisible=false
-		// in production builds the children aren't laid out at all (zero accessibility
-		// tree footprint), and in UI_TEST builds a single flip exposes all three.
-		if (TestSeamHost is not null)
-			TestSeamHost.IsVisible = true;
-#endif
+		// TestSeamHost is always rendered; its 1×1 buttons are no-ops in
+		// production builds (Click handlers gated on #if UI_TEST). No runtime
+		// IsVisible flip — that pattern was unreliable across Mac Catalyst and
+		// Windows MAUI accessibility trees.
 
 		UpdatePrivacyDependentControls();
 		UpdateHomeBodyTopSpacer();
