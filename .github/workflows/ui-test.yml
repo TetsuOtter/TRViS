@@ -244,34 +244,95 @@ jobs:
           fi
           echo "APK: $APK_PATH"
 
-          # Redirect appium output so we can inspect it after a UIA2 crash.
-          # The "Dump logcat on failure" step prints the tail.
-          appium > appium.log 2>&1 &
-          APPIUM_PID=$!
-          echo "Appium PID: $APPIUM_PID"
+          # Helpers for emulator + appium lifecycle. The MAUI debug build's
+          # accessibility tree under DTAC has been observed killing the
+          # UIA2 instrumentation hard enough to take the emulator process
+          # with it ("Could not find a connected Android device" on every
+          # subsequent test, even after [RetryAllTests(2)] tears down the
+          # Driver per attempt). When that happens, only restarting the
+          # emulator binary brings ADB back; per-test SetUp can't recover.
 
-          echo "Waiting for Appium server to start..."
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:4723/status > /dev/null 2>&1; then
-              echo "Appium server is ready!"
+          start_appium() {
+            appium > "appium-attempt-${1}.log" 2>&1 &
+            APPIUM_PID=$!
+            echo "Appium PID (attempt ${1}): $APPIUM_PID"
+            for i in $(seq 1 30); do
+              if curl -s http://localhost:4723/status > /dev/null 2>&1; then
+                echo "Appium server is ready!"
+                return 0
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "ERROR: Appium server did not start within 30 seconds"
+                kill "$APPIUM_PID" 2>/dev/null || true
+                return 1
+              fi
+              sleep 1
+            done
+          }
+
+          start_emulator() {
+            $ANDROID_SDK_ROOT/emulator/emulator \
+              -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+              -no-window \
+              -gpu swiftshader_indirect \
+              -no-snapshot \
+              -noaudio \
+              -no-boot-anim \
+              -memory 4096 \
+              > "emulator-attempt-${1}.log" 2>&1 &
+            EMULATOR_PID=$!
+            echo "Emulator started for attempt ${1} (PID $EMULATOR_PID)"
+            $ANDROID_SDK_ROOT/platform-tools/adb wait-for-device
+            timeout 300 bash -c \
+              'until $ANDROID_SDK_ROOT/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | grep -q "^1$"; do sleep 5; done'
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global window_animation_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global transition_animation_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global animator_duration_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
+          }
+
+          # First attempt uses the emulator + appium that the prior workflow
+          # steps already started; later attempts spin up fresh ones.
+          start_appium 1 || exit 1
+          MAX_ATTEMPTS=2
+          TEST_EXIT_CODE=1
+          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+            timeout 900 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
+              --configuration Debug \
+              --logger "trx;LogFileName=android-results-attempt-${ATTEMPT}.trx" \
+              -- \
+              "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
+              "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
+              "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"http://localhost:4723\")"
+            TEST_EXIT_CODE=$?
+
+            if [ $TEST_EXIT_CODE -eq 0 ]; then
+              echo "Tests passed on attempt $ATTEMPT"
               break
             fi
-            if [ "$i" -eq 30 ]; then
-              echo "ERROR: Appium server did not start within 30 seconds"
-              kill "$APPIUM_PID" 2>/dev/null || true
-              exit 1
+            if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+              echo "Tests still failing after $ATTEMPT attempts"
+              break
             fi
-            sleep 1
+            # Distinguish "real failures" (emulator alive, tests just don't
+            # pass) from "infrastructure death" (emulator/UIA2 dead). Only
+            # the latter is worth a fresh-emulator retry — re-running the
+            # same suite against the same alive emulator would just
+            # reproduce real bugs at extra CI cost.
+            DEVICE_STATE=$(timeout 10 $ANDROID_SDK_ROOT/platform-tools/adb get-state 2>/dev/null || echo "missing")
+            if [ "$DEVICE_STATE" = "device" ]; then
+              echo "Tests failed but emulator is alive (state=device) — not retrying"
+              break
+            fi
+            echo "Emulator state '$DEVICE_STATE' — restarting for attempt $((ATTEMPT + 1))"
+            kill "$APPIUM_PID" 2>/dev/null || true
+            $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
+            pkill -9 -f "qemu-system-x86" 2>/dev/null || true
+            pkill -9 -f "/emulator/emulator" 2>/dev/null || true
+            sleep 5
+            start_emulator $((ATTEMPT + 1))
+            start_appium $((ATTEMPT + 1)) || break
           done
-
-          timeout 900 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
-            --configuration Debug \
-            --logger "trx;LogFileName=android-results.trx" \
-            -- \
-            "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
-            "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
-            "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"http://localhost:4723\")"
-          TEST_EXIT_CODE=$?
 
           kill "$APPIUM_PID" 2>/dev/null || true
           exit $TEST_EXIT_CODE
@@ -291,10 +352,20 @@ jobs:
           # file covers from emulator-boot through failure.
           echo "=== logcat.log (last 2000 lines) ==="
           tail -n 2000 logcat.log 2>/dev/null || echo "(no logcat.log)"
-          echo "=== appium.log (last 500 lines) ==="
-          tail -n 500 appium.log 2>/dev/null || echo "(no appium.log)"
-          echo "=== emulator.log (last 200 lines) ==="
-          tail -n 200 emulator.log 2>/dev/null || echo "(no emulator.log)"
+          # appium-attempt-N.log + emulator-attempt-N.log are created per retry
+          # by the workflow-level emulator-restart loop. emulator.log is the
+          # initial boot from the dedicated step. Glob over all of them so a
+          # mid-run restart's logs aren't lost.
+          for f in appium-attempt-*.log; do
+            [ -f "$f" ] || continue
+            echo "=== $f (last 500 lines) ==="
+            tail -n 500 "$f"
+          done
+          for f in emulator.log emulator-attempt-*.log; do
+            [ -f "$f" ] || continue
+            echo "=== $f (last 200 lines) ==="
+            tail -n 200 "$f"
+          done
 
       - name: Upload diagnostics on failure
         if: failure()
@@ -302,8 +373,9 @@ jobs:
         with:
           name: android-ui-test-diagnostics
           path: |
-            appium.log
+            appium-attempt-*.log
             emulator.log
+            emulator-attempt-*.log
             logcat.log
             **/*.trx
           if-no-files-found: ignore
