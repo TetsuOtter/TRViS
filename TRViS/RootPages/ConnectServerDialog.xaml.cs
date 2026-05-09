@@ -31,11 +31,22 @@ public partial class ConnectServerDialog : ContentPage
 		// form doesn't take the whole screen. iPhone falls back to fullscreen
 		// automatically because UIKit ignores FormSheet on compact widths.
 		IOSPage.SetModalPresentationStyle(this.On<iOS>(), UIModalPresentationStyle.FormSheet);
+
+		// Set initial sub-view visibility BEFORE first paint based on whether the
+		// app already has URL history. Both views default IsVisible=true in XAML
+		// (so each gets a UIA peer on Windows, where IsVisible='False' XAML
+		// defaults skip peer creation and miss the runtime flip), but they
+		// occupy the same Grid.Row and would visually overlap if both stayed
+		// visible. Hiding the inactive one synchronously from the constructor
+		// avoids any first-paint frame where both render simultaneously.
+		PopulateHistory();
 	}
 
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
+		// Re-populate on each appearance so a re-show after preferences changed
+		// (e.g., user added a URL elsewhere) reflects the latest history.
 		PopulateHistory();
 	}
 
