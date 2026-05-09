@@ -157,6 +157,8 @@
 			<Border
 				x:Name="PrivacyReconfirmBanner"
 				AutomationId="StartHome.PrivacyReconfirmBanner"
+				AutomationProperties.IsInAccessibleTree="True"
+				AutomationProperties.Name="プライバシーポリシーへの同意が必要です"
 				Grid.Row="0"
 				Stroke="{AppThemeBinding Light=#FF9A00, Dark=#FFB800}"
 				StrokeThickness="2"
