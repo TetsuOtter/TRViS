@@ -12,6 +12,10 @@ autom4te.cache/
 *.tar.gz
 tarballs/
 test-results/
+# Visual Studio / dotnet test default output dirs
+TestResults/
+*.trx
+*.coverage
 
 # Mac bundle stuff
 *.dmg

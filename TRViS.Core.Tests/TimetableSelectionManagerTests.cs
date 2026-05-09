@@ -7,9 +7,21 @@ namespace TRViS.Core.Tests;
 /// <see cref="TimetableSelectionManager"/> の選択保持/フォールバック挙動 (#214) を検証する。
 /// テスト用の <see cref="FakeLoader"/> を介して各階層のリストを差し替え、
 /// Refresh() で選択 Id が維持されること、消えた階層から先頭にフォールバックすることを確認する。
+///
+/// #224 で OnLoaderChanged 時の auto-pick が廃止された (Home picker の tentative 設計に合わせた変更)。
+/// そのため Loader 設定後は SelectedWorkGroup は null。Refresh の挙動を検証するテストでは
+/// <see cref="CommitFirstSelection"/> で明示的に「先頭 WG/Work/Train」を選択してから動かす。
 /// </summary>
 public class TimetableSelectionManagerTests
 {
+	/// <summary>
+	/// 旧 auto-pick と同等の状態 (先頭 WG → 先頭 Work → 先頭 Train) を作る。
+	/// </summary>
+	private static void CommitFirstSelection(TimetableSelectionManager manager)
+	{
+		manager.SelectedWorkGroup = manager.WorkGroupList?.FirstOrDefault();
+	}
+
 	[Fact]
 	public void Refresh_PreservesSelection_WhenAllIdsStillPresent()
 	{
@@ -17,7 +29,7 @@ public class TimetableSelectionManagerTests
 		loader.Setup(BuildSampleData());
 
 		var manager = new TimetableSelectionManager { Loader = loader };
-		// 初期化時に WorkGroup0 → Work0 → Train0 が選択される
+		CommitFirstSelection(manager);
 		manager.SelectedWork = loader.WorkLists["wg-1"][1]; // Work1 へ移動
 		manager.SelectedTrainData = loader.TrainListsByWorkId["w-1-1"][1]; // 2 つ目の Train
 
@@ -46,6 +58,7 @@ public class TimetableSelectionManagerTests
 		loader.Setup(BuildSampleData());
 
 		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
 		manager.SelectedTrainData = loader.TrainListsByWorkId["w-1-0"][1];
 		Assert.Equal("t-1-0-1", manager.SelectedTrainData?.Id);
 
@@ -67,6 +80,7 @@ public class TimetableSelectionManagerTests
 		loader.Setup(BuildSampleData());
 
 		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
 		manager.SelectedWork = loader.WorkLists["wg-1"][1];
 		Assert.Equal("w-1-1", manager.SelectedWork?.Id);
 
@@ -142,6 +156,7 @@ public class TimetableSelectionManagerTests
 		loader.Setup(BuildSampleData());
 
 		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
 		Assert.NotNull(manager.SelectedWorkGroup);
 		Assert.NotNull(manager.SelectedWork);
 		Assert.NotNull(manager.SelectedTrainData);
@@ -158,12 +173,48 @@ public class TimetableSelectionManagerTests
 	}
 
 	[Fact]
+	public void OnLoaderChanged_DoesNotAutoSelectFirstWorkGroup()
+	{
+		// #224 — OnLoaderChanged は auto-pick せず、選択を null にする。
+		// ホーム画面の tentative-selection 設計に合わせた契約。
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+
+		Assert.NotEmpty(manager.WorkGroupList!);
+		Assert.Null(manager.SelectedWorkGroup);
+		Assert.Null(manager.SelectedWork);
+		Assert.Null(manager.SelectedTrainData);
+	}
+
+	[Fact]
+	public void Refresh_DoesNotAutoCommit_WhenNoPriorSelection()
+	{
+		// #224 — Refresh は「すでにコミット済み」のときだけフォールバックする。
+		// 未コミット状態 (Home picker 上で何も選んでいない) で WebSocket Refresh が
+		// 飛んできても勝手に最初の項目を選んではならない。
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+		Assert.Null(manager.SelectedWorkGroup);
+
+		manager.Refresh();
+
+		Assert.Null(manager.SelectedWorkGroup);
+		Assert.Null(manager.SelectedWork);
+		Assert.Null(manager.SelectedTrainData);
+	}
+
+	[Fact]
 	public void Refresh_WhenNewWorkListBecomesEmpty_ClearsTrainSelection()
 	{
 		var loader = new FakeLoader();
 		loader.Setup(BuildSampleData());
 
 		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
 		Assert.NotNull(manager.SelectedWork);
 		Assert.NotNull(manager.SelectedTrainData);
 

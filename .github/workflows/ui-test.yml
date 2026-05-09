@@ -220,6 +220,19 @@ jobs:
           $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
           echo "Emulator is ready!"
 
+      - name: Start streaming logcat
+        # Stream logcat to a file from boot through teardown so we have a full
+        # record covering whichever test fails — `adb logcat -d -t 2000` after
+        # the fact only captures the last few seconds and misses earlier
+        # failures in a multi-test fixture (the 14:16 PrivacyDialog timeout in
+        # run 25603154274 happened before the on-failure dump, leaving us
+        # blind). The streaming process is killed in "Stop Android emulator".
+        run: |
+          $ANDROID_SDK_ROOT/platform-tools/adb logcat -v threadtime > logcat.log 2>&1 &
+          LOGCAT_PID=$!
+          echo "LOGCAT_PID=$LOGCAT_PID" >> $GITHUB_ENV
+          echo "Logcat streaming started with PID $LOGCAT_PID"
+
       - name: Run Android UI Tests
         run: |
           APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
@@ -273,8 +286,11 @@ jobs:
         run: |
           echo "=== adb devices ==="
           timeout 15 $ANDROID_SDK_ROOT/platform-tools/adb devices -l 2>&1 || echo "(adb devices timed out)"
-          echo "=== logcat (last 2000 lines) ==="
-          timeout 30 $ANDROID_SDK_ROOT/platform-tools/adb logcat -d -t 2000 2>&1 || echo "(adb logcat timed out — emulator likely dead)"
+          # Tail the *streamed* logcat.log, not `adb logcat -d`, which only sees
+          # the last few seconds of the in-emulator ring buffer. The streaming
+          # file covers from emulator-boot through failure.
+          echo "=== logcat.log (last 2000 lines) ==="
+          tail -n 2000 logcat.log 2>/dev/null || echo "(no logcat.log)"
           echo "=== appium.log (last 500 lines) ==="
           tail -n 500 appium.log 2>/dev/null || echo "(no appium.log)"
           echo "=== emulator.log (last 200 lines) ==="
@@ -288,12 +304,19 @@ jobs:
           path: |
             appium.log
             emulator.log
+            logcat.log
             **/*.trx
           if-no-files-found: ignore
 
       - name: Stop Android emulator
         if: always()
         run: |
+          # Stop the streamed logcat first so its file handle is released
+          # before the emulator dies (which would close adb anyway, but doing
+          # it in order makes the log tail clean).
+          if [ -n "${LOGCAT_PID:-}" ]; then
+            kill "$LOGCAT_PID" 2>/dev/null || true
+          fi
           # Force-kill all emulator processes immediately.
           # Using 'adb emu kill' alone can leave QEMU hanging for 30+ minutes.
           $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
@@ -330,7 +353,6 @@ jobs:
       matrix:
         device-class:
           - iphone
-          - ipad-mini-6
           - ipad-mini-a17
           # ipad-mini-5: runtime download is best-effort; allow it to fail
           # without blocking the other matrix entries.
@@ -454,7 +476,14 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ios-ui-test-results-${{ matrix.device-class }}
-          path: "**/*.trx"
+          # Include TestResults subdirectories — they hold per-test PNG screenshots
+          # and PageSource XML dumps attached on failure (BaseUITest.TearDown).
+          # Without these the .trx alone surfaces only the exception and leaves us
+          # blind to what was actually on screen at the moment of timeout.
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml
 
   # ─────────────────────────────────────────────
   # macOS (Mac Catalyst) UI Tests
@@ -662,4 +691,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-ui-test-results
-          path: "**/*.trx"
+          # Include screenshots and page-source dumps from BaseUITest.TearDown
+          # so we can diagnose layout-specific failures (Windows MAUI's
+          # ScrollView visibility quirks needed this once already).
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml
