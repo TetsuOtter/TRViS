@@ -114,6 +114,8 @@ public class VerticalStylePagePresenterTests
 			}
 		}
 
+		public string? HeaderTimeFormat { get; set; }
+
 		public event PropertyChangedEventHandler? PropertyChanged;
 	}
 

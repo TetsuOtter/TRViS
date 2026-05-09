@@ -192,19 +192,28 @@ public class LoaderSQL : ILoader, IDisposable
 		)).ToList();
 
 	public IReadOnlyList<Work> GetWorkList(string workGroupId)
-		=> Connection.Table<Models.DB.Work>().Where(v => v.WorkGroupId == workGroupId).Select(v => new Work(
-			v.Id,
-			v.WorkGroupId,
-			v.Name,
-			Utils.StringToDateOnlyOrNull(v.AffectDate),
+		=> Connection.Table<Models.DB.Work>().Where(v => v.WorkGroupId == workGroupId).Select(v =>
+		{
+			DateOnly? affectDate = Utils.StringToDateOnlyOrNull(v.AffectDate);
+			// 日付として解釈できない任意の文字列は AffectDateText に格納する
+			string? affectDateText = (affectDate is null && !string.IsNullOrEmpty(v.AffectDate))
+				? v.AffectDate
+				: null;
+			return new Work(
+				v.Id,
+				v.WorkGroupId,
+				v.Name,
+				affectDate,
 
-			v.AffixContentType,
-			v.AffixContent,
-			v.Remarks,
-			v.HasETrainTimetable,
-			v.ETrainTimetableContentType,
-			v.ETrainTimetableContent
-		)).ToList();
+				v.AffixContentType,
+				v.AffixContent,
+				v.Remarks,
+				v.HasETrainTimetable,
+				v.ETrainTimetableContentType,
+				v.ETrainTimetableContent,
+				AffectDateText: affectDateText
+			);
+		}).ToList();
 
 	public IReadOnlyList<TrainData> GetTrainDataList(string workId)
 		=> Connection.Table<Models.DB.TrainData>().Where(v => v.WorkId == workId).Select(v => new TrainData(

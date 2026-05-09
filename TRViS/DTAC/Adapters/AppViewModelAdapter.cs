@@ -26,6 +26,7 @@ internal class AppViewModelAdapter : IAppViewModelProvider
     public TRViS.IO.Models.WorkGroup? SelectedWorkGroup => _viewModel.SelectedWorkGroup;
     public TRViS.IO.Models.Work? SelectedWork => _viewModel.SelectedWork;
     public TRViS.IO.Models.TrainData? SelectedTrainData => _viewModel.SelectedTrainData;
+    public string? HeaderTimeFormat => _viewModel.HeaderTimeFormat;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }
