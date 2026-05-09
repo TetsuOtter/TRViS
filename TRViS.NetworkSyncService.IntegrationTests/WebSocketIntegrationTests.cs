@@ -41,6 +41,19 @@ public class WebSocketIntegrationTests
 	// ヘルパー
 	// ================================================================
 
+	/// <summary>
+	/// Loader を設定し、旧 auto-pick 相当の初期コミット (先頭 WorkGroup → 先頭 Work → 先頭 Train)
+	/// を行う。<see cref="TimetableSelectionManager.OnLoaderChanged"/> は #224 で auto-pick を
+	/// 廃止したため、Refresh の preserve-by-Id を検証する統合テストでは明示的に
+	/// 初期選択を作成する必要がある。
+	/// </summary>
+	private static TimetableSelectionManager CreateManagerAndCommitFirst(ILoader loader)
+	{
+		var manager = new TimetableSelectionManager { Loader = loader };
+		manager.SelectedWorkGroup = manager.WorkGroupList?.FirstOrDefault();
+		return manager;
+	}
+
 	private async Task<WebSocketNetworkSyncService> ConnectServiceAsync(
 		int reconnectIntervalMs = FastReconnectIntervalMs,
 		int reconnectAttemptMax = FastReconnectAttemptMax)
@@ -1017,7 +1030,7 @@ public class WebSocketIntegrationTests
 			await WaitForWsClientCountAsync(_control, 1);
 			await SeedAllScopeAsync(service, _control);
 
-			var manager = new TimetableSelectionManager { Loader = service };
+			var manager = CreateManagerAndCommitFirst(service);
 			Assert.That(manager.SelectedTrainData, Is.Not.Null);
 			// TrainId のいずれかが選択される。Tx をテスト対象として明示的に選択する。
 			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
@@ -1063,7 +1076,7 @@ public class WebSocketIntegrationTests
 			await WaitForWsClientCountAsync(_control, 1);
 			await SeedAllScopeAsync(service, _control);
 
-			var manager = new TimetableSelectionManager { Loader = service };
+			var manager = CreateManagerAndCommitFirst(service);
 			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
 			service.TimetableUpdated += (_, _) => manager.Refresh();
 
@@ -1104,7 +1117,7 @@ public class WebSocketIntegrationTests
 			await WaitForWsClientCountAsync(_control, 1);
 			await SeedAllScopeAsync(service, _control);
 
-			var manager = new TimetableSelectionManager { Loader = service };
+			var manager = CreateManagerAndCommitFirst(service);
 			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
 			service.TimetableUpdated += (_, _) => manager.Refresh();
 
@@ -1143,7 +1156,7 @@ public class WebSocketIntegrationTests
 			await WaitForWsClientCountAsync(_control, 1);
 			await SeedAllScopeAsync(service, _control);
 
-			var manager = new TimetableSelectionManager { Loader = service };
+			var manager = CreateManagerAndCommitFirst(service);
 			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
 			service.TimetableUpdated += (_, _) => manager.Refresh();
 
@@ -1257,7 +1270,7 @@ public class WebSocketIntegrationTests
 			await WaitForWsClientCountAsync(_control, 1);
 			await SeedAllScopeAsync(service, _control);
 
-			var manager = new TimetableSelectionManager { Loader = service };
+			var manager = CreateManagerAndCommitFirst(service);
 			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
 			service.TimetableUpdated += (_, _) => manager.Refresh();
 
@@ -1293,7 +1306,7 @@ public class WebSocketIntegrationTests
 			await WaitForWsClientCountAsync(_control, 1);
 			await SeedAllScopeAsync(service, _control);
 
-			var manager = new TimetableSelectionManager { Loader = service };
+			var manager = CreateManagerAndCommitFirst(service);
 			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
 			service.TimetableUpdated += (_, _) => manager.Refresh();
 
@@ -1856,7 +1869,7 @@ public class WebSocketIntegrationTests
 
 			// まず通常データをロードして、選択を持たせる
 			await SeedAllScopeAsync(service, _control);
-			var manager = new TimetableSelectionManager { Loader = service };
+			var manager = CreateManagerAndCommitFirst(service);
 			service.TimetableUpdated += (_, _) => manager.Refresh();
 			Assert.That(manager.SelectedTrainData, Is.Not.Null);
 

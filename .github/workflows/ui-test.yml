@@ -454,7 +454,14 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ios-ui-test-results-${{ matrix.device-class }}
-          path: "**/*.trx"
+          # Include TestResults subdirectories — they hold per-test PNG screenshots
+          # and PageSource XML dumps attached on failure (BaseUITest.TearDown).
+          # Without these the .trx alone surfaces only the exception and leaves us
+          # blind to what was actually on screen at the moment of timeout.
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml
 
   # ─────────────────────────────────────────────
   # macOS (Mac Catalyst) UI Tests

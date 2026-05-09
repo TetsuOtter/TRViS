@@ -105,15 +105,20 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 	private void OnLoaderChanged(ILoader? loader)
 	{
+		// Selection is intentionally cleared rather than auto-picking the first
+		// WorkGroup. The Home page presents a tentative-selection picker; the
+		// committed selection on this manager only changes when the user presses
+		// "Open" (StartHomePage) or via Refresh()/ResetToFirst() (websocket flows).
 		_selectedWorkGroup = null;
+		_selectedWork = null;
+		_selectedTrainData = null;
+		WorkList = null;
+		OrderedTrainDataList = null;
 		RaisePropertyChanged(nameof(SelectedWorkGroup));
+		RaisePropertyChanged(nameof(SelectedWork));
+		RaisePropertyChanged(nameof(SelectedTrainData));
 		WorkGroupList = loader?.GetWorkGroupList();
-		var first = WorkGroupList?.FirstOrDefault();
-		SelectedWorkGroup = first;
-		// WorkGroup が空 (= ダイヤが空) の場合、setter の早期 return により OnWorkGroupChanged が
-		// 呼ばれず、配下の Work/Train が古い状態のままになる。明示的に空に揃える。
-		if (first is null)
-			ClearChildSelectionsBelowWorkGroup();
+		// (intentional: no SelectedWorkGroup auto-pick — see comment above)
 	}
 
 	/// <summary>
@@ -231,10 +236,16 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		var newWorkGroupList = _loader.GetWorkGroupList();
 		WorkGroupList = newWorkGroupList;
 
-		string? prevWorkGroupId = _selectedWorkGroup?.Id;
-		var matchedWorkGroup = prevWorkGroupId is null
-			? null
-			: newWorkGroupList.FirstOrDefault(wg => wg.Id == prevWorkGroupId);
+		// No prior commit: keep selection null. The Home picker is the source of
+		// truth for tentative state; we must not yank the user into a forced commit
+		// just because new list data arrived (would make the "no default selection"
+		// rule inconsistent across loader types — websocket pushes would still pick
+		// a default).
+		if (_selectedWorkGroup is null)
+			return;
+
+		string? prevWorkGroupId = _selectedWorkGroup.Id;
+		var matchedWorkGroup = newWorkGroupList.FirstOrDefault(wg => wg.Id == prevWorkGroupId);
 
 		if (matchedWorkGroup is null)
 		{
@@ -258,10 +269,12 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		var newWorkList = _loader.GetWorkList(matchedWorkGroup.Id);
 		WorkList = newWorkList;
 
-		string? prevWorkId = _selectedWork?.Id;
-		var matchedWork = prevWorkId is null
-			? null
-			: newWorkList.FirstOrDefault(w => w.Id == prevWorkId);
+		// Same reasoning: don't force a Work commit when none existed.
+		if (_selectedWork is null)
+			return;
+
+		string? prevWorkId = _selectedWork.Id;
+		var matchedWork = newWorkList.FirstOrDefault(w => w.Id == prevWorkId);
 
 		if (matchedWork is null)
 		{
@@ -285,10 +298,15 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 	}
 
 	/// <summary>
-	/// Resets selection to the first WorkGroup (cascades to first Work/Train).
+	/// Resets selection to the first WorkGroup, but only if a prior commit exists.
+	/// Called from <c>AppViewModel.OnTimetableUpdated</c> when a scope-invalidating
+	/// timetable change arrives. With no prior commit there is nothing to reset to —
+	/// leave the selection null so the Home picker doesn't get a default forced on it.
 	/// </summary>
 	public void ResetToFirst()
 	{
+		if (_selectedWorkGroup is null)
+			return;
 		SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
 	}
 

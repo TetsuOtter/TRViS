@@ -149,6 +149,12 @@ public abstract class BaseUITest
 		if (Driver is not null)
 		{
 			TakeScreenshot();
+			// Dump the accessibility tree on failure so we can diagnose "element
+			// not found / not displayed" timeouts after the run — without it the
+			// iPhone CI failures leave only the timeout exception with no view of
+			// what was actually on screen.
+			if (TestContext.CurrentContext.Result.Outcome.Status == NUnit.Framework.Interfaces.TestStatus.Failed)
+				DumpPageSource();
 			Driver.Quit();
 		}
 	}
@@ -170,6 +176,26 @@ public abstract class BaseUITest
 		catch (Exception ex)
 		{
 			TestContext.Out.WriteLine($"Screenshot failed: {ex.Message}");
+		}
+	}
+
+	protected void DumpPageSource()
+	{
+		try
+		{
+			string source = Driver.PageSource;
+			var testName = TestContext.CurrentContext.Test.FullName
+				.Replace(' ', '_')
+				.Replace('/', '_');
+			var path = Path.Combine(
+				TestContext.CurrentContext.WorkDirectory,
+				$"{testName}_{DateTime.Now:yyyyMMdd_HHmmss}.pagesource.xml");
+			File.WriteAllText(path, source);
+			TestContext.AddTestAttachment(path, "PageSource");
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"PageSource dump failed: {ex.Message}");
 		}
 	}
 }
