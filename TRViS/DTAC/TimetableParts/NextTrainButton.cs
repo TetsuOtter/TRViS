@@ -47,6 +47,8 @@ public class NextTrainButton : Grid
 		}
 	}
 
+	public void SetNextTrainId(string? nextTrainId) => _presenter.SetNextTrainId(nextTrainId);
+
 	private void NextTrainButton_Click(object? _, EventArgs e)
 	{
 		try

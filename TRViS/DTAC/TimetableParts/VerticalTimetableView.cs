@@ -311,9 +311,11 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
+				NextTrainButton.SetNextTrainId(ViewModel.NextTrainId);
 				if (ViewModel.NextTrainId is not null)
 				{
-					Children.Add(NextTrainButton);
+					if (!Children.Contains(NextTrainButton))
+						Children.Add(NextTrainButton);
 				}
 				else
 				{

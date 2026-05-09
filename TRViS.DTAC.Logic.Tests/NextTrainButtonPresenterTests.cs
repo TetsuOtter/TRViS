@@ -209,6 +209,59 @@ public class NextTrainButtonPresenterTests
 		Assert.Single(logger.Calls);
 	}
 
+	// --- SetNextTrainId (View-driven path) ---
+
+	[Fact]
+	public void SetNextTrainId_ValidId_SetsVisible()
+	{
+		var presenter = CreatePresenter(out var td, out _, out _);
+		td.Add("T1", MakeTrainData("T1", "123A"));
+
+		presenter.SetNextTrainId("T1");
+
+		Assert.True(presenter.CurrentState.IsVisible);
+		Assert.Equal("T1", presenter.CurrentState.CurrentNextTrainId);
+	}
+
+	[Fact]
+	public void SetNextTrainId_NullId_HidesButton()
+	{
+		var presenter = CreatePresenter(out var td, out _, out var appVm);
+		td.Add("T1", MakeTrainData("T1", "123A"));
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
+		Assert.True(presenter.CurrentState.IsVisible);
+
+		presenter.SetNextTrainId(null);
+
+		Assert.False(presenter.CurrentState.IsVisible);
+	}
+
+	[Fact]
+	public void SetNextTrainId_EmptyId_HidesButton()
+	{
+		var presenter = CreatePresenter(out var td, out _, out var appVm);
+		td.Add("T1", MakeTrainData("T1", "123A"));
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
+		Assert.True(presenter.CurrentState.IsVisible);
+
+		presenter.SetNextTrainId(string.Empty);
+
+		Assert.False(presenter.CurrentState.IsVisible);
+	}
+
+	[Fact]
+	public void SetNextTrainId_WithoutPriorPropertyChanged_StillSetsVisible()
+	{
+		// Regression: View must be able to drive the button state directly,
+		// without depending on AppViewModel.SelectedTrainData PropertyChanged having fired.
+		var presenter = CreatePresenter(out var td, out _, out _);
+		td.Add("T1", MakeTrainData("T1", "123A"));
+
+		presenter.SetNextTrainId("T1");
+
+		Assert.True(presenter.CurrentState.IsVisible);
+	}
+
 	// --- OnButtonClicked ---
 
 	[Fact]
