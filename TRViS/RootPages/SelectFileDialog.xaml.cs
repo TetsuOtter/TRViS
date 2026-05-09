@@ -524,9 +524,15 @@ public partial class SelectFileDialog : ContentPage
 		// iOS Files.app: requires UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace
 		// in Info.plist (already set so the user can browse the documents folder).
 		// The shareddocuments:// scheme jumps straight into the app's documents folder.
-		// Use UriBuilder so spaces/# in the path are correctly percent-encoded.
-		var iosUri = new UriBuilder("shareddocuments", host: string.Empty) { Path = fullPath }.Uri;
-		return Launcher.Default.OpenAsync(iosUri);
+		// Build via UriBuilder properties so spaces/# in the path are correctly
+		// percent-encoded (UriBuilder.Path's setter handles the escaping).
+		var iosBuilder = new System.UriBuilder
+		{
+			Scheme = "shareddocuments",
+			Host = string.Empty,
+			Path = fullPath,
+		};
+		return Launcher.Default.OpenAsync(iosBuilder.Uri);
 #else
 		// Mac Catalyst → Finder, Windows → Explorer, Android → ACTION_VIEW (best-effort
 		// — Android may not have a registered handler; Launcher returns false in that case).
