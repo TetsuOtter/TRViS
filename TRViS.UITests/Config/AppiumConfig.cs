@@ -47,13 +47,18 @@ public static class AppiumConfig
 				// timeout has a chance to fire.
 				options.AddAdditionalAppiumOption("simulatorStartupTimeout", 900000);
 				options.AddAdditionalAppiumOption("wdaLaunchTimeout", 900000);
-				// wdaStartupRetries is the WDA *launch* retry count, not a rebuild —
-				// the second attempt reuses the existing xcodebuild output, so it
-				// is cheap and is exactly what recovers from
-				// FBSOpenApplicationServiceErrorDomain Code=1 ("app unknown to
-				// FrontBoard") when Springboard hasn't yet refreshed its app
-				// database after a fresh install. Keep at 2.
+				// wdaStartupRetries: retry WDA launch on transient failures (e.g.
+				// the WDA process crashes during startup). Keep at 2 for cheap recovery.
 				options.AddAdditionalAppiumOption("wdaStartupRetries", 2);
+				// noReset:true — do not uninstall/reinstall the app between sessions.
+				// run-ui-tests.sh pre-installs the app once (xcrun simctl install) so
+				// FrontBoard always knows about the bundle. The xcuitest driver then
+				// only terminates and relaunches the app per session, avoiding the
+				// repeated uninstall/reinstall cycle that leaves FrontBoard in an
+				// inconsistent state and causes "Application is unknown to FrontBoard"
+				// session-creation failures mid-run. App data is cleared per-test via
+				// BaseUITest.ResetAppState (xcrun simctl spawn defaults delete).
+				options.AddAdditionalAppiumOption("noReset", true);
 				// Specifying the simulator UDID directly lets xcuitest bypass SDK version
 				// matching (which would fail when the app's DTPlatformVersion differs from
 				// the only available simulator runtime).

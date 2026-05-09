@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS"
+	x:Class="TRViS.RootPages.SelectFileDialog"
+	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
+	Title="ファイルを選択">
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<Style x:Key="FileCard"
+						 TargetType="Border">
+				<Setter Property="Stroke"
+								Value="{x:Static local:RootStyles.BorderStrokeColor}"/>
+				<Setter Property="StrokeThickness"
+								Value="1"/>
+				<Setter Property="BackgroundColor"
+								Value="{x:Static local:RootStyles.BackgroundBlackWhite}"/>
+				<Setter Property="Padding"
+								Value="12"/>
+				<Setter Property="Margin"
+								Value="0,0,0,8"/>
+			</Style>
+		</ResourceDictionary>
+	</ContentPage.Resources>
+
+	<Grid Padding="8">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Header -->
+		<Grid
+			Grid.Row="0"
+			ColumnDefinitions="*,Auto"
+			Padding="4">
+			<Label
+				AutomationId="SelectFile.Title"
+				Grid.Column="0"
+				FontSize="Title"
+				FontAttributes="Bold"
+				VerticalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Text="ファイルを選択"/>
+			<Button
+				AutomationId="SelectFile.CloseButton"
+				Grid.Column="1"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="40"
+				HeightRequest="40"
+				Padding="0"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Clicked="OnCloseClicked"/>
+		</Grid>
+
+		<!-- Breadcrumb / current relative path. Shown when not at the root directory.
+		     Format: "📁 root / sub / current". Tapping a parent segment is *not*
+		     supported (kept simple) — use the "上の階層へ" card to navigate up.
+		     IsVisible is controlled exclusively from code-behind (PopulateFileList).
+		     Do NOT set IsVisible="False" here: on Windows MAUI a Border that starts
+		     collapsed never gets a UIA peer, so the runtime flip to true is
+		     invisible to Appium. PopulateFileList in OnAppearing toggles it
+		     synchronously before paint, so the brief pre-paint visibility is
+		     invisible to the user. -->
+		<Border
+			x:Name="BreadcrumbBorder"
+			Grid.Row="1"
+			Margin="4,0"
+			Padding="8,4"
+			BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
+			Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
+			StrokeThickness="0">
+			<Label
+				x:Name="BreadcrumbLabel"
+				AutomationId="SelectFile.Breadcrumb"
+				FontSize="12"
+				LineBreakMode="HeadTruncation"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+		</Border>
+
+		<!-- ===== File list view ===== -->
+		<Grid
+			x:Name="FileListView"
+			Grid.Row="2"
+			RowDefinitions="Auto,*">
+			<Label
+				x:Name="FileListHint"
+				Grid.Row="0"
+				Margin="8,4"
+				FontSize="14"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Text="アプリ内のファイルから選択するか、別の場所から開いてください。"/>
+			<ScrollView
+				AutomationId="SelectFile.FileList"
+				Grid.Row="1"
+				Margin="4">
+				<VerticalStackLayout
+					x:Name="FileListContainer"
+					Spacing="0"
+					Padding="4"/>
+			</ScrollView>
+		</Grid>
+
+		<!-- ===== Empty state view =====
+		     IsVisible is controlled by PopulateFileList. Same UIA-peer rule as
+		     BreadcrumbBorder: don't default to False or Windows skips the peer. -->
+		<Grid
+			x:Name="EmptyStateView"
+			Grid.Row="2"
+			RowSpacing="8"
+			Padding="24">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+
+			<!-- &#xe2c4; = folder_off (Material Icons) -->
+			<Label
+				Grid.Row="1"
+				Text="&#xe2c4;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="64"
+				HorizontalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			<VerticalStackLayout Grid.Row="2"
+													 Spacing="8">
+				<Label
+					AutomationId="SelectFile.EmptyMessage"
+					HorizontalTextAlignment="Center"
+					FontSize="16"
+					FontAttributes="Bold"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text="このフォルダにファイルがありません"/>
+				<Label
+					HorizontalTextAlignment="Center"
+					FontSize="13"
+					LineBreakMode="WordWrap"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"
+					Text="下のボタンから他の場所のファイルを開くか、保存場所を開いてファイルを配置してください。"/>
+			</VerticalStackLayout>
+		</Grid>
+
+		<!-- "他の場所からファイルを開く" - always visible footer action. -->
+		<Button
+			x:Name="BrowseButton"
+			AutomationId="SelectFile.BrowseButton"
+			Grid.Row="3"
+			Text="他の場所からファイルを開く"
+			ContentLayout="Left,6"
+			HeightRequest="48"
+			CornerRadius="8"
+			FontAttributes="Bold"
+			Margin="8,8,8,0"
+			Clicked="OnBrowseClicked">
+			<Button.ImageSource>
+				<FontImageSource
+					Glyph="&#xe2c8;"
+					FontFamily="MaterialIconsRegular"
+					Size="20"/>
+			</Button.ImageSource>
+		</Button>
+
+		<!-- "保存場所を開く" - secondary footer link. Opens the OS file
+		     manager (Files.app on iOS, Finder on Mac Catalyst, Explorer on Windows)
+		     at TimetableFileDirectory so the user can drop in new files. -->
+		<Button
+			x:Name="OpenStorageLocationButton"
+			AutomationId="SelectFile.OpenStorageLocationButton"
+			Grid.Row="4"
+			Text="保存場所を開く"
+			ContentLayout="Left,4"
+			HeightRequest="36"
+			BackgroundColor="Transparent"
+			TextColor="{x:Static local:RootStyles.TableTextColor}"
+			FontSize="13"
+			Margin="8,0,8,4"
+			Clicked="OnOpenStorageLocationClicked">
+			<Button.ImageSource>
+				<FontImageSource
+					Glyph="&#xe89e;"
+					FontFamily="MaterialIconsRegular"
+					Size="16"
+					Color="{x:Static local:RootStyles.TableTextColor}"/>
+			</Button.ImageSource>
+		</Button>
+
+		<ActivityIndicator
+			x:Name="LoadingIndicator"
+			Grid.Row="3"
+			IsRunning="False"
+			IsVisible="False"
+			HorizontalOptions="Center"
+			VerticalOptions="Center"/>
+	</Grid>
+</ContentPage>

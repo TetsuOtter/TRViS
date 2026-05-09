@@ -37,18 +37,31 @@ public partial class AppShell : Shell
 
 		InitializeComponent();
 
-		if (FirebaseSettingViewModel.IsEnabled)
+		// Always launch into the Start/Home page. The Start screen handles the
+		// privacy-policy-not-accepted case via an in-page banner + modal dialog,
+		// so the dedicated FirebaseSettingPage is no longer the launch destination
+		// (it remains accessible from the flyout for re-entry).
+		// Fire-and-forget: the Shell ctor cannot be async; we discard the Task and
+		// log via continuation so a navigation failure doesn't vanish.
+		_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
 		{
-			GoToAsync("//" + nameof(SelectTrainPage)).ConfigureAwait(false);
-		}
-		else
-		{
-			GoToAsync("//" + nameof(FirebaseSettingPage)).ConfigureAwait(false);
-		}
+			if (t.IsFaulted)
+				logger.Error(t.Exception, "Initial GoToAsync(StartHomePage) failed");
+		}, TaskScheduler.Default);
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
-		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBehavior;
-		ApplyFlyoutBehavior(this, false, FirebaseSettingViewModel.IsEnabled);
+		// Always start with the flyout enabled. On Mac Catalyst the navigation
+		// bar / flyout toggle button is created during Shell initialization based
+		// on the current FlyoutBehavior — switching from Disabled→Flyout later
+		// (when the user accepts privacy) does NOT re-create the navbar, leaving
+		// the flyout unreachable for the rest of the session.
+		// Privacy gating now happens at the *button* level inside StartHomePage
+		// (Connect/SelectFile/Demo are disabled until accepted) and at Firebase
+		// analytics opt-in, not at the Shell navigation level. Letting users tap
+		// through to ThirdPartyLicenses / Settings / D-TAC before accepting is
+		// acceptable: D-TAC has no committed selection so it shows nothing.
+		FlyoutIcon = FlyoutIconImage;
+		FlyoutBehavior = FlyoutBehavior.Flyout;
 
 		this.BindingContext = easterEggPageViewModel;
 		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
@@ -112,22 +125,6 @@ public partial class AppShell : Shell
 				this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
 			}
 		});
-	}
-
-	void ApplyFlyoutBehavior(object? sender, bool oldValue, bool newValue)
-	{
-		logger.Trace("{0} -> {1}", oldValue, newValue);
-		if (newValue == true)
-		{
-			FlyoutIcon = FlyoutIconImage;
-			FlyoutBehavior = FlyoutBehavior.Flyout;
-		}
-		else
-		{
-			FlyoutIcon = null;
-			FlyoutBehavior = FlyoutBehavior.Disabled;
-			FlyoutIsPresented = false;
-		}
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)

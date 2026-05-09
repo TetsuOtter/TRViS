@@ -51,7 +51,7 @@ public partial class FirebaseSettingPage : ContentPage
 		// 次回以降はユーザが自分で移動してきたはずであるため、自動で移動しないようにする
 		if (isInitialSetting)
 		{
-			await Shell.Current.GoToAsync("//" + nameof(SelectTrainPage));
+			await Shell.Current.GoToAsync("//" + nameof(StartHomePage));
 		}
 	}
 }
