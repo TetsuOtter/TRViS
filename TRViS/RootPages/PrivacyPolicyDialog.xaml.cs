@@ -45,30 +45,30 @@ public partial class PrivacyPolicyDialog : ContentPage
 		RootGrid.ColumnDefinitions.Clear();
 		if (isLandscapePhone)
 		{
-			// 4 rows × 2 columns. Header is full-width across columns; the
-			// markdown spans the body rows on the left, while the description
-			// (Auto, top) and settings (Auto, bottom) stack on the right with
-			// a star-row spacer between them so the settings stays anchored
-			// to the bottom.
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+			// 2 rows × 2 columns. Header is full-width across columns; the
+			// markdown fills the left body cell. The right body cell hosts
+			// `RightSection`, a sub-grid (*,Auto) into which we reparent
+			// DescScroll (description in a ScrollView) and SettingsBorder.
+			// The ScrollView keeps the description bounded by the available
+			// height instead of overflowing into the bottom-anchored
+			// settings card on short screens (e.g. iPhone SE landscape).
+			MoveToRightSection();
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
-			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 			Grid.SetRow(HeaderRow, 0); Grid.SetRowSpan(HeaderRow, 1);
 			Grid.SetColumn(HeaderRow, 0); Grid.SetColumnSpan(HeaderRow, 2);
-			Grid.SetRow(MarkdownBorder, 1); Grid.SetRowSpan(MarkdownBorder, 3);
+			Grid.SetRow(MarkdownBorder, 1); Grid.SetRowSpan(MarkdownBorder, 1);
 			Grid.SetColumn(MarkdownBorder, 0); Grid.SetColumnSpan(MarkdownBorder, 1);
-			Grid.SetRow(DescLabel, 1); Grid.SetRowSpan(DescLabel, 1);
-			Grid.SetColumn(DescLabel, 1); Grid.SetColumnSpan(DescLabel, 1);
-			Grid.SetRow(SettingsBorder, 3); Grid.SetRowSpan(SettingsBorder, 1);
-			Grid.SetColumn(SettingsBorder, 1); Grid.SetColumnSpan(SettingsBorder, 1);
+			Grid.SetRow(RightSection, 1); Grid.SetRowSpan(RightSection, 1);
+			Grid.SetColumn(RightSection, 1); Grid.SetColumnSpan(RightSection, 1);
 		}
 		else
 		{
 			// Portrait / tablet: original 4-row stack — header, description,
 			// scrollable markdown, settings.
+			MoveBackFromRightSection();
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
@@ -82,6 +82,47 @@ public partial class PrivacyPolicyDialog : ContentPage
 			Grid.SetRow(SettingsBorder, 3); Grid.SetRowSpan(SettingsBorder, 1);
 			Grid.SetColumn(SettingsBorder, 0); Grid.SetColumnSpan(SettingsBorder, 1);
 		}
+	}
+
+	// Reparent DescLabel + SettingsBorder out of RootGrid and into the
+	// landscape-only RightSection sub-grid. DescLabel is wrapped in DescScroll
+	// so its height stays bounded by its row, allowing scrolling instead of
+	// overflowing onto the SettingsBorder below.
+	void MoveToRightSection()
+	{
+		if (RootGrid.Children.Contains(DescLabel))
+			RootGrid.Children.Remove(DescLabel);
+		if (RootGrid.Children.Contains(SettingsBorder))
+			RootGrid.Children.Remove(SettingsBorder);
+
+		if (DescScroll.Content != DescLabel)
+			DescScroll.Content = DescLabel;
+
+		if (!RightSection.Children.Contains(SettingsBorder))
+		{
+			Grid.SetRow(SettingsBorder, 1);
+			Grid.SetColumn(SettingsBorder, 0);
+			Grid.SetRowSpan(SettingsBorder, 1);
+			Grid.SetColumnSpan(SettingsBorder, 1);
+			RightSection.Children.Add(SettingsBorder);
+		}
+		RightSection.IsVisible = true;
+	}
+
+	// Inverse of MoveToRightSection — return DescLabel and SettingsBorder
+	// to RootGrid for the portrait/tablet stack layout.
+	void MoveBackFromRightSection()
+	{
+		RightSection.IsVisible = false;
+		if (RightSection.Children.Contains(SettingsBorder))
+			RightSection.Children.Remove(SettingsBorder);
+		if (DescScroll.Content == DescLabel)
+			DescScroll.Content = null;
+
+		if (!RootGrid.Children.Contains(DescLabel))
+			RootGrid.Children.Add(DescLabel);
+		if (!RootGrid.Children.Contains(SettingsBorder))
+			RootGrid.Children.Add(SettingsBorder);
 	}
 
 	private void OnResetButtonClicked(object? sender, EventArgs e)

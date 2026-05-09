@@ -59,6 +59,20 @@
 				FileName="PrivacyPolicy_md"/>
 		</Border>
 
+		<!-- Landscape-only sub-grid. Empty in portrait; in landscape the
+		     code-behind reparents DescLabel (wrapped in DescScroll) and
+		     SettingsBorder into this grid so the description can scroll
+		     within the bounded right column without colliding with the
+		     bottom-anchored settings card. -->
+		<Grid
+			x:Name="RightSection"
+			IsVisible="False"
+			RowDefinitions="*,Auto">
+			<ScrollView
+				x:Name="DescScroll"
+				Grid.Row="0"/>
+		</Grid>
+
 		<Border
 			x:Name="SettingsBorder"
 			HorizontalOptions="Center"
