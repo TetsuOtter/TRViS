@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS"
+	x:Class="TRViS.RootPages.ConnectServerDialog"
+	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
+	Title="サーバーから読み込み">
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<Style x:Key="HistoryCard"
+						 TargetType="Border">
+				<Setter Property="Stroke"
+								Value="{x:Static local:RootStyles.BorderStrokeColor}"/>
+				<Setter Property="StrokeThickness"
+								Value="1"/>
+				<Setter Property="BackgroundColor"
+								Value="{x:Static local:RootStyles.BackgroundBlackWhite}"/>
+				<Setter Property="Padding"
+								Value="12"/>
+				<Setter Property="Margin"
+								Value="0,0,0,8"/>
+			</Style>
+		</ResourceDictionary>
+	</ContentPage.Resources>
+
+	<Grid Padding="8">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Header -->
+		<Grid
+			Grid.Row="0"
+			ColumnDefinitions="*,Auto"
+			Padding="4">
+			<Label
+				AutomationId="ConnectServer.Title"
+				Grid.Column="0"
+				FontSize="Title"
+				FontAttributes="Bold"
+				VerticalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Text="サーバーから読み込み"/>
+			<Button
+				AutomationId="ConnectServer.CloseButton"
+				Grid.Column="1"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="40"
+				HeightRequest="40"
+				Padding="0"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Clicked="OnCloseClicked"/>
+		</Grid>
+
+		<!-- ===== History list view ===== -->
+		<!-- Visible when: at least one URL in history AND not in new-connection mode. -->
+		<Grid
+			x:Name="HistoryView"
+			Grid.Row="1"
+			RowDefinitions="Auto,*">
+			<Label
+				Grid.Row="0"
+				Margin="8,4"
+				FontSize="14"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Text="履歴から選択するか、新しいURLを入力してください。"/>
+			<ScrollView
+				AutomationId="ConnectServer.HistoryList"
+				Grid.Row="1"
+				Margin="4">
+				<VerticalStackLayout
+					x:Name="HistoryListContainer"
+					Spacing="0"
+					Padding="4"/>
+			</ScrollView>
+		</Grid>
+
+		<!-- ===== New-connection form view ===== -->
+		<Grid
+			x:Name="NewConnectionView"
+			Grid.Row="1"
+			IsVisible="False"
+			RowSpacing="12"
+			Padding="12">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+
+			<Button
+				x:Name="BackToHistoryButton"
+				AutomationId="ConnectServer.BackToHistoryButton"
+				Grid.Row="0"
+				Text="履歴に戻る"
+				ContentLayout="Left,4"
+				HorizontalOptions="Start"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				FontSize="14"
+				Padding="0"
+				IsVisible="False"
+				Clicked="OnBackToHistoryClicked">
+				<Button.ImageSource>
+					<FontImageSource
+						Glyph="&#xe5c4;"
+						FontFamily="MaterialIconsRegular"
+						Size="18"
+						Color="{x:Static local:RootStyles.TableTextColor}"/>
+				</Button.ImageSource>
+			</Button>
+
+			<VerticalStackLayout Grid.Row="1" Spacing="4">
+				<Label
+					Text="URL"
+					FontAttributes="Bold"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+				<Entry
+					x:Name="UrlInput"
+					AutomationId="ConnectServer.UrlInput"
+					Placeholder="https://example.com/timetable.json"
+					ClearButtonVisibility="WhileEditing"
+					IsSpellCheckEnabled="False"
+					IsTextPredictionEnabled="False"
+					Keyboard="Url"
+					MaxLength="1024"
+					ReturnType="Go"
+					BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Completed="OnUrlInputCompleted"/>
+				<Label
+					FontSize="12"
+					LineBreakMode="WordWrap"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"
+					Text="時刻表ファイル (.json / .sqlite) のURL、または&#xa;リアルタイム配信サーバー (ws:// / wss://) のURLを指定できます。"/>
+			</VerticalStackLayout>
+
+			<!-- Save-connection toggle -->
+			<Grid
+				Grid.Row="2"
+				ColumnDefinitions="*,Auto"
+				ColumnSpacing="8">
+				<VerticalStackLayout Grid.Column="0">
+					<Label
+						Text="URLを履歴に残す"
+						FontAttributes="Bold"
+						TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+					<Label
+						FontSize="12"
+						TextColor="{x:Static local:RootStyles.TableDetailColor}"
+						Text="OFFにすると、今回限りの読み込みとして履歴には残しません。"/>
+				</VerticalStackLayout>
+				<Switch
+					x:Name="SaveConnectionSwitch"
+					AutomationId="ConnectServer.SaveConnectionSwitch"
+					Grid.Column="1"
+					IsToggled="True"
+					VerticalOptions="Center"
+					OnColor="GreenYellow"/>
+			</Grid>
+
+			<Button
+				x:Name="ConnectButton"
+				AutomationId="ConnectServer.ConnectButton"
+				Grid.Row="3"
+				Text="読み込む"
+				HeightRequest="56"
+				CornerRadius="8"
+				FontAttributes="Bold"
+				FontSize="16"
+				Margin="0,8,0,0"
+				Clicked="OnConnectClicked"/>
+
+			<ActivityIndicator
+				x:Name="LoadingIndicator"
+				Grid.Row="4"
+				IsRunning="False"
+				IsVisible="False"
+				HorizontalOptions="Center"
+				VerticalOptions="Start"
+				Margin="0,16,0,0"/>
+		</Grid>
+
+		<!-- "新規接続" lives in the footer slot only when history is visible. -->
+		<Button
+			x:Name="NewConnectionButton"
+			AutomationId="ConnectServer.NewConnectionButton"
+			Grid.Row="2"
+			Text="新規接続"
+			ContentLayout="Left,6"
+			HeightRequest="48"
+			CornerRadius="8"
+			FontAttributes="Bold"
+			Margin="8"
+			Clicked="OnNewConnectionClicked">
+			<Button.ImageSource>
+				<FontImageSource
+					Glyph="&#xe145;"
+					FontFamily="MaterialIconsRegular"
+					Size="20"/>
+			</Button.ImageSource>
+		</Button>
+	</Grid>
+</ContentPage>

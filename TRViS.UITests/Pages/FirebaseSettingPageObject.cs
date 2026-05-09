@@ -36,9 +36,9 @@ public class FirebaseSettingPageObject : PageObject
 
 	/// <summary>
 	/// Clicks the Save button and accepts the DisplayAlert if it appears.
-	/// Returns a SelectTrainPageObject after navigation completes.
+	/// Returns a StartHomePageObject after navigation completes.
 	/// </summary>
-	public SelectTrainPageObject SaveAndAccept()
+	public StartHomePageObject SaveAndAccept()
 	{
 		// Wait for the page to be fully visible before interacting with buttons.
 		_ = Title;
@@ -74,6 +74,6 @@ public class FirebaseSettingPageObject : PageObject
 			}
 		}
 
-		return new SelectTrainPageObject(Driver);
+		return new StartHomePageObject(Driver);
 	}
 }
