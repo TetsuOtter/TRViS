@@ -82,10 +82,17 @@
 		</Grid>
 
 		<!-- ===== New-connection form view ===== -->
+		<!-- IsVisible is controlled exclusively from code-behind
+		     (PopulateHistory → ShowHistoryView/ShowNewConnectionView).
+		     Do NOT set IsVisible="False" in XAML: on Windows MAUI a Grid
+		     starting collapsed never gets a UIA peer, so the runtime flip
+		     to true is invisible to Appium and the form stays "absent"
+		     for tests even when visually rendered. We hide it
+		     synchronously in OnAppearing before paint, so the brief
+		     pre-paint visibility is invisible to the user. -->
 		<Grid
 			x:Name="NewConnectionView"
 			Grid.Row="1"
-			IsVisible="False"
 			RowSpacing="12"
 			Padding="12">
 			<Grid.RowDefinitions>
