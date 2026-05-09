@@ -4,20 +4,25 @@ namespace TRViS.UITests.Tests;
 
 // [Order] is required on Windows: MAUI Preferences for unpackaged WinUI 3
 // apps persist across Driver.Quit/restart in a location BaseUITest.ResetAppState
-// doesn't clear, so once any fixture's SetUp clicks SaveAndAccept the
-// FirebaseSettingViewModel.IsEnabled flag stays true and the consent page is
-// no longer shown. AppLaunchTests and FirebaseSettingTests both assert the
-// consent page IS shown, so they must run before any saving fixture.
+// doesn't clear, so once any fixture's SetUp accepts the privacy policy the
+// FirebaseSettingViewModel.IsPrivacyPolicyAccepted flag stays true and the
+// reconfirm banner is no longer shown. AppLaunchTests asserts the banner IS
+// visible on first launch, so it must run before any saving fixture.
 [TestFixture]
 [Order(1)]
 public class AppLaunchTests : BaseUITest
 {
 	[Test]
-	public void App_Launches_Successfully()
+	public void App_Launches_Into_StartHome_With_Privacy_Banner()
 	{
-		// On first launch the app navigates to FirebaseSettingPage for user consent.
-		var firebasePage = new FirebaseSettingPageObject(Driver);
-		Assert.That(firebasePage.IsDisplayed(), Is.True,
-			"FirebaseSettingPage should be displayed on first launch.");
+		// On a clean install the app navigates directly to StartHomePage in Start
+		// mode, with the privacy-policy reconfirm banner shown until the user
+		// accepts via the in-page privacy dialog.
+		var startHome = new StartHomePageObject(Driver);
+		Assert.That(startHome.IsDisplayed(), Is.True,
+			"StartHomePage should be displayed on first launch.");
+
+		Assert.That(startHome.IsPrivacyReconfirmBannerVisible(), Is.True,
+			"Privacy reconfirm banner should be visible on a fresh install.");
 	}
 }

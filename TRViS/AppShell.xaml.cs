@@ -37,14 +37,17 @@ public partial class AppShell : Shell
 
 		InitializeComponent();
 
-		if (FirebaseSettingViewModel.IsEnabled)
+		// Always launch into the Start/Home page. The Start screen handles the
+		// privacy-policy-not-accepted case via an in-page banner + modal dialog,
+		// so the dedicated FirebaseSettingPage is no longer the launch destination
+		// (it remains accessible from the flyout for re-entry).
+		// Fire-and-forget: the Shell ctor cannot be async; we discard the Task and
+		// log via continuation so a navigation failure doesn't vanish.
+		_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
 		{
-			GoToAsync("//" + nameof(SelectTrainPage)).ConfigureAwait(false);
-		}
-		else
-		{
-			GoToAsync("//" + nameof(FirebaseSettingPage)).ConfigureAwait(false);
-		}
+			if (t.IsFaulted)
+				logger.Error(t.Exception, "Initial GoToAsync(StartHomePage) failed");
+		}, TaskScheduler.Default);
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
 		FirebaseSettingViewModel.IsEnabledChanged += ApplyFlyoutBehavior;

@@ -14,11 +14,25 @@ public partial class ThirdPartyLicenses : ContentPage
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	ThirdPartyLicensesViewModel viewModel { get; }
-	public ThirdPartyLicenses()
+
+	/// <summary>
+	/// Constructs the page in flyout mode (no modal close button).
+	/// </summary>
+	public ThirdPartyLicenses() : this(asModal: false) { }
+
+	/// <summary>
+	/// When <paramref name="asModal"/> is true, the modal-close header becomes visible
+	/// and the close button pops the modal stack. The flyout-hosted page uses the
+	/// no-arg constructor so it does not show a redundant Close button.
+	/// </summary>
+	public ThirdPartyLicenses(bool asModal)
 	{
-		logger.Trace("Creating");
+		logger.Trace("Creating (asModal: {0})", asModal);
 
 		InitializeComponent();
+
+		if (asModal)
+			ModalCloseHeader.IsVisible = true;
 
 		viewModel = new ThirdPartyLicensesViewModel();
 
@@ -46,6 +60,19 @@ public partial class ThirdPartyLicenses : ContentPage
 		Task.Run(LoadLicenseList);
 
 		logger.Trace("Created");
+	}
+
+	private async void OnModalCloseClicked(object? sender, EventArgs e)
+	{
+		logger.Trace("Modal Close clicked");
+		try
+		{
+			await Navigation.PopModalAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "PopModalAsync failed");
+		}
 	}
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
