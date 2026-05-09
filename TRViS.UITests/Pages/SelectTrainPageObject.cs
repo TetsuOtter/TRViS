@@ -20,6 +20,7 @@ public class SelectTrainPageObject : PageObject
 	public AppiumElement WorkList => FindByAutomationId(AutomationIds.SelectTrain.WorkList);
 	public AppiumElement TestSeedButton => FindByAutomationId(AutomationIds.SelectTrain.TestSeedButton);
 	public AppiumElement TestSeedGpsButton => FindByAutomationId(AutomationIds.SelectTrain.TestSeedGpsButton);
+	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.SelectTrain.TestSeedNextTrainSelectionButton);
 
 	public bool IsDisplayed()
 	{
@@ -58,6 +59,12 @@ public class SelectTrainPageObject : PageObject
 	/// without typing through Appium SendKeys.
 	/// </summary>
 	public void SeedGpsLocationForTesting() => TestSeedGpsButton.Click();
+
+	/// <summary>
+	/// Taps the DEBUG-only seed button that selects a sample-data train whose
+	/// NextTrainId is non-empty (linear-train-1 → NextTrainId = linear-train-2).
+	/// </summary>
+	public void SeedTrainSelectionWithNextTrain() => TestSeedNextTrainSelectionButton.Click();
 
 	/// <summary>
 	/// URLs that <see cref="SeedUrlHistoryForTesting"/> writes into history.
