@@ -266,6 +266,16 @@ public partial class StartHomePage : ContentPage
 		ConnectServerButton.IsEnabled = accepted;
 		SelectFileButton.IsEnabled = accepted;
 		LoadDemoButton.IsEnabled = accepted;
+
+		// Hide the Shell flyout (menu) toggle in the nav bar until the user accepts
+		// the privacy policy — the body is essentially blocked by the reconfirm
+		// banner anyway, and a reachable menu button is misleading. Skip Mac
+		// Catalyst: its nav bar is built from FlyoutBehavior at Shell init time
+		// only, so flipping post-init leaves the toggle stuck (see AppShell
+		// comment). All other platforms (iOS/iPadOS, Android, Windows) re-render
+		// the nav bar correctly when this flips.
+		if (!OperatingSystem.IsMacCatalyst())
+			Shell.SetFlyoutBehavior(this, accepted ? FlyoutBehavior.Flyout : FlyoutBehavior.Disabled);
 	}
 
 	// ----- Mode / animation -----

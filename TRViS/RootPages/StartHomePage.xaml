@@ -153,99 +153,107 @@
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 
-			<!-- Privacy policy reconfirm banner. High-prominence treatment when shown:
-			     bigger font, warning glyph, vivid border. Tapping it opens the dialog. -->
-			<!-- IsVisible is controlled exclusively from code-behind
-			     (UpdatePrivacyDependentControls). Do NOT set IsVisible="False"
-			     in XAML: on Windows MAUI a Border that starts collapsed never
-			     gets a UIA peer, so the runtime flip to true is invisible to
-			     Appium and the banner remains "absent" for tests even when
-			     visually rendered. Starting with the default (true) lets MAUI
-			     create the platform peer up-front, and code-behind hides it
-			     before paint via UpdatePrivacyDependentControls in OnAppearing. -->
-			<Border
-				x:Name="PrivacyReconfirmBanner"
-				AutomationId="StartHome.PrivacyReconfirmBanner"
-				Grid.Row="0"
-				Stroke="{AppThemeBinding Light=#FF9A00, Dark=#FFB800}"
-				StrokeThickness="2"
-				BackgroundColor="{AppThemeBinding Light=#FFF4D6, Dark=#3A2400}"
-				Padding="16"
-				Margin="0,0,0,4">
-				<Border.StrokeShape>
-					<RoundRectangle CornerRadius="12"/>
-				</Border.StrokeShape>
-				<Border.GestureRecognizers>
-					<TapGestureRecognizer Tapped="OnPrivacyPolicyClicked"/>
-				</Border.GestureRecognizers>
-				<Grid ColumnDefinitions="Auto,*,Auto"
-							ColumnSpacing="12"
-							RowDefinitions="Auto,Auto">
-					<!-- &#xe002; = warning, &#xe5cc; = chevron_right (Material Icons) -->
-					<Label
-						Grid.Column="0"
-						Grid.RowSpan="2"
-						Text="&#xe002;"
-						FontFamily="MaterialIconsRegular"
-						FontSize="40"
-						TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
-						VerticalOptions="Center"/>
-					<Label
-						Grid.Column="1"
-						Grid.Row="0"
-						AutomationId="StartHome.PrivacyReconfirmText"
-						Text="プライバシーポリシーへの同意が必要です"
-						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
-						FontSize="18"
-						FontAttributes="Bold"/>
-					<Label
-						Grid.Column="1"
-						Grid.Row="1"
-						Text="アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。"
-						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
-						FontSize="13"
-						LineBreakMode="WordWrap"/>
-					<Label
-						Grid.Column="2"
-						Grid.RowSpan="2"
-						Text="&#xe5cc;"
-						FontFamily="MaterialIconsRegular"
-						FontSize="32"
-						TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
-						VerticalOptions="Center"/>
-				</Grid>
-			</Border>
+			<!-- Row 0 hosts both the primary buttons and the privacy reconfirm banner
+			     in the same cell. The banner is declared after the buttons so it
+			     z-orders on top, and stretches to Fill so it fully covers them when
+			     visible — that gives the layout requested by the design (warning
+			     overlays the two main buttons until privacy is accepted) without
+			     leaving an awkward "warning + disabled buttons stacked" stretch
+			     above the AppHeader on small screens. -->
+			<Grid Grid.Row="0">
+				<!-- Two main buttons: orientation-aware (vertical on portrait, horizontal on landscape).
+				     IsEnabled is bound to IsPrivacyPolicyAccepted in code-behind. -->
+				<FlexLayout
+					x:Name="PrimaryButtons"
+					Direction="Row"
+					Wrap="Wrap"
+					JustifyContent="Center"
+					AlignItems="Center">
+					<Button
+						x:Name="ConnectServerButton"
+						AutomationId="StartHome.ConnectServerButton"
+						Text="サーバーから読み込み"
+						Style="{StaticResource PrimaryActionButton}"
+						Clicked="OnConnectServerClicked"/>
+					<Button
+						x:Name="SelectFileButton"
+						AutomationId="StartHome.SelectFileButton"
+						Text="ファイルを選択"
+						Style="{StaticResource PrimaryActionButton}"
+						Clicked="OnSelectFileClicked"/>
+				</FlexLayout>
 
-			<!-- Two main buttons: orientation-aware (vertical on portrait, horizontal on landscape).
-			     IsEnabled is bound to IsPrivacyPolicyAccepted in code-behind. -->
-			<FlexLayout
-				x:Name="PrimaryButtons"
-				Grid.Row="1"
-				Direction="Row"
-				Wrap="Wrap"
-				JustifyContent="Center"
-				AlignItems="Center">
-				<Button
-					x:Name="ConnectServerButton"
-					AutomationId="StartHome.ConnectServerButton"
-					Text="サーバーから読み込み"
-					Style="{StaticResource PrimaryActionButton}"
-					Clicked="OnConnectServerClicked"/>
-				<Button
-					x:Name="SelectFileButton"
-					AutomationId="StartHome.SelectFileButton"
-					Text="ファイルを選択"
-					Style="{StaticResource PrimaryActionButton}"
-					Clicked="OnSelectFileClicked"/>
-			</FlexLayout>
+				<!-- Privacy policy reconfirm banner. High-prominence treatment when shown:
+				     bigger font, warning glyph, vivid border. Tapping it opens the dialog. -->
+				<!-- IsVisible is controlled exclusively from code-behind
+				     (UpdatePrivacyDependentControls). Do NOT set IsVisible="False"
+				     in XAML: on Windows MAUI a Border that starts collapsed never
+				     gets a UIA peer, so the runtime flip to true is invisible to
+				     Appium and the banner remains "absent" for tests even when
+				     visually rendered. Starting with the default (true) lets MAUI
+				     create the platform peer up-front, and code-behind hides it
+				     before paint via UpdatePrivacyDependentControls in OnAppearing. -->
+				<Border
+					x:Name="PrivacyReconfirmBanner"
+					AutomationId="StartHome.PrivacyReconfirmBanner"
+					HorizontalOptions="Fill"
+					VerticalOptions="Fill"
+					Stroke="{AppThemeBinding Light=#FF9A00, Dark=#FFB800}"
+					StrokeThickness="2"
+					BackgroundColor="{AppThemeBinding Light=#FFF4D6, Dark=#3A2400}"
+					Padding="16">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="12"/>
+					</Border.StrokeShape>
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnPrivacyPolicyClicked"/>
+					</Border.GestureRecognizers>
+					<Grid ColumnDefinitions="Auto,*,Auto"
+								ColumnSpacing="12"
+								RowDefinitions="Auto,Auto"
+								VerticalOptions="Center">
+						<!-- &#xe002; = warning, &#xe5cc; = chevron_right (Material Icons) -->
+						<Label
+							Grid.Column="0"
+							Grid.RowSpan="2"
+							Text="&#xe002;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="40"
+							TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
+							VerticalOptions="Center"/>
+						<Label
+							Grid.Column="1"
+							Grid.Row="0"
+							AutomationId="StartHome.PrivacyReconfirmText"
+							Text="プライバシーポリシーへの同意が必要です"
+							TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
+							FontSize="18"
+							FontAttributes="Bold"/>
+						<Label
+							Grid.Column="1"
+							Grid.Row="1"
+							Text="アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。"
+							TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
+							FontSize="13"
+							LineBreakMode="WordWrap"/>
+						<Label
+							Grid.Column="2"
+							Grid.RowSpan="2"
+							Text="&#xe5cc;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="32"
+							TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
+							VerticalOptions="Center"/>
+					</Grid>
+				</Border>
+			</Grid>
 
 			<!-- Demo data (smaller) -->
 			<Button
 				x:Name="LoadDemoButton"
-				Grid.Row="2"
+				Grid.Row="1"
 				AutomationId="StartHome.LoadDemoButton"
 				Text="デモデータで開始"
 				Style="{StaticResource SecondaryActionButton}"
@@ -253,7 +261,7 @@
 
 			<!-- Footer links: Privacy / TPL -->
 			<HorizontalStackLayout
-				Grid.Row="3"
+				Grid.Row="2"
 				HorizontalOptions="Center"
 				Spacing="4">
 				<Button
