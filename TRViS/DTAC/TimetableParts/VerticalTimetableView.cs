@@ -311,7 +311,12 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
-				if (ViewModel.NextTrainId is not null)
+				// Empty-string is "no next train" by convention (matches the
+				// Presenter's IsNullOrEmpty check). Treat it the same as null
+				// so the button is not added to Children at all — otherwise
+				// Mac Catalyst / iOS keep the IsVisible=false element in the
+				// accessibility tree, confusing the user-perceptible state.
+				if (!string.IsNullOrEmpty(ViewModel.NextTrainId))
 				{
 					if (!Children.Contains(NextTrainButton))
 						Children.Add(NextTrainButton);
@@ -567,7 +572,7 @@ public partial class VerticalTimetableView : Grid
 		int currentCount = RowDefinitions.Count;
 		int rowCount = ViewModel.CurrentRows.Count;
 		bool hasAfterArrive = ViewModel.AfterArriveText is not null;
-		bool hasNextTrainButton = ViewModel.NextTrainId is not null;
+		bool hasNextTrainButton = !string.IsNullOrEmpty(ViewModel.NextTrainId);
 		bool isPhone = DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
 		logger.Debug("Count {0} -> {1}", currentCount, rowCount);
 
