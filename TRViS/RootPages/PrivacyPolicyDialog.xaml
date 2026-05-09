@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:ctrls="clr-namespace:TRViS.Controls"
+	xmlns:vm="clr-namespace:TRViS.ViewModels"
+	xmlns:local="clr-namespace:TRViS"
+	x:Class="TRViS.RootPages.PrivacyPolicyDialog"
+	x:DataType="vm:FirebaseSettingViewModel"
+	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
+	Title="プライバシーポリシー">
+	<!-- RowDefinitions / ColumnDefinitions and per-child Grid placement are
+	     applied from code-behind in ApplyOrientationLayout. The vertical
+	     (portrait/tablet) layout uses 4 rows × 1 column; the landscape-phone
+	     layout switches to 4 rows × 2 columns with the markdown filling the
+	     left half and the description + settings stacked on the right. -->
+	<Grid x:Name="RootGrid" Padding="8">
+
+		<!-- Header with close button -->
+		<Grid x:Name="HeaderRow" ColumnDefinitions="*,Auto" Padding="4">
+			<Label
+				AutomationId="PrivacyDialog.Title"
+				Grid.Column="0"
+				FontSize="Title"
+				FontAttributes="Bold"
+				VerticalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Text="ログ収集のお知らせ"/>
+			<Button
+				AutomationId="PrivacyDialog.CloseButton"
+				Grid.Column="1"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="40"
+				HeightRequest="40"
+				Padding="0"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Clicked="OnCloseClicked"/>
+		</Grid>
+
+		<Label
+			x:Name="DescLabel"
+			Margin="4"
+			TextColor="{x:Static local:RootStyles.TableTextColor}">
+			TRViSでは、アプリの品質向上のため、アプリのクラッシュやエラー情報を収集します。
+また、アプリの使用状況を調査するため、プライバシーポリシーに基づき、一部の情報を収集します。
+これらの情報は、主にFirebaseを用いて収集します。
+これらの情報収集を拒否される場合、本アプリを使用できない場合があります。
+		</Label>
+
+		<Border
+			x:Name="MarkdownBorder"
+			Margin="4"
+			Padding="4"
+			Stroke="{x:Static local:RootStyles.BorderStrokeColor}">
+			<ctrls:SimpleMarkdownView
+				FileName="PrivacyPolicy_md"/>
+		</Border>
+
+		<Border
+			x:Name="SettingsBorder"
+			HorizontalOptions="Center"
+			Padding="8"
+			Margin="8"
+			Stroke="{x:Static local:RootStyles.BorderStrokeColor}">
+			<Border.StrokeShape>
+				<RoundRectangle CornerRadius="4"/>
+			</Border.StrokeShape>
+			<Grid RowSpacing="4">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+
+				<Label
+					Grid.Row="0"
+					Grid.ColumnSpan="2"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text="クラッシュ/エラーログの送信は必須ですが、&#xa;以下の機能については有効/無効を選択できます。"/>
+
+				<Label
+					Grid.Row="1"
+					Grid.Column="0"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text="使用状況の収集を許可する"/>
+				<Switch
+					AutomationId="PrivacyDialog.AnalyticsSwitch"
+					Grid.Row="1"
+					Grid.Column="1"
+					OnColor="GreenYellow"
+					VerticalOptions="Center"
+					IsToggled="{Binding IsAnalyticsEnabled}"/>
+
+				<Grid
+					Grid.Row="2"
+					Grid.ColumnSpan="2"
+					ColumnDefinitions="*,*"
+					ColumnSpacing="8"
+					Margin="0,8,0,0">
+					<Button
+						AutomationId="PrivacyDialog.ResetButton"
+						Grid.Column="0"
+						Padding="16"
+						HorizontalOptions="Fill"
+						Clicked="OnResetButtonClicked"
+						Text="保存値を復元"/>
+					<Button
+						AutomationId="PrivacyDialog.SaveButton"
+						Grid.Column="1"
+						Padding="16"
+						HorizontalOptions="Fill"
+						FontAttributes="Bold"
+						Clicked="OnSaveButtonClicked"
+						Text="同意して保存"/>
+				</Grid>
+			</Grid>
+		</Border>
+	</Grid>
+</ContentPage>
