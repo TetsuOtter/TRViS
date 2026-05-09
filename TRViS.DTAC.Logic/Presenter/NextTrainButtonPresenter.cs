@@ -53,15 +53,24 @@ public class NextTrainButtonPresenter
 		if (e.PropertyName != nameof(IAppViewModelProvider.SelectedTrainData))
 			return;
 
-		SetNextTrainId(_appViewModelProvider.SelectedTrainData?.NextTrainId);
+		Refresh();
 	}
 
 	/// <summary>
-	/// Updates the button state for the given next-train id.
-	/// Null or empty hides the button; a valid id resolves train data and shows the button.
-	/// Errors are logged via <see cref="IDtacCrashLogger"/> and result in a hidden button.
+	/// Re-evaluates the button state by reading the current
+	/// <see cref="IAppViewModelProvider.SelectedTrainData"/> and resolving its NextTrainId.
+	/// Used by the View to request a state refresh on lifecycle events
+	/// (e.g. when the button is being added to the visual tree) without
+	/// passing any value through the View layer — the Logic layer remains the single
+	/// source of truth for NextTrainId.
 	/// </summary>
-	public void SetNextTrainId(string? nextTrainId)
+	public void Refresh()
+	{
+		string? nextTrainId = _appViewModelProvider.SelectedTrainData?.NextTrainId;
+		SetNextTrainId(nextTrainId);
+	}
+
+	private void SetNextTrainId(string? nextTrainId)
 	{
 		if (string.IsNullOrEmpty(nextTrainId))
 		{
