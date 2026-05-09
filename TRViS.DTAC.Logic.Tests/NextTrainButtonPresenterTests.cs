@@ -52,6 +52,12 @@ public class NextTrainButtonPresenterTests
 			}
 		}
 
+		/// <summary>
+		/// Test seam: assign SelectedTrainData without firing PropertyChanged so
+		/// Refresh()-driven paths can be exercised independent of the event chain.
+		/// </summary>
+		public void SetSelectedTrainDataSilent(TrainData? value) => _selectedTrainData = value;
+
 		public string? HeaderTimeFormat { get; set; }
 
 		public event PropertyChangedEventHandler? PropertyChanged;
@@ -207,6 +213,65 @@ public class NextTrainButtonPresenterTests
 
 		Assert.False(presenter.CurrentState.IsVisible);
 		Assert.Single(logger.Calls);
+	}
+
+	// --- Refresh (lifecycle-driven re-evaluation) ---
+
+	[Fact]
+	public void Refresh_ReadsNextTrainIdFromAppViewModel()
+	{
+		// View signals "re-evaluate" without passing a value; Presenter pulls
+		// NextTrainId from IAppViewModelProvider itself.
+		var presenter = CreatePresenter(out var td, out _, out var appVm);
+		td.Add("T1", MakeTrainData("T1", "123A"));
+		// Wire SelectedTrainData WITHOUT going through the property setter so
+		// PropertyChanged does not fire — only Refresh() can pick it up.
+		appVm.SetSelectedTrainDataSilent(MakeSelectedTrain("T1"));
+
+		presenter.Refresh();
+
+		Assert.True(presenter.CurrentState.IsVisible);
+		Assert.Equal("T1", presenter.CurrentState.CurrentNextTrainId);
+	}
+
+	[Fact]
+	public void Refresh_SelectedTrainDataNull_HidesButton()
+	{
+		var presenter = CreatePresenter(out var td, out _, out var appVm);
+		td.Add("T1", MakeTrainData("T1", "123A"));
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
+		Assert.True(presenter.CurrentState.IsVisible);
+
+		appVm.SetSelectedTrainDataSilent(null);
+		presenter.Refresh();
+
+		Assert.False(presenter.CurrentState.IsVisible);
+	}
+
+	[Fact]
+	public void Refresh_NextTrainIdEmpty_HidesButton()
+	{
+		var presenter = CreatePresenter(out _, out _, out var appVm);
+		appVm.SetSelectedTrainDataSilent(new TrainData("selected", Direction.Outbound, TrainNumber: "selected"));
+
+		presenter.Refresh();
+
+		Assert.False(presenter.CurrentState.IsVisible);
+	}
+
+	[Fact]
+	public void Refresh_AfterPropertyChangedFired_IsIdempotent()
+	{
+		// Refresh after PropertyChanged-driven update must not regress visibility.
+		var presenter = CreatePresenter(out var td, out _, out var appVm);
+		td.Add("T1", MakeTrainData("T1", "123A"));
+		appVm.SelectedTrainData = MakeSelectedTrain("T1");
+		Assert.True(presenter.CurrentState.IsVisible);
+
+		presenter.Refresh();
+
+		Assert.True(presenter.CurrentState.IsVisible);
+		Assert.Equal("T1", presenter.CurrentState.CurrentNextTrainId);
 	}
 
 	// --- OnButtonClicked ---

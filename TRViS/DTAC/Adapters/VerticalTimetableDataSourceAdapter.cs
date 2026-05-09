@@ -16,7 +16,7 @@ internal sealed class VerticalTimetableDataSourceAdapter : IVerticalTimetableDat
 	public IReadOnlyList<bool> IsInfoRowList => _viewModel.CurrentRows.Select(r => r.IsInfoRow).ToList();
 	public bool HasAfterRemarksText => _viewModel.AfterRemarksText is not null;
 	public bool HasAfterArriveText => _viewModel.AfterArriveText is not null;
-	public bool HasNextTrainId => _viewModel.NextTrainId is not null;
+	public bool HasNextTrainId => !string.IsNullOrEmpty(_viewModel.NextTrainId);
 
 	public event EventHandler? RowsChanged;
 

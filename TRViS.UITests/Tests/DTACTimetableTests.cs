@@ -125,6 +125,46 @@ public class DTACTimetableTests : BaseUITest
 	}
 
 	/// <summary>
+	/// Regression for #225: when the selected train has a non-empty NextTrainId,
+	/// the NextTrainButton must appear in the accessibility tree after switching
+	/// to the timetable tab. The button sits at the bottom of the timetable Grid
+	/// and may be off-screen on small viewports, so the helper scrolls as needed
+	/// before failing.
+	/// </summary>
+	[Test]
+	public void NextTrainButton_Present_WhenSelectedTrainHasNextTrainId()
+	{
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+
+		// Cascade to a sample-data train known to have NextTrainId set:
+		// linear-train-1 (NextTrainId = "linear-train-2"). The seam commits and
+		// navigates to DTAC, mirroring the AutoOpenForTesting pattern.
+		var dtac = _startHomePage.SeedTrainSelectionWithNextTrain();
+		dtac.SwitchToTimetableTab();
+
+		Assert.That(dtac.IsNextTrainButtonPresent(), Is.True,
+			"NextTrainButton must be reachable when SelectedTrainData.NextTrainId is non-empty " +
+			"(scroll-to-bottom retries are built into IsNextTrainButtonPresent).");
+	}
+
+	/// <summary>
+	/// Negative: the default sample-data first train (1-1-1) has NextTrainId = "",
+	/// so the button must not be visible to the user. Guards against the inverse
+	/// regression where a fix accidentally always shows the button.
+	/// </summary>
+	[Test]
+	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
+	{
+		var dtac = LoadSampleAndOpenDTAC();
+		dtac.SwitchToTimetableTab();
+
+		Assert.That(dtac.IsNextTrainButtonPresent(TimeSpan.FromSeconds(3)), Is.False,
+			"NextTrainButton must not be visible when SelectedTrainData.NextTrainId is empty.");
+	}
+
+	/// <summary>
 	/// Verifies the GPS auto-scroll pipeline survives a fake GPS coord injected
 	/// via the test deeplink. The deeplink handler force-enables LocationService
 	/// and calls SetGpsLocation directly — no CoreLocation, no permissions.
