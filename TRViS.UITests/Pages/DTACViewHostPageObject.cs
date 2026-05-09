@@ -103,7 +103,7 @@ public class DTACViewHostPageObject : PageObject
 		try
 		{
 			var el = Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
-			if (el.Displayed)
+			if (IsElementUserVisible(el))
 				return true;
 		}
 		catch (NoSuchElementException) { }
@@ -117,13 +117,36 @@ public class DTACViewHostPageObject : PageObject
 			{
 				var el = Driver.FindElement(By.XPath(
 					$"//*[contains(@Name, '{buttonTextSuffix}')]"));
-				if (el.Displayed)
+				if (IsElementUserVisible(el))
 					return true;
 			}
 			catch (NoSuchElementException) { }
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Returns true only when an element is genuinely visible to the user.
+	/// Combines <c>Displayed</c> with a non-zero <c>Size</c> check: Mac Catalyst's
+	/// mac2 driver surfaces unparented elements with an AutomationId in the
+	/// accessibility tree and reports them as <c>Displayed=true</c>, but their
+	/// frame is still 0×0 because they are not laid out. Size is the disambiguator.
+	/// </summary>
+	private static bool IsElementUserVisible(AppiumElement el)
+	{
+		try
+		{
+			if (!el.Displayed)
+				return false;
+			var size = el.Size;
+			return size.Width > 0 && size.Height > 0;
+		}
+		catch
+		{
+			// Stale element / driver-side error → treat as not visible.
+			return false;
+		}
 	}
 
 	/// <summary>
