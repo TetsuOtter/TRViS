@@ -157,18 +157,17 @@ public class DTACTimetableTests : BaseUITest
 
 	/// <summary>
 	/// Negative: the default sample-data first train (1-1-1) has NextTrainId = "",
-	/// so the button must be absent from the accessibility tree (IsVisible=false
-	/// in MAUI removes the element entirely). Guards against the inverse regression
-	/// where a fix accidentally always shows the button.
+	/// so the button must not be visible to the user. Guards against the inverse
+	/// regression where a fix accidentally always shows the button.
 	/// </summary>
 	[Test]
-	public void NextTrainButton_Absent_WhenSelectedTrainHasNoNextTrainId()
+	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
 	{
 		var dtac = LoadSampleAndOpenDTAC();
 		dtac.SwitchToTimetableTab();
 
 		Assert.That(dtac.IsNextTrainButtonPresent(TimeSpan.FromSeconds(3)), Is.False,
-			"NextTrainButton must not be in the tree when SelectedTrainData.NextTrainId is empty.");
+			"NextTrainButton must not be visible when SelectedTrainData.NextTrainId is empty.");
 	}
 
 	/// <summary>

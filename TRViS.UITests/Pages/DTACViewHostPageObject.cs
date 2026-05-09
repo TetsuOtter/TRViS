@@ -41,15 +41,19 @@ public class DTACViewHostPageObject : PageObject
 	public AppiumElement NextTrainButton => WaitForElement(AutomationIds.DTAC.NextTrainButton);
 
 	/// <summary>
-	/// Returns true when the NextTrainButton exists in the accessibility tree —
-	/// either visible on screen or scrollable into view. Returns false when it
-	/// remains absent after several scroll attempts.
+	/// Returns true when the NextTrainButton is displayed to the user — either
+	/// already on-screen or scrollable into view. Returns false when it never
+	/// becomes visible after several scroll attempts.
 	///
-	/// The button sits at the bottom of the timetable Grid and is often outside
-	/// the initial viewport, so a strict "Displayed=true" check would yield
-	/// false-negatives. The bug we guard against is "<c>IsVisible=false</c>" —
-	/// in MAUI that removes the element from the accessibility tree entirely,
-	/// so <c>FindElement</c> existence is the right signal.
+	/// Why <c>Displayed</c> and not <c>FindElement</c> existence: Mac Catalyst
+	/// surfaces Grid elements that have an AutomationId in the accessibility
+	/// tree even when they are unparented or have IsVisible=false. Their frame
+	/// is then 0×0 / off-window, so <c>Displayed</c> returns false in those
+	/// states. <c>Displayed</c> is therefore the cross-platform-reliable
+	/// "user can see it" signal.
+	///
+	/// The button sits at the bottom of the timetable Grid; on small viewports
+	/// it can start off-screen, hence the swipe-and-retry loop.
 	/// </summary>
 	public bool IsNextTrainButtonPresent(TimeSpan? timeout = null)
 	{
@@ -64,14 +68,28 @@ public class DTACViewHostPageObject : PageObject
 			{
 				try
 				{
-					Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
-					return true;
+					var el = Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
+					if (el.Displayed)
+						return true;
+					// Found in tree but not visible — could be off-screen, or
+					// unparented (Mac Catalyst quirk). Swipe and retry; if the
+					// element is genuinely hidden (negative case) Displayed
+					// will stay false through every attempt.
+					if (swipeAttempts < maxSwipes)
+					{
+						TrySwipeUp();
+						swipeAttempts++;
+					}
+					else
+					{
+						return false;
+					}
 				}
 				catch (NoSuchElementException)
 				{
-					// The element might be off-screen and not yet surfaced in the
-					// accessibility tree on platforms that prune off-screen scroll
-					// children. Swipe up a few times to bring it into reach.
+					// Not in the tree at all (Android / iOS prune IsVisible=false
+					// elements). Try scrolling in case it's lazily surfaced, then
+					// give up.
 					if (swipeAttempts < maxSwipes)
 					{
 						TrySwipeUp();
