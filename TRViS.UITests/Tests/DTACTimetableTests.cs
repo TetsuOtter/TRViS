@@ -10,6 +10,7 @@ namespace TRViS.UITests.Tests;
 /// scroll view (the GPS auto-scroll target).
 /// </summary>
 [TestFixture]
+[Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class DTACTimetableTests : BaseUITest
 {
 	private StartHomePageObject _startHomePage = null!;

@@ -10,6 +10,7 @@ namespace TRViS.UITests.Tests;
 /// no longer applies and is not retested here.
 /// </summary>
 [TestFixture]
+[Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class ConnectServerDialogTests : BaseUITest
 {
 	private static string SampleUrlA => StartHomePageObject.SeededHistoryUrls[0];

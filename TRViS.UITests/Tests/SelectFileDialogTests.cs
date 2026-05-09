@@ -10,6 +10,7 @@ namespace TRViS.UITests.Tests;
 /// and out of Appium's reach.
 /// </summary>
 [TestFixture]
+[Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class SelectFileDialogTests : BaseUITest
 {
 	private StartHomePageObject _startHomePage = null!;

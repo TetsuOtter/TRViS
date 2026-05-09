@@ -7,6 +7,7 @@ namespace TRViS.UITests.Tests;
 /// Tests for the unified Start/Home page (replaces the legacy SelectTrainPage).
 /// </summary>
 [TestFixture]
+[Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class StartHomeTests : BaseUITest
 {
 	private StartHomePageObject _startHomePage = null!;

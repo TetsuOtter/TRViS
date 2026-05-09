@@ -10,6 +10,19 @@ namespace TRViS.UITests.Tests;
 // visible on first launch, so it must run before any saving fixture.
 [TestFixture]
 [Order(1)]
+// RetryAllTests(2): UI tests share a single Appium UIA2 / XCUITest
+// instrumentation process per session, and that process is known to die
+// mid-test under memory / accessibility-tree pressure (Android logcat:
+// "instrumentation process is not running (probably crashed)") — once it
+// dies, every subsequent test in the same fixture run instantly fails on
+// "socket hang up". Per-test retry recovers via the per-test SetUp tearing
+// down and rebuilding the Driver. Real assertion bugs typically fail across
+// all retries, so this masks infrastructure flakes without hiding
+// regressions.
+// NUnit's built-in [Retry] is method-only; RetryAllTestsAttribute (in
+// Infrastructure/) is a class-level wrapper that applies the same
+// RetryCommand uniformly across every [Test] in the fixture.
+[Infrastructure.RetryAllTests(2)]
 public class AppLaunchTests : BaseUITest
 {
 	[Test]

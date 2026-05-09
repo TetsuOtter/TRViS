@@ -7,6 +7,7 @@ namespace TRViS.UITests.Tests;
 /// Each test accepts Firebase consent at the beginning.
 /// </summary>
 [TestFixture]
+[Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class NavigationTests : BaseUITest
 {
 	private AppShellPage _shell = null!;
