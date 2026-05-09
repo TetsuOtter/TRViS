@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Interactions;
 using TRViS.UITests.Infrastructure;
 
 namespace TRViS.UITests.Pages;
@@ -37,6 +38,131 @@ public class DTACViewHostPageObject : PageObject
 	public AppiumElement OpenCloseButton => FindByAutomationId(AutomationIds.DTAC.OpenCloseButton);
 	public AppiumElement TimetableScrollView => FindByAutomationId(AutomationIds.DTAC.TimetableScrollView);
 	public AppiumElement VerticalTimetableView => FindByAutomationId(AutomationIds.DTAC.VerticalTimetableView);
+	public AppiumElement NextTrainButton => WaitForElement(AutomationIds.DTAC.NextTrainButton);
+
+	/// <summary>
+	/// Returns true when the NextTrainButton is displayed to the user — either
+	/// already on-screen or scrollable into view. Returns false when it never
+	/// becomes visible after several scroll attempts.
+	///
+	/// Why <c>Displayed</c> and not <c>FindElement</c> existence: Mac Catalyst
+	/// surfaces Grid elements that have an AutomationId in the accessibility
+	/// tree even when they are unparented or have IsVisible=false. Their frame
+	/// is then 0×0 / off-window, so <c>Displayed</c> returns false in those
+	/// states. <c>Displayed</c> is therefore the cross-platform-reliable
+	/// "user can see it" signal.
+	///
+	/// The button sits at the bottom of the timetable Grid; on small viewports
+	/// it can start off-screen, hence the swipe-and-retry loop.
+	/// </summary>
+	public bool IsNextTrainButtonPresent(TimeSpan? timeout = null)
+	{
+		var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(8));
+		int swipeAttempts = 0;
+		const int maxSwipes = 4;
+
+		// Suffix of the button's visible label (e.g. "Ｌｉｎｅａｒ ０ ２の時刻表へ").
+		// Stable across train-number variations and used as the Windows fallback,
+		// because WinUI 3 surfaces a MAUI Grid's AutomationId as a non-control
+		// Pane that AccessibilityId search doesn't always reach.
+		const string ButtonTextSuffix = "の時刻表へ";
+
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			while (DateTime.UtcNow < deadline)
+			{
+				if (TryFindVisibleNextTrainButton(ButtonTextSuffix))
+					return true;
+
+				// Element either not in tree or in tree but not visible
+				// (off-screen, unparented, or hidden via IsVisible=false).
+				// Swipe up to bring it on-screen if possible; otherwise
+				// keep polling until the deadline.
+				if (swipeAttempts < maxSwipes)
+				{
+					TrySwipeUp();
+					swipeAttempts++;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
+
+	private bool TryFindVisibleNextTrainButton(string buttonTextSuffix)
+	{
+		// Primary: AutomationId lookup. Works on iOS/Android/macOS.
+		try
+		{
+			var el = Driver.FindElement(AutomationIdLocator(AutomationIds.DTAC.NextTrainButton));
+			if (el.Displayed)
+				return true;
+		}
+		catch (NoSuchElementException) { }
+
+		// Windows fallback: search by the constant Japanese suffix in the
+		// inner Button's visible label using XPath contains() against the
+		// UIA Name property.
+		if (IsWindows)
+		{
+			try
+			{
+				var el = Driver.FindElement(By.XPath(
+					$"//*[contains(@Name, '{buttonTextSuffix}')]"));
+				if (el.Displayed)
+					return true;
+			}
+			catch (NoSuchElementException) { }
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Best-effort upward swipe in the centre of the screen to scroll the
+	/// timetable toward the bottom. Cross-platform via W3C PointerActions;
+	/// falls back to a no-op on platforms that don't accept the gesture
+	/// (Windows / macOS desktop), where the timetable usually fits anyway.
+	/// </summary>
+	private void TrySwipeUp()
+	{
+		try
+		{
+			if (IsWindows)
+			{
+				// Windows desktop uses a wide window; the button typically fits.
+				// Skip swipe to avoid unsupported pointer-input errors.
+				return;
+			}
+
+			var size = Driver.Manage().Window.Size;
+			int x = size.Width / 2;
+			int startY = (int)(size.Height * 0.75);
+			int endY = (int)(size.Height * 0.25);
+
+			var touch = new PointerInputDevice(PointerKind.Touch, "finger");
+			var seq = new ActionSequence(touch);
+			seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, startY, TimeSpan.Zero));
+			seq.AddAction(touch.CreatePointerDown(MouseButton.Left));
+			seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, endY, TimeSpan.FromMilliseconds(400)));
+			seq.AddAction(touch.CreatePointerUp(MouseButton.Left));
+			Driver.PerformActions(new List<ActionSequence> { seq });
+			Thread.Sleep(300);
+		}
+		catch
+		{
+			// Best-effort; swallow driver-specific failures so the caller can
+			// proceed to the next attempt.
+		}
+	}
 
 	private AppiumElement FindCustomControl(string automationId, params string[] candidateTexts)
 	{
