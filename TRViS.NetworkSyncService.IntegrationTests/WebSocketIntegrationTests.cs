@@ -2,7 +2,9 @@ using System.Net.WebSockets;
 
 using NUnit.Framework;
 
+using TRViS.Core;
 using TRViS.IO;
+using TRViS.IO.Models;
 using TRViS.LocationService.Abstractions;
 using TRViS.NetworkSyncService;
 using TRViS.NetworkSyncService.IntegrationTests.Helpers;
@@ -485,8 +487,10 @@ public class WebSocketIntegrationTests
 	// ================================================================
 
 	[Test]
-	public async Task Timetable_Update_CurrentTrain_ResetsLocationState()
+	public async Task Timetable_Update_CurrentTrain_DoesNotResetLocationState()
 	{
+		// リアルタイム編集対応 (#214): 自スコープと一致する Train 更新を受信しても
+		// 位置情報 (StationIndex) は維持されなければならない。
 		var service = await ConnectServiceAsync();
 		try
 		{
@@ -495,12 +499,12 @@ public class WebSocketIntegrationTests
 
 			// 位置を駅2 (index=1) に設定
 			service.ForceSetLocationInfo(1, false);
+			int locationChangedCount = 0;
+			service.LocationStateChanged += (_, _) => locationChangedCount++;
 
-			// 現在選択中の Train ID で時刻表更新を受信したとき → リセットされる
-			// LocationStateChanged が index=0 で発火することを検証
-			var locationTask = WaitForEventAsync<LocationStateChangedEventArgs>(
-				h => service.LocationStateChanged += h,
-				h => service.LocationStateChanged -= h
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
 			);
 
 			await _control.BroadcastTimetableAsync(
@@ -509,9 +513,12 @@ public class WebSocketIntegrationTests
 				trainId: TestData.TrainId
 			);
 
-			var state = await locationTask;
-			Assert.That(state.NewStationIndex, Is.EqualTo(0));
-			Assert.That(state.IsRunningToNextStation, Is.False);
+			await timetableTask;
+			await Task.Delay(300); // リセットが起きないことを確認するための猶予
+
+			Assert.That(locationChangedCount, Is.EqualTo(0));
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+			Assert.That(service.IsRunningToNextStation, Is.False);
 		}
 		finally
 		{
@@ -585,8 +592,10 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
-	public async Task Timetable_WorkGroupScope_MatchingWorkGroup_ResetsLocationState()
+	public async Task Timetable_WorkGroupScope_MatchingWorkGroup_DoesNotResetLocationState()
 	{
+		// リアルタイム編集対応 (#214): 自スコープと一致する WorkGroup 更新を受信しても
+		// 位置情報 (StationIndex) は維持されなければならない。
 		var service = await ConnectServiceAsync();
 		try
 		{
@@ -594,21 +603,25 @@ public class WebSocketIntegrationTests
 			service.WorkGroupId = TestData.WorkGroupId;
 
 			service.ForceSetLocationInfo(1, false);
+			int locationChangedCount = 0;
+			service.LocationStateChanged += (_, _) => locationChangedCount++;
 
-			var locationTask = WaitForEventAsync<LocationStateChangedEventArgs>(
-				h => service.LocationStateChanged += h,
-				h => service.LocationStateChanged -= h
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
 			);
 
-			// 現在選択中の WorkGroupId と一致する WorkGroup スコープ更新 → リセットされる
 			await _control.BroadcastTimetableAsync(
 				TestData.WorkGroupScopeJson,
 				workGroupId: TestData.WorkGroupId
 			);
 
-			var state = await locationTask;
-			Assert.That(state.NewStationIndex, Is.EqualTo(0));
-			Assert.That(state.IsRunningToNextStation, Is.False);
+			await timetableTask;
+			await Task.Delay(300);
+
+			Assert.That(locationChangedCount, Is.EqualTo(0));
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+			Assert.That(service.IsRunningToNextStation, Is.False);
 		}
 		finally
 		{
@@ -653,8 +666,10 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
-	public async Task Timetable_WorkScope_MatchingWork_ResetsLocationState()
+	public async Task Timetable_WorkScope_MatchingWork_DoesNotResetLocationState()
 	{
+		// リアルタイム編集対応 (#214): 自スコープと一致する Work 更新を受信しても
+		// 位置情報 (StationIndex) は維持されなければならない。
 		var service = await ConnectServiceAsync();
 		try
 		{
@@ -662,22 +677,26 @@ public class WebSocketIntegrationTests
 			service.WorkId = TestData.WorkId;
 
 			service.ForceSetLocationInfo(1, false);
+			int locationChangedCount = 0;
+			service.LocationStateChanged += (_, _) => locationChangedCount++;
 
-			var locationTask = WaitForEventAsync<LocationStateChangedEventArgs>(
-				h => service.LocationStateChanged += h,
-				h => service.LocationStateChanged -= h
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
 			);
 
-			// 現在選択中の WorkId と一致する Work スコープ更新 → リセットされる
 			await _control.BroadcastTimetableAsync(
 				TestData.WorkScopeJson,
 				workGroupId: TestData.WorkGroupId,
 				workId: TestData.WorkId
 			);
 
-			var state = await locationTask;
-			Assert.That(state.NewStationIndex, Is.EqualTo(0));
-			Assert.That(state.IsRunningToNextStation, Is.False);
+			await timetableTask;
+			await Task.Delay(300);
+
+			Assert.That(locationChangedCount, Is.EqualTo(0));
+			Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+			Assert.That(service.IsRunningToNextStation, Is.False);
 		}
 		finally
 		{
@@ -966,6 +985,904 @@ public class WebSocketIntegrationTests
 		{
 			await DisconnectAsync(service1);
 			await DisconnectAsync(service2);
+		}
+	}
+
+	// ================================================================
+	// 受け入れ基準 AC-1..AC-7 (#214 リアルタイム編集サポート)
+	//
+	// SelectionManager + WebSocketNetworkSyncService の ILoader 実装を組み合わせて、
+	// 自スコープ更新で選択が維持されつつ最新データが反映されることを検証する。
+	// ================================================================
+
+	private static async Task SeedAllScopeAsync(WebSocketNetworkSyncService service, ReferenceServerClient control)
+	{
+		var task = WaitForEventAsync<TimetableData>(
+			h => service.TimetableUpdated += h,
+			h => service.TimetableUpdated -= h
+		);
+		await control.BroadcastTimetableAsync(TestData.AllScopeJson);
+		await task;
+	}
+
+	[Test]
+	public async Task AC1_TrainScope_SamePayload_PreservesSelectionAndUpdatesContent()
+	{
+		// AC-1: 表示中の Train(Tx) と一致する Scope.Train 更新で
+		//   - SelectedTrainData?.Id が維持される
+		//   - 行の TrackName が新しい値で反映される
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var manager = new TimetableSelectionManager { Loader = service };
+			Assert.That(manager.SelectedTrainData, Is.Not.Null);
+			// TrainId のいずれかが選択される。Tx をテスト対象として明示的に選択する。
+			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
+
+			// AppViewModel.OnTimetableUpdated と同じ流れで Refresh を駆動する
+			service.TimetableUpdated += (_, _) => manager.Refresh();
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_TrackNameOnly,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await ttTask;
+			await Task.Delay(100); // Refresh のハンドラが走り切るのを待つ
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(manager.SelectedTrainData, Is.Not.Null);
+				Assert.That(manager.SelectedTrainData!.Id, Is.EqualTo(TestData.TrainId));
+				// 行 0 の TrackName が更新値になっていること (=再描画の素材が手元にある)
+				Assert.That(manager.SelectedTrainData!.Rows, Is.Not.Null);
+				Assert.That(manager.SelectedTrainData!.Rows![0].TrackName, Is.EqualTo(TestData.UpdatedTrackName));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AC2_WorkScope_PreservesTrainSelectionWhenStillPresent()
+	{
+		// AC-2: AC-1 の状態で Scope.Work (=現在の Wx) を受信しても、
+		//   SelectedTrainData?.Id が新ペイロードに存在する限り、選択は Tx のまま維持される。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var manager = new TimetableSelectionManager { Loader = service };
+			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
+			service.TimetableUpdated += (_, _) => manager.Refresh();
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkScopeJsonFull,
+				workGroupId: TestData.WorkGroupId,
+				workId: TestData.WorkId
+			);
+			await ttTask;
+			await Task.Delay(100);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(manager.SelectedWork?.Id, Is.EqualTo(TestData.WorkId));
+				Assert.That(manager.SelectedTrainData?.Id, Is.EqualTo(TestData.TrainId));
+				// 配下キャッシュも更新されているはず
+				Assert.That(manager.SelectedTrainData!.TrainNumber, Is.EqualTo("T-001-Work"));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AC3_WorkGroupScope_PreservesAllSelectionsWhenStillPresent()
+	{
+		// AC-3: Scope.WorkGroup(=現在の WGx) が届き、配下が変化しても、
+		//   引き続き存在する Work / Train であれば選択が保持される。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var manager = new TimetableSelectionManager { Loader = service };
+			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
+			service.TimetableUpdated += (_, _) => manager.Refresh();
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkGroupScopeJsonFull,
+				workGroupId: TestData.WorkGroupId
+			);
+			await ttTask;
+			await Task.Delay(100);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(manager.SelectedWorkGroup?.Id, Is.EqualTo(TestData.WorkGroupId));
+				Assert.That(manager.SelectedWork?.Id, Is.EqualTo(TestData.WorkId));
+				Assert.That(manager.SelectedTrainData?.Id, Is.EqualTo(TestData.TrainId));
+				Assert.That(manager.SelectedTrainData!.TrainNumber, Is.EqualTo("T-001-WG"));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AC4_DifferentTrainScope_DoesNotChangeCurrentSelection()
+	{
+		// AC-4: 異なる Train への Scope.Train 更新は、現在表示中の Train の選択を変更しない。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var manager = new TimetableSelectionManager { Loader = service };
+			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
+			service.TimetableUpdated += (_, _) => manager.Refresh();
+
+			var beforeTrainNumber = manager.SelectedTrainData!.TrainNumber;
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			// 別 Train (TrainId2) への更新
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId2
+			);
+			await ttTask;
+			await Task.Delay(100);
+
+			// 現在の選択 Train は変わらない
+			Assert.That(manager.SelectedTrainData?.Id, Is.EqualTo(TestData.TrainId));
+			Assert.That(manager.SelectedTrainData!.TrainNumber, Is.EqualTo(beforeTrainNumber));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AC5_WorkGroupScope_PropagatesToDescendantCaches()
+	{
+		// AC-5: Scope.WorkGroup 受信後に、Loader.GetTrainDataList(workId) /
+		//   GetTrainData(trainId) が新データを返す (配下キャッシュが更新済み)。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkGroupScopeJsonFull,
+				workGroupId: TestData.WorkGroupId
+			);
+			await ttTask;
+			await Task.Delay(100);
+
+			var loader = (ILoader)service;
+
+			var trains = loader.GetTrainDataList(TestData.WorkId);
+			Assert.That(trains, Has.Count.EqualTo(2), "WorkGroup 配下の Trains が再構築されること");
+
+			var t1 = loader.GetTrainData(TestData.TrainId);
+			Assert.That(t1, Is.Not.Null);
+			Assert.That(t1!.TrainNumber, Is.EqualTo("T-001-WG"));
+
+			var t2 = loader.GetTrainData(TestData.TrainId2);
+			Assert.That(t2, Is.Not.Null);
+			Assert.That(t2!.TrainNumber, Is.EqualTo("T-002-WG"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AC5_WorkScope_PropagatesToDescendantCaches()
+	{
+		// AC-5 補足: Scope.Work 受信後にも配下の Trains キャッシュが更新される。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkScopeJsonFull,
+				workGroupId: TestData.WorkGroupId,
+				workId: TestData.WorkId
+			);
+			await ttTask;
+			await Task.Delay(100);
+
+			var loader = (ILoader)service;
+			var t1 = loader.GetTrainData(TestData.TrainId);
+			Assert.That(t1, Is.Not.Null);
+			Assert.That(t1!.TrainNumber, Is.EqualTo("T-001-Work"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AC6_AllScope_PreservesIdsWhenStillPresent()
+	{
+		// AC-6: Scope.All 受信時に、現在の SelectedWorkGroup/Work/Train の各 Id が
+		//   新ペイロードに存在すれば、それぞれ保持される。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var manager = new TimetableSelectionManager { Loader = service };
+			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
+			service.TimetableUpdated += (_, _) => manager.Refresh();
+
+			// 同じ Id を持つ All スコープを再配信する
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await ttTask;
+			await Task.Delay(100);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(manager.SelectedWorkGroup?.Id, Is.EqualTo(TestData.WorkGroupId));
+				Assert.That(manager.SelectedWork?.Id, Is.EqualTo(TestData.WorkId));
+				Assert.That(manager.SelectedTrainData?.Id, Is.EqualTo(TestData.TrainId));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AC6_AllScope_FallsBackWhenIdsDisappear()
+	{
+		// AC-6 補足: 既存選択の Id が新ペイロードに存在しなくなった階層から先頭にフォールバック。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var manager = new TimetableSelectionManager { Loader = service };
+			manager.SelectedTrainData = manager.OrderedTrainDataList!.First(t => t.Id == TestData.TrainId);
+			service.TimetableUpdated += (_, _) => manager.Refresh();
+
+			// 全く別の WorkGroup を含む全体更新を送る
+			string altJson = $$"""
+				[
+				  {
+				    "Id": "wg-other",
+				    "Name": "別 WG",
+				    "DBVersion": 1,
+				    "Works": [
+				      {
+				        "Id": "w-other",
+				        "Name": "別 Work",
+				        "AffectDate": "20260101",
+				        "Trains": [
+				          {
+				            "Id": "t-other",
+				            "TrainNumber": "OTHER-1",
+				            "Direction": 1,
+				            "TimetableRows": []
+				          }
+				        ]
+				      }
+				    ]
+				  }
+				]
+				""";
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(altJson);
+			await ttTask;
+			await Task.Delay(100);
+
+			// 既存選択は消えたので、新ペイロードの先頭にフォールバック
+			Assert.Multiple(() =>
+			{
+				Assert.That(manager.SelectedWorkGroup?.Id, Is.EqualTo("wg-other"));
+				Assert.That(manager.SelectedWork?.Id, Is.EqualTo("w-other"));
+				Assert.That(manager.SelectedTrainData?.Id, Is.EqualTo("t-other"));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
+	// サーバー情報・ダイヤ情報 (将来拡張)
+	// ================================================================
+
+	[Test]
+	public async Task ServerInfo_RequestFromClient_ReceivesResponse()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			await _control.SetServerInfoAsync(
+				name: "Test Server",
+				admin: "admin@example.com",
+				version: "1.2.3",
+				protocolVersion: "1.0"
+			);
+
+			var infoTask = WaitForEventAsync<ServerInfo>(
+				h => service.ServerInfoUpdated += h,
+				h => service.ServerInfoUpdated -= h
+			);
+
+			await service.RequestServerInfoAsync();
+			var info = await infoTask;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(info.Name, Is.EqualTo("Test Server"));
+				Assert.That(info.Admin, Is.EqualTo("admin@example.com"));
+				Assert.That(info.Version, Is.EqualTo("1.2.3"));
+				Assert.That(info.ProtocolVersion, Is.EqualTo("1.0"));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task ServerInfo_BroadcastFromControl_AllClientsReceive()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			await _control.SetServerInfoAsync(name: "Pushed", version: "9.9.9");
+
+			var infoTask = WaitForEventAsync<ServerInfo>(
+				h => service.ServerInfoUpdated += h,
+				h => service.ServerInfoUpdated -= h
+			);
+			await _control.BroadcastServerInfoAsync();
+
+			var info = await infoTask;
+			Assert.That(info.Name, Is.EqualTo("Pushed"));
+			Assert.That(info.Version, Is.EqualTo("9.9.9"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task DiagramInfo_RequestFromClient_ReceivesResponse()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			await _control.SetDiagramAsync(
+				id: "diag-1",
+				name: "今日のダイヤ",
+				description: "平日朝ラッシュ",
+				workGroupIds: new[] { TestData.WorkGroupId },
+				makeCurrent: true
+			);
+
+			var infoTask = WaitForEventAsync<DiagramInfo>(
+				h => service.DiagramInfoUpdated += h,
+				h => service.DiagramInfoUpdated -= h
+			);
+			await service.RequestDiagramInfoAsync();
+			var info = await infoTask;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(info.Id, Is.EqualTo("diag-1"));
+				Assert.That(info.Name, Is.EqualTo("今日のダイヤ"));
+				Assert.That(info.Description, Is.EqualTo("平日朝ラッシュ"));
+				Assert.That(info.WorkGroupIds, Is.Not.Null);
+				Assert.That(info.WorkGroupIds, Has.Length.EqualTo(1));
+				Assert.That(info.WorkGroupIds![0], Is.EqualTo(TestData.WorkGroupId));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task DiagramInfo_RequestSpecificDiagram_ReceivesThatDiagram()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			await _control.SetDiagramAsync(id: "diag-A", name: "ダイヤ A", makeCurrent: true);
+			await _control.SetDiagramAsync(id: "diag-B", name: "ダイヤ B");
+
+			var infoTask = WaitForEventAsync<DiagramInfo>(
+				h => service.DiagramInfoUpdated += h,
+				h => service.DiagramInfoUpdated -= h
+			);
+			await service.RequestDiagramInfoAsync(diagramId: "diag-B");
+			var info = await infoTask;
+
+			Assert.That(info.Id, Is.EqualTo("diag-B"));
+			Assert.That(info.Name, Is.EqualTo("ダイヤ B"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task DiagramInfo_BroadcastFromControl_AllClientsReceive()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			await _control.SetDiagramAsync(id: "diag-bcast", name: "Broadcast", makeCurrent: true);
+
+			var infoTask = WaitForEventAsync<DiagramInfo>(
+				h => service.DiagramInfoUpdated += h,
+				h => service.DiagramInfoUpdated -= h
+			);
+			await _control.BroadcastDiagramAsync();
+
+			var info = await infoTask;
+			Assert.That(info.Id, Is.EqualTo("diag-bcast"));
+			Assert.That(info.Name, Is.EqualTo("Broadcast"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task ServerInfo_ServerLogsClientRequest()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await _control.ClearReceivedRequestsAsync();
+
+			await service.RequestServerInfoAsync();
+			await ReferenceServerClient.WaitForConditionAsync(
+				async () => (await _control.GetReceivedRequestsAsync()).Any(r => r.MessageType == "RequestServerInfo"),
+				timeoutMs: 3000
+			);
+			var requests = await _control.GetReceivedRequestsAsync();
+			Assert.That(requests.Any(r => r.MessageType == "RequestServerInfo"), Is.True);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
+	// リモートコマンド (Server → Client)
+	// ================================================================
+
+	[Test]
+	public async Task SelectTrain_BroadcastFromServer_ClientReceivesEvent()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<SelectTrainCommand>(
+				h => service.TrainSelectionRequested += h,
+				h => service.TrainSelectionRequested -= h
+			);
+
+			await _control.BroadcastSelectTrainAsync(
+				workGroupId: TestData.WorkGroupId,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+
+			var cmd = await task;
+			Assert.Multiple(() =>
+			{
+				Assert.That(cmd.WorkGroupId, Is.EqualTo(TestData.WorkGroupId));
+				Assert.That(cmd.WorkId, Is.EqualTo(TestData.WorkId));
+				Assert.That(cmd.TrainId, Is.EqualTo(TestData.TrainId));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task OperationCommand_StartOperation_ClientReceivesEvent()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<OperationCommand>(
+				h => service.OperationCommandReceived += h,
+				h => service.OperationCommandReceived -= h
+			);
+
+			await _control.BroadcastOperationCommandAsync("StartOperation");
+			var cmd = await task;
+
+			Assert.That(cmd.Action, Is.EqualTo(OperationCommandType.StartOperation));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task OperationCommand_AllActions_AreReceivedCorrectly()
+	{
+		var actions = new[]
+		{
+			("StartOperation", OperationCommandType.StartOperation),
+			("EndOperation", OperationCommandType.EndOperation),
+			("EnableLocationService", OperationCommandType.EnableLocationService),
+			("DisableLocationService", OperationCommandType.DisableLocationService),
+		};
+
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			foreach (var (str, expected) in actions)
+			{
+				var task = WaitForEventAsync<OperationCommand>(
+					h => service.OperationCommandReceived += h,
+					h => service.OperationCommandReceived -= h
+				);
+				await _control.BroadcastOperationCommandAsync(str);
+				var cmd = await task;
+				Assert.That(cmd.Action, Is.EqualTo(expected), $"Action='{str}'");
+			}
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task HeaderColor_SpecificColor_ClientReceivesRgb()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<HeaderColorCommand>(
+				h => service.HeaderColorChangeRequested += h,
+				h => service.HeaderColorChangeRequested -= h
+			);
+
+			await _control.BroadcastHeaderColorAsync(resetToDefault: false, color_RGB: 0x336699);
+			var cmd = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(cmd.ResetToDefault, Is.False);
+				Assert.That(cmd.Color_RGB, Is.EqualTo(0x336699));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task HeaderColor_ResetToDefault_ClientReceivesResetFlag()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<HeaderColorCommand>(
+				h => service.HeaderColorChangeRequested += h,
+				h => service.HeaderColorChangeRequested -= h
+			);
+
+			await _control.BroadcastHeaderColorAsync(resetToDefault: true);
+			var cmd = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(cmd.ResetToDefault, Is.True);
+				Assert.That(cmd.Color_RGB, Is.Null);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_BroadcastFromServer_ClientReceivesAllFields()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-1",
+				title: "通告タイトル",
+				body: "本文です",
+				priority: 1,
+				issuedAt: "2026-05-08T12:34:56+09:00"
+			);
+			var n = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(n.Id, Is.EqualTo("n-1"));
+				Assert.That(n.Title, Is.EqualTo("通告タイトル"));
+				Assert.That(n.Body, Is.EqualTo("本文です"));
+				Assert.That(n.Priority, Is.EqualTo(1));
+				Assert.That(n.IssuedAt, Is.Not.Null);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task TimeFormat_BroadcastSpecificFormat_ClientReceivesFormat()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<TimeFormatCommand>(
+				h => service.TimeFormatChangeRequested += h,
+				h => service.TimeFormatChangeRequested -= h
+			);
+
+			await _control.BroadcastTimeFormatAsync(format: "HH:mm");
+			var cmd = await task;
+
+			Assert.That(cmd.Format, Is.EqualTo("HH:mm"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task TimeFormat_BroadcastNullResetsFormat()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<TimeFormatCommand>(
+				h => service.TimeFormatChangeRequested += h,
+				h => service.TimeFormatChangeRequested -= h
+			);
+
+			await _control.BroadcastTimeFormatAsync(format: null);
+			var cmd = await task;
+
+			// Format=null は端末既定にリセット
+			Assert.That(cmd.Format, Is.Null);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
+	// 施行日テキスト (任意文字列)
+	// ================================================================
+
+	[Test]
+	public async Task AffectDate_NonDateString_ExposedAsAffectDateText()
+	{
+		// 「施行日」に日付以外の任意文字列が来たとき、Work.AffectDateText に格納される。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			string customJson = $$"""
+				[
+				  {
+				    "Id": "wg-affect",
+				    "Name": "施行日テスト WG",
+				    "DBVersion": 1,
+				    "Works": [
+				      {
+				        "Id": "w-affect",
+				        "Name": "施行日テスト Work",
+				        "AffectDate": "ダイヤA",
+				        "Trains": []
+				      }
+				    ]
+				  }
+				]
+				""";
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(customJson);
+			await ttTask;
+			await Task.Delay(50);
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList("wg-affect").FirstOrDefault();
+			Assert.That(work, Is.Not.Null);
+			Assert.That(work!.AffectDate, Is.Null, "日付として解釈できないのでDateOnlyはnull");
+			Assert.That(work.AffectDateText, Is.EqualTo("ダイヤA"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AffectDate_ValidDateString_AffectDateTextRemainsNull()
+	{
+		// 通常の日付 (YYYYMMDD など) が来たときは AffectDate に入り、AffectDateText は null。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await ttTask;
+			await Task.Delay(50);
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First();
+			Assert.That(work.AffectDate, Is.Not.Null);
+			Assert.That(work.AffectDateText, Is.Null);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
+	// 空ダイヤのカスケード (#214 コメント対応)
+	// ================================================================
+
+	[Test]
+	public async Task EmptyTimetable_AllScope_CascadesToEmptyChildren()
+	{
+		// Issue #214 コメント: ダイヤ (WorkGroup) が空のとき、配下の Work/Train も空でなければならない。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			// まず通常データをロードして、選択を持たせる
+			await SeedAllScopeAsync(service, _control);
+			var manager = new TimetableSelectionManager { Loader = service };
+			service.TimetableUpdated += (_, _) => manager.Refresh();
+			Assert.That(manager.SelectedTrainData, Is.Not.Null);
+
+			// 次に空配列を配信する
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync("[]");
+			await ttTask;
+			await Task.Delay(100);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(manager.WorkGroupList, Is.Not.Null);
+				Assert.That(manager.WorkGroupList!.Count, Is.EqualTo(0));
+				Assert.That(manager.SelectedWorkGroup, Is.Null);
+				Assert.That(manager.SelectedWork, Is.Null);
+				Assert.That(manager.SelectedTrainData, Is.Null);
+				Assert.That(manager.WorkList, Is.Null);
+				Assert.That(manager.OrderedTrainDataList, Is.Null);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
 		}
 	}
 }

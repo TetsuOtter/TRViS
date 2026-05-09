@@ -52,6 +52,8 @@ public class NextTrainButtonPresenterTests
 			}
 		}
 
+		public string? HeaderTimeFormat { get; set; }
+
 		public event PropertyChangedEventHandler? PropertyChanged;
 	}
 

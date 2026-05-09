@@ -39,6 +39,8 @@ public sealed class ViewHostPresenter : IDisposable
         _currentState.TitleText = _appViewModel.SelectedWork?.Name ?? string.Empty;
     }
 
+    private int _lastTotalSeconds = 0;
+
     private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
@@ -47,19 +49,42 @@ public sealed class ViewHostPresenter : IDisposable
                 _currentState.TitleText = _appViewModel.SelectedWork?.Name ?? string.Empty;
                 RaiseStateChanged(ViewHostStateSection.TitleText);
                 break;
+            case nameof(IAppViewModelProvider.HeaderTimeFormat):
+                // フォーマット切り替え時に、現在の時刻を新フォーマットで再描画する
+                _currentState.TimeLabelText = FormatTimeLabel(_lastTotalSeconds);
+                RaiseStateChanged(ViewHostStateSection.TimeLabel);
+                break;
         }
     }
 
     private void OnTimeChanged(object? sender, int totalSeconds)
     {
+        _lastTotalSeconds = totalSeconds;
+        _currentState.TimeLabelText = FormatTimeLabel(totalSeconds);
+        RaiseStateChanged(ViewHostStateSection.TimeLabel);
+    }
+
+    /// <summary>
+    /// タイトルバーに表示する時刻文字列を、サーバー指示のフォーマット
+    /// (<see cref="IAppViewModelProvider.HeaderTimeFormat"/>) で組み立てる。
+    /// 未指定 (null) の場合は既定 "HH:mm:ss"。
+    /// </summary>
+    private string FormatTimeLabel(int totalSeconds)
+    {
         bool isMinus = totalSeconds < 0;
         int hour = Math.Abs(totalSeconds / 3600);
         int minute = Math.Abs((totalSeconds % 3600) / 60);
         int second = Math.Abs(totalSeconds % 60);
+        string sign = isMinus ? "-" : string.Empty;
 
-        string text = (isMinus ? "-" : string.Empty) + $"{hour:D2}:{minute:D2}:{second:D2}";
-        _currentState.TimeLabelText = text;
-        RaiseStateChanged(ViewHostStateSection.TimeLabel);
+        // 既知パターンは固定実装で速く・割り切れない過剰一般化を避ける。
+        // 不明なフォーマットは "HH:mm:ss" にフォールバック。
+        return _appViewModel.HeaderTimeFormat switch
+        {
+            "HH:mm" or "HH:MM" => sign + $"{hour:D2}:{minute:D2}",
+            "HH:mm:ss" or "HH:MM:SS" or null or "" => sign + $"{hour:D2}:{minute:D2}:{second:D2}",
+            _ => sign + $"{hour:D2}:{minute:D2}:{second:D2}",
+        };
     }
 
     private void RaiseStateChanged(ViewHostStateSection changed)

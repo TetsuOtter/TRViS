@@ -57,6 +57,8 @@ public class HakoPresenterTests
 			}
 		}
 
+		public string? HeaderTimeFormat { get; set; }
+
 		public event PropertyChangedEventHandler? PropertyChanged;
 	}
 
@@ -67,6 +69,8 @@ public class HakoPresenterTests
 	}
 
 	private static Work MakeWork(string name) => new Work(Id: "w1", WorkGroupId: "wg1", Name: name);
+	private static Work MakeWorkWithAffectDateText(string name, string affectDateText)
+		=> new Work(Id: "w1", WorkGroupId: "wg1", Name: name, AffectDateText: affectDateText);
 	private static WorkGroup MakeWorkGroup(string name) => new WorkGroup(Id: "wg1", Name: name);
 	private static TrainData MakeTrainData(DateOnly? affectDate = null, int dayCount = 0)
 		=> new TrainData(
@@ -195,6 +199,30 @@ public class HakoPresenterTests
 	public void AffectDateLabelTextPrefix_HasExpectedValue()
 	{
 		Assert.Equal("行路施行日\n", HakoPresenter.AffectDateLabelTextPrefix);
+	}
+
+	// --- AffectDateText override (任意の文字列) ---
+
+	[Fact]
+	public void SelectedWork_WithAffectDateText_DisplaysOverrideText()
+	{
+		var (presenter, appViewModel) = CreatePresenter();
+		appViewModel.SelectedWork = MakeWorkWithAffectDateText("列車A", "ダイヤA");
+
+		Assert.Equal(HakoPresenter.AffectDateLabelTextPrefix + "ダイヤA",
+			presenter.CurrentState.AffectDateText);
+	}
+
+	[Fact]
+	public void SelectedWork_WithAffectDateText_OverridesTrainAffectDate()
+	{
+		var (presenter, appViewModel) = CreatePresenter();
+		appViewModel.SelectedWork = MakeWorkWithAffectDateText("列車A", "緊急ダイヤ");
+		appViewModel.SelectedTrainData = MakeTrainData(affectDate: new DateOnly(2025, 5, 3));
+
+		// Work.AffectDateText が優先され、TrainData.AffectDate の日付は使われない
+		Assert.Equal(HakoPresenter.AffectDateLabelTextPrefix + "緊急ダイヤ",
+			presenter.CurrentState.AffectDateText);
 	}
 
 	// --- Dispose ---

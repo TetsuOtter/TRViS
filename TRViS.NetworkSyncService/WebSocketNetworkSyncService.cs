@@ -37,7 +37,26 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_JSON_KEY = "MessageType";
 	private const string MESSAGE_TYPE_SYNCED_DATA = "SyncedData";
 	private const string MESSAGE_TYPE_TIMETABLE = "Timetable";
+	private const string MESSAGE_TYPE_SERVER_INFO = "ServerInfo";
+	private const string MESSAGE_TYPE_DIAGRAM_INFO = "DiagramInfo";
+	private const string MESSAGE_TYPE_REQUEST_SERVER_INFO = "RequestServerInfo";
+	private const string MESSAGE_TYPE_REQUEST_DIAGRAM_INFO = "RequestDiagramInfo";
+	private const string MESSAGE_TYPE_SELECT_TRAIN = "SelectTrain";
+	private const string MESSAGE_TYPE_OPERATION_COMMAND = "OperationCommand";
+	private const string MESSAGE_TYPE_HEADER_COLOR = "HeaderColor";
+	private const string MESSAGE_TYPE_NOTIFICATION = "Notification";
+	private const string MESSAGE_TYPE_TIME_FORMAT = "TimeFormat";
 	private const string TIMETABLE_DATA_JSON_KEY = "Data";
+
+	// ServerInfo / DiagramInfo のJSONキー
+	private const string SERVER_NAME_JSON_KEY = "Name";
+	private const string SERVER_ADMIN_JSON_KEY = "Admin";
+	private const string SERVER_VERSION_JSON_KEY = "Version";
+	private const string SERVER_PROTOCOL_VERSION_JSON_KEY = "ProtocolVersion";
+	private const string DIAGRAM_ID_JSON_KEY = "DiagramId";
+	private const string DIAGRAM_NAME_JSON_KEY = "Name";
+	private const string DIAGRAM_DESCRIPTION_JSON_KEY = "Description";
+	private const string DIAGRAM_WORK_GROUP_IDS_JSON_KEY = "WorkGroupIds";
 
 	private ClientWebSocket _WebSocket;
 	private readonly Uri _Uri;
@@ -232,6 +251,34 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			{
 				ProcessTimetableMessage(root);
 			}
+			else if (messageType == MESSAGE_TYPE_SERVER_INFO)
+			{
+				ProcessServerInfoMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_DIAGRAM_INFO)
+			{
+				ProcessDiagramInfoMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_SELECT_TRAIN)
+			{
+				ProcessSelectTrainMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_OPERATION_COMMAND)
+			{
+				ProcessOperationCommandMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_HEADER_COLOR)
+			{
+				ProcessHeaderColorMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_NOTIFICATION)
+			{
+				ProcessNotificationMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_TIME_FORMAT)
+			{
+				ProcessTimeFormatMessage(root);
+			}
 		}
 		catch (JsonException ex)
 		{
@@ -336,6 +383,126 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		RaiseTimetableUpdated(timetableData);
 	}
 
+	private void ProcessServerInfoMessage(JsonElement root)
+	{
+		var info = new ServerInfo();
+		if (root.TryGetProperty(SERVER_NAME_JSON_KEY, out var n) && n.ValueKind != JsonValueKind.Null)
+			info.Name = n.GetString();
+		if (root.TryGetProperty(SERVER_ADMIN_JSON_KEY, out var a) && a.ValueKind != JsonValueKind.Null)
+			info.Admin = a.GetString();
+		if (root.TryGetProperty(SERVER_VERSION_JSON_KEY, out var v) && v.ValueKind != JsonValueKind.Null)
+			info.Version = v.GetString();
+		if (root.TryGetProperty(SERVER_PROTOCOL_VERSION_JSON_KEY, out var pv) && pv.ValueKind != JsonValueKind.Null)
+			info.ProtocolVersion = pv.GetString();
+
+		RaiseServerInfoUpdated(info);
+	}
+
+	private void ProcessDiagramInfoMessage(JsonElement root)
+	{
+		var info = new DiagramInfo();
+		if (root.TryGetProperty(DIAGRAM_ID_JSON_KEY, out var id) && id.ValueKind != JsonValueKind.Null)
+			info.Id = id.GetString();
+		if (root.TryGetProperty(DIAGRAM_NAME_JSON_KEY, out var n) && n.ValueKind != JsonValueKind.Null)
+			info.Name = n.GetString();
+		if (root.TryGetProperty(DIAGRAM_DESCRIPTION_JSON_KEY, out var d) && d.ValueKind != JsonValueKind.Null)
+			info.Description = d.GetString();
+		if (root.TryGetProperty(DIAGRAM_WORK_GROUP_IDS_JSON_KEY, out var wgIds) && wgIds.ValueKind == JsonValueKind.Array)
+		{
+			var list = new List<string>();
+			foreach (var elem in wgIds.EnumerateArray())
+			{
+				if (elem.ValueKind == JsonValueKind.String)
+				{
+					var s = elem.GetString();
+					if (s is not null) list.Add(s);
+				}
+			}
+			info.WorkGroupIds = [.. list];
+		}
+
+		RaiseDiagramInfoUpdated(info);
+	}
+
+	private void ProcessSelectTrainMessage(JsonElement root)
+	{
+		var cmd = new SelectTrainCommand
+		{
+			WorkGroupId = TryGetStringProperty(root, WORK_GROUP_ID_JSON_KEY),
+			WorkId = TryGetStringProperty(root, WORK_ID_JSON_KEY),
+			TrainId = TryGetStringProperty(root, TRAIN_ID_JSON_KEY),
+		};
+		RaiseTrainSelectionRequested(cmd);
+	}
+
+	private void ProcessOperationCommandMessage(JsonElement root)
+	{
+		string? action = TryGetStringProperty(root, "Action");
+		if (action is null)
+		{
+			logger.Warn("ProcessOperationCommandMessage: Missing 'Action' field");
+			return;
+		}
+		if (!Enum.TryParse<OperationCommandType>(action, ignoreCase: true, out var parsed))
+		{
+			logger.Warn("ProcessOperationCommandMessage: Unknown Action '{0}'", action);
+			return;
+		}
+		RaiseOperationCommandReceived(new OperationCommand { Action = parsed });
+	}
+
+	private void ProcessHeaderColorMessage(JsonElement root)
+	{
+		var cmd = new HeaderColorCommand();
+		if (root.TryGetProperty("ResetToDefault", out var rd))
+		{
+			cmd.ResetToDefault = rd.ValueKind == JsonValueKind.True;
+		}
+		if (root.TryGetProperty("Color_RGB", out var color) && color.ValueKind == JsonValueKind.Number)
+		{
+			if (color.TryGetInt32(out int rgb))
+				cmd.Color_RGB = rgb;
+		}
+		RaiseHeaderColorChangeRequested(cmd);
+	}
+
+	private void ProcessNotificationMessage(JsonElement root)
+	{
+		var n = new NotificationData
+		{
+			Id = TryGetStringProperty(root, "Id"),
+			Title = TryGetStringProperty(root, "Title"),
+			Body = TryGetStringProperty(root, "Body"),
+		};
+		if (root.TryGetProperty("Priority", out var p) && p.ValueKind == JsonValueKind.Number
+			&& p.TryGetInt32(out int prio))
+			n.Priority = prio;
+		if (root.TryGetProperty("IssuedAt", out var t) && t.ValueKind == JsonValueKind.String)
+		{
+			string? s = t.GetString();
+			if (s is not null && DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
+				System.Globalization.DateTimeStyles.RoundtripKind, out var dto))
+				n.IssuedAt = dto;
+		}
+		RaiseNotificationReceived(n);
+	}
+
+	private void ProcessTimeFormatMessage(JsonElement root)
+	{
+		var cmd = new TimeFormatCommand
+		{
+			Format = TryGetStringProperty(root, "Format"),
+		};
+		RaiseTimeFormatChangeRequested(cmd);
+	}
+
+	private static string? TryGetStringProperty(JsonElement root, string name)
+	{
+		if (root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String)
+			return prop.GetString();
+		return null;
+	}
+
 	private void CacheTimetableData(TimetableData timetableData)
 	{
 		try
@@ -380,8 +547,8 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 							timetableData.JsonData,
 							JsonDeserializeOptions
 						);
-						var workGroup = JsonModelsConverter.ConvertWorkGroup(jsonModels!);
-						_WorkGroupCache[timetableData.WorkGroupId] = workGroup;
+						if (jsonModels is not null)
+							CacheWorkGroupSubtree(timetableData.WorkGroupId, jsonModels);
 					}
 					break;
 
@@ -393,14 +560,8 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 							timetableData.JsonData,
 							JsonDeserializeOptions
 						);
-						var work = JsonModelsConverter.ConvertWork(jsonModels!, timetableData.WorkGroupId);
-
-						if (!_WorkListCache.ContainsKey(timetableData.WorkGroupId))
-							_WorkListCache[timetableData.WorkGroupId] = [];
-
-						// 既存のWorkを削除して追加（更新）
-						_WorkListCache[timetableData.WorkGroupId].RemoveAll(w => w.Id == timetableData.WorkId);
-						_WorkListCache[timetableData.WorkGroupId].Add(work);
+						if (jsonModels is not null)
+							CacheWorkSubtree(timetableData.WorkGroupId, timetableData.WorkId, jsonModels);
 					}
 					break;
 
@@ -441,20 +602,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		{
 			// JsonModelsConverterを使用してWorkGroupを変換
 			var workGroup = JsonModelsConverter.ConvertWorkGroup(workGroupData);
-			_WorkGroupCache[workGroup.Id] = workGroup;
-			logger.Debug("CacheConvertedWorkGroup: Added WorkGroup {0} ({1})", workGroup.Id, workGroup.Name);
-
-			// Works配列を処理
-			if (workGroupData.Works is not null && workGroupData.Works.Length > 0)
-			{
-				if (!_WorkListCache.ContainsKey(workGroup.Id))
-					_WorkListCache[workGroup.Id] = [];
-
-				foreach (var workData in workGroupData.Works)
-				{
-					CacheConvertedWork(workData, workGroup.Id);
-				}
-			}
+			CacheWorkGroupSubtree(workGroup.Id, workGroupData);
 		}
 		catch (Exception ex)
 		{
@@ -462,50 +610,110 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 	}
 
-	private void CacheConvertedWork(JsonModels.WorkData workData, string workGroupId)
+	/// <summary>
+	/// WorkGroup スコープ更新を受信したときに、当該 WorkGroup 配下の
+	/// Works / Trains キャッシュをペイロードに合わせて完全に再構築する。
+	/// 他の WorkGroup の分は触らない。
+	/// </summary>
+	private void CacheWorkGroupSubtree(string workGroupId, JsonModels.WorkGroupData workGroupData)
 	{
-		try
+		var workGroup = JsonModelsConverter.ConvertWorkGroup(workGroupData);
+		_WorkGroupCache[workGroupId] = workGroup;
+		logger.Debug("CacheWorkGroupSubtree: Updated WorkGroup {0} ({1})", workGroupId, workGroup.Name);
+
+		// 当該 WorkGroup 配下の Works / Trains キャッシュをまるごと作り直す
+		// (他の WorkGroup の分は残す)
+		if (_WorkListCache.TryGetValue(workGroupId, out var existingWorks))
 		{
-			// JsonModelsConverterを使用してWorkを変換
-			var works = JsonModelsConverter.ConvertWorks(new[] { workData }, workGroupId);
-			if (works.Length > 0)
+			foreach (var w in existingWorks)
+				PurgeWorkSubtree(w.Id);
+		}
+		_WorkListCache[workGroupId] = [];
+
+		if (workGroupData.Works is not null && workGroupData.Works.Length > 0)
+		{
+			foreach (var workData in workGroupData.Works)
 			{
-				var work = works[0];
-				_WorkListCache[workGroupId].Add(work);
-				logger.Debug("CacheConvertedWork: Added Work {0} ({1})", work.Id, work.Name);
-
-				// Trains配列を処理
-				if (workData.Trains is not null && workData.Trains.Length > 0)
+				try
 				{
-					if (!_TrainListByWorkIdCache.ContainsKey(work.Id))
-						_TrainListByWorkIdCache[work.Id] = [];
-
-					foreach (var trainData in workData.Trains)
-					{
-						CacheConvertedTrain(trainData, work.Id);
-					}
+					var work = JsonModelsConverter.ConvertWork(workData, workGroupId);
+					_WorkListCache[workGroupId].Add(work);
+					RebuildTrainCacheForWork(work.Id, workData.Trains);
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "CacheWorkGroupSubtree: Failed to process Work");
 				}
 			}
 		}
-		catch (Exception ex)
+	}
+
+	/// <summary>
+	/// Work スコープ更新を受信したときに、当該 Work と配下の Trains キャッシュを
+	/// ペイロードに合わせて完全に再構築する。他の Work の分は触らない。
+	/// </summary>
+	private void CacheWorkSubtree(string workGroupId, string workId, JsonModels.WorkData workData)
+	{
+		var work = JsonModelsConverter.ConvertWork(workData, workGroupId);
+
+		if (!_WorkListCache.ContainsKey(workGroupId))
+			_WorkListCache[workGroupId] = [];
+
+		_WorkListCache[workGroupId].RemoveAll(w => w.Id == workId);
+		_WorkListCache[workGroupId].Add(work);
+		logger.Debug("CacheWorkSubtree: Updated Work {0} ({1}) under WorkGroup {2}", work.Id, work.Name, workGroupId);
+
+		RebuildTrainCacheForWork(work.Id, workData.Trains);
+	}
+
+	/// <summary>
+	/// 指定の Work 配下の Train キャッシュ (TrainListByWorkIdCache / TrainDataCache) を、
+	/// 渡された Trains 配列で完全に置き換える。
+	/// </summary>
+	/// <remarks>
+	/// 前提: TrainId はちょうど一つの Work に属する (LoaderJson の WorkIdByTrainId と同じ不変条件)。
+	/// この前提が崩れると、他の Work から参照されている TrainId を誤って _TrainDataCache から削除しうる。
+	/// </remarks>
+	private void RebuildTrainCacheForWork(string workId, JsonModels.TrainData[]? trains)
+	{
+		// 古い Train を _TrainDataCache から取り除く (上記不変条件により他 Work からは参照されない)
+		if (_TrainListByWorkIdCache.TryGetValue(workId, out var oldTrains))
 		{
-			logger.Error(ex, "CacheConvertedWork: Failed to process Work");
+			foreach (var oldTrain in oldTrains)
+				_TrainDataCache.Remove(oldTrain.Id);
+		}
+		_TrainListByWorkIdCache[workId] = [];
+
+		if (trains is null || trains.Length == 0)
+			return;
+
+		foreach (var trainJson in trains)
+		{
+			try
+			{
+				var trainData = JsonModelsConverter.ConvertTrain(trainJson);
+				_TrainDataCache[trainData.Id] = trainData;
+				_TrainListByWorkIdCache[workId].Add(trainData);
+				logger.Debug("RebuildTrainCacheForWork: Added Train {0} ({1})", trainData.Id, trainData.TrainNumber);
+			}
+			catch (Exception ex)
+			{
+				logger.Error(ex, "RebuildTrainCacheForWork: Failed to process Train");
+			}
 		}
 	}
 
-	private void CacheConvertedTrain(JsonModels.TrainData trainDataJson, string workId)
+	/// <summary>
+	/// 指定の Work 配下の Train キャッシュエントリを完全に削除する。
+	/// WorkGroup 配下の構造が変化したときの掃除に使う。
+	/// </summary>
+	private void PurgeWorkSubtree(string workId)
 	{
-		try
+		if (_TrainListByWorkIdCache.TryGetValue(workId, out var oldTrains))
 		{
-			// JsonModelsConverterを使用してTrainDataを変換
-			var trainData = JsonModelsConverter.ConvertTrain(trainDataJson);
-			_TrainDataCache[trainData.Id] = trainData;
-			_TrainListByWorkIdCache[workId].Add(trainData);
-			logger.Debug("CacheConvertedTrain: Added Train {0} ({1})", trainData.Id, trainData.TrainNumber);
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "CacheConvertedTrain: Failed to process Train");
+			foreach (var oldTrain in oldTrains)
+				_TrainDataCache.Remove(oldTrain.Id);
+			_TrainListByWorkIdCache.Remove(workId);
 		}
 	}
 
@@ -525,6 +733,52 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	{
 		logger.Debug("OnTrainIdChanged: {0}", value);
 		_ = SendIdUpdateAsync();
+	}
+
+	public override Task RequestServerInfoAsync(CancellationToken cancellationToken = default)
+		=> SendRequestMessageAsync(MESSAGE_TYPE_REQUEST_SERVER_INFO, additional: null, cancellationToken);
+
+	public override Task RequestDiagramInfoAsync(string? diagramId = null, CancellationToken cancellationToken = default)
+	{
+		Dictionary<string, string?>? additional = null;
+		if (diagramId is not null)
+			additional = new Dictionary<string, string?> { [DIAGRAM_ID_JSON_KEY] = diagramId };
+		return SendRequestMessageAsync(MESSAGE_TYPE_REQUEST_DIAGRAM_INFO, additional, cancellationToken);
+	}
+
+	private async Task SendRequestMessageAsync(
+		string messageType,
+		Dictionary<string, string?>? additional,
+		CancellationToken cancellationToken)
+	{
+		if (_WebSocket.State != WebSocketState.Open)
+		{
+			logger.Warn("SendRequestMessageAsync ({0}): WebSocket is not open", messageType);
+			return;
+		}
+
+		try
+		{
+			var payload = new Dictionary<string, string?> { [MESSAGE_TYPE_JSON_KEY] = messageType };
+			if (additional is not null)
+			{
+				foreach (var kv in additional)
+					payload[kv.Key] = kv.Value;
+			}
+			string json = JsonSerializer.Serialize(payload);
+			logger.Debug("SendRequestMessageAsync: Sending request: {0}", json);
+			byte[] bytes = Encoding.UTF8.GetBytes(json);
+			await _WebSocket.SendAsync(
+				new ArraySegment<byte>(bytes),
+				WebSocketMessageType.Text,
+				endOfMessage: true,
+				cancellationToken
+			);
+		}
+		catch (WebSocketException ex)
+		{
+			logger.Error(ex, "SendRequestMessageAsync ({0}): WebSocket exception", messageType);
+		}
 	}
 
 	private async Task SendIdUpdateAsync()

@@ -135,6 +135,13 @@ public partial class AppViewModel : ObservableObject
 	internal void SubscribeToLocationService(TRViS.Services.LocationService locationService)
 	{
 		locationService.TimetableUpdated += OnTimetableUpdated;
+		locationService.TrainSelectionRequested += OnTrainSelectionRequested;
+		locationService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
+		locationService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
+		// NotificationReceived / OperationCommandReceived / ServerInfo / DiagramInfo は
+		// LocationService 側で受信される。OperationCommand の動作 (位置情報 ON/OFF) は
+		// LocationService が直接適用する。Notification / ServerInfo / DiagramInfo の UI 表示は
+		// 個別画面側で必要に応じて購読する。
 	}
 
 	partial void OnLoaderChanged(ILoader? value)
@@ -149,18 +156,12 @@ public partial class AppViewModel : ObservableObject
 		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
 			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
 
-		// 時刻表の変更スコープに応じて、表示継続可能か判定する
-		bool canContinue = CanContinueCurrentTimetable(timetableData);
-
-		if (!canContinue)
-		{
-			// 表示継続不可の場合は初期状態に戻す
-			logger.Info("Timetable changed and cannot continue -> reset to initial state");
-			SelectionManager.ResetToFirst();
-		}
-
-		// Loader のキャッシュが更新された可能性があるため、UI を再読み込み
-		// 特に WebSocket の場合は Loader のデータが動的に更新されるため、毎回再読み込みする必要がある
+		// リアルタイム編集対応: 自スコープと一致する更新では選択を維持し、
+		// 異なるスコープの更新では現在の表示は無関係なのでそのまま継続する。
+		// SelectionManager.Refresh() が各階層で選択 Id を保持しつつ最新データを反映する。
+		// - 既存選択が新ペイロードに存在する → 同じ Id の最新インスタンスに差し替え
+		// - 既存選択が消えた階層から先 → 先頭にフォールバック
+		// この挙動は Scope.All / WorkGroup / Work / Train すべてのケースをカバーする。
 		if (Loader is not null)
 		{
 			logger.Debug("Refreshing selection from Loader cache");
@@ -168,25 +169,59 @@ public partial class AppViewModel : ObservableObject
 		}
 	}
 
-	bool CanContinueCurrentTimetable(TimetableData timetableData)
+	/// <summary>
+	/// サーバーから送られた SelectTrain コマンドを反映する。
+	/// WorkGroupId / WorkId / TrainId に対応する階層を選択する。
+	/// </summary>
+	void OnTrainSelectionRequested(object? sender, SelectTrainCommand cmd)
 	{
-		// 変更スコープに基づいて判定する
-		return timetableData.Scope switch
+		logger.Info("OnTrainSelectionRequested: WorkGroupId={0}, WorkId={1}, TrainId={2}",
+			cmd.WorkGroupId, cmd.WorkId, cmd.TrainId);
+
+		if (cmd.WorkGroupId is not null)
 		{
-			// All：全体の情報が更新された場合は表示継続不可
-			TimetableScopeType.All => false,
+			var wg = SelectionManager.WorkGroupList?.FirstOrDefault(w => w.Id == cmd.WorkGroupId);
+			if (wg is not null && SelectionManager.SelectedWorkGroup?.Id != wg.Id)
+				SelectionManager.SelectedWorkGroup = wg;
+		}
 
-			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
-			TimetableScopeType.WorkGroup => SelectionManager.SelectedWorkGroup?.Id != timetableData.WorkGroupId,
+		if (cmd.WorkId is not null)
+		{
+			var work = SelectionManager.WorkList?.FirstOrDefault(w => w.Id == cmd.WorkId);
+			if (work is not null && SelectionManager.SelectedWork?.Id != work.Id)
+				SelectionManager.SelectedWork = work;
+		}
 
-			// Work単位の変更：現在の選択がこのWorkと異なる場合のみ継続可能
-			TimetableScopeType.Work => SelectionManager.SelectedWork?.Id != timetableData.WorkId,
+		if (cmd.TrainId is not null)
+		{
+			var train = SelectionManager.OrderedTrainDataList?.FirstOrDefault(t => t.Id == cmd.TrainId);
+			if (train is not null && SelectionManager.SelectedTrainData?.Id != train.Id)
+				SelectionManager.SelectedTrainData = train;
+		}
+	}
 
-			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
-			TimetableScopeType.Train => SelectionManager.SelectedTrainData?.Id != timetableData.TrainId,
+	/// <summary>
+	/// サーバーから指示されたヘッダの色 (RGB)。null は端末既定。
+	/// View 側はこの値を購読してタイトルバー色を変更する。
+	/// </summary>
+	[ObservableProperty]
+	int? _HeaderColorOverride_RGB;
 
-			_ => true
-		};
+	void OnHeaderColorChangeRequested(object? sender, HeaderColorCommand cmd)
+	{
+		HeaderColorOverride_RGB = cmd.ResetToDefault ? null : cmd.Color_RGB;
+	}
+
+	/// <summary>
+	/// サーバーから指示されたタイトルバー時刻表示フォーマット ("HH:mm:ss" 等)。
+	/// null は端末既定 ("HH:mm:ss" を内部既定とする)。
+	/// </summary>
+	[ObservableProperty]
+	string? _HeaderTimeFormat;
+
+	void OnTimeFormatChangeRequested(object? sender, TimeFormatCommand cmd)
+	{
+		HeaderTimeFormat = cmd.Format;
 	}
 
 	/// <summary>

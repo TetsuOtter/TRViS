@@ -57,6 +57,20 @@ public class ViewHostPresenterTests
             }
         }
 
+        private string? _headerTimeFormat;
+        public string? HeaderTimeFormat
+        {
+            get => _headerTimeFormat;
+            set
+            {
+                if (_headerTimeFormat != value)
+                {
+                    _headerTimeFormat = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeaderTimeFormat)));
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
     }
 
@@ -167,6 +181,45 @@ public class ViewHostPresenterTests
         timeProvider.RaiseTimeChanged(0);
 
         Assert.Equal("00:00:00", presenter.CurrentState.TimeLabelText);
+    }
+
+    [Fact]
+    public void HeaderTimeFormat_HHmm_ShortensTimeLabel()
+    {
+        var (presenter, appViewModel, timeProvider) = CreatePresenter();
+
+        appViewModel.HeaderTimeFormat = "HH:mm";
+        timeProvider.RaiseTimeChanged(3723);
+
+        Assert.Equal("01:02", presenter.CurrentState.TimeLabelText);
+    }
+
+    [Fact]
+    public void HeaderTimeFormat_ChangedAfterTimeReceived_RereformatsExistingTime()
+    {
+        var (presenter, appViewModel, timeProvider) = CreatePresenter();
+
+        timeProvider.RaiseTimeChanged(3723);
+        Assert.Equal("01:02:03", presenter.CurrentState.TimeLabelText);
+
+        // フォーマット切り替え後、既存時刻が新フォーマットで再描画される
+        appViewModel.HeaderTimeFormat = "HH:mm";
+        Assert.Equal("01:02", presenter.CurrentState.TimeLabelText);
+
+        // null に戻すと既定 (HH:mm:ss) に戻る
+        appViewModel.HeaderTimeFormat = null;
+        Assert.Equal("01:02:03", presenter.CurrentState.TimeLabelText);
+    }
+
+    [Fact]
+    public void HeaderTimeFormat_UnknownFormat_FallsBackToDefault()
+    {
+        var (presenter, appViewModel, timeProvider) = CreatePresenter();
+
+        appViewModel.HeaderTimeFormat = "completely-unknown";
+        timeProvider.RaiseTimeChanged(3723);
+
+        Assert.Equal("01:02:03", presenter.CurrentState.TimeLabelText);
     }
 
     #endregion

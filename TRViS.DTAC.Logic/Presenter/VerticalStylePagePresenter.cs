@@ -56,7 +56,10 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 
 	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(IAppViewModelProvider.SelectedTrainData))
+		// SelectedTrainData が変わったとき、または SelectedWork が変わったとき (= AffectDateText
+		// が更新された可能性があるとき) に施行日表示を再評価する。
+		if (e.PropertyName == nameof(IAppViewModelProvider.SelectedTrainData)
+			|| e.PropertyName == nameof(IAppViewModelProvider.SelectedWork))
 			SetSelectedTrainData(_appViewModelProvider.SelectedTrainData);
 	}
 
@@ -103,7 +106,8 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 
 	private void SetSelectedTrainData(TrainData? trainData)
 	{
-		string affectDate = AffectDateFormatter.FormatAffectDateOnly(
+		string affectDate = AffectDateFormatter.FormatAffectDateOrText(
+			_appViewModelProvider.SelectedWork?.AffectDateText,
 			trainData?.AffectDate,
 			trainData?.DayCount ?? 0);
 
