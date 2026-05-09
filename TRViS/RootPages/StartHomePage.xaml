@@ -541,54 +541,57 @@
 		</Grid>
 
 		<!-- ========== UI_TEST seam buttons ==========
-		     Anchors at top-left of RootGrid that bypass the picker UI for tests.
-		     Always rendered (not flipped via IsVisible) because:
-		      - Mac Catalyst nested children of an IsVisible=False container are
-		        not exposed via the accessibility tree even after a runtime flip.
-		      - Windows MAUI similarly creates no UIA peer for IsVisible=False
-		        elements until they are visible, missing the runtime flip.
-		     Placed at top-level RootGrid so the host isn't affected by Start/Home
-		     mode visibility changes. Sized 16×16 (not 1×1) because Mac Catalyst's
-		     XCUITest dispatches clicks via coordinates derived from the element's
-		     bounding box; sub-pixel buttons silently fail to receive the tap event
-		     even though Appium reports the click as sent. Opacity=0.01 keeps them
-		     visually negligible (effectively invisible against any background) but
-		     above the renderer's "skip painting" threshold so the platform peer
-		     remains responsive. In production builds the Click handlers are no-ops
-		     (gated on #if UI_TEST), so accidental discovery has no effect. -->
-		<VerticalStackLayout
+		     Three Buttons placed in an explicit Grid at the top-left corner of
+		     RootGrid. Each occupies its own row of the host grid so layout makes
+		     them independent (no StackLayout pass that may collapse 1×1 children
+		     on Mac Catalyst). Sized 24×24 with full opacity so the platform
+		     accessibility peer is reliably created and the click hit-test is
+		     wide enough on every platform — Mac Catalyst's mac2 driver
+		     dispatches Appium taps via coordinate hit-testing, and we observed
+		     sub-pixel/0.01-opacity targets being silently dropped there.
+		     The 24×72 visible footprint sits at (0,0) where AppHeader content
+		     does NOT occlude (AppHeader is HorizontalOptions="Center" and its
+		     own padding leaves the corner clear). In production builds the
+		     Click handlers are no-ops (gated on #if UI_TEST), so accidental
+		     discovery has no effect. -->
+		<Grid
 			x:Name="TestSeamHost"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			Spacing="0"
+			RowDefinitions="24,24,24"
+			ColumnDefinitions="24"
+			RowSpacing="0"
+			ColumnSpacing="0"
 			Padding="0"
-			Margin="0"
-			Opacity="0.01">
+			Margin="0">
 			<Button
 				x:Name="TestSeedButton"
 				AutomationId="StartHome.TestSeedButton"
-				HeightRequest="16"
-				WidthRequest="16"
+				Grid.Row="0"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedButton_Clicked"/>
 			<Button
 				x:Name="TestSeedGpsButton"
 				AutomationId="StartHome.TestSeedGpsButton"
-				HeightRequest="16"
-				WidthRequest="16"
+				Grid.Row="1"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedGpsButton_Clicked"/>
 			<Button
 				x:Name="TestAutoOpenButton"
 				AutomationId="StartHome.TestAutoOpenButton"
-				HeightRequest="16"
-				WidthRequest="16"
+				Grid.Row="2"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
 				Padding="0"
 				Margin="0"
 				Clicked="TestAutoOpenButton_Clicked"/>
-		</VerticalStackLayout>
+		</Grid>
 
 	</Grid>
 </ContentPage>
