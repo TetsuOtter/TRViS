@@ -33,10 +33,10 @@
 	</Shell.FlyoutFooter>
 
 	<FlyoutItem
-		AutomationId="Shell.Flyout.SelectTrain"
-		Title="Select Train"
-		Route="{x:Static pages:SelectTrainPage.NameOfThisClass}">
-		<ShellContent ContentTemplate="{DataTemplate pages:SelectTrainPage}"/>
+		AutomationId="Shell.Flyout.StartHome"
+		Title="Home"
+		Route="{x:Static pages:StartHomePage.NameOfThisClass}">
+		<ShellContent ContentTemplate="{DataTemplate pages:StartHomePage}"/>
 	</FlyoutItem>
 	<FlyoutItem
 		AutomationId="Shell.Flyout.DTAC"
