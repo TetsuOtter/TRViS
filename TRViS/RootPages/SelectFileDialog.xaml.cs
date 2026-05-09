@@ -15,7 +15,7 @@ namespace TRViS.RootPages;
 /// files from <see cref="DirectoryPathProvider.TimetableFileDirectory"/>
 /// (and its sub-folders, drill-down style) as rich cards. Includes an
 /// "他の場所からファイルを開く" button that falls back to the OS file picker,
-/// and "保存場所をフォルダで開く" that reveals the documents folder in
+/// and "保存場所を開く" that reveals the documents folder in
 /// the OS file manager.
 /// </summary>
 public partial class SelectFileDialog : ContentPage
@@ -212,8 +212,10 @@ public partial class SelectFileDialog : ContentPage
 			if (folderCount == 0 && fileCount == 0)
 				return "(空)";
 			var parts = new List<string>(2);
-			if (folderCount > 0) parts.Add($"フォルダ {folderCount}");
-			if (fileCount > 0) parts.Add($"ファイル {fileCount}");
+			if (folderCount > 0)
+				parts.Add($"フォルダ {folderCount}");
+			if (fileCount > 0)
+				parts.Add($"ファイル {fileCount}");
 			return string.Join(" ・ ", parts);
 		}
 		catch
@@ -326,7 +328,8 @@ public partial class SelectFileDialog : ContentPage
 		var tap = new TapGestureRecognizer();
 		tap.Tapped += async (_, __) =>
 		{
-			try { await handler(); }
+			try
+			{ await handler(); }
 			catch (Exception ex) { logger.Error(ex, "Card tap handler failed"); }
 		};
 		border.GestureRecognizers.Add(tap);
@@ -336,8 +339,10 @@ public partial class SelectFileDialog : ContentPage
 	{
 		const long KB = 1024;
 		const long MB = KB * 1024;
-		if (bytes < KB) return $"{bytes} B";
-		if (bytes < MB) return $"{bytes / (double)KB:F1} KB";
+		if (bytes < KB)
+			return $"{bytes} B";
+		if (bytes < MB)
+			return $"{bytes / (double)KB:F1} KB";
 		return $"{bytes / (double)MB:F1} MB";
 	}
 

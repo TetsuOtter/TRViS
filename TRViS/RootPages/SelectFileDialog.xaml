@@ -125,7 +125,8 @@
 				FontSize="64"
 				HorizontalOptions="Center"
 				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-			<VerticalStackLayout Grid.Row="2" Spacing="8">
+			<VerticalStackLayout Grid.Row="2"
+													 Spacing="8">
 				<Label
 					AutomationId="SelectFile.EmptyMessage"
 					HorizontalTextAlignment="Center"
@@ -138,7 +139,7 @@
 					FontSize="13"
 					LineBreakMode="WordWrap"
 					TextColor="{x:Static local:RootStyles.TableDetailColor}"
-					Text="下のボタンから他の場所のファイルを開くか、保存場所をフォルダで開いてファイルを配置してください。"/>
+					Text="下のボタンから他の場所のファイルを開くか、保存場所を開いてファイルを配置してください。"/>
 			</VerticalStackLayout>
 		</Grid>
 
@@ -162,14 +163,14 @@
 			</Button.ImageSource>
 		</Button>
 
-		<!-- "保存場所をフォルダで開く" - secondary footer link. Opens the OS file
+		<!-- "保存場所を開く" - secondary footer link. Opens the OS file
 		     manager (Files.app on iOS, Finder on Mac Catalyst, Explorer on Windows)
 		     at TimetableFileDirectory so the user can drop in new files. -->
 		<Button
 			x:Name="OpenStorageLocationButton"
 			AutomationId="SelectFile.OpenStorageLocationButton"
 			Grid.Row="4"
-			Text="保存場所をフォルダで開く"
+			Text="保存場所を開く"
 			ContentLayout="Left,4"
 			HeightRequest="36"
 			BackgroundColor="Transparent"

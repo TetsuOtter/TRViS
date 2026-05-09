@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+
 using TRViS.UITests.Infrastructure;
 
 namespace TRViS.UITests.Pages;
@@ -116,7 +117,7 @@ public class SelectFileDialogPageObject : PageObject
 	public void TapBrowse() => BrowseButton.Click();
 
 	/// <summary>
-	/// Taps the "保存場所をフォルダで開く" button which launches the OS file manager
+	/// Taps the "保存場所を開く" button which launches the OS file manager
 	/// at the app's documents folder. The launched app is system UI and out of
 	/// Appium's reach, so tests generally only assert reachability.
 	/// </summary>
