@@ -126,17 +126,12 @@ public partial class StartHomePage : ContentPage
 
 	void UpdateHomeBodyTopSpacer()
 	{
-		// In landscape phone HomeBody sits in its own column to the right of the
-		// header — no top spacer needed because the header is no longer above it.
-		if (_isLandscapePhone)
-		{
-			HomeBodyTopSpacer.HeightRequest = 0;
-			return;
-		}
-		// Reserve enough vertical space in HomeBody for the scaled-down header.
-		// Falls back to a sane default before AppHeader has been measured.
-		double measured = AppHeader.Height > 0 ? AppHeader.Height : 220;
-		HomeBodyTopSpacer.HeightRequest = (measured * HOME_HEADER_SCALE) + 12;
+		// HomeBody now lives in its own row/column (no longer RowSpan=2 over
+		// AppHeader's row), so the top spacer that used to reserve space for
+		// the home-mode small header is no longer needed in either orientation.
+		// Kept zero rather than removed entirely so the XAML can stay in sync
+		// with future tweaks without revisiting the spacer.
+		HomeBodyTopSpacer.HeightRequest = 0;
 	}
 
 	void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -230,17 +225,22 @@ public partial class StartHomePage : ContentPage
 		RootGrid.ColumnDefinitions.Clear();
 		if (isLandscapePhone)
 		{
+			// Phone landscape: 3 rows × 2 cols. The left column hosts AppHeader
+			// (top) and LoaderInfoCard (just below) — the user-requested
+			// "アイコンなどとダイヤ情報を左に" layout. StartBody / HomeBody fill
+			// the right column.
 			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
 			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
 			Grid.SetColumn(AppHeader, 0); Grid.SetColumnSpan(AppHeader, 1);
-			Grid.SetRow(StartBody, 0); Grid.SetRowSpan(StartBody, 1);
+			Grid.SetRow(LoaderInfoCard, 1); Grid.SetRowSpan(LoaderInfoCard, 1);
+			Grid.SetColumn(LoaderInfoCard, 0); Grid.SetColumnSpan(LoaderInfoCard, 1);
+			Grid.SetRow(StartBody, 0); Grid.SetRowSpan(StartBody, 3);
 			Grid.SetColumn(StartBody, 1); Grid.SetColumnSpan(StartBody, 1);
-			// HomeBody also sits to the right of the header in landscape so the
-			// WorkGroup/Work picker has its own column instead of sitting under
-			// the header (which would compress it to a sliver in the lower half
-			// of an already-short landscape viewport).
-			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 1);
+			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 3);
 			Grid.SetColumn(HomeBody, 1); Grid.SetColumnSpan(HomeBody, 1);
 			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
 			// StartBody anchored to the top of its column instead of the bottom —
@@ -248,6 +248,7 @@ public partial class StartHomePage : ContentPage
 			// layout, but in two-column layout End would push content below the
 			// fold whenever the body is shorter than the column.
 			StartBody.VerticalOptions = LayoutOptions.Start;
+			LoaderInfoCard.VerticalOptions = LayoutOptions.Start;
 			// Home mode no longer needs the top spacer (header is on the left,
 			// not on top) — recompute since UpdateHomeBodyTopSpacer keys off
 			// _isLandscapePhone.
@@ -255,16 +256,24 @@ public partial class StartHomePage : ContentPage
 		}
 		else
 		{
+			// Portrait / tablet: 3 rows × 1 col — header, optional loader-info
+			// card (auto-collapses to 0 height when hidden), body. Body is
+			// row 2 (the *) so HomeBody and StartBody share the bottom region
+			// without overlapping AppHeader; HomeBody no longer needs RowSpan.
+			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
 			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
 			Grid.SetColumn(AppHeader, 0); Grid.SetColumnSpan(AppHeader, 1);
-			Grid.SetRow(StartBody, 1); Grid.SetRowSpan(StartBody, 1);
+			Grid.SetRow(LoaderInfoCard, 1); Grid.SetRowSpan(LoaderInfoCard, 1);
+			Grid.SetColumn(LoaderInfoCard, 0); Grid.SetColumnSpan(LoaderInfoCard, 1);
+			Grid.SetRow(StartBody, 2); Grid.SetRowSpan(StartBody, 1);
 			Grid.SetColumn(StartBody, 0); Grid.SetColumnSpan(StartBody, 1);
-			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 2);
+			Grid.SetRow(HomeBody, 2); Grid.SetRowSpan(HomeBody, 1);
 			Grid.SetColumn(HomeBody, 0); Grid.SetColumnSpan(HomeBody, 1);
 			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
 			StartBody.VerticalOptions = LayoutOptions.End;
+			LoaderInfoCard.VerticalOptions = LayoutOptions.Center;
 			UpdateHomeBodyTopSpacer();
 		}
 	}
@@ -404,6 +413,8 @@ public partial class StartHomePage : ContentPage
 			StartBody.Opacity = 1;
 			HomeBody.IsVisible = false;
 			HomeBody.Opacity = 0;
+			LoaderInfoCard.IsVisible = false;
+			LoaderInfoCard.Opacity = 0;
 		}
 		else
 		{
@@ -413,6 +424,8 @@ public partial class StartHomePage : ContentPage
 			StartBody.Opacity = 0;
 			HomeBody.IsVisible = true;
 			HomeBody.Opacity = 1;
+			LoaderInfoCard.IsVisible = true;
+			LoaderInfoCard.Opacity = 1;
 		}
 		_currentMode = mode;
 		UpdateLoaderInfoLabels();
@@ -441,6 +454,8 @@ public partial class StartHomePage : ContentPage
 
 			HomeBody.Opacity = 0;
 			HomeBody.IsVisible = true;
+			LoaderInfoCard.Opacity = 0;
+			LoaderInfoCard.IsVisible = true;
 		}
 		else
 		{
@@ -460,12 +475,15 @@ public partial class StartHomePage : ContentPage
 		_currentMode = target;
 		UpdateLoaderInfoLabels();
 
+		double loaderInfoFrom = LoaderInfoCard.Opacity;
+		double loaderInfoTo = target == PageMode.Home ? 1 : 0;
 		var animation = new Animation
 		{
 			{ 0, 1, new Animation(v => AppHeader.TranslationY = v, headerFromY, headerToY, Easing.CubicInOut) },
 			{ 0, 1, new Animation(v => AppHeader.Scale = v, headerFromScale, headerToScale, Easing.CubicInOut) },
 			{ 0, 1, new Animation(v => StartBody.Opacity = v, startBodyFrom, startBodyTo, Easing.CubicOut) },
 			{ 0, 1, new Animation(v => HomeBody.Opacity = v, homeBodyFrom, homeBodyTo, Easing.CubicOut) },
+			{ 0, 1, new Animation(v => LoaderInfoCard.Opacity = v, loaderInfoFrom, loaderInfoTo, Easing.CubicOut) },
 		};
 
 		var tcs = new TaskCompletionSource<bool>();
@@ -494,6 +512,7 @@ public partial class StartHomePage : ContentPage
 		else
 		{
 			HomeBody.IsVisible = false;
+			LoaderInfoCard.IsVisible = false;
 		}
 	}
 

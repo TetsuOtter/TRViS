@@ -282,6 +282,59 @@
 
 		</Grid>
 
+		<!-- ========== Loader info card ==========
+		     Lives at RootGrid level (not inside HomeBody) so on landscape phones
+		     it can be positioned in the left column under AppHeader, separate
+		     from the picker on the right. In portrait/tablet it sits between
+		     the AppHeader row and the body row, mimicking its old position
+		     directly under the (small, Home-mode) header. IsVisible is bound
+		     to Home mode in code-behind so it disappears in Start mode.
+		     Title shows the loader type (e.g. "JSON ファイル", "サーバー接続中");
+		     detail shows the source path / URL set by SetLoader. -->
+		<Border
+			x:Name="LoaderInfoCard"
+			Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
+			BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
+			Padding="12"
+			Margin="20,0,20,8"
+			IsVisible="False">
+			<Border.StrokeShape>
+				<RoundRectangle CornerRadius="8"/>
+			</Border.StrokeShape>
+			<Grid ColumnDefinitions="Auto,*"
+						ColumnSpacing="10"
+						RowDefinitions="Auto,Auto">
+				<!-- Glyph swapped in code-behind by loader type. -->
+				<Label
+					x:Name="LoaderInfoGlyphLabel"
+					Grid.Column="0"
+					Grid.RowSpan="2"
+					Text="&#xe873;"
+					FontFamily="MaterialIconsRegular"
+					FontSize="28"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+				<Label
+					AutomationId="StartHome.LoaderInfoTitle"
+					x:Name="LoaderInfoTitleLabel"
+					Grid.Column="1"
+					Grid.Row="0"
+					FontSize="14"
+					FontAttributes="Bold"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text="読み込み済みデータ"/>
+				<Label
+					AutomationId="StartHome.LoaderInfoDetail"
+					x:Name="LoaderInfoDetailLabel"
+					Grid.Column="1"
+					Grid.Row="1"
+					FontSize="12"
+					LineBreakMode="MiddleTruncation"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"
+					Text=""/>
+			</Grid>
+		</Border>
+
 		<!-- ========== Home body ========== -->
 		<!-- IsVisible/Opacity animated in code-behind. The first row is an invisible spacer
 		     whose HeightRequest is sized to the scaled header in code-behind so the body
@@ -299,7 +352,6 @@
 			Opacity="0">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="*"/>
 				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
@@ -312,51 +364,6 @@
 				HeightRequest="120"
 				Color="Transparent"/>
 
-			<!-- Connection/file info card. Title shows the loader type (e.g. "JSON ファイル",
-			     "サーバー接続中"); detail shows the source path / URL set by SetLoader. -->
-			<Border
-				Grid.Row="1"
-				Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
-				BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
-				Padding="12"
-				Margin="4,0">
-				<Border.StrokeShape>
-					<RoundRectangle CornerRadius="8"/>
-				</Border.StrokeShape>
-				<Grid ColumnDefinitions="Auto,*"
-							ColumnSpacing="10"
-							RowDefinitions="Auto,Auto">
-					<!-- Glyph swapped in code-behind by loader type. -->
-					<Label
-						x:Name="LoaderInfoGlyphLabel"
-						Grid.Column="0"
-						Grid.RowSpan="2"
-						Text="&#xe873;"
-						FontFamily="MaterialIconsRegular"
-						FontSize="28"
-						VerticalOptions="Center"
-						TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-					<Label
-						AutomationId="StartHome.LoaderInfoTitle"
-						x:Name="LoaderInfoTitleLabel"
-						Grid.Column="1"
-						Grid.Row="0"
-						FontSize="14"
-						FontAttributes="Bold"
-						TextColor="{x:Static local:RootStyles.TableTextColor}"
-						Text="読み込み済みデータ"/>
-					<Label
-						AutomationId="StartHome.LoaderInfoDetail"
-						x:Name="LoaderInfoDetailLabel"
-						Grid.Column="1"
-						Grid.Row="1"
-						FontSize="12"
-						LineBreakMode="MiddleTruncation"
-						TextColor="{x:Static local:RootStyles.TableDetailColor}"
-						Text=""/>
-				</Grid>
-			</Border>
-
 			<!-- ===== Two-step picker (WorkGroup → Work) =====
 			     Each step has two layouts swapped by code-behind:
 			     - List: full CollectionView (no chip visible)
@@ -364,7 +371,7 @@
 			     Auto-fill: when a list arrives with exactly 1 item AND the user has not
 			     manually cleared their selection, the code-behind auto-selects it.
 			     Tapping a chip clears the selection (chip-cleared = re-shows the list). -->
-			<ScrollView Grid.Row="2">
+			<ScrollView Grid.Row="1">
 				<VerticalStackLayout Padding="4,0" Spacing="0">
 
 					<!-- Step 1: Work Group -->
@@ -542,7 +549,7 @@
 
 			<!-- Open / Disconnect buttons -->
 			<Grid
-				Grid.Row="3"
+				Grid.Row="2"
 				ColumnSpacing="8"
 				ColumnDefinitions="*,*">
 				<Button
@@ -550,14 +557,14 @@
 					AutomationId="StartHome.DisconnectButton"
 					x:Name="DisconnectButton"
 					Text="閉じる"
-					HeightRequest="56"
+					HeightRequest="40"
 					CornerRadius="8"
 					Clicked="OnDisconnectClicked"/>
 				<Button
 					Grid.Column="1"
 					AutomationId="StartHome.OpenButton"
 					Text="開く"
-					HeightRequest="56"
+					HeightRequest="40"
 					CornerRadius="8"
 					FontAttributes="Bold"
 					Clicked="OnOpenClicked"/>
