@@ -60,13 +60,29 @@ public partial class StartHomePage : ContentPage
 	// vertical space for the WorkGroup/Work selection lists below.
 	const double HOME_HEADER_SCALE = 0.55;
 	const uint TRANSITION_MS = 380;
+	// Below this short-side dimension we assume "smartphone" form factor. Above,
+	// "tablet" — even in landscape orientation iPad mini's short side is well
+	// over 700, so this picks the right side reliably without per-device
+	// hard-coding.
+	const double PHONE_SHORT_SIDE_MAX = 500;
+
+	// Tracks whether we're currently laid out for phone-landscape (header on the
+	// left, body on the right) or the default vertical layout. Updated from
+	// ApplyOrientationLayout; consumed by ComputeStartHeaderTranslationY (which
+	// returns 0 in landscape because the header has no vertical "centering"
+	// translation to apply when it owns its own column) and ApplyHeaderLayoutInstant.
+	bool _isLandscapePhone;
 
 	double ComputeStartHeaderTranslationY()
 	{
+		// In landscape phone, AppHeader sits at the top of its dedicated left
+		// column — no translation is needed to keep AppTitle visible.
+		if (_isLandscapePhone)
+			return 0;
 		double pageHeight = Height > 0 ? Height : InstanceManager.AppViewModel.WindowHeight;
 		double headerHeight = AppHeader.Height > 0 ? AppHeader.Height : 220;
 		double bodyHeight = StartBody.Height > 0 ? StartBody.Height : 0;
-		// RootGrid uses RowDefinitions="*,Auto"; AppHeader lives in Row 0, which is
+		// RootGrid uses RowDefinitions="Auto,*"; AppHeader lives in Row 0, which is
 		// (pageHeight - bodyHeight) tall. Center the header in that upper region
 		// (clamped so a tall body on a small screen never pushes the header down
 		// into StartBody's row, where its lower portion — including the AppTitle —
@@ -168,6 +184,10 @@ public partial class StartHomePage : ContentPage
 		if (Width <= 0 || Height <= 0)
 			return;
 
+		// Apply orientation first so RowDefinitions / ColumnDefinitions are settled
+		// before we recompute the header translation (which depends on them).
+		ApplyOrientationLayout();
+
 		// Apply initial state without animation. We do this on every size change in case the
 		// window resizes (desktop) or device rotates — but only animate when the *mode* changes;
 		// pure size changes get a snap-update.
@@ -179,6 +199,58 @@ public partial class StartHomePage : ContentPage
 		if (_currentMode != PageMode.Start || Width <= 0 || Height <= 0)
 			return;
 		AppHeader.TranslationY = ComputeStartHeaderTranslationY();
+	}
+
+	/// <summary>
+	/// Switches between vertical (header above body) and horizontal (header
+	/// left, body right) layouts. The horizontal layout kicks in only on phones
+	/// in landscape — where the vertical layout would otherwise overlap the
+	/// AppHeader, the privacy banner, and StartBody's buttons all on top of
+	/// each other (the page height is just too small to stack them).
+	/// </summary>
+	void ApplyOrientationLayout()
+	{
+		if (Width <= 0 || Height <= 0)
+			return;
+		bool isLandscapePhone = Width > Height && Math.Min(Width, Height) < PHONE_SHORT_SIDE_MAX;
+		// Idempotent: skip the row/column reshuffle when the orientation hasn't
+		// changed AND we have a populated grid (first call always populates).
+		if (isLandscapePhone == _isLandscapePhone &&
+			(RootGrid.RowDefinitions.Count > 0 || RootGrid.ColumnDefinitions.Count > 0))
+			return;
+		_isLandscapePhone = isLandscapePhone;
+		RootGrid.RowDefinitions.Clear();
+		RootGrid.ColumnDefinitions.Clear();
+		if (isLandscapePhone)
+		{
+			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+			RootGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
+			Grid.SetColumn(AppHeader, 0); Grid.SetColumnSpan(AppHeader, 1);
+			Grid.SetRow(StartBody, 0); Grid.SetRowSpan(StartBody, 1);
+			Grid.SetColumn(StartBody, 1); Grid.SetColumnSpan(StartBody, 1);
+			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 1);
+			Grid.SetColumn(HomeBody, 0); Grid.SetColumnSpan(HomeBody, 2);
+			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
+			// StartBody anchored to the top of its column instead of the bottom —
+			// VerticalOptions=End was useful when body sat below header in a row
+			// layout, but in two-column layout End would push content below the
+			// fold whenever the body is shorter than the column.
+			StartBody.VerticalOptions = LayoutOptions.Start;
+		}
+		else
+		{
+			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+			RootGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
+			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
+			Grid.SetColumn(AppHeader, 0); Grid.SetColumnSpan(AppHeader, 1);
+			Grid.SetRow(StartBody, 1); Grid.SetRowSpan(StartBody, 1);
+			Grid.SetColumn(StartBody, 0); Grid.SetColumnSpan(StartBody, 1);
+			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 2);
+			Grid.SetColumn(HomeBody, 0); Grid.SetColumnSpan(HomeBody, 1);
+			Grid.SetRow(TestSeamHost, 0); Grid.SetColumn(TestSeamHost, 0);
+			StartBody.VerticalOptions = LayoutOptions.End;
+		}
 	}
 
 	protected override async void OnAppearing()
@@ -257,15 +329,18 @@ public partial class StartHomePage : ContentPage
 
 	void UpdatePrivacyDependentControls()
 	{
-		// The data-loading buttons are gated entirely on privacy acceptance — disabled
-		// rather than just refusing on click, so the user can see at a glance that
-		// acceptance unlocks them. The reconfirm banner doubles as both a status
-		// indicator and a tappable affordance to open the dialog.
+		// Until the privacy policy is accepted, none of the data-loading entry
+		// points are usable: the reconfirm banner overlays the primary buttons
+		// (so they're hidden behind it), and the demo-data button is hidden
+		// outright since there is no second affordance to overlay it. After
+		// acceptance the banner hides, the primary buttons reveal, and the demo
+		// button reappears.
 		bool accepted = InstanceManager.FirebaseSettingViewModel.IsPrivacyPolicyAccepted;
 		PrivacyReconfirmBanner.IsVisible = !accepted;
 		ConnectServerButton.IsEnabled = accepted;
 		SelectFileButton.IsEnabled = accepted;
 		LoadDemoButton.IsEnabled = accepted;
+		LoadDemoButton.IsVisible = accepted;
 
 		// Hide the Shell flyout (menu) toggle in the nav bar until the user accepts
 		// the privacy policy — the body is essentially blocked by the reconfirm
