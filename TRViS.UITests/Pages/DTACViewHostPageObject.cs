@@ -28,11 +28,11 @@ public class DTACViewHostPageObject : PageObject
 		=> FindCustomControl(AutomationIds.DTAC.StartEndRunButton, "運行開始", "運行終了");
 
 	// LocationServiceButton has three labels stacked inside it: a Material
-	// Icons glyph (U+E0C8) and the literal "ON" / "OFF" strings. Any of
+	// Icons glyph (\uE0C8 = location_on) and the literal "ON" / "OFF" strings. Any of
 	// them being present in the UIA tree is sufficient to satisfy the
 	// caller's `.Displayed` check, so include all three as candidates.
 	public AppiumElement LocationServiceButton
-		=> FindCustomControl(AutomationIds.DTAC.LocationServiceButton, "", "ON", "OFF");
+		=> FindCustomControl(AutomationIds.DTAC.LocationServiceButton, "\uE0C8", "ON", "OFF");
 
 	public AppiumElement OpenCloseButton => FindByAutomationId(AutomationIds.DTAC.OpenCloseButton);
 	public AppiumElement TimetableScrollView => FindByAutomationId(AutomationIds.DTAC.TimetableScrollView);
