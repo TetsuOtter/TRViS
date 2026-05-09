@@ -99,7 +99,17 @@
 		</ResourceDictionary>
 	</ContentPage.Resources>
 
-	<Grid x:Name="RootGrid">
+	<!-- RowDefinitions split header from start-mode body so they cannot occlude
+	     each other on small screens. The single-cell layout that came before
+	     this had StartBody's privacy banner Z-ordered over the AppTitle on
+	     iPhone (where StartBody is tall enough to reach up into AppHeader's
+	     visual area), making XCUITest report the Title as visible=false even
+	     though it was in the accessibility tree — that broke every IsDisplayed
+	     check. Auto,* gives AppHeader its natural size at the top and lets
+	     StartBody fill the remainder. HomeBody intentionally spans both rows
+	     because Home mode shrinks the header so body content can extend up
+	     into the upper region. -->
+	<Grid x:Name="RootGrid" RowDefinitions="Auto,*">
 
 		<!-- ========== Animated app header (icon + title) ========== -->
 		<!-- VerticalOptions=Start; TranslationY/Scale animated in code-behind to switch between
@@ -107,6 +117,7 @@
 		<VerticalStackLayout
 			x:Name="AppHeader"
 			AutomationId="StartHome.AppHeader"
+			Grid.Row="0"
 			VerticalOptions="Start"
 			HorizontalOptions="Center"
 			Spacing="8"
@@ -134,6 +145,7 @@
 		<Grid
 			x:Name="StartBody"
 			AutomationId="StartHome.StartBody"
+			Grid.Row="1"
 			VerticalOptions="End"
 			Padding="24,8,24,24"
 			RowSpacing="8">
@@ -265,10 +277,14 @@
 		<!-- ========== Home body ========== -->
 		<!-- IsVisible/Opacity animated in code-behind. The first row is an invisible spacer
 		     whose HeightRequest is sized to the scaled header in code-behind so the body
-		     content never collides with the header (replaces a hard-coded 160 px padding). -->
+		     content never collides with the header (replaces a hard-coded 160 px padding).
+		     RowSpan=2 lets HomeBody fill the whole grid in Home mode (StartBody's row
+		     collapses while it's invisible, but HomeBody still needs the lower region). -->
 		<Grid
 			x:Name="HomeBody"
 			AutomationId="StartHome.HomeBody"
+			Grid.Row="0"
+			Grid.RowSpan="2"
 			Padding="16,0,16,16"
 			RowSpacing="8"
 			IsVisible="False"
@@ -556,6 +572,7 @@
 		     discovery has no effect. -->
 		<Grid
 			x:Name="TestSeamHost"
+			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
 			RowDefinitions="24,24,24"

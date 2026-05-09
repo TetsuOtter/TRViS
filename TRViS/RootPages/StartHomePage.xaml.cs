@@ -65,9 +65,16 @@ public partial class StartHomePage : ContentPage
 	{
 		double pageHeight = Height > 0 ? Height : InstanceManager.AppViewModel.WindowHeight;
 		double headerHeight = AppHeader.Height > 0 ? AppHeader.Height : 220;
-		// AppHeader has VerticalOptions=Start, so its natural top sits at y=0; offset to
-		// place its center at START_HEADER_CENTER_FRACTION of page height.
-		return Math.Max(0, (pageHeight * START_HEADER_CENTER_FRACTION) - (headerHeight / 2));
+		double bodyHeight = StartBody.Height > 0 ? StartBody.Height : 0;
+		// RootGrid uses RowDefinitions="*,Auto"; AppHeader lives in Row 0, which is
+		// (pageHeight - bodyHeight) tall. Center the header in that upper region
+		// (clamped so a tall body on a small screen never pushes the header down
+		// into StartBody's row, where its lower portion — including the AppTitle —
+		// would be Z-ordered under StartBody and reported as visible=false).
+		double upperRegion = Math.Max(headerHeight, pageHeight - bodyHeight);
+		double centered = (upperRegion * START_HEADER_CENTER_FRACTION) - (headerHeight / 2);
+		double maxTranslation = upperRegion - headerHeight;
+		return Math.Clamp(centered, 0, Math.Max(0, maxTranslation));
 	}
 
 	public StartHomePage()
@@ -84,7 +91,19 @@ public partial class StartHomePage : ContentPage
 
 		// Apply initial header layout once we have a measured size.
 		SizeChanged += OnSizeChangedFirstLayout;
-		AppHeader.SizeChanged += (_, __) => UpdateHomeBodyTopSpacer();
+		AppHeader.SizeChanged += (_, __) =>
+		{
+			UpdateHomeBodyTopSpacer();
+			// AppHeader.Height is read by ComputeStartHeaderTranslationY; recompute
+			// once it lands so the header centers correctly even on the first frame.
+			RecomputeStartModeHeaderPosition();
+		};
+		// StartBody.Height feeds ComputeStartHeaderTranslationY too — without this
+		// handler, the first SizeChanged on the page fires before StartBody is
+		// measured, the formula falls back to bodyHeight=0, and translation ends
+		// up large enough to push the header (and the AppTitle inside it) into
+		// StartBody's row, where Z-order hides it on small screens.
+		StartBody.SizeChanged += (_, __) => RecomputeStartModeHeaderPosition();
 
 		logger.Trace("Created");
 	}
@@ -153,6 +172,13 @@ public partial class StartHomePage : ContentPage
 		// window resizes (desktop) or device rotates — but only animate when the *mode* changes;
 		// pure size changes get a snap-update.
 		ApplyHeaderLayoutInstant(_currentMode);
+	}
+
+	void RecomputeStartModeHeaderPosition()
+	{
+		if (_currentMode != PageMode.Start || Width <= 0 || Height <= 0)
+			return;
+		AppHeader.TranslationY = ComputeStartHeaderTranslationY();
 	}
 
 	protected override async void OnAppearing()
