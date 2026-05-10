@@ -45,6 +45,7 @@
 				TextColor="{x:Static local:RootStyles.TableTextColor}"
 				Text="サーバーから読み込み"/>
 			<Button
+				x:Name="CloseButton"
 				AutomationId="ConnectServer.CloseButton"
 				Grid.Column="1"
 				Text="&#xe5cd;"

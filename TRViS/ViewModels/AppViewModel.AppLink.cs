@@ -101,7 +101,16 @@ public partial class AppViewModel
 	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, bool addToHistory, CancellationToken token)
 		=> HandleAppLinkUriAsync(appLinkInfo, null, addToHistory, token);
 
-	private async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
+	/// <summary>
+	/// <paramref name="originalAppLink"/> is the raw URL string the user/system supplied
+	/// before it was parsed into <see cref="AppLinkInfo"/>. The WebSocket branch only adds
+	/// to <see cref="ExternalResourceUrlHistory"/> when this is non-null, because the
+	/// constructed <see cref="AppLinkInfo"/> does not retain the originating URL form.
+	/// Callers that build an <see cref="AppLinkInfo"/> directly (e.g. ConnectServerDialog
+	/// for raw <c>ws://</c> / <c>wss://</c> entries) must pass the original text here so
+	/// history persistence works for the WebSocket path.
+	/// </summary>
+	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
 	{
 		string? decodedUrl = null;
 		string? appLinkString = originalAppLink;
