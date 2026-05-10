@@ -421,7 +421,7 @@ public partial class SelectFileDialog : ContentPage
 			}
 			else if (ext is ".sqlite" or ".db" or ".sqlite3")
 			{
-				newLoader = new LoaderSQL(fullPath);
+				newLoader = await LoaderSQL.CreateAsync(fullPath);
 			}
 			else
 			{

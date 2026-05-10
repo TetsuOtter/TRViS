@@ -55,6 +55,8 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestSeedGpsButton => FindByAutomationId(AutomationIds.StartHome.TestSeedGpsButton);
 	public AppiumElement TestAutoOpenButton => FindByAutomationId(AutomationIds.StartHome.TestAutoOpenButton);
 	public AppiumElement TestClearHistoryButton => FindByAutomationId(AutomationIds.StartHome.TestClearHistoryButton);
+	public AppiumElement TestSeedSqliteButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSqliteButton);
+	public AppiumElement TestClearTimetablesButton => FindByAutomationId(AutomationIds.StartHome.TestClearTimetablesButton);
 
 	public bool IsDisplayed()
 	{
@@ -189,6 +191,33 @@ public class StartHomePageObject : PageObject
 	/// to clear AppViewModel's in-memory list before the test starts.
 	/// </summary>
 	public void ClearUrlHistoryForTesting() => TestClearHistoryButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only SQLite seed button. Writes a minimal SQLite fixture
+	/// (single WorkGroup row) into TimetableFileDirectory using the same
+	/// sqlite-net code path LoaderSQL reads from. Tests use this to verify the
+	/// MAUI runtime can actually open SQLite — catches regressions where the
+	/// SQLitePCLRaw bundle_green provider registration is stripped by the
+	/// linker / not initialized at app start, which the netcore-only
+	/// TRViS.IO.Tests cannot detect.
+	/// </summary>
+	public void SeedSqliteForTesting() => TestSeedSqliteButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only timetables-clear button. Removes everything in
+	/// TimetableFileDirectory so SelectFile-related tests can guarantee a known
+	/// starting state without relying on platform-specific app-data wipe
+	/// (Mac Catalyst / iOS keep the documents folder across noReset:true
+	/// sessions).
+	/// </summary>
+	public void ClearTimetablesForTesting() => TestClearTimetablesButton.Click();
+
+	/// <summary>
+	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
+	/// constant in StartHomePage.xaml.cs so tests can look up the rendered
+	/// card by AutomationId.
+	/// </summary>
+	public const string UITestSqliteFixtureFileName = "uitest_seed.sqlite";
 
 	/// <summary>
 	/// Taps the UI_TEST-only GPS-seed button so tests can push a fake GPS coord

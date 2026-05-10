@@ -8,10 +8,20 @@ public class LoaderSQL : ILoader, IDisposable
 {
 	SQLiteConnection Connection { get; }
 
-	public LoaderSQL(string path)
+	private LoaderSQL(string path)
 	{
-		Connection = new(path);
+		// ReadOnly: this loader never writes, and the default ReadWrite|Create
+		// silently creates an empty DB if `path` is wrong/inaccessible — the
+		// subsequent table queries would then fail with "no such table" rather
+		// than the clearer "cannot open" the user expects. FullMutex preserves
+		// the thread-safety the default constructor would have given us.
+		Connection = new(path, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex);
 	}
+
+	public static Task<LoaderSQL> CreateAsync(string path)
+		=> CreateAsync(path, CancellationToken.None);
+	public static Task<LoaderSQL> CreateAsync(string path, CancellationToken token)
+		=> Task.Run(() => new LoaderSQL(path), token);
 
 	static TimeData? GetTimeData(int? hh, int? mm, int? ss, string? str)
 		=> hh is null && mm is null && ss is null && string.IsNullOrEmpty(str) ? null : new(hh, mm, ss, str);
