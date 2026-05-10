@@ -312,6 +312,64 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task SyncedData_LonLat_FiresLonLatLocationReceived()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var locTask = WaitForEventAsync<(double Longitude, double Latitude, double? Accuracy)>(
+				h => service.LonLatLocationReceived += h,
+				h => service.LonLatLocationReceived -= h
+			);
+
+			await _control.SetStateAsync(
+				canStart: true,
+				latitude_deg: 35.681236,
+				longitude_deg: 139.767125,
+				accuracy_m: 12.5
+			);
+			await _control.BroadcastSyncedDataAsync();
+
+			var received = await locTask;
+			Assert.Multiple(() =>
+			{
+				Assert.That(received.Latitude, Is.EqualTo(35.681236).Within(1e-9));
+				Assert.That(received.Longitude, Is.EqualTo(139.767125).Within(1e-9));
+				Assert.That(received.Accuracy, Is.EqualTo(12.5).Within(1e-9));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task SyncedData_NoLonLat_DoesNotFireLonLatLocationReceived()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			bool received = false;
+			service.LonLatLocationReceived += (_, _) => received = true;
+
+			await _control.SetStateAsync(canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+			await Task.Delay(200);
+
+			Assert.That(received, Is.False, "LonLatLocationReceived should not fire when no lat/lon is provided");
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
 	public async Task SyncedData_Location_StationIndexUpdated()
 	{
 		var service = await ConnectServiceAsync();
@@ -335,6 +393,46 @@ public class WebSocketIntegrationTests
 
 			// 駅2 (index=1) 付近の位置を送信
 			await _control.SetStateAsync(location_m: 1000.0, canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+
+			var state = await stateTask;
+			Assert.That(state.NewStationIndex, Is.EqualTo(1));
+			Assert.That(state.IsRunningToNextStation, Is.False);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task SyncedData_LonLat_StationIndexUpdatedWhenLocationMIsNaN()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			var stations = new StaLocationInfo[]
+			{
+				new(0.0,    135.0,   35.0,   200.0),
+				new(1000.0, 135.01, 35.01, 200.0),
+				new(2000.0, 135.02, 35.02, 200.0),
+			};
+			service.StaLocationInfo = stations;
+			service.IsEnabled = true;
+
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var stateTask = WaitForEventAsync<LocationStateChangedEventArgs>(
+				h => service.LocationStateChanged += h,
+				h => service.LocationStateChanged -= h
+			);
+
+			// Location_m は送らず、駅2 (index=1) のすぐそばの緯度経度を送信
+			await _control.SetStateAsync(
+				canStart: true,
+				latitude_deg: 35.01,
+				longitude_deg: 135.01
+			);
 			await _control.BroadcastSyncedDataAsync();
 
 			var state = await stateTask;

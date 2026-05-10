@@ -15,4 +15,16 @@
 		<PackageReference Include="NLog" Version="5.3.2" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>TRViS.LocationService</_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>TRViS.LocationService.Tests</_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>TRViS.NetworkSyncService.IntegrationTests</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
 </Project>

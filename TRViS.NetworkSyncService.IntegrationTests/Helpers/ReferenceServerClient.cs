@@ -43,9 +43,20 @@ public sealed class ReferenceServerClient : IDisposable
 		long? time_ms = null,
 		double? location_m = null,
 		bool? canStart = null,
+		double? latitude_deg = null,
+		double? longitude_deg = null,
+		double? accuracy_m = null,
 		CancellationToken ct = default)
 	{
-		var payload = new { Time_ms = time_ms, Location_m = location_m, CanStart = canStart };
+		var payload = new
+		{
+			Time_ms = time_ms,
+			Location_m = location_m,
+			CanStart = canStart,
+			Latitude_deg = latitude_deg,
+			Longitude_deg = longitude_deg,
+			Accuracy_m = accuracy_m,
+		};
 		var content = new StringContent(
 			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
 		var resp = await _http.PostAsync("/control/state", content, ct);
@@ -333,7 +344,10 @@ public sealed class ReferenceServerClient : IDisposable
 public sealed record ServerStateDto(
 	[property: JsonPropertyName("Time_ms")] long Time_ms,
 	[property: JsonPropertyName("Location_m")] double? Location_m,
-	[property: JsonPropertyName("CanStart")] bool CanStart
+	[property: JsonPropertyName("CanStart")] bool CanStart,
+	[property: JsonPropertyName("Latitude_deg")] double? Latitude_deg = null,
+	[property: JsonPropertyName("Longitude_deg")] double? Longitude_deg = null,
+	[property: JsonPropertyName("Accuracy_m")] double? Accuracy_m = null
 );
 
 public sealed record ServerInfoDto(
