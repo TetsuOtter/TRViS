@@ -38,27 +38,49 @@ public abstract class BaseUITest
 				// StartHomePage in Home mode and hides Start-mode buttons
 				// (SelectFileButton / LoadDemoButton), which then break any test
 				// that depends on them, even in fixtures that never seeded files.
+				//
 				// Mac Catalyst is sandboxed (Entitlements.plist sets
-				// com.apple.security.app-sandbox=true), so the data lives under
-				// ~/Library/Containers/dev.t0r.trvis/Data/Library/Application Support/.
+				// com.apple.security.app-sandbox=true). MAUI's
+				// FileSystem.AppDataDirectory resolves to a path under
+				// ~/Library/Containers/dev.t0r.trvis/Data/, but the exact
+				// sub-path varies by MAUI / .NET version (Library/Application Support/...
+				// vs Documents/... etc.). Recursively glob TRViS.UserContents
+				// directories under the container so we don't miss the actual
+				// location regardless of MAUI's resolution.
 				string? home = Environment.GetEnvironmentVariable("HOME");
 				if (!string.IsNullOrEmpty(home))
 				{
-					string userContentsDir = Path.Combine(
-						home, "Library", "Containers", AppPackage,
-						"Data", "Library", "Application Support", AppPackage,
-						"TRViS.UserContents");
-					try
+					string containerDir = Path.Combine(
+						home, "Library", "Containers", AppPackage, "Data");
+					if (Directory.Exists(containerDir))
 					{
-						if (Directory.Exists(userContentsDir))
+						try
 						{
-							Directory.Delete(userContentsDir, recursive: true);
-							TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): cleared {userContentsDir}");
+							var matches = Directory.EnumerateDirectories(
+								containerDir, "TRViS.UserContents", SearchOption.AllDirectories).ToArray();
+							foreach (string dir in matches)
+							{
+								try
+								{
+									Directory.Delete(dir, recursive: true);
+									TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): cleared {dir}");
+								}
+								catch (Exception ex)
+								{
+									TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): failed to clear {dir}: {ex.Message}");
+								}
+							}
+							if (matches.Length == 0)
+								TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): no TRViS.UserContents under {containerDir}");
+						}
+						catch (Exception ex)
+						{
+							TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): enumerate {containerDir} failed: {ex.Message}");
 						}
 					}
-					catch (Exception ex)
+					else
 					{
-						TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): failed to clear {userContentsDir}: {ex.Message}");
+						TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): container {containerDir} does not exist");
 					}
 				}
 				break;
@@ -112,16 +134,28 @@ public abstract class BaseUITest
 					// DefaultTimetableFileLoader.TryLoadDefaultTimetableAsync's
 					// single-file auto-load on the next launch — same Start-mode
 					// vs. Home-mode regression the MacCatalyst path is fixing.
-					// iOS uses Documents (MyDocuments) for the base path.
-					string userContentsDir = Path.Combine(dataContainer, "Documents", "TRViS.UserContents");
+					// Glob recursively rather than hard-coding Documents/, since
+					// the exact sub-path within the data container can shift
+					// between MAUI / .NET / iOS-SDK versions.
 					try
 					{
-						if (Directory.Exists(userContentsDir))
-							Directory.Delete(userContentsDir, recursive: true);
+						foreach (string dir in Directory.EnumerateDirectories(
+							dataContainer, "TRViS.UserContents", SearchOption.AllDirectories))
+						{
+							try
+							{
+								Directory.Delete(dir, recursive: true);
+								TestContext.Out.WriteLine($"ResetAppState(iOS): cleared {dir}");
+							}
+							catch (Exception ex)
+							{
+								TestContext.Out.WriteLine($"ResetAppState(iOS): failed to clear {dir}: {ex.Message}");
+							}
+						}
 					}
 					catch (Exception ex)
 					{
-						TestContext.Out.WriteLine($"ResetAppState(iOS): failed to clear {userContentsDir}: {ex.Message}");
+						TestContext.Out.WriteLine($"ResetAppState(iOS): enumerate {dataContainer} failed: {ex.Message}");
 					}
 				}
 				// Belt-and-braces: also try the global defaults database in case
