@@ -18,9 +18,16 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 	private readonly HttpServer _httpServer;
 
 	// --- サーバー状態 (immutable record + lock で一貫性を保証) ---
-	private sealed record ServerState(long Time_ms, double Location_m, bool CanStart);
+	private sealed record ServerState(
+		long Time_ms,
+		double Location_m,
+		bool CanStart,
+		double? Latitude_deg,
+		double? Longitude_deg,
+		double? Accuracy_m
+	);
 	private readonly object _stateLock = new();
-	private ServerState _state = new(0, double.NaN, false);
+	private ServerState _state = new(0, double.NaN, false, null, null, null);
 
 	// --- HTTP クエリログ ---
 	private readonly ConcurrentQueue<ReceivedHttpQueryDto> _httpQueryLog = new();
@@ -96,6 +103,9 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			Location_m = locationForJson,
 			Time_ms = state.Time_ms,
 			CanStart = state.CanStart,
+			Latitude_deg = state.Latitude_deg,
+			Longitude_deg = state.Longitude_deg,
+			Accuracy_m = state.Accuracy_m,
 		});
 		return OkJson(json);
 	}
@@ -151,6 +161,9 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			Time_ms = state.Time_ms,
 			Location_m = locationForJson,
 			CanStart = state.CanStart,
+			Latitude_deg = state.Latitude_deg,
+			Longitude_deg = state.Longitude_deg,
+			Accuracy_m = state.Accuracy_m,
 		}));
 	}
 
@@ -165,6 +178,9 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			lock (_stateLock)
 			{
 				var (time, location, canStart) = (_state.Time_ms, _state.Location_m, _state.CanStart);
+				double? latitude = _state.Latitude_deg;
+				double? longitude = _state.Longitude_deg;
+				double? accuracy = _state.Accuracy_m;
 
 				if (root.TryGetProperty("Time_ms", out var t) && t.ValueKind != JsonValueKind.Null)
 					time = t.GetInt64();
@@ -172,8 +188,14 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 					location = l.ValueKind == JsonValueKind.Null ? double.NaN : l.GetDouble();
 				if (root.TryGetProperty("CanStart", out var cs) && cs.ValueKind != JsonValueKind.Null)
 					canStart = cs.GetBoolean();
+				if (root.TryGetProperty("Latitude_deg", out var lat))
+					latitude = lat.ValueKind == JsonValueKind.Null ? null : lat.GetDouble();
+				if (root.TryGetProperty("Longitude_deg", out var lon))
+					longitude = lon.ValueKind == JsonValueKind.Null ? null : lon.GetDouble();
+				if (root.TryGetProperty("Accuracy_m", out var acc))
+					accuracy = acc.ValueKind == JsonValueKind.Null ? null : acc.GetDouble();
 
-				_state = new ServerState(time, location, canStart);
+				_state = new ServerState(time, location, canStart, latitude, longitude, accuracy);
 			}
 
 			return OkJson("{\"ok\":true}");
@@ -194,6 +216,9 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			Location_m = locationForJson,
 			Time_ms = state.Time_ms,
 			CanStart = state.CanStart,
+			Latitude_deg = state.Latitude_deg,
+			Longitude_deg = state.Longitude_deg,
+			Accuracy_m = state.Accuracy_m,
 		});
 		await BroadcastTextAsync(json);
 		return OkJson("{\"ok\":true}");
@@ -282,7 +307,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 
 	private HttpResponse Reset()
 	{
-		_state = new ServerState(0, double.NaN, false);
+		_state = new ServerState(0, double.NaN, false, null, null, null);
 		while (_httpQueryLog.TryDequeue(out _)) { }
 		while (_receivedRequests.TryDequeue(out _)) { }
 		lock (_infoLock)

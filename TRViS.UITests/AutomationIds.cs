@@ -92,6 +92,11 @@ public static class AutomationIds
 		// override that returns its path. Lets the Browse-fallback test exercise
 		// the post-pick load path without driving the OS file picker UI.
 		public const string TestSetupBrowseFallbackButton = "StartHome.TestSetupBrowseFallbackButton";
+		// Cascades selection to a sample-data train whose NextTrainId is non-empty
+		// (linear-train-1) so the NextTrainButton-visibility regression test for
+		// #225 doesn't rely on the default first-train selection (which has an
+		// empty NextTrainId).
+		public const string TestSeedNextTrainSelectionButton = "StartHome.TestSeedNextTrainSelectionButton";
 	}
 
 	public static class PrivacyDialog
@@ -117,6 +122,7 @@ public static class AutomationIds
 		public const string OpenCloseButton = "DTAC.OpenCloseButton";
 		public const string TimetableScrollView = "DTAC.TimetableScrollView";
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
+		public const string NextTrainButton = "DTAC.NextTrainButton";
 	}
 
 	/// <summary>

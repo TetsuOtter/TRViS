@@ -27,6 +27,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string LOCATION_M_JSON_KEY = "Location_m";
 	private const string TIME_MS_JSON_KEY = "Time_ms";
 	private const string CAN_START_JSON_KEY = "CanStart";
+	private const string LATITUDE_DEG_JSON_KEY = "Latitude_deg";
+	private const string LONGITUDE_DEG_JSON_KEY = "Longitude_deg";
+	private const string ACCURACY_M_JSON_KEY = "Accuracy_m";
 
 	// ID更新メッセージのJSONキー
 	private const string WORK_GROUP_ID_JSON_KEY = "WorkGroupId";
@@ -317,7 +320,16 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		catch (KeyNotFoundException) { }
 		catch (FormatException) { }
 
-		SyncedData syncedData = new SyncedData(location_m, time_ms, canStart);
+		double? latitude_deg = TryReadOptionalDouble(root, LATITUDE_DEG_JSON_KEY);
+		double? longitude_deg = TryReadOptionalDouble(root, LONGITUDE_DEG_JSON_KEY);
+		double? accuracy_m = TryReadOptionalDouble(root, ACCURACY_M_JSON_KEY);
+
+		SyncedData syncedData = new SyncedData(
+			location_m, time_ms, canStart,
+			Latitude_deg: latitude_deg,
+			Longitude_deg: longitude_deg,
+			Accuracy_m: accuracy_m
+		);
 		_LatestData = syncedData;
 
 		// WebSocket uses event-driven approach: process data immediately upon receipt
@@ -501,6 +513,22 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		if (root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String)
 			return prop.GetString();
 		return null;
+	}
+
+	private static double? TryReadOptionalDouble(JsonElement root, string name)
+	{
+		if (!root.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
+			return null;
+		if (prop.ValueKind != JsonValueKind.Number)
+			return null;
+		try
+		{
+			return prop.GetDouble();
+		}
+		catch (FormatException)
+		{
+			return null;
+		}
 	}
 
 	private void CacheTimetableData(TimetableData timetableData)

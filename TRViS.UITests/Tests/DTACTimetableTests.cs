@@ -1,4 +1,6 @@
 using OpenQA.Selenium;
+using OpenQA.Selenium.Appium.iOS;
+using OpenQA.Selenium.Appium.Mac;
 using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
@@ -122,6 +124,63 @@ public class DTACTimetableTests : BaseUITest
 		var scroll = dtac.TimetableScrollView;
 		Assert.That(scroll.Displayed, Is.True,
 			"TimetableScrollView should render with sample data — needed for GPS auto-scroll.");
+	}
+
+	/// <summary>
+	/// Regression for #225: when the selected train has a non-empty NextTrainId,
+	/// the NextTrainButton must appear in the accessibility tree after switching
+	/// to the timetable tab. The button sits at the bottom of the timetable Grid
+	/// and may be off-screen on small viewports, so the helper scrolls as needed
+	/// before failing.
+	/// </summary>
+	[Test]
+	public void NextTrainButton_Present_WhenSelectedTrainHasNextTrainId()
+	{
+		Assert.That(_startHomePage.IsDisplayed(), Is.True);
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+
+		// Cascade to a sample-data train known to have NextTrainId set:
+		// linear-train-1 (NextTrainId = "linear-train-2"). The seam commits and
+		// navigates to DTAC, mirroring the AutoOpenForTesting pattern.
+		var dtac = _startHomePage.SeedTrainSelectionWithNextTrain();
+		dtac.SwitchToTimetableTab();
+
+		Assert.That(dtac.IsNextTrainButtonPresent(), Is.True,
+			"NextTrainButton must be reachable when SelectedTrainData.NextTrainId is non-empty " +
+			"(scroll-to-bottom retries are built into IsNextTrainButtonPresent).");
+	}
+
+	/// <summary>
+	/// Negative: the default sample-data first train (1-1-1) has NextTrainId = "",
+	/// so the button must not be visible to the user. Guards against the inverse
+	/// regression where a fix accidentally always shows the button.
+	///
+	/// Skipped on Mac Catalyst and iOS: XCUITest / mac2 surface unparented MAUI
+	/// Grid elements that have an AutomationId set in their constructor as
+	/// accessibility elements with Displayed=true and a non-zero Size, regardless
+	/// of whether they are in any window. The exact behaviour varies by iOS
+	/// version (iPadOS 17 surfaces them while iOS 26 prunes them), so the safest
+	/// thing is to skip on the entire Apple family rather than play whack-a-mole.
+	/// Production code correctly removes the button from the visual tree (see
+	/// VerticalTimetableView.OnViewModelNextTrainIdChanged); Android and Windows
+	/// coverage is sufficient to catch the inverse regression.
+	/// </summary>
+	[Test]
+	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
+	{
+		if (Driver is MacDriver || Driver is IOSDriver)
+			Assert.Ignore(
+				"Apple's accessibility tree (XCUITest / mac2) surfaces unparented " +
+				"elements with AutomationId as visible on some OS versions — we " +
+				"cannot reliably distinguish \"hidden\" from \"displayed\" via Appium " +
+				"here. Coverage on Android and Windows is sufficient for this assertion.");
+
+		var dtac = LoadSampleAndOpenDTAC();
+		dtac.SwitchToTimetableTab();
+
+		Assert.That(dtac.IsNextTrainButtonPresent(TimeSpan.FromSeconds(3)), Is.False,
+			"NextTrainButton must not be visible when SelectedTrainData.NextTrainId is empty.");
 	}
 
 	/// <summary>

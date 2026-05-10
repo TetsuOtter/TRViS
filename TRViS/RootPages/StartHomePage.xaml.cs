@@ -437,49 +437,9 @@ public partial class StartHomePage : ContentPage
 		RebuildWorkGroupItems();
 		SyncPendingFromCommitted();
 
-		// First-appearing default-timetable load. Only run when we don't yet have
-		// a Loader (e.g. fresh launch or after disconnect).
-		if (viewModel.Loader is null)
-		{
-			logger.Info("Loader is null -> attempt default timetable load");
-
-			try
-			{
-				(bool success, bool requiresFileSelection, string? selectedFilePath, string? errorMessage) =
-					await viewModel.TryLoadDefaultTimetableAsync();
-
-				if (success && !requiresFileSelection)
-				{
-					logger.Info("Default timetable loaded -> show Home picker (no auto-navigate)");
-					await ApplyModeForCurrentLoaderAsync();
-					return;
-				}
-
-				if (success && requiresFileSelection)
-				{
-					logger.Info("Multiple JSON files found - showing default-file selection sheet");
-					await ShowFileSelectionDialogAsync();
-					return;
-				}
-
-				if (errorMessage == "PrivacyPolicyNotAccepted")
-				{
-					logger.Info("Privacy policy not accepted -> stay on Start screen until user opens dialog");
-					// Do NOT auto-load sample data here. The user must open the privacy dialog first.
-					await ApplyModeForCurrentLoaderAsync();
-					return;
-				}
-
-				// No default file. Stay on Start screen — do not auto-load sample data.
-				logger.Info("No default timetable found -> stay on Start screen");
-			}
-			catch (Exception ex)
-			{
-				logger.Error(ex, "Error loading default timetable");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnAppearing (TryLoadDefaultTimetableAsync failed)");
-			}
-		}
-
+		// We deliberately do NOT auto-load timetables from TimetableFileDirectory
+		// here. The user opens files explicitly via the "ファイルを選択" button
+		// (SelectFileDialog) or via a `trvis://app/open/json?local=…` AppLink.
 		await ApplyModeForCurrentLoaderAsync();
 	}
 
@@ -1077,44 +1037,6 @@ public partial class StartHomePage : ContentPage
 		}
 	}
 
-	private async Task ShowFileSelectionDialogAsync()
-	{
-		try
-		{
-			var jsonFiles = DefaultTimetableFileLoader.GetAvailableJsonFiles();
-			if (jsonFiles.Length == 0)
-			{
-				logger.Warn("No JSON files found for default selection");
-				return;
-			}
-
-			var fileNames = jsonFiles.Select(f => f.Name).ToArray();
-			var filePaths = jsonFiles.Select(f => f.FullName).ToArray();
-
-			string? selected = await DisplayActionSheetAsync(
-				"どのファイルを開きますか？",
-				"キャンセル",
-				null,
-				fileNames);
-
-			if (string.IsNullOrEmpty(selected) || selected == "キャンセル")
-				return;
-
-			int idx = Array.IndexOf(fileNames, selected);
-			if (idx < 0 || idx >= filePaths.Length)
-				return;
-
-			bool loaded = await viewModel.LoadSelectedTimetableFileAsync(filePaths[idx]);
-			if (loaded)
-				await ApplyModeForCurrentLoaderAsync();
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "ShowFileSelectionDialogAsync failed");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.ShowFileSelectionDialogAsync");
-		}
-	}
-
 	// ----- Test seams -----
 
 	void TestSeedButton_Clicked(object sender, EventArgs e)
@@ -1242,6 +1164,49 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSetupBrowseFallbackButton failed");
 		}
+#endif
+	}
+
+	/// <summary>
+	/// Test seam: tapped from UI tests via "StartHome.TestSeedNextTrainSelectionButton".
+	/// Commits selection to a sample-data train whose NextTrainId is non-empty
+	/// (WorkGroup "hako-order-test" → Work "work-linear" → Train "linear-train-1",
+	/// NextTrainId = "linear-train-2") and navigates to DTAC. Mirrors the
+	/// TestAutoOpenButton pattern but targets a specific Work so the regression
+	/// test for #225 doesn't rely on the default first train (which has an empty
+	/// NextTrainId).
+	/// </summary>
+	async void TestSeedNextTrainSelectionButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedNextTrainSelection clicked: committing linear-train-1 and navigating to DTAC");
+		try
+		{
+			var wg = viewModel.WorkGroupList?.FirstOrDefault(w => w.Id == "hako-order-test");
+			if (wg is null)
+			{
+				logger.Warn("TestSeedNextTrainSelection: hako-order-test WorkGroup not found");
+				return;
+			}
+			var loader = viewModel.Loader;
+			if (loader is null)
+				return;
+			var work = loader.GetWorkList(wg.Id)?.FirstOrDefault(w => w.Id == "work-linear");
+			if (work is null)
+			{
+				logger.Warn("TestSeedNextTrainSelection: work-linear not found under hako-order-test");
+				return;
+			}
+
+			CommitPendingSelection(wg, work);
+			await NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedNextTrainSelection failed");
+		}
+#else
+		await Task.CompletedTask;
 #endif
 	}
 }
