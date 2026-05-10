@@ -104,7 +104,9 @@ public static partial class JsonModelsConverter
 				RunInLimit: v.RunInLimit,
 				RunOutLimit: v.RunOutLimit,
 				Remarks: v.Remarks,
-				IsInfoRow: false,  // JSONModelsにはRecordTypeが含まれない
+				IsInfoRow: v.RecordType
+					is (int)StationRecordType.InfoRow_ForAlmostTrain
+					or (int)StationRecordType.InfoRow_ForSomeTrain,
 				DefaultMarkerColor_RGB: HexStringToRgbInt(v.MarkerColor),
 				DefaultMarkerText: v.MarkerText
 			))];
