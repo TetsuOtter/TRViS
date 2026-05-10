@@ -13,7 +13,8 @@ public record AppLinkInfo(
   byte[]? DecryptionKey = null,
   Uri? RealtimeServiceUri = null,
   string? RealtimeServiceToken = null,
-  Version? RealtimeServiceVersion = null
+  Version? RealtimeServiceVersion = null,
+  string? LocalPath = null
 )
 {
   public enum FileType
@@ -91,15 +92,24 @@ public record AppLinkInfo(
 
 		string? resourceUriQuery = queryParams["path"];
 		string? dataQuery = queryParams["data"];
+		string? localPathQuery = queryParams["local"];
 		string? decryptionKeyQuery = queryParams["key"];
 		if (encryptionType != AppLinkInfo.EncryptionType.None && string.IsNullOrEmpty(decryptionKeyQuery))
 		{
 			throw new ArgumentException("DecryptionKey is required when EncryptionType is not None");
 		}
 
-		if (string.IsNullOrEmpty(resourceUriQuery) && string.IsNullOrEmpty(dataQuery))
+		if (string.IsNullOrEmpty(resourceUriQuery)
+			&& string.IsNullOrEmpty(dataQuery)
+			&& string.IsNullOrEmpty(localPathQuery))
 		{
-			throw new ArgumentException("At least one of ResourceUri or Data must be set");
+			throw new ArgumentException("At least one of ResourceUri, Data, or LocalPath must be set");
+		}
+
+		string? localPath = null;
+		if (!string.IsNullOrEmpty(localPathQuery))
+		{
+			localPath = ValidateLocalPath(localPathQuery);
 		}
 
 		string? realtimeServiceUriQuery = queryParams["rts"];
@@ -122,7 +132,48 @@ public record AppLinkInfo(
 			decryptionKey,
 			realtimeServiceUri,
 			realtimeServiceToken,
-			realtimeServiceVersion
+			realtimeServiceVersion,
+			localPath
 		);
   }
+
+	// Syntactic checks for the `local` query value. The semantic check (resolving
+	// against the app's TimetableFileDirectory and verifying the result stays
+	// within it) is the caller's responsibility — this project doesn't know that
+	// directory. We reject anything that's obviously trying to escape: absolute
+	// paths, drive letters, backslashes, NUL/invalid chars, and `..` segments.
+	static string ValidateLocalPath(string value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+			throw new ArgumentException("local path is empty");
+
+		// Reject backslashes outright — we standardize on '/' as the segment
+		// separator so the semantic check on the caller side has one shape to
+		// reason about. Windows accepts '/' anyway.
+		if (value.IndexOf('\\') >= 0)
+			throw new ArgumentException("local path must not contain backslashes");
+
+		// Reject anything that begins like an absolute path: leading slash,
+		// or a Windows drive letter (`C:` etc.).
+		if (value[0] == '/')
+			throw new ArgumentException("local path must be relative");
+		if (value.Length >= 2 && value[1] == ':')
+			throw new ArgumentException("local path must be relative");
+
+		string[] segments = value.Split('/');
+		char[] invalid = Path.GetInvalidFileNameChars();
+		foreach (string segment in segments)
+		{
+			if (segment.Length == 0)
+				throw new ArgumentException("local path must not contain empty segments");
+			if (segment == "..")
+				throw new ArgumentException("local path must not contain `..` segments");
+			if (segment == ".")
+				throw new ArgumentException("local path must not contain `.` segments");
+			if (segment.IndexOfAny(invalid) >= 0)
+				throw new ArgumentException("local path contains invalid characters");
+		}
+
+		return value;
+	}
 }
