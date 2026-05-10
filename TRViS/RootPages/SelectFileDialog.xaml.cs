@@ -477,7 +477,20 @@ public partial class SelectFileDialog : ContentPage
 			}
 
 			logger.Info("File selected via picker: {0}", result.FullPath);
-			bool ok = await TryLoadFileAsync(result.FullPath);
+
+			// FileResult.FullPath on Android may be a content:// URI rather than
+			// a filesystem path (per .NET MAUI FilePicker docs). The downstream
+			// loaders use File.OpenRead / SqliteConnection, which require a real
+			// path and would throw FileNotFoundException on a content:// URI.
+			// Stream the picked file via FileResult.OpenReadAsync (works on every
+			// platform) into the sandbox before handing the local path to the
+			// loader. Landing under TimetableFileDirectory/imported/ also makes
+			// the file appear in the card list on subsequent opens — the user
+			// suggested UserContentsDirectory but only the timetables tree is
+			// surfaced by the card list.
+			string localPath = await ImportPickedFileAsync(result);
+
+			bool ok = await TryLoadFileAsync(localPath);
 			if (ok)
 				await Navigation.PopModalAsync();
 		}
@@ -490,6 +503,53 @@ public partial class SelectFileDialog : ContentPage
 		finally
 		{
 			SetInputEnabled(true);
+		}
+	}
+
+	static async Task<string> ImportPickedFileAsync(FileResult result)
+	{
+		DirectoryInfo importedDir = new(System.IO.Path.Combine(DirectoryPathProvider.TimetableFileDirectory.FullName, "imported"));
+		if (!importedDir.Exists)
+			importedDir.Create();
+
+		string fileName = SanitizeFileName(result.FileName);
+		string destPath = ResolveUniqueFilePath(importedDir.FullName, fileName);
+
+		using Stream src = await result.OpenReadAsync();
+		using FileStream dst = File.Create(destPath);
+		await src.CopyToAsync(dst);
+
+		return destPath;
+	}
+
+	static string SanitizeFileName(string name)
+	{
+		string fileName = System.IO.Path.GetFileName(name ?? string.Empty);
+		if (string.IsNullOrWhiteSpace(fileName))
+			return "imported_file";
+
+		char[] invalid = System.IO.Path.GetInvalidFileNameChars();
+		var sb = new System.Text.StringBuilder(fileName.Length);
+		foreach (char ch in fileName)
+			sb.Append(Array.IndexOf(invalid, ch) >= 0 ? '_' : ch);
+
+		string sanitized = sb.ToString().Trim();
+		return string.IsNullOrEmpty(sanitized) ? "imported_file" : sanitized;
+	}
+
+	static string ResolveUniqueFilePath(string directory, string fileName)
+	{
+		string candidate = System.IO.Path.Combine(directory, fileName);
+		if (!File.Exists(candidate))
+			return candidate;
+
+		string baseName = System.IO.Path.GetFileNameWithoutExtension(fileName);
+		string ext = System.IO.Path.GetExtension(fileName);
+		for (int i = 1; ; i++)
+		{
+			candidate = System.IO.Path.Combine(directory, $"{baseName} ({i}){ext}");
+			if (!File.Exists(candidate))
+				return candidate;
 		}
 	}
 
