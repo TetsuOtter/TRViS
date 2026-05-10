@@ -51,7 +51,7 @@ public class HorizontalTimetableButton : Border
 			Margin = 4,
 		};
 		Content = _label;
-		DTACElementStyles.DefaultTextColor.Apply(_label, Label.TextColorProperty);
+		DTACElementStyles.HorizontalTimetableButtonTextColor.Apply(_label, Label.TextColorProperty);
 
 		vm.PropertyChanged += OnViewModelPropertyChanged;
 
