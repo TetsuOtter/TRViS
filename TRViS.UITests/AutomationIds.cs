@@ -155,6 +155,11 @@ public static class AutomationIds
 
 		// File list state
 		public const string FileList = "SelectFile.FileList";
+		// Label inside FileListView. Used by IsFileListVisible() because Android's
+		// UiAutomator2 doesn't surface a ScrollView's AutomationId reliably, so
+		// probing FileList directly returns false even when files are showing.
+		// Labels are surfaced consistently across all four platforms.
+		public const string FileListHint = "SelectFile.FileListHint";
 		// Per-row ids — entire card is tappable. Folder cards drill into the folder;
 		// the up-folder card is rendered above sibling cards when not at root.
 		public const string FileItemPrefix = "SelectFile.FileItem.";

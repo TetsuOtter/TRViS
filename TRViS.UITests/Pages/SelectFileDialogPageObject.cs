@@ -45,6 +45,12 @@ public class SelectFileDialogPageObject : PageObject
 	/// <summary>
 	/// Returns true when the file list is the active sub-view (i.e. at least one
 	/// supported file exists in the app's documents folder).
+	///
+	/// Probes the <see cref="AutomationIds.SelectFile.FileListHint"/> Label
+	/// rather than the ScrollView's <see cref="AutomationIds.SelectFile.FileList"/>:
+	/// Android's UiAutomator2 doesn't surface a ScrollView's AutomationId
+	/// reliably, so probing FileList directly returns false even when the
+	/// list is on screen. Labels surface consistently on every platform.
 	/// </summary>
 	public bool IsFileListVisible()
 	{
@@ -52,7 +58,7 @@ public class SelectFileDialogPageObject : PageObject
 		try
 		{
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.SelectFile.FileList).Displayed;
+			return FindByAutomationId(AutomationIds.SelectFile.FileListHint).Displayed;
 		}
 		catch
 		{
