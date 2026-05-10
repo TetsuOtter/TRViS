@@ -130,13 +130,23 @@ public class SelectFileDialogTests : BaseUITest
 		// async (Task.Run on the threadpool) plus the modal pop animation.
 		Thread.Sleep(1500);
 
-		// StartHomePage visible again ⇒ modal popped ⇒ load succeeded.
-		// StartHomePage NOT visible ⇒ TryLoadFileAsync caught an exception, the
+		// FileList no longer findable ⇒ modal popped ⇒ load succeeded.
+		// FileList still findable ⇒ TryLoadFileAsync caught an exception, the
 		// "読み込めませんでした" alert is up (Util.DisplayAlertAsync), dialog hasn't
 		// been popped. That's the open failure mode the user reported.
-		Assert.That(_startHomePage.IsDisplayed(), Is.True,
-			"After tapping the seeded SQLite card, the dialog should dismiss back to StartHomePage. " +
-			"If StartHomePage is not visible, the load failed — most likely LoaderSQL.CreateAsync " +
-			"threw inside the live MAUI runtime (open-flag / read-path issue).");
+		//
+		// We deliberately don't probe StartHome.Title here even though that's
+		// what "StartHomePage shown again" semantically means: on iPhone XCUITest
+		// reports that label as `visible="false"` once the layout shifts to Home
+		// mode (the title is visually rendered, but XCUITest's visibility
+		// classification differs from "rendered on screen") — so the
+		// _startHomePage.IsDisplayed() probe times out for 60 s waiting for a
+		// `Displayed=true` Title that never registers as such. Probing the
+		// SelectFile dialog instead is platform-uniform.
+		Assert.That(dialog.IsFileListVisible(), Is.False,
+			"After tapping the seeded SQLite card, the SelectFile dialog should dismiss. " +
+			"If the file list is still visible, the load failed — most likely LoaderSQL.CreateAsync " +
+			"threw inside the live MAUI runtime (open-flag / read-path issue), surfacing the " +
+			"'読み込めませんでした' alert and keeping the dialog open.");
 	}
 }

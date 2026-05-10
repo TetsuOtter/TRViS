@@ -28,23 +28,13 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		// sqlite-net-pcl relies on a SQLitePCLRaw provider being registered before
-		// any SQLiteConnection is opened. The bundle_green static initializer
-		// usually self-registers via a static ctor on first use, but the MAUI
-		// Android linker (and AOT on iOS) routinely strips that registration —
-		// so the next `new SQLiteConnection(path)` throws "You need to call
-		// SQLitePCL.raw.SetProvider()" and the user sees "読み込めませんでした".
-		// Call Init explicitly here so registration cannot be stripped.
-		// Reproduced via the SeededSqlite_AppearsInFileListView UI test.
-		try
-		{
-			Console.WriteLine("[MauiProgram] Calling SQLitePCL.Batteries_V2.Init()");
-			SQLitePCL.Batteries_V2.Init();
-			Console.WriteLine("[MauiProgram] SQLitePCL.Batteries_V2.Init() OK");
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"[MauiProgram] SQLitePCL.Batteries_V2.Init() FAILED: {ex.GetType().FullName}: {ex.Message}");
-		}
+		// any SQLiteConnection is opened. bundle_green's auto-init via a static
+		// ctor works on Windows MAUI but is not guaranteed under Android linker
+		// or iOS AOT trimming, so a stripped registration would surface as
+		// "You need to call SQLitePCL.raw.SetProvider()" the first time a
+		// SQLiteConnection is opened. Call Init explicitly here as a defensive
+		// measure — registration cannot be stripped if it's directly referenced.
+		SQLitePCL.Batteries_V2.Init();
 
 		var builder = MauiApp.CreateBuilder();
 		builder

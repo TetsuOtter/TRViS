@@ -1212,12 +1212,6 @@ public partial class StartHomePage : ContentPage
 	{
 #if UI_TEST
 		logger.Info("TestSeedSqliteButton clicked: seeding minimal SQLite fixture");
-		// Console.WriteLine on Android/iOS routes through the platform logger
-		// (logcat tag DOTNET). NLog's file output isn't reachable from the CI
-		// artifact pipeline, so on a seed-step exception we'd otherwise get an
-		// opaque "empty state visible" assertion in the UI test with no clue
-		// what threw. The Console line gives us a logcat-grep-able trail.
-		Console.WriteLine("[UI_TEST] TestSeedSqliteButton clicked");
 		try
 		{
 			if (!DirectoryPathProvider.TimetableFileDirectory.Exists)
@@ -1229,9 +1223,7 @@ public partial class StartHomePage : ContentPage
 			if (File.Exists(path))
 				File.Delete(path);
 
-			Console.WriteLine($"[UI_TEST] About to open SQLiteConnection at {path}");
 			using var cnx = new SQLite.SQLiteConnection(path);
-			Console.WriteLine("[UI_TEST] SQLiteConnection opened, creating table");
 			cnx.CreateTable<IO.Models.DB.WorkGroup>();
 			cnx.Insert(new IO.Models.DB.WorkGroup
 			{
@@ -1239,13 +1231,10 @@ public partial class StartHomePage : ContentPage
 				Name = "UITestWG",
 				DBVersion = 1,
 			});
-			Console.WriteLine($"[UI_TEST] Seeded SQLite fixture OK at {path}");
 			logger.Info("Seeded SQLite fixture at {0}", path);
 		}
 		catch (Exception ex)
 		{
-			Console.WriteLine($"[UI_TEST] TestSeedSqliteButton FAILED: {ex.GetType().FullName}: {ex.Message}");
-			Console.WriteLine($"[UI_TEST] StackTrace: {ex.StackTrace}");
 			logger.Error(ex, "TestSeedSqliteButton failed");
 		}
 #endif
