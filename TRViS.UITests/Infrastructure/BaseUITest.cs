@@ -31,6 +31,58 @@ public abstract class BaseUITest
 				// Clear NSUserDefaults (includes preference-daemon cache flush)
 				RunProcess("defaults", "delete dev.t0r.trvis");
 				Thread.Sleep(200);
+				// Wipe the app's TRViS.UserContents folder so a JSON file seeded
+				// by a previous test (e.g. SelectFileDialogTests fixtures) can't
+				// trigger DefaultTimetableFileLoader.TryLoadDefaultTimetableAsync's
+				// single-file auto-load on the next launch — that auto-load puts
+				// StartHomePage in Home mode and hides Start-mode buttons
+				// (SelectFileButton / LoadDemoButton), which then break any test
+				// that depends on them, even in fixtures that never seeded files.
+				//
+				// Mac Catalyst is sandboxed (Entitlements.plist sets
+				// com.apple.security.app-sandbox=true). MAUI's
+				// FileSystem.AppDataDirectory resolves to a path under
+				// ~/Library/Containers/dev.t0r.trvis/Data/, but the exact
+				// sub-path varies by MAUI / .NET version (Library/Application Support/...
+				// vs Documents/... etc.). Recursively glob TRViS.UserContents
+				// directories under the container so we don't miss the actual
+				// location regardless of MAUI's resolution.
+				string? home = Environment.GetEnvironmentVariable("HOME");
+				if (!string.IsNullOrEmpty(home))
+				{
+					string containerDir = Path.Combine(
+						home, "Library", "Containers", AppPackage, "Data");
+					if (Directory.Exists(containerDir))
+					{
+						try
+						{
+							var matches = Directory.EnumerateDirectories(
+								containerDir, "TRViS.UserContents", SearchOption.AllDirectories).ToArray();
+							foreach (string dir in matches)
+							{
+								try
+								{
+									Directory.Delete(dir, recursive: true);
+									TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): cleared {dir}");
+								}
+								catch (Exception ex)
+								{
+									TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): failed to clear {dir}: {ex.Message}");
+								}
+							}
+							if (matches.Length == 0)
+								TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): no TRViS.UserContents under {containerDir}");
+						}
+						catch (Exception ex)
+						{
+							TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): enumerate {containerDir} failed: {ex.Message}");
+						}
+					}
+					else
+					{
+						TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): container {containerDir} does not exist");
+					}
+				}
 				break;
 
 			case TestPlatform.Android:
@@ -76,6 +128,34 @@ public abstract class BaseUITest
 					catch (Exception ex)
 					{
 						TestContext.Out.WriteLine($"ResetAppState(iOS): failed to clear {prefsDir}: {ex.Message}");
+					}
+					// Also wipe TRViS.UserContents so a single seeded JSON from a
+					// previous test (SelectFileDialogTests fixture) can't trigger
+					// DefaultTimetableFileLoader.TryLoadDefaultTimetableAsync's
+					// single-file auto-load on the next launch — same Start-mode
+					// vs. Home-mode regression the MacCatalyst path is fixing.
+					// Glob recursively rather than hard-coding Documents/, since
+					// the exact sub-path within the data container can shift
+					// between MAUI / .NET / iOS-SDK versions.
+					try
+					{
+						foreach (string dir in Directory.EnumerateDirectories(
+							dataContainer, "TRViS.UserContents", SearchOption.AllDirectories))
+						{
+							try
+							{
+								Directory.Delete(dir, recursive: true);
+								TestContext.Out.WriteLine($"ResetAppState(iOS): cleared {dir}");
+							}
+							catch (Exception ex)
+							{
+								TestContext.Out.WriteLine($"ResetAppState(iOS): failed to clear {dir}: {ex.Message}");
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						TestContext.Out.WriteLine($"ResetAppState(iOS): enumerate {dataContainer} failed: {ex.Message}");
 					}
 				}
 				// Belt-and-braces: also try the global defaults database in case
