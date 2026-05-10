@@ -537,6 +537,54 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task Timetable_TrainScope_WithRecordType_PropagatesIsInfoRow()
+	{
+		// JsonModelsConverter は以前 IsInfoRow を常に false にしていた
+		// (「JSONModelsにはRecordTypeが含まれない」というコメントは事実誤認だった)。
+		// LoaderJson と同じく RecordType=2/3 を InfoRow として扱う必要がある。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithInfoRows,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.Rows, Is.Not.Null);
+			Assert.That(updatedTrain.Rows!, Has.Length.EqualTo(4));
+			Assert.Multiple(() =>
+			{
+				Assert.That(updatedTrain.Rows![0].IsInfoRow, Is.False, "通常駅 (RecordType 未指定) は IsInfoRow=false");
+				Assert.That(updatedTrain.Rows![1].IsInfoRow, Is.True, "RecordType=2 (InfoRow_ForAlmostTrain) は IsInfoRow=true");
+				Assert.That(updatedTrain.Rows![2].IsInfoRow, Is.True, "RecordType=3 (InfoRow_ForSomeTrain) は IsInfoRow=true");
+				Assert.That(updatedTrain.Rows![3].IsInfoRow, Is.False, "RecordType=0 (NormalStation) は IsInfoRow=false");
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
 	public async Task Timetable_TrainScope_WithEmptyNextTrainId_TreatedAsNull()
 	{
 		// LoaderJson と同じ規約: NextTrainId="" は「次列車なし」を意味し null として扱う。
