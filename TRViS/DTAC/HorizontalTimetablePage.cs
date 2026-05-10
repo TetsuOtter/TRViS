@@ -1,4 +1,6 @@
+using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Formatters;
+using TRViS.DTAC.Logic.Presenter;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -15,6 +17,7 @@ public class HorizontalTimetablePage : ContentPage
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public const string NameOfThisClass = nameof(HorizontalTimetablePage);
 
+	readonly ViewHostPresenter _presenter;
 	readonly AppBar AppBarView;
 	readonly WebView ContentWebView;
 
@@ -22,7 +25,9 @@ public class HorizontalTimetablePage : ContentPage
 	{
 		logger.Trace("Creating...");
 
-		AppViewModel vm = InstanceManager.AppViewModel;
+		_presenter = PresenterFactory.BuildViewHostPresenter(out AppViewModel vm, out _, out _);
+		_presenter.StateChanged += OnPresenterStateChanged;
+		Unloaded += (_, _) => _presenter.Dispose();
 
 		Shell.SetNavBarIsVisible(this, false);
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
@@ -39,8 +44,12 @@ public class HorizontalTimetablePage : ContentPage
 
 		AppBarView = new AppBar
 		{
-			Title = "横型時刻表",
+			Title = _presenter.CurrentState.TitleText,
 			LeftButtonText = DTACElementStyles.BackArrowIcon,
+			TimeLabelText = _presenter.CurrentState.TimeLabelText,
+			IsTimeLabelEnabled = true,
+			IsThemeButtonEnabled = false,
+			IsAppIconButtonEnabled = true,
 		};
 		AppBarView.LeftButtonClicked += BackButton_Clicked;
 		Grid.SetRow(AppBarView, 0);
@@ -75,6 +84,18 @@ public class HorizontalTimetablePage : ContentPage
 	{
 		logger.Info("BackButton_Clicked -> GoBack with animation");
 		await Shell.Current.GoToAsync("..", true);
+	}
+
+	private void OnPresenterStateChanged(object? sender, ViewHostStateChangedEventArgs e)
+	{
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			var state = _presenter.CurrentState;
+			if ((e.Changed & ViewHostStateSection.TitleText) != 0)
+				AppBarView.Title = state.TitleText;
+			if ((e.Changed & ViewHostStateSection.TimeLabel) != 0)
+				AppBarView.TimeLabelText = state.TimeLabelText;
+		});
 	}
 
 	void ApplyContent(HorizontalTimetableRenderResult result)
