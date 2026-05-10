@@ -50,11 +50,23 @@ public class StartHomePageObject : PageObject
 	public bool IsWorkGroupChipVisible()
 		=> PollAutomationIdDisplayed(AutomationIds.StartHome.WorkGroupChip, timeoutSeconds: 1);
 
+	/// <summary>
+	/// Polls for the WorkGroupList to become visible. Use after a successful
+	/// file load to absorb the Start→Home mode-switch animation
+	/// (TRANSITION_MS=380ms) plus any platform-specific layout latency on slow
+	/// CI runners (iOS macos-26 simulators have been observed multi-second slow).
+	/// </summary>
+	public bool IsWorkGroupListVisible(double timeoutSeconds = 5)
+		=> PollAutomationIdDisplayed(AutomationIds.StartHome.WorkGroupList, timeoutSeconds);
+
 	// UI_TEST seed seams.
 	public AppiumElement TestSeedButton => FindByAutomationId(AutomationIds.StartHome.TestSeedButton);
 	public AppiumElement TestSeedGpsButton => FindByAutomationId(AutomationIds.StartHome.TestSeedGpsButton);
 	public AppiumElement TestAutoOpenButton => FindByAutomationId(AutomationIds.StartHome.TestAutoOpenButton);
 	public AppiumElement TestClearHistoryButton => FindByAutomationId(AutomationIds.StartHome.TestClearHistoryButton);
+	public AppiumElement TestSeedSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSampleFilesButton);
+	public AppiumElement TestClearSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestClearSampleFilesButton);
+	public AppiumElement TestSetupBrowseFallbackButton => FindByAutomationId(AutomationIds.StartHome.TestSetupBrowseFallbackButton);
 
 	public bool IsDisplayed()
 	{
@@ -216,6 +228,38 @@ public class StartHomePageObject : PageObject
 		"https://example.com/timetable-a.json",
 		"https://example.com/timetable-b.json",
 	};
+
+	/// <summary>
+	/// Fixture file names written by <see cref="SeedSampleFilesForTesting"/>.
+	/// Mirrors the literals in <c>SelectFileDialogTestSeams</c> so tests can
+	/// assert against per-row card AutomationIds without duplicating strings.
+	/// </summary>
+	public const string SeededRootFileName = "ui-test-root.json";
+	public const string SeededSubFolderName = "ui-test-folder";
+	public const string SeededNestedFileName = "ui-test-nested.json";
+
+	/// <summary>
+	/// Taps the UI_TEST-only seed-sample-files button. Writes a known fixture
+	/// (root JSON + sub-folder containing another JSON) into TimetableFileDirectory
+	/// so drill-down / file-load tests have something to assert against.
+	/// </summary>
+	public void SeedSampleFilesForTesting() => TestSeedSampleFilesButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only clear-sample-files button. Wipes
+	/// TimetableFileDirectory and clears any pending FilePicker override.
+	/// Use in SetUp because iOS noReset:true keeps the documents folder warm
+	/// across sessions and the override static survives Driver.Quit().
+	/// </summary>
+	public void ClearSampleFilesForTesting() => TestClearSampleFilesButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only setup-browse-fallback button. Writes a JSON fixture
+	/// outside TimetableFileDirectory and installs a FilePicker override that
+	/// returns its path. The next "他の場所からファイルを開く" tap then runs the
+	/// real load path with no OS picker dialog.
+	/// </summary>
+	public void SetupBrowseFallbackForTesting() => TestSetupBrowseFallbackButton.Click();
 
 	/// <summary>
 	/// Returns the count of WorkGroup rows after a sample load. Useful to verify

@@ -469,7 +469,11 @@ public partial class SelectFileDialog : ContentPage
 		try
 		{
 			SetInputEnabled(false);
-			var result = await FilePicker.Default.PickAsync();
+			// Indirect through FilePickerProvider so UI tests can substitute a
+			// known file path without driving the real OS picker (system UI is
+			// out of Appium's reach on every platform). Production path is
+			// identical — the provider just calls FilePicker.Default.
+			var result = await FilePickerProvider.PickAsync();
 			if (result is null)
 			{
 				logger.Info("File picker cancelled");
