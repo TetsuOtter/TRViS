@@ -1896,6 +1896,138 @@ public class WebSocketIntegrationTests
 	}
 
 	// ================================================================
+	// 親 Work からの WorkName / AffectDate 引き継ぎ
+	//
+	// JsonModels.TrainData は WorkName / AffectDate を持たないため、IO.Models.TrainData の
+	// これらフィールドは親 WorkData (Name / AffectDate) から引き継いで埋める必要がある。
+	// LoaderJson はこれを行っているが、WebSocket 経由のキャッシュ生成でも同様に動くこと、
+	// および Train スコープ単独更新では既にキャッシュ済みの Work から引き継がれることを検証する。
+	// ================================================================
+
+	[Test]
+	public async Task TrainData_AllScope_InheritsWorkNameFromParentWork()
+	{
+		// All スコープロード後、各 Train の WorkName が親 Work.Name と一致すること。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await ttTask;
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First();
+
+			var train1 = loader.GetTrainData(TestData.TrainId);
+			var train2 = loader.GetTrainData(TestData.TrainId2);
+			Assert.Multiple(() =>
+			{
+				Assert.That(train1, Is.Not.Null);
+				Assert.That(train1!.WorkName, Is.EqualTo(work.Name));
+				Assert.That(train2, Is.Not.Null);
+				Assert.That(train2!.WorkName, Is.EqualTo(work.Name));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task TrainData_AllScope_InheritsAffectDateFromParentWork()
+	{
+		// All スコープロード後、各 Train の AffectDate が親 Work.AffectDate (パース済み DateOnly) と一致すること。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await ttTask;
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First();
+			Assert.That(work.AffectDate, Is.Not.Null, "Work.AffectDate のパース前提");
+
+			var train1 = loader.GetTrainData(TestData.TrainId);
+			var train2 = loader.GetTrainData(TestData.TrainId2);
+			Assert.Multiple(() =>
+			{
+				Assert.That(train1, Is.Not.Null);
+				Assert.That(train1!.AffectDate, Is.EqualTo(work.AffectDate));
+				Assert.That(train2, Is.Not.Null);
+				Assert.That(train2!.AffectDate, Is.EqualTo(work.AffectDate));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task TrainData_TrainScopeAfterAllScope_PreservesWorkNameAndAffectDateFromCachedWork()
+	{
+		// Train スコープ単独更新の JSON には親 Work 情報が含まれない。
+		// 既にキャッシュ済みの Work から WorkName / AffectDate を引き継いで埋め直すこと。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			// 1. まず All スコープでキャッシュを作成
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First();
+			string expectedWorkName = work.Name;
+			DateOnly? expectedAffectDate = work.AffectDate;
+
+			// 2. Train スコープ単独更新
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await ttTask;
+
+			// 3. 更新後の Train が新しい TrainNumber を持ちつつ、
+			//    親 Work から引き継いだ WorkName / AffectDate も保持していること
+			var updated = loader.GetTrainData(TestData.TrainId);
+			Assert.Multiple(() =>
+			{
+				Assert.That(updated, Is.Not.Null);
+				Assert.That(updated!.TrainNumber, Is.EqualTo("T-001-Updated"), "Train スコープの新ペイロード値");
+				Assert.That(updated.WorkName, Is.EqualTo(expectedWorkName), "親 Work.Name を引き継いでいること");
+				Assert.That(updated.AffectDate, Is.EqualTo(expectedAffectDate), "親 Work.AffectDate を引き継いでいること");
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
 	// 空ダイヤのカスケード (#214 コメント対応)
 	// ================================================================
 
