@@ -187,10 +187,24 @@ public partial class VerticalStylePage : ContentView
 		NominalTractiveCapacityLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 		BeginRemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 
-		// Initial debug map state
 		UpdateDebugMapVisibility();
 
+		var appVm = InstanceManager.AppViewModel;
+		appVm.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName == nameof(TRViS.ViewModels.AppViewModel.SelectedWork))
+				UpdateHasHorizontalTimetable(appVm.SelectedWork);
+		};
+		UpdateHasHorizontalTimetable(appVm.SelectedWork);
+
 		logger.Trace("Created");
+	}
+
+	void UpdateHasHorizontalTimetable(IO.Models.Work? work)
+	{
+		bool hasHorizontalTimetable = work?.HasETrainTimetable == true && work.ETrainTimetableContent is not null;
+		logger.Info("UpdateHasHorizontalTimetable: {0}", hasHorizontalTimetable);
+		PageHeaderArea.HasHorizontalTimetable = hasHorizontalTimetable;
 	}
 
 	/// <summary>
