@@ -495,6 +495,47 @@ public class WebSocketIntegrationTests
 		}
 	}
 
+	[Test]
+	public async Task Timetable_TrainScope_WithExplicitColor_PropagatesToCachedTrainAsLineColor()
+	{
+		// リグレッション: WebSocket 経由で Color を明示指定した Train データを配信したとき、
+		// ILoader.GetTrainData が LineColor_RGB を保持する必要がある。
+		// 以前は JsonModelsConverter.ConvertTrain が Color を渡していなかったため
+		// 常に null になり、サーバーから配信した路線色が表示されなかった。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithColor,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.LineColor_RGB, Is.EqualTo(0xFF0000));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
 	// ================================================================
 	// 運行中の時刻表更新
 	// ================================================================

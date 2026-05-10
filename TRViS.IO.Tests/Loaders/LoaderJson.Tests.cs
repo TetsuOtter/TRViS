@@ -85,7 +85,7 @@ public class LoaderJsonTests
 			// Assert.That(actual[0].WorkId, Is.EqualTo(workId));
 			Assert.That(actual[0].TrainNumber, Is.EqualTo("WG01-W01-Train01"));
 			Assert.That(actual[0].Direction, Is.EqualTo(Direction.Outbound));
-			Assert.That(actual[0].LineColor_RGB, Is.Null);
+			Assert.That(actual[0].LineColor_RGB, Is.EqualTo(0x2255BB));
 			Assert.That(actual[0].TrainInfo, Is.EqualTo("列車情報 (列車名など)"));
 			Assert.That(actual[0].Destination, Is.EqualTo("終着駅"));
 			Assert.That(actual[0].CarCount, Is.EqualTo(10));
