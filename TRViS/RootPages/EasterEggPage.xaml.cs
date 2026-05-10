@@ -49,8 +49,6 @@ public partial class EasterEggPage : ContentPage
 		// KeepScreenOnWhenRunning is only for phones and tablets
 		KeepScreenOnWhenRunningHeaderLabel.IsVisible = DeviceInfo.Idiom == DeviceIdiom.Phone || DeviceInfo.Idiom == DeviceIdiom.Tablet;
 
-		AdvancedSettingsBorder.IsVisible = ShowMapWhenLandscapeHeaderLabel.IsVisible || KeepScreenOnWhenRunningHeaderLabel.IsVisible;
-
 		logger.Trace("EasterEggPage Created");
 	}
 

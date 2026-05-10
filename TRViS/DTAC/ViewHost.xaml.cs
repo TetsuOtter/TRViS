@@ -14,24 +14,13 @@ namespace TRViS.DTAC;
 public partial class ViewHost : ContentPage
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	static public readonly double TITLE_VIEW_HEIGHT = 50;
-	public const string CHANGE_THEME_BUTTON_TEXT_TO_LIGHT = "\xe518";
-	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\xe51c";
-	// 時刻表示が160px、残りはアイコンとWorkName分
-	const int TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH = (160 + 90) * 2;
 
 	public static readonly string NameOfThisClass = nameof(ViewHost);
 
 	DTACViewHostViewModel ViewModel { get; }
 
-	readonly GradientStop TitleBG_Top = new(Colors.White.WithAlpha(0.8f), 0);
-	readonly GradientStop TitleBG_Middle = new(Colors.White.WithAlpha(0.5f), 0.5f);
-	readonly GradientStop TitleBG_MidBottom = new(Colors.White.WithAlpha(0.1f), 0.8f);
-	readonly GradientStop TitleBG_Bottom = new(Colors.White.WithAlpha(0), 1);
-
 	private readonly ViewHostPresenter _presenter;
 	private readonly DTACViewHostViewModel _dtacViewModel;
-	private readonly AppViewModel _appViewModel;
 
 	public ViewHost()
 	{
@@ -39,10 +28,9 @@ public partial class ViewHost : ContentPage
 
 		_presenter = PresenterFactory.BuildViewHostPresenter(
 			out AppViewModel vm,
-			out EasterEggPageViewModel eevm,
+			out _,
 			out DTACViewHostViewModel dtacViewModel);
 
-		_appViewModel = vm;
 		_dtacViewModel = dtacViewModel;
 
 		_presenter.StateChanged += OnPresenterStateChanged;
@@ -53,32 +41,11 @@ public partial class ViewHost : ContentPage
 		InitializeComponent();
 
 		var state = _presenter.CurrentState;
-		TitleLabel.Text = state.TitleText;
+		AppBarView.Title = state.TitleText;
 		Title = state.TitleText;
-		TimeLabel.Text = state.TimeLabelText;
-
-		TitleLabel.TextColor
-			= MenuButton.TextColor
-			= ChangeThemeButton.TextColor
-			= TimeLabel.TextColor
-			= eevm.ShellTitleTextColor;
-
-		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: eevm));
-
-		TitleBGGradientBox.Color = null;
-		TitleBGGradientBox.Background = new LinearGradientBrush(
-		[
-			TitleBG_Top,
-			TitleBG_Middle,
-			TitleBG_MidBottom,
-			TitleBG_Bottom,
-		],
-		new Point(0, 0),
-		new Point(0, 1));
-
-		vm.CurrentAppThemeChanged += (s, e) => SetTitleBGGradientColor(e.NewValue);
-		SetTitleBGGradientColor(vm.CurrentAppTheme);
-		eevm.PropertyChanged += Eevm_PropertyChanged;
+		AppBarView.TimeLabelText = state.TimeLabelText;
+		AppBarView.LeftButtonClicked += MenuButton_Clicked;
+		AppBarView.TitleTapped += TitleLabel_Tapped;
 
 		ViewModel = dtacViewModel;
 		BindingContext = ViewModel;
@@ -106,122 +73,18 @@ public partial class ViewHost : ContentPage
 
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
-		ChangeChangeThemeButtonText(vm.CurrentAppTheme);
-		vm.CurrentAppThemeChanged += (s, e) => ChangeChangeThemeButtonText(e.NewValue);
-
 		logger.Trace("Created");
-	}
-
-	void SetTitleBGGradientColor(AppTheme v)
-		=> SetTitleBGGradientColor(v == AppTheme.Dark ? Colors.Black : Colors.White);
-	void SetTitleBGGradientColor(Color v)
-	{
-		logger.Debug("newValue: {0}", v);
-		TitleBG_Top.Color = v.WithAlpha(0.8f);
-		TitleBG_Middle.Color = v.WithAlpha(0.5f);
-		TitleBG_MidBottom.Color = v.WithAlpha(0.1f);
-		TitleBG_Bottom.Color = v.WithAlpha(0);
 	}
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
-		double top = newValue.Top;
-		if (oldValue.Top == top
-			&& oldValue.Left == newValue.Left
-			&& oldValue.Right == newValue.Right)
-		{
-			logger.Trace("SafeAreaMargin is not changed -> do nothing");
-			return;
-		}
-
-		TitleBGGradientBox.Margin = new(-newValue.Left, -top, -newValue.Right, TITLE_VIEW_HEIGHT * 0.5);
-		TitlePaddingViewHeight.Height = new(top, GridUnitType.Absolute);
-		MenuButton.Margin = new(8 + newValue.Left, 4);
-		TimeLabelStack.Margin = new(8, 4, newValue.Right + 8, 4);
-		logger.Debug("SafeAreaMargin is changed -> set TitleBGGradientBox.Margin to {0}", Util.ThicknessToString(TitleBGGradientBox.Margin));
-	}
-
-	protected override void OnSizeAllocated(double width, double height)
-	{
-		try
-		{
-			logger.Trace("width: {0}, height: {1}", width, height);
-			TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + TimeLabel.Margin.Right) < width;
-
-			base.OnSizeAllocated(width, height);
-		}
-		catch (Exception ex)
-		{
-			logger.Fatal(ex, "Unknown Exception");
-			Util.ExitWithAlertAsync(ex);
-		}
+		AppBarView.UpdateSafeAreaMargin(oldValue, newValue);
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
 	{
 		Shell.Current.FlyoutIsPresented = !Shell.Current.FlyoutIsPresented;
 		logger.Debug("FlyoutIsPresented is changed to {0}", Shell.Current.FlyoutIsPresented);
-	}
-
-	private void OnToggleBgAppIconButtonClicked(object? sender, EventArgs e)
-	{
-		bool newState = !_appViewModel.IsBgAppIconVisible;
-
-		if (_appViewModel.CurrentAppTheme == AppTheme.Light && newState == false)
-		{
-			Utils.Util.DisplayAlertAsync(
-				"背景を非表示にできません",
-				"現在のテーマがライトモードのため、背景アイコンは非表示にできません。",
-				"OK");
-			return;
-		}
-
-		_appViewModel.IsBgAppIconVisible = newState;
-		logger.Debug("IsBgAppIconVisible is now {0}", newState);
-		if (sender is VisualElement button)
-		{
-			if (newState)
-				DTACElementStyles.AppIconBgColor.Apply(button, BackgroundColorProperty);
-			else
-				button.BackgroundColor = Colors.Transparent;
-		}
-	}
-
-	private void Eevm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (sender is not EasterEggPageViewModel vm)
-			return;
-
-		switch (e.PropertyName)
-		{
-			case nameof(EasterEggPageViewModel.ShellTitleTextColor):
-				logger.Trace("ShellTitleTextColor is changed to {0}", vm.ShellTitleTextColor);
-				TitleLabel.TextColor
-					= MenuButton.TextColor
-					= ChangeThemeButton.TextColor
-					= TimeLabel.TextColor
-					= vm.ShellTitleTextColor;
-				break;
-		}
-	}
-
-	private void ChangeChangeThemeButtonText(AppTheme newTheme)
-	{
-		logger.Trace("newTheme: {0}", newTheme);
-		ChangeThemeButton.Text = newTheme == AppTheme.Dark
-			? CHANGE_THEME_BUTTON_TEXT_TO_LIGHT
-			: CHANGE_THEME_BUTTON_TEXT_TO_DARK;
-	}
-
-	private void OnChangeThemeButtonClicked(object? sender, EventArgs e)
-	{
-		logger.Info("ChangeThemeButton clicked");
-		AppTheme newTheme = _appViewModel.CurrentAppTheme == AppTheme.Dark
-			? AppTheme.Light
-			: AppTheme.Dark;
-		_appViewModel.CurrentAppTheme = newTheme;
-		if (Application.Current is not null)
-			Application.Current.UserAppTheme = newTheme;
 	}
 
 	// ---------- DTACViewModel event handling (tab visibility, orientation) ----------
@@ -285,13 +148,13 @@ public partial class ViewHost : ContentPage
 
 		if ((changed & ViewHostStateSection.TitleText) != 0)
 		{
-			TitleLabel.Text = state.TitleText;
+			AppBarView.Title = state.TitleText;
 			Title = state.TitleText;
 		}
 
 		if ((changed & ViewHostStateSection.TimeLabel) != 0)
 		{
-			TimeLabel.Text = state.TimeLabelText;
+			AppBarView.TimeLabelText = state.TimeLabelText;
 		}
 	}
 
@@ -311,7 +174,7 @@ public partial class ViewHost : ContentPage
 		InstanceManager.ScreenWakeLockService.DisableWakeLock();
 	}
 
-	async void TitleLabel_Tapped(object sender, EventArgs e)
+	async void TitleLabel_Tapped(object? sender, EventArgs e)
 	{
 		try
 		{
@@ -327,7 +190,7 @@ public partial class ViewHost : ContentPage
 				DismissOnTapOutside = true
 			};
 
-			await popover.ShowAsync(popup, TitleLabel, options);
+			await popover.ShowAsync(popup, AppBarView, options);
 			logger.Trace("QuickSwitchPopup shown");
 		}
 		catch (Exception ex)

@@ -173,6 +173,18 @@
 							VerticalOptions="Center"
 							IsToggled="{Binding KeepScreenOnWhenRunning}"/>
 					</HorizontalStackLayout>
+					<HorizontalStackLayout
+						HorizontalOptions="End">
+						<Label
+							Text="横型時刻表ボタンを「Ｅ電時刻表」と表示する"
+							Margin="0,0,8,0"
+							VerticalOptions="Center"/>
+						<Switch
+							AutomationId="Settings.UseETrainTimetableNameSwitch"
+							OnColor="GreenYellow"
+							VerticalOptions="Center"
+							IsToggled="{Binding UseETrainTimetableName}"/>
+					</HorizontalStackLayout>
 				</VerticalStackLayout>
 			</Border>
 			<Border>

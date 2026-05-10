@@ -1199,4 +1199,49 @@ public partial class StartHomePage : ContentPage
 		}
 #endif
 	}
+
+	async void TestSeedHorizontalTimetableButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedHorizontalTimetableButton clicked: seed horizontal timetable + navigate to DTAC");
+		try
+		{
+			var groups = viewModel.WorkGroupList;
+			var firstGroup = groups?.FirstOrDefault();
+			if (firstGroup is null)
+			{
+				logger.Warn("TestSeedHorizontalTimetable: no WorkGroup available — ignoring");
+				return;
+			}
+			var loader = viewModel.Loader;
+			if (loader is null)
+				return;
+			var firstWork = loader.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+			if (firstWork is null)
+			{
+				logger.Warn("TestSeedHorizontalTimetable: first WorkGroup has no Work — aborting");
+				return;
+			}
+
+			// 1×1 transparent PNG. Smallest valid PNG; renders in any WebView.
+			byte[] tinyPng = Convert.FromBase64String(
+				"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgAAIAAAUAAeImBZsAAAAASUVORK5CYII=");
+			var seededWork = firstWork with
+			{
+				HasETrainTimetable = true,
+				ETrainTimetableContentType = (int)TRViS.IO.Models.ContentType.PNG,
+				ETrainTimetableContent = tinyPng,
+			};
+
+			CommitPendingSelection(firstGroup, seededWork);
+			await NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedHorizontalTimetableButton failed");
+		}
+#else
+		await Task.CompletedTask;
+#endif
+	}
 }

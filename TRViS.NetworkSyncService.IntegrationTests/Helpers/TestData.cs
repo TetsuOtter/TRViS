@@ -251,6 +251,25 @@ public static class TestData
 		""";
 
 	/// <summary>
+	/// 横型時刻表 (ETrainTimetable) を含む Work スコープ配信用 JSON。
+	/// "hello" を base64 化した内容と、ContentType=2 (PNG 想定) を持つ。
+	/// </summary>
+	public const string ETrainTimetableContentBase64 = "aGVsbG8="; // "hello"
+	public const int ETrainTimetableContentTypePng = 2;
+	public static readonly byte[] ETrainTimetableContentBytes = [0x68, 0x65, 0x6C, 0x6C, 0x6F];
+	public static readonly string WorkScopeJsonWithETrainTimetable = $$"""
+		{
+		  "Id": "{{WorkId}}",
+		  "Name": "横型時刻表付き Work",
+		  "AffectDate": "20240501",
+		  "HasETrainTimetable": true,
+		  "ETrainTimetableContentType": {{ETrainTimetableContentTypePng}},
+		  "ETrainTimetableContent": "{{ETrainTimetableContentBase64}}",
+		  "Trains": []
+		}
+		""";
+
+	/// <summary>
 	/// WorkGroup スコープ配信用 (フル): 配下の Works/Trains 構造を含む完全な WorkGroup データ。
 	/// AC-3 / AC-5 の検証で、配下の Works/Trains キャッシュが再構築されることを確認する。
 	/// </summary>

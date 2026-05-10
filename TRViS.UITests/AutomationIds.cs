@@ -81,6 +81,11 @@ public static class AutomationIds
 		// "empty history" tests can guarantee an empty list regardless of prior
 		// noReset:true session state.
 		public const string TestClearHistoryButton = "StartHome.TestClearHistoryButton";
+		// Picks the first WorkGroup + first Work, replaces the Work record with a
+		// clone that has HasETrainTimetable=true + a tiny PNG payload, and
+		// navigates to DTAC. Lets the horizontal-timetable tests exercise the
+		// "button visible" path without doctoring the sample data fixture.
+		public const string TestSeedHorizontalTimetableButton = "StartHome.TestSeedHorizontalTimetableButton";
 	}
 
 	public static class PrivacyDialog
@@ -106,6 +111,20 @@ public static class AutomationIds
 		public const string OpenCloseButton = "DTAC.OpenCloseButton";
 		public const string TimetableScrollView = "DTAC.TimetableScrollView";
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
+
+		// Visible only when the selected Work carries an embedded horizontal
+		// timetable (HasETrainTimetable + ETrainTimetableContent). Tapping it
+		// pushes HorizontalTimetablePage onto the Shell stack.
+		public const string HorizontalTimetableButton = "DTAC.HorizontalTimetableButton";
+	}
+
+	/// <summary>
+	/// Horizontal timetable page (PNG/JPG/PDF/URI displayed in a WebView).
+	/// Reached by tapping <see cref="DTAC.HorizontalTimetableButton"/>.
+	/// </summary>
+	public static class HorizontalTimetable
+	{
+		public const string WebView = "HorizontalTimetable.WebView";
 	}
 
 	/// <summary>

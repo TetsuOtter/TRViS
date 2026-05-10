@@ -70,9 +70,22 @@ public static partial class JsonModelsConverter
 			Remarks: jsonWork.Remarks,
 			HasETrainTimetable: jsonWork.HasETrainTimetable,
 			ETrainTimetableContentType: jsonWork.ETrainTimetableContentType,
-			ETrainTimetableContent: null,  // JSONには含まれない
+			// JSON 上は base64 文字列。空・不正値は内容なしとして扱う。
+			ETrainTimetableContent: DecodeBase64OrNull(jsonWork.ETrainTimetableContent),
 			AffectDateText: affectDateText
 		);
+	}
+
+	/// <remarks>
+	/// Note: This method is duplicated in TRViS.IO.Loaders.LoaderJson due to the project
+	/// dependency structure (TRViS.IO.ILoader cannot reference TRViS.IO).
+	/// </remarks>
+	private static byte[]? DecodeBase64OrNull(string? s)
+	{
+		if (string.IsNullOrEmpty(s))
+			return null;
+		try { return Convert.FromBase64String(s); }
+		catch (FormatException) { return null; }
 	}
 
 	/// <summary>
