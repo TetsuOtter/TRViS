@@ -39,8 +39,14 @@ public class SelectFileDialogTests : BaseUITest
 			"With no files, the dialog should default to the empty state.");
 		Assert.That(dialog.BrowseButton.Displayed, Is.True,
 			"The browse button should remain visible in the empty state.");
-		Assert.That(dialog.OpenStorageLocationButton.Displayed, Is.True,
-			"The 'open storage location' button should be reachable so the user can drop files in.");
+		// "保存場所を開く" is hidden on Android by design — TimetableFileDirectory lives in
+		// internal storage that no Files-app can browse, and `file://` URIs throw
+		// FileUriExposedException on API 24+. See SelectFileDialog ctor for rationale.
+		if (!IsAndroid)
+		{
+			Assert.That(dialog.OpenStorageLocationButton.Displayed, Is.True,
+				"The 'open storage location' button should be reachable so the user can drop files in.");
+		}
 	}
 
 	[Test]

@@ -30,6 +30,28 @@ public partial class SelectFileDialog : ContentPage
 	// the OnSelectFileClicked dispatch in StartHomePage.xaml.cs (.sqlite/.db/.sqlite3).
 	private static readonly string[] s_listedExtensions = { ".json", ".sqlite", ".db", ".sqlite3" };
 
+	// OS file picker filter. Strings are interpreted per-platform:
+	//   - iOS / MacCatalyst: UTI identifiers passed to UIDocumentPickerViewController.
+	//     `public.json` is system-defined; `public.database` covers files tagged as
+	//     databases. Note: `.sqlite/.db/.sqlite3` files are not natively tagged as
+	//     `public.database` on iOS — they appear as `public.data`. Until UTI conformance
+	//     is declared in Info.plist (UTExportedTypeDeclarations), iOS users who need to
+	//     pick a sqlite/db file should tap "..." → "Show all files" in the picker. The
+	//     post-pick extension check in TryLoadFileAsync remains the safety net.
+	//   - Android: MIME types. `application/octet-stream` is intentionally included
+	//     because Android often misidentifies user-supplied sqlite files with that MIME.
+	//   - Windows: file extensions including the leading dot.
+	private static readonly PickOptions s_pickOptions = new()
+	{
+		FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+		{
+			{ DevicePlatform.iOS, new[] { "public.json", "public.database" } },
+			{ DevicePlatform.MacCatalyst, new[] { "public.json", "public.database" } },
+			{ DevicePlatform.Android, new[] { "application/json", "application/x-sqlite3", "application/vnd.sqlite3", "application/octet-stream" } },
+			{ DevicePlatform.WinUI, new[] { ".json", ".sqlite", ".db", ".sqlite3" } },
+		}),
+	};
+
 	// Drill-down state. _rootDirectory is the user-visible "top" — going above it
 	// is not allowed (we don't want users wandering into the rest of the sandbox).
 	private DirectoryInfo _rootDirectory = DirectoryPathProvider.TimetableFileDirectory;
@@ -67,6 +89,15 @@ public partial class SelectFileDialog : ContentPage
 		// on the actual directory contents.
 		BreadcrumbBorder.IsVisible = false;
 		EmptyStateView.IsVisible = false;
+
+		// "保存場所を開く" is hidden on Android: TimetableFileDirectory lives under
+		// AppDataDirectory (/data/data/<pkg>/files/...), which is internal storage no
+		// Files-app can browse — and a `file://` URI would throw FileUriExposedException
+		// on API 24+. Until/unless the timetable directory is relocated to a shared
+		// location (e.g. via SAF / scoped storage), opening it from Android is a no-op
+		// at best. The button stays for iOS / Mac Catalyst / Windows where it works.
+		if (DeviceInfo.Current.Platform == DevicePlatform.Android)
+			OpenStorageLocationButton.IsVisible = false;
 	}
 
 	protected override void OnAppearing()
@@ -469,7 +500,7 @@ public partial class SelectFileDialog : ContentPage
 		try
 		{
 			SetInputEnabled(false);
-			var result = await FilePicker.Default.PickAsync();
+			var result = await FilePicker.Default.PickAsync(s_pickOptions);
 			if (result is null)
 			{
 				logger.Info("File picker cancelled");
