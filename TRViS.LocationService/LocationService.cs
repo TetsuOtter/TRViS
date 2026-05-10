@@ -189,6 +189,21 @@ void OnIsEnabledChanged(bool value)
 	void OnNotificationReceived(object? sender, NotificationData n) => NotificationReceived?.Invoke(sender, n);
 	void OnTimeFormatChangeRequested(object? sender, TimeFormatCommand cmd) => TimeFormatChangeRequested?.Invoke(sender, cmd);
 
+	/// <summary>
+	/// NetworkSyncService 経由で配信された緯度経度を受け取り、
+	/// GPS 由来と同じ <see cref="OnGpsLocationUpdated"/> イベントとして外部に通知する。
+	/// 端末 GPS の代わりにサーバー配信を使う構成のために、station 検出は <see cref="SyncedData.Location_m"/>
+	/// 側に任せ、ここでは Map / UI 表示用のイベント発火だけ行う。
+	/// </summary>
+	void OnNetworkSyncServiceLonLatLocationReceived(object? sender, (double Longitude, double Latitude, double? Accuracy) location)
+	{
+		locationServiceLogger.Info(
+			"NetworkSyncService LonLatLocation Received (lon: {0}, lat: {1}, accuracy: {2})",
+			location.Longitude, location.Latitude, location.Accuracy
+		);
+		OnGpsLocationUpdated?.Invoke(this, location);
+	}
+
 	void OnNetworkSyncServiceCanStartChanged(object? sender, bool canStart)
 	{
 		logger.Debug("NetworkSyncServiceCanStartChanged: {0}", canStart);
@@ -269,6 +284,7 @@ void OnIsEnabledChanged(bool value)
 			networkSyncService.HeaderColorChangeRequested -= OnHeaderColorChangeRequested;
 			networkSyncService.NotificationReceived -= OnNotificationReceived;
 			networkSyncService.TimeFormatChangeRequested -= OnTimeFormatChangeRequested;
+			networkSyncService.LonLatLocationReceived -= OnNetworkSyncServiceLonLatLocationReceived;
 		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
@@ -389,6 +405,7 @@ void OnIsEnabledChanged(bool value)
 		nextService.ConnectionClosed += OnNetworkSyncServiceConnectionClosed;
 		nextService.ConnectionFailed += OnNetworkSyncServiceConnectionFailed;
 		nextService.CanStartChanged += OnNetworkSyncServiceCanStartChanged;
+		nextService.LonLatLocationReceived += OnNetworkSyncServiceLonLatLocationReceived;
 		nextService.StaLocationInfo = currentService?.StaLocationInfo;
 		// キャッシュされた ID を設定
 		nextService.WorkGroupId = _lastWorkGroupId;
@@ -421,6 +438,7 @@ void OnIsEnabledChanged(bool value)
 			networkSyncService.ConnectionClosed -= OnNetworkSyncServiceConnectionClosed;
 			networkSyncService.ConnectionFailed -= OnNetworkSyncServiceConnectionFailed;
 			networkSyncService.CanStartChanged -= OnNetworkSyncServiceCanStartChanged;
+			networkSyncService.LonLatLocationReceived -= OnNetworkSyncServiceLonLatLocationReceived;
 		}
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
