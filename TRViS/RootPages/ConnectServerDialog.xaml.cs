@@ -29,6 +29,13 @@ public partial class ConnectServerDialog : ContentPage
 	// after the page is already disposed.
 	private bool _isBusy;
 
+	// Cancels any in-flight HandleAppLinkUriAsync when the page disappears
+	// (modal swipe-dismiss on iOS, hardware back on Android, OS-level
+	// dismissal). Without this, a connect started mid-flight would still
+	// resolve and call SetLoader on a dismissed page, surprising the user
+	// with an AppViewModel change after they intended to bail out.
+	private CancellationTokenSource _cts = new();
+
 	public ConnectServerDialog()
 	{
 		logger.Trace("Creating");
@@ -55,6 +62,25 @@ public partial class ConnectServerDialog : ContentPage
 		// Re-populate on each appearance so a re-show after preferences changed
 		// (e.g., user added a URL elsewhere) reflects the latest history.
 		PopulateHistory();
+
+		// If the dialog was previously dismissed and is now being shown again
+		// (rare but supported by Navigation), the CTS from the prior session
+		// is already cancelled — replace it so new loads aren't immediately
+		// cancelled.
+		if (_cts.IsCancellationRequested)
+		{
+			_cts.Dispose();
+			_cts = new();
+		}
+	}
+
+	protected override void OnDisappearing()
+	{
+		base.OnDisappearing();
+		// Cancel any in-flight load. The token is wired into HandleAppLinkUriAsync,
+		// which checks ThrowIfCancellationRequested at several await points and
+		// catches OperationCanceledException internally to return false cleanly.
+		_cts.Cancel();
 	}
 
 	void PopulateHistory()
@@ -201,6 +227,10 @@ public partial class ConnectServerDialog : ContentPage
 		SaveConnectionSwitch.IsEnabled = isEnabled;
 		NewConnectionButton.IsEnabled = isEnabled;
 		BackToHistoryButton.IsEnabled = isEnabled;
+		// Disable the X button during a load so the user can't tap it mid-flight.
+		// OS-level dismiss paths (iOS swipe-down on FormSheet, Android hardware
+		// back) still fire OnDisappearing → CTS.Cancel, so users aren't trapped.
+		CloseButton.IsEnabled = isEnabled;
 		LoadingIndicator.IsRunning = !isEnabled;
 		LoadingIndicator.IsVisible = !isEnabled;
 	}
@@ -229,6 +259,7 @@ public partial class ConnectServerDialog : ContentPage
 
 	async Task<bool> TryLoadAsync(string urlText, bool addToHistory)
 	{
+		CancellationToken token = _cts.Token;
 		try
 		{
 			if (string.IsNullOrWhiteSpace(urlText))
@@ -239,7 +270,7 @@ public partial class ConnectServerDialog : ContentPage
 
 			if (urlText.StartsWith("trvis://"))
 			{
-				return await InstanceManager.AppViewModel.HandleAppLinkUriAsync(urlText, addToHistory, CancellationToken.None);
+				return await InstanceManager.AppViewModel.HandleAppLinkUriAsync(urlText, addToHistory, token);
 			}
 
 			AppLinkInfo appLinkInfo = new(
@@ -247,7 +278,18 @@ public partial class ConnectServerDialog : ContentPage
 				Version: new(1, 0),
 				ResourceUri: new(urlText)
 			);
-			return await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, addToHistory, CancellationToken.None);
+			// Pass urlText as originalAppLink so the WebSocket branch (ws:// / wss://)
+			// can persist it to history — without it, HandleWebSocketAppLinkAsync skips
+			// the history write because the constructed AppLinkInfo doesn't retain
+			// the originating URL form.
+			return await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, urlText, addToHistory, token);
+		}
+		catch (OperationCanceledException) when (token.IsCancellationRequested)
+		{
+			// User dismissed the dialog while the connect was in flight. Don't
+			// show an alert on a page that's being torn down.
+			logger.Debug("TryLoadAsync cancelled by dialog dismissal");
+			return false;
 		}
 		catch (UriFormatException ex)
 		{

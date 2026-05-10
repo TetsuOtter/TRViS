@@ -164,7 +164,7 @@ public class LoaderJson : ILoader
 							BeforeDeparture: trainData.BeforeDeparture,
 							BeginRemarks: trainData.BeginRemarks,
 							CarCount: trainData.CarCount,
-							LineColor_RGB: null, // Not Implemented
+							LineColor_RGB: Utils.HexStringToRgbInt(trainData.Color),
 							DayCount: trainData.DayCount ?? 0,
 							Destination: trainData.Destination,
 							Id: trainId,

@@ -130,6 +130,7 @@ public static partial class JsonModelsConverter
 			AfterArrive: trainJson.AfterArrive,
 			DayCount: trainJson.DayCount ?? 0,
 			IsRideOnMoving: trainJson.IsRideOnMoving,
+			LineColor_RGB: HexStringToRgbInt(trainJson.Color),
 			// Empty string == null: matches LoaderJson semantics (LoaderJson.cs) and the
 			// IsNullOrEmpty checks in NextTrainButtonPresenter / VerticalTimetableView /
 			// VerticalTimetableDataSourceAdapter so the button visibility is consistent
