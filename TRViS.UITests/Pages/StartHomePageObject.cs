@@ -247,11 +247,22 @@ public class StartHomePageObject : PageObject
 
 	/// <summary>
 	/// Taps the UI_TEST-only clear-sample-files button. Wipes
-	/// TimetableFileDirectory and clears any pending FilePicker override.
-	/// Use in SetUp because iOS noReset:true keeps the documents folder warm
-	/// across sessions and the override static survives Driver.Quit().
+	/// TimetableFileDirectory, clears any pending FilePicker override, and
+	/// resets the in-memory <c>AppViewModel.Loader</c> so the page flips
+	/// back to Start mode if a previous test (or app-launch auto-loader)
+	/// left it in Home mode. Use in SetUp because iOS noReset:true and Mac
+	/// Catalyst's app sandbox both keep the documents folder warm across
+	/// sessions and the FilePicker override static survives Driver.Quit().
+	///
+	/// Sleeps briefly after the click to let StartHomePage's mode-switch
+	/// observer + animation (TRANSITION_MS ≈ 380ms) settle before the
+	/// caller queries Start-mode buttons.
 	/// </summary>
-	public void ClearSampleFilesForTesting() => TestClearSampleFilesButton.Click();
+	public void ClearSampleFilesForTesting()
+	{
+		TestClearSampleFilesButton.Click();
+		Thread.Sleep(500);
+	}
 
 	/// <summary>
 	/// Taps the UI_TEST-only setup-browse-fallback button. Writes a JSON fixture

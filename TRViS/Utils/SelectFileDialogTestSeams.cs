@@ -63,15 +63,46 @@ internal static class SelectFileDialogTestSeams
 	}
 
 	/// <summary>
-	/// Wipes everything under TimetableFileDirectory and clears any pending
-	/// FilePicker override. Tests call this in SetUp because iOS noReset:true
-	/// means the documents folder persists between sessions, and the
-	/// <see cref="FilePickerProvider.OverrideForTesting"/> static survives
-	/// Driver.Quit() if the OS process stays warm.
+	/// Wipes everything under TimetableFileDirectory, clears any pending
+	/// FilePicker override, and resets <see cref="ViewModels.AppViewModel.Loader"/>
+	/// to null. Tests call this in SetUp because:
+	///   1. iOS noReset:true and Mac Catalyst's app sandbox both keep the
+	///      documents folder warm across sessions — without wiping, a single
+	///      seeded JSON file from the previous test triggers
+	///      DefaultTimetableFileLoader auto-load on launch, putting the next
+	///      test in Home mode (SelectFileButton hidden).
+	///   2. <see cref="FilePickerProvider.OverrideForTesting"/> is a static
+	///      that survives Driver.Quit().
+	///   3. Even after wiping the folder, an in-memory Loader from a previous
+	///      test (e.g. TapFileCard or BrowseButton-fallback flows that
+	///      successfully loaded) keeps the page in Home mode until the next
+	///      app process starts. Reset it explicitly so the page flips back
+	///      to Start mode immediately via the AppViewModel observer.
 	/// </summary>
 	public static void ClearSampleFiles()
 	{
 		FilePickerProvider.OverrideForTesting = null;
+
+		// Reset the AppViewModel Loader so StartHomePage's mode-switch observer
+		// flips back to Start mode (SelectFileButton + LoadDemoButton visible).
+		// Has to run on the UI thread because SetLoader fires PropertyChanged
+		// which the page handler subscribes to and runs animations on the UI
+		// dispatcher. The seam button click handler is already on the UI
+		// thread, so this is a direct call — no dispatcher hop needed.
+		try
+		{
+			var viewModel = InstanceManager.AppViewModel;
+			if (viewModel.Loader is not null)
+			{
+				logger.Info("ClearSampleFiles: resetting AppViewModel.Loader (was non-null)");
+				viewModel.Loader?.Dispose();
+				viewModel.SetLoader(null, null);
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "ClearSampleFiles: failed to reset Loader");
+		}
 
 		var dir = DirectoryPathProvider.TimetableFileDirectory;
 		if (!dir.Exists)
