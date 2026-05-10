@@ -10,7 +10,7 @@ namespace TRViS.DTAC;
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	const double HORIZONTAL_TIMETABLE_BUTTON_COLUMN_WIDTH = 110;
+	const double HORIZONTAL_TIMETABLE_BUTTON_COLUMN_WIDTH = 176;
 	readonly ColumnDefinition HorizontalTimetableButtonColumn = new(0);
 
 	#region Affect Date Label
@@ -122,46 +122,7 @@ public partial class PageHeader : Grid
 	#region Horizontal Timetable Button
 	public const string HorizontalTimetableButtonAutomationId = "DTAC.HorizontalTimetableButton";
 
-	readonly Border HorizontalTimetableButtonBorder;
-
-	static Border CreateHorizontalTimetableButton()
-	{
-		var label = new Label
-		{
-			Text = "横型時刻表",
-			FontSize = 16,
-			FontFamily = DTACElementStyles.DefaultFontFamily,
-			FontAttributes = FontAttributes.Bold,
-			TextColor = DTACElementStyles.StartEndRunButtonTextColor.Default,
-			VerticalOptions = LayoutOptions.Center,
-			HorizontalOptions = LayoutOptions.Center,
-			Margin = new(8, 4),
-		};
-		DTACElementStyles.StartEndRunButtonTextColor.Apply(label, Label.TextColorProperty);
-
-		var border = new Border
-		{
-			AutomationId = HorizontalTimetableButtonAutomationId,
-			Margin = new(2),
-			Padding = new(4),
-			Stroke = Colors.Transparent,
-			VerticalOptions = LayoutOptions.Center,
-			HorizontalOptions = LayoutOptions.Center,
-			StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
-			BackgroundColor = Colors.White,
-			IsVisible = false,
-			Content = label,
-			Shadow = new Shadow
-			{
-				Brush = Colors.Black,
-				Offset = new(3, 3),
-				Radius = 3,
-				Opacity = 0.2f,
-			},
-		};
-
-		return border;
-	}
+	readonly HorizontalTimetableButton HorizontalTimetableButtonBorder;
 
 	partial void OnHasHorizontalTimetableChanged(bool newValue)
 	{
@@ -192,7 +153,7 @@ public partial class PageHeader : Grid
 			new ColumnDefinition(134),
 			new ColumnDefinition(60));
 
-		HorizontalTimetableButtonBorder = CreateHorizontalTimetableButton();
+		HorizontalTimetableButtonBorder = new HorizontalTimetableButton();
 		var horizontalTimetableTap = new TapGestureRecognizer();
 		horizontalTimetableTap.Tapped += HorizontalTimetableButton_Tapped;
 		HorizontalTimetableButtonBorder.GestureRecognizers.Add(horizontalTimetableTap);
