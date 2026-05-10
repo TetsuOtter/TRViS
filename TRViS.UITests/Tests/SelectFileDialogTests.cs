@@ -63,27 +63,18 @@ public class SelectFileDialogTests : BaseUITest
 	}
 
 	/// <summary>
-	/// Reproduction + regression test for the SQLite-open path in the live MAUI
-	/// runtime. Two failure modes this catches:
+	/// Stage 1 of the SQLite-open reproduction: did the in-app seed seam manage
+	/// to write a SQLite file at all? On every platform the seam runs the same
+	/// sqlite-net write path that LoaderSQL reads from. If MAUI's linker/AOT
+	/// stripped the SQLitePCLRaw provider registration (or Batteries_V2.Init
+	/// was never called), the seam throws and no file appears — the dialog
+	/// then renders empty state instead of the file list and this test fails.
 	///
-	///   (1) sqlite-net write fails inside the seed seam — usually because the
-	///       SQLitePCLRaw bundle_green provider registration was stripped by the
-	///       linker or never initialized (missing SQLitePCL.Batteries_V2.Init
-	///       in MauiProgram). No file ends up in TimetableFileDirectory, so the
-	///       dialog renders empty state and the FileItem lookup throws
-	///       NoSuchElementException — this assertion fails clearly.
-	///
-	///   (2) Seed succeeds but LoaderSQL.CreateAsync fails on the open — e.g.
-	///       a regression in the open-flag combination. Card appears, tap fires
-	///       the load, the catch in TryLoadFileAsync raises a "読み込めませんでした"
-	///       alert, and the dialog stays open. The post-tap assertion that the
-	///       dialog has dismissed catches this.
-	///
-	/// netcore-based TRViS.IO.Tests cannot reach either failure mode because
-	/// they don't go through MAUI's linker/AOT — the test must live here.
+	/// netcore-based TRViS.IO.Tests cannot reach this failure mode because
+	/// they don't go through MAUI's linker/AOT, so the repro must live here.
 	/// </summary>
 	[Test]
-	public void SeededSqlite_TappingCard_LoadsAndDismissesDialog()
+	public void SeededSqlite_AppearsInFileListView()
 	{
 		Assume.That(_startHomePage.IsDisplayed(), Is.True);
 
@@ -95,14 +86,44 @@ public class SelectFileDialogTests : BaseUITest
 		var dialog = _startHomePage.OpenSelectFileDialog();
 		Assert.That(dialog.IsDisplayed(), Is.True, "Dialog should be displayed.");
 
-		// Card visible ⇒ seed succeeded ⇒ MAUI runtime can write SQLite.
-		// Card missing ⇒ seed threw inside SQLiteConnection ctor ⇒ this is
-		// almost certainly the "SQLite open shows error" production bug.
+		// File list visible ⇒ seed wrote a file ⇒ MAUI runtime can use sqlite-net.
+		// Empty state visible ⇒ seed threw inside SQLiteConnection ctor ⇒ this is
+		// the "SQLite open shows error" production bug — most common fix is
+		// SQLitePCL.Batteries_V2.Init() in MauiProgram.CreateMauiApp().
+		Assert.That(dialog.IsFileListVisible(), Is.True,
+			"After seeding a SQLite fixture the dialog should render the file list, " +
+			"but the empty state is showing. The in-app seed step likely threw — " +
+			"this is the production bug. Apply SQLitePCL.Batteries_V2.Init() in " +
+			"MauiProgram.CreateMauiApp() and re-run.");
+	}
+
+	/// <summary>
+	/// Stage 2: card is reachable and tapping it loads the loader through
+	/// LoaderSQL.CreateAsync without throwing. Excluded on Windows because
+	/// MAUI does not expose the Border-based file card via UIA there
+	/// (separate quirk; the file is on disk per the screenshot — it's the
+	/// per-card AutomationId that's not queryable). Stage 1 covers the
+	/// SQLite repro on every platform; this stage covers the read-side
+	/// open-flag regression on platforms where the card is reachable.
+	/// </summary>
+	[Test]
+	[Platform(Exclude = "Win", Reason = "Windows MAUI does not expose the dynamically-created Border (file card) via the UIA tree — the file is on disk and visually present (verified via screenshot artifact), but the per-card AutomationId cannot be looked up. The complementary SeededSqlite_AppearsInFileListView already covers the SQLite-init repro on Windows.")]
+	public void SeededSqlite_TappingCard_LoadsAndDismissesDialog()
+	{
+		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+
+		_startHomePage.SeedSqliteForTesting();
+		Thread.Sleep(500);
+
+		var dialog = _startHomePage.OpenSelectFileDialog();
+		Assert.That(dialog.IsDisplayed(), Is.True, "Dialog should be displayed.");
+
+		// If this fails, Stage 1 (SeededSqlite_AppearsInFileListView) should
+		// have failed first with a clearer message. Surfacing the seed-side
+		// problem here only as a backup.
 		var fileItem = dialog.FileItem(StartHomePageObject.UITestSqliteFixtureFileName);
 		Assert.That(fileItem.Displayed, Is.True,
-			$"Seeded SQLite '{StartHomePageObject.UITestSqliteFixtureFileName}' should appear as a card. " +
-			"If this assertion fails, the seed step inside the app could not write the file — " +
-			"check device logs for an exception in TestSeedSqliteButton_Clicked.");
+			$"Seeded SQLite '{StartHomePageObject.UITestSqliteFixtureFileName}' should appear as a card.");
 
 		fileItem.Click();
 		// Dialog dismisses on successful load. Generous wait because the load is
@@ -116,6 +137,6 @@ public class SelectFileDialogTests : BaseUITest
 		Assert.That(_startHomePage.IsDisplayed(), Is.True,
 			"After tapping the seeded SQLite card, the dialog should dismiss back to StartHomePage. " +
 			"If StartHomePage is not visible, the load failed — most likely LoaderSQL.CreateAsync " +
-			"threw inside the live MAUI runtime (provider registration / open-flag issue).");
+			"threw inside the live MAUI runtime (open-flag / read-path issue).");
 	}
 }
