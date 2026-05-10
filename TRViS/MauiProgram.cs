@@ -35,7 +35,16 @@ public static class MauiProgram
 		// SQLitePCL.raw.SetProvider()" and the user sees "読み込めませんでした".
 		// Call Init explicitly here so registration cannot be stripped.
 		// Reproduced via the SeededSqlite_AppearsInFileListView UI test.
-		SQLitePCL.Batteries_V2.Init();
+		try
+		{
+			Console.WriteLine("[MauiProgram] Calling SQLitePCL.Batteries_V2.Init()");
+			SQLitePCL.Batteries_V2.Init();
+			Console.WriteLine("[MauiProgram] SQLitePCL.Batteries_V2.Init() OK");
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"[MauiProgram] SQLitePCL.Batteries_V2.Init() FAILED: {ex.GetType().FullName}: {ex.Message}");
+		}
 
 		var builder = MauiApp.CreateBuilder();
 		builder
