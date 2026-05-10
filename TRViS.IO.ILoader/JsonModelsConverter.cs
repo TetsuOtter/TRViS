@@ -127,7 +127,8 @@ public static partial class JsonModelsConverter
 			Rows: rows,
 			AfterArrive: trainJson.AfterArrive,
 			DayCount: trainJson.DayCount ?? 0,
-			IsRideOnMoving: trainJson.IsRideOnMoving
+			IsRideOnMoving: trainJson.IsRideOnMoving,
+			LineColor_RGB: HexStringToRgbInt(trainJson.Color)
 		);
 	}
 
