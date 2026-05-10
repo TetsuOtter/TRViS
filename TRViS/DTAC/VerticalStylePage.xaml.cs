@@ -1,6 +1,7 @@
 using TRViS.Controls;
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.DTAC.Logic.Presenter;
 using TRViS.DTAC.ViewModels;
 using TRViS.IO.Models;
@@ -202,7 +203,7 @@ public partial class VerticalStylePage : ContentView
 
 	void UpdateHasHorizontalTimetable(IO.Models.Work? work)
 	{
-		bool hasHorizontalTimetable = work?.HasETrainTimetable == true && work.ETrainTimetableContent is not null;
+		bool hasHorizontalTimetable = HorizontalTimetableContentBuilder.HasHorizontalTimetable(work);
 		logger.Info("UpdateHasHorizontalTimetable: {0}", hasHorizontalTimetable);
 		PageHeaderArea.HasHorizontalTimetable = hasHorizontalTimetable;
 	}

@@ -38,6 +38,48 @@ public class DTACViewHostPageObject : PageObject
 	public AppiumElement TimetableScrollView => FindByAutomationId(AutomationIds.DTAC.TimetableScrollView);
 	public AppiumElement VerticalTimetableView => FindByAutomationId(AutomationIds.DTAC.VerticalTimetableView);
 
+	// Hidden when the selected Work has no embedded horizontal timetable;
+	// FindCustomControl falls back to UIA Name lookup on Windows because
+	// the inner Border doesn't surface as an addressable AccessibilityId there.
+	public AppiumElement HorizontalTimetableButton
+		=> FindCustomControl(AutomationIds.DTAC.HorizontalTimetableButton, "横型時刻表");
+
+	/// <summary>
+	/// Polls briefly for the horizontal-timetable button. Returns true only when
+	/// the element is both findable and Displayed=true within the timeout.
+	/// Used to assert the button is hidden by default with sample data.
+	/// </summary>
+	public bool IsHorizontalTimetableButtonVisible(double timeoutSeconds = 1)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				try
+				{
+					if (FindByAutomationId(AutomationIds.DTAC.HorizontalTimetableButton).Displayed)
+						return true;
+				}
+				catch { }
+				Thread.Sleep(100);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	public DTACViewHostPageObject TapHorizontalTimetableButton()
+	{
+		HorizontalTimetableButton.Click();
+		return this;
+	}
+
 	private AppiumElement FindCustomControl(string automationId, params string[] candidateTexts)
 	{
 		if (IsWindows)

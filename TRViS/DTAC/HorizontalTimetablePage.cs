@@ -1,3 +1,4 @@
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -6,7 +7,8 @@ namespace TRViS.DTAC;
 
 /// <summary>
 /// Page for displaying horizontal timetable content (PDF/PNG/JPG/URI) in a WebView.
-/// Implemented entirely in C# without XAML.
+/// Rendering payload is built by <see cref="HorizontalTimetableContentBuilder"/>;
+/// this class only owns the MAUI surface.
 /// </summary>
 public class HorizontalTimetablePage : ContentPage
 {
@@ -25,42 +27,41 @@ public class HorizontalTimetablePage : ContentPage
 		Shell.SetNavBarIsVisible(this, false);
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
-		// Create the main grid layout
 		var mainGrid = new Grid
 		{
-			IgnoreSafeArea = true,
+			SafeAreaEdges = SafeAreaEdges.None,
 			RowDefinitions = new RowDefinitionCollection
 			{
-				new RowDefinition(GridLength.Auto), // AppBar
-				new RowDefinition(GridLength.Star)  // Content
-			}
+				new RowDefinition(GridLength.Auto),
+				new RowDefinition(GridLength.Star),
+			},
 		};
 
-		// Create AppBar with back button
 		AppBarView = new AppBar
 		{
 			Title = "横型時刻表",
-			LeftButtonText = DTACElementStyles.BackArrowIcon
+			LeftButtonText = DTACElementStyles.BackArrowIcon,
 		};
 		AppBarView.LeftButtonClicked += BackButton_Clicked;
 		Grid.SetRow(AppBarView, 0);
 		mainGrid.Children.Add(AppBarView);
 
-		// Create WebView for content
-		ContentWebView = new WebView();
+		ContentWebView = new WebView
+		{
+			AutomationId = "HorizontalTimetable.WebView",
+		};
 		Grid.SetRow(ContentWebView, 1);
 		mainGrid.Children.Add(ContentWebView);
 
 		Content = mainGrid;
 
-		// Subscribe to safe area margin changes
 		if (Shell.Current is AppShell appShell)
 		{
 			appShell.SafeAreaMarginChanged += AppShell_SafeAreaMarginChanged;
 			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
 		}
 
-		LoadContent(vm.SelectedWork);
+		ApplyContent(HorizontalTimetableContentBuilder.Build(vm.SelectedWork));
 
 		logger.Trace("Created");
 	}
@@ -76,114 +77,21 @@ public class HorizontalTimetablePage : ContentPage
 		await Shell.Current.GoToAsync("..", true);
 	}
 
-	void LoadContent(Work? work)
+	void ApplyContent(HorizontalTimetableRenderResult result)
 	{
-		if (work is null)
+		logger.Info("ApplyContent: kind={0}", result.Kind);
+		switch (result.Kind)
 		{
-			logger.Warn("Work is null -> do nothing");
-			return;
-		}
-
-		logger.Info("Loading horizontal timetable content for work: {0}", work.Id);
-
-		if (work.HasETrainTimetable != true || work.ETrainTimetableContent is null)
-		{
-			logger.Warn("No horizontal timetable content available");
-			return;
-		}
-
-		int contentTypeValue = work.ETrainTimetableContentType ?? (int)ContentType.PNG;
-		if (!Enum.IsDefined(typeof(ContentType), contentTypeValue))
-		{
-			logger.Warn("Unknown content type value: {0}, defaulting to PNG", contentTypeValue);
-			contentTypeValue = (int)ContentType.PNG;
-		}
-		ContentType contentType = (ContentType)contentTypeValue;
-		byte[] content = work.ETrainTimetableContent;
-
-		logger.Debug("Content type: {0}, Content length: {1}", contentType, content.Length);
-
-		// Always use WebView for all content types
-		switch (contentType)
-		{
-			case ContentType.PNG:
-				LoadImageContent(content, "image/png");
+			case HorizontalTimetableRenderKind.Html:
+				ContentWebView.Source = new HtmlWebViewSource { Html = result.Payload };
 				break;
-			case ContentType.JPG:
-				LoadImageContent(content, "image/jpeg");
+			case HorizontalTimetableRenderKind.Uri:
+				ContentWebView.Source = result.Payload;
 				break;
-			case ContentType.PDF:
-				LoadPdfContent(content);
-				break;
-			case ContentType.URI:
-				LoadUriContent(content);
-				break;
+			case HorizontalTimetableRenderKind.None:
 			default:
-				logger.Warn("Unsupported content type: {0}", contentType);
+				logger.Warn("No horizontal timetable content available");
 				break;
 		}
-	}
-
-	void LoadImageContent(byte[] content, string mimeType)
-	{
-		logger.Info("Loading image content via WebView, mimeType: {0}", mimeType);
-
-		// Convert image to base64 data URI and display in WebView
-		string base64Content = Convert.ToBase64String(content);
-		string dataUri = $"data:{mimeType};base64,{base64Content}";
-
-		string html = $@"
-<!DOCTYPE html>
-<html>
-<head>
-	<meta name=""viewport"" content=""width=device-width, initial-scale=1.0, user-scalable=yes"">
-	<style>
-		html, body {{ margin: 0; padding: 0; height: 100%; width: 100%; background-color: transparent; }}
-		body {{ display: flex; justify-content: center; align-items: center; }}
-		img {{ max-width: 100%; max-height: 100%; object-fit: contain; }}
-	</style>
-</head>
-<body>
-	<img src=""{dataUri}"" alt=""Horizontal Timetable"" />
-</body>
-</html>";
-
-		ContentWebView.Source = new HtmlWebViewSource { Html = html };
-	}
-
-	void LoadPdfContent(byte[] content)
-	{
-		logger.Info("Loading PDF content");
-
-		// Convert PDF to data URI for WebView
-		string base64Content = Convert.ToBase64String(content);
-		string dataUri = $"data:application/pdf;base64,{base64Content}";
-
-		// Use an HTML page to embed the PDF
-		string html = $@"
-<!DOCTYPE html>
-<html>
-<head>
-	<meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-	<style>
-		body {{ margin: 0; padding: 0; }}
-		embed, iframe {{ width: 100%; height: 100%; border: none; }}
-	</style>
-</head>
-<body>
-	<embed src=""{dataUri}"" type=""application/pdf"" />
-</body>
-</html>";
-
-		ContentWebView.Source = new HtmlWebViewSource { Html = html };
-	}
-
-	void LoadUriContent(byte[] content)
-	{
-		logger.Info("Loading URI content");
-
-		string uri = System.Text.Encoding.UTF8.GetString(content);
-		logger.Debug("URI: {0}", uri);
-		ContentWebView.Source = uri;
 	}
 }

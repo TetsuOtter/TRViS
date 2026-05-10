@@ -10,15 +10,8 @@ namespace TRViS.DTAC;
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	static readonly ColumnDefinitionCollection DefaultColumnDefinitions =
-	[
-		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
-
-		new ColumnDefinition(110),
-		new ColumnDefinition(176),
-		new ColumnDefinition(134),
-		new ColumnDefinition(60),
-	];
+	const double HORIZONTAL_TIMETABLE_BUTTON_COLUMN_WIDTH = 110;
+	readonly ColumnDefinition HorizontalTimetableButtonColumn = new(0);
 
 	#region Affect Date Label
 
@@ -127,12 +120,13 @@ public partial class PageHeader : Grid
 	#endregion
 
 	#region Horizontal Timetable Button
-	readonly Border HorizontalTimetableButtonBorder;
-	readonly Label HorizontalTimetableButtonLabel;
+	public const string HorizontalTimetableButtonAutomationId = "DTAC.HorizontalTimetableButton";
 
-	static Border CreateHorizontalTimetableButton(out Label label)
+	readonly Border HorizontalTimetableButtonBorder;
+
+	static Border CreateHorizontalTimetableButton()
 	{
-		label = new Label
+		var label = new Label
 		{
 			Text = "横型時刻表",
 			FontSize = 16,
@@ -141,12 +135,13 @@ public partial class PageHeader : Grid
 			TextColor = DTACElementStyles.StartEndRunButtonTextColor.Default,
 			VerticalOptions = LayoutOptions.Center,
 			HorizontalOptions = LayoutOptions.Center,
-			Margin = new(8, 4)
+			Margin = new(8, 4),
 		};
 		DTACElementStyles.StartEndRunButtonTextColor.Apply(label, Label.TextColorProperty);
 
 		var border = new Border
 		{
+			AutomationId = HorizontalTimetableButtonAutomationId,
 			Margin = new(2),
 			Padding = new(4),
 			Stroke = Colors.Transparent,
@@ -161,11 +156,9 @@ public partial class PageHeader : Grid
 				Brush = Colors.Black,
 				Offset = new(3, 3),
 				Radius = 3,
-				Opacity = 0.2f
-			}
+				Opacity = 0.2f,
+			},
 		};
-
-		border.GestureRecognizers.Add(new TapGestureRecognizer());
 
 		return border;
 	}
@@ -174,6 +167,11 @@ public partial class PageHeader : Grid
 	{
 		logger.Info("HasHorizontalTimetable: {0}", newValue);
 		HorizontalTimetableButtonBorder.IsVisible = newValue;
+		// 列を 0 に潰さないと、ボタン非表示時にも 110px の余白が残ってしまい
+		// 行路施行日ラベルとの間に空きが生じる。表示状態に合わせて列幅を切り替える。
+		HorizontalTimetableButtonColumn.Width = newValue
+			? new GridLength(HORIZONTAL_TIMETABLE_BUTTON_COLUMN_WIDTH)
+			: new GridLength(0);
 	}
 
 	private async void HorizontalTimetableButton_Tapped(object? sender, TappedEventArgs e)
@@ -187,14 +185,17 @@ public partial class PageHeader : Grid
 	{
 		logger.Trace("Creating...");
 
-		ColumnDefinitions = DefaultColumnDefinitions;
+		ColumnDefinitions = new ColumnDefinitionCollection(
+			new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
+			HorizontalTimetableButtonColumn,
+			new ColumnDefinition(176),
+			new ColumnDefinition(134),
+			new ColumnDefinition(60));
 
-		HorizontalTimetableButtonBorder = CreateHorizontalTimetableButton(out HorizontalTimetableButtonLabel);
-		if (HorizontalTimetableButtonBorder.GestureRecognizers.Count > 0
-			&& HorizontalTimetableButtonBorder.GestureRecognizers[0] is TapGestureRecognizer tapGesture)
-		{
-			tapGesture.Tapped += HorizontalTimetableButton_Tapped;
-		}
+		HorizontalTimetableButtonBorder = CreateHorizontalTimetableButton();
+		var horizontalTimetableTap = new TapGestureRecognizer();
+		horizontalTimetableTap.Tapped += HorizontalTimetableButton_Tapped;
+		HorizontalTimetableButtonBorder.GestureRecognizers.Add(horizontalTimetableTap);
 
 		StartEndRunButton.Margin = new(2, 8);
 		StartEndRunButton.IsCheckedChanged += StartEndRunButton_IsCheckedChanged;
