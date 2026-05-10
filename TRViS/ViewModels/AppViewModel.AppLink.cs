@@ -106,6 +106,23 @@ public partial class AppViewModel
 		string? decodedUrl = null;
 		string? appLinkString = originalAppLink;
 
+		// `local=` AppLink: file lives inside the app's TimetableFileDirectory.
+		// Resolve to an absolute file path here (where we know the directory),
+		// reject anything that escapes it, then rewrite to a file:// ResourceUri
+		// so the rest of the pipeline treats it like a normal local file.
+		// No privacy-policy gate or confirmation prompt: the user explicitly
+		// invoked this AppLink for a file already on their device.
+		if (appLinkInfo.LocalPath is not null)
+		{
+			if (!TryResolveLocalTimetablePath(appLinkInfo.LocalPath, out string? resolvedPath, out string? errorMessage))
+			{
+				logger.Warn("LocalPath rejected: {0} (input: {1})", errorMessage, appLinkInfo.LocalPath);
+				await Util.DisplayAlertAsync("Cannot Open File", errorMessage ?? "LocalPath is invalid", "OK");
+				return false;
+			}
+			appLinkInfo = appLinkInfo with { ResourceUri = new Uri(resolvedPath!), LocalPath = null };
+		}
+
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
 		{
 			decodedUrl = HttpUtility.UrlDecode(appLinkInfo.ResourceUri.ToString());
@@ -296,6 +313,48 @@ public partial class AppViewModel
 			{
 				await Util.DisplayAlertAsync("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
 			}
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Resolve a `local=` AppLink path against <see cref="DirectoryPathProvider.TimetableFileDirectory"/>.
+	/// AppLinkInfo has already done the syntactic checks (no `..`, `/`, `\`,
+	/// drive letters, invalid filename chars). This is the *semantic* check —
+	/// it canonicalises the path and verifies the result still lives under the
+	/// expected base directory. (Symlinks would bypass this; the app does not
+	/// create symlinks in TimetableFileDirectory so we accept that gap.)
+	/// </summary>
+	private static bool TryResolveLocalTimetablePath(string localPath, out string? resolvedPath, out string? errorMessage)
+	{
+		resolvedPath = null;
+		errorMessage = null;
+		try
+		{
+			string baseDir = Path.GetFullPath(DirectoryPathProvider.TimetableFileDirectory.FullName);
+			string baseDirWithSep = baseDir.EndsWith(Path.DirectorySeparatorChar)
+				? baseDir
+				: baseDir + Path.DirectorySeparatorChar;
+
+			string candidate = Path.GetFullPath(Path.Combine(baseDir, localPath));
+			if (!candidate.StartsWith(baseDirWithSep, StringComparison.Ordinal))
+			{
+				errorMessage = "指定されたファイルは時刻表フォルダの外にあります。";
+				return false;
+			}
+
+			if (!File.Exists(candidate))
+			{
+				errorMessage = $"ファイルが見つかりません: {localPath}";
+				return false;
+			}
+
+			resolvedPath = candidate;
+			return true;
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"ファイルパスの解決に失敗しました: {ex.Message}";
 			return false;
 		}
 	}

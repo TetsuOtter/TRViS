@@ -437,49 +437,9 @@ public partial class StartHomePage : ContentPage
 		RebuildWorkGroupItems();
 		SyncPendingFromCommitted();
 
-		// First-appearing default-timetable load. Only run when we don't yet have
-		// a Loader (e.g. fresh launch or after disconnect).
-		if (viewModel.Loader is null)
-		{
-			logger.Info("Loader is null -> attempt default timetable load");
-
-			try
-			{
-				(bool success, bool requiresFileSelection, string? selectedFilePath, string? errorMessage) =
-					await viewModel.TryLoadDefaultTimetableAsync();
-
-				if (success && !requiresFileSelection)
-				{
-					logger.Info("Default timetable loaded -> show Home picker (no auto-navigate)");
-					await ApplyModeForCurrentLoaderAsync();
-					return;
-				}
-
-				if (success && requiresFileSelection)
-				{
-					logger.Info("Multiple JSON files found - showing default-file selection sheet");
-					await ShowFileSelectionDialogAsync();
-					return;
-				}
-
-				if (errorMessage == "PrivacyPolicyNotAccepted")
-				{
-					logger.Info("Privacy policy not accepted -> stay on Start screen until user opens dialog");
-					// Do NOT auto-load sample data here. The user must open the privacy dialog first.
-					await ApplyModeForCurrentLoaderAsync();
-					return;
-				}
-
-				// No default file. Stay on Start screen — do not auto-load sample data.
-				logger.Info("No default timetable found -> stay on Start screen");
-			}
-			catch (Exception ex)
-			{
-				logger.Error(ex, "Error loading default timetable");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnAppearing (TryLoadDefaultTimetableAsync failed)");
-			}
-		}
-
+		// We deliberately do NOT auto-load timetables from TimetableFileDirectory
+		// here. The user opens files explicitly via the "ファイルを選択" button
+		// (SelectFileDialog) or via a `trvis://app/open/json?local=…` AppLink.
 		await ApplyModeForCurrentLoaderAsync();
 	}
 
@@ -1074,44 +1034,6 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "Error navigating to DTAC page");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.NavigateToDTACAsync failed");
-		}
-	}
-
-	private async Task ShowFileSelectionDialogAsync()
-	{
-		try
-		{
-			var jsonFiles = DefaultTimetableFileLoader.GetAvailableJsonFiles();
-			if (jsonFiles.Length == 0)
-			{
-				logger.Warn("No JSON files found for default selection");
-				return;
-			}
-
-			var fileNames = jsonFiles.Select(f => f.Name).ToArray();
-			var filePaths = jsonFiles.Select(f => f.FullName).ToArray();
-
-			string? selected = await DisplayActionSheetAsync(
-				"どのファイルを開きますか？",
-				"キャンセル",
-				null,
-				fileNames);
-
-			if (string.IsNullOrEmpty(selected) || selected == "キャンセル")
-				return;
-
-			int idx = Array.IndexOf(fileNames, selected);
-			if (idx < 0 || idx >= filePaths.Length)
-				return;
-
-			bool loaded = await viewModel.LoadSelectedTimetableFileAsync(filePaths[idx]);
-			if (loaded)
-				await ApplyModeForCurrentLoaderAsync();
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "ShowFileSelectionDialogAsync failed");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.ShowFileSelectionDialogAsync");
 		}
 	}
 
