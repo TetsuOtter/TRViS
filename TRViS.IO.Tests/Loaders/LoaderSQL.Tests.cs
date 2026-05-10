@@ -46,9 +46,9 @@ public class LoaderSQLTests
 	}
 
 	[Test]
-	public void GetTrainData()
+	public async Task GetTrainData()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 		TimetableRow[] emptyArr = Array.Empty<TimetableRow>();
 
 		var all = loader.GetTrainData("1");
@@ -96,9 +96,9 @@ public class LoaderSQLTests
 	}
 
 	[Test]
-	public void GetWorkGroupListTest()
+	public async Task GetWorkGroupListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetWorkGroupList();
 
@@ -110,9 +110,9 @@ public class LoaderSQLTests
 	}
 
 	[Test]
-	public void GetWorkListTest()
+	public async Task GetWorkListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetWorkList("1");
 
@@ -134,9 +134,9 @@ public class LoaderSQLTests
 	}
 
 	[Test]
-	public void GetTrainDataListTest()
+	public async Task GetTrainDataListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetTrainDataList("1");
 
@@ -163,5 +163,42 @@ public class LoaderSQLTests
 			LineColor_RGB: null,
 			NextTrainId: null
 		)));
+	}
+
+	[Test]
+	public async Task CreateAsync_ReturnsUsableLoader()
+	{
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
+
+		Assert.That(loader, Is.Not.Null);
+		Assert.That(loader.GetWorkGroupList(), Is.Not.Empty);
+	}
+
+	[Test]
+	public void CreateAsync_RespectsPreCancelledToken()
+	{
+		using CancellationTokenSource cts = new();
+		cts.Cancel();
+
+		Assert.ThrowsAsync<TaskCanceledException>(
+			async () => await LoaderSQL.CreateAsync(DB_FILE_PATH, cts.Token)
+		);
+	}
+
+	[Test]
+	public void CreateAsync_NonExistentPath_ThrowsAndDoesNotCreateFile()
+	{
+		string missingPath = Path.Combine(
+			Path.GetDirectoryName(DB_FILE_PATH) ?? "",
+			$"{nameof(CreateAsync_NonExistentPath_ThrowsAndDoesNotCreateFile)}.sqlite"
+		);
+		if (File.Exists(missingPath))
+			File.Delete(missingPath);
+
+		Assert.ThrowsAsync<SQLiteException>(
+			async () => await LoaderSQL.CreateAsync(missingPath)
+		);
+		Assert.That(File.Exists(missingPath), Is.False,
+			"ReadOnly open must not silently create an empty SQLite file");
 	}
 }
