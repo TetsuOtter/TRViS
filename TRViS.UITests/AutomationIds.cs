@@ -81,6 +81,17 @@ public static class AutomationIds
 		// "empty history" tests can guarantee an empty list regardless of prior
 		// noReset:true session state.
 		public const string TestClearHistoryButton = "StartHome.TestClearHistoryButton";
+		// Writes the canonical SelectFileDialog fixture (root file + sub-folder
+		// with another file) into TimetableFileDirectory.
+		public const string TestSeedSampleFilesButton = "StartHome.TestSeedSampleFilesButton";
+		// Wipes TimetableFileDirectory + nulls FilePickerProvider.OverrideForTesting.
+		// Tests call this in SetUp because iOS noReset:true keeps the documents
+		// folder warm across sessions and the override static survives Driver.Quit().
+		public const string TestClearSampleFilesButton = "StartHome.TestClearSampleFilesButton";
+		// Writes a JSON fixture into CacheDirectory and installs a FilePicker
+		// override that returns its path. Lets the Browse-fallback test exercise
+		// the post-pick load path without driving the OS file picker UI.
+		public const string TestSetupBrowseFallbackButton = "StartHome.TestSetupBrowseFallbackButton";
 		// Cascades selection to a sample-data train whose NextTrainId is non-empty
 		// (linear-train-1) so the NextTrainButton-visibility regression test for
 		// #225 doesn't rely on the default first-train selection (which has an
@@ -150,6 +161,11 @@ public static class AutomationIds
 
 		// File list state
 		public const string FileList = "SelectFile.FileList";
+		// Label inside FileListView. Used by IsFileListVisible() because Android's
+		// UiAutomator2 doesn't surface a ScrollView's AutomationId reliably, so
+		// probing FileList directly returns false even when files are showing.
+		// Labels are surfaced consistently across all four platforms.
+		public const string FileListHint = "SelectFile.FileListHint";
 		// Per-row ids — entire card is tappable. Folder cards drill into the folder;
 		// the up-folder card is rendered above sibling cards when not at root.
 		public const string FileItemPrefix = "SelectFile.FileItem.";
