@@ -41,12 +41,6 @@ public partial class SelectFileDialog : ContentPage
 	// the page is already disposed. The flag short-circuits at the top of every
 	// tap handler.
 	private bool _isBusy;
-	// Tracks whether OnAppearing has already initialised drill-down state. The
-	// OS file picker (Browse) and unsupported-extension alert each re-fire
-	// OnAppearing on dismissal, and unconditionally resetting _currentDirectory
-	// would bounce the user back to the root — losing the folder they had
-	// drilled into. Only reset on the first appearance.
-	private bool _initialAppearanceDone;
 
 	public SelectFileDialog()
 	{
@@ -63,31 +57,33 @@ public partial class SelectFileDialog : ContentPage
 		// IsVisible='False' XAML defaults skip peer creation and miss the
 		// runtime flip), but BreadcrumbBorder and EmptyStateView would visually
 		// overlap FileListView if all three stayed visible. Hide them
-		// synchronously here; OnAppearing → PopulateFileList toggles them based
-		// on the actual directory contents.
+		// synchronously here; PopulateFileList toggles them based on the
+		// actual directory contents.
 		BreadcrumbBorder.IsVisible = false;
 		EmptyStateView.IsVisible = false;
+
+		// Populate cards from the constructor (mirrors ConnectServerDialog).
+		// Android's UiAutomator2 only surfaces a Border's AutomationId in the
+		// accessibility tree if the Border is in the visual tree before the
+		// initial measure/layout pass — populating only from OnAppearing means
+		// the per-row card AutomationIds never become findable in tests, even
+		// though the cards render visually. The fields are already initialised
+		// from the static DirectoryPathProvider at field-declaration time.
+		PopulateFileList();
 	}
 
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
-		if (!_initialAppearanceDone)
-		{
-			_rootDirectory = DirectoryPathProvider.TimetableFileDirectory;
+		// Re-populate on each appearance so a re-show after preferences /
+		// filesystem state changed (e.g. after an OS picker dismiss, or files
+		// added externally) reflects the latest contents. The constructor
+		// already pinned the initial drill-down position; if the directory
+		// was deleted out from under us, fall back to root rather than
+		// render nothing.
+		_currentDirectory.Refresh();
+		if (!_currentDirectory.Exists)
 			_currentDirectory = _rootDirectory;
-			_initialAppearanceDone = true;
-		}
-		else
-		{
-			// Subsequent re-appearance (e.g. after an OS picker dismiss): refresh
-			// the listing in case files were added/removed externally, but keep
-			// the user's drill-down position. If the directory has been deleted
-			// out from under us, fall back to root rather than render nothing.
-			_currentDirectory.Refresh();
-			if (!_currentDirectory.Exists)
-				_currentDirectory = _rootDirectory;
-		}
 		PopulateFileList();
 	}
 
@@ -469,7 +465,11 @@ public partial class SelectFileDialog : ContentPage
 		try
 		{
 			SetInputEnabled(false);
-			var result = await FilePicker.Default.PickAsync();
+			// Indirect through FilePickerProvider so UI tests can substitute a
+			// known file path without driving the real OS picker (system UI is
+			// out of Appium's reach on every platform). Production path is
+			// identical — the provider just calls FilePicker.Default.
+			var result = await FilePickerProvider.PickAsync();
 			if (result is null)
 			{
 				logger.Info("File picker cancelled");

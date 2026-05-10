@@ -1199,4 +1199,49 @@ public partial class StartHomePage : ContentPage
 		}
 #endif
 	}
+
+	void TestSeedSampleFilesButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedSampleFilesButton clicked: seeding SelectFileDialog fixtures");
+		try
+		{
+			SelectFileDialogTestSeams.SeedSampleFiles();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedSampleFilesButton failed");
+		}
+#endif
+	}
+
+	void TestClearSampleFilesButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestClearSampleFilesButton clicked: clearing SelectFileDialog fixtures + FilePicker override");
+		try
+		{
+			SelectFileDialogTestSeams.ClearSampleFiles();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearSampleFilesButton failed");
+		}
+#endif
+	}
+
+	void TestSetupBrowseFallbackButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSetupBrowseFallbackButton clicked: installing FilePicker override");
+		try
+		{
+			SelectFileDialogTestSeams.SetupBrowseFallback();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSetupBrowseFallbackButton failed");
+		}
+#endif
+	}
 }
