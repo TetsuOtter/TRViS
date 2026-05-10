@@ -495,6 +495,86 @@ public class WebSocketIntegrationTests
 		}
 	}
 
+	[Test]
+	public async Task Timetable_TrainScope_WithExplicitNextTrainId_PropagatesToCachedTrain()
+	{
+		// #225 / #226 リグレッション: WebSocket 経由で NextTrainId を明示指定した Train データを
+		// 配信したとき、ILoader.GetTrainData が NextTrainId を保持する必要がある。
+		// 以前は JsonModelsConverter.ConvertTrain が NextTrainId を渡していなかったため
+		// 常に null になり、NextTrainButton が表示されなかった。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithNextTrainId,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.NextTrainId, Is.EqualTo(TestData.TrainId2));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_TrainScope_WithEmptyNextTrainId_TreatedAsNull()
+	{
+		// LoaderJson と同じ規約: NextTrainId="" は「次列車なし」を意味し null として扱う。
+		// View / Presenter / DataSource の string.IsNullOrEmpty 判定と挙動を一致させる。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithEmptyNextTrainId,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.NextTrainId, Is.Null);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
 	// ================================================================
 	// 運行中の時刻表更新
 	// ================================================================

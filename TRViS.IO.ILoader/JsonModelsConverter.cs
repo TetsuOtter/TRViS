@@ -127,7 +127,12 @@ public static partial class JsonModelsConverter
 			Rows: rows,
 			AfterArrive: trainJson.AfterArrive,
 			DayCount: trainJson.DayCount ?? 0,
-			IsRideOnMoving: trainJson.IsRideOnMoving
+			IsRideOnMoving: trainJson.IsRideOnMoving,
+			// Empty string == null: matches LoaderJson semantics (LoaderJson.cs) and the
+			// IsNullOrEmpty checks in NextTrainButtonPresenter / VerticalTimetableView /
+			// VerticalTimetableDataSourceAdapter so the button visibility is consistent
+			// across loader implementations.
+			NextTrainId: string.IsNullOrEmpty(trainJson.NextTrainId) ? null : trainJson.NextTrainId
 		);
 	}
 

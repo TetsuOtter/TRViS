@@ -228,6 +228,51 @@ public static class TestData
 		""";
 
 	/// <summary>
+	/// Train スコープ配信用 (NextTrainId 明示指定): NextTrainId フィールドを含む。
+	/// </summary>
+	public static readonly string TrainScopeJson_WithNextTrainId = $$"""
+		{
+		  "Id": "{{TrainId}}",
+		  "TrainNumber": "T-001",
+		  "Direction": 1,
+		  "NextTrainId": "{{TrainId2}}",
+		  "TimetableRows": [
+		    {
+		      "StationName": "テスト駅A",
+		      "Location_m": 0.0,
+		      "Longitude_deg": 135.0,
+		      "Latitude_deg": 35.0,
+		      "OnStationDetectRadius_m": 300.0,
+		      "Departure": "10:00:00"
+		    }
+		  ]
+		}
+		""";
+
+	/// <summary>
+	/// Train スコープ配信用 (NextTrainId 空文字列): 「次列車なし」を明示する。
+	/// LoaderJson の挙動と合わせて null として扱われる必要がある。
+	/// </summary>
+	public static readonly string TrainScopeJson_WithEmptyNextTrainId = $$"""
+		{
+		  "Id": "{{TrainId}}",
+		  "TrainNumber": "T-001",
+		  "Direction": 1,
+		  "NextTrainId": "",
+		  "TimetableRows": [
+		    {
+		      "StationName": "テスト駅A",
+		      "Location_m": 0.0,
+		      "Longitude_deg": 135.0,
+		      "Latitude_deg": 35.0,
+		      "OnStationDetectRadius_m": 300.0,
+		      "Departure": "10:00:00"
+		    }
+		  ]
+		}
+		""";
+
+	/// <summary>
 	/// WorkGroup スコープ配信用 (フル): 配下の Works/Trains 構造を含む完全な WorkGroup データ。
 	/// AC-3 / AC-5 の検証で、配下の Works/Trains キャッシュが再構築されることを確認する。
 	/// </summary>
