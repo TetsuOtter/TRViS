@@ -86,6 +86,74 @@ public class SelectFileDialogPageObject : PageObject
 	}
 
 	/// <summary>
+	/// Returns true when the breadcrumb (current relative path) is shown — i.e.
+	/// the dialog is drilled into a sub-folder. Returns false at the root.
+	/// </summary>
+	public bool IsBreadcrumbVisible()
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			return FindByAutomationId(AutomationIds.SelectFile.Breadcrumb).Displayed;
+		}
+		catch
+		{
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	/// <summary>
+	/// Returns true when a sub-folder card with <paramref name="folderName"/> is
+	/// visible without throwing on absence. Suppresses the implicit wait so the
+	/// "no — we navigated away" branch returns quickly.
+	/// </summary>
+	public bool IsFolderItemVisible(string folderName)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			return FindByAutomationId(AutomationIds.SelectFile.FolderItemPrefix + folderName).Displayed;
+		}
+		catch
+		{
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	/// <summary>
+	/// Returns true when a file card with <paramref name="fileName"/> is
+	/// visible without throwing on absence. Suppresses the implicit wait so the
+	/// "no — we navigated away" branch returns quickly.
+	/// </summary>
+	public bool IsFileItemVisible(string fileName)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			return FindByAutomationId(AutomationIds.SelectFile.FileItemPrefix + fileName).Displayed;
+		}
+		catch
+		{
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	/// <summary>
 	/// Returns the per-row card element for <paramref name="fileName"/>. The whole
 	/// card is tappable — selecting it loads the file and dismisses the dialog on
 	/// success.
