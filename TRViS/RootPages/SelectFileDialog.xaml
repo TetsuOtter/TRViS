@@ -92,6 +92,7 @@
 			RowDefinitions="Auto,*">
 			<Label
 				x:Name="FileListHint"
+				AutomationId="SelectFile.FileListHint"
 				Grid.Row="0"
 				Margin="8,4"
 				FontSize="14"
