@@ -24,12 +24,14 @@ internal static class FilePickerProvider
 	public static Func<Task<FileResult?>>? OverrideForTesting { get; set; }
 #endif
 
-	public static Task<FileResult?> PickAsync()
+	public static Task<FileResult?> PickAsync(PickOptions? options = null)
 	{
 #if UI_TEST
 		if (OverrideForTesting is { } overrideFn)
 			return overrideFn();
 #endif
-		return FilePicker.Default.PickAsync();
+		return options is null
+			? FilePicker.Default.PickAsync()
+			: FilePicker.Default.PickAsync(options);
 	}
 }
