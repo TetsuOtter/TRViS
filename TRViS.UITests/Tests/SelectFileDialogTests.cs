@@ -211,15 +211,27 @@ public class SelectFileDialogTests : BaseUITest
 	}
 
 	/// <summary>
-	/// "保存場所を開く" launches Files.app/Finder/Explorer/Android-launcher,
+	/// "保存場所を開く" launches Files.app/Finder/Explorer (or the Android
+	/// equivalent on platforms where the timetable directory is reachable),
 	/// which Appium can't follow into and which would wedge the next test if
 	/// we tapped it. Just verify the button is reachable so a missing-button
 	/// regression still fails.
+	///
+	/// Skipped on Android: the button is intentionally hidden there (see
+	/// SelectFileDialog ctor — TimetableFileDirectory lives in internal
+	/// storage that no Files-app can browse, and a `file://` URI would
+	/// throw FileUriExposedException on API 24+).
 	/// </summary>
 	[Test]
 	public void OpenStorageLocationButton_IsReachable()
 	{
 		var dialog = _startHomePage.OpenSelectFileDialog();
+		if (IsAndroid)
+		{
+			Assume.That(dialog.IsDisplayed(), Is.True,
+				"On Android the button is hidden by design — assert dialog reachability instead.");
+			return;
+		}
 		Assert.That(dialog.OpenStorageLocationButton.Displayed, Is.True,
 			"The OpenStorageLocation button should be reachable in both file-list and empty states.");
 	}
