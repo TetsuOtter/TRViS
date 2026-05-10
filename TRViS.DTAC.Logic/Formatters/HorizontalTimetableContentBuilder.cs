@@ -4,25 +4,34 @@ namespace TRViS.DTAC.Logic.Formatters;
 
 /// <summary>
 /// Discriminated result describing how the horizontal timetable should be rendered.
+/// View 層がそれぞれの種別に応じて HTML / URL を組み立てて WebView に流す。
 /// </summary>
 public enum HorizontalTimetableRenderKind
 {
 	None,
-	Html,
+	/// <summary>外部 URL。Payload はそのまま WebView に渡す URL 文字列。</summary>
 	Uri,
+	/// <summary>PDF バイナリ。Payload は base64 文字列。View 層で PDF.js Viewer HTML を組み立てる。</summary>
+	Pdf,
+	/// <summary>PNG バイナリ。Payload は base64 文字列。</summary>
+	Png,
+	/// <summary>JPEG バイナリ。Payload は base64 文字列。</summary>
+	Jpg,
 }
 
 /// <summary>
-/// 横型時刻表 (PNG/JPG/PDF/URI) を表示用の文字列に変換した結果。
-/// View 層は WebView.Source を <see cref="Kind"/> によって決定する。
+/// 横型時刻表 (PNG/JPG/PDF/URI) を表示用の生データに変換した結果。
+/// HTML の組み立ては View 層の責務とし、ここでは「何を表示すべきか」だけを返す。
 /// </summary>
 public readonly record struct HorizontalTimetableRenderResult(
 	HorizontalTimetableRenderKind Kind,
 	string Payload)
 {
 	public static HorizontalTimetableRenderResult None { get; } = new(HorizontalTimetableRenderKind.None, string.Empty);
-	public static HorizontalTimetableRenderResult Html(string html) => new(HorizontalTimetableRenderKind.Html, html);
 	public static HorizontalTimetableRenderResult Uri(string uri) => new(HorizontalTimetableRenderKind.Uri, uri);
+	public static HorizontalTimetableRenderResult Pdf(byte[] bytes) => new(HorizontalTimetableRenderKind.Pdf, Convert.ToBase64String(bytes));
+	public static HorizontalTimetableRenderResult Png(byte[] bytes) => new(HorizontalTimetableRenderKind.Png, Convert.ToBase64String(bytes));
+	public static HorizontalTimetableRenderResult Jpg(byte[] bytes) => new(HorizontalTimetableRenderKind.Jpg, Convert.ToBase64String(bytes));
 }
 
 /// <summary>
@@ -56,54 +65,11 @@ public static class HorizontalTimetableContentBuilder
 
 		return contentType switch
 		{
-			ContentType.JPG => HorizontalTimetableRenderResult.Html(BuildImageHtml(content, "image/jpeg")),
-			ContentType.PDF => HorizontalTimetableRenderResult.Html(BuildPdfHtml(content)),
+			ContentType.JPG => HorizontalTimetableRenderResult.Jpg(content),
+			ContentType.PDF => HorizontalTimetableRenderResult.Pdf(content),
 			ContentType.URI => HorizontalTimetableRenderResult.Uri(System.Text.Encoding.UTF8.GetString(content)),
 			// Text は仕様上想定外。安全側として PNG として扱う。
-			_ => HorizontalTimetableRenderResult.Html(BuildImageHtml(content, "image/png")),
+			_ => HorizontalTimetableRenderResult.Png(content),
 		};
-	}
-
-	internal static string BuildImageHtml(byte[] content, string mimeType)
-	{
-		string dataUri = "data:" + mimeType + ";base64," + Convert.ToBase64String(content);
-		return
-			"<!DOCTYPE html>\n" +
-			"<html>\n" +
-			"<head>\n" +
-			"\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\n" +
-			"\t<style>\n" +
-			"\t\thtml, body { margin: 0; padding: 0; height: 100%; width: 100%; background-color: transparent; }\n" +
-			"\t\tbody { display: flex; justify-content: center; align-items: center; }\n" +
-			"\t\timg { max-width: 100%; max-height: 100%; object-fit: contain; }\n" +
-			"\t</style>\n" +
-			"</head>\n" +
-			"<body>\n" +
-			"\t<img src=\"" + dataUri + "\" alt=\"Horizontal Timetable\" />\n" +
-			"</body>\n" +
-			"</html>";
-	}
-
-	internal static string BuildPdfHtml(byte[] content)
-	{
-		// NOTE: Android WebView は data:application/pdf URI のレンダリングを
-		// サポートしないため、Android 上では空白表示になる既知の制約あり。
-		// 将来的にはキャッシュディレクトリへ書き出して file:// で読み込むか、
-		// プラットフォーム別ビューワに切り替える必要がある。
-		string dataUri = "data:application/pdf;base64," + Convert.ToBase64String(content);
-		return
-			"<!DOCTYPE html>\n" +
-			"<html>\n" +
-			"<head>\n" +
-			"\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-			"\t<style>\n" +
-			"\t\tbody { margin: 0; padding: 0; }\n" +
-			"\t\tembed, iframe { width: 100%; height: 100%; border: none; }\n" +
-			"\t</style>\n" +
-			"</head>\n" +
-			"<body>\n" +
-			"\t<embed src=\"" + dataUri + "\" type=\"application/pdf\" />\n" +
-			"</body>\n" +
-			"</html>";
 	}
 }

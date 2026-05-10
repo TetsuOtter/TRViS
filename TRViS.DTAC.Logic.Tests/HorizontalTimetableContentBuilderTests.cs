@@ -70,28 +70,25 @@ public class HorizontalTimetableContentBuilderTests
 	#region Build — image content types
 
 	[Fact]
-	public void Build_PngContent_ReturnsHtmlWithPngMime()
+	public void Build_PngContent_ReturnsPngKindWithBase64Payload()
 	{
 		byte[] bytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 };
 		var result = HorizontalTimetableContentBuilder.Build(MakeWork(
 			hasETrain: true, contentType: (int)ContentType.PNG, content: bytes));
 
-		Assert.Equal(HorizontalTimetableRenderKind.Html, result.Kind);
-		Assert.Contains("image/png", result.Payload);
-		Assert.Contains(Convert.ToBase64String(bytes), result.Payload);
-		Assert.Contains("<img", result.Payload);
+		Assert.Equal(HorizontalTimetableRenderKind.Png, result.Kind);
+		Assert.Equal(Convert.ToBase64String(bytes), result.Payload);
 	}
 
 	[Fact]
-	public void Build_JpgContent_ReturnsHtmlWithJpegMime()
+	public void Build_JpgContent_ReturnsJpgKindWithBase64Payload()
 	{
 		byte[] bytes = new byte[] { 0xFF, 0xD8, 0xFF };
 		var result = HorizontalTimetableContentBuilder.Build(MakeWork(
 			hasETrain: true, contentType: (int)ContentType.JPG, content: bytes));
 
-		Assert.Equal(HorizontalTimetableRenderKind.Html, result.Kind);
-		Assert.Contains("image/jpeg", result.Payload);
-		Assert.Contains(Convert.ToBase64String(bytes), result.Payload);
+		Assert.Equal(HorizontalTimetableRenderKind.Jpg, result.Kind);
+		Assert.Equal(Convert.ToBase64String(bytes), result.Payload);
 	}
 
 	[Fact]
@@ -101,8 +98,8 @@ public class HorizontalTimetableContentBuilderTests
 		var result = HorizontalTimetableContentBuilder.Build(MakeWork(
 			hasETrain: true, contentType: null, content: bytes));
 
-		Assert.Equal(HorizontalTimetableRenderKind.Html, result.Kind);
-		Assert.Contains("image/png", result.Payload);
+		Assert.Equal(HorizontalTimetableRenderKind.Png, result.Kind);
+		Assert.Equal(Convert.ToBase64String(bytes), result.Payload);
 	}
 
 	[Fact]
@@ -112,8 +109,8 @@ public class HorizontalTimetableContentBuilderTests
 		var result = HorizontalTimetableContentBuilder.Build(MakeWork(
 			hasETrain: true, contentType: 9999, content: bytes));
 
-		Assert.Equal(HorizontalTimetableRenderKind.Html, result.Kind);
-		Assert.Contains("image/png", result.Payload);
+		Assert.Equal(HorizontalTimetableRenderKind.Png, result.Kind);
+		Assert.Equal(Convert.ToBase64String(bytes), result.Payload);
 	}
 
 	#endregion
@@ -121,16 +118,14 @@ public class HorizontalTimetableContentBuilderTests
 	#region Build — PDF / URI
 
 	[Fact]
-	public void Build_PdfContent_ReturnsHtmlWithPdfEmbed()
+	public void Build_PdfContent_ReturnsPdfKindWithBase64Payload()
 	{
 		byte[] bytes = new byte[] { 0x25, 0x50, 0x44, 0x46 }; // %PDF
 		var result = HorizontalTimetableContentBuilder.Build(MakeWork(
 			hasETrain: true, contentType: (int)ContentType.PDF, content: bytes));
 
-		Assert.Equal(HorizontalTimetableRenderKind.Html, result.Kind);
-		Assert.Contains("application/pdf", result.Payload);
-		Assert.Contains(Convert.ToBase64String(bytes), result.Payload);
-		Assert.Contains("<embed", result.Payload);
+		Assert.Equal(HorizontalTimetableRenderKind.Pdf, result.Kind);
+		Assert.Equal(Convert.ToBase64String(bytes), result.Payload);
 	}
 
 	[Fact]

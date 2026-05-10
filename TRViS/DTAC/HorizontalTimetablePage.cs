@@ -70,7 +70,7 @@ public class HorizontalTimetablePage : ContentPage
 			AppShell_SafeAreaMarginChanged(appShell, new(), appShell.SafeAreaMargin);
 		}
 
-		ApplyContent(HorizontalTimetableContentBuilder.Build(vm.SelectedWork));
+		_ = ApplyContentAsync(HorizontalTimetableContentBuilder.Build(vm.SelectedWork));
 
 		logger.Trace("Created");
 	}
@@ -98,16 +98,30 @@ public class HorizontalTimetablePage : ContentPage
 		});
 	}
 
-	void ApplyContent(HorizontalTimetableRenderResult result)
+	async Task ApplyContentAsync(HorizontalTimetableRenderResult result)
 	{
 		logger.Info("ApplyContent: kind={0}", result.Kind);
 		switch (result.Kind)
 		{
-			case HorizontalTimetableRenderKind.Html:
-				ContentWebView.Source = new HtmlWebViewSource { Html = result.Payload };
+			case HorizontalTimetableRenderKind.Png:
+				ContentWebView.Source = new HtmlWebViewSource { Html = HorizontalTimetableImageHtmlBuilder.BuildPng(result.Payload) };
+				break;
+			case HorizontalTimetableRenderKind.Jpg:
+				ContentWebView.Source = new HtmlWebViewSource { Html = HorizontalTimetableImageHtmlBuilder.BuildJpg(result.Payload) };
 				break;
 			case HorizontalTimetableRenderKind.Uri:
 				ContentWebView.Source = result.Payload;
+				break;
+			case HorizontalTimetableRenderKind.Pdf:
+				try
+				{
+					string html = await PdfJsViewerHtmlBuilder.BuildAsync(result.Payload).ConfigureAwait(true);
+					ContentWebView.Source = new HtmlWebViewSource { Html = html };
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "Failed to build PDF.js viewer HTML");
+				}
 				break;
 			case HorizontalTimetableRenderKind.None:
 			default:
