@@ -48,8 +48,8 @@ public class HorizontalTimetablePage : ContentPage
 			LeftButtonText = DTACElementStyles.BackArrowIcon,
 			TimeLabelText = _presenter.CurrentState.TimeLabelText,
 			IsTimeLabelEnabled = true,
-			IsThemeButtonEnabled = false,
-			IsAppIconButtonEnabled = true,
+			IsThemeButtonEnabled = true,
+			IsAppIconButtonEnabled = false,
 		};
 		AppBarView.LeftButtonClicked += BackButton_Clicked;
 		Grid.SetRow(AppBarView, 0);
