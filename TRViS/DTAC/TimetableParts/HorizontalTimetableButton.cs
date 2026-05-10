@@ -1,12 +1,19 @@
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Services;
+using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
 public class HorizontalTimetableButton : Border
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+
+	const string NormalButtonText = "横型時刻表"; // 横型時刻表
+	const string ETrainButtonText = "Ｅ電時刻表"; // Ｅ電時刻表
+
+	readonly Label _label;
+
 	public HorizontalTimetableButton()
 	{
 		logger.Trace("Creating...");
@@ -30,9 +37,11 @@ public class HorizontalTimetableButton : Border
 		Margin = new(2, 8);
 		Padding = 0;
 		DTACElementStyles.OpenCloseButtonBGColor.Apply(this, Border.BackgroundColorProperty);
-		Content = new Label
+
+		EasterEggPageViewModel vm = InstanceManager.EasterEggPageViewModel;
+		_label = new Label
 		{
-			Text = "横型時刻表",
+			Text = vm.UseETrainTimetableName ? ETrainButtonText : NormalButtonText,
 			FontSize = 28,
 			FontFamily = DTACElementStyles.DefaultFontFamily,
 			FontAttributes = FontAttributes.Bold,
@@ -41,8 +50,25 @@ public class HorizontalTimetableButton : Border
 			HorizontalOptions = LayoutOptions.Center,
 			Margin = 4,
 		};
-		DTACElementStyles.DefaultTextColor.Apply(Content, Label.TextColorProperty);
+		Content = _label;
+		DTACElementStyles.DefaultTextColor.Apply(_label, Label.TextColorProperty);
+
+		vm.PropertyChanged += OnViewModelPropertyChanged;
 
 		logger.Trace("Created");
+	}
+
+	void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName != nameof(EasterEggPageViewModel.UseETrainTimetableName))
+			return;
+
+		if (sender is not EasterEggPageViewModel vm)
+			return;
+
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			_label.Text = vm.UseETrainTimetableName ? ETrainButtonText : NormalButtonText;
+		});
 	}
 }
