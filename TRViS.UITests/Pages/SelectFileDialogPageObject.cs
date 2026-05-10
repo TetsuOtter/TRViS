@@ -51,113 +51,45 @@ public class SelectFileDialogPageObject : PageObject
 	/// Android's UiAutomator2 doesn't surface a ScrollView's AutomationId
 	/// reliably, so probing FileList directly returns false even when the
 	/// list is on screen. Labels surface consistently on every platform.
+	///
+	/// Polls (rather than zero-wait probes) so a probe that fires immediately
+	/// after the modal-push race doesn't get a false negative before the
+	/// dialog finishes rendering.
 	/// </summary>
 	public bool IsFileListVisible()
-	{
-		var prevWait = TimeSpan.FromSeconds(10);
-		try
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.SelectFile.FileListHint).Displayed;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
-	}
+		=> PollDisplayed(AutomationIds.SelectFile.FileListHint);
 
 	/// <summary>
-	/// Returns true when the empty state is the active sub-view.
+	/// Returns true when the empty state is the active sub-view. Polls for the
+	/// same modal-push-race reason as <see cref="IsFileListVisible"/>.
 	/// </summary>
 	public bool IsEmptyStateVisible()
-	{
-		var prevWait = TimeSpan.FromSeconds(10);
-		try
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.SelectFile.EmptyMessage).Displayed;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
-	}
+		=> PollDisplayed(AutomationIds.SelectFile.EmptyMessage);
 
 	/// <summary>
 	/// Returns true when the breadcrumb (current relative path) is shown — i.e.
-	/// the dialog is drilled into a sub-folder. Returns false at the root.
+	/// the dialog is drilled into a sub-folder. Returns false at the root or if
+	/// the dialog isn't yet rendered. Uses a short timeout so a "still at root"
+	/// assertion doesn't pay the full poll budget waiting for an element that
+	/// is intentionally hidden.
 	/// </summary>
-	public bool IsBreadcrumbVisible()
-	{
-		var prevWait = TimeSpan.FromSeconds(10);
-		try
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.SelectFile.Breadcrumb).Displayed;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
-	}
+	public bool IsBreadcrumbVisible(double timeoutSeconds = 1)
+		=> PollDisplayed(AutomationIds.SelectFile.Breadcrumb, timeoutSeconds);
 
 	/// <summary>
 	/// Returns true when a sub-folder card with <paramref name="folderName"/> is
-	/// visible without throwing on absence. Suppresses the implicit wait so the
-	/// "no — we navigated away" branch returns quickly.
+	/// visible. Polls so post-navigation re-renders aren't lost to the layout
+	/// race, and short timeout so a "no longer present" branch is quick.
 	/// </summary>
-	public bool IsFolderItemVisible(string folderName)
-	{
-		var prevWait = TimeSpan.FromSeconds(10);
-		try
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.SelectFile.FolderItemPrefix + folderName).Displayed;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
-	}
+	public bool IsFolderItemVisible(string folderName, double timeoutSeconds = 1)
+		=> PollDisplayed(AutomationIds.SelectFile.FolderItemPrefix + folderName, timeoutSeconds);
 
 	/// <summary>
 	/// Returns true when a file card with <paramref name="fileName"/> is
-	/// visible without throwing on absence. Suppresses the implicit wait so the
-	/// "no — we navigated away" branch returns quickly.
+	/// visible. Same polling rationale as <see cref="IsFolderItemVisible"/>.
 	/// </summary>
-	public bool IsFileItemVisible(string fileName)
-	{
-		var prevWait = TimeSpan.FromSeconds(10);
-		try
-		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
-			return FindByAutomationId(AutomationIds.SelectFile.FileItemPrefix + fileName).Displayed;
-		}
-		catch
-		{
-			return false;
-		}
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
-	}
+	public bool IsFileItemVisible(string fileName, double timeoutSeconds = 1)
+		=> PollDisplayed(AutomationIds.SelectFile.FileItemPrefix + fileName, timeoutSeconds);
 
 	/// <summary>
 	/// Returns the per-row card element for <paramref name="fileName"/>. The whole
