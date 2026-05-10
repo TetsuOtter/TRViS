@@ -151,6 +151,17 @@ public partial class SelectFileDialog : ContentPage
 	{
 		try
 		{
+			// DirectoryInfo.Exists caches the result of the very first access for
+			// the lifetime of the instance, and DirectoryPathProvider.TimetableFileDirectory
+			// is a static, shared instance. On Android/Linux the static `_dataInitialised`
+			// cache stays at "False" once stamped — even after Directory.CreateDirectory
+			// runs (the create call doesn't refresh nearby DirectoryInfo handles), so a
+			// freshly-created or freshly-seeded directory looks empty here. Refresh
+			// invalidates the cache before the read so we always observe the current
+			// filesystem state. (Reproduced in CI: SeededSqlite_AppearsInFileListView
+			// on Android without this refresh — file present on disk per logcat, but
+			// the dialog rendered empty state.)
+			_currentDirectory.Refresh();
 			if (!_currentDirectory.Exists)
 				return (Array.Empty<DirectoryInfo>(), Array.Empty<FileInfo>());
 
@@ -421,7 +432,7 @@ public partial class SelectFileDialog : ContentPage
 			}
 			else if (ext is ".sqlite" or ".db" or ".sqlite3")
 			{
-				newLoader = new LoaderSQL(fullPath);
+				newLoader = await LoaderSQL.CreateAsync(fullPath);
 			}
 			else
 			{
