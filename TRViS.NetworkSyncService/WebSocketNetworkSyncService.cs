@@ -965,6 +965,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		_isDisconnecting = true;
 		_ReceiveLoopCts?.Cancel();
 
+		// 受信ループのキャンセルにより ClientWebSocket が内部で Abort/Dispose 済みの場合、
+		// CloseAsync は ObjectDisposedException や InvalidOperationException を投げ得る。
+		// シャットダウンパスではいずれも握りつぶして良い。
 		if (_WebSocket.State == WebSocketState.Open)
 		{
 			try
@@ -975,10 +978,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					cancellationToken
 				);
 			}
-			catch (WebSocketException ex)
+			catch (Exception ex) when (ex is WebSocketException or ObjectDisposedException or InvalidOperationException)
 			{
-				logger.Warn(ex, "DisconnectAsync: WebSocket exception");
-				// Already closed or error
+				logger.Warn(ex, "DisconnectAsync: WebSocket already closed or disposed");
 			}
 		}
 
