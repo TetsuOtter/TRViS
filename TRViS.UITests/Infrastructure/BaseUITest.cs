@@ -31,6 +31,36 @@ public abstract class BaseUITest
 				// Clear NSUserDefaults (includes preference-daemon cache flush)
 				RunProcess("defaults", "delete dev.t0r.trvis");
 				Thread.Sleep(200);
+				// Wipe the app's TRViS.UserContents folder so a JSON file seeded
+				// by a previous test (e.g. SelectFileDialogTests fixtures) can't
+				// trigger DefaultTimetableFileLoader.TryLoadDefaultTimetableAsync's
+				// single-file auto-load on the next launch — that auto-load puts
+				// StartHomePage in Home mode and hides Start-mode buttons
+				// (SelectFileButton / LoadDemoButton), which then break any test
+				// that depends on them, even in fixtures that never seeded files.
+				// Mac Catalyst is sandboxed (Entitlements.plist sets
+				// com.apple.security.app-sandbox=true), so the data lives under
+				// ~/Library/Containers/dev.t0r.trvis/Data/Library/Application Support/.
+				string? home = Environment.GetEnvironmentVariable("HOME");
+				if (!string.IsNullOrEmpty(home))
+				{
+					string userContentsDir = Path.Combine(
+						home, "Library", "Containers", AppPackage,
+						"Data", "Library", "Application Support", AppPackage,
+						"TRViS.UserContents");
+					try
+					{
+						if (Directory.Exists(userContentsDir))
+						{
+							Directory.Delete(userContentsDir, recursive: true);
+							TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): cleared {userContentsDir}");
+						}
+					}
+					catch (Exception ex)
+					{
+						TestContext.Out.WriteLine($"ResetAppState(MacCatalyst): failed to clear {userContentsDir}: {ex.Message}");
+					}
+				}
 				break;
 
 			case TestPlatform.Android:
@@ -76,6 +106,22 @@ public abstract class BaseUITest
 					catch (Exception ex)
 					{
 						TestContext.Out.WriteLine($"ResetAppState(iOS): failed to clear {prefsDir}: {ex.Message}");
+					}
+					// Also wipe TRViS.UserContents so a single seeded JSON from a
+					// previous test (SelectFileDialogTests fixture) can't trigger
+					// DefaultTimetableFileLoader.TryLoadDefaultTimetableAsync's
+					// single-file auto-load on the next launch — same Start-mode
+					// vs. Home-mode regression the MacCatalyst path is fixing.
+					// iOS uses Documents (MyDocuments) for the base path.
+					string userContentsDir = Path.Combine(dataContainer, "Documents", "TRViS.UserContents");
+					try
+					{
+						if (Directory.Exists(userContentsDir))
+							Directory.Delete(userContentsDir, recursive: true);
+					}
+					catch (Exception ex)
+					{
+						TestContext.Out.WriteLine($"ResetAppState(iOS): failed to clear {userContentsDir}: {ex.Message}");
 					}
 				}
 				// Belt-and-braces: also try the global defaults database in case
