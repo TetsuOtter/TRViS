@@ -26,7 +26,9 @@ public class SelectFileDialogPageObject : PageObject
 	// Empty state
 	public AppiumElement EmptyMessage => FindByAutomationId(AutomationIds.SelectFile.EmptyMessage);
 
-	// Always-visible footer actions
+	// Footer actions. BrowseButton is always present; OpenStorageLocationButton is
+	// hidden on Android (internal-storage limitation) — guard accesses with !IsAndroid
+	// or FindByAutomationId will throw NoSuchElementException.
 	public AppiumElement BrowseButton => FindByAutomationId(AutomationIds.SelectFile.BrowseButton);
 	public AppiumElement OpenStorageLocationButton => FindByAutomationId(AutomationIds.SelectFile.OpenStorageLocationButton);
 

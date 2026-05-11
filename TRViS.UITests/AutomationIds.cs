@@ -89,6 +89,11 @@ public static class AutomationIds
 		// Wipes TimetableFileDirectory contents so SelectFile tests start from a
 		// known empty state regardless of prior session leftovers.
 		public const string TestClearTimetablesButton = "StartHome.TestClearTimetablesButton";
+		// Cascades selection to a sample-data train whose NextTrainId is non-empty
+		// (linear-train-1) so the NextTrainButton-visibility regression test for
+		// #225 doesn't rely on the default first-train selection (which has an
+		// empty NextTrainId).
+		public const string TestSeedNextTrainSelectionButton = "StartHome.TestSeedNextTrainSelectionButton";
 	}
 
 	public static class PrivacyDialog
@@ -114,6 +119,7 @@ public static class AutomationIds
 		public const string OpenCloseButton = "DTAC.OpenCloseButton";
 		public const string TimetableScrollView = "DTAC.TimetableScrollView";
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
+		public const string NextTrainButton = "DTAC.NextTrainButton";
 	}
 
 	/// <summary>

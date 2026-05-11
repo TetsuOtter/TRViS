@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using NLog;
 
 using TRViS.LocationService.Abstractions;
+using TRViS.NetworkSyncService.Internals;
 
 namespace TRViS.NetworkSyncService;
 
@@ -55,9 +56,14 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 				return;
 
 			_staLocationInfo = value;
+			_lonLatStationDetector.SetStationLocations(value);
 			ResetLocationInfo();
 		}
 	}
+
+	// Location_m が NaN かつ緯度経度が配信されたときの駅判定エンジン。
+	// SyncedData が <see cref="SyncedData.Location_m"/> を持たない接続向けのフォールバック。
+	private readonly LonLatStationDetector _lonLatStationDetector = new();
 
 	private string? _WorkGroupId;
 	public string? WorkGroupId
@@ -120,6 +126,12 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler? ConnectionFailed;
 	public event EventHandler<bool>? CanStartChanged;
 
+	/// <summary>
+	/// サーバーから緯度経度が配信されたときに発火する。
+	/// 引数は (Longitude, Latitude, Accuracy?) の tuple。
+	/// </summary>
+	public event EventHandler<(double Longitude, double Latitude, double? Accuracy)>? LonLatLocationReceived;
+
 	protected bool _IsDisposed;
 
 	/// <summary>
@@ -174,8 +186,27 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	/// </summary>
 	protected void ProcessSyncedData(SyncedData syncedData)
 	{
-		Logger.Debug("ProcessSyncedData: Location_m={0}, Time_ms={1}, CanStart={2}", syncedData.Location_m, syncedData.Time_ms, syncedData.CanStart);
-		UpdateCurrentStationWithLocation(syncedData.Location_m);
+		Logger.Debug("ProcessSyncedData: Location_m={0}, Time_ms={1}, CanStart={2}, Latitude_deg={3}, Longitude_deg={4}, Accuracy_m={5}",
+			syncedData.Location_m, syncedData.Time_ms, syncedData.CanStart,
+			syncedData.Latitude_deg, syncedData.Longitude_deg, syncedData.Accuracy_m);
+
+		// 有効な緯度経度であるかを先に判定 (NaN は除外)
+		bool hasLonLat =
+			syncedData.Latitude_deg is double lat && !double.IsNaN(lat)
+			&& syncedData.Longitude_deg is double lon && !double.IsNaN(lon);
+
+		if (!double.IsNaN(syncedData.Location_m))
+		{
+			// Location_m が来ていれば従来通りそれで駅判定する。
+			// lat/lon ベースの履歴は次回フォールバック時に新規初期化する。
+			UpdateCurrentStationWithLocation(syncedData.Location_m);
+			_lonLatStationDetector.Reset();
+		}
+		else if (hasLonLat)
+		{
+			// Location_m が NaN かつ緯度経度がある場合は緯度経度ベースで駅判定する。
+			UpdateCurrentStationWithLonLat(syncedData.Longitude_deg!.Value, syncedData.Latitude_deg!.Value);
+		}
 
 		int currentTime_s = (int)(syncedData.Time_ms / 1000);
 		if (CurrentTime_s != currentTime_s)
@@ -187,6 +218,30 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 
 		CanStart = syncedData.CanStart;
 		CanUseService = syncedData.CanStart;
+
+		// 緯度経度が両方含まれていれば LonLatLocationReceived を発火する。
+		// 値がない場合 (HTTP プロトコルや lat/lon 非対応サーバー) や NaN は無視する。
+		if (hasLonLat)
+		{
+			LonLatLocationReceived?.Invoke(this, (syncedData.Longitude_deg!.Value, syncedData.Latitude_deg!.Value, syncedData.Accuracy_m));
+		}
+	}
+
+	/// <summary>
+	/// <see cref="SyncedData.Location_m"/> が NaN のときに緯度経度ベースで駅判定する。
+	/// 距離履歴の平均を取るために、検出器の状態は ProcessSyncedData の連続呼び出し間で
+	/// 保持する (毎回 Sync は呼ばない)。
+	/// </summary>
+	private void UpdateCurrentStationWithLonLat(double longitude_deg, double latitude_deg)
+	{
+		if (StaLocationInfo is null || !IsEnabled)
+			return;
+
+		bool changed = _lonLatStationDetector.UpdateWithLonLat(longitude_deg, latitude_deg);
+		if (changed)
+		{
+			ForceSetLocationInfo(_lonLatStationDetector.CurrentStationIndex, _lonLatStationDetector.IsRunningToNextStation);
+		}
 	}
 
 	void UpdateCurrentStationWithLocation(double location_m)
@@ -336,6 +391,9 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	{
 		CurrentStationIndex = stationIndex;
 		IsRunningToNextStation = isRunningToNextStation;
+		// 緯度経度ベースの駅判定エンジンも外部の強制セットに合わせて状態同期する。
+		// (距離履歴は外部介入の時点で意味を失うのでクリアする)
+		_lonLatStationDetector.Sync(stationIndex, isRunningToNextStation);
 		LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
 	}
 
@@ -343,6 +401,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	{
 		CurrentStationIndex = 0;
 		IsRunningToNextStation = false;
+		_lonLatStationDetector.Reset();
 		LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
 	}
 

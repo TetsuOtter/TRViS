@@ -57,6 +57,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestClearHistoryButton => FindByAutomationId(AutomationIds.StartHome.TestClearHistoryButton);
 	public AppiumElement TestSeedSqliteButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSqliteButton);
 	public AppiumElement TestClearTimetablesButton => FindByAutomationId(AutomationIds.StartHome.TestClearTimetablesButton);
+	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
 
 	public bool IsDisplayed()
 	{
@@ -233,6 +234,18 @@ public class StartHomePageObject : PageObject
 	public DTACViewHostPageObject AutoOpenForTesting()
 	{
 		TestAutoOpenButton.Click();
+		return new DTACViewHostPageObject(Driver);
+	}
+
+	/// <summary>
+	/// Taps the UI_TEST-only seed button that commits selection to
+	/// <c>linear-train-1</c> (NextTrainId = <c>linear-train-2</c>) and navigates
+	/// to DTAC. Used by the #225 NextTrainButton regression test so it doesn't
+	/// rely on the default first-train selection (whose NextTrainId is empty).
+	/// </summary>
+	public DTACViewHostPageObject SeedTrainSelectionWithNextTrain()
+	{
+		TestSeedNextTrainSelectionButton.Click();
 		return new DTACViewHostPageObject(Driver);
 	}
 

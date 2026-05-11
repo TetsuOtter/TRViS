@@ -312,6 +312,64 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task SyncedData_LonLat_FiresLonLatLocationReceived()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var locTask = WaitForEventAsync<(double Longitude, double Latitude, double? Accuracy)>(
+				h => service.LonLatLocationReceived += h,
+				h => service.LonLatLocationReceived -= h
+			);
+
+			await _control.SetStateAsync(
+				canStart: true,
+				latitude_deg: 35.681236,
+				longitude_deg: 139.767125,
+				accuracy_m: 12.5
+			);
+			await _control.BroadcastSyncedDataAsync();
+
+			var received = await locTask;
+			Assert.Multiple(() =>
+			{
+				Assert.That(received.Latitude, Is.EqualTo(35.681236).Within(1e-9));
+				Assert.That(received.Longitude, Is.EqualTo(139.767125).Within(1e-9));
+				Assert.That(received.Accuracy, Is.EqualTo(12.5).Within(1e-9));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task SyncedData_NoLonLat_DoesNotFireLonLatLocationReceived()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			bool received = false;
+			service.LonLatLocationReceived += (_, _) => received = true;
+
+			await _control.SetStateAsync(canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+			await Task.Delay(200);
+
+			Assert.That(received, Is.False, "LonLatLocationReceived should not fire when no lat/lon is provided");
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
 	public async Task SyncedData_Location_StationIndexUpdated()
 	{
 		var service = await ConnectServiceAsync();
@@ -335,6 +393,46 @@ public class WebSocketIntegrationTests
 
 			// 駅2 (index=1) 付近の位置を送信
 			await _control.SetStateAsync(location_m: 1000.0, canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+
+			var state = await stateTask;
+			Assert.That(state.NewStationIndex, Is.EqualTo(1));
+			Assert.That(state.IsRunningToNextStation, Is.False);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task SyncedData_LonLat_StationIndexUpdatedWhenLocationMIsNaN()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			var stations = new StaLocationInfo[]
+			{
+				new(0.0,    135.0,   35.0,   200.0),
+				new(1000.0, 135.01, 35.01, 200.0),
+				new(2000.0, 135.02, 35.02, 200.0),
+			};
+			service.StaLocationInfo = stations;
+			service.IsEnabled = true;
+
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var stateTask = WaitForEventAsync<LocationStateChangedEventArgs>(
+				h => service.LocationStateChanged += h,
+				h => service.LocationStateChanged -= h
+			);
+
+			// Location_m は送らず、駅2 (index=1) のすぐそばの緯度経度を送信
+			await _control.SetStateAsync(
+				canStart: true,
+				latitude_deg: 35.01,
+				longitude_deg: 135.01
+			);
 			await _control.BroadcastSyncedDataAsync();
 
 			var state = await stateTask;
@@ -488,6 +586,175 @@ public class WebSocketIntegrationTests
 			var updatedTrain = loader.GetTrainData(TestData.TrainId);
 			Assert.That(updatedTrain, Is.Not.Null);
 			Assert.That(updatedTrain!.TrainNumber, Is.EqualTo("T-001-Updated"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_TrainScope_WithExplicitNextTrainId_PropagatesToCachedTrain()
+	{
+		// #225 / #226 リグレッション: WebSocket 経由で NextTrainId を明示指定した Train データを
+		// 配信したとき、ILoader.GetTrainData が NextTrainId を保持する必要がある。
+		// 以前は JsonModelsConverter.ConvertTrain が NextTrainId を渡していなかったため
+		// 常に null になり、NextTrainButton が表示されなかった。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithNextTrainId,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.NextTrainId, Is.EqualTo(TestData.TrainId2));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_TrainScope_WithRecordType_PropagatesIsInfoRow()
+	{
+		// JsonModelsConverter は以前 IsInfoRow を常に false にしていた
+		// (「JSONModelsにはRecordTypeが含まれない」というコメントは事実誤認だった)。
+		// LoaderJson と同じく RecordType=2/3 を InfoRow として扱う必要がある。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithInfoRows,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.Rows, Is.Not.Null);
+			Assert.That(updatedTrain.Rows!, Has.Length.EqualTo(4));
+			Assert.Multiple(() =>
+			{
+				Assert.That(updatedTrain.Rows![0].IsInfoRow, Is.False, "通常駅 (RecordType 未指定) は IsInfoRow=false");
+				Assert.That(updatedTrain.Rows![1].IsInfoRow, Is.True, "RecordType=2 (InfoRow_ForAlmostTrain) は IsInfoRow=true");
+				Assert.That(updatedTrain.Rows![2].IsInfoRow, Is.True, "RecordType=3 (InfoRow_ForSomeTrain) は IsInfoRow=true");
+				Assert.That(updatedTrain.Rows![3].IsInfoRow, Is.False, "RecordType=0 (NormalStation) は IsInfoRow=false");
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_TrainScope_WithEmptyNextTrainId_TreatedAsNull()
+	{
+		// LoaderJson と同じ規約: NextTrainId="" は「次列車なし」を意味し null として扱う。
+		// View / Presenter / DataSource の string.IsNullOrEmpty 判定と挙動を一致させる。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithEmptyNextTrainId,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.NextTrainId, Is.Null);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_TrainScope_WithExplicitColor_PropagatesToCachedTrainAsLineColor()
+	{
+		// リグレッション: WebSocket 経由で Color を明示指定した Train データを配信したとき、
+		// ILoader.GetTrainData が LineColor_RGB を保持する必要がある。
+		// 以前は JsonModelsConverter.ConvertTrain が Color を渡していなかったため
+		// 常に null になり、サーバーから配信した路線色が表示されなかった。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson_WithColor,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await timetableTask;
+
+			var loader = (ILoader)service;
+			var updatedTrain = loader.GetTrainData(TestData.TrainId);
+			Assert.That(updatedTrain, Is.Not.Null);
+			Assert.That(updatedTrain!.LineColor_RGB, Is.EqualTo(0xFF0000));
 		}
 		finally
 		{
@@ -1847,6 +2114,138 @@ public class WebSocketIntegrationTests
 			var work = loader.GetWorkList(TestData.WorkGroupId).First();
 			Assert.That(work.AffectDate, Is.Not.Null);
 			Assert.That(work.AffectDateText, Is.Null);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
+	// 親 Work からの WorkName / AffectDate 引き継ぎ
+	//
+	// JsonModels.TrainData は WorkName / AffectDate を持たないため、IO.Models.TrainData の
+	// これらフィールドは親 WorkData (Name / AffectDate) から引き継いで埋める必要がある。
+	// LoaderJson はこれを行っているが、WebSocket 経由のキャッシュ生成でも同様に動くこと、
+	// および Train スコープ単独更新では既にキャッシュ済みの Work から引き継がれることを検証する。
+	// ================================================================
+
+	[Test]
+	public async Task TrainData_AllScope_InheritsWorkNameFromParentWork()
+	{
+		// All スコープロード後、各 Train の WorkName が親 Work.Name と一致すること。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await ttTask;
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First();
+
+			var train1 = loader.GetTrainData(TestData.TrainId);
+			var train2 = loader.GetTrainData(TestData.TrainId2);
+			Assert.Multiple(() =>
+			{
+				Assert.That(train1, Is.Not.Null);
+				Assert.That(train1!.WorkName, Is.EqualTo(work.Name));
+				Assert.That(train2, Is.Not.Null);
+				Assert.That(train2!.WorkName, Is.EqualTo(work.Name));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task TrainData_AllScope_InheritsAffectDateFromParentWork()
+	{
+		// All スコープロード後、各 Train の AffectDate が親 Work.AffectDate (パース済み DateOnly) と一致すること。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await ttTask;
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First();
+			Assert.That(work.AffectDate, Is.Not.Null, "Work.AffectDate のパース前提");
+
+			var train1 = loader.GetTrainData(TestData.TrainId);
+			var train2 = loader.GetTrainData(TestData.TrainId2);
+			Assert.Multiple(() =>
+			{
+				Assert.That(train1, Is.Not.Null);
+				Assert.That(train1!.AffectDate, Is.EqualTo(work.AffectDate));
+				Assert.That(train2, Is.Not.Null);
+				Assert.That(train2!.AffectDate, Is.EqualTo(work.AffectDate));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task TrainData_TrainScopeAfterAllScope_PreservesWorkNameAndAffectDateFromCachedWork()
+	{
+		// Train スコープ単独更新の JSON には親 Work 情報が含まれない。
+		// 既にキャッシュ済みの Work から WorkName / AffectDate を引き継いで埋め直すこと。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			// 1. まず All スコープでキャッシュを作成
+			var firstTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await firstTask;
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First();
+			string expectedWorkName = work.Name;
+			DateOnly? expectedAffectDate = work.AffectDate;
+
+			// 2. Train スコープ単独更新
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.TrainScopeJson,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+			await ttTask;
+
+			// 3. 更新後の Train が新しい TrainNumber を持ちつつ、
+			//    親 Work から引き継いだ WorkName / AffectDate も保持していること
+			var updated = loader.GetTrainData(TestData.TrainId);
+			Assert.Multiple(() =>
+			{
+				Assert.That(updated, Is.Not.Null);
+				Assert.That(updated!.TrainNumber, Is.EqualTo("T-001-Updated"), "Train スコープの新ペイロード値");
+				Assert.That(updated.WorkName, Is.EqualTo(expectedWorkName), "親 Work.Name を引き継いでいること");
+				Assert.That(updated.AffectDate, Is.EqualTo(expectedAffectDate), "親 Work.AffectDate を引き継いでいること");
+			});
 		}
 		finally
 		{

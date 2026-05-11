@@ -618,7 +618,7 @@
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24"
+			RowDefinitions="24,24,24,24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -678,6 +678,15 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestClearTimetablesButton_Clicked"/>
+			<Button
+				x:Name="TestSeedNextTrainSelectionButton"
+				AutomationId="StartHome.TestSeedNextTrainSelectionButton"
+				Grid.Row="6"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestSeedNextTrainSelectionButton_Clicked"/>
 		</Grid>
 
 	</Grid>
