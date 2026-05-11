@@ -576,17 +576,29 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     needs: build-ios
+    # ipad-mini-5 is the only entry permitted to fail without failing the
+    # whole job — see the matrix below. The expression resolves to false
+    # for the other entries, making this a no-op there.
+    continue-on-error: ${{ matrix.continue-on-error == true }}
     strategy:
       # Run all device classes regardless of one failing — useful while a class
       # is being added/stabilized (e.g. iPad mini 5th gen runtime availability).
       fail-fast: false
       matrix:
-        device-class:
-          - iphone
-          - ipad-mini-a17
-          # ipad-mini-5: runtime download is best-effort; allow it to fail
-          # without blocking the other matrix entries.
-          - ipad-mini-5
+        include:
+          - device-class: iphone
+          - device-class: ipad-mini-a17
+          # iPad mini 5 caps at iPadOS 17. macos-26 + Xcode 26 + WDA
+          # routinely fails to connect WDA over port 8100 on the iPadOS 17
+          # runtime (`connect ECONNREFUSED 127.0.0.1:8100`, then session
+          # creation times out — see run 25634821932). The runtime download
+          # is also best-effort and may fail entirely on a given runner
+          # image. Mark this matrix entry continue-on-error so the
+          # incompatibility doesn't fail the workflow while we keep
+          # exercising the path: when the WDA/runtime story stabilises
+          # upstream the entry quietly starts succeeding again.
+          - device-class: ipad-mini-5
+            continue-on-error: true
 
     steps:
       - name: Checkout code
