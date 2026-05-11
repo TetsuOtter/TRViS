@@ -183,16 +183,26 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   #      any "trvis-*" device keep working as they did before).
   # If neither exists, create a new "trvis-<device-class>".
   SIM_REUSE_NAME="trvis-$DEVICE_CLASS"
+  # Track which simulator name actually matched so reuse vs create vs default-
+  # name fallback is obvious in the log. SIM_NAME_REGEX is an anchored exact
+  # match for SIM_DEVICE_NAME above, so the path-2 match implies that name.
+  FOUND_SIM_NAME=""
   DEVICE_ID=$(xcrun simctl list devices available --json \
     | jq -r --arg name "$SIM_REUSE_NAME" \
         '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name == $name) | .udid' \
     | head -1)
+  if [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]]; then
+    FOUND_SIM_NAME="$SIM_REUSE_NAME"
+  fi
 
   if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
     DEVICE_ID=$(xcrun simctl list devices available --json \
       | jq -r --arg pat "$SIM_NAME_REGEX" \
           '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name | test($pat)) | .udid' \
       | head -1)
+    if [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]]; then
+      FOUND_SIM_NAME="$SIM_DEVICE_NAME"
+    fi
   fi
 
   if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
@@ -208,13 +218,14 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
       log "create failed: $DEVICE_ID"
       die "Failed to create simulator for $DEVICE_CLASS. The device type may require an older iOS runtime that is not installed (e.g. iPad mini 5th gen → iOS 17)."
     fi
-    log "Created simulator: $DEVICE_ID"
+    FOUND_SIM_NAME="$SIM_REUSE_NAME"
+    log "Created simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
   else
-    log "Reusing existing simulator: $DEVICE_ID"
+    log "Reusing existing simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
   fi
 
   [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
-  log "Selected simulator: $DEVICE_ID ($SIM_DEVICE_NAME)"
+  log "Selected simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
 
   log "Available simulator runtimes (for diagnostics):"
   xcrun simctl list runtimes | grep -i ios || log "(no iOS runtimes listed)"
