@@ -81,6 +81,14 @@ public static class AutomationIds
 		// "empty history" tests can guarantee an empty list regardless of prior
 		// noReset:true session state.
 		public const string TestClearHistoryButton = "StartHome.TestClearHistoryButton";
+		// Seeds a minimal SQLite fixture into TimetableFileDirectory via the same
+		// sqlite-net write path LoaderSQL reads from. Tests use this to verify the
+		// MAUI runtime can actually open SQLite (catches Batteries_V2.Init /
+		// linker stripping regressions that NUnit-only tests can't reach).
+		public const string TestSeedSqliteButton = "StartHome.TestSeedSqliteButton";
+		// Wipes TimetableFileDirectory contents so SelectFile tests start from a
+		// known empty state regardless of prior session leftovers.
+		public const string TestClearTimetablesButton = "StartHome.TestClearTimetablesButton";
 		// Writes the canonical SelectFileDialog fixture (root file + sub-folder
 		// with another file) into TimetableFileDirectory.
 		public const string TestSeedSampleFilesButton = "StartHome.TestSeedSampleFilesButton";

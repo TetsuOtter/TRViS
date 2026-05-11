@@ -1122,6 +1122,76 @@ public partial class StartHomePage : ContentPage
 #endif
 	}
 
+	// Seeds a minimal SQLite fixture into TimetableFileDirectory using the same
+	// sqlite-net write path that LoaderSQL uses to read. The point is to exercise
+	// SQLitePCLRaw provider initialization inside the live MAUI runtime — the
+	// netcore-based TRViS.IO.Tests don't go through MAUI's linker/AOT, so a
+	// missing Batteries_V2.Init or stripped provider registration only ever
+	// surfaces here. If the seed step throws, no file appears, the SelectFile
+	// dialog renders the empty state, and the corresponding test fails with a
+	// "card not visible" assertion that points back at this seam.
+	void TestSeedSqliteButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedSqliteButton clicked: seeding minimal SQLite fixture");
+		try
+		{
+			if (!DirectoryPathProvider.TimetableFileDirectory.Exists)
+				Directory.CreateDirectory(DirectoryPathProvider.TimetableFileDirectory.FullName);
+
+			string path = Path.Combine(
+				DirectoryPathProvider.TimetableFileDirectory.FullName,
+				UITestSqliteFixtureFileName);
+			if (File.Exists(path))
+				File.Delete(path);
+
+			using var cnx = new SQLite.SQLiteConnection(path);
+			cnx.CreateTable<IO.Models.DB.WorkGroup>();
+			cnx.Insert(new IO.Models.DB.WorkGroup
+			{
+				Id = "1",
+				Name = "UITestWG",
+				DBVersion = 1,
+			});
+			logger.Info("Seeded SQLite fixture at {0}", path);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedSqliteButton failed");
+		}
+#endif
+	}
+
+	// Wipes TimetableFileDirectory contents so SelectFile-related tests can
+	// guarantee a known starting state without relying on platform-specific
+	// app-data wipe (Mac Catalyst / iOS keep the documents folder across
+	// noReset:true sessions).
+	void TestClearTimetablesButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestClearTimetablesButton clicked: clearing TimetableFileDirectory");
+		try
+		{
+			DirectoryInfo dir = DirectoryPathProvider.TimetableFileDirectory;
+			if (dir.Exists)
+			{
+				foreach (FileInfo file in dir.GetFiles())
+					file.Delete();
+				foreach (DirectoryInfo sub in dir.GetDirectories())
+					sub.Delete(recursive: true);
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearTimetablesButton failed");
+		}
+#endif
+	}
+
+	// Filename used by the UI_TEST seed seam. Public so the test fixture can
+	// reference the same constant when looking up the rendered card by id.
+	public const string UITestSqliteFixtureFileName = "uitest_seed.sqlite";
+
 	void TestSeedSampleFilesButton_Clicked(object sender, EventArgs e)
 	{
 #if UI_TEST

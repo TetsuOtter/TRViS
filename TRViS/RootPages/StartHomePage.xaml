@@ -618,7 +618,7 @@
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24,24,24"
+			RowDefinitions="24,24,24,24,24,24,24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -661,9 +661,27 @@
 				Margin="0"
 				Clicked="TestClearHistoryButton_Clicked"/>
 			<Button
+				x:Name="TestSeedSqliteButton"
+				AutomationId="StartHome.TestSeedSqliteButton"
+				Grid.Row="4"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestSeedSqliteButton_Clicked"/>
+			<Button
+				x:Name="TestClearTimetablesButton"
+				AutomationId="StartHome.TestClearTimetablesButton"
+				Grid.Row="5"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestClearTimetablesButton_Clicked"/>
+			<Button
 				x:Name="TestSeedSampleFilesButton"
 				AutomationId="StartHome.TestSeedSampleFilesButton"
-				Grid.Row="4"
+				Grid.Row="6"
 				BackgroundColor="Transparent"
 				BorderColor="Transparent"
 				Padding="0"
@@ -672,7 +690,7 @@
 			<Button
 				x:Name="TestClearSampleFilesButton"
 				AutomationId="StartHome.TestClearSampleFilesButton"
-				Grid.Row="5"
+				Grid.Row="7"
 				BackgroundColor="Transparent"
 				BorderColor="Transparent"
 				Padding="0"
@@ -681,7 +699,7 @@
 			<Button
 				x:Name="TestSetupBrowseFallbackButton"
 				AutomationId="StartHome.TestSetupBrowseFallbackButton"
-				Grid.Row="6"
+				Grid.Row="8"
 				BackgroundColor="Transparent"
 				BorderColor="Transparent"
 				Padding="0"
@@ -690,7 +708,7 @@
 			<Button
 				x:Name="TestSeedNextTrainSelectionButton"
 				AutomationId="StartHome.TestSeedNextTrainSelectionButton"
-				Grid.Row="7"
+				Grid.Row="9"
 				BackgroundColor="Transparent"
 				BorderColor="Transparent"
 				Padding="0"
