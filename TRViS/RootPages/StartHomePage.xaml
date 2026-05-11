@@ -618,7 +618,7 @@
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24,24,24,24,24"
+			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -714,6 +714,19 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedNextTrainSelectionButton_Clicked"/>
+			<!-- Clears the in-memory AppViewModel.Loader (back to Start mode)
+			     without the confirm dialog OnDisconnectClicked surfaces. Used
+			     by fixtures that share a single Appium session and need each
+			     test to start from "no loader" state. -->
+			<Button
+				x:Name="TestClearLoaderButton"
+				AutomationId="StartHome.TestClearLoaderButton"
+				Grid.Row="10"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestClearLoaderButton_Clicked"/>
 		</Grid>
 
 	</Grid>

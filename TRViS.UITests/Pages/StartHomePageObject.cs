@@ -70,6 +70,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestClearSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestClearSampleFilesButton);
 	public AppiumElement TestSetupBrowseFallbackButton => FindByAutomationId(AutomationIds.StartHome.TestSetupBrowseFallbackButton);
 	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
+	public AppiumElement TestClearLoaderButton => FindByAutomationId(AutomationIds.StartHome.TestClearLoaderButton);
 
 	public bool IsDisplayed()
 	{
@@ -224,6 +225,15 @@ public class StartHomePageObject : PageObject
 	/// sessions).
 	/// </summary>
 	public void ClearTimetablesForTesting() => TestClearTimetablesButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only loader-clear button. Sets AppViewModel.Loader=null
+	/// + disposes the previous loader, returning StartHomePage to Start mode
+	/// (LoadDemoButton visible, work-group list hidden). Use this between
+	/// tests in a fixture that shares one Appium session, so each test starts
+	/// from "no loader" regardless of where the previous test left things.
+	/// </summary>
+	public void ClearLoaderForTesting() => TestClearLoaderButton.Click();
 
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
