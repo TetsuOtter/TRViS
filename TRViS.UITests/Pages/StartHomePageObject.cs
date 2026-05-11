@@ -129,15 +129,27 @@ public class StartHomePageObject : PageObject
 	/// (Connect, SelectFile, LoadDemo) become enabled. Idempotent: re-saving
 	/// when privacy is already accepted just re-writes the same values.
 	///
-	/// We always run the accept flow rather than gating on banner visibility,
-	/// because Windows MAUI does not expose Border elements via UIA — the
-	/// banner-visible probe always returns false there even on fresh installs,
-	/// and conditioning on it leaves Windows tests stuck with feature buttons
-	/// disabled. Re-saving on Mac/Android/iOS where privacy was already
-	/// accepted is a harmless no-op.
+	/// Fast-paths on iOS/Mac/Android when the privacy reconfirm banner is
+	/// not on screen — in shared-session mode the privacy-accepted flag
+	/// persists in NSUserDefaults/SharedPreferences across app restarts,
+	/// so re-running the click+save dance on every test costs 3-5 s each
+	/// for no behavioural change. Windows MAUI does not expose Border
+	/// elements via UIA so the banner-visible probe always returns false
+	/// there; on Windows we keep the unconditional flow, which is what
+	/// the original implementation always did.
 	/// </summary>
 	public void AcceptPrivacyPolicyIfNeeded()
 	{
+		// Fast-path: if the reconfirm banner is not visible on a
+		// banner-probe-supporting platform, privacy has already been
+		// accepted in this app installation and the click+save dance is
+		// just dead weight. IsPrivacyReconfirmBannerVisible reliably
+		// returns false on Windows (no UIA peer), so gating on it would
+		// strand Windows tests with feature buttons disabled; keep the
+		// platform-aware split.
+		if (!IsWindows && !IsPrivacyReconfirmBannerVisible())
+			return;
+
 		// Use explicit client-side WaitForElement instead of FindByAutomationId.
 		// The mac2 driver runs each XCUIElement lookup as a single query and
 		// does not honor the Selenium implicit wait the way XCUITest does, so
