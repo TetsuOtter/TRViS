@@ -1,3 +1,4 @@
+using OpenQA.Selenium.Appium.Windows;
 using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
@@ -28,6 +29,20 @@ public class ConnectServerDialogTests : BaseUITest
 		base.SetUp();
 
 		_startHomePage = new StartHomePageObject(Driver);
+
+		// Shared-session recovery: the dialog is a MAUI modal, so if a
+		// prior test left it open we can't open another. Close any
+		// stranded ConnectServer dialog before proceeding. Use a fast
+		// PollDisplayed instead of dialog.IsDisplayed() — the latter
+		// internally waits 30 s for the Title element, which on a
+		// dialog-not-open run blocks the [SetUp] for the full timeout.
+		var dialog = new ConnectServerDialogPageObject(Driver);
+		if (dialog.PollDisplayed(AutomationIds.ConnectServer.Title, timeoutSeconds: 1))
+		{
+			dialog.Close();
+			Thread.Sleep(300);
+		}
+
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 	}
 
@@ -58,93 +73,66 @@ public class ConnectServerDialogTests : BaseUITest
 		Assert.That(dialog.ConnectButton.Displayed, Is.True);
 	}
 
-	[Test]
-	public void OpenDialog_WithSeededHistory_ShowsHistoryList()
-	{
-		Assume.That(_startHomePage.IsDisplayed(), Is.True);
-
-		_startHomePage.SeedUrlHistoryForTesting();
-		Thread.Sleep(300);
-
-		var dialog = _startHomePage.OpenConnectServerDialog();
-
-		Assert.That(dialog.IsHistoryViewVisible(), Is.True,
-			"With seeded history, the dialog should default to the history list.");
-		Assert.That(dialog.NewConnectionButton.Displayed, Is.True,
-			"'+ 新規接続' should be visible in the history list state.");
-	}
-
 	/// <summary>
-	/// Each seeded URL renders as a tappable card whose AutomationId is
-	/// "ConnectServer.HistoryItem.&lt;url&gt;". Asserts the cards are reachable
-	/// (regression coverage for the per-row id pattern; tapping triggers a real
-	/// HTTP fetch so we don't follow through to dismissal here).
+	/// Seeded-history happy path, merged from the prior tests
+	/// OpenDialog_WithSeededHistory_ShowsHistoryList /
+	/// HistoryCards_AreReachableByPerRowAutomationId /
+	/// NewConnectionButton_SwitchesToForm / BackToHistory_ReturnsToList /
+	/// Close_ReturnsToStartHomePage. Each of those paid LoadSample-equivalent
+	/// setup separately; the merged flow runs the heavy
+	/// SeedUrlHistory + OpenConnectServerDialog once, then asserts each
+	/// transition with a labelled Assert so a regression points at the
+	/// specific sub-step rather than the merged test name.
 	/// </summary>
 	[Test]
-	[Platform(Exclude = "Win", Reason = "MAUI inner Border children are not surfaced via WinUI UIA.")]
-	public void HistoryCards_AreReachableByPerRowAutomationId()
+	public void SeededHistory_DialogTransitions_FullFlow()
 	{
-		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+		Assume.That(_startHomePage.IsDisplayed(), Is.True,
+			"StartHome should be displayed before opening the dialog.");
 
 		_startHomePage.SeedUrlHistoryForTesting();
 		Thread.Sleep(300);
 
+		// Open: history list state shows because history is non-empty.
 		var dialog = _startHomePage.OpenConnectServerDialog();
+		Assert.That(dialog.IsDisplayed(), Is.True,
+			"ConnectServer dialog should be displayed after OpenConnectServerDialog().");
+		Assert.That(dialog.IsHistoryViewVisible(), Is.True,
+			"With seeded history, the dialog should default to the history list state.");
+		Assert.That(dialog.NewConnectionButton.Displayed, Is.True,
+			"'+ 新規接続' button should be visible in the history list state.");
 
-		Assert.That(dialog.HistoryItem(SampleUrlA).Displayed, Is.True,
-			$"Card for '{SampleUrlA}' should be reachable by AutomationId.");
-		Assert.That(dialog.HistoryItem(SampleUrlB).Displayed, Is.True,
-			$"Card for '{SampleUrlB}' should be reachable by AutomationId.");
-	}
+		// Per-row card AutomationIds — regression for the
+		// `ConnectServer.HistoryItem.<url>` pattern. Win excluded because
+		// MAUI inner Border children are not surfaced via WinUI UIA;
+		// guarded inline rather than as a [Platform] attribute on a
+		// separate test because the rest of the flow IS valid on Win.
+		if (Driver is not WindowsDriver)
+		{
+			Assert.That(dialog.HistoryItem(SampleUrlA).Displayed, Is.True,
+				$"History card for '{SampleUrlA}' should be reachable by AutomationId.");
+			Assert.That(dialog.HistoryItem(SampleUrlB).Displayed, Is.True,
+				$"History card for '{SampleUrlB}' should be reachable by AutomationId.");
+		}
 
-	[Test]
-	public void NewConnectionButton_SwitchesToForm()
-	{
-		Assume.That(_startHomePage.IsDisplayed(), Is.True);
-
-		_startHomePage.SeedUrlHistoryForTesting();
-		Thread.Sleep(300);
-
-		var dialog = _startHomePage.OpenConnectServerDialog();
-		Assert.That(dialog.IsHistoryViewVisible(), Is.True);
-
+		// "+ 新規接続" → form
 		dialog.OpenNewConnectionForm();
 		Thread.Sleep(300);
-
 		Assert.That(dialog.IsNewConnectionFormVisible(), Is.True,
 			"Tapping '+ 新規接続' should switch to the new-connection form.");
 		Assert.That(dialog.BackToHistoryButton.Displayed, Is.True,
-			"Back-to-history affordance should be visible when navigated from a non-empty list.");
-	}
+			"Back-to-history affordance should be visible when arriving at the form from a non-empty history.");
 
-	[Test]
-	public void BackToHistory_ReturnsToList()
-	{
-		Assume.That(_startHomePage.IsDisplayed(), Is.True);
-
-		_startHomePage.SeedUrlHistoryForTesting();
-		Thread.Sleep(300);
-
-		var dialog = _startHomePage.OpenConnectServerDialog();
-		dialog.OpenNewConnectionForm();
-		Thread.Sleep(300);
-
+		// Back → history list
 		dialog.GoBackToHistory();
 		Thread.Sleep(300);
-
 		Assert.That(dialog.IsHistoryViewVisible(), Is.True,
 			"Tapping back should return to the history list.");
-	}
 
-	[Test]
-	public void Close_ReturnsToStartHomePage()
-	{
-		var dialog = _startHomePage.OpenConnectServerDialog();
-		Assert.That(dialog.IsDisplayed(), Is.True);
-
+		// Close → StartHome
 		var back = dialog.Close();
 		Thread.Sleep(300);
 		Assert.That(back.IsDisplayed(), Is.True,
-			"After Close the StartHomePage should be visible again.");
+			"After Close the dialog should dismiss and StartHomePage should be visible again.");
 	}
 }
