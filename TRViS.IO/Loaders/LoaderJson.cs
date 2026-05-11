@@ -54,6 +54,14 @@ public class LoaderJson : ILoader
 		throw new InvalidOperationException("Failed to generate a unique ID");
 	}
 
+	static byte[]? DecodeBase64OrNull(string? s)
+	{
+		if (string.IsNullOrEmpty(s))
+			return null;
+		try { return Convert.FromBase64String(s); }
+		catch (FormatException) { return null; }
+	}
+
 	static readonly JsonSerializerOptions opts = new()
 	{
 		AllowTrailingCommas = true,
@@ -120,7 +128,8 @@ public class LoaderJson : ILoader
 					AffectDate: affectDate,
 					AffixContent: null, // workData.AffixContent,
 					AffixContentType: workData.AffixContentType,
-					ETrainTimetableContent: null, // workData.ETrainTimetableContent,
+					// JSON 上は base64 文字列。空・不正値は内容なしとして扱う。
+					ETrainTimetableContent: DecodeBase64OrNull(workData.ETrainTimetableContent),
 					ETrainTimetableContentType: workData.ETrainTimetableContentType,
 					HasETrainTimetable: workData.HasETrainTimetable,
 					Remarks: workData.Remarks,

@@ -457,9 +457,12 @@ if [[ -n "${DEVICE_ID:-}" ]]; then
   DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
 fi
 
-# Run tests with timeout (30 minutes = 1800 seconds).
-# iOS: 6 tests × ~60 s each + ~5 min for WDA installation on first run ≈ 11 min.
-# Android: 6 tests × ~120 s each (Mono JIT delay on first launch) ≈ 12 min.
-timeout 1800 dotnet test "${DOTNET_TEST_ARGS[@]}"
+# Run tests with timeout (40 minutes = 2400 seconds).
+# iOS on macos-26: iPhone simulator cold start ~7 min + WDA install on first
+# session + ~30 tests × ~60 s/session (noReset:true creates a new session per
+# test) ≈ 37–40 min on iPhone, ~25 min on iPad mini A17. Older comment said
+# "6 tests × 60 s" — stale; the suite has grown since then.
+# Android: ~30 tests × ~60 s ≈ 30 min with the OOM-resilient AVD config.
+timeout 2400 dotnet test "${DOTNET_TEST_ARGS[@]}"
 
 log "All tests passed!"
