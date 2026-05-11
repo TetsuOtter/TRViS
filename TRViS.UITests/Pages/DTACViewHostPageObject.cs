@@ -217,7 +217,13 @@ public class DTACViewHostPageObject : PageObject
 		// addressable accessibility element by AutomationId, so wait for the
 		// surrounding ScrollView instead — that container reliably appears in
 		// the accessibility tree on every platform.
-		WaitForElement(AutomationIds.DTAC.TimetableScrollView);
+		//
+		// 60 s (vs the default 30 s) because the iPad mini matrix entries on
+		// macos-26 occasionally take longer than 30 s to lay out the timetable
+		// tab after the click — run 25631786714 timed out here on iPad mini
+		// A17 with everything else passing (20/21). Mirrors the same headroom
+		// the iPhone job already needed on SelectTrainPageObject.Title.
+		WaitForElement(AutomationIds.DTAC.TimetableScrollView, TimeSpan.FromSeconds(60));
 		return this;
 	}
 

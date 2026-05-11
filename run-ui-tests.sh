@@ -171,31 +171,61 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
       ;;
   esac
 
-  # Try to reuse an existing simulator that matches the friendly name; otherwise
-  # create one with the most-recent compatible runtime.
+  # Reuse order:
+  #   1) A simulator this script created on a previous run, named
+  #      "trvis-<device-class>". Checked first so repeated local runs do
+  #      not accumulate one new device per invocation — previously the
+  #      lookup only matched the default Xcode names (e.g. "iPhone 16")
+  #      and silently bypassed every "trvis-*" device the script itself
+  #      had created, calling `simctl create` again each time.
+  #   2) An Xcode-installed default simulator matching SIM_NAME_REGEX
+  #      (the previous behavior; preserved so fresh machines without
+  #      any "trvis-*" device keep working as they did before).
+  # If neither exists, create a new "trvis-<device-class>".
+  SIM_REUSE_NAME="trvis-$DEVICE_CLASS"
+  # Track which simulator name actually matched so reuse vs create vs default-
+  # name fallback is obvious in the log. SIM_NAME_REGEX is an anchored exact
+  # match for SIM_DEVICE_NAME above, so the path-2 match implies that name.
+  FOUND_SIM_NAME=""
   DEVICE_ID=$(xcrun simctl list devices available --json \
-    | jq -r --arg pat "$SIM_NAME_REGEX" \
-        '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name | test($pat)) | .udid' \
+    | jq -r --arg name "$SIM_REUSE_NAME" \
+        '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name == $name) | .udid' \
     | head -1)
+  if [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]]; then
+    FOUND_SIM_NAME="$SIM_REUSE_NAME"
+  fi
 
   if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
-    log "No matching simulator for '$SIM_DEVICE_NAME' — attempting to create one."
+    DEVICE_ID=$(xcrun simctl list devices available --json \
+      | jq -r --arg pat "$SIM_NAME_REGEX" \
+          '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name | test($pat)) | .udid' \
+      | head -1)
+    if [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]]; then
+      FOUND_SIM_NAME="$SIM_DEVICE_NAME"
+    fi
+  fi
+
+  if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
+    log "No existing simulator for '$SIM_DEVICE_NAME' — creating '$SIM_REUSE_NAME'."
     # Pick the highest available iOS runtime first (works for iPhone 16, iPad mini 6, iPad mini A17).
     SIM_RUNTIME=$(xcrun simctl list runtimes --json \
       | jq -r '[.runtimes[] | select(.platform == "iOS" or (.identifier | contains("iOS")))] | sort_by(.version) | reverse | .[0].identifier')
     if [[ -z "$SIM_RUNTIME" || "$SIM_RUNTIME" == "null" ]]; then
       die "No iOS runtime available to create simulator '$SIM_DEVICE_NAME'."
     fi
-    log "Creating simulator '$SIM_DEVICE_NAME' on runtime '$SIM_RUNTIME'..."
-    if ! DEVICE_ID=$(xcrun simctl create "trvis-$DEVICE_CLASS" "$SIM_DEVICE_TYPE" "$SIM_RUNTIME" 2>&1); then
+    log "Creating simulator '$SIM_REUSE_NAME' on runtime '$SIM_RUNTIME'..."
+    if ! DEVICE_ID=$(xcrun simctl create "$SIM_REUSE_NAME" "$SIM_DEVICE_TYPE" "$SIM_RUNTIME" 2>&1); then
       log "create failed: $DEVICE_ID"
       die "Failed to create simulator for $DEVICE_CLASS. The device type may require an older iOS runtime that is not installed (e.g. iPad mini 5th gen → iOS 17)."
     fi
-    log "Created simulator: $DEVICE_ID"
+    FOUND_SIM_NAME="$SIM_REUSE_NAME"
+    log "Created simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
+  else
+    log "Reusing existing simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
   fi
 
   [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
-  log "Selected simulator: $DEVICE_ID ($SIM_DEVICE_NAME)"
+  log "Selected simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
 
   log "Available simulator runtimes (for diagnostics):"
   xcrun simctl list runtimes | grep -i ios || log "(no iOS runtimes listed)"
