@@ -27,6 +27,7 @@ public static partial class DTACElementStyles
 		new(0x33, 0x33, 0xDD),
 		new(0x44, 0x99, 0xFF)
 	);
+	public static readonly AppThemeColorBindingExtension HorizontalTimetableButtonTextColor = genColor(0x33, 0xDD);
 	public static readonly AppThemeColorBindingExtension HeaderBackgroundColor = genColor(0xDD, baseDarkColor + 0x18);
 	public static readonly AppThemeColorBindingExtension SeparatorLineColor = genColor(0xAA, baseDarkColor + 0x33);
 	public static readonly AppThemeColorBindingExtension DefaultBGColor = genColor(0xFF, baseDarkColor);
@@ -93,6 +94,10 @@ public static partial class DTACElementStyles
 	public const string DefaultFontFamily = "Hiragino Sans";
 	public const string MaterialIconFontFamily = "MaterialIconsRegular";
 	public const string TimetableNumFontFamily = "Helvetica";
+
+	// Material Icons
+	public const string BackArrowIcon = "\ue5c4";
+	public const string MenuIcon = "\ue241";
 
 	public const string AffectDateLabelTextPrefix = "行路施行日\n";
 
