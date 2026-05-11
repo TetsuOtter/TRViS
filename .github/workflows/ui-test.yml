@@ -711,7 +711,16 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-macos:
     runs-on: macos-26
-    timeout-minutes: 20
+    # Bumped from 20 to 30 minutes after run 25665479712 was cancelled at
+    # exactly the 20-min cap with the test suite still executing. The
+    # macos-26 runner image and Xcode 26 produce variable per-test latency
+    # — historical baseline is ~14 min, but slow runs creep past 18 min
+    # without any test logic regression. 30 minutes leaves comfortable
+    # headroom while still bounding the worst-case far below the per-job
+    # cancellation timeout of the workflow as a whole. There's no
+    # workflow-level retry on macOS (unlike Android), so a single
+    # timeout-driven cancellation costs the entire job.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
