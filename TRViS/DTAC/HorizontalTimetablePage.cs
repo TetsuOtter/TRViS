@@ -55,12 +55,18 @@ public class HorizontalTimetablePage : ContentPage
 		Grid.SetRow(AppBarView, 0);
 		mainGrid.Children.Add(AppBarView);
 
-		ContentWebView = new WebView
+		// MAUI Android の WebView ハンドラは AutomationId をネイティブの resource-id
+		// に伝えないため、Appium UIA2 の By.Id では WebView を直接掴めない。テストでは
+		// ページに到達したことを確認できれば十分なので、識別用の AutomationId は
+		// レイアウト (resource-id が確実に付与される) 側に持たせ、WebView 自体には付けない。
+		ContentWebView = new WebView();
+		var webViewHost = new Grid
 		{
 			AutomationId = "HorizontalTimetable.WebView",
 		};
-		Grid.SetRow(ContentWebView, 1);
-		mainGrid.Children.Add(ContentWebView);
+		webViewHost.Children.Add(ContentWebView);
+		Grid.SetRow(webViewHost, 1);
+		mainGrid.Children.Add(webViewHost);
 
 		Content = mainGrid;
 
