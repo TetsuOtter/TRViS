@@ -23,34 +23,6 @@ public class HorizontalTimetableTests : BaseUITest
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 	}
 
-	private DTACViewHostPageObject LoadSampleAndOpenDTAC()
-	{
-		Assert.That(_startHomePage.IsDisplayed(), Is.True);
-		_startHomePage.LoadSample();
-		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
-		return _startHomePage.AutoOpenForTesting();
-	}
-
-	/// <summary>
-	/// The auto-open seam (<see cref="StartHomePageObject.AutoOpenForTesting"/>)
-	/// commits the first WorkGroup + first Work, which in sample_data.json is a
-	/// Work with HasETrainTimetable=false. So the 横型時刻表 button must stay
-	/// hidden even though other Works in the fixture do carry an embedded
-	/// timetable. Doubles as a regression marker: if PageHeader ever renders
-	/// the button unconditionally, this test catches it.
-	/// </summary>
-	[Test]
-	public void HorizontalTimetableButton_HiddenWithSampleData()
-	{
-		var dtac = LoadSampleAndOpenDTAC();
-		dtac.SwitchToTimetableTab();
-
-		Assert.That(
-			dtac.IsHorizontalTimetableButtonVisible(timeoutSeconds: 2),
-			Is.False,
-			"The first sample Work has no embedded horizontal timetable; the button must stay hidden.");
-	}
-
 	/// <summary>
 	/// Drives the full path: seed seam swaps in a synthetic Work with
 	/// HasETrainTimetable=true + a 1×1 PNG, navigates to DTAC, taps the

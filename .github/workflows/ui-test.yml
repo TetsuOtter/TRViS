@@ -422,7 +422,11 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
-    timeout-minutes: 40
+    # iPhone simulator cold start on macos-26 (~7 min) plus the suite's
+    # 30+ per-test sessions push dotnet test close to 40 min; the script
+    # itself wraps `dotnet test` in `timeout 2400`, so this needs headroom
+    # above that for Appium boot + cleanup steps.
+    timeout-minutes: 50
     strategy:
       # Run all device classes regardless of one failing — useful while a class
       # is being added/stabilized (e.g. iPad mini 5th gen runtime availability).
