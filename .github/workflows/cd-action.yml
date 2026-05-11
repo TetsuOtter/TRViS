@@ -233,8 +233,9 @@ jobs:
         env:
           FIREBASE_IOS_PLIST: ${{ secrets.FIREBASE_IOS_PLIST }}
         run: |
-          echo "${{ env.FIREBASE_IOS_PLIST }}" > TRViS/GoogleService-Info.plist
+          printf '%s' "$FIREBASE_IOS_PLIST" > TRViS/GoogleService-Info.plist
           ls -l TRViS/GoogleService-Info.plist
+          plutil -lint TRViS/GoogleService-Info.plist
 
       - name: Build
         env:

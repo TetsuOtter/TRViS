@@ -40,6 +40,10 @@ public static class MauiProgram
 				if (!OperatingSystem.IsIOSVersionAtLeast(13))
 				{
 					handlers.AddHandler<CollectionView, Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler>();
+					// MAUI's default ClearButtonVisibility / TextColor mappers both crash
+					// on iOS 12 when an Entry has TextColor + ClearButtonVisibility set
+					// (NRE in GetClearButtonTintImage). Issue #241.
+					iOS12EntryHandlerFix.Apply();
 				}
 			})
 			.UseMauiMaps()
