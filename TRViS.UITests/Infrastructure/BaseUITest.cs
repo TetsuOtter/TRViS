@@ -38,23 +38,22 @@ public abstract class BaseUITest
 	/// Opt-in: when overridden to true, the fixture uses one Appium session
 	/// for the whole fixture instead of one session per test.
 	/// [OneTimeSetUp] creates the driver; [OneTimeTearDown] quits it.
-	/// Per-test cleanup is handled by terminating + relaunching the
-	/// in-simulator app via Appium (mobile: terminateApp / launchApp),
-	/// which resets MAUI singletons / view-model state without paying the
-	/// ~22 s WDA session-attach cost again. Tests that fail after all
+	/// Per-test cleanup is handled by terminating + relaunching the app
+	/// via Appium-platform-specific commands (mobile: terminateApp /
+	/// launchApp on iOS/Android/Mac; windows: closeApp / launchApp on
+	/// Windows), which resets in-app singletons / view-model state without
+	/// paying a full session-attach again. Tests that fail after all
 	/// retries "cascade" — the next test in the fixture is reported
 	/// Inconclusive rather than run against undefined post-failure state.
-	///
-	/// Currently only honored on iOS — Mac and Windows Appium drivers
-	/// tie their session to the original launched process, and Android is
-	/// already fast enough that the per-test session cost is not the
-	/// bottleneck. Setting this true on other platforms silently falls
-	/// back to per-test driver lifecycle.
 	/// </summary>
 	protected virtual bool ShareSessionAcrossTestsInFixture => false;
 
+	// Honor session sharing on every platform. Per-platform app-restart
+	// strategies are dispatched inside RestartAppInSharedSession. Windows
+	// additionally falls back to creating a fresh session if its driver
+	// cannot re-launch the closed app within the existing session.
 	private bool EffectiveSharedSession
-		=> ShareSessionAcrossTestsInFixture && _platform == TestPlatform.iOS;
+		=> ShareSessionAcrossTestsInFixture;
 
 	// Fail-cascade state for fixtures opting into shared sessions. When any
 	// test in such a fixture fails after all of its retries are exhausted,
@@ -379,67 +378,176 @@ public abstract class BaseUITest
 	/// </summary>
 	private void RestartAppInSharedSession()
 	{
-		if (_platform != TestPlatform.iOS)
-			return;
-
-		// Step 1: terminate via Appium (single round-trip; doesn't kill
-		// the session).
-		try
+		switch (_platform)
 		{
-			Driver.ExecuteScript("mobile: terminateApp",
-				new Dictionary<string, object> { { "bundleId", AppPackage } });
+			case TestPlatform.iOS:
+				RestartAppIos();
+				break;
+			case TestPlatform.MacCatalyst:
+				RestartAppMac();
+				break;
+			case TestPlatform.Android:
+				RestartAppAndroid();
+				break;
+			case TestPlatform.Windows:
+				RestartAppWindows();
+				break;
 		}
-		catch (Exception ex)
-		{
-			TestContext.Out.WriteLine($"RestartAppInSharedSession: terminateApp threw {ex.GetType().Name}: {ex.Message}");
-		}
+	}
 
-		// Step 2: wipe data directories. Keep Library/Preferences so the
-		// privacy-policy flag persists across tests.
+	private void RestartAppIos()
+	{
+		// Step 1: terminate via Appium (keeps the Appium session attached).
+		TryExecuteScript("mobile: terminateApp",
+			new Dictionary<string, object> { { "bundleId", AppPackage } });
+
+		// Step 2: wipe TRViS.UserContents (keep Library/Preferences so the
+		// privacy-policy flag survives — re-accepting it on every test
+		// would cost 1-2 s × N tests).
 		var udid = TestContext.Parameters["deviceUdid"] ?? "";
 		if (!string.IsNullOrEmpty(udid))
 		{
 			string? dataContainer = GetAppDataContainer(udid, AppPackage);
 			if (!string.IsNullOrEmpty(dataContainer))
-			{
-				// Wipe TRViS.UserContents so a single seeded JSON from a
-				// previous test (SelectFileDialogTests etc.) doesn't
-				// trigger DefaultTimetableFileLoader's single-file
-				// auto-load on the next launch — that would put the app
-				// in Home mode and break Start-mode tests.
-				try
-				{
-					foreach (string dir in Directory.EnumerateDirectories(
-						dataContainer, "TRViS.UserContents", SearchOption.AllDirectories))
-					{
-						try
-						{
-							Directory.Delete(dir, recursive: true);
-							TestContext.Out.WriteLine($"RestartAppInSharedSession: cleared {dir}");
-						}
-						catch (Exception ex)
-						{
-							TestContext.Out.WriteLine($"RestartAppInSharedSession: failed to clear {dir}: {ex.Message}");
-						}
-					}
-				}
-				catch (Exception ex)
-				{
-					TestContext.Out.WriteLine($"RestartAppInSharedSession: enumerate {dataContainer} failed: {ex.Message}");
-				}
-			}
+				WipeUserContentsUnder(dataContainer);
 		}
 
-		// Step 3: relaunch via Appium.
+		// Step 3: relaunch.
+		Driver.ExecuteScript("mobile: launchApp",
+			new Dictionary<string, object> { { "bundleId", AppPackage } });
+	}
+
+	private void RestartAppMac()
+	{
+		// mac2 exposes its execute commands under the `macos:` namespace,
+		// not `mobile:` like XCUITest/UiAutomator2. Use the Appium-driven
+		// terminate (NOT pkill — pkill orphans the XCUIApplication target
+		// the mac2 driver attached to).
+		TryExecuteScript("macos: terminateApp",
+			new Dictionary<string, object> { { "bundleId", AppPackage } });
+
+		// Wipe the same data the per-test ResetAppState wipes on mac, but
+		// keep NSUserDefaults so the privacy flag persists.
+		string? home = Environment.GetEnvironmentVariable("HOME");
+		if (!string.IsNullOrEmpty(home))
+		{
+			string containerDir = Path.Combine(home, "Library", "Containers", AppPackage, "Data");
+			if (Directory.Exists(containerDir))
+				WipeUserContentsUnder(containerDir);
+		}
+
+		// Relaunch via mac2's launchApp.
+		Driver.ExecuteScript("macos: launchApp",
+			new Dictionary<string, object> { { "bundleId", AppPackage } });
+	}
+
+	private void RestartAppAndroid()
+	{
+		// Terminate via Appium.
+		TryExecuteScript("mobile: terminateApp",
+			new Dictionary<string, object> { { "appId", AppPackage } });
+
+		// Clear app data via Appium's adb wrapper — this resets
+		// SharedPreferences too, so a re-accept of privacy is needed (no
+		// platform-equivalent of "keep prefs across restart" because the
+		// per-test driver-creation path normally reinstalls the APK,
+		// which wipes everything; mirror that here for behavioural
+		// equivalence).
+		TryExecuteScript("mobile: clearApp",
+			new Dictionary<string, object> { { "appId", AppPackage } });
+
+		// Activate (launch the cleared app via its launcher activity).
+		Driver.ExecuteScript("mobile: activateApp",
+			new Dictionary<string, object> { { "appId", AppPackage } });
+	}
+
+	private void RestartAppWindows()
+	{
+		// windows-driver's session lifecycle is tightly coupled to the
+		// originally-launched app. Try the documented close+launch surface
+		// first; if either fails, fall back to recreating the Appium
+		// session entirely (slower but reliable). The session-create retry
+		// added separately to SetUpDriver covers the rapid-recreate flake
+		// on windows-driver.
+		bool restartOk = false;
 		try
 		{
-			Driver.ExecuteScript("mobile: launchApp",
-				new Dictionary<string, object> { { "bundleId", AppPackage } });
+			TryExecuteScript("windows: closeApp", new Dictionary<string, object>());
+			// Wipe LocalAppData same as ResetAppState's Windows path.
+			var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			foreach (var folderName in new[] { AppPackage, "TRViS" })
+			{
+				var path = Path.Combine(localAppData, folderName);
+				try
+				{
+					if (Directory.Exists(path))
+						Directory.Delete(path, recursive: true);
+				}
+				catch { /* best-effort */ }
+			}
+			Driver.ExecuteScript("windows: launchApp", new Dictionary<string, object>());
+			restartOk = true;
 		}
 		catch (Exception ex)
 		{
-			TestContext.Out.WriteLine($"RestartAppInSharedSession: launchApp threw {ex.GetType().Name}: {ex.Message}");
-			throw;
+			TestContext.Out.WriteLine(
+				$"RestartAppInSharedSession (Windows): closeApp/launchApp failed ({ex.GetType().Name}: {ex.Message}). " +
+				$"Falling back to fresh Appium session.");
+		}
+
+		if (!restartOk)
+		{
+			// Tear down and recreate the session. The per-test
+			// ResetAppState handles pkill + LocalAppData wipe; SetUpDriver
+			// retries on transient SocketException.
+			try { _driver?.Quit(); } catch { /* best-effort */ }
+			_driver = null;
+			ResetAppState(_platform);
+			var appPath = TestContext.Parameters["appPath"]
+				?? throw new InvalidOperationException("TestRunParameter 'appPath' is required.");
+			var appiumUrl = TestContext.Parameters["appiumUrl"] ?? "http://localhost:4723";
+			SetUpDriver(_platform, appPath, appiumUrl);
+		}
+	}
+
+	private void TryExecuteScript(string script, Dictionary<string, object> args)
+	{
+		try
+		{
+			Driver.ExecuteScript(script, args);
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"RestartAppInSharedSession: '{script}' threw {ex.GetType().Name}: {ex.Message}");
+		}
+	}
+
+	private static void WipeUserContentsUnder(string containerDir)
+	{
+		// Wipe every TRViS.UserContents folder under the data container so a
+		// JSON file seeded by a previous test (SelectFileDialogTests etc.)
+		// doesn't trigger DefaultTimetableFileLoader's single-file
+		// auto-load on the next launch — that would put the app in Home
+		// mode and break Start-mode tests.
+		try
+		{
+			foreach (string dir in Directory.EnumerateDirectories(
+				containerDir, "TRViS.UserContents", SearchOption.AllDirectories))
+			{
+				try
+				{
+					Directory.Delete(dir, recursive: true);
+					TestContext.Out.WriteLine($"RestartAppInSharedSession: cleared {dir}");
+				}
+				catch (Exception ex)
+				{
+					TestContext.Out.WriteLine($"RestartAppInSharedSession: failed to clear {dir}: {ex.Message}");
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"RestartAppInSharedSession: enumerate {containerDir} failed: {ex.Message}");
 		}
 	}
 
