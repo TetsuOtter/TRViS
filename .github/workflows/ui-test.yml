@@ -350,6 +350,24 @@ jobs:
         # the 45-minute job timeout cancelled everything).
         timeout-minutes: 3
         run: |
+          # Capture host-side state FIRST: if the emulator died, the most
+          # informative signal is whether the Linux OOM killer reaped qemu
+          # (look for "Killed process NNN (qemu-system-x86)" in dmesg) or
+          # whether qemu exited on its own (no dmesg trace, look in
+          # emulator-attempt-N.log for the actual exit reason). Without
+          # this we cannot tell host-OOM apart from a qemu/guest crash,
+          # and a memory bump becomes a guess instead of a fix.
+          echo "=== host memory (free -h) ==="
+          free -h || true
+          echo "=== running qemu/emulator processes ==="
+          ps -eo pid,stat,rss,etime,cmd | grep -iE 'qemu|emulator' | grep -v grep || echo "(none — emulator process is gone)"
+          echo "=== dmesg OOM-killer hits ==="
+          # `sudo dmesg` because ubuntu-latest restricts kernel.dmesg_restrict;
+          # the runner user has passwordless sudo on hosted runners.
+          sudo dmesg -T 2>/dev/null | grep -iE 'killed process|out of memory|oom-killer' || echo "(no OOM messages)"
+          echo "=== dmesg (last 200 lines) ==="
+          sudo dmesg -T 2>/dev/null | tail -n 200 || echo "(dmesg unavailable)"
+
           echo "=== adb devices ==="
           timeout 15 $ANDROID_SDK_ROOT/platform-tools/adb devices -l 2>&1 || echo "(adb devices timed out)"
           # Tail the *streamed* logcat.log, not `adb logcat -d`, which only sees
