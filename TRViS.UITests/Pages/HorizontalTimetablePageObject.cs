@@ -7,22 +7,22 @@ namespace TRViS.UITests.Pages;
 
 /// <summary>
 /// Page object for the horizontal-timetable Shell route. The page is a single
-/// AppBar + WebView; the WebView surfaces under a stable AutomationId on every
-/// platform (the WebView itself, not its rendered HTML).
+/// AppBar + WebView (wrapped in a Grid that carries the AutomationId).
 /// </summary>
 public class HorizontalTimetablePageObject : PageObject
 {
 	public HorizontalTimetablePageObject(AppiumDriver driver) : base(driver) { }
 
 	/// <summary>
-	/// Finds the page's WebView. iOS/macOS map MAUI's AutomationId onto the
-	/// native WebView control's accessibility identifier, so the standard
-	/// AccessibilityId lookup works. Android and Windows do not forward the
-	/// MAUI WebView's AutomationId to UIA / resource-id (the WinUI handler
-	/// leaves <c>Microsoft.UI.Xaml.Controls.WebView2.AutomationId</c> blank,
-	/// the UIA2 handler does not surface <c>resource-id</c> at all), so we
-	/// fall back to locating the sole WebView node by its platform class
-	/// name. The page hosts a single WebView, so this is unambiguous.
+	/// Finds the page's WebView. On iOS / macOS the wrapper Grid surfaces the
+	/// MAUI AutomationId via the native accessibility identifier, so the
+	/// standard AccessibilityId lookup is enough. Android and Windows are
+	/// problematic in different ways: UIA2 does not forward AutomationId to
+	/// <c>resource-id</c>, and WinUI 3 exposes the Grid as a non-control
+	/// Pane that <c>AccessibilityId</c> cannot reach. On both we fall back
+	/// to locating the sole native WebView node by its class name —
+	/// <c>android.webkit.WebView</c> on Android and
+	/// <c>Microsoft.UI.Xaml.Controls.WebView2</c> on Windows.
 	/// </summary>
 	public AppiumElement WebView => (IsAndroid || IsWindows)
 		? WaitForWebViewByClassName()

@@ -55,19 +55,23 @@ public class HorizontalTimetablePage : ContentPage
 		Grid.SetRow(AppBarView, 0);
 		mainGrid.Children.Add(AppBarView);
 
-		// iOS/macOS は WebView ハンドラが AutomationId をネイティブのアクセシビリティ
-		// 属性に直接マップするので AccessibilityId で掴める。Android (UIA2) と
-		// Windows (WinUI3) は AutomationId をネイティブ WebView の resource-id /
-		// AutomationId に伝えないため、PageObject 側でプラットフォーム別の class 名
-		// (android.webkit.WebView / Microsoft.UI.Xaml.Controls.WebView2) でフォール
-		// バックしている (HorizontalTimetablePageObject.cs)。AutomationId 自体は
-		// iOS/macOS の経路で必要なので残す。
-		ContentWebView = new WebView
+		// iOS は WebView 自体に AutomationId を載せれば WKWebView の accessibility
+		// identifier に伝わるが、macCatalyst の Mac2Driver では伝わらず AccessibilityId
+		// で掴めない (経験的に確認済み)。ラッパー Grid 側に AutomationId を載せると
+		// iOS / macOS どちらも AccessibilityId で取れるようになる。Android (UIA2) と
+		// Windows (WinUI3) では AutomationId を Grid に置いても resource-id /
+		// AutomationId に伝わらない (Windows は non-control Pane として現れる) ため、
+		// PageObject 側でネイティブ WebView の class 名 (android.webkit.WebView /
+		// Microsoft.UI.Xaml.Controls.WebView2) を XPath / By.ClassName でフォール
+		// バックしている (HorizontalTimetablePageObject.cs)。
+		ContentWebView = new WebView();
+		var webViewHost = new Grid
 		{
 			AutomationId = "HorizontalTimetable.WebView",
 		};
-		Grid.SetRow(ContentWebView, 1);
-		mainGrid.Children.Add(ContentWebView);
+		webViewHost.Children.Add(ContentWebView);
+		Grid.SetRow(webViewHost, 1);
+		mainGrid.Children.Add(webViewHost);
 
 		Content = mainGrid;
 
