@@ -63,9 +63,9 @@ public partial class SettingFileStructure
 	public TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.Normal;
 
 	/// <summary>
-	/// 横型時刻表ボタンの表示名を「Ｅ電時刻表」にするかどうか
+	/// 横型時刻表ボタンに表示するラベル
 	/// </summary>
-	public bool UseETrainTimetableName { get; set; } = false;
+	public HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
 
 	public override string ToString()
 	{
@@ -78,7 +78,7 @@ public partial class SettingFileStructure
 			+ $"ShowMapWhenLandscape: {ShowMapWhenLandscape},"
 			+ $"KeepScreenOnWhenRunning: {KeepScreenOnWhenRunning},"
 			+ $"TimeProgressionRate: {TimeProgressionRate},"
-			+ $"UseETrainTimetableName: {UseETrainTimetableName}"
+			+ $"HorizontalTimetableButtonLabel: {HorizontalTimetableButtonLabel}"
 		;
 	}
 
@@ -96,7 +96,7 @@ public partial class SettingFileStructure
 			&& ShowMapWhenLandscape.Equals(v.ShowMapWhenLandscape)
 			&& KeepScreenOnWhenRunning.Equals(v.KeepScreenOnWhenRunning)
 			&& TimeProgressionRate.Equals(v.TimeProgressionRate)
-			&& UseETrainTimetableName.Equals(v.UseETrainTimetableName)
+			&& HorizontalTimetableButtonLabel.Equals(v.HorizontalTimetableButtonLabel)
 		;
 	}
 
@@ -104,7 +104,7 @@ public partial class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, UseETrainTimetableName));
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, HorizontalTimetableButtonLabel));
 
 	#region Loaders
 

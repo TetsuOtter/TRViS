@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls.Shapes;
 
+using TRViS.MyAppCustomizables;
 using TRViS.Services;
 using TRViS.ViewModels;
 
@@ -9,8 +10,9 @@ public class HorizontalTimetableButton : Border
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	const string NormalButtonText = "横型時刻表"; // 横型時刻表
-	const string ETrainButtonText = "Ｅ電時刻表"; // Ｅ電時刻表
+	internal const string HorizontalButtonText = "横型時刻表";
+	internal const string TrainButtonText = "電車時刻表";
+	internal const string ETrainButtonText = "Ｅ電時刻表";
 
 	readonly Label _label;
 
@@ -41,7 +43,7 @@ public class HorizontalTimetableButton : Border
 		EasterEggPageViewModel vm = InstanceManager.EasterEggPageViewModel;
 		_label = new Label
 		{
-			Text = vm.UseETrainTimetableName ? ETrainButtonText : NormalButtonText,
+			Text = GetButtonText(vm.HorizontalTimetableButtonLabel),
 			FontSize = 28,
 			FontFamily = DTACElementStyles.DefaultFontFamily,
 			FontAttributes = FontAttributes.Bold,
@@ -58,9 +60,16 @@ public class HorizontalTimetableButton : Border
 		logger.Trace("Created");
 	}
 
+	internal static string GetButtonText(HorizontalTimetableButtonLabel label) => label switch
+	{
+		HorizontalTimetableButtonLabel.Train => TrainButtonText,
+		HorizontalTimetableButtonLabel.ETrain => ETrainButtonText,
+		_ => HorizontalButtonText,
+	};
+
 	void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName != nameof(EasterEggPageViewModel.UseETrainTimetableName))
+		if (e.PropertyName != nameof(EasterEggPageViewModel.HorizontalTimetableButtonLabel))
 			return;
 
 		if (sender is not EasterEggPageViewModel vm)
@@ -68,7 +77,7 @@ public class HorizontalTimetableButton : Border
 
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
-			_label.Text = vm.UseETrainTimetableName ? ETrainButtonText : NormalButtonText;
+			_label.Text = GetButtonText(vm.HorizontalTimetableButtonLabel);
 		});
 	}
 }

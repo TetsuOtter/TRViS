@@ -174,16 +174,22 @@
 							IsToggled="{Binding KeepScreenOnWhenRunning}"/>
 					</HorizontalStackLayout>
 					<HorizontalStackLayout
-						HorizontalOptions="End">
+						HorizontalOptions="End"
+						Spacing="8">
 						<Label
-							Text="横型時刻表ボタンを「Ｅ電時刻表」と表示する"
-							Margin="0,0,8,0"
+							Text="横型時刻表ボタンの表示名"
 							VerticalOptions="Center"/>
-						<Switch
-							AutomationId="Settings.UseETrainTimetableNameSwitch"
-							OnColor="GreenYellow"
+						<Picker
+							x:Name="HorizontalTimetableButtonLabelPicker"
+							AutomationId="Settings.HorizontalTimetableButtonLabelPicker"
 							VerticalOptions="Center"
-							IsToggled="{Binding UseETrainTimetableName}"/>
+							SelectedIndexChanged="OnHorizontalTimetableButtonLabelPickerSelectedIndexChanged">
+							<Picker.Items>
+								<x:String>横型時刻表</x:String>
+								<x:String>電車時刻表</x:String>
+								<x:String>Ｅ電時刻表</x:String>
+							</Picker.Items>
+						</Picker>
 					</HorizontalStackLayout>
 				</VerticalStackLayout>
 			</Border>
