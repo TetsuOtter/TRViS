@@ -1,3 +1,4 @@
+using TRViS.MyAppCustomizables;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -27,6 +28,9 @@ public partial class EasterEggPage : ContentPage
 		// Initialize TimeProgressionRatePicker selection based on ViewModel
 		UpdateTimeProgressionRatePickerSelection();
 
+		// Initialize HorizontalTimetableButtonLabelPicker selection based on ViewModel
+		UpdateHorizontalTimetableButtonLabelPickerSelection();
+
 		// Update picker when ViewModel's SelectedAppTheme changes
 		ViewModel.PropertyChanged += (_, e) =>
 		{
@@ -38,6 +42,10 @@ public partial class EasterEggPage : ContentPage
 			{
 				UpdateTimeProgressionRatePickerSelection();
 			}
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.HorizontalTimetableButtonLabel))
+			{
+				UpdateHorizontalTimetableButtonLabelPickerSelection();
+			}
 		};
 
 #if IOS || MACCATALYST
@@ -48,8 +56,6 @@ public partial class EasterEggPage : ContentPage
 
 		// KeepScreenOnWhenRunning is only for phones and tablets
 		KeepScreenOnWhenRunningHeaderLabel.IsVisible = DeviceInfo.Idiom == DeviceIdiom.Phone || DeviceInfo.Idiom == DeviceIdiom.Tablet;
-
-		AdvancedSettingsBorder.IsVisible = ShowMapWhenLandscapeHeaderLabel.IsVisible || KeepScreenOnWhenRunningHeaderLabel.IsVisible;
 
 		logger.Trace("EasterEggPage Created");
 	}
@@ -177,6 +183,47 @@ public partial class EasterEggPage : ContentPage
 		finally
 		{
 			_isUpdatingTimeProgressionRatePicker = false;
+		}
+	}
+
+	private bool _isUpdatingHorizontalTimetableButtonLabelPicker = false;
+
+	private void OnHorizontalTimetableButtonLabelPickerSelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (_isUpdatingHorizontalTimetableButtonLabelPicker)
+			return;
+
+		if (sender is not Picker picker)
+			return;
+
+		HorizontalTimetableButtonLabel newLabel = picker.SelectedIndex switch
+		{
+			0 => HorizontalTimetableButtonLabel.Horizontal,
+			1 => HorizontalTimetableButtonLabel.Train,
+			2 => HorizontalTimetableButtonLabel.ETrain,
+			_ => HorizontalTimetableButtonLabel.Horizontal
+		};
+
+		logger.Info("HorizontalTimetableButtonLabel changed to {0}", newLabel);
+		ViewModel.HorizontalTimetableButtonLabel = newLabel;
+	}
+
+	private void UpdateHorizontalTimetableButtonLabelPickerSelection()
+	{
+		_isUpdatingHorizontalTimetableButtonLabelPicker = true;
+		try
+		{
+			HorizontalTimetableButtonLabelPicker.SelectedIndex = ViewModel.HorizontalTimetableButtonLabel switch
+			{
+				HorizontalTimetableButtonLabel.Horizontal => 0,
+				HorizontalTimetableButtonLabel.Train => 1,
+				HorizontalTimetableButtonLabel.ETrain => 2,
+				_ => 0
+			};
+		}
+		finally
+		{
+			_isUpdatingHorizontalTimetableButtonLabelPicker = false;
 		}
 	}
 }

@@ -1,6 +1,7 @@
 using TRViS.Controls;
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.DTAC.Logic.Presenter;
 using TRViS.DTAC.ViewModels;
 using TRViS.IO.Models;
@@ -187,10 +188,24 @@ public partial class VerticalStylePage : ContentView
 		NominalTractiveCapacityLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 		BeginRemarksLabel.CurrentAppThemeColorBindingExtension = DTACElementStyles.DefaultTextColor;
 
-		// Initial debug map state
 		UpdateDebugMapVisibility();
 
+		var appVm = InstanceManager.AppViewModel;
+		appVm.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName == nameof(TRViS.ViewModels.AppViewModel.SelectedWork))
+				UpdateHasHorizontalTimetable(appVm.SelectedWork);
+		};
+		UpdateHasHorizontalTimetable(appVm.SelectedWork);
+
 		logger.Trace("Created");
+	}
+
+	void UpdateHasHorizontalTimetable(IO.Models.Work? work)
+	{
+		bool hasHorizontalTimetable = HorizontalTimetableContentBuilder.HasHorizontalTimetable(work);
+		logger.Info("UpdateHasHorizontalTimetable: {0}", hasHorizontalTimetable);
+		PageHeaderArea.HasHorizontalTimetable = hasHorizontalTimetable;
 	}
 
 	/// <summary>

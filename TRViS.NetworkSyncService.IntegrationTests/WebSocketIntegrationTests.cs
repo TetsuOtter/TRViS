@@ -491,6 +491,44 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task Timetable_WorkScope_DeliversETrainTimetableContent()
+	{
+		// 横型時刻表 (ETrainTimetable) のバイナリ内容が WebSocket 経由で配信され、
+		// Work レコードに base64 デコードされた byte[] として格納されること。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await SeedAllScopeAsync(service, _control);
+
+			var ttTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(
+				TestData.WorkScopeJsonWithETrainTimetable,
+				workGroupId: TestData.WorkGroupId,
+				workId: TestData.WorkId
+			);
+			await ttTask;
+
+			var loader = (ILoader)service;
+			var work = loader.GetWorkList(TestData.WorkGroupId).First(w => w.Id == TestData.WorkId);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(work.HasETrainTimetable, Is.True);
+				Assert.That(work.ETrainTimetableContentType, Is.EqualTo(TestData.ETrainTimetableContentTypePng));
+				Assert.That(work.ETrainTimetableContent, Is.EqualTo(TestData.ETrainTimetableContentBytes));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
 	public async Task Timetable_WorkGroupScope_CachesWorkGroup()
 	{
 		var service = await ConnectServiceAsync();
