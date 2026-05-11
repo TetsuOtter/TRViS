@@ -412,6 +412,126 @@ jobs:
           path: "**/*.trx"
 
   # ─────────────────────────────────────────────
+  # iOS Simulator app build (shared by all device-class matrix entries)
+  #
+  # Building the simulator .app once and reusing it across the device-class
+  # matrix is the main lever for reducing iOS UI-test wall-clock time and
+  # runner-minutes. Each test job used to repeat workload install + dotnet
+  # build (~6-9 min), tripling the cost of the matrix on a runner pool that
+  # is already queue-bound. After the split, the iOS path consumes ~50
+  # runner-minutes instead of ~90.
+  # ─────────────────────────────────────────────
+  build-ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install dotnet workloads
+        # Matches the CD workflow's iOS build step. `dotnet workload restore`
+        # would also pull maui-android, which the iOS build does not need;
+        # maccatalyst is kept because TRViS.csproj's <TargetFrameworks> on
+        # macOS includes net10.0-maccatalyst alongside net10.0-ios, and
+        # solution-level restore evaluation has historically required it.
+        run: dotnet workload install maui-ios maccatalyst
+
+      - name: Create placeholder GoogleService-Info.plist
+        # TRViS.csproj declares <BundleResource Include="GoogleService-Info.plist" />
+        # next to the csproj, so the build needs a file at TRViS/GoogleService-Info.plist
+        # (not the Platforms/iOS path that run-ui-tests.sh writes locally).
+        run: |
+          cat > TRViS/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>000000000000-placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>com.googleusercontent.apps.000000000000-placeholder</string>
+            <key>API_KEY</key>
+            <string>placeholder_api_key</string>
+            <key>GCM_SENDER_ID</key>
+            <string>000000000000</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>${{ env.APP_PACKAGE }}</string>
+            <key>PROJECT_ID</key>
+            <string>placeholder-project-id</string>
+            <key>STORAGE_BUCKET</key>
+            <string>placeholder-project-id.appspot.com</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <true/>
+            <key>IS_SIGNIN_ENABLED</key>
+            <true/>
+            <key>GOOGLE_APP_ID</key>
+            <string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build iOS Simulator app
+        # Mirrors the build performed by run-ui-tests.sh for the iOS simulator:
+        # ad-hoc signing (CodesignKey="-", _RequireCodeSigning=false) and the
+        # same UI_TEST/DISABLE_FIREBASE defines as the other platforms.
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_IOS }}
+          -r ${{ env.TARGET_RUNTIME_IOS_SIM }}
+          -c Debug
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
+          /p:_RequireCodeSigning=false
+          /p:CodesignKey="-"
+
+      - name: Package iOS Simulator app
+        # Tar the .app to preserve symlinks, executable bits, and code-signing
+        # extended attributes across the artifact round-trip. macos-26 ships
+        # bsdtar, which preserves xattrs by default; run-ui-tests.sh re-signs
+        # everything in the bundle after extraction regardless, so any
+        # signature damage from packaging would be repaired before launch.
+        run: |
+          set -euo pipefail
+          APP_DIR=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }} -maxdepth 1 -name "*.app" -type d | head -1)
+          if [ -z "$APP_DIR" ]; then
+            echo "ERROR: No .app bundle found under TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+            find TRViS/bin/Debug -maxdepth 4 -name "*.app" -type d 2>/dev/null || true
+            exit 1
+          fi
+          echo "Packaging: $APP_DIR"
+          tar -czf trvis-ios-sim-app.tar.gz -C "$(dirname "$APP_DIR")" "$(basename "$APP_DIR")"
+          ls -lh trvis-ios-sim-app.tar.gz
+
+      - name: Upload iOS app artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-sim-app
+          path: trvis-ios-sim-app.tar.gz
+          # The tarball is already gzip-compressed; skip the artifact action's
+          # own zlib pass so the upload doesn't pay for compression twice.
+          compression-level: 0
+          # Test jobs run in the same workflow, so the artifact is only needed
+          # for the duration of this run.
+          retention-days: 1
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────
   # iOS Simulator UI Tests
   #
   # Runs the same suite in parallel across an iPhone and two iPad mini
@@ -419,10 +539,16 @@ jobs:
   # not pre-installed on macos-26 runners; the job attempts to download
   # it but tolerates failure (continue-on-error) since macos-26 runners
   # may not be able to install older runtimes.
+  #
+  # Each entry downloads the .app produced by `build-ios` instead of
+  # rebuilding it; the iOS/MacCatalyst MAUI workloads are not installed
+  # here because TRViS.UITests.csproj targets plain net10.0 with no
+  # ProjectReferences and `dotnet test` does not need them.
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
     timeout-minutes: 40
+    needs: build-ios
     strategy:
       # Run all device classes regardless of one failing — useful while a class
       # is being added/stabilized (e.g. iPad mini 5th gen runtime availability).
@@ -453,12 +579,6 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1.7.0
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
-
-      - name: Restore workloads
-        run: dotnet workload restore
-
-      - name: Install iOS and MacCatalyst workloads
-        run: dotnet workload install maui-ios maccatalyst
 
       - name: Install GNU coreutils (provides timeout)
         run: brew install coreutils
@@ -508,45 +628,25 @@ jobs:
       - name: Install XCUITest driver
         run: appium driver install xcuitest@10.32.1
 
-      - name: Create placeholder GoogleService-Info.plist
+      - name: Download iOS app artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ios-sim-app
+
+      - name: Extract iOS app to build output path
+        # run-ui-tests.sh discovers the app via
+        # `find TRViS/bin/Debug/$TARGET_FRAMEWORK/$TARGET_RUNTIME -name "*.app"`,
+        # so the tarball is extracted into the exact path the script expects.
+        # The script's --skip-build flag prevents a rebuild from clobbering it.
         run: |
-          cat > TRViS/GoogleService-Info.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CLIENT_ID</key>
-            <string>000000000000-placeholder.apps.googleusercontent.com</string>
-            <key>REVERSED_CLIENT_ID</key>
-            <string>com.googleusercontent.apps.000000000000-placeholder</string>
-            <key>API_KEY</key>
-            <string>placeholder_api_key</string>
-            <key>GCM_SENDER_ID</key>
-            <string>000000000000</string>
-            <key>PLIST_VERSION</key>
-            <string>1</string>
-            <key>BUNDLE_ID</key>
-            <string>${{ env.APP_PACKAGE }}</string>
-            <key>PROJECT_ID</key>
-            <string>placeholder-project-id</string>
-            <key>STORAGE_BUCKET</key>
-            <string>placeholder-project-id.appspot.com</string>
-            <key>IS_ADS_ENABLED</key>
-            <false/>
-            <key>IS_ANALYTICS_ENABLED</key>
-            <false/>
-            <key>IS_GCM_ENABLED</key>
-            <true/>
-            <key>IS_SIGNIN_ENABLED</key>
-            <true/>
-            <key>GOOGLE_APP_ID</key>
-            <string>1:000000000000:ios:0000000000000000</string>
-          </dict>
-          </plist>
-          EOF
+          set -euo pipefail
+          DEST="TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+          mkdir -p "$DEST"
+          tar -xzf trvis-ios-sim-app.tar.gz -C "$DEST"
+          ls -la "$DEST"
 
       - name: Run iOS UI Tests (${{ matrix.device-class }})
-        run: ./run-ui-tests.sh ios --skip-install --device-class=${{ matrix.device-class }}
+        run: ./run-ui-tests.sh ios --skip-build --skip-install --device-class=${{ matrix.device-class }}
 
       - name: Upload test results
         if: always()
