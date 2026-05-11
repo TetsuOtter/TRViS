@@ -7,5 +7,23 @@
     "author": "Google",
     "projectUrl": "https://github.com/google/material-design-icons",
     "copyrightText": null
+  },
+  {
+    "id": "pdf.js",
+    "resolvedVersion": "3.11.174",
+    "licenseDataType": "expression",
+    "license": "Apache-2.0",
+    "author": "Mozilla Foundation",
+    "projectUrl": "https://github.com/mozilla/pdf.js",
+    "copyrightText": null
+  },
+  {
+    "id": "pdf.js (legacy build)",
+    "resolvedVersion": "2.16.105",
+    "licenseDataType": "expression",
+    "license": "Apache-2.0",
+    "author": "Mozilla Foundation",
+    "projectUrl": "https://github.com/mozilla/pdf.js",
+    "copyrightText": null
   }
 ]
