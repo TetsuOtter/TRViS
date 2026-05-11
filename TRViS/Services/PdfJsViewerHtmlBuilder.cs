@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace TRViS.Services;
 
 /// <summary>
@@ -6,10 +8,16 @@ namespace TRViS.Services;
 /// pdf.js / pdf.worker は base64 で埋め込み、Blob URL 経由で実行させる。
 /// ベクター描画 (SVGGraphics) を採用しており、ピンチズーム時もピクセル化しない。
 /// </summary>
+/// <remarks>
+/// 既定では pdf.js v3 (pdfjs/) を使うが、iOS 12 系 (Safari 12; nullish coalescing 未対応で
+/// v3 を eval できない) では v2.16.105 のレガシービルド (pdfjs/legacy/) にフォールバックする。
+/// </remarks>
 internal static class PdfJsViewerHtmlBuilder
 {
-	private const string PdfJsMainAssetPath = "pdfjs/pdf.min.js";
-	private const string PdfJsWorkerAssetPath = "pdfjs/pdf.worker.min.js";
+	private const string ModernMainAssetPath = "pdfjs/pdf.min.js";
+	private const string ModernWorkerAssetPath = "pdfjs/pdf.worker.min.js";
+	private const string LegacyMainAssetPath = "pdfjs/legacy/pdf.min.js";
+	private const string LegacyWorkerAssetPath = "pdfjs/legacy/pdf.worker.min.js";
 
 	private const string MainPlaceholder = "__PDFJS_MAIN_B64__";
 	private const string WorkerPlaceholder = "__PDFJS_WORKER_B64__";
@@ -17,9 +25,7 @@ internal static class PdfJsViewerHtmlBuilder
 
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	private static string? _cachedMainBase64;
-	private static string? _cachedWorkerBase64;
-	private static readonly SemaphoreSlim _loadLock = new(1, 1);
+	private static readonly ConcurrentDictionary<string, Task<string>> _assetBase64Cache = new();
 
 	/// <summary>
 	/// PDF バイト列 (base64 文字列) を受け取り、PDF.js で全ページをレンダリングする
@@ -33,22 +39,22 @@ internal static class PdfJsViewerHtmlBuilder
 		return BuildHtml(pdfBase64, mainB64, workerB64);
 	}
 
+	// iOS 12 系 WebView は nullish coalescing (??) を解釈できないため、現行 (v3) ビルドの
+	// pdf.min.js は eval 時に SyntaxError となり pdfjsLib が定義されない。
+	// iOS 13 以降は Safari 13+ で ?? を含む構文を扱えるので、現行ビルドをそのまま使う。
+	private static bool UseLegacyBuild()
+		=> OperatingSystem.IsIOS() && !OperatingSystem.IsIOSVersionAtLeast(13);
+
 	private static async Task<(string MainBase64, string WorkerBase64)> LoadScriptsAsync()
 	{
-		if (_cachedMainBase64 is not null && _cachedWorkerBase64 is not null)
-			return (_cachedMainBase64, _cachedWorkerBase64);
+		bool legacy = UseLegacyBuild();
+		string mainPath = legacy ? LegacyMainAssetPath : ModernMainAssetPath;
+		string workerPath = legacy ? LegacyWorkerAssetPath : ModernWorkerAssetPath;
 
-		await _loadLock.WaitAsync().ConfigureAwait(false);
-		try
-		{
-			_cachedMainBase64 ??= await ReadAssetAsBase64Async(PdfJsMainAssetPath).ConfigureAwait(false);
-			_cachedWorkerBase64 ??= await ReadAssetAsBase64Async(PdfJsWorkerAssetPath).ConfigureAwait(false);
-			return (_cachedMainBase64, _cachedWorkerBase64);
-		}
-		finally
-		{
-			_loadLock.Release();
-		}
+		var mainTask = _assetBase64Cache.GetOrAdd(mainPath, ReadAssetAsBase64Async);
+		var workerTask = _assetBase64Cache.GetOrAdd(workerPath, ReadAssetAsBase64Async);
+
+		return (await mainTask.ConfigureAwait(false), await workerTask.ConfigureAwait(false));
 	}
 
 	private static async Task<string> ReadAssetAsBase64Async(string path)
