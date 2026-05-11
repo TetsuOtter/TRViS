@@ -337,10 +337,10 @@ public abstract class BaseUITest
 			// test. NUnit's RetryCommand re-invokes SetUp/TearDown per
 			// attempt with the same Test object, so retries share
 			// `FullName`; only the first attempt of a new test method
-			// sees a name change. On a retry we MUST NOT app-restart —
-			// the test may have left transient state we want to retry
-			// against, and a clean restart undoes whatever the retry was
-			// trying to redo deterministically.
+			// sees a name change. The cascade-skip only kicks in when a
+			// genuinely-new test starts after a prior failure — retries
+			// must continue against the same in-app state to do anything
+			// useful.
 			if (testName != _currentTestName)
 			{
 				if (_priorTestFailedInFixture)
@@ -348,14 +348,17 @@ public abstract class BaseUITest
 						"Skipped: an earlier test in this fixture failed after all retries. " +
 						"Tests share one Appium session, so post-failure state is undefined.");
 				_currentTestName = testName;
-
-				// First attempt of a new test: restart the app in-place so
-				// the next test starts from a fresh launch. This resets
-				// MAUI singletons (TimetableSelectionManager, AppViewModel,
-				// DTACViewHostViewModel) which `Driver.Quit()` alone would
-				// NOT have reset under noReset:true.
-				RestartAppInSharedSession();
 			}
+			// No per-test app-restart and no Driver.Quit. Tests within a
+			// fixture run against the same continuously-running app
+			// instance; each test owns its own pre-state via in-app
+			// UI_TEST seams (ClearLoaderForTesting,
+			// ClearUrlHistoryForTesting, ClearSampleFilesForTesting,
+			// etc.) or via re-navigating to a known page in its own
+			// [SetUp] override. This avoids the ~3-10 s per-test
+			// terminate+launch cost where one wasn't actually needed —
+			// e.g. consecutive flyout navigations or open/close cycles
+			// of the same dialog don't need a clean app to be meaningful.
 			return;
 		}
 

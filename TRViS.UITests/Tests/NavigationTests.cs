@@ -21,11 +21,15 @@ public class NavigationTests : BaseUITest
 	{
 		base.SetUp();
 
-		// The app launches into StartHomePage. Accept privacy via the in-page dialog
-		// so feature buttons (Connect, SelectFile, etc.) aren't gated on the privacy
-		// modal during navigation tests.
+		// AppShellPage.OpenFlyout works from any flyout-capable page, so
+		// in shared-session mode we don't need to navigate back to
+		// StartHome between tests — test 1 lands on ThirdParty, test 2's
+		// flyout opens from ThirdParty and navigates to Settings, etc.
+		// AcceptPrivacyPolicyIfNeeded handles the only state that
+		// genuinely needs StartHome: it fast-paths to a no-op when the
+		// privacy banner is not visible (always true after the first
+		// test, regardless of current page).
 		var startHome = new StartHomePageObject(Driver);
-		_ = startHome.Title; // wait for first render
 		startHome.AcceptPrivacyPolicyIfNeeded();
 
 		_shell = new AppShellPage(Driver);
