@@ -915,21 +915,21 @@ public partial class StartHomePage : ContentPage
 		try
 		{
 			var item = WorkGroupListView.SelectedItem as WorkGroupListItem;
-			logger.Info("WorkGroup selection changed: name={0}", item?.Name ?? "<null>");
 			_pendingWorkGroup = item?.Source;
 			// Switching Work Group invalidates any prior Work pick and rebuilds the
 			// Work list for the new group.
 			_pendingWork = null;
-			logger.Info("OnWorkGroupSelectionChanged: before RebuildWorkItems");
 			RebuildWorkItems();
-			logger.Info("OnWorkGroupSelectionChanged: before SyncListViewSelections (workItems.Count={0})", _workItems.Count);
 			SyncListViewSelections();
-			logger.Info("OnWorkGroupSelectionChanged: before RefreshStepUi");
 			RefreshStepUi();
-			logger.Info("OnWorkGroupSelectionChanged: done");
 		}
 		catch (Exception ex)
 		{
+			// UI-thread event handler — an exception that escapes here propagates
+			// through Mono's unhandled exception hook and aborts the process. Log
+			// + Crashlytics + sync-flush before rethrowing so the crash record is
+			// recoverable. (See MauiProgram.CurrentDomain_UnhandledException for
+			// the matching app-level flush.)
 			logger.Error(ex, "OnWorkGroupSelectionChanged failed");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnWorkGroupSelectionChanged");
 			try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); } catch { /* best-effort */ }
@@ -944,10 +944,8 @@ public partial class StartHomePage : ContentPage
 		try
 		{
 			var item = WorkListView.SelectedItem as WorkListItem;
-			logger.Info("Work selection changed: name={0}", item?.Name ?? "<null>");
 			_pendingWork = item?.Source;
 			RefreshStepUi();
-			logger.Info("OnWorkSelectionChanged: done");
 		}
 		catch (Exception ex)
 		{
