@@ -32,10 +32,12 @@ public class HorizontalTimetableTests : BaseUITest
 	}
 
 	/// <summary>
-	/// Sample data ships without an embedded horizontal timetable, so the
-	/// 横型時刻表 button must stay hidden after a normal sample-load + auto-open.
-	/// Doubles as a regression marker: if PageHeader ever renders the button
-	/// unconditionally, this test catches it.
+	/// The auto-open seam (<see cref="StartHomePageObject.AutoOpenForTesting"/>)
+	/// commits the first WorkGroup + first Work, which in sample_data.json is a
+	/// Work with HasETrainTimetable=false. So the 横型時刻表 button must stay
+	/// hidden even though other Works in the fixture do carry an embedded
+	/// timetable. Doubles as a regression marker: if PageHeader ever renders
+	/// the button unconditionally, this test catches it.
 	/// </summary>
 	[Test]
 	public void HorizontalTimetableButton_HiddenWithSampleData()
@@ -46,7 +48,7 @@ public class HorizontalTimetableTests : BaseUITest
 		Assert.That(
 			dtac.IsHorizontalTimetableButtonVisible(timeoutSeconds: 2),
 			Is.False,
-			"Sample data has no embedded horizontal timetable; the button must stay hidden.");
+			"The first sample Work has no embedded horizontal timetable; the button must stay hidden.");
 	}
 
 	/// <summary>

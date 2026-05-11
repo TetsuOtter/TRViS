@@ -154,6 +154,10 @@ public partial class PageHeader : Grid
 			new ColumnDefinition(60));
 
 		HorizontalTimetableButtonBorder = new HorizontalTimetableButton();
+		// HasHorizontalTimetable defaults to false but OnHasHorizontalTimetableChanged
+		// won't fire on the initial value, so make the hidden state explicit so the
+		// Border doesn't sit in the accessibility tree as a focusable phantom.
+		HorizontalTimetableButtonBorder.IsVisible = false;
 		var horizontalTimetableTap = new TapGestureRecognizer();
 		horizontalTimetableTap.Tapped += HorizontalTimetableButton_Tapped;
 		HorizontalTimetableButtonBorder.GestureRecognizers.Add(horizontalTimetableTap);

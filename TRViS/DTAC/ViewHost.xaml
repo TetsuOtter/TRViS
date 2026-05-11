@@ -17,7 +17,7 @@
 		<local:AppBar
 			x:Name="AppBarView"
 			Grid.Row="0"
-			LeftButtonText="&#xe5d2;"
+			LeftButtonText="&#xe241;"
 			LeftButtonAutomationId="DTAC.MenuButton"
 			TitleLabelAutomationId="DTAC.TitleLabel"
 			TimeLabelAutomationId="DTAC.TimeLabel"
