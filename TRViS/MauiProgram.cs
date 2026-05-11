@@ -68,6 +68,13 @@ public static class MauiProgram
 
 		logger.Fatal(ex, "UnhandledException");
 		InstanceManager.CrashlyticsWrapper.Log(ex, "UnhandledException");
+
+		// NLog's AsyncTargetWrapper buffers writes (~100ms batch). When the
+		// runtime aborts immediately after this hook (typical for an UI-thread
+		// unhandled exception that escapes through Mono), the buffered Fatal
+		// line is lost. Flush synchronously so the disk log captures it.
+		try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); }
+		catch { /* best-effort */ }
 	}
 
 	private static MauiAppBuilder ConfigureFirebase(this MauiAppBuilder builder)
