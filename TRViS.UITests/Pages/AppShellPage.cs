@@ -39,6 +39,27 @@ public class AppShellPage : PageObject
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
+			// DTAC.MenuButton (any platform): when we're on the DTAC view,
+			// the in-page MenuButton toggles Shell.Current.FlyoutIsPresented
+			// directly. Try this FIRST regardless of platform — on Android,
+			// the standard "Open navigation drawer" probe matches an AppBar
+			// button in DTAC that does NOT actually open the Shell flyout
+			// (CI run 25686784110 / Android log surfaced a 30 s flyout-item
+			// timeout because the wrong button was clicked). DTAC.MenuButton
+			// is the only reliable flyout-toggle from DTAC on every platform.
+			// Pages that don't host DTAC.MenuButton fall through to the
+			// platform-specific probes below.
+			try
+			{
+				var menu = Driver.FindElement(MobileBy.AccessibilityId(AutomationIds.DTAC.MenuButton));
+				if (menu.Displayed)
+				{
+					menu.Click();
+					return;
+				}
+			}
+			catch { }
+
 			// Android: standard hamburger "navigation drawer" button.
 			try
 			{
@@ -62,25 +83,6 @@ public class AppShellPage : PageObject
 					{ "duration", 0.5 },
 				});
 				return;
-			}
-			catch { }
-
-			// Mac Catalyst (mac2) / iOS: MAUI Shell does not render an
-			// XCUIElementTypeNavigationBar on every page (DTAC, for one,
-			// hosts its flyout-toggle as an in-page button). The DTAC view's
-			// MenuButton toggles Shell.Current.FlyoutIsPresented directly,
-			// so prefer it when present — it is the only reliable
-			// flyout-toggle reachable from DTAC on Mac Catalyst. Pages that
-			// don't host DTAC.MenuButton fall through to the generic
-			// NavigationBar probe below.
-			try
-			{
-				var menu = Driver.FindElement(MobileBy.AccessibilityId(AutomationIds.DTAC.MenuButton));
-				if (menu.Displayed)
-				{
-					menu.Click();
-					return;
-				}
 			}
 			catch { }
 
