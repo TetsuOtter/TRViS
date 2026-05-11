@@ -110,6 +110,13 @@ public static class AutomationIds
 		// #225 doesn't rely on the default first-train selection (which has an
 		// empty NextTrainId).
 		public const string TestSeedNextTrainSelectionButton = "StartHome.TestSeedNextTrainSelectionButton";
+		// Sets AppViewModel.Loader=null + disposes the previous loader, mirroring
+		// OnDisconnectClicked's clear path but skipping the user-facing confirm
+		// dialog. Used by fixtures that share a single Appium session and need
+		// each test to start from "Start mode" (LoadDemoButton visible) — by
+		// default a prior LoadSample leaves the page in Home mode and the
+		// LoadDemo button hidden behind the loader-info card.
+		public const string TestClearLoaderButton = "StartHome.TestClearLoaderButton";
 	}
 
 	public static class PrivacyDialog

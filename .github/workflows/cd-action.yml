@@ -204,10 +204,22 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
 
+      - name: Clear stale pip HTTP cache
+        # The macos-26 runner image pre-populates ~/Library/Caches/pip with
+        # cachecontrol entries written by a different pip version than the
+        # one bundled with the Python actions/setup-python@v6 installs.
+        # That mismatch surfaces during setup-python's internal "Install
+        # OpenSSL certificates" sub-step as
+        #   WARNING: Cache entry deserialization failed, entry ignored
+        # which GitHub Actions renders as ##[error] in the log. The warning
+        # is benign (pip refetches on cache miss), but the spurious error
+        # indicator hides real failures. Clearing the cache removes it.
+        run: rm -rf "$HOME/Library/Caches/pip"
+
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
-      - name: Prapare Python Package
+          python-version: "3.13"
+      - name: Prepare Python Package
         run: |
           python --version
           python -m pip install aiofiles aiohttp
@@ -303,8 +315,8 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
-      - name: Prapare Python Package
+          python-version: "3.13"
+      - name: Prepare Python Package
         run: |
           python --version
           python -m pip install aiofiles aiohttp
@@ -433,10 +445,17 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME_MAC }}
 
+      - name: Clear stale pip HTTP cache
+        # See the matching step in build-ios for the rationale; the same
+        # spurious "Cache entry deserialization failed" warning fires here
+        # because the macos-26 runner image's pre-populated pip cache is
+        # incompatible with the pip bundled with setup-python's Python.
+        run: rm -rf "$HOME/Library/Caches/pip"
+
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
-      - name: Prapare Python Package
+          python-version: "3.13"
+      - name: Prepare Python Package
         run: |
           python --version
           python -m pip install aiofiles aiohttp
@@ -520,8 +539,8 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
-      - name: Prapare Python Package
+          python-version: "3.13"
+      - name: Prepare Python Package
         run: |
           python --version
           python -m pip install aiofiles aiohttp
@@ -787,6 +806,17 @@ jobs:
         run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
 
       - name: push new tag
+        # Tolerate push failure ONLY on PR events. The default GITHUB_TOKEN
+        # cannot include `workflows: write` (GitHub enforces this as a
+        # security policy — the scope is not grantable via the workflow's
+        # `permissions:` block), so when a PR modifies `.github/workflows/*`
+        # GitHub rejects `git push origin <tag>` against that commit with
+        # "refusing to allow a GitHub App to create or update workflow ...
+        # without `workflows` permission". The PR tag is for traceability
+        # only — losing it on a workflow-modifying PR is acceptable; the
+        # release tag pushed from `push:` on main is unaffected because the
+        # merge commit there does not itself modify workflows.
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         env:
           TAG_NAME: ${{ steps.tag-name.outputs.tag-name }}
         run: |

@@ -8,6 +8,10 @@ namespace TRViS.UITests.Tests;
 [Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class FirebaseSettingTests : BaseUITest
 {
+	// Share one Appium session across all tests in this fixture (iOS only).
+	// See BaseUITest.ShareSessionAcrossTestsInFixture for details.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	[Test]
 	[Platform(Exclude = "Win", Reason = "MAUI Border has no UIA AutomationPeer on Windows; banner visibility cannot be probed via Appium AccessibilityId.")]
 	public void PrivacyDialog_AcceptsAndDismissesReconfirmBanner()

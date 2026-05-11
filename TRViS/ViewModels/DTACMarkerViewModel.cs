@@ -43,22 +43,27 @@ public partial class DTACMarkerViewModel : ObservableObject
 	public List<string> TextList { get; } = [.. TextListDefaultValue];
 
 	[ObservableProperty]
-	private bool _IsToggled;
+	public partial bool IsToggled { get; set; }
 
 	[ObservableProperty]
-	private MarkerInfo? _SelectedMarkerInfo;
+	public partial MarkerInfo? SelectedMarkerInfo { get; set; }
 
 	[ObservableProperty]
-	private Color? _SelectedColor;
+	public partial Color? SelectedColor { get; set; }
 
 	[ObservableProperty]
-	private string _SelectedText;
+	public partial string SelectedText { get; set; } = "";
 
 	public DTACMarkerViewModel()
 	{
-		_SelectedMarkerInfo = ColorList[0];
-		_SelectedColor = _SelectedMarkerInfo.Color;
-		_SelectedText = TextList[0];
+		// Property assignment (not field) is required after the [ObservableProperty]
+		// migration to partial properties — the generated backing field is no longer
+		// addressable by name. Setting SelectedMarkerInfo also routes through
+		// OnSelectedMarkerInfoChanged below, which assigns SelectedColor as a side
+		// effect; the explicit SelectedColor line that followed it in the previous
+		// shape was redundant.
+		SelectedMarkerInfo = ColorList[0];
+		SelectedText = TextList[0];
 	}
 
 	partial void OnSelectedMarkerInfoChanged(MarkerInfo? value)
