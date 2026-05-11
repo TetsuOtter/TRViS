@@ -52,6 +52,9 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial bool KeepScreenOnWhenRunning { get; set; } = false;
 
 	[ObservableProperty]
+	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
+
+	[ObservableProperty]
 	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
 
 	[ObservableProperty]
@@ -170,6 +173,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		LocationServiceInterval_Seconds = settingFile.LocationServiceInterval_Seconds;
 		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
+		HorizontalTimetableButtonLabel = settingFile.HorizontalTimetableButtonLabel;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
 		TimeProgressionRate = settingFile.TimeProgressionRate;
 
@@ -201,6 +205,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds,
 			ShowMapWhenLandscape = ShowMapWhenLandscape,
 			KeepScreenOnWhenRunning = KeepScreenOnWhenRunning,
+			HorizontalTimetableButtonLabel = HorizontalTimetableButtonLabel,
 			InitialTheme = SelectedAppTheme,
 			TimeProgressionRate = TimeProgressionRate,
 		};

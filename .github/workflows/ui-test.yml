@@ -579,7 +579,12 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
-    timeout-minutes: 40
+    # iPhone simulator cold start on macos-26 (~5-7 min for WDA install +
+    # first session) is unavoidable; subsequent sessions are cheap because
+    # each fixture shares a single session (BaseUITest.RestartAppInSharedSession).
+    # 50 min keeps comfortable headroom above the script's internal 2400 s
+    # dotnet test timeout for Appium boot + cleanup steps.
+    timeout-minutes: 50
     needs: build-ios
     # Both iPad mini matrix entries are permitted to fail without failing the
     # whole job — see the matrix below. The expression resolves to false for

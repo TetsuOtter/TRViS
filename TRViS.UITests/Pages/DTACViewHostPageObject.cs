@@ -187,6 +187,65 @@ public class DTACViewHostPageObject : PageObject
 		}
 	}
 
+	// Hidden when the selected Work has no embedded horizontal timetable;
+	// FindCustomControl falls back to UIA Name lookup on Windows because
+	// the inner Border doesn't surface as an addressable AccessibilityId there.
+	// EasterEgg setting can switch the label between 横型時刻表 / 電車時刻表 / Ｅ電時刻表 —
+	// all three candidates are needed so the Windows fallback finds the button in any mode.
+	public AppiumElement HorizontalTimetableButton
+		=> FindCustomControl(AutomationIds.DTAC.HorizontalTimetableButton, "横型時刻表", "電車時刻表", "Ｅ電時刻表");
+
+	/// <summary>
+	/// Polls briefly for the horizontal-timetable button. Returns true only when
+	/// the element is both findable and Displayed=true within the timeout.
+	/// Used to assert the button is hidden by default with sample data.
+	///
+	/// On Windows the MAUI Border doesn't expose its AutomationId reliably (WinUI 3
+	/// surfaces it as a non-control Pane), so fall back to a UIA Name lookup on
+	/// the inner label text — same dual-strategy as <see cref="FindCustomControl"/>.
+	/// </summary>
+	public bool IsHorizontalTimetableButtonVisible(double timeoutSeconds = 1)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				try
+				{
+					if (FindByAutomationId(AutomationIds.DTAC.HorizontalTimetableButton).Displayed)
+						return true;
+				}
+				catch { }
+				if (IsWindows)
+				{
+					try
+					{
+						var el = Driver.FindElement(By.XPath(
+							"//*[@Name='横型時刻表' or @Name='電車時刻表' or @Name='Ｅ電時刻表']"));
+						if (el.Displayed)
+							return true;
+					}
+					catch { }
+				}
+				Thread.Sleep(100);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	public DTACViewHostPageObject TapHorizontalTimetableButton()
+	{
+		HorizontalTimetableButton.Click();
+		return this;
+	}
+
 	private AppiumElement FindCustomControl(string automationId, params string[] candidateTexts)
 	{
 		if (IsWindows)

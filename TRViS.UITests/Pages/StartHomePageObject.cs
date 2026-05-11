@@ -64,6 +64,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestSeedGpsButton => FindByAutomationId(AutomationIds.StartHome.TestSeedGpsButton);
 	public AppiumElement TestAutoOpenButton => FindByAutomationId(AutomationIds.StartHome.TestAutoOpenButton);
 	public AppiumElement TestClearHistoryButton => FindByAutomationId(AutomationIds.StartHome.TestClearHistoryButton);
+	public AppiumElement TestSeedHorizontalTimetableButton => FindByAutomationId(AutomationIds.StartHome.TestSeedHorizontalTimetableButton);
 	public AppiumElement TestSeedSqliteButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSqliteButton);
 	public AppiumElement TestClearTimetablesButton => FindByAutomationId(AutomationIds.StartHome.TestClearTimetablesButton);
 	public AppiumElement TestSeedSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSampleFilesButton);
@@ -264,6 +265,19 @@ public class StartHomePageObject : PageObject
 	public DTACViewHostPageObject AutoOpenForTesting()
 	{
 		TestAutoOpenButton.Click();
+		return new DTACViewHostPageObject(Driver);
+	}
+
+	/// <summary>
+	/// UI_TEST-only seam that picks first WorkGroup/Work, swaps the Work record
+	/// for a clone with HasETrainTimetable=true and a 1×1 transparent PNG
+	/// payload, then navigates to DTAC. Lets the horizontal-timetable tests
+	/// exercise the visible-button + page-navigation paths without doctoring
+	/// the sample data fixture on disk.
+	/// </summary>
+	public DTACViewHostPageObject SeedHorizontalTimetableAndOpenForTesting()
+	{
+		TestSeedHorizontalTimetableButton.Click();
 		return new DTACViewHostPageObject(Driver);
 	}
 
