@@ -173,18 +173,27 @@ jobs:
             $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager list avd
             exit 1
           fi
-          # Use 2 CPU cores to speed up emulator startup.
+          # Use all 4 CPU cores from the ubuntu-latest runner (was 2) — more
+          # CPU lets the guest schedule heavier work (XAML compile + UIA2 +
+          # custom-drawn VerticalTimetableView) without throttling, which we
+          # suspect contributes to mid-suite stalls during DTAC tests.
           # Set display to Pixel 6-like resolution (1080x2400 @ 420dpi) so the app
           # renders at a realistic size. The default AVD (no --device flag) uses
           # 320x640 @ 160dpi, which is extremely small and causes slow rendering
           # and element-detection failures during UI tests.
-          # hw.ramSize=4096 (default ~1536) prevents OOM crashes when MAUI's
-          # debug build, the UIA2 server, and the timetable view are all live —
-          # a smaller heap caused the UIA2 instrumentation to die mid-test (exit
-          # code 255) once DTAC tests started rendering the timetable.
-          # vm.heapSize=512 raises the per-process Dalvik heap so the MAUI app's
-          # debug-mode managed heap doesn't collide with the same ceiling.
-          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\nhw.ramSize=4096\nvm.heapSize=512\ndisk.dataPartition.size=4096M\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
+          # hw.ramSize=6144 (was 4096) speculatively raises the guest RAM
+          # budget. ubuntu-latest has 16 GiB host, so 6 GiB to the emulator
+          # still leaves ~10 GiB for dotnet + appium + node + the host. The
+          # earlier 4 GiB bump fixed UIA2 dying with exit 255; the residual
+          # failure mode is qemu itself disappearing mid-suite during DTAC
+          # tests (run 25634831839: 13/23 failed after `DEVICE_STATE=missing`,
+          # then 8/23 again on retry). The new failure-dump diagnostics
+          # capture host OOM signatures so we can confirm whether this bump
+          # actually addresses the root cause or whether it's elsewhere.
+          # vm.heapSize=768 (was 512) raises the per-process Dalvik heap so
+          # MAUI debug builds, which carry mono-AOT'd metadata + XAML
+          # compiled bytecode in the same managed heap, have more headroom.
+          printf 'hw.cpu.ncore=4\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\nhw.ramSize=6144\nvm.heapSize=768\ndisk.dataPartition.size=4096M\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
 
       - name: Start Android emulator
         run: |
@@ -199,7 +208,7 @@ jobs:
             -no-snapshot \
             -noaudio \
             -no-boot-anim \
-            -memory 4096 \
+            -memory 6144 \
             > emulator.log 2>&1 &
           EMULATOR_PID=$!
           echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
@@ -283,7 +292,7 @@ jobs:
               -no-snapshot \
               -noaudio \
               -no-boot-anim \
-              -memory 4096 \
+              -memory 6144 \
               > "emulator-attempt-${1}.log" 2>&1 &
             EMULATOR_PID=$!
             echo "Emulator started for attempt ${1} (PID $EMULATOR_PID)"
