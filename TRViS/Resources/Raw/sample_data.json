@@ -870,5 +870,236 @@
         ]
       }
     ]
+  },
+  {
+    "Id": "horizontal-timetable-sample",
+    "Name": "横型時刻表サンプル",
+    "Works": [
+      {
+        "Id": "hori-none",
+        "Name": "横型時刻表なし",
+        "AffectDate": "20260510",
+        "Trains": [
+          {
+            "Id": "train-1",
+            "Direction": 1,
+            "TrainNumber": "H001",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 0,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 5,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:10:0",
+                "Departure": "10:15:",
+                "TrackName": "1",
+                "IsLastStop": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "hori-png",
+        "Name": "横型時刻表あり (PNG)",
+        "AffectDate": "20260510",
+        "Trains": [
+          {
+            "Id": "train-2",
+            "Direction": 1,
+            "TrainNumber": "H002",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 0,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 5,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:10:0",
+                "Departure": "10:15:",
+                "TrackName": "1",
+                "IsLastStop": true
+              }
+            ]
+          }
+        ],
+        "HasETrainTimetable": true,
+        "ETrainTimetableContentType": 2,
+        "ETrainTimetableContent": "iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAABL0lEQVR42u3cQQ0AQAjEQIThX8Up4XUCVgFkmiogfW6o102esZyAgiYFTQqaFDQFTQqaFDQpaFLQFDS5POgBDiFoCBoQNCBoQNAQNCBoQNCAoAFBQ9DA9qDNWWhtRwqaFDQpaAqaFDQpaFLQpKApaFLQpL8cgLUdIGgIGhA0IGhA0ICgIWhA0ICgAUEDGbQ5C63tSEGTgiYFTUGTgiYFTQqaFDQFTQqa9JcDsLYDBA1BA4IGBA0IGhA0BA0IGhA0IGgggzZnobUdKWhS0KSgKWhS0KSgSUGTgqagSUGT/nIA1naAoCFoQNCAoAFBA4KGoAFBA4IGBA1k0OYstLYjBU0KmhQ0BU0KmhQ0KWhS0BQ0KWjSXw7A2g4QNAQNCBoQNCBoQNAQNCBoQNCAoIHgA377joKqgIwIAAAAAElFTkSuQmCC"
+      },
+      {
+        "Id": "hori-jpg",
+        "Name": "横型時刻表あり (JPG)",
+        "AffectDate": "20260510",
+        "Trains": [
+          {
+            "Id": "train-3",
+            "Direction": 1,
+            "TrainNumber": "H003",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 0,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 5,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:10:0",
+                "Departure": "10:15:",
+                "TrackName": "1",
+                "IsLastStop": true
+              }
+            ]
+          }
+        ],
+        "HasETrainTimetable": true,
+        "ETrainTimetableContentType": 4,
+        "ETrainTimetableContent": "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"
+      },
+      {
+        "Id": "hori-pdf1",
+        "Name": "横型時刻表あり (PDF 1ページ)",
+        "AffectDate": "20260510",
+        "Trains": [
+          {
+            "Id": "train-4",
+            "Direction": 1,
+            "TrainNumber": "H004",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 0,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 5,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:10:0",
+                "Departure": "10:15:",
+                "TrackName": "1",
+                "IsLastStop": true
+              }
+            ]
+          }
+        ],
+        "HasETrainTimetable": true,
+        "ETrainTimetableContentType": 3,
+        "ETrainTimetableContent": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9Db3VudCAxIC9LaWRzIFszIDAgUl0gPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA4OCA+PgpzdHJlYW0KcSAwLjQgMC43IDAuNCByZyA0MCA0MCAyMjAgMTIwIHJlIGYgUQpCVCAvRjEgMTggVGYgNjAgMTMwIFRkIChQREYgU2FtcGxlIC0gMSBwYWdlKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDM3OSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQ0OQolJUVPRgo="
+      },
+      {
+        "Id": "hori-pdf2",
+        "Name": "横型時刻表あり (PDF 2ページ)",
+        "AffectDate": "20260510",
+        "Trains": [
+          {
+            "Id": "train-5",
+            "Direction": 1,
+            "TrainNumber": "H005",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 0,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 5,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:10:0",
+                "Departure": "10:15:",
+                "TrackName": "1",
+                "IsLastStop": true
+              }
+            ]
+          }
+        ],
+        "HasETrainTimetable": true,
+        "ETrainTimetableContentType": 3,
+        "ETrainTimetableContent": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9Db3VudCAyIC9LaWRzIFszIDAgUiA1IDAgUl0gPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNyAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA3NyA+PgpzdHJlYW0KcSAxIDAuNSAwLjUgcmcgNTAgNTAgMjAwIDEwMCByZSBmIFEKQlQgL0YxIDE4IFRmIDYwIDEyMCBUZCAoUERGIFBhZ2UgMSkgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgMzAwIDIwMF0gL0NvbnRlbnRzIDYgMCBSIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDcgMCBSID4+ID4+ID4+CmVuZG9iago2IDAgb2JqCjw8IC9MZW5ndGggNzcgPj4Kc3RyZWFtCnEgMC41IDAuNSAxIHJnIDUwIDUwIDIwMCAxMDAgcmUgZiBRCkJUIC9GMSAxOCBUZiA2MCAxMjAgVGQgKFBERiBQYWdlIDIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNyAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMjEgMDAwMDAgbiAKMDAwMDAwMDI0NyAwMDAwMCBuIAowMDAwMDAwMzc0IDAwMDAwIG4gCjAwMDAwMDA1MDAgMDAwMDAgbiAKMDAwMDAwMDYyNyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDggL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjY5NwolJUVPRgo="
+      },
+      {
+        "Id": "hori-url",
+        "Name": "横型時刻表あり (URL)",
+        "AffectDate": "20260510",
+        "Trains": [
+          {
+            "Id": "train-6",
+            "Direction": 1,
+            "TrainNumber": "H006",
+            "TimetableRows": [
+              {
+                "Id": "1",
+                "Location_m": 1,
+                "DriveTime_MM": 0,
+                "DriveTime_SS": 0,
+                "StationName": "駅A",
+                "Arrive": "10:0:0",
+                "Departure": "10:5:",
+                "TrackName": "1"
+              },
+              {
+                "Id": "2",
+                "Location_m": 2,
+                "DriveTime_MM": 5,
+                "DriveTime_SS": 0,
+                "StationName": "駅B",
+                "Arrive": "10:10:0",
+                "Departure": "10:15:",
+                "TrackName": "1",
+                "IsLastStop": true
+              }
+            ]
+          }
+        ],
+        "HasETrainTimetable": true,
+        "ETrainTimetableContentType": 1,
+        "ETrainTimetableContent": "aHR0cHM6Ly9leGFtcGxlLmNvbQ=="
+      }
+    ]
   }
 ]
