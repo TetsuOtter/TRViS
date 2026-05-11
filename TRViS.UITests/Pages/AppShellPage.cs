@@ -65,6 +65,25 @@ public class AppShellPage : PageObject
 			}
 			catch { }
 
+			// Mac Catalyst (mac2) / iOS: MAUI Shell does not render an
+			// XCUIElementTypeNavigationBar on every page (DTAC, for one,
+			// hosts its flyout-toggle as an in-page button). The DTAC view's
+			// MenuButton toggles Shell.Current.FlyoutIsPresented directly,
+			// so prefer it when present — it is the only reliable
+			// flyout-toggle reachable from DTAC on Mac Catalyst. Pages that
+			// don't host DTAC.MenuButton fall through to the generic
+			// NavigationBar probe below.
+			try
+			{
+				var menu = Driver.FindElement(MobileBy.AccessibilityId(AutomationIds.DTAC.MenuButton));
+				if (menu.Displayed)
+				{
+					menu.Click();
+					return;
+				}
+			}
+			catch { }
+
 			// Mac Catalyst (mac2): the flyout toggle is a button in the navigation bar.
 			try
 			{
