@@ -391,6 +391,45 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "App pre-installed."
 fi
 
+# ── Pre-build WebDriverAgent for usePrebuiltWDA ─────────────────
+# Without this, Appium's xcuitest driver invokes xcodebuild once per
+# session to verify WDA is built — ~28 s per session even when the
+# binary is already cached. Pre-building into a known derivedDataPath
+# and passing `usePrebuiltWDA: true` skips that check entirely (article
+# reports 37 s → 9 s per session on iOS Simulator).
+#
+# Use `generic/platform=iOS Simulator` so the binary is reusable across
+# simulator UDIDs — no need to rebuild when the matrix swaps device class.
+WDA_DERIVED_DATA=""
+if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
+  WDA_DERIVED_DATA="$HOME/Library/Developer/Xcode/DerivedData/trvis-wda-prebuilt"
+  WDA_PROJ="$HOME/.appium/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj"
+  if [[ ! -d "$WDA_PROJ" ]]; then
+    log "WDA project not found at $WDA_PROJ — skipping pre-build (usePrebuiltWDA disabled)."
+    WDA_DERIVED_DATA=""
+  else
+    log "Pre-building WebDriverAgent into $WDA_DERIVED_DATA..."
+    # `build-for-testing` produces the WDA Runner app plus the xctestrun
+    # bundle that Appium's usePrebuiltWDA path consumes. xcodebuild is
+    # incremental — subsequent invocations after the first complete in
+    # seconds when sources haven't changed.
+    if xcodebuild build-for-testing \
+        -project "$WDA_PROJ" \
+        -scheme WebDriverAgentRunner \
+        -destination 'generic/platform=iOS Simulator' \
+        -derivedDataPath "$WDA_DERIVED_DATA" \
+        CODE_SIGNING_ALLOWED=NO \
+        >/tmp/wda-prebuild.log 2>&1; then
+      log "WDA pre-built. derivedDataPath=$WDA_DERIVED_DATA"
+    else
+      log "WDA pre-build failed — tail of log:"
+      tail -30 /tmp/wda-prebuild.log || true
+      log "Continuing without usePrebuiltWDA (Appium will build WDA on first session)."
+      WDA_DERIVED_DATA=""
+    fi
+  fi
+fi
+
 # ── Install Mac Catalyst app ────────────────────────────────────
 # The mac2 / WDA driver uses XCUIApplication(bundleId:) which requires the app
 # to be registered with Launch Services.  A .app built by dotnet but never run
@@ -485,6 +524,9 @@ DOTNET_TEST_ARGS=(
 )
 if [[ -n "${DEVICE_ID:-}" ]]; then
   DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
+fi
+if [[ -n "${WDA_DERIVED_DATA:-}" ]]; then
+  DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"wdaDerivedDataPath\",value=\"$WDA_DERIVED_DATA\")")
 fi
 
 # Run tests with timeout (30 minutes = 1800 seconds).
