@@ -272,6 +272,26 @@ public class AppShellPage : PageObject
 		return new DTACViewHostPageObject(Driver);
 	}
 
+	/// <summary>
+	/// Navigates back to the StartHome page via the shell flyout. Used between
+	/// tests in fixtures that share a single Appium session — earlier tests
+	/// may have left the app on DTAC, Settings, etc., and the next test
+	/// expects to start from StartHome. The flyout's Home entry is reachable
+	/// from any shell page, so no per-platform special-casing is needed for
+	/// the source page.
+	/// </summary>
+	public StartHomePageObject NavigateToHome()
+	{
+		if (_isWindows)
+			NavigateViaKeyboard("Home");
+		else
+		{
+			OpenFlyout();
+			WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
+		}
+		return new StartHomePageObject(Driver);
+	}
+
 	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()
 	{
 		if (_isWindows)
