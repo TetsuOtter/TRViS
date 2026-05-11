@@ -10,6 +10,10 @@ namespace TRViS.UITests.Tests;
 [Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class StartHomeTests : BaseUITest
 {
+	// Share one Appium session across all tests in this fixture (iOS only).
+	// See BaseUITest.ShareSessionAcrossTestsInFixture for details.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	private StartHomePageObject _startHomePage = null!;
 
 	[SetUp]
@@ -17,13 +21,24 @@ public class StartHomeTests : BaseUITest
 	{
 		base.SetUp();
 
-		// The app launches directly into StartHomePage. On a clean install the privacy
-		// reconfirm banner is shown; accept it via the in-page dialog so subsequent
-		// feature-button taps don't get gated on the privacy dialog.
 		_startHomePage = new StartHomePageObject(Driver);
-		Assert.That(_startHomePage.IsDisplayed(), Is.True,
-			"StartHomePage should appear on launch.");
+
+		// Shared-session recovery: a prior test in this fixture loaded
+		// the demo, leaving the app in Home mode with the loader still
+		// set. Bring it back to Start mode by clearing the loader.
+		if (!_startHomePage.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3))
+		{
+			new AppShellPage(Driver).NavigateToHome();
+			_startHomePage = new StartHomePageObject(Driver);
+		}
+		_startHomePage.ClearLoaderForTesting();
+
+		// Privacy is reset on first launch only; AcceptPrivacyPolicyIfNeeded
+		// fast-paths to a no-op after the first call within the fixture.
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
+
+		Assert.That(_startHomePage.IsDisplayed(), Is.True,
+			"StartHomePage should be displayed after recovery.");
 	}
 
 	[Test]

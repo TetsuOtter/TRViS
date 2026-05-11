@@ -20,6 +20,10 @@ namespace TRViS.UITests.Tests;
 [Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class SelectFileDialogTests : BaseUITest
 {
+	// Share one Appium session across all tests in this fixture (iOS only).
+	// See BaseUITest.ShareSessionAcrossTestsInFixture for details.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	private StartHomePageObject _startHomePage = null!;
 
 	[SetUp]
@@ -28,12 +32,35 @@ public class SelectFileDialogTests : BaseUITest
 		base.SetUp();
 
 		_startHomePage = new StartHomePageObject(Driver);
+
+		// Shared-session recovery: a prior test in this fixture may have
+		// left the SelectFile dialog open (some tests assert state and
+		// don't bother closing — cheaper here than amending every test).
+		// Also handles the case where a prior test loaded a file and
+		// navigated to DTAC. Use a fast PollDisplayed instead of
+		// dialog.IsDisplayed() — the latter internally waits 30 s for
+		// the Title element, blocking the [SetUp] for the full timeout
+		// on the common "dialog not open" path.
+		var dialog = new SelectFileDialogPageObject(Driver);
+		if (dialog.PollDisplayed(AutomationIds.SelectFile.Title, timeoutSeconds: 1))
+		{
+			dialog.Close();
+			Thread.Sleep(300);
+		}
+		if (!_startHomePage.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3))
+		{
+			new AppShellPage(Driver).NavigateToHome();
+			_startHomePage = new StartHomePageObject(Driver);
+		}
+		_startHomePage.ClearLoaderForTesting();
+
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
-		// iOS noReset:true means TimetableFileDirectory persists across sessions,
-		// and the FilePickerProvider override is a static that survives Driver.Quit().
-		// Wipe both before every test so each starts from a known-clean state.
-		// ClearSampleFilesForTesting also wipes TimetableFileDirectory, so it
-		// covers the SQLite-seed tests' need for a clean start as well.
+		// TimetableFileDirectory persists across the shared session, and
+		// the FilePickerProvider override is a static that survives
+		// Driver.Quit(). Wipe both before every test so each starts from
+		// a known-clean state. ClearSampleFilesForTesting also wipes
+		// TimetableFileDirectory, so it covers the SQLite-seed tests'
+		// need for a clean start as well.
 		_startHomePage.ClearSampleFilesForTesting();
 	}
 

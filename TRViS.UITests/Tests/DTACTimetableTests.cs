@@ -17,12 +17,35 @@ public class DTACTimetableTests : BaseUITest
 {
 	private StartHomePageObject _startHomePage = null!;
 
+	// Shared-session mode: one Appium session for the whole fixture, no
+	// app-restart between tests. Each test starts by re-asserting its
+	// pre-state via in-app seams (NavigateToHome + ClearLoaderForTesting)
+	// rather than relying on a fresh process — terminate+launch is
+	// expensive (~3-10 s) and most tests in this fixture only need to
+	// know they're on StartHome with no loader, which the seams give
+	// idempotently.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	[SetUp]
 	public override void SetUp()
 	{
 		base.SetUp();
 
 		_startHomePage = new StartHomePageObject(Driver);
+
+		// If a prior test in this fixture left the app on DTAC (or
+		// elsewhere via the flyout), navigate back. Then clear any
+		// AppViewModel.Loader so the page renders in Start mode with
+		// LoadDemoButton visible. Both calls are idempotent — they no-op
+		// on the first test where the app just finished launching at
+		// StartHome.
+		if (!_startHomePage.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3))
+		{
+			new AppShellPage(Driver).NavigateToHome();
+			_startHomePage = new StartHomePageObject(Driver);
+		}
+		_startHomePage.ClearLoaderForTesting();
+
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 	}
 
@@ -39,91 +62,86 @@ public class DTACTimetableTests : BaseUITest
 		return _startHomePage.AutoOpenForTesting();
 	}
 
+	/// <summary>
+	/// Combined demo-data happy path: previously five separate tests, each
+	/// of which paid LoadSample + AutoOpen + privacy-accept ≈ a full app
+	/// restart on iOS. Merged into one flow so the heavy setup runs once;
+	/// each Assert carries an explicit reason so a failure still points
+	/// at the specific sub-step (TimetableScrollView visible, StartEndRun
+	/// toggle, OpenClose toggle). Replaces the prior
+	/// LoadSample_PopulatesWorkGroupList_DisplayCountSane /
+	/// OpenDTAC_TimetableContainerVisible /
+	/// Tap運行開始_TogglesStartEndRunButton /
+	/// OpenCloseButton_TogglesPageHeader /
+	/// TimetableScrollView_IsPresentAfterSampleLoad tests.
+	/// </summary>
 	[Test]
-	public void LoadSample_PopulatesWorkGroupList_DisplayCountSane()
+	public void DemoData_LoadOpenAndExerciseTimetable_HappyPath()
 	{
-		Assert.That(_startHomePage.IsDisplayed(), Is.True);
-		_startHomePage.LoadSample();
+		Assert.That(_startHomePage.IsDisplayed(), Is.True,
+			"StartHome should be displayed at fixture entry.");
 
-		// Sample data ships with 2 WorkGroups. Ensure both surface in the list.
-		// Use >=2 rather than ==2 so platform-specific cell wrappers don't cause
-		// a false negative if extra layout primitives expose their text.
+		// Phase 1: LoadSample populates WorkGroup list.
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+		// Sample data ships with 2 WorkGroups. Use >=2 rather than ==2 so
+		// platform-specific cell wrappers don't false-negative when extra
+		// layout primitives expose their text.
 		int count = _startHomePage.CountWorkGroups();
 		Assert.That(count, Is.GreaterThanOrEqualTo(2),
-			"Sample data should produce at least 2 work-group rows.");
-	}
+			"LoadSample should produce at least 2 work-group rows.");
 
-	[Test]
-	public void OpenDTAC_TimetableContainerVisible()
-	{
-		var dtac = LoadSampleAndOpenDTAC();
+		// Phase 2: AutoOpenForTesting commits selection + navigates to DTAC.
+		var dtac = _startHomePage.AutoOpenForTesting();
+		Assert.That(dtac.IsDisplayed(), Is.True,
+			"DTAC view should be displayed after AutoOpenForTesting.");
 
-		Assert.That(dtac.IsDisplayed(), Is.True);
+		// Phase 3: Switch to timetable tab.
 		dtac.SwitchToTimetableTab();
-		// VerticalTimetableView is a MAUI Grid that isn't reliably exposed as an
-		// accessibility element on iOS. Assert against the surrounding ScrollView,
-		// which IS exposed (and is the same id used by SwitchToTimetableTab).
+		// VerticalTimetableView is a MAUI Grid that isn't reliably exposed
+		// as an accessibility element on iOS. Assert against the
+		// surrounding ScrollView, which IS exposed and is the same id
+		// SwitchToTimetableTab waits for.
 		Assert.That(dtac.TimetableScrollView.Displayed, Is.True,
-			"Timetable scroll container should be visible after switching to the 時刻表 tab.");
-	}
+			"TimetableScrollView should be visible after switching to the 時刻表 tab " +
+			"(also the GPS auto-scroll target).");
 
-	[Test]
-	public void Tap運行開始_TogglesStartEndRunButton()
-	{
-		var dtac = LoadSampleAndOpenDTAC();
-		dtac.SwitchToTimetableTab();
+		// Phase 4: 運行開始 toggle round-trip.
+		var startEnd = dtac.StartEndRunButton;
+		Assert.That(startEnd.Displayed, Is.True,
+			"StartEndRunButton should be visible in the timetable tab.");
 
-		var btn = dtac.StartEndRunButton;
-		Assert.That(btn.Displayed, Is.True);
-		// Initial state: not running. Tap to flip on.
 		dtac.TapStartEndRun();
 		Thread.Sleep(400);
-		// We can't read the IsChecked state directly across all platforms, but the
-		// LocationServiceButton is enabled only when CanUseLocationService && IsRunning.
-		// After tap, the LocationServiceButton should still be findable (visible) —
-		// the visual toggle of its enabled state is a meaningful side-effect to assert.
+		// We can't read the IsChecked state directly across all platforms,
+		// but LocationServiceButton is enabled only when CanUseLocationService
+		// && IsRunning — its presence in the tree after the tap is the
+		// meaningful side-effect to assert.
 		Assert.That(dtac.LocationServiceButton.Displayed, Is.True,
-			"LocationServiceButton should remain in the tree after toggling 運行開始.");
+			"LocationServiceButton should remain in the tree after toggling 運行開始 on.");
 
-		// Tap again to flip off (ensures the button accepts repeated presses).
 		dtac.TapStartEndRun();
 		Thread.Sleep(400);
-		Assert.That(dtac.StartEndRunButton.Displayed, Is.True);
-	}
+		Assert.That(dtac.StartEndRunButton.Displayed, Is.True,
+			"StartEndRunButton should still be visible after toggling 運行開始 off (repeated taps OK).");
 
-	[Test]
-	public void OpenCloseButton_TogglesPageHeader()
-	{
-		var dtac = LoadSampleAndOpenDTAC();
-		dtac.SwitchToTimetableTab();
-
+		// Phase 5: OpenClose toggle round-trip. Last sub-flow so any
+		// page-header state left behind is reset by the next test's
+		// app-restart.
 		var openClose = dtac.OpenCloseButton;
-		Assert.That(openClose.Displayed, Is.True);
+		Assert.That(openClose.Displayed, Is.True,
+			"OpenCloseButton should be visible in the timetable tab.");
 
-		// Capture the initial label; it should change between open/closed states.
 		string initialText = openClose.Text ?? string.Empty;
 		dtac.TapOpenClose();
 		Thread.Sleep(400);
-		string afterFirstTap = dtac.OpenCloseButton.Text ?? string.Empty;
-		Assert.That(afterFirstTap, Is.Not.EqualTo(initialText),
-			"OpenCloseButton's text should differ after the first tap (open/closed icons swap).");
+		Assert.That(dtac.OpenCloseButton.Text ?? string.Empty, Is.Not.EqualTo(initialText),
+			"OpenCloseButton text should differ after the first tap (open/closed icons swap).");
 
 		dtac.TapOpenClose();
 		Thread.Sleep(400);
-		string afterSecondTap = dtac.OpenCloseButton.Text ?? string.Empty;
-		Assert.That(afterSecondTap, Is.EqualTo(initialText),
-			"Second tap should return the OpenCloseButton to its original state.");
-	}
-
-	[Test]
-	public void TimetableScrollView_IsPresentAfterSampleLoad()
-	{
-		var dtac = LoadSampleAndOpenDTAC();
-		dtac.SwitchToTimetableTab();
-
-		var scroll = dtac.TimetableScrollView;
-		Assert.That(scroll.Displayed, Is.True,
-			"TimetableScrollView should render with sample data — needed for GPS auto-scroll.");
+		Assert.That(dtac.OpenCloseButton.Text ?? string.Empty, Is.EqualTo(initialText),
+			"Second tap should return OpenCloseButton to its original state.");
 	}
 
 	/// <summary>
