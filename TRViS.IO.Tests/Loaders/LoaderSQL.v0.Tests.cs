@@ -46,9 +46,9 @@ public class LoaderSQLV0Tests
 	}
 
 	[Test]
-	public void GetTrainData()
+	public async Task GetTrainData()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 		TimetableRow[] emptyArr = Array.Empty<TimetableRow>();
 
 		var all = loader.GetTrainData("1");
@@ -85,9 +85,9 @@ public class LoaderSQLV0Tests
 	}
 
 	[Test]
-	public void GetWorkGroupListTest()
+	public async Task GetWorkGroupListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetWorkGroupList();
 
@@ -99,9 +99,9 @@ public class LoaderSQLV0Tests
 	}
 
 	[Test]
-	public void GetWorkListTest()
+	public async Task GetWorkListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetWorkList("1");
 
@@ -123,9 +123,9 @@ public class LoaderSQLV0Tests
 	}
 
 	[Test]
-	public void GetTrainDataListTest()
+	public async Task GetTrainDataListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetTrainDataList("1");
 
