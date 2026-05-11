@@ -6,17 +6,12 @@ using TRViS.Utils;
 namespace TRViS.DTAC;
 
 [DependencyProperty<bool>("IsOpen")]
+[DependencyProperty<bool>("HasHorizontalTimetable")]
 public partial class PageHeader : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	static readonly ColumnDefinitionCollection DefaultColumnDefinitions =
-	[
-		new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
-
-		new ColumnDefinition(176),
-		new ColumnDefinition(134),
-		new ColumnDefinition(60),
-	];
+	const double HORIZONTAL_TIMETABLE_BUTTON_COLUMN_WIDTH = 176;
+	readonly ColumnDefinition HorizontalTimetableButtonColumn = new(0);
 
 	#region Affect Date Label
 
@@ -124,11 +119,44 @@ public partial class PageHeader : Grid
 	}
 	#endregion
 
+	#region Horizontal Timetable Button
+	public const string HorizontalTimetableButtonAutomationId = "DTAC.HorizontalTimetableButton";
+
+	readonly HorizontalTimetableButton HorizontalTimetableButtonBorder;
+
+	partial void OnHasHorizontalTimetableChanged(bool newValue)
+	{
+		logger.Info("HasHorizontalTimetable: {0}", newValue);
+		HorizontalTimetableButtonBorder.IsVisible = newValue;
+		// 列を 0 に潰さないと、ボタン非表示時にも 110px の余白が残ってしまい
+		// 行路施行日ラベルとの間に空きが生じる。表示状態に合わせて列幅を切り替える。
+		HorizontalTimetableButtonColumn.Width = newValue
+			? new GridLength(HORIZONTAL_TIMETABLE_BUTTON_COLUMN_WIDTH)
+			: new GridLength(0);
+	}
+
+	private async void HorizontalTimetableButton_Tapped(object? sender, TappedEventArgs e)
+	{
+		logger.Info("HorizontalTimetableButton_Tapped");
+		await Shell.Current.GoToAsync(HorizontalTimetablePage.NameOfThisClass, true);
+	}
+	#endregion
+
 	public PageHeader()
 	{
 		logger.Trace("Creating...");
 
-		ColumnDefinitions = DefaultColumnDefinitions;
+		ColumnDefinitions = new ColumnDefinitionCollection(
+			new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
+			HorizontalTimetableButtonColumn,
+			new ColumnDefinition(176),
+			new ColumnDefinition(134),
+			new ColumnDefinition(60));
+
+		HorizontalTimetableButtonBorder = new HorizontalTimetableButton();
+		var horizontalTimetableTap = new TapGestureRecognizer();
+		horizontalTimetableTap.Tapped += HorizontalTimetableButton_Tapped;
+		HorizontalTimetableButtonBorder.GestureRecognizers.Add(horizontalTimetableTap);
 
 		StartEndRunButton.Margin = new(2, 8);
 		StartEndRunButton.IsCheckedChanged += StartEndRunButton_IsCheckedChanged;
@@ -156,15 +184,18 @@ public partial class PageHeader : Grid
 			AffectDateLabel,
 			column: 0
 		);
-		this.Add(StartEndRunButton,
+		this.Add(HorizontalTimetableButtonBorder,
 			column: 1
 		);
-		this.Add(LocationServiceButton,
+		this.Add(StartEndRunButton,
 			column: 2
+		);
+		this.Add(LocationServiceButton,
+			column: 3
 		);
 		this.Add(
 			OpenCloseButton,
-			column: 3
+			column: 4
 		);
 
 		logger.Trace("Created");
