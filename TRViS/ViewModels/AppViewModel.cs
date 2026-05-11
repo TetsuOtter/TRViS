@@ -18,13 +18,13 @@ public partial class AppViewModel : ObservableObject
 	public TimetableSelectionManager SelectionManager { get; } = new();
 
 	[ObservableProperty]
-	ILoader? _Loader;
+	public partial ILoader? Loader { get; set; }
 
 	// Human-readable label for the current Loader's source. Set atomically alongside
 	// Loader via SetLoader() so the Home info card cannot momentarily show a stale
 	// source between the two assignments. Cleared automatically when Loader becomes null.
 	[ObservableProperty]
-	string? _LoaderSourceLabel;
+	public partial string? LoaderSourceLabel { get; set; }
 
 	/// <summary>
 	/// Atomically replaces <see cref="Loader"/> and <see cref="LoaderSourceLabel"/>.
@@ -75,10 +75,10 @@ public partial class AppViewModel : ObservableObject
 	}
 
 	[ObservableProperty]
-	double _WindowHeight;
+	public partial double WindowHeight { get; set; }
 
 	[ObservableProperty]
-	double _WindowWidth;
+	public partial double WindowWidth { get; set; }
 
 	public event EventHandler<ValueChangedEventArgs<AppTheme>>? CurrentAppThemeChanged;
 	AppTheme _SystemAppTheme;
@@ -205,7 +205,7 @@ public partial class AppViewModel : ObservableObject
 	/// View 側はこの値を購読してタイトルバー色を変更する。
 	/// </summary>
 	[ObservableProperty]
-	int? _HeaderColorOverride_RGB;
+	public partial int? HeaderColorOverride_RGB { get; set; }
 
 	void OnHeaderColorChangeRequested(object? sender, HeaderColorCommand cmd)
 	{
@@ -217,7 +217,7 @@ public partial class AppViewModel : ObservableObject
 	/// null は端末既定 ("HH:mm:ss" を内部既定とする)。
 	/// </summary>
 	[ObservableProperty]
-	string? _HeaderTimeFormat;
+	public partial string? HeaderTimeFormat { get; set; }
 
 	void OnTimeFormatChangeRequested(object? sender, TimeFormatCommand cmd)
 	{

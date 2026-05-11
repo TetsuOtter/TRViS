@@ -1288,6 +1288,30 @@ public partial class StartHomePage : ContentPage
 #endif
 	}
 
+	void TestClearLoaderButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestClearLoaderButton clicked: clearing in-memory AppViewModel.Loader");
+		try
+		{
+			// Mirror OnDisconnectClicked's clear path but without the confirm
+			// dialog — tests assume "yes, throw away the loader" and the
+			// dialog would otherwise need to be pumped on each platform's
+			// driver. Setting Loader=null triggers
+			// OnViewModelPropertyChanged → ApplyModeForCurrentLoaderAsync,
+			// which animates the page back to Start mode (StartBody visible,
+			// HomeBody hidden) so LoadDemoButton becomes clickable again.
+			var previous = viewModel.Loader;
+			viewModel.Loader = null;
+			previous?.Dispose();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearLoaderButton failed");
+		}
+#endif
+	}
+
 	void TestSetupBrowseFallbackButton_Clicked(object sender, EventArgs e)
 	{
 #if UI_TEST

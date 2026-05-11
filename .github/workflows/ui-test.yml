@@ -173,18 +173,27 @@ jobs:
             $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager list avd
             exit 1
           fi
-          # Use 2 CPU cores to speed up emulator startup.
+          # Use all 4 CPU cores from the ubuntu-latest runner (was 2) — more
+          # CPU lets the guest schedule heavier work (XAML compile + UIA2 +
+          # custom-drawn VerticalTimetableView) without throttling, which we
+          # suspect contributes to mid-suite stalls during DTAC tests.
           # Set display to Pixel 6-like resolution (1080x2400 @ 420dpi) so the app
           # renders at a realistic size. The default AVD (no --device flag) uses
           # 320x640 @ 160dpi, which is extremely small and causes slow rendering
           # and element-detection failures during UI tests.
-          # hw.ramSize=4096 (default ~1536) prevents OOM crashes when MAUI's
-          # debug build, the UIA2 server, and the timetable view are all live —
-          # a smaller heap caused the UIA2 instrumentation to die mid-test (exit
-          # code 255) once DTAC tests started rendering the timetable.
-          # vm.heapSize=512 raises the per-process Dalvik heap so the MAUI app's
-          # debug-mode managed heap doesn't collide with the same ceiling.
-          printf 'hw.cpu.ncore=2\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\nhw.ramSize=4096\nvm.heapSize=512\ndisk.dataPartition.size=4096M\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
+          # hw.ramSize=6144 (was 4096) speculatively raises the guest RAM
+          # budget. ubuntu-latest has 16 GiB host, so 6 GiB to the emulator
+          # still leaves ~10 GiB for dotnet + appium + node + the host. The
+          # earlier 4 GiB bump fixed UIA2 dying with exit 255; the residual
+          # failure mode is qemu itself disappearing mid-suite during DTAC
+          # tests (run 25634831839: 13/23 failed after `DEVICE_STATE=missing`,
+          # then 8/23 again on retry). The new failure-dump diagnostics
+          # capture host OOM signatures so we can confirm whether this bump
+          # actually addresses the root cause or whether it's elsewhere.
+          # vm.heapSize=768 (was 512) raises the per-process Dalvik heap so
+          # MAUI debug builds, which carry mono-AOT'd metadata + XAML
+          # compiled bytecode in the same managed heap, have more headroom.
+          printf 'hw.cpu.ncore=4\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\nhw.ramSize=6144\nvm.heapSize=768\ndisk.dataPartition.size=4096M\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
 
       - name: Start Android emulator
         run: |
@@ -199,7 +208,7 @@ jobs:
             -no-snapshot \
             -noaudio \
             -no-boot-anim \
-            -memory 4096 \
+            -memory 6144 \
             > emulator.log 2>&1 &
           EMULATOR_PID=$!
           echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
@@ -283,7 +292,7 @@ jobs:
               -no-snapshot \
               -noaudio \
               -no-boot-anim \
-              -memory 4096 \
+              -memory 6144 \
               > "emulator-attempt-${1}.log" 2>&1 &
             EMULATOR_PID=$!
             echo "Emulator started for attempt ${1} (PID $EMULATOR_PID)"
@@ -350,6 +359,24 @@ jobs:
         # the 45-minute job timeout cancelled everything).
         timeout-minutes: 3
         run: |
+          # Capture host-side state FIRST: if the emulator died, the most
+          # informative signal is whether the Linux OOM killer reaped qemu
+          # (look for "Killed process NNN (qemu-system-x86)" in dmesg) or
+          # whether qemu exited on its own (no dmesg trace, look in
+          # emulator-attempt-N.log for the actual exit reason). Without
+          # this we cannot tell host-OOM apart from a qemu/guest crash,
+          # and a memory bump becomes a guess instead of a fix.
+          echo "=== host memory (free -h) ==="
+          free -h || true
+          echo "=== running qemu/emulator processes ==="
+          ps -eo pid,stat,rss,etime,cmd | grep -iE 'qemu|emulator' | grep -v grep || echo "(none — emulator process is gone)"
+          echo "=== dmesg OOM-killer hits ==="
+          # `sudo dmesg` because ubuntu-latest restricts kernel.dmesg_restrict;
+          # the runner user has passwordless sudo on hosted runners.
+          sudo dmesg -T 2>/dev/null | grep -iE 'killed process|out of memory|oom-killer' || echo "(no OOM messages)"
+          echo "=== dmesg (last 200 lines) ==="
+          sudo dmesg -T 2>/dev/null | tail -n 200 || echo "(dmesg unavailable)"
+
           echo "=== adb devices ==="
           timeout 15 $ANDROID_SDK_ROOT/platform-tools/adb devices -l 2>&1 || echo "(adb devices timed out)"
           # Tail the *streamed* logcat.log, not `adb logcat -d`, which only sees
@@ -412,6 +439,131 @@ jobs:
           path: "**/*.trx"
 
   # ─────────────────────────────────────────────
+  # iOS Simulator app build (shared by all device-class matrix entries)
+  #
+  # Building the simulator .app once and reusing it across the device-class
+  # matrix is the main lever for reducing iOS UI-test wall-clock time and
+  # runner-minutes. Each test job used to repeat workload install + dotnet
+  # build (~6-9 min), tripling the cost of the matrix on a runner pool that
+  # is already queue-bound. After the split, the iOS path consumes ~50
+  # runner-minutes instead of ~90.
+  # ─────────────────────────────────────────────
+  build-ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install dotnet workloads
+        # `dotnet workload restore` because TRViS.csproj on macOS declares
+        # <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+        # (line 1-3 of the csproj) and the implicit restore that `dotnet build`
+        # runs evaluates every TFM in the list — even when `-f net10.0-ios`
+        # restricts the actual build. Without maui-android installed, the
+        # workload-check pre-pass fires `NETSDK1147: ... workloads must be
+        # installed: android [TargetFramework=net10.0-android]` and the build
+        # never gets started (see failure on run 25665479712). Mirroring the
+        # same `workload restore` pattern the previous ui-test-ios job used
+        # before the build/test split.
+        run: dotnet workload restore
+
+      - name: Create placeholder GoogleService-Info.plist
+        # TRViS.csproj declares <BundleResource Include="GoogleService-Info.plist" />
+        # next to the csproj, so the build needs a file at TRViS/GoogleService-Info.plist
+        # (not the Platforms/iOS path that run-ui-tests.sh writes locally).
+        run: |
+          cat > TRViS/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>000000000000-placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>com.googleusercontent.apps.000000000000-placeholder</string>
+            <key>API_KEY</key>
+            <string>placeholder_api_key</string>
+            <key>GCM_SENDER_ID</key>
+            <string>000000000000</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>${{ env.APP_PACKAGE }}</string>
+            <key>PROJECT_ID</key>
+            <string>placeholder-project-id</string>
+            <key>STORAGE_BUCKET</key>
+            <string>placeholder-project-id.appspot.com</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <true/>
+            <key>IS_SIGNIN_ENABLED</key>
+            <true/>
+            <key>GOOGLE_APP_ID</key>
+            <string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build iOS Simulator app
+        # Mirrors the build performed by run-ui-tests.sh for the iOS simulator:
+        # ad-hoc signing (CodesignKey="-", _RequireCodeSigning=false) and the
+        # same UI_TEST/DISABLE_FIREBASE defines as the other platforms.
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_IOS }}
+          -r ${{ env.TARGET_RUNTIME_IOS_SIM }}
+          -c Debug
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
+          /p:_RequireCodeSigning=false
+          /p:CodesignKey="-"
+
+      - name: Package iOS Simulator app
+        # Tar the .app to preserve symlinks, executable bits, and code-signing
+        # extended attributes across the artifact round-trip. macos-26 ships
+        # bsdtar, which preserves xattrs by default; run-ui-tests.sh re-signs
+        # everything in the bundle after extraction regardless, so any
+        # signature damage from packaging would be repaired before launch.
+        run: |
+          set -euo pipefail
+          APP_DIR=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }} -maxdepth 1 -name "*.app" -type d | head -1)
+          if [ -z "$APP_DIR" ]; then
+            echo "ERROR: No .app bundle found under TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+            find TRViS/bin/Debug -maxdepth 4 -name "*.app" -type d 2>/dev/null || true
+            exit 1
+          fi
+          echo "Packaging: $APP_DIR"
+          tar -czf trvis-ios-sim-app.tar.gz -C "$(dirname "$APP_DIR")" "$(basename "$APP_DIR")"
+          ls -lh trvis-ios-sim-app.tar.gz
+
+      - name: Upload iOS app artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-sim-app
+          path: trvis-ios-sim-app.tar.gz
+          # The tarball is already gzip-compressed; skip the artifact action's
+          # own zlib pass so the upload doesn't pay for compression twice.
+          compression-level: 0
+          # Test jobs run in the same workflow, so the artifact is only needed
+          # for the duration of this run.
+          retention-days: 1
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────
   # iOS Simulator UI Tests
   #
   # Runs the same suite in parallel across an iPhone and two iPad mini
@@ -419,21 +571,55 @@ jobs:
   # not pre-installed on macos-26 runners; the job attempts to download
   # it but tolerates failure (continue-on-error) since macos-26 runners
   # may not be able to install older runtimes.
+  #
+  # Each entry downloads the .app produced by `build-ios` instead of
+  # rebuilding it; the iOS/MacCatalyst MAUI workloads are not installed
+  # here because TRViS.UITests.csproj targets plain net10.0 with no
+  # ProjectReferences and `dotnet test` does not need them.
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
     timeout-minutes: 40
+    needs: build-ios
+    # Both iPad mini matrix entries are permitted to fail without failing the
+    # whole job — see the matrix below. The expression resolves to false for
+    # the iphone entry, making this a no-op there.
+    continue-on-error: ${{ matrix.continue-on-error == true }}
     strategy:
       # Run all device classes regardless of one failing — useful while a class
       # is being added/stabilized (e.g. iPad mini 5th gen runtime availability).
       fail-fast: false
       matrix:
-        device-class:
-          - iphone
-          - ipad-mini-a17
-          # ipad-mini-5: runtime download is best-effort; allow it to fail
-          # without blocking the other matrix entries.
-          - ipad-mini-5
+        include:
+          - device-class: iphone
+          # iPad mini A17 + macos-26 + Xcode 26 + xcuitest@10.32.1 has a
+          # recurring WDA instability mid-suite: WDA becomes unreachable
+          # (ProxyRequestError: status code 404) after the first few tests,
+          # subsequent test sessions hang trying to reach it, and the
+          # 30-min `timeout` wrapper inside run-ui-tests.sh fires (exit 124).
+          # Run 25668762228 is the canonical example — 1 test reached a
+          # result before WDA died, then the run sat for ~20 min before
+          # being killed. The root cause is the per-test session +
+          # noReset:true churn — every test creates a new WDA connection,
+          # and the iPad mini's simulator/WDA combination doesn't tolerate
+          # that pattern reliably on Xcode 26. The proper fix is to share
+          # one WDA session across tests in a fixture (NUnit OneTimeSetUp);
+          # marking continue-on-error keeps the matrix entry exercising the
+          # iPad-A17 layout when it works, without blocking the workflow
+          # when the upstream WDA instability hits.
+          - device-class: ipad-mini-a17
+            continue-on-error: true
+          # iPad mini 5 caps at iPadOS 17. macos-26 + Xcode 26 + WDA
+          # routinely fails to connect WDA over port 8100 on the iPadOS 17
+          # runtime (`connect ECONNREFUSED 127.0.0.1:8100`, then session
+          # creation times out — see run 25634821932). The runtime download
+          # is also best-effort and may fail entirely on a given runner
+          # image. Mark this matrix entry continue-on-error so the
+          # incompatibility doesn't fail the workflow while we keep
+          # exercising the path: when the WDA/runtime story stabilises
+          # upstream the entry quietly starts succeeding again.
+          - device-class: ipad-mini-5
+            continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -453,12 +639,6 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1.7.0
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
-
-      - name: Restore workloads
-        run: dotnet workload restore
-
-      - name: Install iOS and MacCatalyst workloads
-        run: dotnet workload install maui-ios maccatalyst
 
       - name: Install GNU coreutils (provides timeout)
         run: brew install coreutils
@@ -508,45 +688,25 @@ jobs:
       - name: Install XCUITest driver
         run: appium driver install xcuitest@10.32.1
 
-      - name: Create placeholder GoogleService-Info.plist
+      - name: Download iOS app artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ios-sim-app
+
+      - name: Extract iOS app to build output path
+        # run-ui-tests.sh discovers the app via
+        # `find TRViS/bin/Debug/$TARGET_FRAMEWORK/$TARGET_RUNTIME -name "*.app"`,
+        # so the tarball is extracted into the exact path the script expects.
+        # The script's --skip-build flag prevents a rebuild from clobbering it.
         run: |
-          cat > TRViS/GoogleService-Info.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CLIENT_ID</key>
-            <string>000000000000-placeholder.apps.googleusercontent.com</string>
-            <key>REVERSED_CLIENT_ID</key>
-            <string>com.googleusercontent.apps.000000000000-placeholder</string>
-            <key>API_KEY</key>
-            <string>placeholder_api_key</string>
-            <key>GCM_SENDER_ID</key>
-            <string>000000000000</string>
-            <key>PLIST_VERSION</key>
-            <string>1</string>
-            <key>BUNDLE_ID</key>
-            <string>${{ env.APP_PACKAGE }}</string>
-            <key>PROJECT_ID</key>
-            <string>placeholder-project-id</string>
-            <key>STORAGE_BUCKET</key>
-            <string>placeholder-project-id.appspot.com</string>
-            <key>IS_ADS_ENABLED</key>
-            <false/>
-            <key>IS_ANALYTICS_ENABLED</key>
-            <false/>
-            <key>IS_GCM_ENABLED</key>
-            <true/>
-            <key>IS_SIGNIN_ENABLED</key>
-            <true/>
-            <key>GOOGLE_APP_ID</key>
-            <string>1:000000000000:ios:0000000000000000</string>
-          </dict>
-          </plist>
-          EOF
+          set -euo pipefail
+          DEST="TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+          mkdir -p "$DEST"
+          tar -xzf trvis-ios-sim-app.tar.gz -C "$DEST"
+          ls -la "$DEST"
 
       - name: Run iOS UI Tests (${{ matrix.device-class }})
-        run: ./run-ui-tests.sh ios --skip-install --device-class=${{ matrix.device-class }}
+        run: ./run-ui-tests.sh ios --skip-build --skip-install --device-class=${{ matrix.device-class }}
 
       - name: Upload test results
         if: always()
@@ -567,7 +727,16 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-macos:
     runs-on: macos-26
-    timeout-minutes: 20
+    # Bumped from 20 to 30 minutes after run 25665479712 was cancelled at
+    # exactly the 20-min cap with the test suite still executing. The
+    # macos-26 runner image and Xcode 26 produce variable per-test latency
+    # — historical baseline is ~14 min, but slow runs creep past 18 min
+    # without any test logic regression. 30 minutes leaves comfortable
+    # headroom while still bounding the worst-case far below the per-job
+    # cancellation timeout of the workflow as a whole. There's no
+    # workflow-level retry on macOS (unlike Android), so a single
+    # timeout-driven cancellation costs the entire job.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
