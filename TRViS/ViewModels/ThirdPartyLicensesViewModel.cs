@@ -11,16 +11,16 @@ public record MyKeyValuePair(string Key, string Value);
 public partial class ThirdPartyLicensesViewModel : ObservableObject
 {
 	[ObservableProperty]
-	IReadOnlyList<LicenseData>? _LicenseDataArray;
+	public partial IReadOnlyList<LicenseData>? LicenseDataArray { get; set; }
 
 	[ObservableProperty]
-	LicenseData? _SelectedLicenseData;
+	public partial LicenseData? SelectedLicenseData { get; set; }
 
 	[ObservableProperty]
-	List<MyKeyValuePair>? _LicenseTextList;
+	public partial List<MyKeyValuePair>? LicenseTextList { get; set; }
 
 	[ObservableProperty]
-	string _LicenseExpression = "";
+	public partial string LicenseExpression { get; set; } = "";
 
 	string _lastLicense = "";
 
