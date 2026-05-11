@@ -39,6 +39,27 @@ public class AppShellPage : PageObject
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
+			// DTAC.MenuButton (any platform): when we're on the DTAC view,
+			// the in-page MenuButton toggles Shell.Current.FlyoutIsPresented
+			// directly. Try this FIRST regardless of platform — on Android,
+			// the standard "Open navigation drawer" probe matches an AppBar
+			// button in DTAC that does NOT actually open the Shell flyout
+			// (CI run 25686784110 / Android log surfaced a 30 s flyout-item
+			// timeout because the wrong button was clicked). DTAC.MenuButton
+			// is the only reliable flyout-toggle from DTAC on every platform.
+			// Pages that don't host DTAC.MenuButton fall through to the
+			// platform-specific probes below.
+			try
+			{
+				var menu = Driver.FindElement(MobileBy.AccessibilityId(AutomationIds.DTAC.MenuButton));
+				if (menu.Displayed)
+				{
+					menu.Click();
+					return;
+				}
+			}
+			catch { }
+
 			// Android: standard hamburger "navigation drawer" button.
 			try
 			{
@@ -270,6 +291,26 @@ public class AppShellPage : PageObject
 			WaitForFlyoutItem(AutomationIds.Shell.Flyout.DTAC, "D-TAC").Click();
 		}
 		return new DTACViewHostPageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates back to the StartHome page via the shell flyout. Used between
+	/// tests in fixtures that share a single Appium session — earlier tests
+	/// may have left the app on DTAC, Settings, etc., and the next test
+	/// expects to start from StartHome. The flyout's Home entry is reachable
+	/// from any shell page, so no per-platform special-casing is needed for
+	/// the source page.
+	/// </summary>
+	public StartHomePageObject NavigateToHome()
+	{
+		if (_isWindows)
+			NavigateViaKeyboard("Home");
+		else
+		{
+			OpenFlyout();
+			WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
+		}
+		return new StartHomePageObject(Driver);
 	}
 
 	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()

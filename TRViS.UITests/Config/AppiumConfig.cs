@@ -1,3 +1,4 @@
+using NUnit.Framework;
 using OpenQA.Selenium.Appium;
 
 namespace TRViS.UITests.Config;
@@ -70,6 +71,21 @@ public static class AppiumConfig
 				// wdaStartupRetries: retry WDA launch on transient failures (e.g.
 				// the WDA process crashes during startup). Keep at 2 for cheap recovery.
 				options.AddAdditionalAppiumOption("wdaStartupRetries", 2);
+				// usePrebuiltWDA + derivedDataPath: skip Appium's per-session
+				// "verify WDA is built" xcodebuild call, which costs ~28 s per
+				// new session even when WDA is already up. The runner script
+				// (run-ui-tests.sh / CI build step) pre-builds WDA once via
+				// `xcodebuild build-for-testing` into a known derivedDataPath,
+				// then surfaces that path as a TestRunParameter so this code
+				// can wire it onto the capability set. If the parameter is
+				// absent we fall through to the default flow (build-on-first-
+				// session) so callers that haven't adopted the seam still work.
+				var wdaDerivedDataPath = TestContext.Parameters["wdaDerivedDataPath"];
+				if (!string.IsNullOrEmpty(wdaDerivedDataPath))
+				{
+					options.AddAdditionalAppiumOption("usePrebuiltWDA", true);
+					options.AddAdditionalAppiumOption("derivedDataPath", wdaDerivedDataPath);
+				}
 				// noReset:true — do not uninstall/reinstall the app between sessions.
 				// run-ui-tests.sh pre-installs the app once (xcrun simctl install) so
 				// FrontBoard always knows about the bundle. The xcuitest driver then
