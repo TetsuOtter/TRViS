@@ -128,6 +128,11 @@ public partial class PageHeader : Grid
 	{
 		logger.Info("HasHorizontalTimetable: {0}", newValue);
 		HorizontalTimetableButtonBorder.IsVisible = newValue;
+		// Shadow is wired through MAUI's PlatformWrapperView on Android; leaving it
+		// attached while hidden has been observed to allocate a backing bitmap that
+		// OOMs the Glide LruBitmapPool on landscape rotation. Toggle in sync with
+		// visibility so the shadow path runs only when the button is on-screen.
+		HorizontalTimetableButtonBorder.SetShadowVisible(newValue);
 		// 列を 0 に潰さないと、ボタン非表示時にも 110px の余白が残ってしまい
 		// 行路施行日ラベルとの間に空きが生じる。表示状態に合わせて列幅を切り替える。
 		HorizontalTimetableButtonColumn.Width = newValue

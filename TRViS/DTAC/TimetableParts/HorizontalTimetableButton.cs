@@ -23,13 +23,11 @@ public class HorizontalTimetableButton : Border
 		AutomationId = "DTAC.HorizontalTimetableButton";
 		HorizontalOptions = LayoutOptions.Fill;
 		VerticalOptions = LayoutOptions.Fill;
-		Shadow = new Shadow
-		{
-			Brush = Colors.Black,
-			Offset = new Point(1, 1),
-			Radius = 2,
-			Opacity = 0.4f
-		};
+		// Shadow is assigned by SetShadowVisible(true) from PageHeader when the
+		// button becomes user-visible. Leaving Shadow=null while hidden avoids
+		// MAUI's PlatformWrapperView.drawShadow path on Android, which has been
+		// observed to OOM the Glide LruBitmapPool when the View is laid out at
+		// LayoutOptions.Fill before its 0-width column collapses it.
 
 		Stroke = Colors.Transparent;
 		StrokeShape = new RoundRectangle
@@ -66,6 +64,19 @@ public class HorizontalTimetableButton : Border
 		HorizontalTimetableButtonLabel.ETrain => ETrainButtonText,
 		_ => HorizontalButtonText,
 	};
+
+	static readonly Shadow s_shadow = new()
+	{
+		Brush = Colors.Black,
+		Offset = new Point(1, 1),
+		Radius = 2,
+		Opacity = 0.4f
+	};
+
+	internal void SetShadowVisible(bool visible)
+	{
+		Shadow = visible ? s_shadow : null!;
+	}
 
 	void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
