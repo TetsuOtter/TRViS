@@ -467,12 +467,17 @@ jobs:
           xcode-version: ${{ env.XCODE_VERSION }}
 
       - name: Install dotnet workloads
-        # Matches the CD workflow's iOS build step. `dotnet workload restore`
-        # would also pull maui-android, which the iOS build does not need;
-        # maccatalyst is kept because TRViS.csproj's <TargetFrameworks> on
-        # macOS includes net10.0-maccatalyst alongside net10.0-ios, and
-        # solution-level restore evaluation has historically required it.
-        run: dotnet workload install maui-ios maccatalyst
+        # `dotnet workload restore` because TRViS.csproj on macOS declares
+        # <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+        # (line 1-3 of the csproj) and the implicit restore that `dotnet build`
+        # runs evaluates every TFM in the list — even when `-f net10.0-ios`
+        # restricts the actual build. Without maui-android installed, the
+        # workload-check pre-pass fires `NETSDK1147: ... workloads must be
+        # installed: android [TargetFramework=net10.0-android]` and the build
+        # never gets started (see failure on run 25665479712). Mirroring the
+        # same `workload restore` pattern the previous ui-test-ios job used
+        # before the build/test split.
+        run: dotnet workload restore
 
       - name: Create placeholder GoogleService-Info.plist
         # TRViS.csproj declares <BundleResource Include="GoogleService-Info.plist" />
