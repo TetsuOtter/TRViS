@@ -871,23 +871,50 @@ public partial class StartHomePage : ContentPage
 	{
 		if (_suppressSelectionChanged)
 			return;
-		var item = WorkGroupListView.SelectedItem as WorkGroupListItem;
-		_pendingWorkGroup = item?.Source;
-		// Switching Work Group invalidates any prior Work pick and rebuilds the
-		// Work list for the new group.
-		_pendingWork = null;
-		RebuildWorkItems();
-		SyncListViewSelections();
-		RefreshStepUi();
+		try
+		{
+			var item = WorkGroupListView.SelectedItem as WorkGroupListItem;
+			logger.Info("WorkGroup selection changed: name={0}", item?.Name ?? "<null>");
+			_pendingWorkGroup = item?.Source;
+			// Switching Work Group invalidates any prior Work pick and rebuilds the
+			// Work list for the new group.
+			_pendingWork = null;
+			logger.Info("OnWorkGroupSelectionChanged: before RebuildWorkItems");
+			RebuildWorkItems();
+			logger.Info("OnWorkGroupSelectionChanged: before SyncListViewSelections (workItems.Count={0})", _workItems.Count);
+			SyncListViewSelections();
+			logger.Info("OnWorkGroupSelectionChanged: before RefreshStepUi");
+			RefreshStepUi();
+			logger.Info("OnWorkGroupSelectionChanged: done");
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "OnWorkGroupSelectionChanged failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnWorkGroupSelectionChanged");
+			try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); } catch { /* best-effort */ }
+			throw;
+		}
 	}
 
 	void OnWorkSelectionChanged(object? sender, SelectionChangedEventArgs e)
 	{
 		if (_suppressSelectionChanged)
 			return;
-		var item = WorkListView.SelectedItem as WorkListItem;
-		_pendingWork = item?.Source;
-		RefreshStepUi();
+		try
+		{
+			var item = WorkListView.SelectedItem as WorkListItem;
+			logger.Info("Work selection changed: name={0}", item?.Name ?? "<null>");
+			_pendingWork = item?.Source;
+			RefreshStepUi();
+			logger.Info("OnWorkSelectionChanged: done");
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "OnWorkSelectionChanged failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnWorkSelectionChanged");
+			try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); } catch { /* best-effort */ }
+			throw;
+		}
 	}
 
 	void OnWorkGroupChipTapped(object? sender, TappedEventArgs e)
