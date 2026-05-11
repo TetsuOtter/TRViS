@@ -137,7 +137,15 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void AcceptPrivacyPolicyIfNeeded()
 	{
-		PrivacyPolicyButton.Click();
+		// Use explicit client-side WaitForElement instead of FindByAutomationId.
+		// The mac2 driver runs each XCUIElement lookup as a single query and
+		// does not honor the Selenium implicit wait the way XCUITest does, so
+		// hitting this button immediately after a fresh app launch returns
+		// 404 in ~1 s instead of polling for the 10 s implicit wait — and
+		// AcceptPrivacyPolicyIfNeeded is the very first call after each
+		// SetUp's freshly-created mac session. WaitForElement polls
+		// client-side, which works on every driver.
+		WaitForElement(AutomationIds.StartHome.PrivacyPolicyButton, TimeSpan.FromSeconds(30)).Click();
 		// Wait for the dialog's Save button (acts as ready-signal that the modal is up).
 		// Use a 60 s budget for the same reason Title uses 60 s — modal-push +
 		// markdown render + first-paint can exceed 30 s on a constrained CI emulator.
