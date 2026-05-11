@@ -140,15 +140,29 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void AcceptPrivacyPolicyIfNeeded()
 	{
-		// Fast-path: if the reconfirm banner is not visible on a
-		// banner-probe-supporting platform, privacy has already been
-		// accepted in this app installation and the click+save dance is
+		// Cross-platform fast-path: once accepted in this Appium session
+		// the flag stays true until BaseUITest's OneTimeSetUp / per-test
+		// SetUp resets it (i.e. only when a fresh session wipes
+		// NSUserDefaults / SharedPreferences). This lets callers from
+		// any page (DTAC, Settings, etc.) hit AcceptPrivacyPolicyIfNeeded
+		// without needing the PrivacyPolicyButton to be present, which
+		// is what stranded NavigationTests on Windows when a prior test
+		// left the app on a non-StartHome page (CI run 25687547061).
+		if (Infrastructure.BaseUITest.PrivacyAcceptedInCurrentSession)
+			return;
+
+		// Banner-visible fast-path (iOS / Mac / Android): if the
+		// reconfirm banner is not visible, privacy has already been
+		// accepted persistently on disk and the click+save dance is
 		// just dead weight. IsPrivacyReconfirmBannerVisible reliably
 		// returns false on Windows (no UIA peer), so gating on it would
 		// strand Windows tests with feature buttons disabled; keep the
 		// platform-aware split.
 		if (!IsWindows && !IsPrivacyReconfirmBannerVisible())
+		{
+			Infrastructure.BaseUITest.PrivacyAcceptedInCurrentSession = true;
 			return;
+		}
 
 		// Use explicit client-side WaitForElement instead of FindByAutomationId.
 		// The mac2 driver runs each XCUIElement lookup as a single query and
@@ -187,6 +201,8 @@ public class StartHomePageObject : PageObject
 		// Wait for the dialog to dismiss back to the Start page.
 		_ = Title;
 		Thread.Sleep(300);
+
+		Infrastructure.BaseUITest.PrivacyAcceptedInCurrentSession = true;
 	}
 
 	/// <summary>

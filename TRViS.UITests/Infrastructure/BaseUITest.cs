@@ -72,6 +72,18 @@ public abstract class BaseUITest
 	private static bool _priorTestFailedInFixture = false;
 	private static string? _currentTestName = null;
 
+	/// <summary>
+	/// Tracks whether AcceptPrivacyPolicyIfNeeded has already run
+	/// successfully within the CURRENT Appium session. Reset in
+	/// OneTimeSetUp when a fresh session is created (i.e. once per
+	/// fixture in shared-session mode, or once per test in per-test
+	/// mode). Lets fixture [SetUp]s call AcceptPrivacyPolicyIfNeeded
+	/// idempotently — the second-and-later calls skip the click+save
+	/// dance on every platform, including Windows where the
+	/// banner-visible probe can't gate on banner state.
+	/// </summary>
+	internal static bool PrivacyAcceptedInCurrentSession = false;
+
 	private static readonly TimeSpan DefaultImplicitWait = TimeSpan.FromSeconds(10);
 
 	/// <summary>
@@ -308,9 +320,14 @@ public abstract class BaseUITest
 	public virtual void OneTimeSetUp()
 	{
 		// Reset fixture-scope state so each fixture starts independent of
-		// the previous one's outcome.
+		// the previous one's outcome. PrivacyAcceptedInCurrentSession is
+		// also reset because a new Appium session means fresh
+		// NSUserDefaults / SharedPreferences (ResetAppState wipes them
+		// just before SetUpDriver), so the privacy-banner is visible
+		// again and the flag must reflect that.
 		_priorTestFailedInFixture = false;
 		_currentTestName = null;
+		PrivacyAcceptedInCurrentSession = false;
 
 		// Read platform first so EffectiveSharedSession can be evaluated;
 		// the params are also needed when we go on to set up the driver.
@@ -363,7 +380,9 @@ public abstract class BaseUITest
 		}
 
 		// Per-test driver lifecycle (default): full isolation. Recreates
-		// the session for every test method.
+		// the session for every test method. ResetAppState wipes
+		// preferences, so the privacy-accept flag is fresh again.
+		PrivacyAcceptedInCurrentSession = false;
 		(_platform, string appPath2, string appiumUrl2) = ReadFixtureParameters();
 		ResetAppState(_platform);
 		SetUpDriver(_platform, appPath2, appiumUrl2);
