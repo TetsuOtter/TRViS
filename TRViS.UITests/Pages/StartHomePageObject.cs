@@ -71,6 +71,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestClearSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestClearSampleFilesButton);
 	public AppiumElement TestSetupBrowseFallbackButton => FindByAutomationId(AutomationIds.StartHome.TestSetupBrowseFallbackButton);
 	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
+	public AppiumElement TestClearLoaderButton => FindByAutomationId(AutomationIds.StartHome.TestClearLoaderButton);
 
 	public bool IsDisplayed()
 	{
@@ -137,7 +138,15 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void AcceptPrivacyPolicyIfNeeded()
 	{
-		PrivacyPolicyButton.Click();
+		// Use explicit client-side WaitForElement instead of FindByAutomationId.
+		// The mac2 driver runs each XCUIElement lookup as a single query and
+		// does not honor the Selenium implicit wait the way XCUITest does, so
+		// hitting this button immediately after a fresh app launch returns
+		// 404 in ~1 s instead of polling for the 10 s implicit wait — and
+		// AcceptPrivacyPolicyIfNeeded is the very first call after each
+		// SetUp's freshly-created mac session. WaitForElement polls
+		// client-side, which works on every driver.
+		WaitForElement(AutomationIds.StartHome.PrivacyPolicyButton, TimeSpan.FromSeconds(30)).Click();
 		// Wait for the dialog's Save button (acts as ready-signal that the modal is up).
 		// Use a 60 s budget for the same reason Title uses 60 s — modal-push +
 		// markdown render + first-paint can exceed 30 s on a constrained CI emulator.
@@ -225,6 +234,15 @@ public class StartHomePageObject : PageObject
 	/// sessions).
 	/// </summary>
 	public void ClearTimetablesForTesting() => TestClearTimetablesButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only loader-clear button. Sets AppViewModel.Loader=null
+	/// + disposes the previous loader, returning StartHomePage to Start mode
+	/// (LoadDemoButton visible, work-group list hidden). Use this between
+	/// tests in a fixture that shares one Appium session, so each test starts
+	/// from "no loader" regardless of where the previous test left things.
+	/// </summary>
+	public void ClearLoaderForTesting() => TestClearLoaderButton.Click();
 
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the

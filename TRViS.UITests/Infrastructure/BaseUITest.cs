@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using NUnit.Framework.Interfaces;
 using OpenQA.Selenium.Appium;
 
 namespace TRViS.UITests.Infrastructure;
@@ -7,12 +8,70 @@ public abstract class BaseUITest
 {
 	private const string AppPackage = "dev.t0r.trvis";
 
-	protected AppiumDriver Driver { get; private set; } = null!;
+	// Default lifecycle: one Appium session per test (full isolation; the
+	// session is recreated in [SetUp] and torn down in [TearDown]). A
+	// fixture can override `ShareSessionAcrossTestsInFixture` to instead
+	// share a single session across all tests in the fixture — the session
+	// is the dominant cost on iOS (WDA xcodebuild ~3 min cold + ~10-15 s
+	// per session attach) and recreating it per test inflates the iOS
+	// matrix wall-clock. Opting in is intentional per fixture because
+	// shared-session mode keeps in-app state across tests, so the fixture
+	// must provide its own cleanup in [SetUp] (see DTACTimetableTests).
+	//
+	// Storing the driver in a static field is safe because
+	// [assembly: Parallelizable(ParallelScope.None)] guarantees only one
+	// fixture is active at a time. Lifecycle code below clears it before
+	// the next fixture starts.
+	private static AppiumDriver? _driver;
+	protected AppiumDriver Driver => _driver
+		?? throw new InvalidOperationException(
+			"Driver is null — SetUp/OneTimeSetUp did not run, or it ran but failed before assigning the driver.");
 
 	/// <summary>
 	/// True when running on Android. MAUI maps AutomationId to resource-id on Android.
 	/// </summary>
-	protected bool IsAndroid { get; private set; }
+	protected static bool IsAndroid { get; private set; }
+
+	private static TestPlatform _platform;
+
+	/// <summary>
+	/// Opt-in: when overridden to true, the fixture uses one Appium session
+	/// for the whole fixture instead of one session per test.
+	/// [OneTimeSetUp] creates the driver; [OneTimeTearDown] quits it.
+	/// Per-test cleanup is handled by terminating + relaunching the
+	/// in-simulator app via Appium (mobile: terminateApp / launchApp),
+	/// which resets MAUI singletons / view-model state without paying the
+	/// ~22 s WDA session-attach cost again. Tests that fail after all
+	/// retries "cascade" — the next test in the fixture is reported
+	/// Inconclusive rather than run against undefined post-failure state.
+	///
+	/// Currently only honored on iOS — Mac and Windows Appium drivers
+	/// tie their session to the original launched process, and Android is
+	/// already fast enough that the per-test session cost is not the
+	/// bottleneck. Setting this true on other platforms silently falls
+	/// back to per-test driver lifecycle.
+	/// </summary>
+	protected virtual bool ShareSessionAcrossTestsInFixture => false;
+
+	private bool EffectiveSharedSession
+		=> ShareSessionAcrossTestsInFixture && _platform == TestPlatform.iOS;
+
+	// Fail-cascade state for fixtures opting into shared sessions. When any
+	// test in such a fixture fails after all of its retries are exhausted,
+	// the next test in the same fixture is reported as Inconclusive
+	// ("Skipped" in the trx) instead of running against an unknown
+	// post-failure state. Both fields are reset in OneTimeSetUp so each
+	// fixture starts clean.
+	//
+	// `_currentTestName` separates "first attempt of a new test" from
+	// "retry of the same test" — the [RetryAllTests] wrapper invokes
+	// SetUp/TearDown per attempt and `TestContext.CurrentContext.Test.FullName`
+	// is stable across retries (NUnit's RetryCommand reuses the same Test
+	// object). When the names match, we are mid-retry and must NOT consult
+	// the cascade flag — otherwise a transient first-attempt failure would
+	// cause its own retry to be skipped.
+	private static bool _priorTestFailedInFixture = false;
+	private static string? _currentTestName = null;
 
 	private static readonly TimeSpan DefaultImplicitWait = TimeSpan.FromSeconds(10);
 
@@ -246,18 +305,152 @@ public abstract class BaseUITest
 		}
 	}
 
+	[OneTimeSetUp]
+	public virtual void OneTimeSetUp()
+	{
+		// Reset fixture-scope state so each fixture starts independent of
+		// the previous one's outcome.
+		_priorTestFailedInFixture = false;
+		_currentTestName = null;
+
+		// Read platform first so EffectiveSharedSession can be evaluated;
+		// the params are also needed when we go on to set up the driver.
+		(_platform, string appPath, string appiumUrl) = ReadFixtureParameters();
+
+		if (!EffectiveSharedSession)
+			return;
+
+		// Shared-session fixture (iOS only): build the driver once here.
+		// Per-test [SetUp] then runs the fail-cascade check + an in-session
+		// app restart (terminateApp + launchApp via Appium) for state
+		// isolation. Final Driver.Quit() lives in [OneTimeTearDown].
+		ResetAppState(_platform);
+		SetUpDriver(_platform, appPath, appiumUrl);
+	}
+
 	[SetUp]
 	public virtual void SetUp()
+	{
+		if (EffectiveSharedSession)
+		{
+			var testName = TestContext.CurrentContext.Test.FullName;
+			// Detect a "new test starting" rather than a retry of the same
+			// test. NUnit's RetryCommand re-invokes SetUp/TearDown per
+			// attempt with the same Test object, so retries share
+			// `FullName`; only the first attempt of a new test method
+			// sees a name change. On a retry we MUST NOT app-restart —
+			// the test may have left transient state we want to retry
+			// against, and a clean restart undoes whatever the retry was
+			// trying to redo deterministically.
+			if (testName != _currentTestName)
+			{
+				if (_priorTestFailedInFixture)
+					Assert.Inconclusive(
+						"Skipped: an earlier test in this fixture failed after all retries. " +
+						"Tests share one Appium session, so post-failure state is undefined.");
+				_currentTestName = testName;
+
+				// First attempt of a new test: restart the app in-place so
+				// the next test starts from a fresh launch. This resets
+				// MAUI singletons (TimetableSelectionManager, AppViewModel,
+				// DTACViewHostViewModel) which `Driver.Quit()` alone would
+				// NOT have reset under noReset:true.
+				RestartAppInSharedSession();
+			}
+			return;
+		}
+
+		// Per-test driver lifecycle (default): full isolation. Recreates
+		// the session for every test method.
+		(_platform, string appPath2, string appiumUrl2) = ReadFixtureParameters();
+		ResetAppState(_platform);
+		SetUpDriver(_platform, appPath2, appiumUrl2);
+	}
+
+	/// <summary>
+	/// Terminates the app via Appium, wipes the data directories that
+	/// could trigger auto-load on the next launch, and relaunches the app
+	/// — all without quitting the Appium session. Only valid on iOS.
+	///
+	/// Leaves Library/Preferences alone so the privacy-policy-accepted
+	/// flag survives (otherwise every test would have to re-dismiss the
+	/// banner). Tests that rely on cleared preferences should use the
+	/// in-app UI_TEST seams (ClearHistoryForTesting etc.) instead.
+	/// </summary>
+	private void RestartAppInSharedSession()
+	{
+		if (_platform != TestPlatform.iOS)
+			return;
+
+		// Step 1: terminate via Appium (single round-trip; doesn't kill
+		// the session).
+		try
+		{
+			Driver.ExecuteScript("mobile: terminateApp",
+				new Dictionary<string, object> { { "bundleId", AppPackage } });
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"RestartAppInSharedSession: terminateApp threw {ex.GetType().Name}: {ex.Message}");
+		}
+
+		// Step 2: wipe data directories. Keep Library/Preferences so the
+		// privacy-policy flag persists across tests.
+		var udid = TestContext.Parameters["deviceUdid"] ?? "";
+		if (!string.IsNullOrEmpty(udid))
+		{
+			string? dataContainer = GetAppDataContainer(udid, AppPackage);
+			if (!string.IsNullOrEmpty(dataContainer))
+			{
+				// Wipe TRViS.UserContents so a single seeded JSON from a
+				// previous test (SelectFileDialogTests etc.) doesn't
+				// trigger DefaultTimetableFileLoader's single-file
+				// auto-load on the next launch — that would put the app
+				// in Home mode and break Start-mode tests.
+				try
+				{
+					foreach (string dir in Directory.EnumerateDirectories(
+						dataContainer, "TRViS.UserContents", SearchOption.AllDirectories))
+					{
+						try
+						{
+							Directory.Delete(dir, recursive: true);
+							TestContext.Out.WriteLine($"RestartAppInSharedSession: cleared {dir}");
+						}
+						catch (Exception ex)
+						{
+							TestContext.Out.WriteLine($"RestartAppInSharedSession: failed to clear {dir}: {ex.Message}");
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					TestContext.Out.WriteLine($"RestartAppInSharedSession: enumerate {dataContainer} failed: {ex.Message}");
+				}
+			}
+		}
+
+		// Step 3: relaunch via Appium.
+		try
+		{
+			Driver.ExecuteScript("mobile: launchApp",
+				new Dictionary<string, object> { { "bundleId", AppPackage } });
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"RestartAppInSharedSession: launchApp threw {ex.GetType().Name}: {ex.Message}");
+			throw;
+		}
+	}
+
+	private static (TestPlatform platform, string appPath, string appiumUrl) ReadFixtureParameters()
 	{
 		var platformStr = TestContext.Parameters["platform"]
 			?? throw new InvalidOperationException("TestRunParameter 'platform' is required.");
 		var appPath = TestContext.Parameters["appPath"]
 			?? throw new InvalidOperationException("TestRunParameter 'appPath' is required.");
 		var appiumUrl = TestContext.Parameters["appiumUrl"] ?? "http://localhost:4723";
-
-		var platform = AppiumConfig.ParsePlatform(platformStr);
-		ResetAppState(platform);
-		SetUpDriver(platform, appPath, appiumUrl);
+		return (AppiumConfig.ParsePlatform(platformStr), appPath, appiumUrl);
 	}
 
 	protected virtual void SetUpDriver(TestPlatform platform, string appPath, string appiumUrl)
@@ -274,39 +467,108 @@ public abstract class BaseUITest
 		// HTTP request doesn't bail out before WDA finishes coming up.
 		var iOSCommandTimeout = TimeSpan.FromMinutes(20);
 
-		Driver = platform switch
+		// On Windows the appium-windows-driver has been observed to abort the
+		// HTTP connection on the second-or-later session creation in a single
+		// run (CI run 25678232517 / PR #243: first session succeeded, second
+		// session failed with "An existing connection was forcibly closed by
+		// the remote host" and every subsequent attempt got "actively
+		// refused"). Surface as SocketException through the .NET client.
+		// Retry the session-create on those transient socket errors with a
+		// short backoff so the run does not need a manual rerun. Other
+		// platforms keep the default single-attempt behaviour because their
+		// drivers haven't exhibited this failure mode.
+		int maxAttempts = (platform == TestPlatform.Windows) ? 3 : 1;
+		Exception? lastEx = null;
+		for (int attempt = 1; attempt <= maxAttempts; attempt++)
 		{
-			TestPlatform.Android => new AndroidDriver(serverUri, options),
-			TestPlatform.iOS => new IOSDriver(serverUri, options, iOSCommandTimeout),
-			TestPlatform.MacCatalyst => new MacDriver(serverUri, options),
-			TestPlatform.Windows => new WindowsDriver(serverUri, options),
-			_ => throw new ArgumentOutOfRangeException(nameof(platform)),
-		};
+			try
+			{
+				_driver = platform switch
+				{
+					TestPlatform.Android => new AndroidDriver(serverUri, options),
+					TestPlatform.iOS => new IOSDriver(serverUri, options, iOSCommandTimeout),
+					TestPlatform.MacCatalyst => new MacDriver(serverUri, options),
+					TestPlatform.Windows => new WindowsDriver(serverUri, options),
+					_ => throw new ArgumentOutOfRangeException(nameof(platform)),
+				};
+				lastEx = null;
+				break;
+			}
+			catch (Exception ex) when (attempt < maxAttempts && IsTransientSessionCreateError(ex))
+			{
+				lastEx = ex;
+				TestContext.Out.WriteLine(
+					$"SetUpDriver: transient session-create error on attempt {attempt}/{maxAttempts}: {ex.GetType().Name}: {ex.Message}. Retrying after backoff.");
+				Thread.Sleep(TimeSpan.FromSeconds(3 * attempt));
+			}
+		}
+		if (_driver is null)
+			throw lastEx ?? new InvalidOperationException("SetUpDriver failed to create a session");
 
 		IsAndroid = platform == TestPlatform.Android;
-		Driver.Manage().Timeouts().ImplicitWait = DefaultImplicitWait;
+		_driver.Manage().Timeouts().ImplicitWait = DefaultImplicitWait;
 
 		// On Windows, maximize the window so WinUI NavigationView stays in Left mode
 		// (pane always visible). At ≥ExpandedModeThresholdWidth (1008 px) the pane is
 		// permanently open and NavigateToXxx calls do not need to click PaneToggleButton.
 		if (platform == TestPlatform.Windows)
-			Driver.Manage().Window.Maximize();
+			_driver.Manage().Window.Maximize();
+	}
+
+	private static bool IsTransientSessionCreateError(Exception ex)
+	{
+		// Walk the inner-exception chain; the .NET HTTP stack reports
+		// "connection forcibly closed" as a SocketException wrapped in
+		// IOException + HttpRequestException + WebDriverException.
+		for (var cur = ex; cur is not null; cur = cur.InnerException)
+		{
+			if (cur is System.Net.Sockets.SocketException)
+				return true;
+			if (cur is System.IO.IOException && cur.Message.Contains("forcibly closed", StringComparison.OrdinalIgnoreCase))
+				return true;
+		}
+		return false;
 	}
 
 	[TearDown]
-	public void TearDown()
+	public virtual void TearDown()
 	{
-		if (Driver is not null)
+		if (_driver is null)
+			return;
+
+		TakeScreenshot();
+		var status = TestContext.CurrentContext.Result.Outcome.Status;
+		if (status == TestStatus.Failed)
 		{
-			TakeScreenshot();
 			// Dump the accessibility tree on failure so we can diagnose "element
-			// not found / not displayed" timeouts after the run — without it the
-			// iPhone CI failures leave only the timeout exception with no view of
-			// what was actually on screen.
-			if (TestContext.CurrentContext.Result.Outcome.Status == NUnit.Framework.Interfaces.TestStatus.Failed)
-				DumpPageSource();
-			Driver.Quit();
+			// not found / not displayed" timeouts after the run.
+			DumpPageSource();
+			if (EffectiveSharedSession)
+				_priorTestFailedInFixture = true;
 		}
+		else if (status == TestStatus.Passed && EffectiveSharedSession)
+		{
+			// Retried tests that eventually pass should NOT poison the cascade
+			// flag for subsequent tests — clear it once a green outcome lands.
+			_priorTestFailedInFixture = false;
+		}
+		// status == Inconclusive (this test was skipped by the cascade)
+		// or Skipped (NUnit's own ignore mechanism) leaves the flag alone.
+
+		if (!EffectiveSharedSession)
+		{
+			try { _driver.Quit(); } catch { /* best-effort */ }
+			_driver = null;
+		}
+	}
+
+	[OneTimeTearDown]
+	public virtual void OneTimeTearDown()
+	{
+		if (!EffectiveSharedSession)
+			return;
+		try { _driver?.Quit(); } catch { /* best-effort */ }
+		_driver = null;
 	}
 
 	protected void TakeScreenshot()

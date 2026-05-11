@@ -13,6 +13,10 @@ namespace TRViS.UITests.Tests;
 [Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class ConnectServerDialogTests : BaseUITest
 {
+	// Share one Appium session across all tests in this fixture (iOS only).
+	// See BaseUITest.ShareSessionAcrossTestsInFixture for details.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	private static string SampleUrlA => StartHomePageObject.SeededHistoryUrls[0];
 	private static string SampleUrlB => StartHomePageObject.SeededHistoryUrls[1];
 
