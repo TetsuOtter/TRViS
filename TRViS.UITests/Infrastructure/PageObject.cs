@@ -75,6 +75,38 @@ public abstract class PageObject
 	}
 
 	/// <summary>
+	/// Polls for an element to be findable AND <c>Displayed=true</c> within
+	/// <paramref name="timeoutSeconds"/>. Returns false on timeout or any error.
+	/// Use for boolean visibility probes where the element may not yet be on
+	/// screen (e.g. just after a modal push) — a bare zero-wait <c>FindByAutomationId</c>
+	/// races the layout pass and reports a false negative.
+	/// </summary>
+	public bool PollDisplayed(string automationId, double timeoutSeconds = 5)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				try
+				{
+					if (FindByAutomationId(automationId).Displayed)
+						return true;
+				}
+				catch { }
+				Thread.Sleep(100);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	/// <summary>
 	/// Windows-specific helper: locate an element by its visible text via UIA's
 	/// <c>Name</c> property. Used as a fallback for MAUI custom controls
 	/// (<c>ContentView</c>, <c>ToggleButton</c>) whose AutomationId is exposed

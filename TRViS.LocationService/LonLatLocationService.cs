@@ -1,6 +1,6 @@
 
-using TRViS.LocationService.Internals;
-using static TRViS.LocationService.Internals.LocationCalcUtils;
+using TRViS.NetworkSyncService.Internals;
+using static TRViS.NetworkSyncService.Internals.LocationCalcUtils;
 using TRViS.LocationService.Abstractions;
 
 namespace TRViS.Services;

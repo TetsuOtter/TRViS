@@ -89,9 +89,33 @@ public static partial class JsonModelsConverter
 	}
 
 	/// <summary>
-	/// JsonModels.TrainData を TRViS.IO.Models.TrainData に変換します
+	/// JsonModels.TrainData を TRViS.IO.Models.TrainData に変換します。
+	/// 親 WorkData が存在しない場合の既定オーバーロード。
+	/// WorkName / AffectDate は <c>null</c> になるので、可能な限り親情報を渡せるオーバーロードを使うこと。
 	/// </summary>
 	public static TrainData ConvertTrain(JsonModels.TrainData trainJson)
+		=> ConvertTrain(trainJson, workName: null, affectDate: null);
+
+	/// <summary>
+	/// JsonModels.TrainData を TRViS.IO.Models.TrainData に変換します。
+	/// 親 WorkData が手元にあるときは、その <see cref="JsonModels.WorkData.Name"/> /
+	/// <see cref="JsonModels.WorkData.AffectDate"/> を引き継いで埋めます。
+	/// JsonModels.TrainData 自体は WorkName / AffectDate を持たないため、
+	/// 呼び出し側で親文脈を渡さない限り IO.Models.TrainData 側のこれらは null になる。
+	/// LoaderJson の単一ファイルロードと挙動を揃えるためのフックです。
+	/// </summary>
+	public static TrainData ConvertTrain(JsonModels.TrainData trainJson, JsonModels.WorkData? parentWork)
+		=> ConvertTrain(
+			trainJson,
+			workName: parentWork?.Name,
+			affectDate: StringToDateOnlyUtil.StringToDateOnlyOrNull(parentWork?.AffectDate));
+
+	/// <summary>
+	/// JsonModels.TrainData を TRViS.IO.Models.TrainData に変換します。
+	/// WorkName / AffectDate を呼び出し側で解決済みの値として渡したい場合に使います
+	/// (例: Train スコープ単独更新で、既にキャッシュ済みの Work から値を引き継ぐ)。
+	/// </summary>
+	public static TrainData ConvertTrain(JsonModels.TrainData trainJson, string? workName, DateOnly? affectDate)
 	{
 		string trainId = string.IsNullOrEmpty(trainJson.Id)
 			? Guid.NewGuid().ToString()
@@ -128,6 +152,8 @@ public static partial class JsonModelsConverter
 		return new TrainData(
 			Id: trainId,
 			Direction: trainJson.Direction < 0 ? Direction.Inbound : Direction.Outbound,
+			WorkName: workName,
+			AffectDate: affectDate,
 			TrainNumber: trainJson.TrainNumber,
 			MaxSpeed: trainJson.MaxSpeed,
 			SpeedType: trainJson.SpeedType,
@@ -143,7 +169,12 @@ public static partial class JsonModelsConverter
 			AfterArrive: trainJson.AfterArrive,
 			DayCount: trainJson.DayCount ?? 0,
 			IsRideOnMoving: trainJson.IsRideOnMoving,
-			LineColor_RGB: HexStringToRgbInt(trainJson.Color)
+			LineColor_RGB: HexStringToRgbInt(trainJson.Color),
+			// Empty string == null: matches LoaderJson semantics (LoaderJson.cs) and the
+			// IsNullOrEmpty checks in NextTrainButtonPresenter / VerticalTimetableView /
+			// VerticalTimetableDataSourceAdapter so the button visibility is consistent
+			// across loader implementations.
+			NextTrainId: string.IsNullOrEmpty(trainJson.NextTrainId) ? null : trainJson.NextTrainId
 		);
 	}
 

@@ -27,6 +27,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string LOCATION_M_JSON_KEY = "Location_m";
 	private const string TIME_MS_JSON_KEY = "Time_ms";
 	private const string CAN_START_JSON_KEY = "CanStart";
+	private const string LATITUDE_DEG_JSON_KEY = "Latitude_deg";
+	private const string LONGITUDE_DEG_JSON_KEY = "Longitude_deg";
+	private const string ACCURACY_M_JSON_KEY = "Accuracy_m";
 
 	// ID更新メッセージのJSONキー
 	private const string WORK_GROUP_ID_JSON_KEY = "WorkGroupId";
@@ -317,7 +320,16 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		catch (KeyNotFoundException) { }
 		catch (FormatException) { }
 
-		SyncedData syncedData = new SyncedData(location_m, time_ms, canStart);
+		double? latitude_deg = TryReadOptionalDouble(root, LATITUDE_DEG_JSON_KEY);
+		double? longitude_deg = TryReadOptionalDouble(root, LONGITUDE_DEG_JSON_KEY);
+		double? accuracy_m = TryReadOptionalDouble(root, ACCURACY_M_JSON_KEY);
+
+		SyncedData syncedData = new SyncedData(
+			location_m, time_ms, canStart,
+			Latitude_deg: latitude_deg,
+			Longitude_deg: longitude_deg,
+			Accuracy_m: accuracy_m
+		);
 		_LatestData = syncedData;
 
 		// WebSocket uses event-driven approach: process data immediately upon receipt
@@ -503,6 +515,22 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		return null;
 	}
 
+	private static double? TryReadOptionalDouble(JsonElement root, string name)
+	{
+		if (!root.TryGetProperty(name, out var prop) || prop.ValueKind == JsonValueKind.Null)
+			return null;
+		if (prop.ValueKind != JsonValueKind.Number)
+			return null;
+		try
+		{
+			return prop.GetDouble();
+		}
+		catch (FormatException)
+		{
+			return null;
+		}
+	}
+
 	private void CacheTimetableData(TimetableData timetableData)
 	{
 		try
@@ -573,7 +601,21 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 							timetableData.JsonData,
 							JsonDeserializeOptions
 						);
-						var trainData = JsonModelsConverter.ConvertTrain(jsonModels!);
+						// Train スコープ単独更新の JSON には親 Work の情報 (Name / AffectDate) が含まれない。
+						// IO.Models.TrainData.WorkName / AffectDate は親から引き継ぐべき値なので、
+						// 既にキャッシュ済みの Work を WorkId で引いて、その Name / AffectDate を流用する。
+						// (Work がまだキャッシュされていない場合は null のまま; AffectDateFormatter は
+						//  「今日−DayCount」にフォールバックする既存挙動になる)
+						string? inheritedWorkName = null;
+						DateOnly? inheritedAffectDate = null;
+						if (timetableData.WorkId is not null)
+						{
+							var cachedWork = FindCachedWork(timetableData.WorkId);
+							inheritedWorkName = cachedWork?.Name;
+							inheritedAffectDate = cachedWork?.AffectDate;
+						}
+
+						var trainData = JsonModelsConverter.ConvertTrain(jsonModels!, inheritedWorkName, inheritedAffectDate);
 						_TrainDataCache[timetableData.TrainId] = trainData;
 
 						// WorkIdに紐づくTrainのリストにも追加
@@ -638,7 +680,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				{
 					var work = JsonModelsConverter.ConvertWork(workData, workGroupId);
 					_WorkListCache[workGroupId].Add(work);
-					RebuildTrainCacheForWork(work.Id, workData.Trains);
+					RebuildTrainCacheForWork(work.Id, workData.Trains, workData);
 				}
 				catch (Exception ex)
 				{
@@ -663,7 +705,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		_WorkListCache[workGroupId].Add(work);
 		logger.Debug("CacheWorkSubtree: Updated Work {0} ({1}) under WorkGroup {2}", work.Id, work.Name, workGroupId);
 
-		RebuildTrainCacheForWork(work.Id, workData.Trains);
+		RebuildTrainCacheForWork(work.Id, workData.Trains, workData);
 	}
 
 	/// <summary>
@@ -673,8 +715,13 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	/// <remarks>
 	/// 前提: TrainId はちょうど一つの Work に属する (LoaderJson の WorkIdByTrainId と同じ不変条件)。
 	/// この前提が崩れると、他の Work から参照されている TrainId を誤って _TrainDataCache から削除しうる。
+	/// <para>
+	/// <paramref name="parentWork"/> は親 WorkData。各 Train の WorkName / AffectDate は
+	/// JsonModels.TrainData が持たないため、ここで親から引き継いで埋める
+	/// (LoaderJson と同じ挙動。AffectDateFormatter のフォールバックを抑止する)。
+	/// </para>
 	/// </remarks>
-	private void RebuildTrainCacheForWork(string workId, JsonModels.TrainData[]? trains)
+	private void RebuildTrainCacheForWork(string workId, JsonModels.TrainData[]? trains, JsonModels.WorkData? parentWork)
 	{
 		// 古い Train を _TrainDataCache から取り除く (上記不変条件により他 Work からは参照されない)
 		if (_TrainListByWorkIdCache.TryGetValue(workId, out var oldTrains))
@@ -691,7 +738,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		{
 			try
 			{
-				var trainData = JsonModelsConverter.ConvertTrain(trainJson);
+				var trainData = JsonModelsConverter.ConvertTrain(trainJson, parentWork);
 				_TrainDataCache[trainData.Id] = trainData;
 				_TrainListByWorkIdCache[workId].Add(trainData);
 				logger.Debug("RebuildTrainCacheForWork: Added Train {0} ({1})", trainData.Id, trainData.TrainNumber);
@@ -701,6 +748,23 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				logger.Error(ex, "RebuildTrainCacheForWork: Failed to process Train");
 			}
 		}
+	}
+
+	/// <summary>
+	/// _WorkListCache を WorkId で線形検索する (どの WorkGroup 配下にあるかを意識せずに引きたい場合)。
+	/// Train スコープ単独更新で、親 Work の Name / AffectDate を引き継ぐために使う。
+	/// </summary>
+	private Work? FindCachedWork(string workId)
+	{
+		foreach (var workList in _WorkListCache.Values)
+		{
+			foreach (var work in workList)
+			{
+				if (work.Id == workId)
+					return work;
+			}
+		}
+		return null;
 	}
 
 	/// <summary>
@@ -929,6 +993,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		_isDisconnecting = true;
 		_ReceiveLoopCts?.Cancel();
 
+		// 受信ループのキャンセルにより ClientWebSocket が内部で Abort/Dispose 済みの場合、
+		// CloseAsync は ObjectDisposedException や InvalidOperationException を投げ得る。
+		// シャットダウンパスではいずれも握りつぶして良い。
 		if (_WebSocket.State == WebSocketState.Open)
 		{
 			try
@@ -939,10 +1006,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 					cancellationToken
 				);
 			}
-			catch (WebSocketException ex)
+			catch (Exception ex) when (ex is WebSocketException or ObjectDisposedException or InvalidOperationException)
 			{
-				logger.Warn(ex, "DisconnectAsync: WebSocket exception");
-				// Already closed or error
+				logger.Warn(ex, "DisconnectAsync: WebSocket already closed or disposed");
 			}
 		}
 

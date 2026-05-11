@@ -30,6 +30,28 @@ public partial class SelectFileDialog : ContentPage
 	// the OnSelectFileClicked dispatch in StartHomePage.xaml.cs (.sqlite/.db/.sqlite3).
 	private static readonly string[] s_listedExtensions = { ".json", ".sqlite", ".db", ".sqlite3" };
 
+	// OS file picker filter. Strings are interpreted per-platform:
+	//   - iOS / MacCatalyst: UTI identifiers passed to UIDocumentPickerViewController.
+	//     `public.json` is system-defined; `public.database` covers files tagged as
+	//     databases. Note: `.sqlite/.db/.sqlite3` files are not natively tagged as
+	//     `public.database` on iOS — they appear as `public.data`. Until UTI conformance
+	//     is declared in Info.plist (UTExportedTypeDeclarations), iOS users who need to
+	//     pick a sqlite/db file should tap "..." → "Show all files" in the picker. The
+	//     post-pick extension check in TryLoadFileAsync remains the safety net.
+	//   - Android: MIME types. `application/octet-stream` is intentionally included
+	//     because Android often misidentifies user-supplied sqlite files with that MIME.
+	//   - Windows: file extensions including the leading dot.
+	private static readonly PickOptions s_pickOptions = new()
+	{
+		FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+		{
+			{ DevicePlatform.iOS, new[] { "public.json", "public.database" } },
+			{ DevicePlatform.MacCatalyst, new[] { "public.json", "public.database" } },
+			{ DevicePlatform.Android, new[] { "application/json", "application/x-sqlite3", "application/vnd.sqlite3", "application/octet-stream" } },
+			{ DevicePlatform.WinUI, new[] { ".json", ".sqlite", ".db", ".sqlite3" } },
+		}),
+	};
+
 	// Drill-down state. _rootDirectory is the user-visible "top" — going above it
 	// is not allowed (we don't want users wandering into the rest of the sandbox).
 	private DirectoryInfo _rootDirectory = DirectoryPathProvider.TimetableFileDirectory;
@@ -41,12 +63,6 @@ public partial class SelectFileDialog : ContentPage
 	// the page is already disposed. The flag short-circuits at the top of every
 	// tap handler.
 	private bool _isBusy;
-	// Tracks whether OnAppearing has already initialised drill-down state. The
-	// OS file picker (Browse) and unsupported-extension alert each re-fire
-	// OnAppearing on dismissal, and unconditionally resetting _currentDirectory
-	// would bounce the user back to the root — losing the folder they had
-	// drilled into. Only reset on the first appearance.
-	private bool _initialAppearanceDone;
 
 	public SelectFileDialog()
 	{
@@ -63,31 +79,42 @@ public partial class SelectFileDialog : ContentPage
 		// IsVisible='False' XAML defaults skip peer creation and miss the
 		// runtime flip), but BreadcrumbBorder and EmptyStateView would visually
 		// overlap FileListView if all three stayed visible. Hide them
-		// synchronously here; OnAppearing → PopulateFileList toggles them based
-		// on the actual directory contents.
+		// synchronously here; PopulateFileList toggles them based on the
+		// actual directory contents.
 		BreadcrumbBorder.IsVisible = false;
 		EmptyStateView.IsVisible = false;
+
+		// "保存場所を開く" is hidden on Android: TimetableFileDirectory lives under
+		// AppDataDirectory (/data/data/<pkg>/files/...), which is internal storage no
+		// Files-app can browse — and a `file://` URI would throw FileUriExposedException
+		// on API 24+. Until/unless the timetable directory is relocated to a shared
+		// location (e.g. via SAF / scoped storage), opening it from Android is a no-op
+		// at best. The button stays for iOS / Mac Catalyst / Windows where it works.
+		if (DeviceInfo.Current.Platform == DevicePlatform.Android)
+			OpenStorageLocationButton.IsVisible = false;
+
+		// Populate cards from the constructor (mirrors ConnectServerDialog).
+		// Android's UiAutomator2 only surfaces a Border's AutomationId in the
+		// accessibility tree if the Border is in the visual tree before the
+		// initial measure/layout pass — populating only from OnAppearing means
+		// the per-row card AutomationIds never become findable in tests, even
+		// though the cards render visually. The fields are already initialised
+		// from the static DirectoryPathProvider at field-declaration time.
+		PopulateFileList();
 	}
 
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
-		if (!_initialAppearanceDone)
-		{
-			_rootDirectory = DirectoryPathProvider.TimetableFileDirectory;
+		// Re-populate on each appearance so a re-show after preferences /
+		// filesystem state changed (e.g. after an OS picker dismiss, or files
+		// added externally) reflects the latest contents. The constructor
+		// already pinned the initial drill-down position; if the directory
+		// was deleted out from under us, fall back to root rather than
+		// render nothing.
+		_currentDirectory.Refresh();
+		if (!_currentDirectory.Exists)
 			_currentDirectory = _rootDirectory;
-			_initialAppearanceDone = true;
-		}
-		else
-		{
-			// Subsequent re-appearance (e.g. after an OS picker dismiss): refresh
-			// the listing in case files were added/removed externally, but keep
-			// the user's drill-down position. If the directory has been deleted
-			// out from under us, fall back to root rather than render nothing.
-			_currentDirectory.Refresh();
-			if (!_currentDirectory.Exists)
-				_currentDirectory = _rootDirectory;
-		}
 		PopulateFileList();
 	}
 
@@ -151,6 +178,17 @@ public partial class SelectFileDialog : ContentPage
 	{
 		try
 		{
+			// DirectoryInfo.Exists caches the result of the very first access for
+			// the lifetime of the instance, and DirectoryPathProvider.TimetableFileDirectory
+			// is a static, shared instance. On Android/Linux the static `_dataInitialised`
+			// cache stays at "False" once stamped — even after Directory.CreateDirectory
+			// runs (the create call doesn't refresh nearby DirectoryInfo handles), so a
+			// freshly-created or freshly-seeded directory looks empty here. Refresh
+			// invalidates the cache before the read so we always observe the current
+			// filesystem state. (Reproduced in CI: SeededSqlite_AppearsInFileListView
+			// on Android without this refresh — file present on disk per logcat, but
+			// the dialog rendered empty state.)
+			_currentDirectory.Refresh();
 			if (!_currentDirectory.Exists)
 				return (Array.Empty<DirectoryInfo>(), Array.Empty<FileInfo>());
 
@@ -421,7 +459,7 @@ public partial class SelectFileDialog : ContentPage
 			}
 			else if (ext is ".sqlite" or ".db" or ".sqlite3")
 			{
-				newLoader = new LoaderSQL(fullPath);
+				newLoader = await LoaderSQL.CreateAsync(fullPath);
 			}
 			else
 			{
@@ -469,7 +507,12 @@ public partial class SelectFileDialog : ContentPage
 		try
 		{
 			SetInputEnabled(false);
-			var result = await FilePicker.Default.PickAsync();
+			// Indirect through FilePickerProvider so UI tests can substitute a
+			// known file path without driving the real OS picker (system UI is
+			// out of Appium's reach on every platform). Production path is
+			// identical — the provider just calls FilePicker.Default with the
+			// JSON / SQLite type filter.
+			var result = await FilePickerProvider.PickAsync(s_pickOptions);
 			if (result is null)
 			{
 				logger.Info("File picker cancelled");
@@ -477,7 +520,20 @@ public partial class SelectFileDialog : ContentPage
 			}
 
 			logger.Info("File selected via picker: {0}", result.FullPath);
-			bool ok = await TryLoadFileAsync(result.FullPath);
+
+			// FileResult.FullPath on Android may be a content:// URI rather than
+			// a filesystem path (per .NET MAUI FilePicker docs). The downstream
+			// loaders use File.OpenRead / SqliteConnection, which require a real
+			// path and would throw FileNotFoundException on a content:// URI.
+			// Stream the picked file via FileResult.OpenReadAsync (works on every
+			// platform) into the sandbox before handing the local path to the
+			// loader. Landing under TimetableFileDirectory/imported/ also makes
+			// the file appear in the card list on subsequent opens — the user
+			// suggested UserContentsDirectory but only the timetables tree is
+			// surfaced by the card list.
+			string localPath = await ImportPickedFileAsync(result);
+
+			bool ok = await TryLoadFileAsync(localPath);
 			if (ok)
 				await Navigation.PopModalAsync();
 		}
@@ -490,6 +546,53 @@ public partial class SelectFileDialog : ContentPage
 		finally
 		{
 			SetInputEnabled(true);
+		}
+	}
+
+	static async Task<string> ImportPickedFileAsync(FileResult result)
+	{
+		DirectoryInfo importedDir = new(System.IO.Path.Combine(DirectoryPathProvider.TimetableFileDirectory.FullName, "imported"));
+		if (!importedDir.Exists)
+			importedDir.Create();
+
+		string fileName = SanitizeFileName(result.FileName);
+		string destPath = ResolveUniqueFilePath(importedDir.FullName, fileName);
+
+		using Stream src = await result.OpenReadAsync();
+		using FileStream dst = File.Create(destPath);
+		await src.CopyToAsync(dst);
+
+		return destPath;
+	}
+
+	static string SanitizeFileName(string name)
+	{
+		string fileName = System.IO.Path.GetFileName(name ?? string.Empty);
+		if (string.IsNullOrWhiteSpace(fileName))
+			return "imported_file";
+
+		char[] invalid = System.IO.Path.GetInvalidFileNameChars();
+		var sb = new System.Text.StringBuilder(fileName.Length);
+		foreach (char ch in fileName)
+			sb.Append(Array.IndexOf(invalid, ch) >= 0 ? '_' : ch);
+
+		string sanitized = sb.ToString().Trim();
+		return string.IsNullOrEmpty(sanitized) ? "imported_file" : sanitized;
+	}
+
+	static string ResolveUniqueFilePath(string directory, string fileName)
+	{
+		string candidate = System.IO.Path.Combine(directory, fileName);
+		if (!File.Exists(candidate))
+			return candidate;
+
+		string baseName = System.IO.Path.GetFileNameWithoutExtension(fileName);
+		string ext = System.IO.Path.GetExtension(fileName);
+		for (int i = 1; ; i++)
+		{
+			candidate = System.IO.Path.Combine(directory, $"{baseName} ({i}){ext}");
+			if (!File.Exists(candidate))
+				return candidate;
 		}
 	}
 

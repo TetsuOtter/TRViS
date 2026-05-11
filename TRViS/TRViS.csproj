@@ -100,6 +100,21 @@
 		<BundleResource Include="GoogleService-Info.plist" />
 		<PackageReference Include="AdamE.Firebase.iOS.Analytics" Version="10.16.0" />
 		<PackageReference Include="AdamE.Firebase.iOS.Crashlytics" Version="10.29.0.3" />
+		<!--
+			Firebase Crashlytics calls dladdr(&__mh_execute_header) during
+			FIRCLSContext init to locate the executable's load address. The
+			.NET iOS workload sets _ExportSymbolsExplicitly=true by default
+			and passes `-exported_symbols_list <generated-file>` to ld; that
+			generated file does not include `__mh_execute_header`, so the
+			symbol is hidden and Crashlytics aborts startup with:
+				"Crashlytics could not find the symbol for the app's main
+				 function and cannot start up"
+				"Crash reporting could not be initialized"
+			Append the symbol via -Wl,-exported_symbol — comes after the
+			-exported_symbols_list flag in the final linker invocation, so
+			ld merges it into the export set.
+		-->
+		<LinkerArgument Include="-Wl,-exported_symbol,__mh_execute_header" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
 		<GoogleServicesJson Include="Google-services.json" />

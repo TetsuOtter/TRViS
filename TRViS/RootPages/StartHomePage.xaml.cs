@@ -437,49 +437,9 @@ public partial class StartHomePage : ContentPage
 		RebuildWorkGroupItems();
 		SyncPendingFromCommitted();
 
-		// First-appearing default-timetable load. Only run when we don't yet have
-		// a Loader (e.g. fresh launch or after disconnect).
-		if (viewModel.Loader is null)
-		{
-			logger.Info("Loader is null -> attempt default timetable load");
-
-			try
-			{
-				(bool success, bool requiresFileSelection, string? selectedFilePath, string? errorMessage) =
-					await viewModel.TryLoadDefaultTimetableAsync();
-
-				if (success && !requiresFileSelection)
-				{
-					logger.Info("Default timetable loaded -> show Home picker (no auto-navigate)");
-					await ApplyModeForCurrentLoaderAsync();
-					return;
-				}
-
-				if (success && requiresFileSelection)
-				{
-					logger.Info("Multiple JSON files found - showing default-file selection sheet");
-					await ShowFileSelectionDialogAsync();
-					return;
-				}
-
-				if (errorMessage == "PrivacyPolicyNotAccepted")
-				{
-					logger.Info("Privacy policy not accepted -> stay on Start screen until user opens dialog");
-					// Do NOT auto-load sample data here. The user must open the privacy dialog first.
-					await ApplyModeForCurrentLoaderAsync();
-					return;
-				}
-
-				// No default file. Stay on Start screen — do not auto-load sample data.
-				logger.Info("No default timetable found -> stay on Start screen");
-			}
-			catch (Exception ex)
-			{
-				logger.Error(ex, "Error loading default timetable");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnAppearing (TryLoadDefaultTimetableAsync failed)");
-			}
-		}
-
+		// We deliberately do NOT auto-load timetables from TimetableFileDirectory
+		// here. The user opens files explicitly via the "ファイルを選択" button
+		// (SelectFileDialog) or via a `trvis://app/open/json?local=…` AppLink.
 		await ApplyModeForCurrentLoaderAsync();
 	}
 
@@ -807,46 +767,87 @@ public partial class StartHomePage : ContentPage
 
 	void RebuildWorkGroupItems()
 	{
-		_workGroupItems.Clear();
-		var loader = viewModel.Loader;
-		var groups = viewModel.WorkGroupList;
-		EnsureCountCacheLoader(loader);
-		if (loader is null || groups is null)
+		// See RebuildWorkItems for the iOS 12 detach/reattach rationale.
+		bool detachForIos12CollectionViewCrash =
+#if IOS
+			!OperatingSystem.IsIOSVersionAtLeast(13);
+#else
+			false;
+#endif
+		if (detachForIos12CollectionViewCrash)
+			WorkGroupListView.ItemsSource = null;
+		try
 		{
-			RebuildWorkItems();
-			return;
+			_workGroupItems.Clear();
+			var loader = viewModel.Loader;
+			var groups = viewModel.WorkGroupList;
+			EnsureCountCacheLoader(loader);
+			if (loader is not null && groups is not null)
+			{
+				foreach (var wg in groups)
+				{
+					int workCount = GetWorkCountCached(loader, wg.Id);
+					string subtitle = $"Work 数: {workCount}";
+					_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
+				}
+			}
 		}
-		foreach (var wg in groups)
+		finally
 		{
-			int workCount = GetWorkCountCached(loader, wg.Id);
-			string subtitle = $"Work 数: {workCount}";
-			_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
+			if (detachForIos12CollectionViewCrash)
+				WorkGroupListView.ItemsSource = _workGroupItems;
 		}
+		// Cascade to Work list — runs regardless of loader/groups state so the
+		// Work list mirrors the (possibly cleared) WorkGroup list.
 		RebuildWorkItems();
 	}
 
 	void RebuildWorkItems()
 	{
-		_workItems.Clear();
-		var loader = viewModel.Loader;
-		var wg = _pendingWorkGroup;
-		if (loader is null || wg is null)
-			return;
-		EnsureCountCacheLoader(loader);
-
-		IReadOnlyList<Work> works;
-		try { works = loader.GetWorkList(wg.Id); }
-		catch { works = Array.Empty<Work>(); }
-
-		foreach (var w in works)
+		// iOS 12: detaching ItemsSource around the mutation forces MAUI to issue
+		// a single ReloadData instead of the per-Add InsertItems calls that
+		// ObservableItemsSource normally emits. The latter path crashes the app
+		// the first time a WorkGroup is picked because WorkListView is
+		// transitioning from IsVisible=false to true, and an InsertItems call
+		// mid-layout-pass triggers UICollectionViewFlowLayout to be invalidated
+		// with a (null) context — iOS 13+ tolerates that, iOS 12 rejects it as
+		// NSInvalidArgumentException. See log 2026-05-11 15:35:39.
+		bool detachForIos12CollectionViewCrash =
+#if IOS
+			!OperatingSystem.IsIOSVersionAtLeast(13);
+#else
+			false;
+#endif
+		if (detachForIos12CollectionViewCrash)
+			WorkListView.ItemsSource = null;
+		try
 		{
-			int trainCount = GetTrainCountCached(loader, w.Id);
+			_workItems.Clear();
+			var loader = viewModel.Loader;
+			var wg = _pendingWorkGroup;
+			if (loader is null || wg is null)
+				return;
+			EnsureCountCacheLoader(loader);
 
-			List<string> parts = new(2);
-			if (w.AffectDate is { } d)
-				parts.Add($"施行日: {d:yyyy/MM/dd}");
-			parts.Add($"列車数: {trainCount}");
-			_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
+			IReadOnlyList<Work> works;
+			try { works = loader.GetWorkList(wg.Id); }
+			catch { works = Array.Empty<Work>(); }
+
+			foreach (var w in works)
+			{
+				int trainCount = GetTrainCountCached(loader, w.Id);
+
+				List<string> parts = new(2);
+				if (w.AffectDate is { } d)
+					parts.Add($"施行日: {d:yyyy/MM/dd}");
+				parts.Add($"列車数: {trainCount}");
+				_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
+			}
+		}
+		finally
+		{
+			if (detachForIos12CollectionViewCrash)
+				WorkListView.ItemsSource = _workItems;
 		}
 	}
 
@@ -871,23 +872,48 @@ public partial class StartHomePage : ContentPage
 	{
 		if (_suppressSelectionChanged)
 			return;
-		var item = WorkGroupListView.SelectedItem as WorkGroupListItem;
-		_pendingWorkGroup = item?.Source;
-		// Switching Work Group invalidates any prior Work pick and rebuilds the
-		// Work list for the new group.
-		_pendingWork = null;
-		RebuildWorkItems();
-		SyncListViewSelections();
-		RefreshStepUi();
+		try
+		{
+			var item = WorkGroupListView.SelectedItem as WorkGroupListItem;
+			_pendingWorkGroup = item?.Source;
+			// Switching Work Group invalidates any prior Work pick and rebuilds the
+			// Work list for the new group.
+			_pendingWork = null;
+			RebuildWorkItems();
+			SyncListViewSelections();
+			RefreshStepUi();
+		}
+		catch (Exception ex)
+		{
+			// UI-thread event handler — an exception that escapes here propagates
+			// through Mono's unhandled exception hook and aborts the process. Log
+			// + Crashlytics + sync-flush before rethrowing so the crash record is
+			// recoverable. (See MauiProgram.CurrentDomain_UnhandledException for
+			// the matching app-level flush.)
+			logger.Error(ex, "OnWorkGroupSelectionChanged failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnWorkGroupSelectionChanged");
+			try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); } catch { /* best-effort */ }
+			throw;
+		}
 	}
 
 	void OnWorkSelectionChanged(object? sender, SelectionChangedEventArgs e)
 	{
 		if (_suppressSelectionChanged)
 			return;
-		var item = WorkListView.SelectedItem as WorkListItem;
-		_pendingWork = item?.Source;
-		RefreshStepUi();
+		try
+		{
+			var item = WorkListView.SelectedItem as WorkListItem;
+			_pendingWork = item?.Source;
+			RefreshStepUi();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "OnWorkSelectionChanged failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnWorkSelectionChanged");
+			try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); } catch { /* best-effort */ }
+			throw;
+		}
 	}
 
 	void OnWorkGroupChipTapped(object? sender, TappedEventArgs e)
@@ -1077,44 +1103,6 @@ public partial class StartHomePage : ContentPage
 		}
 	}
 
-	private async Task ShowFileSelectionDialogAsync()
-	{
-		try
-		{
-			var jsonFiles = DefaultTimetableFileLoader.GetAvailableJsonFiles();
-			if (jsonFiles.Length == 0)
-			{
-				logger.Warn("No JSON files found for default selection");
-				return;
-			}
-
-			var fileNames = jsonFiles.Select(f => f.Name).ToArray();
-			var filePaths = jsonFiles.Select(f => f.FullName).ToArray();
-
-			string? selected = await DisplayActionSheetAsync(
-				"どのファイルを開きますか？",
-				"キャンセル",
-				null,
-				fileNames);
-
-			if (string.IsNullOrEmpty(selected) || selected == "キャンセル")
-				return;
-
-			int idx = Array.IndexOf(fileNames, selected);
-			if (idx < 0 || idx >= filePaths.Length)
-				return;
-
-			bool loaded = await viewModel.LoadSelectedTimetableFileAsync(filePaths[idx]);
-			if (loaded)
-				await ApplyModeForCurrentLoaderAsync();
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "ShowFileSelectionDialogAsync failed");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.ShowFileSelectionDialogAsync");
-		}
-	}
-
 	// ----- Test seams -----
 
 	void TestSeedButton_Clicked(object sender, EventArgs e)
@@ -1239,6 +1227,164 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSeedHorizontalTimetableButton failed");
+		}
+#else
+		await Task.CompletedTask;
+#endif
+	}
+
+	// Seeds a minimal SQLite fixture into TimetableFileDirectory using the same
+	// sqlite-net write path that LoaderSQL uses to read. The point is to exercise
+	// SQLitePCLRaw provider initialization inside the live MAUI runtime — the
+	// netcore-based TRViS.IO.Tests don't go through MAUI's linker/AOT, so a
+	// missing Batteries_V2.Init or stripped provider registration only ever
+	// surfaces here. If the seed step throws, no file appears, the SelectFile
+	// dialog renders the empty state, and the corresponding test fails with a
+	// "card not visible" assertion that points back at this seam.
+	void TestSeedSqliteButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedSqliteButton clicked: seeding minimal SQLite fixture");
+		try
+		{
+			if (!DirectoryPathProvider.TimetableFileDirectory.Exists)
+				Directory.CreateDirectory(DirectoryPathProvider.TimetableFileDirectory.FullName);
+
+			string path = Path.Combine(
+				DirectoryPathProvider.TimetableFileDirectory.FullName,
+				UITestSqliteFixtureFileName);
+			if (File.Exists(path))
+				File.Delete(path);
+
+			using var cnx = new SQLite.SQLiteConnection(path);
+			cnx.CreateTable<IO.Models.DB.WorkGroup>();
+			cnx.Insert(new IO.Models.DB.WorkGroup
+			{
+				Id = "1",
+				Name = "UITestWG",
+				DBVersion = 1,
+			});
+			logger.Info("Seeded SQLite fixture at {0}", path);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedSqliteButton failed");
+		}
+#endif
+	}
+
+	// Wipes TimetableFileDirectory contents so SelectFile-related tests can
+	// guarantee a known starting state without relying on platform-specific
+	// app-data wipe (Mac Catalyst / iOS keep the documents folder across
+	// noReset:true sessions).
+	void TestClearTimetablesButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestClearTimetablesButton clicked: clearing TimetableFileDirectory");
+		try
+		{
+			DirectoryInfo dir = DirectoryPathProvider.TimetableFileDirectory;
+			if (dir.Exists)
+			{
+				foreach (FileInfo file in dir.GetFiles())
+					file.Delete();
+				foreach (DirectoryInfo sub in dir.GetDirectories())
+					sub.Delete(recursive: true);
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearTimetablesButton failed");
+		}
+#endif
+	}
+
+	// Filename used by the UI_TEST seed seam. Public so the test fixture can
+	// reference the same constant when looking up the rendered card by id.
+	public const string UITestSqliteFixtureFileName = "uitest_seed.sqlite";
+
+	void TestSeedSampleFilesButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedSampleFilesButton clicked: seeding SelectFileDialog fixtures");
+		try
+		{
+			SelectFileDialogTestSeams.SeedSampleFiles();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedSampleFilesButton failed");
+		}
+#endif
+	}
+
+	void TestClearSampleFilesButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestClearSampleFilesButton clicked: clearing SelectFileDialog fixtures + FilePicker override");
+		try
+		{
+			SelectFileDialogTestSeams.ClearSampleFiles();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearSampleFilesButton failed");
+		}
+#endif
+	}
+
+	void TestSetupBrowseFallbackButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSetupBrowseFallbackButton clicked: installing FilePicker override");
+		try
+		{
+			SelectFileDialogTestSeams.SetupBrowseFallback();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSetupBrowseFallbackButton failed");
+		}
+#endif
+	}
+
+	/// <summary>
+	/// Test seam: tapped from UI tests via "StartHome.TestSeedNextTrainSelectionButton".
+	/// Commits selection to a sample-data train whose NextTrainId is non-empty
+	/// (WorkGroup "hako-order-test" → Work "work-linear" → Train "linear-train-1",
+	/// NextTrainId = "linear-train-2") and navigates to DTAC. Mirrors the
+	/// TestAutoOpenButton pattern but targets a specific Work so the regression
+	/// test for #225 doesn't rely on the default first train (which has an empty
+	/// NextTrainId).
+	/// </summary>
+	async void TestSeedNextTrainSelectionButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestSeedNextTrainSelection clicked: committing linear-train-1 and navigating to DTAC");
+		try
+		{
+			var wg = viewModel.WorkGroupList?.FirstOrDefault(w => w.Id == "hako-order-test");
+			if (wg is null)
+			{
+				logger.Warn("TestSeedNextTrainSelection: hako-order-test WorkGroup not found");
+				return;
+			}
+			var loader = viewModel.Loader;
+			if (loader is null)
+				return;
+			var work = loader.GetWorkList(wg.Id)?.FirstOrDefault(w => w.Id == "work-linear");
+			if (work is null)
+			{
+				logger.Warn("TestSeedNextTrainSelection: work-linear not found under hako-order-test");
+				return;
+			}
+
+			CommitPendingSelection(wg, work);
+			await NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedNextTrainSelection failed");
 		}
 #else
 		await Task.CompletedTask;

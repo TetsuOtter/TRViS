@@ -50,12 +50,27 @@ public class StartHomePageObject : PageObject
 	public bool IsWorkGroupChipVisible()
 		=> PollAutomationIdDisplayed(AutomationIds.StartHome.WorkGroupChip, timeoutSeconds: 1);
 
+	/// <summary>
+	/// Polls for the WorkGroupList to become visible. Use after a successful
+	/// file load to absorb the Start→Home mode-switch animation
+	/// (TRANSITION_MS=380ms) plus any platform-specific layout latency on slow
+	/// CI runners (iOS macos-26 simulators have been observed multi-second slow).
+	/// </summary>
+	public bool IsWorkGroupListVisible(double timeoutSeconds = 5)
+		=> PollAutomationIdDisplayed(AutomationIds.StartHome.WorkGroupList, timeoutSeconds);
+
 	// UI_TEST seed seams.
 	public AppiumElement TestSeedButton => FindByAutomationId(AutomationIds.StartHome.TestSeedButton);
 	public AppiumElement TestSeedGpsButton => FindByAutomationId(AutomationIds.StartHome.TestSeedGpsButton);
 	public AppiumElement TestAutoOpenButton => FindByAutomationId(AutomationIds.StartHome.TestAutoOpenButton);
 	public AppiumElement TestClearHistoryButton => FindByAutomationId(AutomationIds.StartHome.TestClearHistoryButton);
 	public AppiumElement TestSeedHorizontalTimetableButton => FindByAutomationId(AutomationIds.StartHome.TestSeedHorizontalTimetableButton);
+	public AppiumElement TestSeedSqliteButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSqliteButton);
+	public AppiumElement TestClearTimetablesButton => FindByAutomationId(AutomationIds.StartHome.TestClearTimetablesButton);
+	public AppiumElement TestSeedSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSampleFilesButton);
+	public AppiumElement TestClearSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestClearSampleFilesButton);
+	public AppiumElement TestSetupBrowseFallbackButton => FindByAutomationId(AutomationIds.StartHome.TestSetupBrowseFallbackButton);
+	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
 
 	public bool IsDisplayed()
 	{
@@ -192,6 +207,33 @@ public class StartHomePageObject : PageObject
 	public void ClearUrlHistoryForTesting() => TestClearHistoryButton.Click();
 
 	/// <summary>
+	/// Taps the UI_TEST-only SQLite seed button. Writes a minimal SQLite fixture
+	/// (single WorkGroup row) into TimetableFileDirectory using the same
+	/// sqlite-net code path LoaderSQL reads from. Tests use this to verify the
+	/// MAUI runtime can actually open SQLite — catches regressions where the
+	/// SQLitePCLRaw bundle_green provider registration is stripped by the
+	/// linker / not initialized at app start, which the netcore-only
+	/// TRViS.IO.Tests cannot detect.
+	/// </summary>
+	public void SeedSqliteForTesting() => TestSeedSqliteButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only timetables-clear button. Removes everything in
+	/// TimetableFileDirectory so SelectFile-related tests can guarantee a known
+	/// starting state without relying on platform-specific app-data wipe
+	/// (Mac Catalyst / iOS keep the documents folder across noReset:true
+	/// sessions).
+	/// </summary>
+	public void ClearTimetablesForTesting() => TestClearTimetablesButton.Click();
+
+	/// <summary>
+	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
+	/// constant in StartHomePage.xaml.cs so tests can look up the rendered
+	/// card by AutomationId.
+	/// </summary>
+	public const string UITestSqliteFixtureFileName = "uitest_seed.sqlite";
+
+	/// <summary>
 	/// Taps the UI_TEST-only GPS-seed button so tests can push a fake GPS coord
 	/// without typing through Appium SendKeys.
 	/// </summary>
@@ -222,6 +264,18 @@ public class StartHomePageObject : PageObject
 	}
 
 	/// <summary>
+	/// Taps the UI_TEST-only seed button that commits selection to
+	/// <c>linear-train-1</c> (NextTrainId = <c>linear-train-2</c>) and navigates
+	/// to DTAC. Used by the #225 NextTrainButton regression test so it doesn't
+	/// rely on the default first-train selection (whose NextTrainId is empty).
+	/// </summary>
+	public DTACViewHostPageObject SeedTrainSelectionWithNextTrain()
+	{
+		TestSeedNextTrainSelectionButton.Click();
+		return new DTACViewHostPageObject(Driver);
+	}
+
+	/// <summary>
 	/// URLs that <see cref="SeedUrlHistoryForTesting"/> writes into history.
 	/// Mirrors the literals in StartHomePage.xaml.cs so tests can assert against them.
 	/// </summary>
@@ -230,6 +284,49 @@ public class StartHomePageObject : PageObject
 		"https://example.com/timetable-a.json",
 		"https://example.com/timetable-b.json",
 	};
+
+	/// <summary>
+	/// Fixture file names written by <see cref="SeedSampleFilesForTesting"/>.
+	/// Mirrors the literals in <c>SelectFileDialogTestSeams</c> so tests can
+	/// assert against per-row card AutomationIds without duplicating strings.
+	/// </summary>
+	public const string SeededRootFileName = "ui-test-root.json";
+	public const string SeededSubFolderName = "ui-test-folder";
+	public const string SeededNestedFileName = "ui-test-nested.json";
+
+	/// <summary>
+	/// Taps the UI_TEST-only seed-sample-files button. Writes a known fixture
+	/// (root JSON + sub-folder containing another JSON) into TimetableFileDirectory
+	/// so drill-down / file-load tests have something to assert against.
+	/// </summary>
+	public void SeedSampleFilesForTesting() => TestSeedSampleFilesButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only clear-sample-files button. Wipes
+	/// TimetableFileDirectory, clears any pending FilePicker override, and
+	/// resets the in-memory <c>AppViewModel.Loader</c> so the page flips
+	/// back to Start mode if a previous test (or app-launch auto-loader)
+	/// left it in Home mode. Use in SetUp because iOS noReset:true and Mac
+	/// Catalyst's app sandbox both keep the documents folder warm across
+	/// sessions and the FilePicker override static survives Driver.Quit().
+	///
+	/// Sleeps briefly after the click to let StartHomePage's mode-switch
+	/// observer + animation (TRANSITION_MS ≈ 380ms) settle before the
+	/// caller queries Start-mode buttons.
+	/// </summary>
+	public void ClearSampleFilesForTesting()
+	{
+		TestClearSampleFilesButton.Click();
+		Thread.Sleep(500);
+	}
+
+	/// <summary>
+	/// Taps the UI_TEST-only setup-browse-fallback button. Writes a JSON fixture
+	/// outside TimetableFileDirectory and installs a FilePicker override that
+	/// returns its path. The next "他の場所からファイルを開く" tap then runs the
+	/// real load path with no OS picker dialog.
+	/// </summary>
+	public void SetupBrowseFallbackForTesting() => TestSetupBrowseFallbackButton.Click();
 
 	/// <summary>
 	/// Returns the count of WorkGroup rows after a sample load. Useful to verify

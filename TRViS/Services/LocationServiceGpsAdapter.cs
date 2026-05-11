@@ -29,6 +29,13 @@ internal class LocationServiceGpsAdapter : IDisposable
 	{
 		if (e.NewValue)
 		{
+			// NetworkSyncService が現在の location source の場合は端末 GPS を起動しない。
+			// 位置情報はサーバーから配信されるため、端末 GPS は電力の無駄になる。
+			if (_locationService.CurrentService is not LonLatLocationService)
+			{
+				logger.Info("LocationService.IsEnabled changed to true but CurrentService is not LonLatLocationService -> skip GPS listening");
+				return;
+			}
 			logger.Info("LocationService.IsEnabled changed to true -> StartGpsListening");
 			_ = StartGpsListeningAsync();
 		}

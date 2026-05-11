@@ -62,6 +62,8 @@ internal class FakeNetworkSyncService : NetworkSyncServiceBase
 	public new void RaiseConnectionClosed() => base.RaiseConnectionClosed();
 	public new void RaiseConnectionFailed() => base.RaiseConnectionFailed();
 
+	public void SimulateProcessSyncedData(SyncedData syncedData) => ProcessSyncedData(syncedData);
+
 	protected override Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
 	{
 		OnGetSyncedData?.Invoke();
@@ -355,5 +357,58 @@ public class LocationServiceIntegrationTests
 		Assert.That(received!.Value.lon, Is.EqualTo(135.0));
 		Assert.That(received!.Value.lat, Is.EqualTo(35.0));
 		Assert.That(received!.Value.acc, Is.EqualTo(5.0));
+	}
+
+	// -------------------------------------------------------
+	// 14. NetworkSyncService 経由の緯度経度配信は OnGpsLocationUpdated に転送される
+	// -------------------------------------------------------
+	[Test]
+	public void NetworkSyncService_LonLatReceived_ForwardedAsOnGpsLocationUpdated()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		(double lon, double lat, double? acc)? received = null;
+		_locationService.OnGpsLocationUpdated += (_, e) => received = e;
+
+		fakeNs.SimulateProcessSyncedData(new SyncedData(
+			Location_m: double.NaN,
+			Time_ms: 0,
+			CanStart: false,
+			Latitude_deg: 35.681236,
+			Longitude_deg: 139.767125,
+			Accuracy_m: 8.0
+		));
+
+		Assert.That(received, Is.Not.Null);
+		Assert.That(received!.Value.lon, Is.EqualTo(139.767125).Within(1e-9));
+		Assert.That(received!.Value.lat, Is.EqualTo(35.681236).Within(1e-9));
+		Assert.That(received!.Value.acc, Is.EqualTo(8.0).Within(1e-9));
+	}
+
+	// -------------------------------------------------------
+	// 15. NetworkSyncService に切替後 LonLatLocationService に戻したときに
+	//     購読が解除されている (二重発火しない)
+	// -------------------------------------------------------
+	[Test]
+	public void NetworkSyncService_Unsubscribed_AfterSwitchToLonLat()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		_locationService.SetLonLatLocationService();
+
+		int callCount = 0;
+		_locationService.OnGpsLocationUpdated += (_, _) => callCount++;
+
+		fakeNs.SimulateProcessSyncedData(new SyncedData(
+			Location_m: double.NaN,
+			Time_ms: 0,
+			CanStart: false,
+			Latitude_deg: 35.0,
+			Longitude_deg: 139.0,
+			Accuracy_m: null
+		));
+
+		Assert.That(callCount, Is.EqualTo(0));
 	}
 }
