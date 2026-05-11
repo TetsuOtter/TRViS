@@ -30,11 +30,14 @@ public class HorizontalTimetablePageObject : PageObject
 
 	private AppiumElement WaitForWebViewByClassName()
 	{
-		var className = IsWindows
-			? "Microsoft.UI.Xaml.Controls.WebView2"
-			: "android.webkit.WebView";
+		// On Windows we use XPath because Selenium .NET's By.ClassName maps to
+		// the "css selector" strategy, which WinAppDriver rejects with
+		// InvalidSelectorException. The Appium UIA2 (Android) server tolerates
+		// it, so By.ClassName still works there.
 		var wait = new WebDriverWait(Driver, TimeSpan.FromSeconds(30));
-		var locator = By.ClassName(className);
+		var locator = IsWindows
+			? By.XPath("//*[@ClassName='Microsoft.UI.Xaml.Controls.WebView2']")
+			: By.ClassName("android.webkit.WebView");
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
