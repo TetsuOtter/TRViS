@@ -787,7 +787,20 @@ jobs:
         run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
 
       - name: push new tag
-        run: git push origin ${{ steps.tag-name.outputs.tag-name }}
+        env:
+          TAG_NAME: ${{ steps.tag-name.outputs.tag-name }}
+        run: |
+          local_sha=$(git rev-parse "${TAG_NAME}^{}")
+          remote_sha=$(git ls-remote origin "refs/tags/${TAG_NAME}^{}" | awk '{print $1}')
+          if [ -n "$remote_sha" ]; then
+            if [ "$remote_sha" = "$local_sha" ]; then
+              echo "Tag ${TAG_NAME} already exists on remote at ${remote_sha}; skipping push (idempotent re-run)."
+              exit 0
+            fi
+            echo "ERROR: Tag ${TAG_NAME} exists on remote at ${remote_sha} but this run points to ${local_sha}"
+            exit 1
+          fi
+          git push origin "${TAG_NAME}"
 
       - name: Comment TagName and Actions-Run URL to PR
         if: ${{ github.event_name == 'pull_request' }}
