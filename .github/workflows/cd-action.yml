@@ -204,6 +204,18 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
 
+      - name: Clear stale pip HTTP cache
+        # The macos-26 runner image pre-populates ~/Library/Caches/pip with
+        # cachecontrol entries written by a different pip version than the
+        # one bundled with the Python actions/setup-python@v6 installs.
+        # That mismatch surfaces during setup-python's internal "Install
+        # OpenSSL certificates" sub-step as
+        #   WARNING: Cache entry deserialization failed, entry ignored
+        # which GitHub Actions renders as ##[error] in the log. The warning
+        # is benign (pip refetches on cache miss), but the spurious error
+        # indicator hides real failures. Clearing the cache removes it.
+        run: rm -rf "$HOME/Library/Caches/pip"
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
@@ -431,6 +443,13 @@ jobs:
 
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME_MAC }}
+
+      - name: Clear stale pip HTTP cache
+        # See the matching step in build-ios for the rationale; the same
+        # spurious "Cache entry deserialization failed" warning fires here
+        # because the macos-26 runner image's pre-populated pip cache is
+        # incompatible with the pip bundled with setup-python's Python.
+        run: rm -rf "$HOME/Library/Caches/pip"
 
       - uses: actions/setup-python@v6
         with:
