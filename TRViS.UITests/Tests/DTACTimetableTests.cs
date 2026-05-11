@@ -17,6 +17,15 @@ public class DTACTimetableTests : BaseUITest
 {
 	private StartHomePageObject _startHomePage = null!;
 
+	// Opt this fixture into shared-session mode (iOS only — the base class
+	// silently falls back to per-test on Mac/Win/Android). One Appium
+	// session for the whole fixture means we pay the ~22 s WDA attach
+	// once instead of once per test. State isolation between tests comes
+	// from BaseUITest.RestartAppInSharedSession (mobile: terminateApp +
+	// data wipe + mobile: launchApp), which fully resets MAUI singletons
+	// — the leak that scuttled the previous pilot.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	[SetUp]
 	public override void SetUp()
 	{

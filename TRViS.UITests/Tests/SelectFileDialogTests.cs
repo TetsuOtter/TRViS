@@ -20,6 +20,10 @@ namespace TRViS.UITests.Tests;
 [Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
 public class SelectFileDialogTests : BaseUITest
 {
+	// Share one Appium session across all tests in this fixture (iOS only).
+	// See BaseUITest.ShareSessionAcrossTestsInFixture for details.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	private StartHomePageObject _startHomePage = null!;
 
 	[SetUp]
