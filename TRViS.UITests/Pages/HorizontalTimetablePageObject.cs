@@ -15,21 +15,26 @@ public class HorizontalTimetablePageObject : PageObject
 	public HorizontalTimetablePageObject(AppiumDriver driver) : base(driver) { }
 
 	/// <summary>
-	/// Finds the page's WebView. iOS/Windows map MAUI's AutomationId onto the
+	/// Finds the page's WebView. iOS/macOS map MAUI's AutomationId onto the
 	/// native WebView control's accessibility identifier, so the standard
-	/// AccessibilityId lookup works. On Android the MAUI WebView handler does
-	/// not forward AutomationId to <c>resource-id</c>, so <c>By.Id</c> never
-	/// hits — we fall back to locating the sole <c>android.webkit.WebView</c>
-	/// node on the page.
+	/// AccessibilityId lookup works. Android and Windows do not forward the
+	/// MAUI WebView's AutomationId to UIA / resource-id (the WinUI handler
+	/// leaves <c>Microsoft.UI.Xaml.Controls.WebView2.AutomationId</c> blank,
+	/// the UIA2 handler does not surface <c>resource-id</c> at all), so we
+	/// fall back to locating the sole WebView node by its platform class
+	/// name. The page hosts a single WebView, so this is unambiguous.
 	/// </summary>
-	public AppiumElement WebView => IsAndroid
-		? WaitForAndroidWebView()
+	public AppiumElement WebView => (IsAndroid || IsWindows)
+		? WaitForWebViewByClassName()
 		: WaitForElement(AutomationIds.HorizontalTimetable.WebView);
 
-	private AppiumElement WaitForAndroidWebView()
+	private AppiumElement WaitForWebViewByClassName()
 	{
+		var className = IsWindows
+			? "Microsoft.UI.Xaml.Controls.WebView2"
+			: "android.webkit.WebView";
 		var wait = new WebDriverWait(Driver, TimeSpan.FromSeconds(30));
-		var locator = By.ClassName("android.webkit.WebView");
+		var locator = By.ClassName(className);
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{

@@ -55,10 +55,13 @@ public class HorizontalTimetablePage : ContentPage
 		Grid.SetRow(AppBarView, 0);
 		mainGrid.Children.Add(AppBarView);
 
-		// iOS/Windows は WebView ハンドラが AutomationId をネイティブのアクセシビリティ
-		// 属性に直接マップするので AccessibilityId で掴める。Android の UIA2 だけは
-		// resource-id に伝わらないため、PageObject 側で class 名 (android.webkit.WebView)
-		// 経由でフォールバックしている (HorizontalTimetablePageObject.cs)。
+		// iOS/macOS は WebView ハンドラが AutomationId をネイティブのアクセシビリティ
+		// 属性に直接マップするので AccessibilityId で掴める。Android (UIA2) と
+		// Windows (WinUI3) は AutomationId をネイティブ WebView の resource-id /
+		// AutomationId に伝えないため、PageObject 側でプラットフォーム別の class 名
+		// (android.webkit.WebView / Microsoft.UI.Xaml.Controls.WebView2) でフォール
+		// バックしている (HorizontalTimetablePageObject.cs)。AutomationId 自体は
+		// iOS/macOS の経路で必要なので残す。
 		ContentWebView = new WebView
 		{
 			AutomationId = "HorizontalTimetable.WebView",
