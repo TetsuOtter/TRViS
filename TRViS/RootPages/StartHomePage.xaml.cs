@@ -790,11 +790,15 @@ public partial class StartHomePage : ContentPage
 	{
 		logger.Info("Transitioning page mode {0} -> {1}", _currentMode, target);
 
-		// Portrait-only: we animate Row 0 between its * resolution and
+		// Portrait: we animate Row 0 between its * resolution and
 		// HOME_HEADER_ROW_HEIGHT so the AppHeader (VerticalOptions=Center) glides
 		// smoothly instead of snapping. Landscape-phone uses a two-column layout
-		// where Row 0 is always Auto — no row animation needed there.
+		// where Row 0 is always 0 — but Row 3 (LoaderInfoCard / HomeButtonsRow band)
+		// toggles between 0 (Start) and LOADER_INFO_ROW_HEIGHT (Home), so we animate
+		// that row instead so the right-column body and the left-column header glide
+		// to their new vertical extents rather than snapping.
 		bool portraitHome = !_isLandscapePhone && Height > 0;
+		bool landscapePhone = _isLandscapePhone && Height > 0;
 
 		double startFrom, startTo, homeFrom, homeTo;
 		double fromIconSize = AppIcon.HeightRequest;
@@ -806,6 +810,20 @@ public partial class StartHomePage : ContentPage
 		double fromRow0 = HOME_HEADER_ROW_HEIGHT;
 		double toRow0 = HOME_HEADER_ROW_HEIGHT;
 		bool animateRow0 = false;
+
+		// Row 3 height animation parameters (landscape phone only). Read the
+		// current value before UpdateGridRowDefinitions snaps it — this lets a
+		// transition started while a prior one is mid-flight pick up from the
+		// current visual height instead of jumping back to a canonical value.
+		double fromRow3 = 0;
+		double toRow3 = 0;
+		bool animateRow3 = false;
+		if (landscapePhone)
+		{
+			fromRow3 = LandscapePhoneRows[3].Height.Value;
+			toRow3 = target == PageMode.Home ? LOADER_INFO_ROW_HEIGHT : 0;
+			animateRow3 = Math.Abs(fromRow3 - toRow3) > 0.5;
+		}
 
 		// Star Row 0 resolved value in Start mode = total - fixed body row - fixed footer row.
 		double startStarRow0 = Height
@@ -884,6 +902,12 @@ public partial class StartHomePage : ContentPage
 		// current visual position rather than snapping instantly).
 		if (animateRow0)
 			BackgroundGrid.RowDefinitions[0].Height = new GridLength(fromRow0);
+		// Same idea for landscape Row 3: UpdateGridRowDefinitions just snapped it
+		// to the target value; pin it back to fromRow3 so the animation drives it.
+		// All three layered grids share the same LandscapePhoneRows instance, so
+		// mutating Row[3] here animates Background, Start and Home in lockstep.
+		if (animateRow3)
+			LandscapePhoneRows[3].Height = new GridLength(fromRow3);
 
 		var animation = new Animation
 		{
@@ -893,6 +917,9 @@ public partial class StartHomePage : ContentPage
 		if (animateRow0)
 			animation.Add(0, 1, new Animation(v => BackgroundGrid.RowDefinitions[0].Height = new GridLength(v),
 				fromRow0, toRow0, Easing.CubicInOut));
+		if (animateRow3)
+			animation.Add(0, 1, new Animation(v => LandscapePhoneRows[3].Height = new GridLength(v),
+				fromRow3, toRow3, Easing.CubicInOut));
 		if (portraitHome)
 		{
 			if (Math.Abs(fromIconSize - toIconSize) > 0.5)
