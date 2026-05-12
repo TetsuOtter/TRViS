@@ -548,6 +548,8 @@ public partial class StartHomePage : ContentPage
 	//   Row 4   (footer reserve; FooterLinks sits at RootGrid level over this)
 	// Rows 0 and 1 collapse to 0 so AppHeader's RowSpan=3 covers just the Star
 	// area while preserving 5-row indexing shared with the portrait collections.
+	// Row 3 collapses to 0 in Start mode (no LoaderInfoCard/HomeButtonsRow shown);
+	// UpdateGridRowDefinitions mutates Row[3].Height per mode.
 	static readonly RowDefinitionCollection LandscapePhoneRows = new()
 	{
 		new RowDefinition(new GridLength(0)),
@@ -569,6 +571,11 @@ public partial class StartHomePage : ContentPage
 	{
 		if (_isLandscapePhone)
 		{
+			// Start mode has nothing in Row 3 (LoaderInfoCard/HomeButtonsRow are
+			// Home-only), so collapse it and give the Star row that extra space.
+			LandscapePhoneRows[3].Height = mode == PageMode.Start
+				? new GridLength(0)
+				: new GridLength(LOADER_INFO_ROW_HEIGHT);
 			BackgroundGrid.RowDefinitions = LandscapePhoneRows;
 			StartGrid.RowDefinitions = LandscapePhoneRows;
 			HomeGrid.RowDefinitions = LandscapePhoneRows;
