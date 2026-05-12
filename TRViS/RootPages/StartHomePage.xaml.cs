@@ -57,7 +57,15 @@ public partial class StartHomePage : ContentPage
 	// hardcoded so they don't depend on size-mirror placeholders. The body grids
 	// (StartGrid / HomeGrid) reserve the same row sizes via the shared static
 	// RowDefinitionCollections, guaranteeing alignment with BackgroundGrid.
+	// Two header-row sizes so the hero icon doesn't overflow into LoaderInfoCard
+	// on tablets. In Home mode the icon shrinks to HOME_COMPACT_ICON_SIZE (80) on
+	// small screens (Height ≤ HOME_SMALL_HEIGHT_THRESHOLD) but stays at 160 on
+	// larger ones — the 128 row fit the 80-icon case but clipped the 160-icon
+	// case. EffectiveHomeHeaderRowHeight() picks the right value at runtime.
 	const double HOME_HEADER_ROW_HEIGHT_BASE = 128.0;
+	// Same 48px breathing room as the small base (80 icon → 128 row → 48 around);
+	// 160 icon → 208 row keeps the icon-to-row ratio consistent across both sizes.
+	const double HOME_HEADER_ROW_HEIGHT_LARGE_BASE = 208.0;
 	const double FOOTER_ROW_HEIGHT_BASE = 36.0;
 	const double LOADER_INFO_ROW_HEIGHT_BASE = 60.0;
 	const double HOME_BUTTONS_ROW_HEIGHT_BASE = 44.0;
@@ -70,6 +78,7 @@ public partial class StartHomePage : ContentPage
 	static readonly double _fontScale = ReadSystemFontScale();
 
 	static readonly double HOME_HEADER_ROW_HEIGHT = HOME_HEADER_ROW_HEIGHT_BASE * _fontScale;
+	static readonly double HOME_HEADER_ROW_HEIGHT_LARGE = HOME_HEADER_ROW_HEIGHT_LARGE_BASE * _fontScale;
 	static readonly double FOOTER_ROW_HEIGHT = FOOTER_ROW_HEIGHT_BASE * _fontScale;
 	static readonly double LOADER_INFO_ROW_HEIGHT = LOADER_INFO_ROW_HEIGHT_BASE * _fontScale;
 	static readonly double HOME_BUTTONS_ROW_HEIGHT = HOME_BUTTONS_ROW_HEIGHT_BASE * _fontScale;
@@ -389,6 +398,14 @@ public partial class StartHomePage : ContentPage
 	bool IsHomeModeCompact() =>
 		_currentMode == PageMode.Home && !_isLandscapePhone && Height > 0 && Height <= HOME_SMALL_HEIGHT_THRESHOLD;
 
+	// HOME_HEADER_ROW_HEIGHT for small screens (icon shrinks to 80, current 128
+	// is plenty); HOME_HEADER_ROW_HEIGHT_LARGE for tablets / large windows where
+	// the icon stays at 160 and would otherwise overflow row 0. Picked from the
+	// page Height alone — independent of current mode so callers in either
+	// Start↔Home transition direction get a consistent value.
+	double EffectiveHomeHeaderRowHeight() =>
+		(Height > 0 && Height <= HOME_SMALL_HEIGHT_THRESHOLD) ? HOME_HEADER_ROW_HEIGHT : HOME_HEADER_ROW_HEIGHT_LARGE;
+
 	/// <summary>
 	/// When in Home mode on a small screen (≤ HOME_SMALL_HEIGHT_THRESHOLD), shrinks
 	/// the AppHeader to a compact icon-only band so the WorkGroup/Work list has
@@ -523,8 +540,12 @@ public partial class StartHomePage : ContentPage
 			HomeGrid.RowDefinitions = LandscapePhoneRows;
 			return;
 		}
+		double headerHeight = EffectiveHomeHeaderRowHeight();
 		PortraitStartRowsBg[0].Height = GridLength.Star;
-		PortraitHomeRowsBg[0].Height = new GridLength(HOME_HEADER_ROW_HEIGHT);
+		// Both body-grid and BG-grid Home row 0 must match so AppHeader's row
+		// stays in sync with the body grids (which depend on the same scheme).
+		PortraitHomeRows[0].Height = new GridLength(headerHeight);
+		PortraitHomeRowsBg[0].Height = new GridLength(headerHeight);
 		StartGrid.RowDefinitions = PortraitStartRows;
 		HomeGrid.RowDefinitions = PortraitHomeRows;
 		BackgroundGrid.RowDefinitions = mode == PageMode.Start ? PortraitStartRowsBg : PortraitHomeRowsBg;
@@ -655,9 +676,12 @@ public partial class StartHomePage : ContentPage
 		double fromTitleOpacity = AppTitle.IsVisible ? AppTitle.Opacity : 0.0;
 		double toTitleOpacity = fromTitleOpacity;
 
-		// Row 0 height animation parameters (portrait only).
-		double fromRow0 = HOME_HEADER_ROW_HEIGHT;
-		double toRow0 = HOME_HEADER_ROW_HEIGHT;
+		// Row 0 height animation parameters (portrait only). homeHeaderHeight is
+		// picked from page Height so tablets land on a row tall enough to fit the
+		// non-compact 160px icon (small phones keep the original 128 value).
+		double homeHeaderHeight = EffectiveHomeHeaderRowHeight();
+		double fromRow0 = homeHeaderHeight;
+		double toRow0 = homeHeaderHeight;
 		bool animateRow0 = false;
 
 		// Row 3 height animation parameters (landscape phone only). Read the
@@ -694,9 +718,9 @@ public partial class StartHomePage : ContentPage
 				if (IsHomeModeCompact())
 					toIconSize = HOME_COMPACT_ICON_SIZE;
 
-				// Row 0: * (current resolved value) → HOME_HEADER_ROW_HEIGHT.
+				// Row 0: * (current resolved value) → effective Home header height.
 				fromRow0 = startStarRow0;
-				toRow0 = HOME_HEADER_ROW_HEIGHT;
+				toRow0 = homeHeaderHeight;
 				animateRow0 = fromRow0 > toRow0 + 0.5;
 			}
 		}
@@ -713,8 +737,8 @@ public partial class StartHomePage : ContentPage
 				toTitleOpacity = 1;
 				fromTitleOpacity = 0;
 
-				// Row 0: HOME_HEADER_ROW_HEIGHT → * (target resolved value).
-				fromRow0 = HOME_HEADER_ROW_HEIGHT;
+				// Row 0: effective Home header height → * (target resolved value).
+				fromRow0 = homeHeaderHeight;
 				toRow0 = startStarRow0;
 				animateRow0 = toRow0 > fromRow0 + 0.5;
 			}
