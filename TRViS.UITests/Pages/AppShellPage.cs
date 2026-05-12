@@ -294,15 +294,41 @@ public class AppShellPage : PageObject
 	}
 
 	/// <summary>
-	/// Navigates back to the StartHome page via the shell flyout. Used between
-	/// tests in fixtures that share a single Appium session — earlier tests
-	/// may have left the app on DTAC, Settings, etc., and the next test
-	/// expects to start from StartHome. The flyout's Home entry is reachable
-	/// from any shell page, so no per-platform special-casing is needed for
-	/// the source page.
+	/// Navigates back to the StartHome page. Used between tests in fixtures
+	/// that share a single Appium session — earlier tests may have left the
+	/// app on DTAC, Settings, etc., and the next test expects to start from
+	/// StartHome.
+	///
+	/// Tries the DTAC UI_TEST seam button first: when the app is on the DTAC
+	/// view it issues Shell.Current.GoToAsync("//StartHomePage") directly,
+	/// bypassing the flyout. The flyout was observed to be unreliable on
+	/// Android when DTAC's VerticalView tab had locked orientation to
+	/// Landscape (CI run 25727806170: MenuButton click dispatched 200 OK but
+	/// the NavigationView never attached to the DrawerLayout, so
+	/// WaitForFlyoutItem timed out 30 s later). For pages that don't host
+	/// the seam, falls through to the flyout path (StartHome / Settings /
+	/// ThirdParty all open the flyout fine since they don't lock orientation).
 	/// </summary>
 	public StartHomePageObject NavigateToHome()
 	{
+		// DTAC-only seam: present on the DTAC ViewHost regardless of platform.
+		// Suppress implicit wait so the absent-on-other-pages probe is fast.
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			var seam = Driver.FindElement(MobileBy.AccessibilityId(AutomationIds.DTAC.TestNavigateHomeButton));
+			if (seam.Displayed)
+			{
+				seam.Click();
+				return new StartHomePageObject(Driver);
+			}
+		}
+		catch { }
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+
 		if (_isWindows)
 			NavigateViaKeyboard("Home");
 		else

@@ -148,6 +148,16 @@ public static class AutomationIds
 		// timetable (HasETrainTimetable + ETrainTimetableContent). Tapping it
 		// pushes HorizontalTimetablePage onto the Shell stack.
 		public const string HorizontalTimetableButton = "DTAC.HorizontalTimetableButton";
+
+		// UI_TEST-only seam: issues Shell.Current.GoToAsync("//StartHomePage")
+		// directly so shared-session fixtures can recover from DTAC without
+		// going through the flyout. The flyout is unreliable on Android when
+		// VerticalView mode has locked orientation to Landscape — the MenuButton
+		// click dispatches but the NavigationView never attaches to the
+		// DrawerLayout, so WaitForFlyoutItem times out. Bypassing via direct
+		// shell navigation triggers ViewHost.OnDisappearing which also unlocks
+		// the orientation.
+		public const string TestNavigateHomeButton = "DTAC.TestNavigateHomeButton";
 	}
 
 	/// <summary>
