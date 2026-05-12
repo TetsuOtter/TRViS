@@ -36,29 +36,29 @@ public partial class EasterEggPageViewModel : ObservableObject
 	}
 
 	[ObservableProperty]
-	int _Color_Red;
+	public partial int Color_Red { get; set; }
 	[ObservableProperty]
-	int _Color_Green;
+	public partial int Color_Green { get; set; }
 	[ObservableProperty]
-	int _Color_Blue;
+	public partial int Color_Blue { get; set; }
 
 	[ObservableProperty]
-	double _LocationServiceInterval_Seconds = 1;
+	public partial double LocationServiceInterval_Seconds { get; set; } = 1;
 
 	[ObservableProperty]
-	bool _ShowMapWhenLandscape = false;
+	public partial bool ShowMapWhenLandscape { get; set; } = false;
 
 	[ObservableProperty]
-	bool _KeepScreenOnWhenRunning = false;
+	public partial bool KeepScreenOnWhenRunning { get; set; } = false;
 
 	[ObservableProperty]
-	HorizontalTimetableButtonLabel _HorizontalTimetableButtonLabel = HorizontalTimetableButtonLabel.Horizontal;
+	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
 
 	[ObservableProperty]
-	AppTheme _SelectedAppTheme = AppTheme.Unspecified;
+	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
 
 	[ObservableProperty]
-	TimeProgressionRate _TimeProgressionRate = TimeProgressionRate.Normal;
+	public partial TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.Normal;
 
 	partial void OnSelectedAppThemeChanged(AppTheme value)
 	{

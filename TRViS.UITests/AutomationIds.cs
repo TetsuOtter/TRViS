@@ -110,6 +110,23 @@ public static class AutomationIds
 		// #225 doesn't rely on the default first-train selection (which has an
 		// empty NextTrainId).
 		public const string TestSeedNextTrainSelectionButton = "StartHome.TestSeedNextTrainSelectionButton";
+		// Sets AppViewModel.Loader=null + disposes the previous loader, mirroring
+		// OnDisconnectClicked's clear path but skipping the user-facing confirm
+		// dialog. Used by fixtures that share a single Appium session and need
+		// each test to start from "Start mode" (LoadDemoButton visible) — by
+		// default a prior LoadSample leaves the page in Home mode and the
+		// LoadDemo button hidden behind the loader-info card.
+		public const string TestClearLoaderButton = "StartHome.TestClearLoaderButton";
+
+		// Direct invoker for OnSelectFileClicked. Bypasses the styled
+		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against
+		// MAUI's PrimaryActionButton-styled Button silently fails to dispatch
+		// Button.Clicked on Android in the shared-session run (CI run
+		// 25734141479: seam buttons fire, SelectFileButton does not, both have
+		// enabled=true / clickable=true / visible=true in the accessibility
+		// tree). The seam handler routes to OnSelectFileClicked so the test
+		// still exercises Navigation.PushModalAsync(SelectFileDialog).
+		public const string TestOpenSelectFileDialogButton = "StartHome.TestOpenSelectFileDialogButton";
 	}
 
 	public static class PrivacyDialog
@@ -141,6 +158,16 @@ public static class AutomationIds
 		// timetable (HasETrainTimetable + ETrainTimetableContent). Tapping it
 		// pushes HorizontalTimetablePage onto the Shell stack.
 		public const string HorizontalTimetableButton = "DTAC.HorizontalTimetableButton";
+
+		// UI_TEST-only seam: issues Shell.Current.GoToAsync("//StartHomePage")
+		// directly so shared-session fixtures can recover from DTAC without
+		// going through the flyout. The flyout is unreliable on Android when
+		// VerticalView mode has locked orientation to Landscape — the MenuButton
+		// click dispatches but the NavigationView never attaches to the
+		// DrawerLayout, so WaitForFlyoutItem times out. Bypassing via direct
+		// shell navigation triggers ViewHost.OnDisappearing which also unlocks
+		// the orientation.
+		public const string TestNavigateHomeButton = "DTAC.TestNavigateHomeButton";
 	}
 
 	/// <summary>
@@ -150,6 +177,11 @@ public static class AutomationIds
 	public static class HorizontalTimetable
 	{
 		public const string WebView = "HorizontalTimetable.WebView";
+		// AppBar back button. Tapping it pops the page back to DTAC so the
+		// Shell flyout is reachable again. Exposed to the test layer so a
+		// fixture-end TearDown can return the app to a Shell-rooted page
+		// (HT is a Shell.GoToAsync push and the flyout is gated to roots).
+		public const string BackButton = "HorizontalTimetable.BackButton";
 	}
 
 	/// <summary>

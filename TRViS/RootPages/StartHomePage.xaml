@@ -618,7 +618,7 @@
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24"
+			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -723,6 +723,30 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedHorizontalTimetableButton_Clicked"/>
+			<!-- Clears the in-memory AppViewModel.Loader (back to Start mode)
+			     without the confirm dialog OnDisconnectClicked surfaces. Used
+			     by fixtures that share a single Appium session and need each
+			     test to start from "no loader" state. -->
+			<Button
+				x:Name="TestClearLoaderButton"
+				AutomationId="StartHome.TestClearLoaderButton"
+				Grid.Row="11"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestClearLoaderButton_Clicked"/>
+			<!-- TestOpenSelectFileDialogButton is intentionally added in code-behind
+			     under #if UI_TEST instead of declared here. Adding a 13th row to
+			     this grid grew RootGrid's Auto-sized top row (TestSeamHost shares
+			     Row 0 with AppHeader) and triggered an iPhone-only iOS XCUITest
+			     main-run-loop hang during the post-ClearLoader Home→Start mode
+			     transition (CI run 25734770851: StartHome.Title query timed out
+			     after exactly 60 s on iPhone simulator while iPad-A17 / iPad-mini-5
+			     ran the same code fine). The DTAC.TestNavigateHomeButton uses the
+			     same "code-behind seam, no XAML row change" pattern and works on
+			     every platform — match it here. See AddTestOpenSelectFileDialogSeam
+			     in the code-behind. -->
 		</Grid>
 
 	</Grid>

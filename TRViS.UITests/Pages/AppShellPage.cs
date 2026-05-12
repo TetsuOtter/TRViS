@@ -39,6 +39,27 @@ public class AppShellPage : PageObject
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
+			// DTAC.MenuButton (any platform): when we're on the DTAC view,
+			// the in-page MenuButton toggles Shell.Current.FlyoutIsPresented
+			// directly. Try this FIRST regardless of platform — on Android,
+			// the standard "Open navigation drawer" probe matches an AppBar
+			// button in DTAC that does NOT actually open the Shell flyout
+			// (CI run 25686784110 / Android log surfaced a 30 s flyout-item
+			// timeout because the wrong button was clicked). DTAC.MenuButton
+			// is the only reliable flyout-toggle from DTAC on every platform.
+			// Pages that don't host DTAC.MenuButton fall through to the
+			// platform-specific probes below.
+			try
+			{
+				var menu = Driver.FindElement(MobileBy.AccessibilityId(AutomationIds.DTAC.MenuButton));
+				if (menu.Displayed)
+				{
+					menu.Click();
+					return;
+				}
+			}
+			catch { }
+
 			// Android: standard hamburger "navigation drawer" button.
 			try
 			{
@@ -270,6 +291,80 @@ public class AppShellPage : PageObject
 			WaitForFlyoutItem(AutomationIds.Shell.Flyout.DTAC, "D-TAC").Click();
 		}
 		return new DTACViewHostPageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates back to the StartHome page. Used between tests in fixtures
+	/// that share a single Appium session — earlier tests may have left the
+	/// app on DTAC, Settings, etc., and the next test expects to start from
+	/// StartHome.
+	///
+	/// Tries the DTAC UI_TEST seam button first: when the app is on the DTAC
+	/// view it issues Shell.Current.GoToAsync("//StartHomePage") directly,
+	/// bypassing the flyout. The flyout was observed to be unreliable on
+	/// Android when DTAC's VerticalView tab had locked orientation to
+	/// Landscape (CI run 25727806170: MenuButton click dispatched 200 OK but
+	/// the NavigationView never attached to the DrawerLayout, so
+	/// WaitForFlyoutItem timed out 30 s later). For pages that don't host
+	/// the seam, falls through to the flyout path (StartHome / Settings /
+	/// ThirdParty all open the flyout fine since they don't lock orientation).
+	///
+	/// The seam probe uses the same plural-FindElements polling shape as
+	/// PollDisplayed because UIAutomator2's accessibility tree needs ~1-5 s
+	/// to repopulate after the previous test's TearDown (CI run 25729263553:
+	/// a single FindElement with implicit=0 returned 404 at T+122 ms even
+	/// though the seam was clearly in the page-source dump 30 s later; the
+	/// tree was just stale at probe time). AutomationIdLocator is used
+	/// instead of MobileBy.AccessibilityId so on Android the search goes
+	/// through UiSelector.resourceId() rather than description() — code-added
+	/// MAUI buttons get resource-id set but leave contentDescription null,
+	/// which trips the description-first matcher.
+	/// </summary>
+	public StartHomePageObject NavigateToHome()
+	{
+		var seamLocator = AutomationIdLocator(AutomationIds.DTAC.TestNavigateHomeButton);
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			var deadline = DateTime.UtcNow.AddSeconds(5);
+			while (DateTime.UtcNow < deadline)
+			{
+				var elements = Driver.FindElements(seamLocator);
+				if (elements.Count > 0)
+				{
+					try
+					{
+						if (elements[0].Displayed)
+						{
+							elements[0].Click();
+							// Click returns when the tap dispatches, not when GoToAsync
+							// completes. Wait for StartHome to appear so the next test's
+							// PollDisplayed / ClearLoaderForTesting calls don't race
+							// the navigation.
+							new WebDriverWait(Driver, TimeSpan.FromSeconds(10))
+								.Until(d => d.FindElements(AutomationIdLocator(AutomationIds.StartHome.Title)).Count > 0);
+							return new StartHomePageObject(Driver);
+						}
+					}
+					catch (StaleElementReferenceException) { /* retry */ }
+				}
+				Thread.Sleep(250);
+			}
+		}
+		catch (WebDriverTimeoutException) { /* fall through to flyout */ }
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+
+		if (_isWindows)
+			NavigateViaKeyboard("Home");
+		else
+		{
+			OpenFlyout();
+			WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
+		}
+		return new StartHomePageObject(Driver);
 	}
 
 	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()

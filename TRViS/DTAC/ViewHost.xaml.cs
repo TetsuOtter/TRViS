@@ -5,6 +5,7 @@ using TR.Maui.AnchorPopover;
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
+using TRViS.RootPages;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -73,8 +74,52 @@ public partial class ViewHost : ContentPage
 
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
+#if UI_TEST
+		AddTestNavigateHomeSeam();
+#endif
+
 		logger.Trace("Created");
 	}
+
+#if UI_TEST
+	// UI_TEST-only seam: invisible 24×24 button placed at the bottom-left corner
+	// of the page (under any DTAC content but above the page background — the
+	// last child in MainGrid means highest z-order). Tapping it issues
+	// Shell.Current.GoToAsync("//StartHomePage") directly so shared-session
+	// fixtures can return to Home from DTAC without the Shell flyout, which
+	// is unreliable on Android once the VerticalView tab has locked
+	// orientation to Landscape (CI run 25727806170: the MenuButton click
+	// dispatches 200 OK but the NavigationView never attaches to the
+	// DrawerLayout, so WaitForFlyoutItem times out 30 s later). GoToAsync away
+	// from ViewHost triggers OnDisappearing which also unlocks the orientation.
+	// Added in code-behind (not XAML) so production builds carry no seam at
+	// all — important here because DTAC's bottom-left corner can be reached by
+	// the user (no element occupies it in the test fixtures' state, but a
+	// loaded real timetable could), and a transparent no-op button would
+	// silently swallow taps in a production build.
+	private void AddTestNavigateHomeSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateHome,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+			Margin = 0,
+		};
+		seam.Clicked += TestNavigateHomeButton_Clicked;
+		Grid.SetRow(seam, 2);
+		MainGrid.Children.Add(seam);
+	}
+
+	// Mirrors AutomationIds.DTAC.TestNavigateHomeButton in the test project
+	// (which is the consumer). Inlined here to avoid a project reference.
+	private const string AutomationIdValueForTestNavigateHome = "DTAC.TestNavigateHomeButton";
+#endif
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
@@ -173,6 +218,21 @@ public partial class ViewHost : ContentPage
 			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
 		InstanceManager.ScreenWakeLockService.DisableWakeLock();
 	}
+
+#if UI_TEST
+	async void TestNavigateHomeButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateHomeButton clicked: GoToAsync StartHomePage (bypassing flyout)");
+		try
+		{
+			await Shell.Current.GoToAsync("//" + StartHomePage.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateHomeButton failed");
+		}
+	}
+#endif
 
 	async void TitleLabel_Tapped(object? sender, EventArgs e)
 	{
