@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS"
+	xmlns:rootpages="clr-namespace:TRViS.RootPages"
+	x:Class="TRViS.RootPages.StartGridView"
+	ColumnDefinitions="3*,4*"
+	InputTransparent="False"
+	CascadeInputTransparent="False">
+
+	<Grid.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="StartHomeStyles.xaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</Grid.Resources>
+
+	<Grid
+		x:Name="StartBody"
+		x:FieldModifier="public"
+		AutomationId="StartHome.StartBody"
+		Grid.Row="2"
+		Grid.ColumnSpan="2"
+		Padding="24,8,24,24"
+		RowSpacing="8">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Row 0 hosts both the primary buttons and the privacy reconfirm banner
+		     in the same cell. The banner z-orders on top (declared later) and stretches
+		     to Fill so it fully covers the buttons when visible. -->
+		<Grid Grid.Row="0">
+			<FlexLayout
+				x:Name="PrimaryButtons"
+				Direction="Row"
+				Wrap="Wrap"
+				JustifyContent="Center"
+				AlignItems="Center">
+				<Button
+					x:Name="ConnectServerButton"
+					x:FieldModifier="public"
+					AutomationId="StartHome.ConnectServerButton"
+					Text="サーバーから読み込み"
+					Style="{StaticResource PrimaryActionButton}"
+					Clicked="OnConnectServerClicked"/>
+				<Button
+					x:Name="SelectFileButton"
+					x:FieldModifier="public"
+					AutomationId="StartHome.SelectFileButton"
+					Text="ファイルを選択"
+					Style="{StaticResource PrimaryActionButton}"
+					Clicked="OnSelectFileClicked"/>
+			</FlexLayout>
+
+			<!-- IsVisible is controlled exclusively from code (SetPrivacyAccepted).
+			     Do NOT set IsVisible="False" in XAML: on Windows MAUI a Border that
+			     starts collapsed never gets a UIA peer, so a runtime flip to true is
+			     invisible to Appium. -->
+			<Border
+				x:Name="PrivacyReconfirmBanner"
+				AutomationId="StartHome.PrivacyReconfirmBanner"
+				HorizontalOptions="Fill"
+				VerticalOptions="Fill"
+				Stroke="{AppThemeBinding Light=#FF9A00, Dark=#FFB800}"
+				StrokeThickness="2"
+				BackgroundColor="{AppThemeBinding Light=#FFF4D6, Dark=#3A2400}"
+				Padding="16">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="12"/>
+				</Border.StrokeShape>
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnPrivacyBannerTapped"/>
+				</Border.GestureRecognizers>
+				<Grid ColumnDefinitions="Auto,*,Auto"
+							ColumnSpacing="12"
+							RowDefinitions="Auto,Auto"
+							VerticalOptions="Center">
+					<!-- &#xe002; = warning, &#xe5cc; = chevron_right (Material Icons) -->
+					<Label
+						Grid.Column="0"
+						Grid.RowSpan="2"
+						Text="&#xe002;"
+						FontFamily="MaterialIconsRegular"
+						FontSize="40"
+						TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
+						VerticalOptions="Center"/>
+					<Label
+						Grid.Column="1"
+						Grid.Row="0"
+						AutomationId="StartHome.PrivacyReconfirmText"
+						Text="プライバシーポリシーへの同意が必要です"
+						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
+						FontSize="18"
+						FontAttributes="Bold"/>
+					<Label
+						Grid.Column="1"
+						Grid.Row="1"
+						Text="アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。"
+						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
+						FontSize="13"
+						LineBreakMode="WordWrap"/>
+					<Label
+						Grid.Column="2"
+						Grid.RowSpan="2"
+						Text="&#xe5cc;"
+						FontFamily="MaterialIconsRegular"
+						FontSize="32"
+						TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
+						VerticalOptions="Center"/>
+				</Grid>
+			</Border>
+		</Grid>
+
+		<Button
+			x:Name="LoadDemoButton"
+			x:FieldModifier="public"
+			Grid.Row="1"
+			AutomationId="StartHome.LoadDemoButton"
+			Text="デモデータで開始"
+			Style="{StaticResource SecondaryActionButton}"
+			Clicked="OnLoadDemoClicked"/>
+
+	</Grid>
+
+</Grid>
