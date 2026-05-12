@@ -18,7 +18,11 @@
 	</ContentPage.Resources>
 
 	<!-- Three-layer stack (RootGrid is a 1-cell wrapper, layers overlap at z-order):
-	       1) BackgroundGrid — always visible. Owns AppHeader and TestSeamHost.
+	       1) BackgroundGrid — always visible. Owns AppHeader. In UI_TEST builds
+	          StartHomePage.BuildTestSeamHost() also adds an invisible 24×24
+	          button grid into Row 0 from code-behind; production builds never
+	          construct it, so no "StartHome.Test*" AutomationIds appear in the
+	          release accessibility tree.
 	          RowDefinitions swap between Start (*,0,Auto,0,Auto) and Home
 	          (<HOME_HEADER_ROW_HEIGHT>,Auto,*,Auto,Auto) so AppHeader's row aligns with
 	          the body layers.
@@ -71,120 +75,11 @@
 					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
 			</VerticalStackLayout>
 
-			<!-- UI_TEST seam buttons. Each button has its own 24px row of an explicit
-			     Grid (no StackLayout pass that may collapse 1×1 children on Mac Catalyst).
-			     In production the Click handlers are no-ops (gated on #if UI_TEST). -->
-			<Grid
-				x:Name="TestSeamHost"
-				Grid.Row="0"
-				HorizontalOptions="Start"
-				VerticalOptions="Start"
-				RowDefinitions="24,24,24,24,24,24,24,24,24,24,24"
-				ColumnDefinitions="24"
-				RowSpacing="0"
-				ColumnSpacing="0"
-				Padding="0"
-				Margin="0">
-				<Button
-					x:Name="TestSeedButton"
-					AutomationId="StartHome.TestSeedButton"
-					Grid.Row="0"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestSeedButton_Clicked"/>
-				<Button
-					x:Name="TestSeedGpsButton"
-					AutomationId="StartHome.TestSeedGpsButton"
-					Grid.Row="1"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestSeedGpsButton_Clicked"/>
-				<Button
-					x:Name="TestAutoOpenButton"
-					AutomationId="StartHome.TestAutoOpenButton"
-					Grid.Row="2"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestAutoOpenButton_Clicked"/>
-				<Button
-					x:Name="TestClearHistoryButton"
-					AutomationId="StartHome.TestClearHistoryButton"
-					Grid.Row="3"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestClearHistoryButton_Clicked"/>
-				<Button
-					x:Name="TestSeedSqliteButton"
-					AutomationId="StartHome.TestSeedSqliteButton"
-					Grid.Row="4"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestSeedSqliteButton_Clicked"/>
-				<Button
-					x:Name="TestClearTimetablesButton"
-					AutomationId="StartHome.TestClearTimetablesButton"
-					Grid.Row="5"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestClearTimetablesButton_Clicked"/>
-				<Button
-					x:Name="TestSeedSampleFilesButton"
-					AutomationId="StartHome.TestSeedSampleFilesButton"
-					Grid.Row="6"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestSeedSampleFilesButton_Clicked"/>
-				<Button
-					x:Name="TestClearSampleFilesButton"
-					AutomationId="StartHome.TestClearSampleFilesButton"
-					Grid.Row="7"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestClearSampleFilesButton_Clicked"/>
-				<Button
-					x:Name="TestSetupBrowseFallbackButton"
-					AutomationId="StartHome.TestSetupBrowseFallbackButton"
-					Grid.Row="8"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestSetupBrowseFallbackButton_Clicked"/>
-				<Button
-					x:Name="TestSeedNextTrainSelectionButton"
-					AutomationId="StartHome.TestSeedNextTrainSelectionButton"
-					Grid.Row="9"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestSeedNextTrainSelectionButton_Clicked"/>
-				<Button
-					x:Name="TestSeedHorizontalTimetableButton"
-					AutomationId="StartHome.TestSeedHorizontalTimetableButton"
-					Grid.Row="10"
-					BackgroundColor="Transparent"
-					BorderColor="Transparent"
-					Padding="0"
-					Margin="0"
-					Clicked="TestSeedHorizontalTimetableButton_Clicked"/>
-			</Grid>
+			<!-- UI_TEST seam buttons (an invisible 24×24 button column anchored at the
+			     upper-left of Row 0) are NOT declared here. They are built and inserted
+			     by StartHomePage.BuildTestSeamHost() under #if UI_TEST so production
+			     builds carry no test-only controls and no "StartHome.Test*" AutomationIds
+			     in their accessibility tree. -->
 		</Grid>
 
 		<!-- ========== Start layer ========== -->

@@ -134,6 +134,13 @@ public partial class StartHomePage : ContentPage
 
 		InitializeComponent();
 
+#if UI_TEST
+		// Inject the invisible test-seam button column. Production builds skip this
+		// entirely, so no "StartHome.Test*" AutomationIds and no transparent 24×24
+		// buttons appear in release accessibility trees.
+		BuildTestSeamHost();
+#endif
+
 		// Assign the canonical row schemes up-front so the initial render uses the
 		// same RowDefinitionCollection instances as later mode swaps. Without this,
 		// the XAML-parsed defaults would be replaced on the first SizeChanged pass,
@@ -532,11 +539,6 @@ public partial class StartHomePage : ContentPage
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 		viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-		// TestSeamHost is always rendered; its 1×1 buttons are no-ops in
-		// production builds (Click handlers gated on #if UI_TEST). No runtime
-		// IsVisible flip — that pattern was unreliable across Mac Catalyst and
-		// Windows MAUI accessibility trees.
-
 		UpdatePrivacyDependentControls();
 
 		// Reflect any current loader / committed selection state. If we're returning
@@ -849,35 +851,83 @@ public partial class StartHomePage : ContentPage
 	}
 
 	// ----- Test seams -----
-
-	void TestSeedButton_Clicked(object sender, EventArgs e)
-	{
+	// In production the entire block (host builder + handlers + AutomationId
+	// constants + helpers) is compiled out. UI tests build with /p:DefineConstants
+	// containing UI_TEST so the invisible 24×24 button column gets injected into
+	// BackgroundGrid.Row 0 by BuildTestSeamHost() at construction time. None of
+	// these symbols are referenced from production XAML or production C#.
 #if UI_TEST
+	// Filename used by the UI_TEST seed seam. Referenced from the test fixture via
+	// TRViS.UITests.Pages.StartHomePageObject.UITestSqliteFixtureFileName, which
+	// keeps its own copy — they must stay in sync if either changes.
+	public const string UITestSqliteFixtureFileName = "uitest_seed.sqlite";
+
+	void BuildTestSeamHost()
+	{
+		// Each seam button has its own explicit 24×24 row of a Grid (not a
+		// StackLayout, which has been observed to collapse zero/near-zero
+		// children on Mac Catalyst). Anchored at the upper-left of Row 0 in
+		// BackgroundGrid so it overlays a non-interactive corner of the header.
+		var host = new Grid
+		{
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			RowSpacing = 0,
+			ColumnSpacing = 0,
+			Padding = new Thickness(0),
+			Margin = new Thickness(0),
+		};
+		for (int i = 0; i < 11; i++)
+			host.RowDefinitions.Add(new RowDefinition { Height = 24 });
+		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
+		Grid.SetRow(host, 0);
+
+		// AutomationIds are part of the contract with TRViS.UITests/AutomationIds.cs.
+		// Inlined as literals (rather than referencing the test project) so production
+		// code carries no dependency on the test assembly. Row indices match the order
+		// the previous XAML declared, so element-by-row coordinates in tests stay valid.
+		AddSeamButton(host, 0, "StartHome.TestSeedButton", TestSeedButton_Clicked);
+		AddSeamButton(host, 1, "StartHome.TestSeedGpsButton", TestSeedGpsButton_Clicked);
+		AddSeamButton(host, 2, "StartHome.TestAutoOpenButton", TestAutoOpenButton_Clicked);
+		AddSeamButton(host, 3, "StartHome.TestClearHistoryButton", TestClearHistoryButton_Clicked);
+		AddSeamButton(host, 4, "StartHome.TestSeedSqliteButton", TestSeedSqliteButton_Clicked);
+		AddSeamButton(host, 5, "StartHome.TestClearTimetablesButton", TestClearTimetablesButton_Clicked);
+		AddSeamButton(host, 6, "StartHome.TestSeedSampleFilesButton", TestSeedSampleFilesButton_Clicked);
+		AddSeamButton(host, 7, "StartHome.TestClearSampleFilesButton", TestClearSampleFilesButton_Clicked);
+		AddSeamButton(host, 8, "StartHome.TestSetupBrowseFallbackButton", TestSetupBrowseFallbackButton_Clicked);
+		AddSeamButton(host, 9, "StartHome.TestSeedNextTrainSelectionButton", TestSeedNextTrainSelectionButton_Clicked);
+		AddSeamButton(host, 10, "StartHome.TestSeedHorizontalTimetableButton", TestSeedHorizontalTimetableButton_Clicked);
+
+		BackgroundGrid.Children.Add(host);
+	}
+
+	static void AddSeamButton(Grid host, int row, string automationId, EventHandler clicked)
+	{
+		var button = new Button
+		{
+			AutomationId = automationId,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = new Thickness(0),
+			Margin = new Thickness(0),
+		};
+		button.Clicked += clicked;
+		Grid.SetRow(button, row);
+		host.Children.Add(button);
+	}
+
+	void TestSeedButton_Clicked(object? sender, EventArgs e)
+	{
 		logger.Info("TestSeedButton clicked: seeding URL history fixtures");
 		viewModel.SeedUrlHistoryForTesting(new[]
 		{
 			"https://example.com/timetable-a.json",
 			"https://example.com/timetable-b.json",
 		});
-#endif
 	}
 
-	void TestOpenSelectFileDialogButton_Clicked(object? sender, EventArgs e)
+	async void TestAutoOpenButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
-		logger.Info("TestOpenSelectFileDialogButton clicked: invoking OnSelectFileClicked directly");
-		// Same code path as the visible SelectFileButton's Clicked handler — the
-		// real handler pushes Navigation.PushModalAsync(new SelectFileDialog())
-		// and logs/handles failures. Routing through it (vs. duplicating the
-		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
-		// changes shape, this seam tracks it without per-test rewrites.
-		OnSelectFileClicked(sender!, e);
-#endif
-	}
-
-	async void TestAutoOpenButton_Clicked(object sender, EventArgs e)
-	{
-#if UI_TEST
 		logger.Info("TestAutoOpenButton clicked: auto-pick first WG/Work and navigate to DTAC");
 		try
 		{
@@ -909,14 +959,10 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestAutoOpenButton failed");
 		}
-#else
-		await Task.CompletedTask;
-#endif
 	}
 
-	void TestSeedGpsButton_Clicked(object sender, EventArgs e)
+	void TestSeedGpsButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestSeedGpsButton clicked: pushing fixture GPS coord");
 		try
 		{
@@ -928,12 +974,10 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSeedGpsButton failed");
 		}
-#endif
 	}
 
-	void TestClearHistoryButton_Clicked(object sender, EventArgs e)
+	void TestClearHistoryButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestClearHistoryButton clicked: clearing URL history");
 		try
 		{
@@ -943,12 +987,10 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestClearHistoryButton failed");
 		}
-#endif
 	}
 
-	async void TestSeedHorizontalTimetableButton_Clicked(object sender, EventArgs e)
+	async void TestSeedHorizontalTimetableButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestSeedHorizontalTimetableButton clicked: seed horizontal timetable + navigate to DTAC");
 		try
 		{
@@ -986,9 +1028,6 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSeedHorizontalTimetableButton failed");
 		}
-#else
-		await Task.CompletedTask;
-#endif
 	}
 
 	// Seeds a minimal SQLite fixture into TimetableFileDirectory using the same
@@ -999,9 +1038,8 @@ public partial class StartHomePage : ContentPage
 	// surfaces here. If the seed step throws, no file appears, the SelectFile
 	// dialog renders the empty state, and the corresponding test fails with a
 	// "card not visible" assertion that points back at this seam.
-	void TestSeedSqliteButton_Clicked(object sender, EventArgs e)
+	void TestSeedSqliteButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestSeedSqliteButton clicked: seeding minimal SQLite fixture");
 		try
 		{
@@ -1028,16 +1066,14 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSeedSqliteButton failed");
 		}
-#endif
 	}
 
 	// Wipes TimetableFileDirectory contents so SelectFile-related tests can
 	// guarantee a known starting state without relying on platform-specific
 	// app-data wipe (Mac Catalyst / iOS keep the documents folder across
 	// noReset:true sessions).
-	void TestClearTimetablesButton_Clicked(object sender, EventArgs e)
+	void TestClearTimetablesButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestClearTimetablesButton clicked: clearing TimetableFileDirectory");
 		try
 		{
@@ -1054,16 +1090,10 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestClearTimetablesButton failed");
 		}
-#endif
 	}
 
-	// Filename used by the UI_TEST seed seam. Public so the test fixture can
-	// reference the same constant when looking up the rendered card by id.
-	public const string UITestSqliteFixtureFileName = "uitest_seed.sqlite";
-
-	void TestSeedSampleFilesButton_Clicked(object sender, EventArgs e)
+	void TestSeedSampleFilesButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestSeedSampleFilesButton clicked: seeding SelectFileDialog fixtures");
 		try
 		{
@@ -1073,12 +1103,10 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSeedSampleFilesButton failed");
 		}
-#endif
 	}
 
-	void TestClearSampleFilesButton_Clicked(object sender, EventArgs e)
+	void TestClearSampleFilesButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestClearSampleFilesButton clicked: clearing SelectFileDialog fixtures + FilePicker override");
 		try
 		{
@@ -1088,36 +1116,10 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestClearSampleFilesButton failed");
 		}
-#endif
 	}
 
-	void TestClearLoaderButton_Clicked(object sender, EventArgs e)
+	void TestSetupBrowseFallbackButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
-		logger.Info("TestClearLoaderButton clicked: clearing in-memory AppViewModel.Loader");
-		try
-		{
-			// Mirror OnDisconnectClicked's clear path but without the confirm
-			// dialog — tests assume "yes, throw away the loader" and the
-			// dialog would otherwise need to be pumped on each platform's
-			// driver. Setting Loader=null triggers
-			// OnViewModelPropertyChanged → ApplyModeForCurrentLoaderAsync,
-			// which animates the page back to Start mode (StartBody visible,
-			// HomeBody hidden) so LoadDemoButton becomes clickable again.
-			var previous = viewModel.Loader;
-			viewModel.Loader = null;
-			previous?.Dispose();
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "TestClearLoaderButton failed");
-		}
-#endif
-	}
-
-	void TestSetupBrowseFallbackButton_Clicked(object sender, EventArgs e)
-	{
-#if UI_TEST
 		logger.Info("TestSetupBrowseFallbackButton clicked: installing FilePicker override");
 		try
 		{
@@ -1127,7 +1129,6 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSetupBrowseFallbackButton failed");
 		}
-#endif
 	}
 
 	/// <summary>
@@ -1139,9 +1140,8 @@ public partial class StartHomePage : ContentPage
 	/// test for #225 doesn't rely on the default first train (which has an empty
 	/// NextTrainId).
 	/// </summary>
-	async void TestSeedNextTrainSelectionButton_Clicked(object sender, EventArgs e)
+	async void TestSeedNextTrainSelectionButton_Clicked(object? sender, EventArgs e)
 	{
-#if UI_TEST
 		logger.Info("TestSeedNextTrainSelection clicked: committing linear-train-1 and navigating to DTAC");
 		try
 		{
@@ -1168,8 +1168,6 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSeedNextTrainSelection failed");
 		}
-#else
-		await Task.CompletedTask;
-#endif
 	}
+#endif
 }
