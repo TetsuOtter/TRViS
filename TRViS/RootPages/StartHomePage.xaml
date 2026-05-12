@@ -62,14 +62,14 @@
 					x:Name="AppIcon"
 					AutomationId="StartHome.AppIcon"
 					Source="appiconfg.png"
-					HeightRequest="160"
-					WidthRequest="160"
+					HeightRequest="{x:Static rootpages:StartHomePage.APPICON_HERO_SIZE}"
+					WidthRequest="{x:Static rootpages:StartHomePage.APPICON_HERO_SIZE}"
 					Aspect="AspectFit"/>
 				<Label
 					x:Name="AppTitle"
 					AutomationId="StartHome.Title"
 					Text="TRViS"
-					FontSize="44"
+					FontSize="{x:Static rootpages:StartHomePage.APPTITLE_HERO_FONT_SIZE}"
 					FontAttributes="Bold"
 					HorizontalOptions="Center"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"/>

@@ -14,6 +14,18 @@ public partial class StartGridView : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
+	// ----- Primary / Demo button sizing applied by ApplyCompactStyling -----
+	// Two tiers: full-size for non-compact portrait + tablet windows, and
+	// compact for narrow-tall windows / landscape-phone where the natural
+	// 80pt primary buttons + 44pt demo button would overlap. LoadDemo shrinks
+	// independently because it sits beneath the two primary actions.
+	const double PRIMARY_BUTTON_HEIGHT = 80.0;
+	const double PRIMARY_BUTTON_FONT_SIZE = 20.0;
+	const double PRIMARY_BUTTON_HEIGHT_COMPACT = 56.0;
+	const double PRIMARY_BUTTON_FONT_SIZE_COMPACT = 17.0;
+	const double DEMO_BUTTON_HEIGHT = 44.0;
+	const double DEMO_BUTTON_HEIGHT_COMPACT = 36.0;
+
 	// Raised when the privacy banner is tapped. The page handles navigation
 	// (PushModalAsync PrivacyPolicyDialog) and post-modal refresh
 	// (UpdatePrivacyDependentControls, FlyoutBehavior).
@@ -48,11 +60,11 @@ public partial class StartGridView : Grid
 	{
 		if (isCompact)
 		{
-			ConnectServerButton.HeightRequest = 56;
-			ConnectServerButton.FontSize = 17;
-			SelectFileButton.HeightRequest = 56;
-			SelectFileButton.FontSize = 17;
-			LoadDemoButton.HeightRequest = 36;
+			ConnectServerButton.HeightRequest = PRIMARY_BUTTON_HEIGHT_COMPACT;
+			ConnectServerButton.FontSize = PRIMARY_BUTTON_FONT_SIZE_COMPACT;
+			SelectFileButton.HeightRequest = PRIMARY_BUTTON_HEIGHT_COMPACT;
+			SelectFileButton.FontSize = PRIMARY_BUTTON_FONT_SIZE_COMPACT;
+			LoadDemoButton.HeightRequest = DEMO_BUTTON_HEIGHT_COMPACT;
 			// Landscape body sits in the narrow right column — drop the
 			// horizontal padding too so wrapped buttons get a touch more width.
 			StartBody.Padding = isLandscapePhone
@@ -62,11 +74,11 @@ public partial class StartGridView : Grid
 		}
 		else
 		{
-			ConnectServerButton.HeightRequest = 80;
-			ConnectServerButton.FontSize = 20;
-			SelectFileButton.HeightRequest = 80;
-			SelectFileButton.FontSize = 20;
-			LoadDemoButton.HeightRequest = 44;
+			ConnectServerButton.HeightRequest = PRIMARY_BUTTON_HEIGHT;
+			ConnectServerButton.FontSize = PRIMARY_BUTTON_FONT_SIZE;
+			SelectFileButton.HeightRequest = PRIMARY_BUTTON_HEIGHT;
+			SelectFileButton.FontSize = PRIMARY_BUTTON_FONT_SIZE;
+			LoadDemoButton.HeightRequest = DEMO_BUTTON_HEIGHT;
 			StartBody.Padding = new Thickness(24, 8, 24, 24);
 			StartBody.RowSpacing = 8;
 		}
