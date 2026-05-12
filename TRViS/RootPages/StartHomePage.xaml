@@ -618,7 +618,7 @@
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24"
+			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -723,6 +723,36 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestSeedHorizontalTimetableButton_Clicked"/>
+			<!-- Clears the in-memory AppViewModel.Loader (back to Start mode)
+			     without the confirm dialog OnDisconnectClicked surfaces. Used
+			     by fixtures that share a single Appium session and need each
+			     test to start from "no loader" state. -->
+			<Button
+				x:Name="TestClearLoaderButton"
+				AutomationId="StartHome.TestClearLoaderButton"
+				Grid.Row="11"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestClearLoaderButton_Clicked"/>
+			<!-- Direct invoker for OnSelectFileClicked. Bypasses SelectFileButton
+			     because Appium UIAutomator2's ACTION_CLICK against the styled
+			     PrimaryActionButton silently fails to dispatch Maui Button.Clicked
+			     on Android in the shared-session run (CI run 25734141479: seam
+			     buttons fire, SelectFileButton does not, both have enabled=true /
+			     clickable=true / visible=true in the accessibility tree). The
+			     seam invokes the same handler path so the test still exercises
+			     OnSelectFileClicked → Navigation.PushModalAsync(SelectFileDialog). -->
+			<Button
+				x:Name="TestOpenSelectFileDialogButton"
+				AutomationId="StartHome.TestOpenSelectFileDialogButton"
+				Grid.Row="12"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestOpenSelectFileDialogButton_Clicked"/>
 		</Grid>
 
 	</Grid>

@@ -55,14 +55,21 @@ public abstract class PageObject
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
+			// FindElements (plural) returns an empty list on no-match — so
+			// every poll iteration that hasn't found the element yet completes
+			// as a 200 OK on the wire instead of a NoSuchElement 404. Same
+			// observable behaviour as the previous FindElement+catch form, but
+			// the Appium server log stays clean while the element is loading.
 			return (AppiumElement)wait.Until(d =>
 			{
+				var elements = d.FindElements(locator);
+				if (elements.Count == 0)
+					return null!;
 				try
 				{
-					var element = d.FindElement(locator);
-					return element.Displayed ? element : null!;
+					return elements[0].Displayed ? elements[0] : null!;
 				}
-				catch (NoSuchElementException)
+				catch (StaleElementReferenceException)
 				{
 					return null!;
 				}
@@ -85,17 +92,27 @@ public abstract class PageObject
 	{
 		var prevWait = TimeSpan.FromSeconds(10);
 		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		var locator = AutomationIdLocator(automationId);
 		try
 		{
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			while (DateTime.UtcNow < deadline)
 			{
-				try
+				// FindElements (plural) on no-match returns an empty list with a
+				// 200 OK response — the previous FindElement form returned a 404
+				// + NoSuchElement that the Appium server logged on every poll
+				// iteration. Same observable behaviour, far less log spam on
+				// the common "modal not yet on screen / not present" paths.
+				var elements = Driver.FindElements(locator);
+				if (elements.Count > 0)
 				{
-					if (FindByAutomationId(automationId).Displayed)
-						return true;
+					try
+					{
+						if (elements[0].Displayed)
+							return true;
+					}
+					catch { }
 				}
-				catch { }
 				Thread.Sleep(100);
 			}
 			return false;
@@ -128,14 +145,21 @@ public abstract class PageObject
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
+			// Same FindElements (plural) rationale as WaitForElement — keeps the
+			// driver log free of 404s while the element is still rendering.
 			return (AppiumElement)wait.Until(d =>
 			{
+				var elements = d.FindElements(xpath);
+				if (elements.Count == 0)
+					return null!;
 				try
 				{
-					var el = d.FindElement(xpath);
-					return el.Displayed ? el : null!;
+					return elements[0].Displayed ? elements[0] : null!;
 				}
-				catch (NoSuchElementException) { return null!; }
+				catch (StaleElementReferenceException)
+				{
+					return null!;
+				}
 			});
 		}
 		finally

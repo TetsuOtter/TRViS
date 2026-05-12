@@ -68,4 +68,18 @@ public class HorizontalTimetablePageObject : PageObject
 			return false;
 		}
 	}
+
+	/// <summary>
+	/// Taps the AppBar back button so the page pops back to DTAC. The
+	/// HorizontalTimetable page is a Shell pushed page (not a flyout root),
+	/// so the Shell flyout is not reachable here; getting back to a
+	/// flyout-aware page is the prerequisite for the next fixture's
+	/// <c>NavigateToHome</c> to work in shared-session runs. Returns the
+	/// caller-friendly DTAC page object that the back navigation lands on.
+	/// </summary>
+	public DTACViewHostPageObject TapBack()
+	{
+		FindByAutomationId(AutomationIds.HorizontalTimetable.BackButton).Click();
+		return new DTACViewHostPageObject(Driver);
+	}
 }

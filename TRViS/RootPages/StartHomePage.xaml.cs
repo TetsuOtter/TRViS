@@ -1117,6 +1117,19 @@ public partial class StartHomePage : ContentPage
 #endif
 	}
 
+	void TestOpenSelectFileDialogButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestOpenSelectFileDialogButton clicked: invoking OnSelectFileClicked directly");
+		// Same code path as the visible SelectFileButton's Clicked handler — the
+		// real handler pushes Navigation.PushModalAsync(new SelectFileDialog())
+		// and logs/handles failures. Routing through it (vs. duplicating the
+		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
+		// changes shape, this seam tracks it without per-test rewrites.
+		OnSelectFileClicked(sender, e);
+#endif
+	}
+
 	async void TestAutoOpenButton_Clicked(object sender, EventArgs e)
 	{
 #if UI_TEST
@@ -1329,6 +1342,30 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestClearSampleFilesButton failed");
+		}
+#endif
+	}
+
+	void TestClearLoaderButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestClearLoaderButton clicked: clearing in-memory AppViewModel.Loader");
+		try
+		{
+			// Mirror OnDisconnectClicked's clear path but without the confirm
+			// dialog — tests assume "yes, throw away the loader" and the
+			// dialog would otherwise need to be pumped on each platform's
+			// driver. Setting Loader=null triggers
+			// OnViewModelPropertyChanged → ApplyModeForCurrentLoaderAsync,
+			// which animates the page back to Start mode (StartBody visible,
+			// HomeBody hidden) so LoadDemoButton becomes clickable again.
+			var previous = viewModel.Loader;
+			viewModel.Loader = null;
+			previous?.Dispose();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearLoaderButton failed");
 		}
 #endif
 	}

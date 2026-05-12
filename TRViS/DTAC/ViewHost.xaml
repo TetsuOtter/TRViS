@@ -7,7 +7,7 @@
 	x:Class="TRViS.DTAC.ViewHost"
 	x:DataType="viewmodels:DTACViewHostViewModel"
 	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}">
-	<Grid SafeAreaEdges="None">
+	<Grid x:Name="MainGrid" SafeAreaEdges="None">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="60"/>
