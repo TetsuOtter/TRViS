@@ -308,22 +308,50 @@ public class AppShellPage : PageObject
 	/// WaitForFlyoutItem timed out 30 s later). For pages that don't host
 	/// the seam, falls through to the flyout path (StartHome / Settings /
 	/// ThirdParty all open the flyout fine since they don't lock orientation).
+	///
+	/// The seam probe uses the same plural-FindElements polling shape as
+	/// PollDisplayed because UIAutomator2's accessibility tree needs ~1-5 s
+	/// to repopulate after the previous test's TearDown (CI run 25729263553:
+	/// a single FindElement with implicit=0 returned 404 at T+122 ms even
+	/// though the seam was clearly in the page-source dump 30 s later; the
+	/// tree was just stale at probe time). AutomationIdLocator is used
+	/// instead of MobileBy.AccessibilityId so on Android the search goes
+	/// through UiSelector.resourceId() rather than description() — code-added
+	/// MAUI buttons get resource-id set but leave contentDescription null,
+	/// which trips the description-first matcher.
 	/// </summary>
 	public StartHomePageObject NavigateToHome()
 	{
-		// DTAC-only seam: present on the DTAC ViewHost regardless of platform.
-		// Suppress implicit wait so the absent-on-other-pages probe is fast.
+		var seamLocator = AutomationIdLocator(AutomationIds.DTAC.TestNavigateHomeButton);
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
 		{
-			var seam = Driver.FindElement(MobileBy.AccessibilityId(AutomationIds.DTAC.TestNavigateHomeButton));
-			if (seam.Displayed)
+			var deadline = DateTime.UtcNow.AddSeconds(5);
+			while (DateTime.UtcNow < deadline)
 			{
-				seam.Click();
-				return new StartHomePageObject(Driver);
+				var elements = Driver.FindElements(seamLocator);
+				if (elements.Count > 0)
+				{
+					try
+					{
+						if (elements[0].Displayed)
+						{
+							elements[0].Click();
+							// Click returns when the tap dispatches, not when GoToAsync
+							// completes. Wait for StartHome to appear so the next test's
+							// PollDisplayed / ClearLoaderForTesting calls don't race
+							// the navigation.
+							new WebDriverWait(Driver, TimeSpan.FromSeconds(10))
+								.Until(d => d.FindElements(AutomationIdLocator(AutomationIds.StartHome.Title)).Count > 0);
+							return new StartHomePageObject(Driver);
+						}
+					}
+					catch (StaleElementReferenceException) { /* retry */ }
+				}
+				Thread.Sleep(250);
 			}
 		}
-		catch { }
+		catch (WebDriverTimeoutException) { /* fall through to flyout */ }
 		finally
 		{
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
