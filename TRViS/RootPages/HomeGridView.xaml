@@ -34,35 +34,33 @@
 			<RoundRectangle CornerRadius="8"/>
 		</Border.StrokeShape>
 		<Grid ColumnDefinitions="Auto,*"
-					ColumnSpacing="10"
-					RowDefinitions="Auto,Auto">
+					ColumnSpacing="10">
 			<Label
 				x:Name="LoaderInfoGlyphLabel"
 				Grid.Column="0"
-				Grid.RowSpan="2"
 				Text="&#xe873;"
 				FontFamily="MaterialIconsRegular"
 				FontSize="28"
 				VerticalOptions="Center"
 				TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-			<Label
-				AutomationId="StartHome.LoaderInfoTitle"
-				x:Name="LoaderInfoTitleLabel"
+			<VerticalStackLayout
 				Grid.Column="1"
-				Grid.Row="0"
-				FontSize="14"
-				FontAttributes="Bold"
-				TextColor="{x:Static local:RootStyles.TableTextColor}"
-				Text="読み込み済みデータ"/>
-			<Label
-				AutomationId="StartHome.LoaderInfoDetail"
-				x:Name="LoaderInfoDetailLabel"
-				Grid.Column="1"
-				Grid.Row="1"
-				FontSize="12"
-				LineBreakMode="MiddleTruncation"
-				TextColor="{x:Static local:RootStyles.TableDetailColor}"
-				Text=""/>
+				VerticalOptions="Center">
+				<Label
+					AutomationId="StartHome.LoaderInfoTitle"
+					x:Name="LoaderInfoTitleLabel"
+					FontSize="14"
+					FontAttributes="Bold"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text="読み込み済みデータ"/>
+				<Label
+					AutomationId="StartHome.LoaderInfoDetail"
+					x:Name="LoaderInfoDetailLabel"
+					FontSize="12"
+					LineBreakMode="MiddleTruncation"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"
+					Text=""/>
+			</VerticalStackLayout>
 		</Grid>
 	</Border>
 
