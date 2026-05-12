@@ -168,8 +168,20 @@ public partial class StartHomePage : ContentPage
 		// refresh stay in one place (also shared with the footer button below).
 		StartGrid.PrivacyPolicyRequested += OnPrivacyPolicyClicked;
 
-		// Apply initial header layout once we have a measured size.
+		// Apply initial header layout once we have a measured size. We wire three
+		// entry points to guarantee the first styling pass runs before the user
+		// sees the page:
+		//   - SizeChanged: the canonical trigger (fires after measure/arrange).
+		//   - Loaded: fires when the platform handler is attached; on some
+		//     platforms Width/Height are already non-zero here, in which case
+		//     we can apply styling one frame earlier than SizeChanged would.
+		//   - OnAppearing: belt-and-suspenders for navigation flows where
+		//     SizeChanged may be deferred until after the initial paint.
+		// All three call OnSizeChangedFirstLayout, whose body is fully
+		// idempotent (no-ops when Width/Height are 0 or when the orientation /
+		// compact-height state hasn't actually changed).
 		SizeChanged += OnSizeChangedFirstLayout;
+		Loaded += (_, __) => OnSizeChangedFirstLayout(this, EventArgs.Empty);
 		AppHeader.SizeChanged += (_, __) =>
 		{
 			// AppHeader.Height is read by ComputeStartHeaderTranslationY; recompute
@@ -566,6 +578,13 @@ public partial class StartHomePage : ContentPage
 		viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
 		UpdatePrivacyDependentControls();
+
+		// Safety net for the first styling pass: if neither SizeChanged nor
+		// Loaded has fired yet but the page already has a measured size by the
+		// time it's being shown, run the styling pass synchronously so the
+		// first visible frame uses the correct icon size / row heights instead
+		// of XAML defaults. Idempotent if already applied.
+		OnSizeChangedFirstLayout(this, EventArgs.Empty);
 
 		// Reflect any current loader / committed selection state. If we're returning
 		// here from DTAC, the user's last commit becomes their initial pending state.
