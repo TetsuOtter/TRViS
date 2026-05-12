@@ -37,7 +37,6 @@ public class StartHomePageObject : PageObject
 	public AppiumElement WorkGroupChip => FindByAutomationId(AutomationIds.StartHome.WorkGroupChip);
 	public AppiumElement WorkList => FindByAutomationId(AutomationIds.StartHome.WorkList);
 	public AppiumElement WorkChip => FindByAutomationId(AutomationIds.StartHome.WorkChip);
-	public AppiumElement WorkPendingHint => FindByAutomationId(AutomationIds.StartHome.WorkPendingHint);
 	public AppiumElement OpenButton => FindByAutomationId(AutomationIds.StartHome.OpenButton);
 	public AppiumElement DisconnectButton => FindByAutomationId(AutomationIds.StartHome.DisconnectButton);
 
