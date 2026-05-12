@@ -618,7 +618,7 @@
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24,24"
+			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -736,6 +736,23 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestClearLoaderButton_Clicked"/>
+			<!-- Direct invoker for OnSelectFileClicked. Bypasses SelectFileButton
+			     because Appium UIAutomator2's ACTION_CLICK against the styled
+			     PrimaryActionButton silently fails to dispatch Maui Button.Clicked
+			     on Android in the shared-session run (CI run 25734141479: seam
+			     buttons fire, SelectFileButton does not, both have enabled=true /
+			     clickable=true / visible=true in the accessibility tree). The
+			     seam invokes the same handler path so the test still exercises
+			     OnSelectFileClicked → Navigation.PushModalAsync(SelectFileDialog). -->
+			<Button
+				x:Name="TestOpenSelectFileDialogButton"
+				AutomationId="StartHome.TestOpenSelectFileDialogButton"
+				Grid.Row="12"
+				BackgroundColor="Transparent"
+				BorderColor="Transparent"
+				Padding="0"
+				Margin="0"
+				Clicked="TestOpenSelectFileDialogButton_Clicked"/>
 		</Grid>
 
 	</Grid>

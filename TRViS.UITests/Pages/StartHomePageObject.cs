@@ -221,11 +221,19 @@ public class StartHomePageObject : PageObject
 	}
 
 	/// <summary>
-	/// Taps "ファイルを選択" and returns the dialog's page object.
+	/// Opens the Select-File modal dialog. Routes through the UI_TEST seam
+	/// (StartHome.TestOpenSelectFileDialogButton) on every platform because
+	/// Appium UIAutomator2's ACTION_CLICK against the styled
+	/// SelectFileButton silently fails to dispatch Button.Clicked on Android
+	/// in the shared-session run (CI run 25734141479: log bridge confirmed
+	/// OnSelectFileClicked is never invoked even though the accessibility
+	/// tree reports enabled/clickable/visible=true on the button). The seam
+	/// handler calls the same OnSelectFileClicked codepath, so the
+	/// Navigation.PushModalAsync(SelectFileDialog) flow is still exercised.
 	/// </summary>
 	public SelectFileDialogPageObject OpenSelectFileDialog()
 	{
-		SelectFileButton.Click();
+		FindByAutomationId(AutomationIds.StartHome.TestOpenSelectFileDialogButton).Click();
 		return new SelectFileDialogPageObject(Driver);
 	}
 

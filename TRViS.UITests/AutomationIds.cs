@@ -117,6 +117,16 @@ public static class AutomationIds
 		// default a prior LoadSample leaves the page in Home mode and the
 		// LoadDemo button hidden behind the loader-info card.
 		public const string TestClearLoaderButton = "StartHome.TestClearLoaderButton";
+
+		// Direct invoker for OnSelectFileClicked. Bypasses the styled
+		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against
+		// MAUI's PrimaryActionButton-styled Button silently fails to dispatch
+		// Button.Clicked on Android in the shared-session run (CI run
+		// 25734141479: seam buttons fire, SelectFileButton does not, both have
+		// enabled=true / clickable=true / visible=true in the accessibility
+		// tree). The seam handler routes to OnSelectFileClicked so the test
+		// still exercises Navigation.PushModalAsync(SelectFileDialog).
+		public const string TestOpenSelectFileDialogButton = "StartHome.TestOpenSelectFileDialogButton";
 	}
 
 	public static class PrivacyDialog

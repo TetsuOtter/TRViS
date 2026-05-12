@@ -1121,6 +1121,19 @@ public partial class StartHomePage : ContentPage
 #endif
 	}
 
+	void TestOpenSelectFileDialogButton_Clicked(object sender, EventArgs e)
+	{
+#if UI_TEST
+		logger.Info("TestOpenSelectFileDialogButton clicked: invoking OnSelectFileClicked directly");
+		// Same code path as the visible SelectFileButton's Clicked handler — the
+		// real handler pushes Navigation.PushModalAsync(new SelectFileDialog())
+		// and logs/handles failures. Routing through it (vs. duplicating the
+		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
+		// changes shape, this seam tracks it without per-test rewrites.
+		OnSelectFileClicked(sender, e);
+#endif
+	}
+
 	async void TestAutoOpenButton_Clicked(object sender, EventArgs e)
 	{
 #if UI_TEST
