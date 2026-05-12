@@ -161,13 +161,6 @@ public partial class StartHomePage : ContentPage
 		// up large enough to push the header (and the AppTitle inside it) into
 		// StartBody's row, where Z-order hides it on small screens.
 		StartGrid.StartBody.SizeChanged += (_, __) => RecomputeStartModeHeaderPosition();
-		// HomeBody.Height drives UpdateListHeights — re-run whenever HomeBody
-		// changes size (orientation change, window resize, spacer update).
-		HomeGrid.HomeBody.SizeChanged += (_, __) =>
-		{
-			if (_currentMode == PageMode.Home)
-				HomeGrid.UpdateListHeights();
-		};
 
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
@@ -726,15 +719,15 @@ public partial class StartHomePage : ContentPage
 		}
 
 		// Set _currentMode before UpdateGridRowDefinitions and before any
-		// IsVisible changes so that layout events (HomeBody.SizeChanged →
-		// UpdateListHeights) see the new mode and behave correctly.
+		// IsVisible changes so that layout events see the new mode and behave
+		// correctly.
 		_currentMode = target;
 		HomeGrid.UpdateLoaderInfoLabels();
 
 		// Apply the target RowDefinitions now (Background Row 2 gets its final type:
-		// * for Home, Auto for Start). This keeps UpdateListHeights stable during the
-		// animation — it relies on HomeBody being in a * row when mode == Home.
-		// Background Row 0 is then overridden below to its animation start value.
+		// * for Home, Auto for Start). HomeBody is in a * row when mode == Home so
+		// its inner Grid (HomeGridView's Star list rows) can resolve. Background
+		// Row 0 is then overridden below to its animation start value.
 		UpdateGridRowDefinitions(target);
 
 		// Ensure both grids are laid out for the cross-fade. The outgoing grid's

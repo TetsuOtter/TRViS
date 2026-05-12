@@ -68,170 +68,176 @@
 
 	<!-- Two-step picker (WorkGroup → Work). Each step swaps between
 	     a chip (selected name + 変更) and a CollectionView list. Auto-fill: a 1-item
-	     list auto-selects when the user hasn't manually cleared. -->
+	     list auto-selects when the user hasn't manually cleared.
+	     Layout: Rows 0/2 hold the section labels (Auto). Rows 1/3 hold either
+	     a chip OR a list border (only one of each pair is IsVisible at a time).
+	     Row heights swap between Auto (chip mode) and Star (list mode) in
+	     UpdateHomeBodyRowDefinitions, so the visible list naturally fills the
+	     remaining height — works for any font scale without pixel arithmetic. -->
 	<Grid
 		x:Name="HomeBody"
 		x:FieldModifier="public"
 		AutomationId="StartHome.HomeBody"
 		Grid.Row="2"
 		Grid.ColumnSpan="2"
-		Padding="16,0,16,4">
+		Padding="20,0,20,4"
+		RowDefinitions="Auto,*,Auto,Auto"
+		ColumnDefinitions="*">
 
-		<ScrollView>
-			<VerticalStackLayout Padding="4,0"
-					Spacing="0">
+		<Label
+			x:Name="WorkGroupSectionLabel"
+			Grid.Row="0"
+			FontSize="Subtitle"
+			Margin="2,8,2,4"
+			TextColor="{x:Static local:RootStyles.TableTextColor}"
+			Text="Work Group"/>
 
+		<Border
+			x:Name="WorkGroupChip"
+			Grid.Row="1"
+			VerticalOptions="Start"
+			AutomationId="StartHome.WorkGroupChip"
+			Style="{StaticResource StepChipBorder}"
+			IsVisible="False">
+			<Border.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnWorkGroupChipTapped"/>
+			</Border.GestureRecognizers>
+			<Grid ColumnDefinitions="Auto,*,Auto"
+						ColumnSpacing="8">
+				<!-- &#xe876; = done (selected check) -->
 				<Label
-					x:Name="WorkGroupSectionLabel"
-					FontSize="Subtitle"
-					Margin="2,8,2,4"
-					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Text="Work Group"/>
-
-				<Border
-					x:Name="WorkGroupChip"
-					AutomationId="StartHome.WorkGroupChip"
-					Style="{StaticResource StepChipBorder}"
-					IsVisible="False">
-					<Border.GestureRecognizers>
-						<TapGestureRecognizer Tapped="OnWorkGroupChipTapped"/>
-					</Border.GestureRecognizers>
-					<Grid ColumnDefinitions="Auto,*,Auto"
-								ColumnSpacing="8">
-						<!-- &#xe876; = done (selected check) -->
-						<Label
-							Grid.Column="0"
-							Text="&#xe876;"
-							FontFamily="MaterialIconsRegular"
-							FontSize="18"
-							VerticalOptions="Center"
-							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-						<Label
-							x:Name="WorkGroupChipNameLabel"
-							Grid.Column="1"
-							FontSize="15"
-							FontAttributes="Bold"
-							LineBreakMode="TailTruncation"
-							VerticalOptions="Center"
-							TextColor="{x:Static local:RootStyles.TableTextColor}"
-							Text=""/>
-						<Label
-							Grid.Column="2"
-							Text="変更"
-							FontSize="12"
-							VerticalOptions="Center"
-							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-					</Grid>
-				</Border>
-
-				<!-- Tentative selection is committed to AppViewModel only when 開く is tapped. -->
-				<Border
-					x:Name="WorkGroupListBorder"
-					Style="{StaticResource StepListBorder}">
-					<CollectionView
-						x:Name="WorkGroupListView"
-						AutomationId="StartHome.WorkGroupList"
-						HeightRequest="160"
-						SelectionMode="Single"
-						SelectionChanged="OnWorkGroupSelectionChanged">
-						<CollectionView.ItemTemplate>
-							<DataTemplate x:DataType="rootpages:WorkGroupListItem">
-								<Grid Padding="10,8"
-											RowDefinitions="Auto,Auto"
-											ColumnDefinitions="*">
-									<Label
-										Grid.Row="0"
-										Text="{Binding Name}"
-										FontSize="15"
-										FontAttributes="Bold"
-										TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-									<Label
-										Grid.Row="1"
-										Text="{Binding Subtitle}"
-										FontSize="12"
-										TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-								</Grid>
-							</DataTemplate>
-						</CollectionView.ItemTemplate>
-					</CollectionView>
-				</Border>
-
+					Grid.Column="0"
+					Text="&#xe876;"
+					FontFamily="MaterialIconsRegular"
+					FontSize="18"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 				<Label
-					x:Name="WorkSectionLabel"
-					FontSize="Subtitle"
-					Margin="2,8,2,4"
+					x:Name="WorkGroupChipNameLabel"
+					Grid.Column="1"
+					FontSize="15"
+					FontAttributes="Bold"
+					LineBreakMode="TailTruncation"
+					VerticalOptions="Center"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Text="Work"/>
+					Text=""/>
+				<Label
+					Grid.Column="2"
+					Text="変更"
+					FontSize="12"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			</Grid>
+		</Border>
 
-				<Border
-					x:Name="WorkChip"
-					AutomationId="StartHome.WorkChip"
-					Style="{StaticResource StepChipBorder}"
-					IsVisible="False">
-					<Border.GestureRecognizers>
-						<TapGestureRecognizer Tapped="OnWorkChipTapped"/>
-					</Border.GestureRecognizers>
-					<Grid ColumnDefinitions="Auto,*,Auto"
-								ColumnSpacing="8">
-						<Label
-							Grid.Column="0"
-							Text="&#xe876;"
-							FontFamily="MaterialIconsRegular"
-							FontSize="18"
-							VerticalOptions="Center"
-							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-						<Label
-							x:Name="WorkChipNameLabel"
-							Grid.Column="1"
-							FontSize="15"
-							FontAttributes="Bold"
-							LineBreakMode="TailTruncation"
-							VerticalOptions="Center"
-							TextColor="{x:Static local:RootStyles.TableTextColor}"
-							Text=""/>
-						<Label
-							Grid.Column="2"
-							Text="変更"
-							FontSize="12"
-							VerticalOptions="Center"
-							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-					</Grid>
-				</Border>
+		<!-- Tentative selection is committed to AppViewModel only when 開く is tapped. -->
+		<Border
+			x:Name="WorkGroupListBorder"
+			Grid.Row="1"
+			Style="{StaticResource StepListBorder}">
+			<CollectionView
+				x:Name="WorkGroupListView"
+				AutomationId="StartHome.WorkGroupList"
+				SelectionMode="Single"
+				SelectionChanged="OnWorkGroupSelectionChanged">
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="rootpages:WorkGroupListItem">
+						<Grid Padding="10,8"
+									RowDefinitions="Auto,Auto"
+									ColumnDefinitions="*">
+							<Label
+								Grid.Row="0"
+								Text="{Binding Name}"
+								FontSize="15"
+								FontAttributes="Bold"
+								TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+							<Label
+								Grid.Row="1"
+								Text="{Binding Subtitle}"
+								FontSize="12"
+								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+						</Grid>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
+		</Border>
 
-				<Border
-					x:Name="WorkListBorder"
-					Style="{StaticResource StepListBorder}"
-					IsVisible="False">
-					<CollectionView
-						x:Name="WorkListView"
-						AutomationId="StartHome.WorkList"
-						HeightRequest="160"
-						SelectionMode="Single"
-						SelectionChanged="OnWorkSelectionChanged">
-						<CollectionView.ItemTemplate>
-							<DataTemplate x:DataType="rootpages:WorkListItem">
-								<Grid Padding="10,8"
-											RowDefinitions="Auto,Auto"
-											ColumnDefinitions="*">
-									<Label
-										Grid.Row="0"
-										Text="{Binding Name}"
-										FontSize="15"
-										FontAttributes="Bold"
-										TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-									<Label
-										Grid.Row="1"
-										Text="{Binding Subtitle}"
-										FontSize="12"
-										TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-								</Grid>
-							</DataTemplate>
-						</CollectionView.ItemTemplate>
-					</CollectionView>
-				</Border>
+		<Label
+			x:Name="WorkSectionLabel"
+			Grid.Row="2"
+			FontSize="Subtitle"
+			Margin="2,8,2,4"
+			TextColor="{x:Static local:RootStyles.TableTextColor}"
+			Text="Work"/>
 
-			</VerticalStackLayout>
-		</ScrollView>
+		<Border
+			x:Name="WorkChip"
+			Grid.Row="3"
+			VerticalOptions="Start"
+			AutomationId="StartHome.WorkChip"
+			Style="{StaticResource StepChipBorder}"
+			IsVisible="False">
+			<Border.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnWorkChipTapped"/>
+			</Border.GestureRecognizers>
+			<Grid ColumnDefinitions="Auto,*,Auto"
+						ColumnSpacing="8">
+				<Label
+					Grid.Column="0"
+					Text="&#xe876;"
+					FontFamily="MaterialIconsRegular"
+					FontSize="18"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+				<Label
+					x:Name="WorkChipNameLabel"
+					Grid.Column="1"
+					FontSize="15"
+					FontAttributes="Bold"
+					LineBreakMode="TailTruncation"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text=""/>
+				<Label
+					Grid.Column="2"
+					Text="変更"
+					FontSize="12"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			</Grid>
+		</Border>
+
+		<Border
+			x:Name="WorkListBorder"
+			Grid.Row="3"
+			Style="{StaticResource StepListBorder}"
+			IsVisible="False">
+			<CollectionView
+				x:Name="WorkListView"
+				AutomationId="StartHome.WorkList"
+				SelectionMode="Single"
+				SelectionChanged="OnWorkSelectionChanged">
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="rootpages:WorkListItem">
+						<Grid Padding="10,8"
+									RowDefinitions="Auto,Auto"
+									ColumnDefinitions="*">
+							<Label
+								Grid.Row="0"
+								Text="{Binding Name}"
+								FontSize="15"
+								FontAttributes="Bold"
+								TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+							<Label
+								Grid.Row="1"
+								Text="{Binding Subtitle}"
+								FontSize="12"
+								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+						</Grid>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
+		</Border>
 
 	</Grid>
 

@@ -386,56 +386,26 @@ public partial class HomeGridView : Grid
 		WorkListBorder.IsVisible = hasWorkGroup && !hasWork;
 		WorkChipNameLabel.Text = pendingW?.Name ?? string.Empty;
 
-		UpdateListHeights();
+		UpdateHomeBodyRowDefinitions();
 	}
 
 	/// <summary>
-	/// Distributes the available HomeBody scroll-area height across the visible
-	/// list(s) after subtracting the always-on overhead (section labels) and any
-	/// currently-visible chips. Each list expands to fill its share so a sparse
-	/// list won't push the next section below the fold, and a dense list scrolls
-	/// internally within its allocated height. Floors at 2 item rows so a very
-	/// tight window still leaves room to scroll.
+	/// HomeBody is a 4-row Grid (label, chip-or-list, label, chip-or-list). For each
+	/// chip-or-list row we pick Star when the CollectionView list is shown (so it
+	/// soaks up remaining vertical space) and Auto when only the chip is shown (so
+	/// the row collapses to chip height). The chip Border has VerticalOptions=Start
+	/// so it never stretches when a row happens to be Star. This replaces the old
+	/// pixel-arithmetic in UpdateListHeights, which was both fragile under font
+	/// scaling (constant SectionLabelOverhead/ChipOverhead didn't track Subtitle
+	/// font metrics) and silently understated the StepListBorder chrome — leading
+	/// to the bottom of the Work list being clipped against HomeButtonsRow.
 	/// </summary>
-	public void UpdateListHeights()
+	void UpdateHomeBodyRowDefinitions()
 	{
-		if (HomeBody.Height <= 0)
+		if (HomeBody.RowDefinitions.Count < 4)
 			return;
-
-		bool wgListVisible = WorkGroupListBorder.IsVisible;
-		bool workListVisible = WorkListBorder.IsVisible;
-		if (!wgListVisible && !workListVisible)
-			return;
-
-		// HomeBody has Padding=16,0,16,4. Bottom 4 is the only vertical chrome to
-		// remove from the available height.
-		const double HomeBodyBottomPad = 4.0;
-		double scrollViewHeight = HomeBody.Height - HomeBodyBottomPad;
-		if (scrollViewHeight <= 0)
-			return;
-
-		// Section label = "Work Group" / "Work" title above each step (always
-		// rendered, Margin=2,8,2,4 + ~Subtitle line height ≈ 28-32). Chip = the
-		// selected-step pill that replaces the list when a step is committed
-		// (Padding=12,8 + Margin bottom 4 + 15px line ≈ 35-45). Both are slightly
-		// over-budgeted so the lists never overflow into the next section.
-		const double SectionLabelOverhead = 32.0;
-		const double ChipOverhead = 48.0;
-		const double ItemHeight = 50.0;
-
-		double overhead = SectionLabelOverhead * 2; // WG label + Work label always shown
-		if (WorkGroupChip.IsVisible) overhead += ChipOverhead;
-		if (WorkChip.IsVisible) overhead += ChipOverhead;
-
-		int listCount = (wgListVisible ? 1 : 0) + (workListVisible ? 1 : 0);
-		double perList = (scrollViewHeight - overhead) / listCount;
-		// Floor: 2 list rows so the list is always scrollable internally rather
-		// than collapsing to a single row that can't be panned.
-		double minListHeight = 2 * ItemHeight;
-		perList = Math.Max(perList, minListHeight);
-
-		if (wgListVisible) WorkGroupListView.HeightRequest = perList;
-		if (workListVisible) WorkListView.HeightRequest = perList;
+		HomeBody.RowDefinitions[1].Height = WorkGroupListBorder.IsVisible ? GridLength.Star : GridLength.Auto;
+		HomeBody.RowDefinitions[3].Height = WorkListBorder.IsVisible ? GridLength.Star : GridLength.Auto;
 	}
 
 	void OnWorkGroupSelectionChanged(object? sender, SelectionChangedEventArgs e)
