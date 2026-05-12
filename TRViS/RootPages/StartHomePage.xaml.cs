@@ -33,9 +33,12 @@ public partial class StartHomePage : ContentPage
 	// portrait (≥844) stays at the full-size hero treatment.
 	// We use slightly different enter/exit thresholds (hysteresis) so a window
 	// dragged across the boundary on Mac Catalyst doesn't flicker styles every
-	// pixel while crossing — enter compact at <800, exit at ≥820.
-	const double COMPACT_HEIGHT_ENTER = 800;
-	const double COMPACT_HEIGHT_EXIT = 820;
+	// pixel while crossing — enter compact at <700, exit at ≥720. Threshold sits
+	// between iPhone 13 mini's page height (~720pt, compact) and iPhone 15's
+	// page height (~740-770pt, non-compact) so the full 6.1" line and Pro Max
+	// keep the 160px hero icon in portrait Start.
+	const double COMPACT_HEIGHT_ENTER = 700;
+	const double COMPACT_HEIGHT_EXIT = 720;
 
 	// Landscape-phone compact threshold. iPhone SE class devices (1st gen
 	// 320h, 2nd/3rd gen 375h) cannot fit the natural 80px primary buttons
@@ -48,8 +51,10 @@ public partial class StartHomePage : ContentPage
 	const double LANDSCAPE_COMPACT_HEIGHT_EXIT = 400;
 
 	// Below this page height, Home-mode header is further compacted (icon shrunk,
-	// title hidden) so the WorkGroup/Work list has more vertical room.
-	const double HOME_SMALL_HEIGHT_THRESHOLD = 900.0;
+	// title hidden) so the WorkGroup/Work list has more vertical room. Matched
+	// to COMPACT_HEIGHT_ENTER so iPhone 15 / 15 Pro Max keep the 160px icon in
+	// the larger HOME_HEADER_ROW_HEIGHT_LARGE row in both Start and Home modes.
+	const double HOME_SMALL_HEIGHT_THRESHOLD = 700.0;
 	const double HOME_COMPACT_ICON_SIZE = 80.0;
 
 	// ----- Fixed row heights (base values, scaled by system font scale below) -----
@@ -715,7 +720,11 @@ public partial class StartHomePage : ContentPage
 				toTitleOpacity = 0;
 				AppHeader.Padding = new Thickness(8, 4, 8, 4);
 				AppHeader.Spacing = 0;
-				if (IsHomeModeCompact())
+				// Use `target` (not `_currentMode` via IsHomeModeCompact) — _currentMode
+				// is only flipped to Home several lines below, so reading it here would
+				// incorrectly leave toIconSize at the Start-mode 160 and the animation
+				// would never shrink the icon to fit the 128px Home Row 0.
+				if (Height > 0 && Height <= HOME_SMALL_HEIGHT_THRESHOLD)
 					toIconSize = HOME_COMPACT_ICON_SIZE;
 
 				// Row 0: * (current resolved value) → effective Home header height.
