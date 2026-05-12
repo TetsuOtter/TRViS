@@ -48,16 +48,7 @@ public partial class App : Application
 		{
 			InstanceManager.Dispose();
 			NLog.LogManager.Flush();
-#if !UI_TEST
-			// UI_TEST builds keep NLog alive after a single Window destroy so the
-			// logcat bridge (LogcatTarget) survives Android's transient
-			// activity/window destruction during a test run. CI run 25733336073:
-			// Window.Destroying fired ~4 s into the first test and Shutdown
-			// silenced the bridge for the remaining 3+ minutes — the FileTarget's
-			// AsyncTargetWrapper.Shutdown is what we'd want for the in-app log
-			// file, but UI_TEST cares about logcat capture; keep both alive.
 			NLog.LogManager.Shutdown();
-#endif
 		}
 	}
 
