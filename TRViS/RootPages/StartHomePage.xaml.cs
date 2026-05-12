@@ -417,6 +417,7 @@ public partial class StartHomePage : ContentPage
 
 	protected override async void OnAppearing()
 	{
+		logger.Debug("OnAppearing");
 		base.OnAppearing();
 
 		// Subscribe here (not in ctor) so each appearance pairs with an OnDisappearing
@@ -458,6 +459,9 @@ public partial class StartHomePage : ContentPage
 		// acceptance the banner hides, the primary buttons reveal, and the demo
 		// button reappears.
 		bool accepted = InstanceManager.FirebaseSettingViewModel.IsPrivacyPolicyAccepted;
+		logger.Debug(
+			"UpdatePrivacyDependentControls: accepted={0}, BannerVisible(was)={1}, SelectFileButton.IsEnabled(was)={2}",
+			accepted, PrivacyReconfirmBanner.IsVisible, SelectFileButton.IsEnabled);
 		PrivacyReconfirmBanner.IsVisible = !accepted;
 		ConnectServerButton.IsEnabled = accepted;
 		SelectFileButton.IsEnabled = accepted;
