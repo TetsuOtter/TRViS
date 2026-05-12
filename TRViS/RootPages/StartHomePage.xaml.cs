@@ -148,8 +148,58 @@ public partial class StartHomePage : ContentPage
 		// StartBody's row, where Z-order hides it on small screens.
 		StartBody.SizeChanged += (_, __) => RecomputeStartModeHeaderPosition();
 
+#if UI_TEST
+		AddTestOpenSelectFileDialogSeam();
+#endif
+
 		logger.Trace("Created");
 	}
+
+#if UI_TEST
+	// UI_TEST-only seam: invisible 24×24 button placed at the top-left corner of
+	// RootGrid (Grid.Row=0, same row as TestSeamHost + AppHeader). Tapping it
+	// invokes OnSelectFileClicked(sender, e) directly so tests bypass the styled
+	// SelectFileButton — Appium UIAutomator2's ACTION_CLICK against
+	// PrimaryActionButton-styled Buttons silently fails to dispatch
+	// Button.Clicked on Android in the shared-session run (CI run 25734141479).
+	//
+	// Added in code-behind (not as the 13th row of TestSeamHost) because adding
+	// a 13th XAML row grew RootGrid's Auto-sized top row enough to trigger an
+	// iPhone-only iOS XCUITest main-run-loop hang during the post-ClearLoader
+	// Home→Start mode transition (CI run 25734770851: StartHome.Title query
+	// timed out after exactly 60 s on iPhone simulator only; iPad-A17 /
+	// iPad-mini-5 / Android ran the same code fine). The DTAC seam already
+	// uses the same code-behind-add pattern for parity; matching it here keeps
+	// every fixture's iPhone path on the same XAML layout that 3375ab8 shipped.
+	//
+	// Margin is offset (24, 12*24) so this button doesn't overlap with the
+	// existing 12-row TestSeamHost — TestSeamHost occupies y=[0,288], this seam
+	// sits at y=[288,312] in the same column, keeping the overall accessibility
+	// footprint identical to what an extra XAML row *would* have produced minus
+	// the layout-row growth that broke iPhone.
+	private void AddTestOpenSelectFileDialogSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestOpenSelectFileDialog,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 288, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestOpenSelectFileDialogButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	// Mirrors AutomationIds.StartHome.TestOpenSelectFileDialogButton in the
+	// test project. Inlined here to avoid a project reference.
+	private const string AutomationIdValueForTestOpenSelectFileDialog = "StartHome.TestOpenSelectFileDialogButton";
+#endif
 
 	void UpdateHomeBodyTopSpacer()
 	{
@@ -1117,7 +1167,7 @@ public partial class StartHomePage : ContentPage
 #endif
 	}
 
-	void TestOpenSelectFileDialogButton_Clicked(object sender, EventArgs e)
+	void TestOpenSelectFileDialogButton_Clicked(object? sender, EventArgs e)
 	{
 #if UI_TEST
 		logger.Info("TestOpenSelectFileDialogButton clicked: invoking OnSelectFileClicked directly");
@@ -1126,7 +1176,7 @@ public partial class StartHomePage : ContentPage
 		// and logs/handles failures. Routing through it (vs. duplicating the
 		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
 		// changes shape, this seam tracks it without per-test rewrites.
-		OnSelectFileClicked(sender, e);
+		OnSelectFileClicked(sender!, e);
 #endif
 	}
 

@@ -618,7 +618,7 @@
 			Grid.Row="0"
 			HorizontalOptions="Start"
 			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24,24,24"
+			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24,24"
 			ColumnDefinitions="24"
 			RowSpacing="0"
 			ColumnSpacing="0"
@@ -736,23 +736,17 @@
 				Padding="0"
 				Margin="0"
 				Clicked="TestClearLoaderButton_Clicked"/>
-			<!-- Direct invoker for OnSelectFileClicked. Bypasses SelectFileButton
-			     because Appium UIAutomator2's ACTION_CLICK against the styled
-			     PrimaryActionButton silently fails to dispatch Maui Button.Clicked
-			     on Android in the shared-session run (CI run 25734141479: seam
-			     buttons fire, SelectFileButton does not, both have enabled=true /
-			     clickable=true / visible=true in the accessibility tree). The
-			     seam invokes the same handler path so the test still exercises
-			     OnSelectFileClicked → Navigation.PushModalAsync(SelectFileDialog). -->
-			<Button
-				x:Name="TestOpenSelectFileDialogButton"
-				AutomationId="StartHome.TestOpenSelectFileDialogButton"
-				Grid.Row="12"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestOpenSelectFileDialogButton_Clicked"/>
+			<!-- TestOpenSelectFileDialogButton is intentionally added in code-behind
+			     under #if UI_TEST instead of declared here. Adding a 13th row to
+			     this grid grew RootGrid's Auto-sized top row (TestSeamHost shares
+			     Row 0 with AppHeader) and triggered an iPhone-only iOS XCUITest
+			     main-run-loop hang during the post-ClearLoader Home→Start mode
+			     transition (CI run 25734770851: StartHome.Title query timed out
+			     after exactly 60 s on iPhone simulator while iPad-A17 / iPad-mini-5
+			     ran the same code fine). The DTAC.TestNavigateHomeButton uses the
+			     same "code-behind seam, no XAML row change" pattern and works on
+			     every platform — match it here. See AddTestOpenSelectFileDialogSeam
+			     in the code-behind. -->
 		</Grid>
 
 	</Grid>
