@@ -60,9 +60,9 @@
 				<Setter Property="Padding"
 								Value="8,4"/>
 				<Setter Property="Margin"
-								Value="4"/>
+								Value="2,0"/>
 				<Setter Property="HeightRequest"
-								Value="36"/>
+								Value="32"/>
 			</Style>
 
 			<Style x:Key="StepListBorder"
@@ -99,485 +99,549 @@
 		</ResourceDictionary>
 	</ContentPage.Resources>
 
-	<!-- 3-row × 2-col layout per the design feedback:
-	       Row 0: * — AppHeader / icon area
-	       Row 1: Auto — buttons or privacy-warning banner (Start mode) /
-	              picker (Home mode)
-	       Row 2: Auto — privacy/TPL footer links
-	       Col 0/1: 0.5* each — split into halves so phone-landscape can
-	              place AppHeader on the left and StartBody on the right.
-	     Portrait/tablet: every visible element uses ColumnSpan=2 (full
-	     width). Phone landscape (ApplyOrientationLayout): only StartBody
-	     moves to Row=0 RowSpan=2 Column=1, putting it in the right column
-	     and freeing the left column for the header. The footer always
-	     spans both columns at the bottom. -->
-	<Grid x:Name="RootGrid"
-				RowDefinitions="Auto,*,Auto"
-				ColumnDefinitions="*,*">
+	<!-- Three-layer stack (RootGrid is a 1-cell wrapper, layers overlap at z-order):
+	       1) BackgroundGrid — always visible. Owns AppHeader, FooterLinks, TestSeamHost,
+	          and size-mirror placeholders for the elements that live in StartGrid/HomeGrid.
+	          RowDefinitions swap between Start (*,0,Auto,0,Auto) and Home
+	          (<HOME_HEADER_ROW_HEIGHT>,Auto,*,Auto,Auto) so AppHeader's row aligns with
+	          the body layers.
+	       2) StartGrid — visible only in Start mode. Fixed RowDefinitions matching
+	          BackgroundGrid's Start mode. Owns StartBody.
+	       3) HomeGrid — visible only in Home mode. Fixed RowDefinitions matching
+	          BackgroundGrid's Home mode. Owns LoaderInfoCard, HomeBody, HomeButtonsRow.
+	     Cross-grid alignment is preserved via BoxView size-mirror placeholders that
+	     bind HeightRequest / Margin to the real elements in the sibling grids. -->
+	<Grid x:Name="RootGrid">
 
-		<!-- ========== Animated app header (icon + title) ========== -->
-		<!-- VerticalOptions=Start; TranslationY/Scale animated in code-behind to switch between
-		     Start (centered, large) and Home (top-anchored, small). -->
-		<VerticalStackLayout
-			x:Name="AppHeader"
-			AutomationId="StartHome.AppHeader"
-			Grid.Row="0"
-			Grid.ColumnSpan="2"
-			VerticalOptions="Center"
-			HorizontalOptions="Center"
-			Spacing="8"
-			Padding="16,32,16,0"
-			AnchorY="0"
-			AnchorX="0.5">
-			<Image
-				x:Name="AppIcon"
-				AutomationId="StartHome.AppIcon"
-				Source="appiconfg.png"
-				HeightRequest="160"
-				WidthRequest="160"
-				Aspect="AspectFit"/>
-			<Label
-				x:Name="AppTitle"
-				AutomationId="StartHome.Title"
-				Text="TRViS"
-				FontSize="44"
-				FontAttributes="Bold"
+		<!-- ========== Background layer ========== -->
+		<!-- RowDefinitions are assigned in code-behind from the static readonly
+		     PortraitStartRows / PortraitHomeRows / LandscapePhoneRows so there is a
+		     single source of truth. -->
+		<Grid x:Name="BackgroundGrid"
+					ColumnDefinitions="*,*">
+
+			<!-- Animated app header (icon + title). VerticalOptions=Center centers it
+			     inside Row 0 (* in Start mode, fixed HOME_HEADER_ROW_HEIGHT in Home mode). -->
+			<VerticalStackLayout
+				x:Name="AppHeader"
+				AutomationId="StartHome.AppHeader"
+				Grid.Row="0"
+				Grid.ColumnSpan="2"
+				VerticalOptions="Center"
 				HorizontalOptions="Center"
-				TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-		</VerticalStackLayout>
+				Spacing="8"
+				Padding="16,32,16,0"
+				AnchorY="0"
+				AnchorX="0.5">
+				<Image
+					x:Name="AppIcon"
+					AutomationId="StartHome.AppIcon"
+					Source="appiconfg.png"
+					HeightRequest="160"
+					WidthRequest="160"
+					Aspect="AspectFit"/>
+				<Label
+					x:Name="AppTitle"
+					AutomationId="StartHome.Title"
+					Text="TRViS"
+					FontSize="44"
+					FontAttributes="Bold"
+					HorizontalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+			</VerticalStackLayout>
 
-		<!-- ========== Start body ========== -->
-		<!-- Lives in RootGrid Row=1 (Auto) which sizes to its natural height,
-		     so banner/buttons/demo stack without needing an internal spacer.
-		     The footer link row was promoted to RootGrid Row=2 so it always
-		     pins to the bottom of the page regardless of StartBody's row
-		     allocation; that fixes the landscape-phone "demo overlapping
-		     footer" report. -->
-		<Grid
-			x:Name="StartBody"
-			AutomationId="StartHome.StartBody"
-			Grid.Row="1"
-			Grid.ColumnSpan="2"
-			Padding="24,8,24,24"
-			RowSpacing="8">
-			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
-			</Grid.RowDefinitions>
+			<!-- Footer links: Privacy / TPL pinned to the bottom. Lives in the
+			     background so both Start and Home modes share it. Rows 1, 2, 3 of
+			     the background hold no content — their sizes come from the shared
+			     RowDefinitionCollections (fixed pixel heights) so they align with
+			     the matching slots in StartGrid / HomeGrid without needing
+			     size-mirror placeholders. -->
+			<HorizontalStackLayout
+				x:Name="FooterLinks"
+				Grid.Row="4"
+				Grid.ColumnSpan="2"
+				HorizontalOptions="Center"
+				Padding="0,0"
+				Spacing="4">
+				<Button
+					AutomationId="StartHome.PrivacyPolicyButton"
+					Text="プライバシーポリシー"
+					Style="{StaticResource LinkButton}"
+					Clicked="OnPrivacyPolicyClicked"/>
+				<Label
+					Text="·"
+					VerticalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+				<Button
+					AutomationId="StartHome.ThirdPartyLicensesButton"
+					Text="Third Party Licenses"
+					Style="{StaticResource LinkButton}"
+					Clicked="OnThirdPartyLicensesClicked"/>
+			</HorizontalStackLayout>
 
-			<!-- Row 0 hosts both the primary buttons and the privacy reconfirm banner
-			     in the same cell. The banner is declared after the buttons so it
-			     z-orders on top, and stretches to Fill so it fully covers them when
-			     visible — that gives the layout requested by the design (warning
-			     overlays the two main buttons until privacy is accepted) without
-			     leaving an awkward "warning + disabled buttons stacked" stretch
-			     above the AppHeader on small screens. -->
-			<Grid Grid.Row="0">
-				<!-- Two main buttons: orientation-aware (vertical on portrait, horizontal on landscape).
-				     IsEnabled is bound to IsPrivacyPolicyAccepted in code-behind. -->
-				<FlexLayout
-					x:Name="PrimaryButtons"
-					Direction="Row"
-					Wrap="Wrap"
-					JustifyContent="Center"
-					AlignItems="Center">
-					<Button
-						x:Name="ConnectServerButton"
-						AutomationId="StartHome.ConnectServerButton"
-						Text="サーバーから読み込み"
-						Style="{StaticResource PrimaryActionButton}"
-						Clicked="OnConnectServerClicked"/>
-					<Button
-						x:Name="SelectFileButton"
-						AutomationId="StartHome.SelectFileButton"
-						Text="ファイルを選択"
-						Style="{StaticResource PrimaryActionButton}"
-						Clicked="OnSelectFileClicked"/>
-				</FlexLayout>
-
-				<!-- Privacy policy reconfirm banner. High-prominence treatment when shown:
-				     bigger font, warning glyph, vivid border. Tapping it opens the dialog. -->
-				<!-- IsVisible is controlled exclusively from code-behind
-				     (UpdatePrivacyDependentControls). Do NOT set IsVisible="False"
-				     in XAML: on Windows MAUI a Border that starts collapsed never
-				     gets a UIA peer, so the runtime flip to true is invisible to
-				     Appium and the banner remains "absent" for tests even when
-				     visually rendered. Starting with the default (true) lets MAUI
-				     create the platform peer up-front, and code-behind hides it
-				     before paint via UpdatePrivacyDependentControls in OnAppearing. -->
-				<Border
-					x:Name="PrivacyReconfirmBanner"
-					AutomationId="StartHome.PrivacyReconfirmBanner"
-					HorizontalOptions="Fill"
-					VerticalOptions="Fill"
-					Stroke="{AppThemeBinding Light=#FF9A00, Dark=#FFB800}"
-					StrokeThickness="2"
-					BackgroundColor="{AppThemeBinding Light=#FFF4D6, Dark=#3A2400}"
-					Padding="16">
-					<Border.StrokeShape>
-						<RoundRectangle CornerRadius="12"/>
-					</Border.StrokeShape>
-					<Border.GestureRecognizers>
-						<TapGestureRecognizer Tapped="OnPrivacyPolicyClicked"/>
-					</Border.GestureRecognizers>
-					<Grid ColumnDefinitions="Auto,*,Auto"
-								ColumnSpacing="12"
-								RowDefinitions="Auto,Auto"
-								VerticalOptions="Center">
-						<!-- &#xe002; = warning, &#xe5cc; = chevron_right (Material Icons) -->
-						<Label
-							Grid.Column="0"
-							Grid.RowSpan="2"
-							Text="&#xe002;"
-							FontFamily="MaterialIconsRegular"
-							FontSize="40"
-							TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
-							VerticalOptions="Center"/>
-						<Label
-							Grid.Column="1"
-							Grid.Row="0"
-							AutomationId="StartHome.PrivacyReconfirmText"
-							Text="プライバシーポリシーへの同意が必要です"
-							TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
-							FontSize="18"
-							FontAttributes="Bold"/>
-						<Label
-							Grid.Column="1"
-							Grid.Row="1"
-							Text="アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。"
-							TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
-							FontSize="13"
-							LineBreakMode="WordWrap"/>
-						<Label
-							Grid.Column="2"
-							Grid.RowSpan="2"
-							Text="&#xe5cc;"
-							FontFamily="MaterialIconsRegular"
-							FontSize="32"
-							TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
-							VerticalOptions="Center"/>
-					</Grid>
-				</Border>
+			<!-- UI_TEST seam buttons. Each button has its own 24px row of an explicit
+			     Grid (no StackLayout pass that may collapse 1×1 children on Mac Catalyst).
+			     In production the Click handlers are no-ops (gated on #if UI_TEST). -->
+			<Grid
+				x:Name="TestSeamHost"
+				Grid.Row="0"
+				HorizontalOptions="Start"
+				VerticalOptions="Start"
+				RowDefinitions="24,24,24,24,24,24,24,24,24,24,24"
+				ColumnDefinitions="24"
+				RowSpacing="0"
+				ColumnSpacing="0"
+				Padding="0"
+				Margin="0">
+				<Button
+					x:Name="TestSeedButton"
+					AutomationId="StartHome.TestSeedButton"
+					Grid.Row="0"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestSeedButton_Clicked"/>
+				<Button
+					x:Name="TestSeedGpsButton"
+					AutomationId="StartHome.TestSeedGpsButton"
+					Grid.Row="1"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestSeedGpsButton_Clicked"/>
+				<Button
+					x:Name="TestAutoOpenButton"
+					AutomationId="StartHome.TestAutoOpenButton"
+					Grid.Row="2"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestAutoOpenButton_Clicked"/>
+				<Button
+					x:Name="TestClearHistoryButton"
+					AutomationId="StartHome.TestClearHistoryButton"
+					Grid.Row="3"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestClearHistoryButton_Clicked"/>
+				<Button
+					x:Name="TestSeedSqliteButton"
+					AutomationId="StartHome.TestSeedSqliteButton"
+					Grid.Row="4"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestSeedSqliteButton_Clicked"/>
+				<Button
+					x:Name="TestClearTimetablesButton"
+					AutomationId="StartHome.TestClearTimetablesButton"
+					Grid.Row="5"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestClearTimetablesButton_Clicked"/>
+				<Button
+					x:Name="TestSeedSampleFilesButton"
+					AutomationId="StartHome.TestSeedSampleFilesButton"
+					Grid.Row="6"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestSeedSampleFilesButton_Clicked"/>
+				<Button
+					x:Name="TestClearSampleFilesButton"
+					AutomationId="StartHome.TestClearSampleFilesButton"
+					Grid.Row="7"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestClearSampleFilesButton_Clicked"/>
+				<Button
+					x:Name="TestSetupBrowseFallbackButton"
+					AutomationId="StartHome.TestSetupBrowseFallbackButton"
+					Grid.Row="8"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestSetupBrowseFallbackButton_Clicked"/>
+				<Button
+					x:Name="TestSeedNextTrainSelectionButton"
+					AutomationId="StartHome.TestSeedNextTrainSelectionButton"
+					Grid.Row="9"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestSeedNextTrainSelectionButton_Clicked"/>
+				<Button
+					x:Name="TestSeedHorizontalTimetableButton"
+					AutomationId="StartHome.TestSeedHorizontalTimetableButton"
+					Grid.Row="10"
+					BackgroundColor="Transparent"
+					BorderColor="Transparent"
+					Padding="0"
+					Margin="0"
+					Clicked="TestSeedHorizontalTimetableButton_Clicked"/>
 			</Grid>
+		</Grid>
 
-			<!-- Demo data (smaller) -->
-			<Button
-				x:Name="LoadDemoButton"
-				Grid.Row="1"
-				AutomationId="StartHome.LoadDemoButton"
-				Text="デモデータで開始"
-				Style="{StaticResource SecondaryActionButton}"
-				Clicked="OnLoadDemoClicked"/>
+		<!-- ========== Start layer ========== -->
+		<!-- Shares PortraitStartRows with BackgroundGrid (in Start mode) so StartBody
+		     (Row 2) aligns with the AppHeader+Footer slots in the background layer.
+		     Visibility flipped by code-behind. -->
+		<Grid x:Name="StartGrid"
+					ColumnDefinitions="*,*"
+					InputTransparent="False"
+					CascadeInputTransparent="False">
+
+			<Grid
+				x:Name="StartBody"
+				AutomationId="StartHome.StartBody"
+				Grid.Row="2"
+				Grid.ColumnSpan="2"
+				Padding="24,8,24,24"
+				RowSpacing="8">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+
+				<!-- Row 0 hosts both the primary buttons and the privacy reconfirm banner
+				     in the same cell. The banner z-orders on top (declared later) and stretches
+				     to Fill so it fully covers the buttons when visible. -->
+				<Grid Grid.Row="0">
+					<FlexLayout
+						x:Name="PrimaryButtons"
+						Direction="Row"
+						Wrap="Wrap"
+						JustifyContent="Center"
+						AlignItems="Center">
+						<Button
+							x:Name="ConnectServerButton"
+							AutomationId="StartHome.ConnectServerButton"
+							Text="サーバーから読み込み"
+							Style="{StaticResource PrimaryActionButton}"
+							Clicked="OnConnectServerClicked"/>
+						<Button
+							x:Name="SelectFileButton"
+							AutomationId="StartHome.SelectFileButton"
+							Text="ファイルを選択"
+							Style="{StaticResource PrimaryActionButton}"
+							Clicked="OnSelectFileClicked"/>
+					</FlexLayout>
+
+					<!-- IsVisible is controlled exclusively from code-behind
+					     (UpdatePrivacyDependentControls). Do NOT set IsVisible="False"
+					     in XAML: on Windows MAUI a Border that starts collapsed never
+					     gets a UIA peer, so the runtime flip to true is invisible to
+					     Appium. -->
+					<Border
+						x:Name="PrivacyReconfirmBanner"
+						AutomationId="StartHome.PrivacyReconfirmBanner"
+						HorizontalOptions="Fill"
+						VerticalOptions="Fill"
+						Stroke="{AppThemeBinding Light=#FF9A00, Dark=#FFB800}"
+						StrokeThickness="2"
+						BackgroundColor="{AppThemeBinding Light=#FFF4D6, Dark=#3A2400}"
+						Padding="16">
+						<Border.StrokeShape>
+							<RoundRectangle CornerRadius="12"/>
+						</Border.StrokeShape>
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Tapped="OnPrivacyPolicyClicked"/>
+						</Border.GestureRecognizers>
+						<Grid ColumnDefinitions="Auto,*,Auto"
+									ColumnSpacing="12"
+									RowDefinitions="Auto,Auto"
+									VerticalOptions="Center">
+							<!-- &#xe002; = warning, &#xe5cc; = chevron_right (Material Icons) -->
+							<Label
+								Grid.Column="0"
+								Grid.RowSpan="2"
+								Text="&#xe002;"
+								FontFamily="MaterialIconsRegular"
+								FontSize="40"
+								TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
+								VerticalOptions="Center"/>
+							<Label
+								Grid.Column="1"
+								Grid.Row="0"
+								AutomationId="StartHome.PrivacyReconfirmText"
+								Text="プライバシーポリシーへの同意が必要です"
+								TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
+								FontSize="18"
+								FontAttributes="Bold"/>
+							<Label
+								Grid.Column="1"
+								Grid.Row="1"
+								Text="アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。"
+								TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
+								FontSize="13"
+								LineBreakMode="WordWrap"/>
+							<Label
+								Grid.Column="2"
+								Grid.RowSpan="2"
+								Text="&#xe5cc;"
+								FontFamily="MaterialIconsRegular"
+								FontSize="32"
+								TextColor="{AppThemeBinding Light=#A85800, Dark=#FFD05A}"
+								VerticalOptions="Center"/>
+						</Grid>
+					</Border>
+				</Grid>
+
+				<Button
+					x:Name="LoadDemoButton"
+					Grid.Row="1"
+					AutomationId="StartHome.LoadDemoButton"
+					Text="デモデータで開始"
+					Style="{StaticResource SecondaryActionButton}"
+					Clicked="OnLoadDemoClicked"/>
+
+			</Grid>
 
 		</Grid>
 
-		<!-- Footer links: Privacy / TPL pinned to the bottom of the page in
-		     RootGrid Row=2 — out of StartBody so it doesn't get repositioned
-		     when StartBody moves into the right column on landscape phone.
-		     ColumnSpan=2 keeps it full-width in both orientations. -->
-		<HorizontalStackLayout
-			x:Name="FooterLinks"
-			Grid.Row="2"
-			Grid.ColumnSpan="2"
-			HorizontalOptions="Center"
-			Padding="0,4"
-			Spacing="4">
-			<Button
-				AutomationId="StartHome.PrivacyPolicyButton"
-				Text="プライバシーポリシー"
-				Style="{StaticResource LinkButton}"
-				Clicked="OnPrivacyPolicyClicked"/>
-			<Label
-				Text="·"
-				VerticalOptions="Center"
-				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-			<Button
-				AutomationId="StartHome.ThirdPartyLicensesButton"
-				Text="Third Party Licenses"
-				Style="{StaticResource LinkButton}"
-				Clicked="OnThirdPartyLicensesClicked"/>
-		</HorizontalStackLayout>
+		<!-- ========== Home layer ========== -->
+		<!-- Shares PortraitHomeRows with BackgroundGrid (in Home mode). Visibility
+		     flipped by code-behind. -->
+		<Grid x:Name="HomeGrid"
+					ColumnDefinitions="*,*"
+					IsVisible="False"
+					Opacity="0"
+					InputTransparent="False"
+					CascadeInputTransparent="False">
 
-		<!-- ========== Loader info card ==========
-		     Lives at RootGrid level (not inside HomeBody) so on landscape phones
-		     it can be positioned in the left column under AppHeader, separate
-		     from the picker on the right. In portrait/tablet it sits between
-		     the AppHeader row and the body row, mimicking its old position
-		     directly under the (small, Home-mode) header. IsVisible is bound
-		     to Home mode in code-behind so it disappears in Start mode.
-		     Title shows the loader type (e.g. "JSON ファイル", "サーバー接続中");
-		     detail shows the source path / URL set by SetLoader. -->
-		<Border
-			x:Name="LoaderInfoCard"
-			Grid.Row="0"
-			Grid.ColumnSpan="2"
-			VerticalOptions="End"
-			Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
-			BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
-			Padding="12"
-			Margin="20,0,20,8"
-			IsVisible="False">
-			<Border.StrokeShape>
-				<RoundRectangle CornerRadius="8"/>
-			</Border.StrokeShape>
-			<Grid ColumnDefinitions="Auto,*"
-						ColumnSpacing="10"
-						RowDefinitions="Auto,Auto">
-				<!-- Glyph swapped in code-behind by loader type. -->
-				<Label
-					x:Name="LoaderInfoGlyphLabel"
-					Grid.Column="0"
-					Grid.RowSpan="2"
-					Text="&#xe873;"
-					FontFamily="MaterialIconsRegular"
-					FontSize="28"
-					VerticalOptions="Center"
-					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-				<Label
-					AutomationId="StartHome.LoaderInfoTitle"
-					x:Name="LoaderInfoTitleLabel"
-					Grid.Column="1"
-					Grid.Row="0"
-					FontSize="14"
-					FontAttributes="Bold"
-					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Text="読み込み済みデータ"/>
-				<Label
-					AutomationId="StartHome.LoaderInfoDetail"
-					x:Name="LoaderInfoDetailLabel"
-					Grid.Column="1"
-					Grid.Row="1"
-					FontSize="12"
-					LineBreakMode="MiddleTruncation"
-					TextColor="{x:Static local:RootStyles.TableDetailColor}"
-					Text=""/>
-			</Grid>
-		</Border>
-
-		<!-- ========== Home body ========== -->
-		<!-- IsVisible/Opacity animated in code-behind. The first row is an invisible spacer
-		     whose HeightRequest is sized to the scaled header in code-behind so the body
-		     content never collides with the header (replaces a hard-coded 160 px padding).
-		     RowSpan=2 lets HomeBody fill the whole grid in Home mode (StartBody's row
-		     collapses while it's invisible, but HomeBody still needs the lower region). -->
-		<Grid
-			x:Name="HomeBody"
-			AutomationId="StartHome.HomeBody"
-			Grid.Row="0"
-			Grid.RowSpan="2"
-			Grid.ColumnSpan="2"
-			Padding="16,0,16,16"
-			RowSpacing="8"
-			IsVisible="False"
-			Opacity="0">
-			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="*"/>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
-			</Grid.RowDefinitions>
-
-			<!-- Spacer reserving space for the small (scaled) app header in Home mode.
-			     HeightRequest is set in code-behind from the measured AppHeader size. -->
-			<BoxView
-				x:Name="HomeBodyTopSpacer"
-				Grid.Row="0"
-				HeightRequest="120"
-				Color="Transparent"/>
-
-			<!-- ===== Two-step picker (WorkGroup → Work) =====
-			     Each step has two layouts swapped by code-behind:
-			     - List: full CollectionView (no chip visible)
-			     - Chip: compact card with selected name + "変更" affordance (list collapsed).
-			     Auto-fill: when a list arrives with exactly 1 item AND the user has not
-			     manually cleared their selection, the code-behind auto-selects it.
-			     Tapping a chip clears the selection (chip-cleared = re-shows the list). -->
-			<ScrollView Grid.Row="1">
-				<VerticalStackLayout Padding="4,0"
-						Spacing="0">
-
-					<!-- Step 1: Work Group -->
+			<!-- Loader info card. Title shows loader type ("JSON ファイル", "サーバー接続中" …);
+			     detail shows source path/URL set by SetLoader. Glyph swapped in code-behind. -->
+			<Border
+				x:Name="LoaderInfoCard"
+				Grid.Row="1"
+				Grid.ColumnSpan="2"
+				Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
+				BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
+				Padding="12"
+				Margin="20,0,20,8">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="8"/>
+				</Border.StrokeShape>
+				<Grid ColumnDefinitions="Auto,*"
+							ColumnSpacing="10"
+							RowDefinitions="Auto,Auto">
 					<Label
-						x:Name="WorkGroupSectionLabel"
-						FontSize="Subtitle"
-						Margin="2,8,2,4"
-						TextColor="{x:Static local:RootStyles.TableTextColor}"
-						Text="Work Group"/>
-
-					<!-- Chip: selected Work Group summary. Tap clears selection. -->
-					<Border
-						x:Name="WorkGroupChip"
-						AutomationId="StartHome.WorkGroupChip"
-						Style="{StaticResource StepChipBorder}"
-						IsVisible="False">
-						<Border.GestureRecognizers>
-							<TapGestureRecognizer Tapped="OnWorkGroupChipTapped"/>
-						</Border.GestureRecognizers>
-						<Grid ColumnDefinitions="Auto,*,Auto"
-									ColumnSpacing="8">
-							<!-- &#xe876; = done (selected check) -->
-							<Label
-								Grid.Column="0"
-								Text="&#xe876;"
-								FontFamily="MaterialIconsRegular"
-								FontSize="18"
-								VerticalOptions="Center"
-								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-							<Label
-								x:Name="WorkGroupChipNameLabel"
-								Grid.Column="1"
-								FontSize="15"
-								FontAttributes="Bold"
-								LineBreakMode="TailTruncation"
-								VerticalOptions="Center"
-								TextColor="{x:Static local:RootStyles.TableTextColor}"
-								Text=""/>
-							<Label
-								Grid.Column="2"
-								Text="変更"
-								FontSize="12"
-								VerticalOptions="Center"
-								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-						</Grid>
-					</Border>
-
-					<!-- List: Work Group picker. ItemsSource is set in code-behind to
-					     a list of WorkGroupListItem presenters so each row can show
-					     the name plus a count of contained Works. Selection is
-					     handled imperatively (SelectionChanged) so the chosen item
-					     stays *tentative* on this page and is only committed to the
-					     AppViewModel when the user taps the "開く" button. -->
-					<Border
-						x:Name="WorkGroupListBorder"
-						Style="{StaticResource StepListBorder}">
-						<CollectionView
-							x:Name="WorkGroupListView"
-							AutomationId="StartHome.WorkGroupList"
-							HeightRequest="160"
-							SelectionMode="Single"
-							SelectionChanged="OnWorkGroupSelectionChanged">
-							<CollectionView.ItemTemplate>
-								<DataTemplate x:DataType="rootpages:WorkGroupListItem">
-									<Grid Padding="10,8"
-												RowDefinitions="Auto,Auto"
-												ColumnDefinitions="*">
-										<Label
-											Grid.Row="0"
-											Text="{Binding Name}"
-											FontSize="15"
-											FontAttributes="Bold"
-											TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-										<Label
-											Grid.Row="1"
-											Text="{Binding Subtitle}"
-											FontSize="12"
-											TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-									</Grid>
-								</DataTemplate>
-							</CollectionView.ItemTemplate>
-						</CollectionView>
-					</Border>
-
-					<!-- Step 2: Work -->
+						x:Name="LoaderInfoGlyphLabel"
+						Grid.Column="0"
+						Grid.RowSpan="2"
+						Text="&#xe873;"
+						FontFamily="MaterialIconsRegular"
+						FontSize="28"
+						VerticalOptions="Center"
+						TextColor="{x:Static local:RootStyles.TableTextColor}"/>
 					<Label
-						x:Name="WorkSectionLabel"
-						FontSize="Subtitle"
-						Margin="2,8,2,4"
+						AutomationId="StartHome.LoaderInfoTitle"
+						x:Name="LoaderInfoTitleLabel"
+						Grid.Column="1"
+						Grid.Row="0"
+						FontSize="14"
+						FontAttributes="Bold"
 						TextColor="{x:Static local:RootStyles.TableTextColor}"
-						Text="Work"/>
+						Text="読み込み済みデータ"/>
+					<Label
+						AutomationId="StartHome.LoaderInfoDetail"
+						x:Name="LoaderInfoDetailLabel"
+						Grid.Column="1"
+						Grid.Row="1"
+						FontSize="12"
+						LineBreakMode="MiddleTruncation"
+						TextColor="{x:Static local:RootStyles.TableDetailColor}"
+						Text=""/>
+				</Grid>
+			</Border>
 
-					<!-- Chip: selected Work summary. Tap clears selection. -->
-					<Border
-						x:Name="WorkChip"
-						AutomationId="StartHome.WorkChip"
-						Style="{StaticResource StepChipBorder}"
-						IsVisible="False">
-						<Border.GestureRecognizers>
-							<TapGestureRecognizer Tapped="OnWorkChipTapped"/>
-						</Border.GestureRecognizers>
-						<Grid ColumnDefinitions="Auto,*,Auto"
-									ColumnSpacing="8">
-							<Label
-								Grid.Column="0"
-								Text="&#xe876;"
-								FontFamily="MaterialIconsRegular"
-								FontSize="18"
-								VerticalOptions="Center"
-								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-							<Label
-								x:Name="WorkChipNameLabel"
-								Grid.Column="1"
-								FontSize="15"
-								FontAttributes="Bold"
-								LineBreakMode="TailTruncation"
-								VerticalOptions="Center"
-								TextColor="{x:Static local:RootStyles.TableTextColor}"
-								Text=""/>
-							<Label
-								Grid.Column="2"
-								Text="変更"
-								FontSize="12"
-								VerticalOptions="Center"
-								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-						</Grid>
-					</Border>
-
-					<!-- List: Work picker. Hidden until a Work Group is selected. ItemsSource
-					     and SelectedItem are managed in code-behind (tentative selection). -->
-					<Border
-						x:Name="WorkListBorder"
-						Style="{StaticResource StepListBorder}"
-						IsVisible="False">
-						<CollectionView
-							x:Name="WorkListView"
-							AutomationId="StartHome.WorkList"
-							HeightRequest="160"
-							SelectionMode="Single"
-							SelectionChanged="OnWorkSelectionChanged">
-							<CollectionView.ItemTemplate>
-								<DataTemplate x:DataType="rootpages:WorkListItem">
-									<Grid Padding="10,8"
-												RowDefinitions="Auto,Auto"
-												ColumnDefinitions="*">
-										<Label
-											Grid.Row="0"
-											Text="{Binding Name}"
-											FontSize="15"
-											FontAttributes="Bold"
-											TextColor="{x:Static local:RootStyles.TableTextColor}"/>
-										<Label
-											Grid.Row="1"
-											Text="{Binding Subtitle}"
-											FontSize="12"
-											TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-									</Grid>
-								</DataTemplate>
-							</CollectionView.ItemTemplate>
-						</CollectionView>
-					</Border>
-
-				</VerticalStackLayout>
-			</ScrollView>
-
-			<!-- Hint shown when no Work Group is selected yet. Lives outside
-			     the ScrollView (in HomeBody Row=2) so it's always visible
-			     regardless of how the picker scroll content sizes — the
-			     in-scroll placement scrolled it off-screen on Windows CI
-			     and on iPhone when the picker content exceeded the
-			     viewport. -->
-			<Label
-				x:Name="WorkPendingHint"
-				AutomationId="StartHome.WorkPendingHint"
-				Grid.Row="2"
-				FontSize="12"
-				Margin="4,4,4,8"
-				HorizontalTextAlignment="Center"
-				TextColor="{x:Static local:RootStyles.TableDetailColor}"
-				Text="Work Group を選択してください"/>
-
-			<!-- Open / Disconnect buttons -->
+			<!-- Two-step picker (WorkGroup → Work). Each step swaps between
+			     a chip (selected name + 変更) and a CollectionView list. Auto-fill: a 1-item
+			     list auto-selects when the user hasn't manually cleared. -->
 			<Grid
+				x:Name="HomeBody"
+				AutomationId="StartHome.HomeBody"
+				Grid.Row="2"
+				Grid.ColumnSpan="2"
+				Padding="16,0,16,4">
+
+				<ScrollView>
+					<VerticalStackLayout Padding="4,0"
+							Spacing="0">
+
+						<Label
+							x:Name="WorkGroupSectionLabel"
+							FontSize="Subtitle"
+							Margin="2,8,2,4"
+							TextColor="{x:Static local:RootStyles.TableTextColor}"
+							Text="Work Group"/>
+
+						<Border
+							x:Name="WorkGroupChip"
+							AutomationId="StartHome.WorkGroupChip"
+							Style="{StaticResource StepChipBorder}"
+							IsVisible="False">
+							<Border.GestureRecognizers>
+								<TapGestureRecognizer Tapped="OnWorkGroupChipTapped"/>
+							</Border.GestureRecognizers>
+							<Grid ColumnDefinitions="Auto,*,Auto"
+										ColumnSpacing="8">
+								<!-- &#xe876; = done (selected check) -->
+								<Label
+									Grid.Column="0"
+									Text="&#xe876;"
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									VerticalOptions="Center"
+									TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label
+									x:Name="WorkGroupChipNameLabel"
+									Grid.Column="1"
+									FontSize="15"
+									FontAttributes="Bold"
+									LineBreakMode="TailTruncation"
+									VerticalOptions="Center"
+									TextColor="{x:Static local:RootStyles.TableTextColor}"
+									Text=""/>
+								<Label
+									Grid.Column="2"
+									Text="変更"
+									FontSize="12"
+									VerticalOptions="Center"
+									TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							</Grid>
+						</Border>
+
+						<!-- Tentative selection is committed to AppViewModel only when 開く is tapped. -->
+						<Border
+							x:Name="WorkGroupListBorder"
+							Style="{StaticResource StepListBorder}">
+							<CollectionView
+								x:Name="WorkGroupListView"
+								AutomationId="StartHome.WorkGroupList"
+								HeightRequest="160"
+								SelectionMode="Single"
+								SelectionChanged="OnWorkGroupSelectionChanged">
+								<CollectionView.ItemTemplate>
+									<DataTemplate x:DataType="rootpages:WorkGroupListItem">
+										<Grid Padding="10,8"
+													RowDefinitions="Auto,Auto"
+													ColumnDefinitions="*">
+											<Label
+												Grid.Row="0"
+												Text="{Binding Name}"
+												FontSize="15"
+												FontAttributes="Bold"
+												TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+											<Label
+												Grid.Row="1"
+												Text="{Binding Subtitle}"
+												FontSize="12"
+												TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+										</Grid>
+									</DataTemplate>
+								</CollectionView.ItemTemplate>
+							</CollectionView>
+						</Border>
+
+						<Label
+							x:Name="WorkSectionLabel"
+							FontSize="Subtitle"
+							Margin="2,8,2,4"
+							TextColor="{x:Static local:RootStyles.TableTextColor}"
+							Text="Work"/>
+
+						<Border
+							x:Name="WorkChip"
+							AutomationId="StartHome.WorkChip"
+							Style="{StaticResource StepChipBorder}"
+							IsVisible="False">
+							<Border.GestureRecognizers>
+								<TapGestureRecognizer Tapped="OnWorkChipTapped"/>
+							</Border.GestureRecognizers>
+							<Grid ColumnDefinitions="Auto,*,Auto"
+										ColumnSpacing="8">
+								<Label
+									Grid.Column="0"
+									Text="&#xe876;"
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									VerticalOptions="Center"
+									TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label
+									x:Name="WorkChipNameLabel"
+									Grid.Column="1"
+									FontSize="15"
+									FontAttributes="Bold"
+									LineBreakMode="TailTruncation"
+									VerticalOptions="Center"
+									TextColor="{x:Static local:RootStyles.TableTextColor}"
+									Text=""/>
+								<Label
+									Grid.Column="2"
+									Text="変更"
+									FontSize="12"
+									VerticalOptions="Center"
+									TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							</Grid>
+						</Border>
+
+						<Border
+							x:Name="WorkListBorder"
+							Style="{StaticResource StepListBorder}"
+							IsVisible="False">
+							<CollectionView
+								x:Name="WorkListView"
+								AutomationId="StartHome.WorkList"
+								HeightRequest="160"
+								SelectionMode="Single"
+								SelectionChanged="OnWorkSelectionChanged">
+								<CollectionView.ItemTemplate>
+									<DataTemplate x:DataType="rootpages:WorkListItem">
+										<Grid Padding="10,8"
+													RowDefinitions="Auto,Auto"
+													ColumnDefinitions="*">
+											<Label
+												Grid.Row="0"
+												Text="{Binding Name}"
+												FontSize="15"
+												FontAttributes="Bold"
+												TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+											<Label
+												Grid.Row="1"
+												Text="{Binding Subtitle}"
+												FontSize="12"
+												TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+										</Grid>
+									</DataTemplate>
+								</CollectionView.ItemTemplate>
+							</CollectionView>
+						</Border>
+
+					</VerticalStackLayout>
+				</ScrollView>
+
+			</Grid>
+
+			<!-- Disconnect + Open buttons pinned below the picker. -->
+			<Grid
+				x:Name="HomeButtonsRow"
 				Grid.Row="3"
+				Grid.ColumnSpan="2"
+				Padding="16,0,16,8"
 				ColumnSpacing="8"
 				ColumnDefinitions="*,*">
 				<Button
@@ -590,6 +654,7 @@
 					Clicked="OnDisconnectClicked"/>
 				<Button
 					Grid.Column="1"
+					x:Name="OpenButton"
 					AutomationId="StartHome.OpenButton"
 					Text="開く"
 					HeightRequest="40"
@@ -597,156 +662,7 @@
 					FontAttributes="Bold"
 					Clicked="OnOpenClicked"/>
 			</Grid>
-		</Grid>
 
-		<!-- ========== UI_TEST seam buttons ==========
-		     Buttons placed in an explicit Grid at the top-left corner of RootGrid.
-		     Each occupies its own row of the host grid so layout makes them
-		     independent (no StackLayout pass that may collapse 1×1 children on
-		     Mac Catalyst). Sized 24×24 with full opacity so the platform
-		     accessibility peer is reliably created and the click hit-test is
-		     wide enough on every platform — Mac Catalyst's mac2 driver
-		     dispatches Appium taps via coordinate hit-testing, and we observed
-		     sub-pixel/0.01-opacity targets being silently dropped there.
-		     The 24-wide column sits at (0,0) where AppHeader content does NOT
-		     occlude (AppHeader is HorizontalOptions="Center" and its own padding
-		     leaves the corner clear). In production builds the Click handlers
-		     are no-ops (gated on #if UI_TEST), so accidental discovery has no
-		     effect. -->
-		<Grid
-			x:Name="TestSeamHost"
-			Grid.Row="0"
-			HorizontalOptions="Start"
-			VerticalOptions="Start"
-			RowDefinitions="24,24,24,24,24,24,24,24,24,24,24,24"
-			ColumnDefinitions="24"
-			RowSpacing="0"
-			ColumnSpacing="0"
-			Padding="0"
-			Margin="0">
-			<Button
-				x:Name="TestSeedButton"
-				AutomationId="StartHome.TestSeedButton"
-				Grid.Row="0"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedButton_Clicked"/>
-			<Button
-				x:Name="TestSeedGpsButton"
-				AutomationId="StartHome.TestSeedGpsButton"
-				Grid.Row="1"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedGpsButton_Clicked"/>
-			<Button
-				x:Name="TestAutoOpenButton"
-				AutomationId="StartHome.TestAutoOpenButton"
-				Grid.Row="2"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestAutoOpenButton_Clicked"/>
-			<Button
-				x:Name="TestClearHistoryButton"
-				AutomationId="StartHome.TestClearHistoryButton"
-				Grid.Row="3"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestClearHistoryButton_Clicked"/>
-			<Button
-				x:Name="TestSeedSqliteButton"
-				AutomationId="StartHome.TestSeedSqliteButton"
-				Grid.Row="4"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedSqliteButton_Clicked"/>
-			<Button
-				x:Name="TestClearTimetablesButton"
-				AutomationId="StartHome.TestClearTimetablesButton"
-				Grid.Row="5"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestClearTimetablesButton_Clicked"/>
-			<Button
-				x:Name="TestSeedSampleFilesButton"
-				AutomationId="StartHome.TestSeedSampleFilesButton"
-				Grid.Row="6"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedSampleFilesButton_Clicked"/>
-			<Button
-				x:Name="TestClearSampleFilesButton"
-				AutomationId="StartHome.TestClearSampleFilesButton"
-				Grid.Row="7"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestClearSampleFilesButton_Clicked"/>
-			<Button
-				x:Name="TestSetupBrowseFallbackButton"
-				AutomationId="StartHome.TestSetupBrowseFallbackButton"
-				Grid.Row="8"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSetupBrowseFallbackButton_Clicked"/>
-			<Button
-				x:Name="TestSeedNextTrainSelectionButton"
-				AutomationId="StartHome.TestSeedNextTrainSelectionButton"
-				Grid.Row="9"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedNextTrainSelectionButton_Clicked"/>
-			<Button
-				x:Name="TestSeedHorizontalTimetableButton"
-				AutomationId="StartHome.TestSeedHorizontalTimetableButton"
-				Grid.Row="10"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestSeedHorizontalTimetableButton_Clicked"/>
-			<!-- Clears the in-memory AppViewModel.Loader (back to Start mode)
-			     without the confirm dialog OnDisconnectClicked surfaces. Used
-			     by fixtures that share a single Appium session and need each
-			     test to start from "no loader" state. -->
-			<Button
-				x:Name="TestClearLoaderButton"
-				AutomationId="StartHome.TestClearLoaderButton"
-				Grid.Row="11"
-				BackgroundColor="Transparent"
-				BorderColor="Transparent"
-				Padding="0"
-				Margin="0"
-				Clicked="TestClearLoaderButton_Clicked"/>
-			<!-- TestOpenSelectFileDialogButton is intentionally added in code-behind
-			     under #if UI_TEST instead of declared here. Adding a 13th row to
-			     this grid grew RootGrid's Auto-sized top row (TestSeamHost shares
-			     Row 0 with AppHeader) and triggered an iPhone-only iOS XCUITest
-			     main-run-loop hang during the post-ClearLoader Home→Start mode
-			     transition (CI run 25734770851: StartHome.Title query timed out
-			     after exactly 60 s on iPhone simulator while iPad-A17 / iPad-mini-5
-			     ran the same code fine). The DTAC.TestNavigateHomeButton uses the
-			     same "code-behind seam, no XAML row change" pattern and works on
-			     every platform — match it here. See AddTestOpenSelectFileDialogSeam
-			     in the code-behind. -->
 		</Grid>
 
 	</Grid>
