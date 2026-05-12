@@ -90,9 +90,9 @@ public partial class StartHomePage : ContentPage
 	// (StartGrid / HomeGrid) reserve the same row sizes via the shared static
 	// RowDefinitionCollections, guaranteeing alignment with BackgroundGrid.
 	const double HOME_HEADER_ROW_HEIGHT_BASE = 128.0;
-	const double FOOTER_ROW_HEIGHT_BASE = 40.0;
-	const double LOADER_INFO_ROW_HEIGHT_BASE = 80.0;
-	const double HOME_BUTTONS_ROW_HEIGHT_BASE = 56.0;
+	const double FOOTER_ROW_HEIGHT_BASE = 36.0;
+	const double LOADER_INFO_ROW_HEIGHT_BASE = 60.0;
+	const double HOME_BUTTONS_ROW_HEIGHT_BASE = 44.0;
 	const double START_BODY_ROW_HEIGHT_FULL_BASE = 280.0;
 	const double START_BODY_ROW_HEIGHT_COMPACT_BASE = 200.0;
 
@@ -326,25 +326,34 @@ public partial class StartHomePage : ContentPage
 		// (header left column, body right column) overrides them here.
 		if (isLandscapePhone)
 		{
-			// AppHeader → Background left column.
+			// AppHeader → Background left column, spanning the Star area only
+			// (rows 0-2) so Row 3 stays free for LoaderInfoCard underneath. The
+			// icon + "TRViS" title center vertically inside the Star area.
+			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 3);
 			Grid.SetColumnSpan(AppHeader, 1);
-			// LoaderInfoCard → Home grid left column.
+			// LoaderInfoCard → Home grid left column row 3 (directly above the
+			// privacy/TPL footer). Sits beside HomeButtonsRow in the right column.
+			Grid.SetRow(LoaderInfoCard, 3);
+			Grid.SetColumn(LoaderInfoCard, 0);
 			Grid.SetColumnSpan(LoaderInfoCard, 1);
-			LoaderInfoCard.VerticalOptions = LayoutOptions.Fill;
-			// StartBody → Start grid right column, spanning all 5 rows.
-			Grid.SetRow(StartBody, 0); Grid.SetRowSpan(StartBody, 5);
+			LoaderInfoCard.VerticalOptions = LayoutOptions.Center;
+			// StartBody → Start grid right column, spanning the Star area.
+			Grid.SetRow(StartBody, 0); Grid.SetRowSpan(StartBody, 3);
 			Grid.SetColumn(StartBody, 1); Grid.SetColumnSpan(StartBody, 1);
 			StartBody.VerticalOptions = LayoutOptions.Center;
-			// HomeBody → Home grid right column, spanning the rows above the button row.
-			Grid.SetRow(HomeBody, 0); Grid.SetRowSpan(HomeBody, 3);
+			// HomeBody → Home grid right column, just the Star row.
+			Grid.SetRow(HomeBody, 2); Grid.SetRowSpan(HomeBody, 1);
 			Grid.SetColumn(HomeBody, 1); Grid.SetColumnSpan(HomeBody, 1);
-			// HomeButtonsRow → Home grid right column.
+			// HomeButtonsRow → Home grid right column row 3, beside LoaderInfoCard.
 			Grid.SetColumn(HomeButtonsRow, 1); Grid.SetColumnSpan(HomeButtonsRow, 1);
 		}
 		else
 		{
 			// Portrait/tablet: span both columns.
+			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
 			Grid.SetColumnSpan(AppHeader, 2);
+			Grid.SetRow(LoaderInfoCard, 1);
+			Grid.SetColumn(LoaderInfoCard, 0);
 			Grid.SetColumnSpan(LoaderInfoCard, 2);
 			LoaderInfoCard.VerticalOptions = LayoutOptions.Fill;
 			Grid.SetRow(StartBody, 2); Grid.SetRowSpan(StartBody, 1);
@@ -414,6 +423,7 @@ public partial class StartHomePage : ContentPage
 			StartBody.Padding = new Thickness(24, 4, 24, 8);
 			StartBody.RowSpacing = 4;
 			PortraitStartRows[2].Height = new GridLength(START_BODY_ROW_HEIGHT_COMPACT);
+			PortraitStartRowsBg[2].Height = new GridLength(START_BODY_ROW_HEIGHT_COMPACT);
 		}
 		else
 		{
@@ -430,6 +440,7 @@ public partial class StartHomePage : ContentPage
 			StartBody.Padding = new Thickness(24, 8, 24, 24);
 			StartBody.RowSpacing = 8;
 			PortraitStartRows[2].Height = new GridLength(START_BODY_ROW_HEIGHT_FULL);
+			PortraitStartRowsBg[2].Height = new GridLength(START_BODY_ROW_HEIGHT_FULL);
 		}
 	}
 
@@ -445,15 +456,28 @@ public partial class StartHomePage : ContentPage
 	{
 		if (Width <= 0 || Height <= 0)
 			return;
-		// Landscape phone uses the same fixed HOME_HEADER_ROW_HEIGHT for Row 0 as
-		// portrait Home, so the AppHeader needs the same compact icon-only treatment
-		// regardless of mode — the full-size hero icon wouldn't fit otherwise.
-		if (_isLandscapePhone || _currentMode == PageMode.Home)
+		// Landscape phone: AppHeader spans rows 0-2 in the left column (Star area)
+		// so the icon and "TRViS" title both have room to breathe. Restore Opacity
+		// explicitly: a prior portrait Home transition may have animated AppTitle's
+		// opacity down to 0; without re-setting it here, the title stays visually
+		// hidden after rotating into landscape (IsVisible=true but Opacity=0).
+		if (_isLandscapePhone)
+		{
+			AppIcon.HeightRequest = 128;
+			AppIcon.WidthRequest = 128;
+			AppTitle.FontSize = 36;
+			AppTitle.IsVisible = true;
+			AppTitle.Opacity = 1;
+			AppHeader.Padding = new Thickness(16, 16, 16, 16);
+			AppHeader.Spacing = 8;
+			return;
+		}
+		if (_currentMode == PageMode.Home)
 		{
 			AppTitle.IsVisible = false;
 			AppHeader.Padding = new Thickness(8, 4, 8, 4);
 			AppHeader.Spacing = 0;
-			if (_isLandscapePhone || IsHomeModeCompact())
+			if (IsHomeModeCompact())
 			{
 				AppIcon.HeightRequest = HOME_COMPACT_ICON_SIZE;
 				AppIcon.WidthRequest = HOME_COMPACT_ICON_SIZE;
@@ -478,21 +502,21 @@ public partial class StartHomePage : ContentPage
 				AppHeader.Spacing = 8;
 			}
 			AppTitle.IsVisible = true;
+			AppTitle.Opacity = 1;
 		}
 	}
 
-	// Canonical row schemes shared across the three layered grids. All non-Star
-	// rows use fixed pixel heights (scaled by _fontScale) so empty rows in
-	// BackgroundGrid stay the same size as their content-bearing counterparts in
-	// StartGrid / HomeGrid without depending on size-mirror placeholders.
+	// Canonical row schemes for the layered grids. All non-Star rows use fixed
+	// pixel heights (scaled by _fontScale) so empty rows in BackgroundGrid stay
+	// the same size as their content-bearing counterparts in StartGrid / HomeGrid.
 	//
-	// Star rows: PortraitStartRows[0] (AppHeader band), PortraitHomeRows[2]
-	// (HomeBody fill), LandscapePhoneRows[2] (body column fill).
-	//
-	// TransitionToAsync mutates PortraitStartRows[0] / PortraitHomeRows[0] Height
-	// during the cross-fade; UpdateGridRowDefinitions resets the canonical Row 0
-	// value on every call so the next mode switch starts clean.
-	static readonly RowDefinitionCollection PortraitStartRows = new()
+	// IMPORTANT: BackgroundGrid uses its own SEPARATE *Bg collections so the Row 0
+	// animation in TransitionToAsync only moves the AppHeader band — not the body
+	// grids (StartGrid / HomeGrid) that share the same scheme. Without this split,
+	// pinning PortraitStartRows[0] to a pixel value during the Home→Start fade-in
+	// would also shrink StartGrid's Star row, sliding StartBody (and the privacy
+	// banner inside it) up and back as the row animates.
+	static RowDefinitionCollection MakePortraitStartRows() => new()
 	{
 		new RowDefinition(GridLength.Star),
 		new RowDefinition(new GridLength(0)),
@@ -500,7 +524,7 @@ public partial class StartHomePage : ContentPage
 		new RowDefinition(new GridLength(0)),
 		new RowDefinition(new GridLength(FOOTER_ROW_HEIGHT)),
 	};
-	static readonly RowDefinitionCollection PortraitHomeRows = new()
+	static RowDefinitionCollection MakePortraitHomeRows() => new()
 	{
 		new RowDefinition(new GridLength(HOME_HEADER_ROW_HEIGHT)),
 		new RowDefinition(new GridLength(LOADER_INFO_ROW_HEIGHT)),
@@ -508,26 +532,38 @@ public partial class StartHomePage : ContentPage
 		new RowDefinition(new GridLength(HOME_BUTTONS_ROW_HEIGHT)),
 		new RowDefinition(new GridLength(FOOTER_ROW_HEIGHT)),
 	};
-	// Landscape phone uses the same row scheme as portrait Home — AppHeader is
-	// forced into compact styling (icon-only) in ApplyHomeModeCompactHeader so it
-	// fits in HOME_HEADER_ROW_HEIGHT regardless of orientation. Column layout
-	// (header left / body right) is handled separately by ApplyOrientationLayout.
+	// Stable body-grid collections: never mutated by the animation.
+	static readonly RowDefinitionCollection PortraitStartRows = MakePortraitStartRows();
+	static readonly RowDefinitionCollection PortraitHomeRows = MakePortraitHomeRows();
+	// Animatable BackgroundGrid collections: Row 0 height is pinned to a pixel
+	// value during TransitionToAsync, then reset on the next UpdateGridRowDefinitions.
+	static readonly RowDefinitionCollection PortraitStartRowsBg = MakePortraitStartRows();
+	static readonly RowDefinitionCollection PortraitHomeRowsBg = MakePortraitHomeRows();
+	// Landscape phone:
+	//   Left col   Right col
+	//   Row 0 ─┐
+	//   Row 1  ├─ AppHeader (icon + TRViS)         StartBody / HomeBody
+	//   Row 2 ─┘   (Star: most of the column)
+	//   Row 3   LoaderInfoCard                     HomeButtonsRow
+	//   Row 4   (footer reserve; FooterLinks sits at RootGrid level over this)
+	// Rows 0 and 1 collapse to 0 so AppHeader's RowSpan=3 covers just the Star
+	// area while preserving 5-row indexing shared with the portrait collections.
 	static readonly RowDefinitionCollection LandscapePhoneRows = new()
 	{
-		new RowDefinition(new GridLength(HOME_HEADER_ROW_HEIGHT)),
-		new RowDefinition(new GridLength(LOADER_INFO_ROW_HEIGHT)),
+		new RowDefinition(new GridLength(0)),
+		new RowDefinition(new GridLength(0)),
 		new RowDefinition(GridLength.Star),
-		new RowDefinition(new GridLength(HOME_BUTTONS_ROW_HEIGHT)),
+		new RowDefinition(new GridLength(LOADER_INFO_ROW_HEIGHT)),
 		new RowDefinition(new GridLength(FOOTER_ROW_HEIGHT)),
 	};
 
 	/// <summary>
 	/// Points each of the three layered grids at the canonical row scheme for the
 	/// current mode + orientation. StartGrid always uses PortraitStartRows, HomeGrid
-	/// always uses PortraitHomeRows, BackgroundGrid uses whichever matches
-	/// <paramref name="mode"/>. Landscape phone overrides all three to
-	/// LandscapePhoneRows. Resets Row 0 height in case a prior animation left
-	/// a pixel value on the shared row scheme.
+	/// always uses PortraitHomeRows, BackgroundGrid uses its own *Bg variant so the
+	/// Row 0 animation in TransitionToAsync doesn't drag the body grids' rows along
+	/// with it. Landscape phone overrides all three to LandscapePhoneRows. Resets
+	/// the BackgroundGrid Row 0 height in case a prior animation left a pixel value.
 	/// </summary>
 	void UpdateGridRowDefinitions(PageMode mode)
 	{
@@ -538,18 +574,20 @@ public partial class StartHomePage : ContentPage
 			HomeGrid.RowDefinitions = LandscapePhoneRows;
 			return;
 		}
-		PortraitStartRows[0].Height = GridLength.Star;
-		PortraitHomeRows[0].Height = new GridLength(HOME_HEADER_ROW_HEIGHT);
+		PortraitStartRowsBg[0].Height = GridLength.Star;
+		PortraitHomeRowsBg[0].Height = new GridLength(HOME_HEADER_ROW_HEIGHT);
 		StartGrid.RowDefinitions = PortraitStartRows;
 		HomeGrid.RowDefinitions = PortraitHomeRows;
-		BackgroundGrid.RowDefinitions = mode == PageMode.Start ? PortraitStartRows : PortraitHomeRows;
+		BackgroundGrid.RowDefinitions = mode == PageMode.Start ? PortraitStartRowsBg : PortraitHomeRowsBg;
 	}
 
 	/// <summary>
-	/// Dynamically sizes the CollectionView heights to fill the available space in
-	/// HomeBody's scroll area. On large screens this expands the lists to use the
-	/// full height; on small screens it falls back to a minimum so the ScrollView
-	/// handles overflow.
+	/// Distributes the available HomeBody scroll-area height across the visible
+	/// list(s) after subtracting the always-on overhead (section labels) and any
+	/// currently-visible chips. Each list expands to fill its share so a sparse
+	/// list won't push the next section below the fold, and a dense list scrolls
+	/// internally within its allocated height. Floors at 2 item rows so a very
+	/// tight window still leaves room to scroll.
 	/// </summary>
 	void UpdateListHeights()
 	{
@@ -561,27 +599,32 @@ public partial class StartHomePage : ContentPage
 		if (!wgListVisible && !workListVisible)
 			return;
 
-		// HomeBody is a single * row containing only the picker ScrollView.
-		// Padding=(16,0,16,4) → subtract bottom padding only.
-		const double BottomPad = 4.0;
-
-		double scrollViewHeight = HomeBody.Height - BottomPad;
+		// HomeBody has Padding=16,0,16,4. Bottom 4 is the only vertical chrome to
+		// remove from the available height.
+		const double HomeBodyBottomPad = 4.0;
+		double scrollViewHeight = HomeBody.Height - HomeBodyBottomPad;
 		if (scrollViewHeight <= 0)
 			return;
 
-		// Per-list overhead: section label + label margin + list border margin.
-		const double SectionOverhead = 44.0;
-		const double ChipOverhead = 50.0;
+		// Section label = "Work Group" / "Work" title above each step (always
+		// rendered, Margin=2,8,2,4 + ~Subtitle line height ≈ 28-32). Chip = the
+		// selected-step pill that replaces the list when a step is committed
+		// (Padding=12,8 + Margin bottom 4 + 15px line ≈ 35-45). Both are slightly
+		// over-budgeted so the lists never overflow into the next section.
+		const double SectionLabelOverhead = 32.0;
+		const double ChipOverhead = 48.0;
+		const double ItemHeight = 50.0;
 
-		double overhead = 0;
-		if (wgListVisible) overhead += SectionOverhead;
-		else if (WorkGroupChip.IsVisible) overhead += ChipOverhead;
-		if (workListVisible) overhead += SectionOverhead;
-		else if (WorkChip.IsVisible) overhead += ChipOverhead;
+		double overhead = SectionLabelOverhead * 2; // WG label + Work label always shown
+		if (WorkGroupChip.IsVisible) overhead += ChipOverhead;
+		if (WorkChip.IsVisible) overhead += ChipOverhead;
 
 		int listCount = (wgListVisible ? 1 : 0) + (workListVisible ? 1 : 0);
-		const double MinListHeight = 120.0;
-		double perList = Math.Max(MinListHeight, (scrollViewHeight - overhead) / listCount);
+		double perList = (scrollViewHeight - overhead) / listCount;
+		// Floor: 2 list rows so the list is always scrollable internally rather
+		// than collapsing to a single row that can't be panned.
+		double minListHeight = 2 * ItemHeight;
+		perList = Math.Max(perList, minListHeight);
 
 		if (wgListVisible) WorkGroupListView.HeightRequest = perList;
 		if (workListVisible) WorkListView.HeightRequest = perList;

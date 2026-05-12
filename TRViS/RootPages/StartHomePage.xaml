@@ -100,8 +100,7 @@
 	</ContentPage.Resources>
 
 	<!-- Three-layer stack (RootGrid is a 1-cell wrapper, layers overlap at z-order):
-	       1) BackgroundGrid — always visible. Owns AppHeader, FooterLinks, TestSeamHost,
-	          and size-mirror placeholders for the elements that live in StartGrid/HomeGrid.
+	       1) BackgroundGrid — always visible. Owns AppHeader and TestSeamHost.
 	          RowDefinitions swap between Start (*,0,Auto,0,Auto) and Home
 	          (<HOME_HEADER_ROW_HEIGHT>,Auto,*,Auto,Auto) so AppHeader's row aligns with
 	          the body layers.
@@ -109,8 +108,10 @@
 	          BackgroundGrid's Start mode. Owns StartBody.
 	       3) HomeGrid — visible only in Home mode. Fixed RowDefinitions matching
 	          BackgroundGrid's Home mode. Owns LoaderInfoCard, HomeBody, HomeButtonsRow.
-	     Cross-grid alignment is preserved via BoxView size-mirror placeholders that
-	     bind HeightRequest / Margin to the real elements in the sibling grids. -->
+	     FooterLinks lives directly under RootGrid (above the three layered grids in
+	     z-order) and is pinned to the page bottom via VerticalOptions=End, so it
+	     receives taps regardless of which layer covers row 4 and doesn't shift
+	     during the Start↔Home row-height animation. -->
 	<Grid x:Name="RootGrid">
 
 		<!-- ========== Background layer ========== -->
@@ -149,35 +150,6 @@
 					HorizontalOptions="Center"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
 			</VerticalStackLayout>
-
-			<!-- Footer links: Privacy / TPL pinned to the bottom. Lives in the
-			     background so both Start and Home modes share it. Rows 1, 2, 3 of
-			     the background hold no content — their sizes come from the shared
-			     RowDefinitionCollections (fixed pixel heights) so they align with
-			     the matching slots in StartGrid / HomeGrid without needing
-			     size-mirror placeholders. -->
-			<HorizontalStackLayout
-				x:Name="FooterLinks"
-				Grid.Row="4"
-				Grid.ColumnSpan="2"
-				HorizontalOptions="Center"
-				Padding="0,0"
-				Spacing="4">
-				<Button
-					AutomationId="StartHome.PrivacyPolicyButton"
-					Text="プライバシーポリシー"
-					Style="{StaticResource LinkButton}"
-					Clicked="OnPrivacyPolicyClicked"/>
-				<Label
-					Text="·"
-					VerticalOptions="Center"
-					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-				<Button
-					AutomationId="StartHome.ThirdPartyLicensesButton"
-					Text="Third Party Licenses"
-					Style="{StaticResource LinkButton}"
-					Clicked="OnThirdPartyLicensesClicked"/>
-			</HorizontalStackLayout>
 
 			<!-- UI_TEST seam buttons. Each button has its own 24px row of an explicit
 			     Grid (no StackLayout pass that may collapse 1×1 children on Mac Catalyst).
@@ -430,8 +402,8 @@
 				Grid.ColumnSpan="2"
 				Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
 				BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
-				Padding="12"
-				Margin="20,0,20,8">
+				Padding="10,6"
+				Margin="20,0,20,4">
 				<Border.StrokeShape>
 					<RoundRectangle CornerRadius="8"/>
 				</Border.StrokeShape>
@@ -641,7 +613,7 @@
 				x:Name="HomeButtonsRow"
 				Grid.Row="3"
 				Grid.ColumnSpan="2"
-				Padding="16,0,16,8"
+				Padding="16,0,16,2"
 				ColumnSpacing="8"
 				ColumnDefinitions="*,*">
 				<Button
@@ -664,6 +636,33 @@
 			</Grid>
 
 		</Grid>
+
+		<!-- Footer links: Privacy / TPL pinned to the page bottom. Lives at the
+		     RootGrid level (above all three layered grids) so (a) taps reach the
+		     buttons regardless of which body grid overlaps row 4, and (b) the
+		     footer position stays put during the Start↔Home row-height animation
+		     instead of riding up while Background's Row 0 is mid-animation. -->
+		<HorizontalStackLayout
+			x:Name="FooterLinks"
+			HorizontalOptions="Center"
+			VerticalOptions="End"
+			Padding="0,0"
+			Spacing="4">
+			<Button
+				AutomationId="StartHome.PrivacyPolicyButton"
+				Text="プライバシーポリシー"
+				Style="{StaticResource LinkButton}"
+				Clicked="OnPrivacyPolicyClicked"/>
+			<Label
+				Text="·"
+				VerticalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			<Button
+				AutomationId="StartHome.ThirdPartyLicensesButton"
+				Text="Third Party Licenses"
+				Style="{StaticResource LinkButton}"
+				Clicked="OnThirdPartyLicensesClicked"/>
+		</HorizontalStackLayout>
 
 	</Grid>
 </ContentPage>
