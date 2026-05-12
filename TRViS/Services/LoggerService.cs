@@ -52,12 +52,30 @@ public static class LoggerService
 		LoggingRule consoleLoggingRule = new("*", LogLevel.Trace, consoleTarget);
 #endif
 
+#if UI_TEST && ANDROID
+		// UI_TEST-only logcat bridge so CI's ui-test-diagnostics artifact
+		// (logcat.log) captures app-side NLog output. Without this the file
+		// target under DirectoryPathProvider.GeneralLogFileDirectory is the
+		// only sink, and the runner can't reach the app data dir without an
+		// ADB pull step. The bridge is the cheapest path to "did the click
+		// handler actually fire?" answers from CI logs alone.
+		LogcatTarget logcatTarget = new()
+		{
+			Name = "logcat",
+			Layout = LOG_FORMAT,
+		};
+		LoggingRule logcatLoggingRule = new("*", LogLevel.Trace, logcatTarget);
+#endif
+
 		LoggingConfiguration loggingConfiguration = new()
 		{
 			LoggingRules =
 			{
 #if DEBUG
-				consoleLoggingRule
+				consoleLoggingRule,
+#endif
+#if UI_TEST && ANDROID
+				logcatLoggingRule,
 #endif
 			},
 		};
