@@ -955,7 +955,17 @@ public partial class StartHomePage : ContentPage
 		// "no loader" state.
 		AddSeamButton(host, 11, "StartHome.TestClearLoaderButton", TestClearLoaderButton_Clicked);
 
-		BackgroundGrid.Children.Add(host);
+		// Attach to RootGrid as the LAST child so the seam column is the
+		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
+		// below StartGrid/HomeGrid) made Appium taps unreliable on Windows —
+		// Windows MAUI reports children of a non-topmost ContentView as
+		// "not pointer- or keyboard interactable" via UIA even when their
+		// container is logically pass-through (CI run 25750215165 / WUIA
+		// ElementNotInteractableException on TestClearLoaderButton). Anchored
+		// at HorizontalOptions/VerticalOptions = Start, the 24-wide x 288-tall
+		// column sits in the top-left corner where AppHeader (HorizontalOptions
+		// = Center) does NOT visually overlap on any platform.
+		RootGrid.Children.Add(host);
 	}
 
 	// UI_TEST-only seam: invisible 24×24 button placed at the top-left corner of
