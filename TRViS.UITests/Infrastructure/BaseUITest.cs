@@ -84,6 +84,19 @@ public abstract class BaseUITest
 	/// </summary>
 	internal static bool PrivacyAcceptedInCurrentSession = false;
 
+	/// <summary>
+	/// True when an assembly-level <see cref="AssemblyUITestSetUp"/> has
+	/// created the Appium session and owns its lifecycle. In that case
+	/// per-fixture OneTimeSetUp / OneTimeTearDown skip ResetAppState +
+	/// SetUpDriver + Driver.Quit and reuse the long-lived driver across
+	/// every fixture in the assembly — the app starts once for the
+	/// whole suite run and is quit once at the end. Each fixture's
+	/// [SetUp] recovers app state via in-app test seams
+	/// (NavigateToHome, ClearLoaderForTesting, ClearSampleFilesForTesting,
+	/// dialog Close, …) rather than relying on a fresh process.
+	/// </summary>
+	internal static bool GlobalSessionActive = false;
+
 	private static readonly TimeSpan DefaultImplicitWait = TimeSpan.FromSeconds(10);
 
 	/// <summary>
@@ -319,27 +332,38 @@ public abstract class BaseUITest
 	[OneTimeSetUp]
 	public virtual void OneTimeSetUp()
 	{
-		// Reset fixture-scope state so each fixture starts independent of
-		// the previous one's outcome. PrivacyAcceptedInCurrentSession is
-		// also reset because a new Appium session means fresh
-		// NSUserDefaults / SharedPreferences (ResetAppState wipes them
-		// just before SetUpDriver), so the privacy-banner is visible
-		// again and the flag must reflect that.
+		// Reset fixture-scope cascade state so each fixture's pass/fail
+		// chain is independent of the previous fixture's outcome.
 		_priorTestFailedInFixture = false;
 		_currentTestName = null;
-		PrivacyAcceptedInCurrentSession = false;
 
-		// Read platform first so EffectiveSharedSession can be evaluated;
-		// the params are also needed when we go on to set up the driver.
+		// Read platform first so EffectiveSharedSession / GlobalSessionActive
+		// branches can be evaluated; the params are also needed when we go
+		// on to set up the driver.
 		(_platform, string appPath, string appiumUrl) = ReadFixtureParameters();
+
+		// Assembly-level [SetUpFixture] already created the driver and ran
+		// ResetAppState exactly once at the start of the suite. Subsequent
+		// fixtures reuse that driver — no per-fixture ResetAppState /
+		// SetUpDriver / privacy-flag reset, because each of those would
+		// kill the app or invalidate persisted state we now intentionally
+		// carry across fixtures. Per-fixture [SetUp]s recover via in-app
+		// seams.
+		if (GlobalSessionActive)
+			return;
+
+		// PrivacyAcceptedInCurrentSession is reset because a fresh Appium
+		// session means fresh NSUserDefaults / SharedPreferences
+		// (ResetAppState wipes them just before SetUpDriver), so the
+		// privacy banner is visible again and the flag must reflect that.
+		PrivacyAcceptedInCurrentSession = false;
 
 		if (!EffectiveSharedSession)
 			return;
 
-		// Shared-session fixture (iOS only): build the driver once here.
-		// Per-test [SetUp] then runs the fail-cascade check + an in-session
-		// app restart (terminateApp + launchApp via Appium) for state
-		// isolation. Final Driver.Quit() lives in [OneTimeTearDown].
+		// Shared-session fixture (no assembly setup): build the driver
+		// once here. [SetUp] returns early for the rest of the fixture so
+		// tests share this session. Driver.Quit lives in [OneTimeTearDown].
 		ResetAppState(_platform);
 		SetUpDriver(_platform, appPath, appiumUrl);
 	}
@@ -347,7 +371,7 @@ public abstract class BaseUITest
 	[SetUp]
 	public virtual void SetUp()
 	{
-		if (EffectiveSharedSession)
+		if (GlobalSessionActive || EffectiveSharedSession)
 		{
 			var testName = TestContext.CurrentContext.Test.FullName;
 			// Detect a "new test starting" rather than a retry of the same
@@ -573,6 +597,49 @@ public abstract class BaseUITest
 		}
 	}
 
+	/// <summary>
+	/// Entry point for assembly-level <see cref="AssemblyUITestSetUp"/>: do
+	/// the one-time ResetAppState + driver creation for the whole suite
+	/// and flip <see cref="GlobalSessionActive"/> so subsequent fixture
+	/// lifecycle hooks reuse this driver instead of recreating it.
+	/// </summary>
+	internal static void InitGlobalSession()
+	{
+		(_platform, string appPath, string appiumUrl) = ReadFixtureParameters();
+		PrivacyAcceptedInCurrentSession = false;
+		ResetAppState(_platform);
+		// SetUpDriver assigns _driver; cast back through the public API so
+		// we go through the same retry path as per-fixture setup.
+		new BootstrapDriver().BuildDriver(_platform, appPath, appiumUrl);
+		GlobalSessionActive = true;
+	}
+
+	/// <summary>
+	/// Entry point for assembly-level <see cref="AssemblyUITestSetUp"/>: tear
+	/// down the suite-wide Appium session. Safe to call when the session
+	/// was never created (e.g. if BeforeAnyTests failed before driver
+	/// assignment) — Quit is a no-op on null.
+	/// </summary>
+	internal static void QuitGlobalSession()
+	{
+		try { _driver?.Quit(); } catch { /* best-effort */ }
+		_driver = null;
+		GlobalSessionActive = false;
+	}
+
+	/// <summary>
+	/// Concrete shim that lets <see cref="AssemblyUITestSetUp"/> reach
+	/// SetUpDriver (which lives on <see cref="BaseUITest"/> but is
+	/// `protected virtual`). Instantiates a throw-away subclass so the
+	/// access modifier is satisfied; the resulting driver is held in the
+	/// static <c>_driver</c> field shared by all instances.
+	/// </summary>
+	private sealed class BootstrapDriver : BaseUITest
+	{
+		internal void BuildDriver(TestPlatform platform, string appPath, string appiumUrl)
+			=> SetUpDriver(platform, appPath, appiumUrl);
+	}
+
 	private static (TestPlatform platform, string appPath, string appiumUrl) ReadFixtureParameters()
 	{
 		var platformStr = TestContext.Parameters["platform"]
@@ -668,15 +735,16 @@ public abstract class BaseUITest
 
 		TakeScreenshot();
 		var status = TestContext.CurrentContext.Result.Outcome.Status;
+		bool sharedLifecycle = GlobalSessionActive || EffectiveSharedSession;
 		if (status == TestStatus.Failed)
 		{
 			// Dump the accessibility tree on failure so we can diagnose "element
 			// not found / not displayed" timeouts after the run.
 			DumpPageSource();
-			if (EffectiveSharedSession)
+			if (sharedLifecycle)
 				_priorTestFailedInFixture = true;
 		}
-		else if (status == TestStatus.Passed && EffectiveSharedSession)
+		else if (status == TestStatus.Passed && sharedLifecycle)
 		{
 			// Retried tests that eventually pass should NOT poison the cascade
 			// flag for subsequent tests — clear it once a green outcome lands.
@@ -685,7 +753,7 @@ public abstract class BaseUITest
 		// status == Inconclusive (this test was skipped by the cascade)
 		// or Skipped (NUnit's own ignore mechanism) leaves the flag alone.
 
-		if (!EffectiveSharedSession)
+		if (!sharedLifecycle)
 		{
 			try { _driver.Quit(); } catch { /* best-effort */ }
 			_driver = null;
@@ -695,6 +763,10 @@ public abstract class BaseUITest
 	[OneTimeTearDown]
 	public virtual void OneTimeTearDown()
 	{
+		// When the assembly setup owns the driver, fixture teardown is a
+		// no-op — the driver outlives this fixture.
+		if (GlobalSessionActive)
+			return;
 		if (!EffectiveSharedSession)
 			return;
 		try { _driver?.Quit(); } catch { /* best-effort */ }

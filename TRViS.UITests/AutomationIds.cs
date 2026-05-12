@@ -157,6 +157,11 @@ public static class AutomationIds
 	public static class HorizontalTimetable
 	{
 		public const string WebView = "HorizontalTimetable.WebView";
+		// AppBar back button. Tapping it pops the page back to DTAC so the
+		// Shell flyout is reachable again. Exposed to the test layer so a
+		// fixture-end TearDown can return the app to a Shell-rooted page
+		// (HT is a Shell.GoToAsync push and the flyout is gated to roots).
+		public const string BackButton = "HorizontalTimetable.BackButton";
 	}
 
 	/// <summary>

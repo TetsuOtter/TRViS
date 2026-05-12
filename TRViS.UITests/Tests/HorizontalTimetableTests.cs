@@ -12,6 +12,10 @@ namespace TRViS.UITests.Tests;
 [Infrastructure.RetryAllTests(2)]
 public class HorizontalTimetableTests : BaseUITest
 {
+	// Share one Appium session across all tests in this fixture.
+	// See BaseUITest.ShareSessionAcrossTestsInFixture for details.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
 	private StartHomePageObject _startHomePage = null!;
 
 	[SetUp]
@@ -20,6 +24,18 @@ public class HorizontalTimetableTests : BaseUITest
 		base.SetUp();
 
 		_startHomePage = new StartHomePageObject(Driver);
+
+		// Shared session can hand off the app on a non-StartHome page
+		// (e.g. DTACTimetableTests leaves it on DTAC with sample data
+		// loaded). Navigate back and clear the loader so the test
+		// re-enters Start mode where LoadSample is meaningful.
+		if (!_startHomePage.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3))
+		{
+			new AppShellPage(Driver).NavigateToHome();
+			_startHomePage = new StartHomePageObject(Driver);
+		}
+		_startHomePage.ClearLoaderForTesting();
+
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 	}
 
@@ -52,5 +68,11 @@ public class HorizontalTimetableTests : BaseUITest
 		var page = new HorizontalTimetablePageObject(Driver);
 		Assert.That(page.IsDisplayed(), Is.True,
 			"HorizontalTimetablePage's WebView should be in the accessibility tree after tap.");
+
+		// Leave the app on DTAC (a flyout-aware Shell root) so the next
+		// fixture's [SetUp] can NavigateToHome via the flyout. HT is a
+		// pushed page and the flyout is not reachable from it, so a
+		// fresh test in another fixture would otherwise be stranded.
+		page.TapBack();
 	}
 }

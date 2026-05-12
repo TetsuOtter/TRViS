@@ -23,6 +23,19 @@ public class StartHomeTests : BaseUITest
 
 		_startHomePage = new StartHomePageObject(Driver);
 
+		// Cross-fixture shared session: the SelectFileDialog fixture's last
+		// test (TapUpFolder_ReturnsToRoot) intentionally leaves the dialog
+		// open, and with one Appium session for the whole suite that
+		// modal carries over into this fixture. Close it before probing
+		// StartHome — the Title element is not findable while the modal
+		// is on top.
+		var dialog = new SelectFileDialogPageObject(Driver);
+		if (dialog.PollDisplayed(AutomationIds.SelectFile.Title, timeoutSeconds: 1))
+		{
+			dialog.Close();
+			Thread.Sleep(300);
+		}
+
 		// Shared-session recovery: a prior test in this fixture loaded
 		// the demo, leaving the app in Home mode with the loader still
 		// set. Bring it back to Start mode by clearing the loader.
