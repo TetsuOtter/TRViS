@@ -21,15 +21,24 @@ public class NavigationTests : BaseUITest
 	{
 		base.SetUp();
 
-		// AppShellPage.OpenFlyout works from any flyout-capable page, so
-		// in shared-session mode we don't need to navigate back to
-		// StartHome between tests — test 1 lands on ThirdParty, test 2's
-		// flyout opens from ThirdParty and navigates to Settings, etc.
-		// AcceptPrivacyPolicyIfNeeded handles the only state that
-		// genuinely needs StartHome: it fast-paths to a no-op when the
-		// privacy banner is not visible (always true after the first
-		// test, regardless of current page).
+		// Navigate to StartHome at the top of each test so OpenFlyout starts
+		// from a flyout-rooted page. The earlier "OpenFlyout works from any
+		// flyout-capable page" assumption breaks on Android in the
+		// shared-session run: the previous fixture (HorizontalTimetableTests)
+		// lands the app on DTAC's VerticalView tab which has orientation
+		// locked to Landscape, and on Android the OpenFlyout probes (DTAC
+		// MenuButton click or "Open navigation drawer") don't open the
+		// NavigationView under that lock (CI run 25727806170 / 25729263553).
+		// NavigateToHome uses the DTAC.TestNavigateHomeButton seam to GoToAsync
+		// past the broken flyout path, and the seam's OnDisappearing also
+		// unlocks the orientation. From StartHome OpenFlyout works fine on
+		// every platform.
 		var startHome = new StartHomePageObject(Driver);
+		if (!startHome.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3))
+		{
+			new AppShellPage(Driver).NavigateToHome();
+			startHome = new StartHomePageObject(Driver);
+		}
 		startHome.AcceptPrivacyPolicyIfNeeded();
 
 		_shell = new AppShellPage(Driver);
