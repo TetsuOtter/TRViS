@@ -77,6 +77,10 @@ cleanup() {
     log "Stopping Appium (PID $APPIUM_PID)..."
     kill "$APPIUM_PID" 2>/dev/null || true
   fi
+  if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" && -n "${DEVICE_ID:-}" ]]; then
+    log "Shutting down simulator $DEVICE_ID..."
+    xcrun simctl shutdown "$DEVICE_ID" 2>/dev/null || true
+  fi
   exit "$exit_code"
 }
 trap cleanup EXIT
