@@ -133,4 +133,12 @@ public partial class StartGridView : Grid
 	{
 		PrivacyPolicyRequested?.Invoke(this, EventArgs.Empty);
 	}
+
+#if UI_TEST
+	// Routes the UI_TEST select-file seam (declared in StartHomePage code-behind)
+	// through this view's actual SelectFile handler so the seam tracks any future
+	// shape change to OnSelectFileClicked without per-test rewrites.
+	internal void InvokeSelectFileForTest(object sender, EventArgs e)
+		=> OnSelectFileClicked(sender, e);
+#endif
 }

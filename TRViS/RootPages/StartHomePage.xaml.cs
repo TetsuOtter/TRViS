@@ -901,7 +901,7 @@ public partial class StartHomePage : ContentPage
 			Padding = new Thickness(0),
 			Margin = new Thickness(0),
 		};
-		for (int i = 0; i < 11; i++)
+		for (int i = 0; i < 12; i++)
 			host.RowDefinitions.Add(new RowDefinition { Height = 24 });
 		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
 		Grid.SetRow(host, 0);
@@ -921,9 +921,54 @@ public partial class StartHomePage : ContentPage
 		AddSeamButton(host, 8, "StartHome.TestSetupBrowseFallbackButton", TestSetupBrowseFallbackButton_Clicked);
 		AddSeamButton(host, 9, "StartHome.TestSeedNextTrainSelectionButton", TestSeedNextTrainSelectionButton_Clicked);
 		AddSeamButton(host, 10, "StartHome.TestSeedHorizontalTimetableButton", TestSeedHorizontalTimetableButton_Clicked);
+		// Row 11: clears the in-memory AppViewModel.Loader (back to Start mode)
+		// without OnDisconnectClicked's confirm dialog. Used by fixtures that
+		// share a single Appium session and need each test to start from a
+		// "no loader" state.
+		AddSeamButton(host, 11, "StartHome.TestClearLoaderButton", TestClearLoaderButton_Clicked);
 
 		BackgroundGrid.Children.Add(host);
 	}
+
+	// UI_TEST-only seam: invisible 24×24 button placed at the top-left corner of
+	// RootGrid (Grid.Row=0, same row as TestSeamHost + AppHeader). Tapping it
+	// invokes OnSelectFileClicked(sender, e) directly so tests bypass the styled
+	// SelectFileButton — Appium UIAutomator2's ACTION_CLICK against
+	// PrimaryActionButton-styled Buttons silently fails to dispatch
+	// Button.Clicked on Android in the shared-session run (CI run 25734141479).
+	//
+	// Added in code-behind (not as a 13th row of TestSeamHost) because adding
+	// a 13th XAML row grew RootGrid's Auto-sized top row enough to trigger an
+	// iPhone-only iOS XCUITest main-run-loop hang during the post-ClearLoader
+	// Home→Start mode transition (CI run 25734770851). The DTAC seam already
+	// uses the same code-behind-add pattern for parity.
+	//
+	// Margin is offset (0, 12*24) so this button sits directly below
+	// TestSeamHost (which occupies y=[0,288]) in the same column, keeping the
+	// overall accessibility footprint identical to what an extra XAML row
+	// *would* have produced minus the layout-row growth that broke iPhone.
+	private void AddTestOpenSelectFileDialogSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestOpenSelectFileDialog,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 288, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestOpenSelectFileDialogButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	// Mirrors AutomationIds.StartHome.TestOpenSelectFileDialogButton in the
+	// test project. Inlined here to avoid a project reference.
+	private const string AutomationIdValueForTestOpenSelectFileDialog = "StartHome.TestOpenSelectFileDialogButton";
 
 	static void AddSeamButton(Grid host, int row, string automationId, EventHandler clicked)
 	{
@@ -1192,6 +1237,39 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestSeedNextTrainSelection failed");
 		}
+	}
+
+	void TestClearLoaderButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestClearLoaderButton clicked: clearing in-memory AppViewModel.Loader");
+		try
+		{
+			// Mirror OnDisconnectClicked's clear path but without the confirm
+			// dialog — tests assume "yes, throw away the loader" and the dialog
+			// would otherwise need to be pumped on each platform's driver.
+			// Setting Loader=null triggers OnViewModelPropertyChanged →
+			// ApplyModeForCurrentLoaderAsync, which animates the page back to
+			// Start mode (StartBody visible, HomeBody hidden) so
+			// LoadDemoButton becomes clickable again.
+			var previous = viewModel.Loader;
+			viewModel.Loader = null;
+			previous?.Dispose();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearLoaderButton failed");
+		}
+	}
+
+	void TestOpenSelectFileDialogButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestOpenSelectFileDialogButton clicked: invoking OnSelectFileClicked directly");
+		// Same code path as the visible SelectFileButton's Clicked handler — the
+		// real handler pushes Navigation.PushModalAsync(new SelectFileDialog())
+		// and logs/handles failures. Routing through it (vs. duplicating the
+		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
+		// changes shape, this seam tracks it without per-test rewrites.
+		StartGrid.InvokeSelectFileForTest(sender!, e);
 	}
 #endif
 }
