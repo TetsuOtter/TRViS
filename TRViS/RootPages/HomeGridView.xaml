@@ -8,7 +8,7 @@
 	ColumnDefinitions="3*,4*"
 	IsVisible="False"
 	Opacity="0"
-	InputTransparent="False"
+	InputTransparent="True"
 	CascadeInputTransparent="False">
 
 	<Grid.Resources>

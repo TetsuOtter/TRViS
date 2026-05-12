@@ -6,7 +6,7 @@
 	xmlns:rootpages="clr-namespace:TRViS.RootPages"
 	x:Class="TRViS.RootPages.StartGridView"
 	ColumnDefinitions="3*,4*"
-	InputTransparent="False"
+	InputTransparent="True"
 	CascadeInputTransparent="False">
 
 	<Grid.Resources>
