@@ -119,7 +119,7 @@
 		     PortraitStartRows / PortraitHomeRows / LandscapePhoneRows so there is a
 		     single source of truth. -->
 		<Grid x:Name="BackgroundGrid"
-					ColumnDefinitions="*,*">
+					ColumnDefinitions="3*,4*">
 
 			<!-- Animated app header (icon + title). VerticalOptions=Center centers it
 			     inside Row 0 (* in Start mode, fixed HOME_HEADER_ROW_HEIGHT in Home mode). -->
@@ -272,7 +272,7 @@
 		     (Row 2) aligns with the AppHeader+Footer slots in the background layer.
 		     Visibility flipped by code-behind. -->
 		<Grid x:Name="StartGrid"
-					ColumnDefinitions="*,*"
+					ColumnDefinitions="3*,4*"
 					InputTransparent="False"
 					CascadeInputTransparent="False">
 
@@ -388,7 +388,7 @@
 		<!-- Shares PortraitHomeRows with BackgroundGrid (in Home mode). Visibility
 		     flipped by code-behind. -->
 		<Grid x:Name="HomeGrid"
-					ColumnDefinitions="*,*"
+					ColumnDefinitions="3*,4*"
 					IsVisible="False"
 					Opacity="0"
 					InputTransparent="False"

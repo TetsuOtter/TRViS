@@ -79,6 +79,16 @@ public partial class StartHomePage : ContentPage
 	const double COMPACT_HEIGHT_ENTER = 800;
 	const double COMPACT_HEIGHT_EXIT = 820;
 
+	// Landscape-phone compact threshold. iPhone SE class devices (1st gen
+	// 320h, 2nd/3rd gen 375h) cannot fit the natural 80px primary buttons
+	// (which wrap into two rows because the right column is also too narrow
+	// to hold two 220-basis buttons side-by-side) plus the 44px demo button
+	// inside the right-column body even in landscape. Below this short-side
+	// height we apply the same body/button compaction used in narrow
+	// portrait. iPhone 13/14 standard (≥390h landscape) stays at full size.
+	const double LANDSCAPE_COMPACT_HEIGHT_ENTER = 380;
+	const double LANDSCAPE_COMPACT_HEIGHT_EXIT = 400;
+
 	// Below this page height, Home-mode header is further compacted (icon shrunk,
 	// title hidden) so the WorkGroup/Work list has more vertical room.
 	const double HOME_SMALL_HEIGHT_THRESHOLD = 900.0;
@@ -381,27 +391,35 @@ public partial class StartHomePage : ContentPage
 	{
 		if (Width <= 0 || Height <= 0)
 			return;
-		// Only compact in portrait/square layouts. Landscape-phone has its own
-		// horizontal split layout (header column + body column) which already
-		// avoids the overlap, so leave it at full size.
+		// Compact in two situations:
+		//   - portrait/square narrow windows (iPad Slide Over, split-view, small
+		//     Mac Catalyst windows): hero icon + primary buttons would otherwise
+		//     overlap in row 1.
+		//   - landscape phone with very small short-side (iPhone SE class):
+		//     even though the horizontal split layout owns the header column,
+		//     the right-column body still has to stack the wrapped primary
+		//     buttons + demo button, which don't fit at the natural 80/44 px.
 		bool isPortrait = !_isLandscapePhone && Width <= Height;
+		double enter = _isLandscapePhone ? LANDSCAPE_COMPACT_HEIGHT_ENTER : COMPACT_HEIGHT_ENTER;
+		double exit = _isLandscapePhone ? LANDSCAPE_COMPACT_HEIGHT_EXIT : COMPACT_HEIGHT_EXIT;
+		bool eligible = isPortrait || _isLandscapePhone;
 		bool isCompact;
 		if (!_compactHeightApplied)
 		{
 			// First measurement: pick the appropriate side of the band based
 			// solely on the enter threshold, then both sticky branches below
 			// will hold us there until we cross the opposite threshold.
-			isCompact = isPortrait && Height < COMPACT_HEIGHT_ENTER;
+			isCompact = eligible && Height < enter;
 		}
 		else if (_isCompactHeight)
 		{
 			// Currently compact: exit only when we comfortably clear EXIT.
-			isCompact = isPortrait && Height < COMPACT_HEIGHT_EXIT;
+			isCompact = eligible && Height < exit;
 		}
 		else
 		{
 			// Currently full-size: enter compact only below the lower threshold.
-			isCompact = isPortrait && Height < COMPACT_HEIGHT_ENTER;
+			isCompact = eligible && Height < enter;
 		}
 		if (isCompact == _isCompactHeight && _compactHeightApplied)
 			return;
@@ -410,28 +428,42 @@ public partial class StartHomePage : ContentPage
 
 		if (isCompact)
 		{
-			AppIcon.HeightRequest = 96;
-			AppIcon.WidthRequest = 96;
-			AppTitle.FontSize = 32;
-			AppHeader.Padding = new Thickness(16, 16, 16, 0);
-			AppHeader.Spacing = 4;
+			// AppHeader sizing is owned by ApplyHomeModeCompactHeader's
+			// landscape branch (left-column layout sets icon=128, title=36);
+			// skip it here so the next ApplyHomeModeCompactHeader pass doesn't
+			// just override us.
+			if (!_isLandscapePhone)
+			{
+				AppIcon.HeightRequest = 96;
+				AppIcon.WidthRequest = 96;
+				AppTitle.FontSize = 32;
+				AppHeader.Padding = new Thickness(16, 16, 16, 0);
+				AppHeader.Spacing = 4;
+			}
 			ConnectServerButton.HeightRequest = 56;
 			ConnectServerButton.FontSize = 17;
 			SelectFileButton.HeightRequest = 56;
 			SelectFileButton.FontSize = 17;
 			LoadDemoButton.HeightRequest = 36;
-			StartBody.Padding = new Thickness(24, 4, 24, 8);
+			// Landscape body sits in the narrow right column — drop the
+			// horizontal padding too so wrapped buttons get a touch more width.
+			StartBody.Padding = _isLandscapePhone
+				? new Thickness(12, 4, 12, 8)
+				: new Thickness(24, 4, 24, 8);
 			StartBody.RowSpacing = 4;
 			PortraitStartRows[2].Height = new GridLength(START_BODY_ROW_HEIGHT_COMPACT);
 			PortraitStartRowsBg[2].Height = new GridLength(START_BODY_ROW_HEIGHT_COMPACT);
 		}
 		else
 		{
-			AppIcon.HeightRequest = 160;
-			AppIcon.WidthRequest = 160;
-			AppTitle.FontSize = 44;
-			AppHeader.Padding = new Thickness(16, 32, 16, 0);
-			AppHeader.Spacing = 8;
+			if (!_isLandscapePhone)
+			{
+				AppIcon.HeightRequest = 160;
+				AppIcon.WidthRequest = 160;
+				AppTitle.FontSize = 44;
+				AppHeader.Padding = new Thickness(16, 32, 16, 0);
+				AppHeader.Spacing = 8;
+			}
 			ConnectServerButton.HeightRequest = 80;
 			ConnectServerButton.FontSize = 20;
 			SelectFileButton.HeightRequest = 80;
