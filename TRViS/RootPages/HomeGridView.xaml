@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS"
+	xmlns:rootpages="clr-namespace:TRViS.RootPages"
+	x:Class="TRViS.RootPages.HomeGridView"
+	ColumnDefinitions="3*,4*"
+	IsVisible="False"
+	Opacity="0"
+	InputTransparent="False"
+	CascadeInputTransparent="False">
+
+	<Grid.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="StartHomeStyles.xaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</Grid.Resources>
+
+	<!-- Loader info card. Title shows loader type ("JSON ファイル", "サーバー接続中" …);
+	     detail shows source path/URL set by SetLoader. Glyph swapped in code-behind. -->
+	<Border
+		x:Name="LoaderInfoCard"
+		x:FieldModifier="public"
+		Grid.Row="1"
+		Grid.ColumnSpan="2"
+		Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
+		BackgroundColor="{x:Static local:RootStyles.BackgroundBlackWhite}"
+		Padding="10,6"
+		Margin="20,0,20,4">
+		<Border.StrokeShape>
+			<RoundRectangle CornerRadius="8"/>
+		</Border.StrokeShape>
+		<Grid ColumnDefinitions="Auto,*"
+					ColumnSpacing="10"
+					RowDefinitions="Auto,Auto">
+			<Label
+				x:Name="LoaderInfoGlyphLabel"
+				Grid.Column="0"
+				Grid.RowSpan="2"
+				Text="&#xe873;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="28"
+				VerticalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+			<Label
+				AutomationId="StartHome.LoaderInfoTitle"
+				x:Name="LoaderInfoTitleLabel"
+				Grid.Column="1"
+				Grid.Row="0"
+				FontSize="14"
+				FontAttributes="Bold"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Text="読み込み済みデータ"/>
+			<Label
+				AutomationId="StartHome.LoaderInfoDetail"
+				x:Name="LoaderInfoDetailLabel"
+				Grid.Column="1"
+				Grid.Row="1"
+				FontSize="12"
+				LineBreakMode="MiddleTruncation"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"
+				Text=""/>
+		</Grid>
+	</Border>
+
+	<!-- Two-step picker (WorkGroup → Work). Each step swaps between
+	     a chip (selected name + 変更) and a CollectionView list. Auto-fill: a 1-item
+	     list auto-selects when the user hasn't manually cleared. -->
+	<Grid
+		x:Name="HomeBody"
+		x:FieldModifier="public"
+		AutomationId="StartHome.HomeBody"
+		Grid.Row="2"
+		Grid.ColumnSpan="2"
+		Padding="16,0,16,4">
+
+		<ScrollView>
+			<VerticalStackLayout Padding="4,0"
+					Spacing="0">
+
+				<Label
+					x:Name="WorkGroupSectionLabel"
+					FontSize="Subtitle"
+					Margin="2,8,2,4"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text="Work Group"/>
+
+				<Border
+					x:Name="WorkGroupChip"
+					AutomationId="StartHome.WorkGroupChip"
+					Style="{StaticResource StepChipBorder}"
+					IsVisible="False">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnWorkGroupChipTapped"/>
+					</Border.GestureRecognizers>
+					<Grid ColumnDefinitions="Auto,*,Auto"
+								ColumnSpacing="8">
+						<!-- &#xe876; = done (selected check) -->
+						<Label
+							Grid.Column="0"
+							Text="&#xe876;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="18"
+							VerticalOptions="Center"
+							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+						<Label
+							x:Name="WorkGroupChipNameLabel"
+							Grid.Column="1"
+							FontSize="15"
+							FontAttributes="Bold"
+							LineBreakMode="TailTruncation"
+							VerticalOptions="Center"
+							TextColor="{x:Static local:RootStyles.TableTextColor}"
+							Text=""/>
+						<Label
+							Grid.Column="2"
+							Text="変更"
+							FontSize="12"
+							VerticalOptions="Center"
+							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+					</Grid>
+				</Border>
+
+				<!-- Tentative selection is committed to AppViewModel only when 開く is tapped. -->
+				<Border
+					x:Name="WorkGroupListBorder"
+					Style="{StaticResource StepListBorder}">
+					<CollectionView
+						x:Name="WorkGroupListView"
+						AutomationId="StartHome.WorkGroupList"
+						HeightRequest="160"
+						SelectionMode="Single"
+						SelectionChanged="OnWorkGroupSelectionChanged">
+						<CollectionView.ItemTemplate>
+							<DataTemplate x:DataType="rootpages:WorkGroupListItem">
+								<Grid Padding="10,8"
+											RowDefinitions="Auto,Auto"
+											ColumnDefinitions="*">
+									<Label
+										Grid.Row="0"
+										Text="{Binding Name}"
+										FontSize="15"
+										FontAttributes="Bold"
+										TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+									<Label
+										Grid.Row="1"
+										Text="{Binding Subtitle}"
+										FontSize="12"
+										TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								</Grid>
+							</DataTemplate>
+						</CollectionView.ItemTemplate>
+					</CollectionView>
+				</Border>
+
+				<Label
+					x:Name="WorkSectionLabel"
+					FontSize="Subtitle"
+					Margin="2,8,2,4"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					Text="Work"/>
+
+				<Border
+					x:Name="WorkChip"
+					AutomationId="StartHome.WorkChip"
+					Style="{StaticResource StepChipBorder}"
+					IsVisible="False">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnWorkChipTapped"/>
+					</Border.GestureRecognizers>
+					<Grid ColumnDefinitions="Auto,*,Auto"
+								ColumnSpacing="8">
+						<Label
+							Grid.Column="0"
+							Text="&#xe876;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="18"
+							VerticalOptions="Center"
+							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+						<Label
+							x:Name="WorkChipNameLabel"
+							Grid.Column="1"
+							FontSize="15"
+							FontAttributes="Bold"
+							LineBreakMode="TailTruncation"
+							VerticalOptions="Center"
+							TextColor="{x:Static local:RootStyles.TableTextColor}"
+							Text=""/>
+						<Label
+							Grid.Column="2"
+							Text="変更"
+							FontSize="12"
+							VerticalOptions="Center"
+							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+					</Grid>
+				</Border>
+
+				<Border
+					x:Name="WorkListBorder"
+					Style="{StaticResource StepListBorder}"
+					IsVisible="False">
+					<CollectionView
+						x:Name="WorkListView"
+						AutomationId="StartHome.WorkList"
+						HeightRequest="160"
+						SelectionMode="Single"
+						SelectionChanged="OnWorkSelectionChanged">
+						<CollectionView.ItemTemplate>
+							<DataTemplate x:DataType="rootpages:WorkListItem">
+								<Grid Padding="10,8"
+											RowDefinitions="Auto,Auto"
+											ColumnDefinitions="*">
+									<Label
+										Grid.Row="0"
+										Text="{Binding Name}"
+										FontSize="15"
+										FontAttributes="Bold"
+										TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+									<Label
+										Grid.Row="1"
+										Text="{Binding Subtitle}"
+										FontSize="12"
+										TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								</Grid>
+							</DataTemplate>
+						</CollectionView.ItemTemplate>
+					</CollectionView>
+				</Border>
+
+			</VerticalStackLayout>
+		</ScrollView>
+
+	</Grid>
+
+	<!-- Disconnect + Open buttons pinned below the picker. -->
+	<Grid
+		x:Name="HomeButtonsRow"
+		x:FieldModifier="public"
+		Grid.Row="3"
+		Grid.ColumnSpan="2"
+		Padding="16,0,16,2"
+		ColumnSpacing="8"
+		ColumnDefinitions="*,*">
+		<Button
+			Grid.Column="0"
+			AutomationId="StartHome.DisconnectButton"
+			x:Name="DisconnectButton"
+			Text="閉じる"
+			HeightRequest="40"
+			CornerRadius="8"
+			Clicked="OnDisconnectClicked"/>
+		<Button
+			Grid.Column="1"
+			x:Name="OpenButton"
+			AutomationId="StartHome.OpenButton"
+			Text="開く"
+			HeightRequest="40"
+			CornerRadius="8"
+			FontAttributes="Bold"
+			Clicked="OnOpenClicked"/>
+	</Grid>
+
+</Grid>

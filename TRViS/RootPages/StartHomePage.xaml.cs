@@ -1,21 +1,9 @@
-using System.Collections.ObjectModel;
-
-using TRViS.DTAC;
 using TRViS.IO;
-using TRViS.IO.Models;
-using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
 
 namespace TRViS.RootPages;
-
-// Lightweight presenter records used by the WorkGroup / Work CollectionView
-// templates. Subtitle aggregates whatever rich detail is available from the
-// loader (Work count for groups; Train count + AffectDate for works) so the
-// picker rows aren't just bare names.
-public sealed record WorkGroupListItem(WorkGroup Source, string Name, string Subtitle);
-public sealed record WorkListItem(Work Source, string Name, string Subtitle);
 
 public partial class StartHomePage : ContentPage
 {
@@ -27,36 +15,6 @@ public partial class StartHomePage : ContentPage
 	// Mode tracks whether the body shows Start (no Loader) or Home (Loader present).
 	enum PageMode { Start, Home }
 	PageMode _currentMode = PageMode.Start;
-
-	// ----- Tentative (pre-Open) selection state -----
-	// The Home page deliberately does NOT mirror its picker state into
-	// AppViewModel.SelectedWorkGroup / SelectedWork. Those are the *committed*
-	// selections used by DTAC; they only change when the user presses 開く.
-	// This lets the user explore the picker without polluting DTAC, and gives
-	// the 開く button real semantic weight ("commit my choice").
-	WorkGroup? _pendingWorkGroup;
-	Work? _pendingWork;
-	readonly ObservableCollection<WorkGroupListItem> _workGroupItems = new();
-	readonly ObservableCollection<WorkListItem> _workItems = new();
-	// Per-loader caches for the subtitle counts. RebuildWorkGroupItems is called on
-	// every WorkGroupList PropertyChanged (e.g. each websocket Refresh), and each
-	// item's subtitle calls loader.GetWorkList(wg.Id).Count — a DB roundtrip on
-	// LoaderSQL. With N WorkGroups and M Works per WG, an unguarded rebuild costs
-	// O(N+N*M) DB reads per push. Cache by Id, scoped to the *current* loader so
-	// a swap clears stale entries.
-	ILoader? _countCacheLoader;
-	readonly Dictionary<string, int> _workCountByGroupId = new();
-	readonly Dictionary<string, int> _trainCountByWorkId = new();
-	// Re-entrancy guard: we set CollectionView.SelectedItem programmatically when
-	// restoring tentative state from the AppViewModel, and that fires SelectionChanged.
-	// The flag prevents that synthetic change from being treated as a user pick.
-	bool _suppressSelectionChanged;
-	// Guard: 開く's commit sets SelectedWorkGroup -> the cascade auto-picks the first
-	// Work of that group BEFORE we then set SelectedWork to the user's pending pick.
-	// Without this guard, the intermediate SelectedWork PropertyChanged would yank
-	// _pendingWork to the auto-picked one via SyncPendingFromCommitted, causing a
-	// brief visible flicker.
-	bool _committingOpen;
 
 	// Animation tunables. Scale always stays 1.0 — icon size is set via HeightRequest.
 	// HOME_COMPACT_ICON_SIZE: smaller icon used in Home mode on small screens (height ≤ HOME_SMALL_HEIGHT_THRESHOLD).
@@ -185,8 +143,9 @@ public partial class StartHomePage : ContentPage
 		viewModel = InstanceManager.AppViewModel;
 		BindingContext = viewModel;
 
-		WorkGroupListView.ItemsSource = _workGroupItems;
-		WorkListView.ItemsSource = _workItems;
+		// Privacy banner inside StartGrid bubbles up here so navigation + flyout
+		// refresh stay in one place (also shared with the footer button below).
+		StartGrid.PrivacyPolicyRequested += OnPrivacyPolicyClicked;
 
 		// Apply initial header layout once we have a measured size.
 		SizeChanged += OnSizeChangedFirstLayout;
@@ -201,10 +160,14 @@ public partial class StartHomePage : ContentPage
 		// measured, the formula falls back to bodyHeight=0, and translation ends
 		// up large enough to push the header (and the AppTitle inside it) into
 		// StartBody's row, where Z-order hides it on small screens.
-		StartBody.SizeChanged += (_, __) => RecomputeStartModeHeaderPosition();
+		StartGrid.StartBody.SizeChanged += (_, __) => RecomputeStartModeHeaderPosition();
 		// HomeBody.Height drives UpdateListHeights — re-run whenever HomeBody
 		// changes size (orientation change, window resize, spacer update).
-		HomeBody.SizeChanged += (_, __) => UpdateListHeights();
+		HomeGrid.HomeBody.SizeChanged += (_, __) =>
+		{
+			if (_currentMode == PageMode.Home)
+				HomeGrid.UpdateListHeights();
+		};
 
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
@@ -234,51 +197,14 @@ public partial class StartHomePage : ContentPage
 
 	void HandleViewModelPropertyChanged(string? propertyName)
 	{
-		switch (propertyName)
+		// Forward to HomeGrid first so its picker / loader-info state is updated
+		// before we evaluate mode transitions below.
+		HomeGrid.HandleViewModelPropertyChanged(propertyName);
+
+		if (propertyName == nameof(AppViewModel.Loader))
 		{
-			case nameof(AppViewModel.Loader):
-				logger.Debug("Loader changed -> evaluate page mode");
-				// New loader -> wipe tentative state and rebuild the WorkGroup picker.
-				ResetPendingSelection();
-				RebuildWorkGroupItems();
-				_ = ApplyModeForCurrentLoaderAsync();
-				break;
-
-			case nameof(AppViewModel.LoaderSourceLabel):
-				UpdateLoaderInfoLabels();
-				break;
-
-			case nameof(AppViewModel.WorkGroupList):
-				// WorkGroupList changes can come from a Refresh() (websocket) which
-				// may also reset committed AppViewModel selections. Rebuild the items;
-				// only sync tentative from committed when committed actually has a
-				// value — otherwise a websocket Refresh would silently clobber the
-				// user's mid-pick on Home (committed is null -> _pendingWorkGroup
-				// would be forced to null).
-				// A Refresh may also have added/removed Works/Trains under the
-				// same loader instance, so drop count caches to force fresh reads.
-				InvalidateCountCaches();
-				RebuildWorkGroupItems();
-				if (viewModel.SelectedWorkGroup is not null || viewModel.SelectedWork is not null)
-					SyncPendingFromCommitted();
-				else
-					SyncListViewSelections();
-				RefreshStepUi();
-				break;
-
-			case nameof(AppViewModel.SelectedWorkGroup):
-			case nameof(AppViewModel.SelectedWork):
-				// Committed selection moved underneath us (e.g. websocket Refresh chose
-				// a different fallback). Re-sync the tentative state so the user sees
-				// what's actually committed when they return to this page.
-				// Skip during 開く's own commit, where the cascade between SetSelectedWorkGroup
-				// and SetSelectedWork would otherwise overwrite the user's pending pick.
-				if (!_committingOpen)
-				{
-					SyncPendingFromCommitted();
-					RefreshStepUi();
-				}
-				break;
+			logger.Debug("Loader changed -> evaluate page mode");
+			_ = ApplyModeForCurrentLoaderAsync();
 		}
 	}
 
@@ -343,35 +269,35 @@ public partial class StartHomePage : ContentPage
 			Grid.SetColumnSpan(AppHeader, 1);
 			// LoaderInfoCard → Home grid left column row 3 (directly above the
 			// privacy/TPL footer). Sits beside HomeButtonsRow in the right column.
-			Grid.SetRow(LoaderInfoCard, 3);
-			Grid.SetColumn(LoaderInfoCard, 0);
-			Grid.SetColumnSpan(LoaderInfoCard, 1);
-			LoaderInfoCard.VerticalOptions = LayoutOptions.Center;
+			Grid.SetRow(HomeGrid.LoaderInfoCard, 3);
+			Grid.SetColumn(HomeGrid.LoaderInfoCard, 0);
+			Grid.SetColumnSpan(HomeGrid.LoaderInfoCard, 1);
+			HomeGrid.LoaderInfoCard.VerticalOptions = LayoutOptions.Center;
 			// StartBody → Start grid right column, spanning the Star area.
-			Grid.SetRow(StartBody, 0); Grid.SetRowSpan(StartBody, 3);
-			Grid.SetColumn(StartBody, 1); Grid.SetColumnSpan(StartBody, 1);
-			StartBody.VerticalOptions = LayoutOptions.Center;
+			Grid.SetRow(StartGrid.StartBody, 0); Grid.SetRowSpan(StartGrid.StartBody, 3);
+			Grid.SetColumn(StartGrid.StartBody, 1); Grid.SetColumnSpan(StartGrid.StartBody, 1);
+			StartGrid.StartBody.VerticalOptions = LayoutOptions.Center;
 			// HomeBody → Home grid right column, just the Star row.
-			Grid.SetRow(HomeBody, 2); Grid.SetRowSpan(HomeBody, 1);
-			Grid.SetColumn(HomeBody, 1); Grid.SetColumnSpan(HomeBody, 1);
+			Grid.SetRow(HomeGrid.HomeBody, 2); Grid.SetRowSpan(HomeGrid.HomeBody, 1);
+			Grid.SetColumn(HomeGrid.HomeBody, 1); Grid.SetColumnSpan(HomeGrid.HomeBody, 1);
 			// HomeButtonsRow → Home grid right column row 3, beside LoaderInfoCard.
-			Grid.SetColumn(HomeButtonsRow, 1); Grid.SetColumnSpan(HomeButtonsRow, 1);
+			Grid.SetColumn(HomeGrid.HomeButtonsRow, 1); Grid.SetColumnSpan(HomeGrid.HomeButtonsRow, 1);
 		}
 		else
 		{
 			// Portrait/tablet: span both columns.
 			Grid.SetRow(AppHeader, 0); Grid.SetRowSpan(AppHeader, 1);
 			Grid.SetColumnSpan(AppHeader, 2);
-			Grid.SetRow(LoaderInfoCard, 1);
-			Grid.SetColumn(LoaderInfoCard, 0);
-			Grid.SetColumnSpan(LoaderInfoCard, 2);
-			LoaderInfoCard.VerticalOptions = LayoutOptions.Fill;
-			Grid.SetRow(StartBody, 2); Grid.SetRowSpan(StartBody, 1);
-			Grid.SetColumn(StartBody, 0); Grid.SetColumnSpan(StartBody, 2);
-			StartBody.VerticalOptions = LayoutOptions.End;
-			Grid.SetRow(HomeBody, 2); Grid.SetRowSpan(HomeBody, 1);
-			Grid.SetColumn(HomeBody, 0); Grid.SetColumnSpan(HomeBody, 2);
-			Grid.SetColumn(HomeButtonsRow, 0); Grid.SetColumnSpan(HomeButtonsRow, 2);
+			Grid.SetRow(HomeGrid.LoaderInfoCard, 1);
+			Grid.SetColumn(HomeGrid.LoaderInfoCard, 0);
+			Grid.SetColumnSpan(HomeGrid.LoaderInfoCard, 2);
+			HomeGrid.LoaderInfoCard.VerticalOptions = LayoutOptions.Fill;
+			Grid.SetRow(StartGrid.StartBody, 2); Grid.SetRowSpan(StartGrid.StartBody, 1);
+			Grid.SetColumn(StartGrid.StartBody, 0); Grid.SetColumnSpan(StartGrid.StartBody, 2);
+			StartGrid.StartBody.VerticalOptions = LayoutOptions.End;
+			Grid.SetRow(HomeGrid.HomeBody, 2); Grid.SetRowSpan(HomeGrid.HomeBody, 1);
+			Grid.SetColumn(HomeGrid.HomeBody, 0); Grid.SetColumnSpan(HomeGrid.HomeBody, 2);
+			Grid.SetColumn(HomeGrid.HomeButtonsRow, 0); Grid.SetColumnSpan(HomeGrid.HomeButtonsRow, 2);
 		}
 		UpdateGridRowDefinitions(_currentMode);
 	}
@@ -440,17 +366,7 @@ public partial class StartHomePage : ContentPage
 				AppHeader.Padding = new Thickness(16, 16, 16, 0);
 				AppHeader.Spacing = 4;
 			}
-			ConnectServerButton.HeightRequest = 56;
-			ConnectServerButton.FontSize = 17;
-			SelectFileButton.HeightRequest = 56;
-			SelectFileButton.FontSize = 17;
-			LoadDemoButton.HeightRequest = 36;
-			// Landscape body sits in the narrow right column — drop the
-			// horizontal padding too so wrapped buttons get a touch more width.
-			StartBody.Padding = _isLandscapePhone
-				? new Thickness(12, 4, 12, 8)
-				: new Thickness(24, 4, 24, 8);
-			StartBody.RowSpacing = 4;
+			StartGrid.ApplyCompactStyling(isCompact: true, isLandscapePhone: _isLandscapePhone);
 			PortraitStartRows[2].Height = new GridLength(START_BODY_ROW_HEIGHT_COMPACT);
 			PortraitStartRowsBg[2].Height = new GridLength(START_BODY_ROW_HEIGHT_COMPACT);
 		}
@@ -464,13 +380,7 @@ public partial class StartHomePage : ContentPage
 				AppHeader.Padding = new Thickness(16, 32, 16, 0);
 				AppHeader.Spacing = 8;
 			}
-			ConnectServerButton.HeightRequest = 80;
-			ConnectServerButton.FontSize = 20;
-			SelectFileButton.HeightRequest = 80;
-			SelectFileButton.FontSize = 20;
-			LoadDemoButton.HeightRequest = 44;
-			StartBody.Padding = new Thickness(24, 8, 24, 24);
-			StartBody.RowSpacing = 8;
+			StartGrid.ApplyCompactStyling(isCompact: false, isLandscapePhone: _isLandscapePhone);
 			PortraitStartRows[2].Height = new GridLength(START_BODY_ROW_HEIGHT_FULL);
 			PortraitStartRowsBg[2].Height = new GridLength(START_BODY_ROW_HEIGHT_FULL);
 		}
@@ -620,55 +530,6 @@ public partial class StartHomePage : ContentPage
 		BackgroundGrid.RowDefinitions = mode == PageMode.Start ? PortraitStartRowsBg : PortraitHomeRowsBg;
 	}
 
-	/// <summary>
-	/// Distributes the available HomeBody scroll-area height across the visible
-	/// list(s) after subtracting the always-on overhead (section labels) and any
-	/// currently-visible chips. Each list expands to fill its share so a sparse
-	/// list won't push the next section below the fold, and a dense list scrolls
-	/// internally within its allocated height. Floors at 2 item rows so a very
-	/// tight window still leaves room to scroll.
-	/// </summary>
-	void UpdateListHeights()
-	{
-		if (_currentMode != PageMode.Home || HomeBody.Height <= 0)
-			return;
-
-		bool wgListVisible = WorkGroupListBorder.IsVisible;
-		bool workListVisible = WorkListBorder.IsVisible;
-		if (!wgListVisible && !workListVisible)
-			return;
-
-		// HomeBody has Padding=16,0,16,4. Bottom 4 is the only vertical chrome to
-		// remove from the available height.
-		const double HomeBodyBottomPad = 4.0;
-		double scrollViewHeight = HomeBody.Height - HomeBodyBottomPad;
-		if (scrollViewHeight <= 0)
-			return;
-
-		// Section label = "Work Group" / "Work" title above each step (always
-		// rendered, Margin=2,8,2,4 + ~Subtitle line height ≈ 28-32). Chip = the
-		// selected-step pill that replaces the list when a step is committed
-		// (Padding=12,8 + Margin bottom 4 + 15px line ≈ 35-45). Both are slightly
-		// over-budgeted so the lists never overflow into the next section.
-		const double SectionLabelOverhead = 32.0;
-		const double ChipOverhead = 48.0;
-		const double ItemHeight = 50.0;
-
-		double overhead = SectionLabelOverhead * 2; // WG label + Work label always shown
-		if (WorkGroupChip.IsVisible) overhead += ChipOverhead;
-		if (WorkChip.IsVisible) overhead += ChipOverhead;
-
-		int listCount = (wgListVisible ? 1 : 0) + (workListVisible ? 1 : 0);
-		double perList = (scrollViewHeight - overhead) / listCount;
-		// Floor: 2 list rows so the list is always scrollable internally rather
-		// than collapsing to a single row that can't be panned.
-		double minListHeight = 2 * ItemHeight;
-		perList = Math.Max(perList, minListHeight);
-
-		if (wgListVisible) WorkGroupListView.HeightRequest = perList;
-		if (workListVisible) WorkListView.HeightRequest = perList;
-	}
-
 	protected override async void OnAppearing()
 	{
 		base.OnAppearing();
@@ -687,8 +548,7 @@ public partial class StartHomePage : ContentPage
 
 		// Reflect any current loader / committed selection state. If we're returning
 		// here from DTAC, the user's last commit becomes their initial pending state.
-		RebuildWorkGroupItems();
-		SyncPendingFromCommitted();
+		HomeGrid.OnPageAppearing();
 
 		// We deliberately do NOT auto-load timetables from TimetableFileDirectory
 		// here. The user opens files explicitly via the "ファイルを選択" button
@@ -711,11 +571,7 @@ public partial class StartHomePage : ContentPage
 		// acceptance the banner hides, the primary buttons reveal, and the demo
 		// button reappears.
 		bool accepted = InstanceManager.FirebaseSettingViewModel.IsPrivacyPolicyAccepted;
-		PrivacyReconfirmBanner.IsVisible = !accepted;
-		ConnectServerButton.IsEnabled = accepted;
-		SelectFileButton.IsEnabled = accepted;
-		LoadDemoButton.IsEnabled = accepted;
-		LoadDemoButton.IsVisible = accepted;
+		StartGrid.SetPrivacyAccepted(accepted);
 
 		// Hide the Shell flyout (menu) toggle in the nav bar until the user accepts
 		// the privacy policy — the body is essentially blocked by the reconfirm
@@ -753,8 +609,7 @@ public partial class StartHomePage : ContentPage
 		if (target == _currentMode)
 		{
 			// Refresh derived UI in case Loader was swapped to a new instance.
-			UpdateLoaderInfoLabels();
-			RefreshStepUi();
+			HomeGrid.UpdateLoaderInfoLabels();
 			return Task.CompletedTask;
 		}
 		return TransitionToAsync(target);
@@ -782,8 +637,7 @@ public partial class StartHomePage : ContentPage
 		_currentMode = mode;
 		// Apply home-mode compact header AFTER _currentMode is set (IsHomeModeCompact reads it).
 		ApplyHomeModeCompactHeader();
-		UpdateLoaderInfoLabels();
-		RefreshStepUi();
+		HomeGrid.UpdateLoaderInfoLabels();
 	}
 
 	async Task TransitionToAsync(PageMode target)
@@ -875,7 +729,7 @@ public partial class StartHomePage : ContentPage
 		// IsVisible changes so that layout events (HomeBody.SizeChanged →
 		// UpdateListHeights) see the new mode and behave correctly.
 		_currentMode = target;
-		UpdateLoaderInfoLabels();
+		HomeGrid.UpdateLoaderInfoLabels();
 
 		// Apply the target RowDefinitions now (Background Row 2 gets its final type:
 		// * for Home, Auto for Start). This keeps UpdateListHeights stable during the
@@ -965,381 +819,9 @@ public partial class StartHomePage : ContentPage
 		}
 	}
 
-	void UpdateLoaderInfoLabels()
-	{
-		ILoader? loader = viewModel.Loader;
-		if (loader is null)
-		{
-			LoaderInfoTitleLabel.Text = "読み込み済みデータ";
-			LoaderInfoDetailLabel.Text = "";
-			LoaderInfoGlyphLabel.Text = MaterialIcons.Description;
-			return;
-		}
+	// ----- Footer link handlers -----
 
-		// Title = loader type, glyph = matching Material Icon, detail = source label
-		// (file name, URL) set atomically with the loader via AppViewModel.SetLoader.
-		(string title, string glyph) = loader switch
-		{
-			SampleDataLoader => ("デモデータ", MaterialIcons.Science),
-			LoaderJson => ("JSON ファイル", MaterialIcons.Description),
-			LoaderSQL => ("SQLite ファイル", MaterialIcons.Storage),
-			WebSocketNetworkSyncService => ("サーバー接続中", MaterialIcons.Wifi),
-			_ => (loader.GetType().Name, MaterialIcons.Description),
-		};
-		LoaderInfoTitleLabel.Text = title;
-		LoaderInfoGlyphLabel.Text = glyph;
-		LoaderInfoDetailLabel.Text = viewModel.LoaderSourceLabel ?? string.Empty;
-	}
-
-	// ----- Two-step picker (WorkGroup -> Work) -----
-	//
-	// The CollectionViews bind to ObservableCollection<WorkGroupListItem> /
-	// <WorkListItem> presenters built from the active loader's lists. Selection
-	// is captured in _pendingWorkGroup / _pendingWork — those drive the chip vs
-	// list visual state and the 開く commit.
-
-	void ResetPendingSelection()
-	{
-		_pendingWorkGroup = null;
-		_pendingWork = null;
-		_workItems.Clear();
-	}
-
-	void SyncPendingFromCommitted()
-	{
-		// Mirror the AppViewModel's *committed* selection into our tentative state.
-		// Called when we appear or when the committed state changes underneath us.
-		// Does not propagate back — this is intentionally one-way.
-		// Compare by Id rather than Equals: WorkGroup/Work are records whose
-		// auto-generated equality compares positional members (incl. byte[]
-		// AffixContent / ETrainTimetableContent on Work) by reference. After a
-		// websocket Refresh, the manager's new instance won't reference-match
-		// the cached one even though it represents the same logical row, so
-		// Equals returns false and we'd needlessly rebuild lists.
-		var committedWG = viewModel.SelectedWorkGroup;
-		var committedWork = viewModel.SelectedWork;
-
-		if (!IsSameWorkGroup(_pendingWorkGroup, committedWG))
-		{
-			_pendingWorkGroup = committedWG;
-			RebuildWorkItems();
-		}
-		if (!IsSameWork(_pendingWork, committedWork))
-		{
-			_pendingWork = committedWork;
-		}
-
-		SyncListViewSelections();
-		RefreshStepUi();
-	}
-
-	static bool IsSameWorkGroup(WorkGroup? a, WorkGroup? b)
-	{
-		if (ReferenceEquals(a, b))
-			return true;
-		if (a is null || b is null)
-			return false;
-		return string.Equals(a.Id, b.Id, StringComparison.Ordinal);
-	}
-
-	static bool IsSameWork(Work? a, Work? b)
-	{
-		if (ReferenceEquals(a, b))
-			return true;
-		if (a is null || b is null)
-			return false;
-		return string.Equals(a.Id, b.Id, StringComparison.Ordinal);
-	}
-
-	void SyncListViewSelections()
-	{
-		// Reflect _pendingWorkGroup / _pendingWork onto the CollectionViews without
-		// re-triggering OnXxxSelectionChanged (which would reset the user-pick flow).
-		// Match by Id (see SyncPendingFromCommitted for why record Equals is unsafe).
-		_suppressSelectionChanged = true;
-		try
-		{
-			WorkGroupListView.SelectedItem = _pendingWorkGroup is null
-				? null
-				: _workGroupItems.FirstOrDefault(i => IsSameWorkGroup(i.Source, _pendingWorkGroup));
-			WorkListView.SelectedItem = _pendingWork is null
-				? null
-				: _workItems.FirstOrDefault(i => IsSameWork(i.Source, _pendingWork));
-		}
-		finally
-		{
-			_suppressSelectionChanged = false;
-		}
-	}
-
-	void EnsureCountCacheLoader(ILoader? loader)
-	{
-		if (ReferenceEquals(_countCacheLoader, loader))
-			return;
-		_countCacheLoader = loader;
-		InvalidateCountCaches();
-	}
-
-	void InvalidateCountCaches()
-	{
-		// Called whenever the underlying lists may have changed: loader swap or
-		// WorkGroupList PropertyChanged (which fires after a websocket Refresh
-		// that may have added/removed Works/Trains).
-		_workCountByGroupId.Clear();
-		_trainCountByWorkId.Clear();
-	}
-
-	int GetWorkCountCached(ILoader loader, string workGroupId)
-	{
-		if (_workCountByGroupId.TryGetValue(workGroupId, out int cached))
-			return cached;
-		int count;
-		try { count = loader.GetWorkList(workGroupId).Count; }
-		catch { count = 0; }
-		_workCountByGroupId[workGroupId] = count;
-		return count;
-	}
-
-	int GetTrainCountCached(ILoader loader, string workId)
-	{
-		if (_trainCountByWorkId.TryGetValue(workId, out int cached))
-			return cached;
-		int count;
-		try { count = loader.GetTrainDataList(workId).Count; }
-		catch { count = 0; }
-		_trainCountByWorkId[workId] = count;
-		return count;
-	}
-
-	void RebuildWorkGroupItems()
-	{
-		// See RebuildWorkItems for the iOS 12 detach/reattach rationale.
-		bool detachForIos12CollectionViewCrash =
-#if IOS
-			!OperatingSystem.IsIOSVersionAtLeast(13);
-#else
-			false;
-#endif
-		if (detachForIos12CollectionViewCrash)
-			WorkGroupListView.ItemsSource = null;
-		try
-		{
-			_workGroupItems.Clear();
-			var loader = viewModel.Loader;
-			var groups = viewModel.WorkGroupList;
-			EnsureCountCacheLoader(loader);
-			if (loader is not null && groups is not null)
-			{
-				foreach (var wg in groups)
-				{
-					int workCount = GetWorkCountCached(loader, wg.Id);
-					string subtitle = $"Work 数: {workCount}";
-					_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
-				}
-			}
-		}
-		finally
-		{
-			if (detachForIos12CollectionViewCrash)
-				WorkGroupListView.ItemsSource = _workGroupItems;
-		}
-		// Cascade to Work list — runs regardless of loader/groups state so the
-		// Work list mirrors the (possibly cleared) WorkGroup list.
-		RebuildWorkItems();
-	}
-
-	void RebuildWorkItems()
-	{
-		// iOS 12: detaching ItemsSource around the mutation forces MAUI to issue
-		// a single ReloadData instead of the per-Add InsertItems calls that
-		// ObservableItemsSource normally emits. The latter path crashes the app
-		// the first time a WorkGroup is picked because WorkListView is
-		// transitioning from IsVisible=false to true, and an InsertItems call
-		// mid-layout-pass triggers UICollectionViewFlowLayout to be invalidated
-		// with a (null) context — iOS 13+ tolerates that, iOS 12 rejects it as
-		// NSInvalidArgumentException. See log 2026-05-11 15:35:39.
-		bool detachForIos12CollectionViewCrash =
-#if IOS
-			!OperatingSystem.IsIOSVersionAtLeast(13);
-#else
-			false;
-#endif
-		if (detachForIos12CollectionViewCrash)
-			WorkListView.ItemsSource = null;
-		try
-		{
-			_workItems.Clear();
-			var loader = viewModel.Loader;
-			var wg = _pendingWorkGroup;
-			if (loader is null || wg is null)
-				return;
-			EnsureCountCacheLoader(loader);
-
-			IReadOnlyList<Work> works;
-			try { works = loader.GetWorkList(wg.Id); }
-			catch { works = Array.Empty<Work>(); }
-
-			foreach (var w in works)
-			{
-				int trainCount = GetTrainCountCached(loader, w.Id);
-
-				List<string> parts = new(2);
-				if (w.AffectDate is { } d)
-					parts.Add($"施行日: {d:yyyy/MM/dd}");
-				parts.Add($"列車数: {trainCount}");
-				_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
-			}
-		}
-		finally
-		{
-			if (detachForIos12CollectionViewCrash)
-				WorkListView.ItemsSource = _workItems;
-		}
-	}
-
-	void RefreshStepUi()
-	{
-		var pendingWG = _pendingWorkGroup;
-		var pendingW = _pendingWork;
-
-		bool hasWorkGroup = pendingWG is not null;
-		WorkGroupChip.IsVisible = hasWorkGroup;
-		WorkGroupListBorder.IsVisible = !hasWorkGroup;
-		WorkGroupChipNameLabel.Text = pendingWG?.Name ?? string.Empty;
-
-		bool hasWork = pendingW is not null;
-		WorkChip.IsVisible = hasWorkGroup && hasWork;
-		WorkListBorder.IsVisible = hasWorkGroup && !hasWork;
-		WorkChipNameLabel.Text = pendingW?.Name ?? string.Empty;
-
-		UpdateListHeights();
-	}
-
-	void OnWorkGroupSelectionChanged(object? sender, SelectionChangedEventArgs e)
-	{
-		if (_suppressSelectionChanged)
-			return;
-		try
-		{
-			var item = WorkGroupListView.SelectedItem as WorkGroupListItem;
-			_pendingWorkGroup = item?.Source;
-			// Switching Work Group invalidates any prior Work pick and rebuilds the
-			// Work list for the new group.
-			_pendingWork = null;
-			RebuildWorkItems();
-			SyncListViewSelections();
-			RefreshStepUi();
-		}
-		catch (Exception ex)
-		{
-			// UI-thread event handler — an exception that escapes here propagates
-			// through Mono's unhandled exception hook and aborts the process. Log
-			// + Crashlytics + sync-flush before rethrowing so the crash record is
-			// recoverable. (See MauiProgram.CurrentDomain_UnhandledException for
-			// the matching app-level flush.)
-			logger.Error(ex, "OnWorkGroupSelectionChanged failed");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnWorkGroupSelectionChanged");
-			try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); } catch { /* best-effort */ }
-			throw;
-		}
-	}
-
-	void OnWorkSelectionChanged(object? sender, SelectionChangedEventArgs e)
-	{
-		if (_suppressSelectionChanged)
-			return;
-		try
-		{
-			var item = WorkListView.SelectedItem as WorkListItem;
-			_pendingWork = item?.Source;
-			RefreshStepUi();
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "OnWorkSelectionChanged failed");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnWorkSelectionChanged");
-			try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); } catch { /* best-effort */ }
-			throw;
-		}
-	}
-
-	void OnWorkGroupChipTapped(object? sender, TappedEventArgs e)
-	{
-		logger.Info("Work Group chip tapped -> clearing tentative selection");
-		_pendingWorkGroup = null;
-		_pendingWork = null;
-		_workItems.Clear();
-		SyncListViewSelections();
-		RefreshStepUi();
-	}
-
-	void OnWorkChipTapped(object? sender, TappedEventArgs e)
-	{
-		logger.Info("Work chip tapped -> clearing tentative selection");
-		_pendingWork = null;
-		SyncListViewSelections();
-		RefreshStepUi();
-	}
-
-	// ----- Button handlers -----
-
-	async void OnConnectServerClicked(object sender, EventArgs e)
-	{
-		logger.Info("Connect Server clicked");
-
-		try
-		{
-			await Navigation.PushModalAsync(new ConnectServerDialog());
-		}
-		catch (Exception ex)
-		{
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnConnectServerClicked (PushModalAsync failed)");
-			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlertAsync(this, "Open Popup Failed", ex.ToString(), "OK");
-		}
-	}
-
-	async void OnSelectFileClicked(object sender, EventArgs e)
-	{
-		logger.Info("Select File clicked");
-
-		try
-		{
-			await Navigation.PushModalAsync(new SelectFileDialog());
-		}
-		catch (Exception ex)
-		{
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnSelectFileClicked (PushModalAsync failed)");
-			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlertAsync(this, "Open Dialog Failed", ex.ToString(), "OK");
-		}
-	}
-
-	async void OnLoadDemoClicked(object sender, EventArgs e)
-	{
-		logger.Info("Load Demo clicked");
-
-		try
-		{
-			// Dispose AFTER the new loader is built so any in-flight property
-			// reads on viewModel.Loader during the await don't hit a disposed
-			// instance. SetLoader swaps atomically; we then dispose what was
-			// previously installed.
-			ILoader? previous = viewModel.Loader;
-			var newLoader = await SampleDataLoader.CreateAsync();
-			viewModel.SetLoader(newLoader, null);
-			if (!ReferenceEquals(previous, viewModel.Loader))
-				previous?.Dispose();
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "Load demo failed");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnLoadDemoClicked (CreateAsync failed)");
-			await Util.DisplayAlertAsync(this, "エラー", $"サンプルデータの読み込みに失敗しました: {ex.Message}", "OK");
-		}
-	}
-
-	async void OnPrivacyPolicyClicked(object sender, EventArgs e)
+	async void OnPrivacyPolicyClicked(object? sender, EventArgs e)
 	{
 		logger.Info("Privacy Policy clicked");
 		try
@@ -1370,83 +852,6 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "PushModalAsync(ThirdPartyLicenses) failed");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnThirdPartyLicensesClicked");
-		}
-	}
-
-	async void OnOpenClicked(object sender, EventArgs e)
-	{
-		logger.Info("Open clicked");
-		var pendingWG = _pendingWorkGroup;
-		var pendingW = _pendingWork;
-
-		if (pendingWG is null || pendingW is null)
-		{
-			logger.Info("Open ignored: pending selection incomplete (WG={0}, W={1})", pendingWG, pendingW);
-			await Util.DisplayAlertAsync(this, "選択されていません", "Work Group と Work を選択してから「開く」を押してください。", "OK");
-			return;
-		}
-
-		CommitPendingSelection(pendingWG, pendingW);
-		await NavigateToDTACAsync();
-	}
-
-	// Commit tentative -> AppViewModel. Setting SelectedWorkGroup cascades
-	// (TimetableSelectionManager.OnWorkGroupChanged auto-picks the first Work
-	// of that group); we then immediately overwrite with the user's pending
-	// Work, which cascades again to pick its first TrainData. Net effect:
-	// committed (WG, W, first-Train) — the same shape DTAC has always seen.
-	// Wrapped in _committingOpen so the cascade-fired SelectedWork PropertyChanged
-	// doesn't yank our pending state via SyncPendingFromCommitted.
-	void CommitPendingSelection(WorkGroup workGroup, Work work)
-	{
-		_committingOpen = true;
-		try
-		{
-			viewModel.SelectedWorkGroup = workGroup;
-			viewModel.SelectedWork = work;
-		}
-		finally
-		{
-			_committingOpen = false;
-		}
-	}
-
-	async void OnDisconnectClicked(object sender, EventArgs e)
-	{
-		logger.Info("Disconnect/Close clicked");
-		if (viewModel.Loader is null)
-			return;
-
-		bool confirm = await Util.DisplayAlertAsync(this, "確認", "現在のデータを閉じますか？", "閉じる", "キャンセル");
-		if (!confirm)
-			return;
-
-		// Re-read Loader AFTER the await: an AppLink or websocket reconnect could
-		// have swapped (and disposed) the old one while the confirm dialog was
-		// open. Disposing the captured value would then double-dispose the old
-		// loader and orphan the new one.
-		var loader = viewModel.Loader;
-		if (loader is null)
-			return;
-
-		viewModel.Loader = null;
-		loader.Dispose();
-		// Loader change triggers OnViewModelPropertyChanged -> animate back to Start mode.
-	}
-
-	// ----- Helpers -----
-
-	private static async Task NavigateToDTACAsync()
-	{
-		try
-		{
-			logger.Info("Navigating to DTAC page");
-			await Shell.Current.GoToAsync($"//{ViewHost.NameOfThisClass}");
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "Error navigating to DTAC page");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.NavigateToDTACAsync failed");
 		}
 	}
 
@@ -1504,8 +909,8 @@ public partial class StartHomePage : ContentPage
 				return;
 			}
 
-			CommitPendingSelection(firstGroup, firstWork);
-			await NavigateToDTACAsync();
+			HomeGrid.CommitPendingSelection(firstGroup, firstWork);
+			await HomeGridView.NavigateToDTACAsync();
 		}
 		catch (Exception ex)
 		{
@@ -1581,8 +986,8 @@ public partial class StartHomePage : ContentPage
 				ETrainTimetableContent = tinyPng,
 			};
 
-			CommitPendingSelection(firstGroup, seededWork);
-			await NavigateToDTACAsync();
+			HomeGrid.CommitPendingSelection(firstGroup, seededWork);
+			await HomeGridView.NavigateToDTACAsync();
 		}
 		catch (Exception ex)
 		{
@@ -1763,8 +1168,8 @@ public partial class StartHomePage : ContentPage
 				return;
 			}
 
-			CommitPendingSelection(wg, work);
-			await NavigateToDTACAsync();
+			HomeGrid.CommitPendingSelection(wg, work);
+			await HomeGridView.NavigateToDTACAsync();
 		}
 		catch (Exception ex)
 		{
