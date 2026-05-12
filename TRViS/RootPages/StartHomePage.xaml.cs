@@ -55,7 +55,26 @@ public partial class StartHomePage : ContentPage
 	// to COMPACT_HEIGHT_ENTER so iPhone 15 / 15 Pro Max keep the 160px icon in
 	// the larger HOME_HEADER_ROW_HEIGHT_LARGE row in both Start and Home modes.
 	const double HOME_SMALL_HEIGHT_THRESHOLD = 700.0;
-	const double HOME_COMPACT_ICON_SIZE = 80.0;
+
+	// ----- AppIcon canonical sizes (cross-referenced from XAML via x:Static) -----
+	// Used in both modes and during the Start↔Home animation; XAML applies the
+	// "hero" size as the AppIcon's initial HeightRequest/WidthRequest so the
+	// first paint matches the Start-mode non-compact tier on tablets and
+	// modern iPhones (where COMPACT_HEIGHT_ENTER does not trip).
+	public const double APPICON_HERO_SIZE = 160.0;            // Start + Home non-compact
+	public const double APPICON_START_COMPACT_SIZE = 96.0;    // Start mode in compact portrait
+	public const double APPICON_LANDSCAPE_SIZE = 128.0;       // Landscape phone (header in left column)
+	public const double APPICON_HOME_COMPACT_SIZE = 80.0;     // Home mode compact (small screens)
+	// Backwards-compatible alias retained for readability at the call sites that
+	// reference "the Home-mode compact value" by name rather than by tier.
+	const double HOME_COMPACT_ICON_SIZE = APPICON_HOME_COMPACT_SIZE;
+
+	// ----- AppTitle font sizes (cross-referenced from XAML via x:Static) -----
+	// XAML uses APPTITLE_HERO_FONT_SIZE as the initial FontSize; the smaller
+	// values are applied from code-behind on orientation / mode transitions.
+	public const double APPTITLE_HERO_FONT_SIZE = 44.0;       // Start non-compact (XAML default)
+	public const double APPTITLE_COMPACT_FONT_SIZE = 32.0;    // Start compact
+	public const double APPTITLE_LANDSCAPE_FONT_SIZE = 36.0;  // Landscape phone
 
 	// ----- Fixed row heights (base values, scaled by system font scale below) -----
 	// Rows that contain no real content of their own in the layered structure are
@@ -386,9 +405,9 @@ public partial class StartHomePage : ContentPage
 			// just override us.
 			if (!_isLandscapePhone)
 			{
-				AppIcon.HeightRequest = 96;
-				AppIcon.WidthRequest = 96;
-				AppTitle.FontSize = 32;
+				AppIcon.HeightRequest = APPICON_START_COMPACT_SIZE;
+				AppIcon.WidthRequest = APPICON_START_COMPACT_SIZE;
+				AppTitle.FontSize = APPTITLE_COMPACT_FONT_SIZE;
 				AppHeader.Padding = new Thickness(16, 16, 16, 0);
 				AppHeader.Spacing = 4;
 			}
@@ -400,9 +419,9 @@ public partial class StartHomePage : ContentPage
 		{
 			if (!_isLandscapePhone)
 			{
-				AppIcon.HeightRequest = 160;
-				AppIcon.WidthRequest = 160;
-				AppTitle.FontSize = 44;
+				AppIcon.HeightRequest = APPICON_HERO_SIZE;
+				AppIcon.WidthRequest = APPICON_HERO_SIZE;
+				AppTitle.FontSize = APPTITLE_HERO_FONT_SIZE;
 				AppHeader.Padding = new Thickness(16, 32, 16, 0);
 				AppHeader.Spacing = 8;
 			}
@@ -439,9 +458,9 @@ public partial class StartHomePage : ContentPage
 		// hidden after rotating into landscape (IsVisible=true but Opacity=0).
 		if (_isLandscapePhone)
 		{
-			AppIcon.HeightRequest = 128;
-			AppIcon.WidthRequest = 128;
-			AppTitle.FontSize = 36;
+			AppIcon.HeightRequest = APPICON_LANDSCAPE_SIZE;
+			AppIcon.WidthRequest = APPICON_LANDSCAPE_SIZE;
+			AppTitle.FontSize = APPTITLE_LANDSCAPE_FONT_SIZE;
 			AppTitle.IsVisible = true;
 			AppTitle.Opacity = 1;
 			AppHeader.Padding = new Thickness(16, 16, 16, 16);
@@ -458,22 +477,36 @@ public partial class StartHomePage : ContentPage
 				AppIcon.HeightRequest = HOME_COMPACT_ICON_SIZE;
 				AppIcon.WidthRequest = HOME_COMPACT_ICON_SIZE;
 			}
+			else
+			{
+				// Restore the canonical Home-mode icon size when the page is not
+				// in the compact tier. Without this branch, rotating an iPad
+				// mini 6 (or any device where the landscape page height drops
+				// below HOME_SMALL_HEIGHT_THRESHOLD but the portrait page
+				// height does not) leaves AppIcon stuck at the compact value
+				// (80 from the prior compact pass, or 128 from the landscape-
+				// phone path) after returning to portrait — only the row
+				// height grows back, so the icon looks orphaned inside the
+				// taller 208pt HOME_HEADER_ROW_HEIGHT_LARGE row.
+				AppIcon.HeightRequest = APPICON_HERO_SIZE;
+				AppIcon.WidthRequest = APPICON_HERO_SIZE;
+			}
 		}
 		else
 		{
 			if (_isCompactHeight)
 			{
-				AppIcon.HeightRequest = 96;
-				AppIcon.WidthRequest = 96;
-				AppTitle.FontSize = 32;
+				AppIcon.HeightRequest = APPICON_START_COMPACT_SIZE;
+				AppIcon.WidthRequest = APPICON_START_COMPACT_SIZE;
+				AppTitle.FontSize = APPTITLE_COMPACT_FONT_SIZE;
 				AppHeader.Padding = new Thickness(16, 16, 16, 0);
 				AppHeader.Spacing = 4;
 			}
 			else
 			{
-				AppIcon.HeightRequest = 160;
-				AppIcon.WidthRequest = 160;
-				AppTitle.FontSize = 44;
+				AppIcon.HeightRequest = APPICON_HERO_SIZE;
+				AppIcon.WidthRequest = APPICON_HERO_SIZE;
+				AppTitle.FontSize = APPTITLE_HERO_FONT_SIZE;
 				AppHeader.Padding = new Thickness(16, 32, 16, 0);
 				AppHeader.Spacing = 8;
 			}
@@ -761,7 +794,7 @@ public partial class StartHomePage : ContentPage
 
 			if (portraitHome)
 			{
-				toIconSize = _isCompactHeight ? 96.0 : 160.0;
+				toIconSize = _isCompactHeight ? APPICON_START_COMPACT_SIZE : APPICON_HERO_SIZE;
 				toTitleOpacity = 1;
 				fromTitleOpacity = 0;
 
