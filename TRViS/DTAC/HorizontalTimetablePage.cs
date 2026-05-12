@@ -46,6 +46,7 @@ public class HorizontalTimetablePage : ContentPage
 		{
 			Title = _presenter.CurrentState.TitleText,
 			LeftButtonText = DTACElementStyles.BackArrowIcon,
+			LeftButtonAutomationId = "HorizontalTimetable.BackButton",
 			TimeLabelText = _presenter.CurrentState.TimeLabelText,
 			IsTimeLabelEnabled = true,
 			IsThemeButtonEnabled = true,

@@ -77,6 +77,10 @@ cleanup() {
     log "Stopping Appium (PID $APPIUM_PID)..."
     kill "$APPIUM_PID" 2>/dev/null || true
   fi
+  if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" && -n "${DEVICE_ID:-}" ]]; then
+    log "Shutting down simulator $DEVICE_ID..."
+    xcrun simctl shutdown "$DEVICE_ID" 2>/dev/null || true
+  fi
   exit "$exit_code"
 }
 trap cleanup EXIT
@@ -171,31 +175,61 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
       ;;
   esac
 
-  # Try to reuse an existing simulator that matches the friendly name; otherwise
-  # create one with the most-recent compatible runtime.
+  # Reuse order:
+  #   1) A simulator this script created on a previous run, named
+  #      "trvis-<device-class>". Checked first so repeated local runs do
+  #      not accumulate one new device per invocation — previously the
+  #      lookup only matched the default Xcode names (e.g. "iPhone 16")
+  #      and silently bypassed every "trvis-*" device the script itself
+  #      had created, calling `simctl create` again each time.
+  #   2) An Xcode-installed default simulator matching SIM_NAME_REGEX
+  #      (the previous behavior; preserved so fresh machines without
+  #      any "trvis-*" device keep working as they did before).
+  # If neither exists, create a new "trvis-<device-class>".
+  SIM_REUSE_NAME="trvis-$DEVICE_CLASS"
+  # Track which simulator name actually matched so reuse vs create vs default-
+  # name fallback is obvious in the log. SIM_NAME_REGEX is an anchored exact
+  # match for SIM_DEVICE_NAME above, so the path-2 match implies that name.
+  FOUND_SIM_NAME=""
   DEVICE_ID=$(xcrun simctl list devices available --json \
-    | jq -r --arg pat "$SIM_NAME_REGEX" \
-        '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name | test($pat)) | .udid' \
+    | jq -r --arg name "$SIM_REUSE_NAME" \
+        '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name == $name) | .udid' \
     | head -1)
+  if [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]]; then
+    FOUND_SIM_NAME="$SIM_REUSE_NAME"
+  fi
 
   if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
-    log "No matching simulator for '$SIM_DEVICE_NAME' — attempting to create one."
+    DEVICE_ID=$(xcrun simctl list devices available --json \
+      | jq -r --arg pat "$SIM_NAME_REGEX" \
+          '.devices | to_entries[] | select(.key | contains("iOS") or contains("iPadOS")) | .value[] | select(.name | test($pat)) | .udid' \
+      | head -1)
+    if [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]]; then
+      FOUND_SIM_NAME="$SIM_DEVICE_NAME"
+    fi
+  fi
+
+  if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
+    log "No existing simulator for '$SIM_DEVICE_NAME' — creating '$SIM_REUSE_NAME'."
     # Pick the highest available iOS runtime first (works for iPhone 16, iPad mini 6, iPad mini A17).
     SIM_RUNTIME=$(xcrun simctl list runtimes --json \
       | jq -r '[.runtimes[] | select(.platform == "iOS" or (.identifier | contains("iOS")))] | sort_by(.version) | reverse | .[0].identifier')
     if [[ -z "$SIM_RUNTIME" || "$SIM_RUNTIME" == "null" ]]; then
       die "No iOS runtime available to create simulator '$SIM_DEVICE_NAME'."
     fi
-    log "Creating simulator '$SIM_DEVICE_NAME' on runtime '$SIM_RUNTIME'..."
-    if ! DEVICE_ID=$(xcrun simctl create "trvis-$DEVICE_CLASS" "$SIM_DEVICE_TYPE" "$SIM_RUNTIME" 2>&1); then
+    log "Creating simulator '$SIM_REUSE_NAME' on runtime '$SIM_RUNTIME'..."
+    if ! DEVICE_ID=$(xcrun simctl create "$SIM_REUSE_NAME" "$SIM_DEVICE_TYPE" "$SIM_RUNTIME" 2>&1); then
       log "create failed: $DEVICE_ID"
       die "Failed to create simulator for $DEVICE_CLASS. The device type may require an older iOS runtime that is not installed (e.g. iPad mini 5th gen → iOS 17)."
     fi
-    log "Created simulator: $DEVICE_ID"
+    FOUND_SIM_NAME="$SIM_REUSE_NAME"
+    log "Created simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
+  else
+    log "Reusing existing simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
   fi
 
   [[ -n "$DEVICE_ID" && "$DEVICE_ID" != "null" ]] || die "No available iOS simulator found"
-  log "Selected simulator: $DEVICE_ID ($SIM_DEVICE_NAME)"
+  log "Selected simulator: $DEVICE_ID ($FOUND_SIM_NAME)"
 
   log "Available simulator runtimes (for diagnostics):"
   xcrun simctl list runtimes | grep -i ios || log "(no iOS runtimes listed)"
@@ -361,6 +395,45 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "App pre-installed."
 fi
 
+# ── Pre-build WebDriverAgent for usePrebuiltWDA ─────────────────
+# Without this, Appium's xcuitest driver invokes xcodebuild once per
+# session to verify WDA is built — ~28 s per session even when the
+# binary is already cached. Pre-building into a known derivedDataPath
+# and passing `usePrebuiltWDA: true` skips that check entirely (article
+# reports 37 s → 9 s per session on iOS Simulator).
+#
+# Use `generic/platform=iOS Simulator` so the binary is reusable across
+# simulator UDIDs — no need to rebuild when the matrix swaps device class.
+WDA_DERIVED_DATA=""
+if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
+  WDA_DERIVED_DATA="$HOME/Library/Developer/Xcode/DerivedData/trvis-wda-prebuilt"
+  WDA_PROJ="$HOME/.appium/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj"
+  if [[ ! -d "$WDA_PROJ" ]]; then
+    log "WDA project not found at $WDA_PROJ — skipping pre-build (usePrebuiltWDA disabled)."
+    WDA_DERIVED_DATA=""
+  else
+    log "Pre-building WebDriverAgent into $WDA_DERIVED_DATA..."
+    # `build-for-testing` produces the WDA Runner app plus the xctestrun
+    # bundle that Appium's usePrebuiltWDA path consumes. xcodebuild is
+    # incremental — subsequent invocations after the first complete in
+    # seconds when sources haven't changed.
+    if xcodebuild build-for-testing \
+        -project "$WDA_PROJ" \
+        -scheme WebDriverAgentRunner \
+        -destination 'generic/platform=iOS Simulator' \
+        -derivedDataPath "$WDA_DERIVED_DATA" \
+        CODE_SIGNING_ALLOWED=NO \
+        >/tmp/wda-prebuild.log 2>&1; then
+      log "WDA pre-built. derivedDataPath=$WDA_DERIVED_DATA"
+    else
+      log "WDA pre-build failed — tail of log:"
+      tail -30 /tmp/wda-prebuild.log || true
+      log "Continuing without usePrebuiltWDA (Appium will build WDA on first session)."
+      WDA_DERIVED_DATA=""
+    fi
+  fi
+fi
+
 # ── Install Mac Catalyst app ────────────────────────────────────
 # The mac2 / WDA driver uses XCUIApplication(bundleId:) which requires the app
 # to be registered with Launch Services.  A .app built by dotnet but never run
@@ -455,6 +528,9 @@ DOTNET_TEST_ARGS=(
 )
 if [[ -n "${DEVICE_ID:-}" ]]; then
   DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")
+fi
+if [[ -n "${WDA_DERIVED_DATA:-}" ]]; then
+  DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"wdaDerivedDataPath\",value=\"$WDA_DERIVED_DATA\")")
 fi
 
 # Run tests with timeout (40 minutes = 2400 seconds).

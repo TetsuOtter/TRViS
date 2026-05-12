@@ -12,16 +12,16 @@ public partial class DTACViewHostViewModel : ObservableObject
 	}
 
 	[ObservableProperty]
-	Mode _TabMode = Mode.Hako;
+	public partial Mode TabMode { get; set; } = Mode.Hako;
 
 	[ObservableProperty]
-	bool _IsVerticalViewMode = false;
+	public partial bool IsVerticalViewMode { get; set; } = false;
 	[ObservableProperty]
-	bool _IsHakoMode = true;
+	public partial bool IsHakoMode { get; set; } = true;
 	[ObservableProperty]
-	bool _IsWorkAffixMode = false;
+	public partial bool IsWorkAffixMode { get; set; } = false;
 	[ObservableProperty]
-	bool _IsViewHostVisible = false;
+	public partial bool IsViewHostVisible { get; set; } = false;
 
 	public DTACViewHostViewModel()
 	{
