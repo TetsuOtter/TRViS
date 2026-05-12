@@ -43,6 +43,13 @@ public partial class VerticalStylePage : ContentView
 	private readonly VerticalStylePagePresenter _presenter;
 	private bool _isTimetableViewBusy = false;
 
+	// Phone-only outer ScrollView wrapper. Captured so the train-data scroll-reset
+	// at OnPresenterStateChanged(All) can scroll the user-facing scrollview back
+	// to top — on phone the inner TimetableAreaScrollView is hidden and resetting
+	// only it leaves the PageHeader (and the 横型時刻表 button) scrolled out of view
+	// after a Work switch when this page instance is reused across navigations.
+	private ScrollView? _phoneOuterScrollView;
+
 	public VerticalStylePage()
 	{
 		logger.Trace("Creating...");
@@ -95,7 +102,7 @@ public partial class VerticalStylePage : ContentView
 		{
 			logger.Info("Device is Phone or Unknown -> make it to fill-scrollable");
 			this.Content.VerticalOptions = LayoutOptions.Start;
-			Content = new ScrollView()
+			_phoneOuterScrollView = new ScrollView()
 			{
 				// Inner TimetableAreaScrollView is hidden on Phone; expose this
 				// outer wrapper under the same id so UI tests can locate the
@@ -103,6 +110,7 @@ public partial class VerticalStylePage : ContentView
 				AutomationId = "DTAC.TimetableScrollView",
 				Content = this.Content,
 			};
+			Content = _phoneOuterScrollView;
 			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);
 		}
 
@@ -321,6 +329,13 @@ public partial class VerticalStylePage : ContentView
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
 				TimetableAreaScrollView.ScrollToAsync(0, 0, false);
+				// On phone the inner TimetableAreaScrollView is hidden behind
+				// _phoneOuterScrollView, which is the actual user-facing scroller.
+				// Reset its position too so a Work switch returns the PageHeader
+				// (and the 横型時刻表 button) to the top of the viewport instead
+				// of inheriting the previous Work's scroll offset on a cached
+				// page instance.
+				_phoneOuterScrollView?.ScrollToAsync(0, 0, false);
 			});
 			TimetableView.ViewModel.SetTrainData(_presenter.CurrentTrainData);
 			DebugMap?.SetTimetableRowList(_presenter.CurrentTrainData?.Rows);
