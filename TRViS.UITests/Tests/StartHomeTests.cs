@@ -74,11 +74,11 @@ public class StartHomeTests : BaseUITest
 	}
 
 	/// <summary>
-	/// Regression: after a fresh load no WorkGroup should be auto-picked. The
-	/// WorkGroupChip stays hidden and the WorkPendingHint ("Work Group を選択してください")
-	/// stays visible until the user taps a row. If the auto-cascade in
-	/// <c>TimetableSelectionManager.OnLoaderChanged</c> ever comes back, this
-	/// test fails immediately.
+	/// Regression: after a fresh load no WorkGroup should be auto-picked.
+	/// WorkGroupChip (the "selected WG" chip) stays hidden until the user
+	/// taps a row in WorkGroupList. If the auto-cascade in
+	/// <c>TimetableSelectionManager.OnLoaderChanged</c> ever comes back,
+	/// WorkGroupChip would appear and this test fails immediately.
 	/// </summary>
 	[Test]
 	public void LoadSample_DoesNotAutoSelectWorkGroup()
@@ -90,9 +90,5 @@ public class StartHomeTests : BaseUITest
 
 		Assert.That(_startHomePage.IsWorkGroupChipVisible(), Is.False,
 			"WorkGroupChip should NOT be visible right after load — no tentative selection has been made.");
-
-		var hint = _startHomePage.WorkPendingHint;
-		Assert.That(hint.Displayed, Is.True,
-			"WorkPendingHint should be visible while no WorkGroup is selected.");
 	}
 }

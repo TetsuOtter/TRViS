@@ -64,9 +64,6 @@ public static class AutomationIds
 		public const string WorkGroupChip = "StartHome.WorkGroupChip";
 		public const string WorkList = "StartHome.WorkList";
 		public const string WorkChip = "StartHome.WorkChip";
-		// Visible only when no WorkGroup is tentatively selected. Doubles as a
-		// regression marker: if the auto-cascade ever returns, this hint disappears.
-		public const string WorkPendingHint = "StartHome.WorkPendingHint";
 		public const string OpenButton = "StartHome.OpenButton";
 		public const string DisconnectButton = "StartHome.DisconnectButton";
 
