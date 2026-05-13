@@ -13,17 +13,17 @@ public partial class EasterEggPageViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	Color _ShellBackgroundColor = Colors.Black;
+	Color _ShellBackgroundColor = Color.FromRgb(0x19, 0x7A, 0x11);
 	public Color ShellBackgroundColor
 	{
 		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
 		get => _ShellBackgroundColor;
 		set
 		{
-			if (SetProperty(ref _ShellBackgroundColor, value))
-			{
-				SetTitleTextColor();
-			}
+			// if (SetProperty(ref _ShellBackgroundColor, value))
+			// {
+			// 	SetTitleTextColor();
+			// }
 		}
 	}
 
@@ -32,7 +32,10 @@ public partial class EasterEggPageViewModel : ObservableObject
 	{
 		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
 		get => _ShellTitleTextColor;
-		set => SetProperty(ref _ShellTitleTextColor, value);
+		set
+		{
+			// SetProperty(ref _ShellTitleTextColor, value);
+		}
 	}
 
 	[ObservableProperty]
@@ -58,7 +61,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
 
 	[ObservableProperty]
-	public partial TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.Normal;
+	public partial TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.X60;
 
 	partial void OnSelectedAppThemeChanged(AppTheme value)
 	{
@@ -175,7 +178,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
 		HorizontalTimetableButtonLabel = settingFile.HorizontalTimetableButtonLabel;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
-		TimeProgressionRate = settingFile.TimeProgressionRate;
+		// TimeProgressionRate = settingFile.TimeProgressionRate;
 
 		MarkerViewModel?.UpdateList(settingFile);
 
