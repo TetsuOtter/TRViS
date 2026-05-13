@@ -43,17 +43,6 @@ public static class MauiProgram
 			.ConfigureMauiHandlers(static handlers =>
 			{
 				handlers.AddHandler<Shell, HideShellTabRenderer>();
-				// iOS 12.x: CollectionViewHandler2 (default in MAUI 10) uses
-				// UICollectionViewCompositionalLayoutConfiguration which requires iOS 13+.
-				// Fall back to the legacy CollectionViewHandler (uses UICollectionViewFlowLayout) on iOS 12.
-				if (!OperatingSystem.IsIOSVersionAtLeast(13))
-				{
-					handlers.AddHandler<CollectionView, Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler>();
-					// MAUI's default ClearButtonVisibility / TextColor mappers both crash
-					// on iOS 12 when an Entry has TextColor + ClearButtonVisibility set
-					// (NRE in GetClearButtonTintImage). Issue #241.
-					iOS12EntryHandlerFix.Apply();
-				}
 			})
 			.UseMauiMaps()
 #endif

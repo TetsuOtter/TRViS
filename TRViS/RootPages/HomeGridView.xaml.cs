@@ -287,35 +287,18 @@ public partial class HomeGridView : Grid
 
 	void RebuildWorkGroupItems()
 	{
-		// See RebuildWorkItems for the iOS 12 detach/reattach rationale.
-		bool detachForIos12CollectionViewCrash =
-#if IOS
-			!OperatingSystem.IsIOSVersionAtLeast(13);
-#else
-			false;
-#endif
-		if (detachForIos12CollectionViewCrash)
-			WorkGroupListView.ItemsSource = null;
-		try
+		_workGroupItems.Clear();
+		var loader = viewModel.Loader;
+		var groups = viewModel.WorkGroupList;
+		EnsureCountCacheLoader(loader);
+		if (loader is not null && groups is not null)
 		{
-			_workGroupItems.Clear();
-			var loader = viewModel.Loader;
-			var groups = viewModel.WorkGroupList;
-			EnsureCountCacheLoader(loader);
-			if (loader is not null && groups is not null)
+			foreach (var wg in groups)
 			{
-				foreach (var wg in groups)
-				{
-					int workCount = GetWorkCountCached(loader, wg.Id);
-					string subtitle = $"Work 数: {workCount}";
-					_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
-				}
+				int workCount = GetWorkCountCached(loader, wg.Id);
+				string subtitle = $"Work 数: {workCount}";
+				_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
 			}
-		}
-		finally
-		{
-			if (detachForIos12CollectionViewCrash)
-				WorkGroupListView.ItemsSource = _workGroupItems;
 		}
 		// Cascade to Work list — runs regardless of loader/groups state so the
 		// Work list mirrors the (possibly cleared) WorkGroup list.
@@ -324,50 +307,26 @@ public partial class HomeGridView : Grid
 
 	void RebuildWorkItems()
 	{
-		// iOS 12: detaching ItemsSource around the mutation forces MAUI to issue
-		// a single ReloadData instead of the per-Add InsertItems calls that
-		// ObservableItemsSource normally emits. The latter path crashes the app
-		// the first time a WorkGroup is picked because WorkListView is
-		// transitioning from IsVisible=false to true, and an InsertItems call
-		// mid-layout-pass triggers UICollectionViewFlowLayout to be invalidated
-		// with a (null) context — iOS 13+ tolerates that, iOS 12 rejects it as
-		// NSInvalidArgumentException. See log 2026-05-11 15:35:39.
-		bool detachForIos12CollectionViewCrash =
-#if IOS
-			!OperatingSystem.IsIOSVersionAtLeast(13);
-#else
-			false;
-#endif
-		if (detachForIos12CollectionViewCrash)
-			WorkListView.ItemsSource = null;
-		try
+		_workItems.Clear();
+		var loader = viewModel.Loader;
+		var wg = _pendingWorkGroup;
+		if (loader is null || wg is null)
+			return;
+		EnsureCountCacheLoader(loader);
+
+		IReadOnlyList<Work> works;
+		try { works = loader.GetWorkList(wg.Id); }
+		catch { works = Array.Empty<Work>(); }
+
+		foreach (var w in works)
 		{
-			_workItems.Clear();
-			var loader = viewModel.Loader;
-			var wg = _pendingWorkGroup;
-			if (loader is null || wg is null)
-				return;
-			EnsureCountCacheLoader(loader);
+			int trainCount = GetTrainCountCached(loader, w.Id);
 
-			IReadOnlyList<Work> works;
-			try { works = loader.GetWorkList(wg.Id); }
-			catch { works = Array.Empty<Work>(); }
-
-			foreach (var w in works)
-			{
-				int trainCount = GetTrainCountCached(loader, w.Id);
-
-				List<string> parts = new(2);
-				if (w.AffectDate is { } d)
-					parts.Add($"施行日: {d:yyyy/MM/dd}");
-				parts.Add($"列車数: {trainCount}");
-				_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
-			}
-		}
-		finally
-		{
-			if (detachForIos12CollectionViewCrash)
-				WorkListView.ItemsSource = _workItems;
+			List<string> parts = new(2);
+			if (w.AffectDate is { } d)
+				parts.Add($"施行日: {d:yyyy/MM/dd}");
+			parts.Add($"列車数: {trainCount}");
+			_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
 		}
 	}
 
