@@ -270,15 +270,22 @@ async def dumpLicenseTextFile(session: ClientSession, targetDir: str, globalPack
     dumpLicenseTextFileFromLicenseFilePath(globalPackagesDir, targetDir, licenseInfo)
 
 def getFrameworkVersion(platform: str) -> str:
+  output_lines: List[str] = []
   with Popen(["dotnet", "list", CSPROJ_PATH, "package"], stdout=PIPE) as p:
     for line in p.stdout.readlines():
       lineStr = line.decode(ENC)
-      frameworkVersionCheckResult = re.search(r"\[net\d+\.\d+-" + platform + r"\d+(.\d)+\]", lineStr)
+      output_lines.append(lineStr.rstrip())
+      frameworkVersionCheckResult = re.search(rf"\[net\d+\.\d+-{platform}(\d+(\.\d+)*)?\]", lineStr)
 
       if not frameworkVersionCheckResult:
         continue
 
       return frameworkVersionCheckResult.group().removeprefix('[').removesuffix(']')
+
+  raise RuntimeError(
+    f"Could not find framework for platform '{platform}' in 'dotnet list package' output.\n"
+    + "\n".join(output_lines)
+  )
 
 async def main(platform: str, targetDir: str) -> int:
   if not exists(targetDir):
