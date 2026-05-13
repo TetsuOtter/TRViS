@@ -33,8 +33,8 @@
 		<NoWarn>$(NoWarn);NU1608</NoWarn>
 		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">false</ValidateXcodeVersion>
 	</PropertyGroup>
-	<!-- iOS/Mac: enable IL trimming on publish to reduce managed-code binary size -->
-	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+	<!-- iOS: enable IL trimming on publish to reduce managed-code binary size -->
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<PublishTrimmed>true</PublishTrimmed>
 		<TrimMode>partial</TrimMode>
 	</PropertyGroup>
