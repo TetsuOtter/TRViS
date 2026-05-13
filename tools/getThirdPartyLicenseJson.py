@@ -275,7 +275,7 @@ def getFrameworkVersion(platform: str) -> str:
     for line in p.stdout.readlines():
       lineStr = line.decode(ENC)
       output_lines.append(lineStr.rstrip())
-      frameworkVersionCheckResult = re.search(r"\[net\d+\.\d+-" + platform + r"(\d+(\.\d+)*)?\]", lineStr)
+      frameworkVersionCheckResult = re.search(rf"\[net\d+\.\d+-{platform}(\d+(\.\d+)*)?\]", lineStr)
 
       if not frameworkVersionCheckResult:
         continue
