@@ -188,6 +188,13 @@ public partial class AppShell : Shell
 			return null;
 	}
 
+	[SupportedOSPlatform("ios")]
+	[UnsupportedOSPlatform("ios15.0")]
+	static UIKit.UIWindow? GetUIWindow()
+	{
+		return UIKit.UIApplication.SharedApplication.Windows.FirstOrDefault();
+	}
+
 	protected override void OnSizeAllocated(double width, double height)
 	{
 		bool isIOS = OperatingSystem.IsIOS();
@@ -208,7 +215,10 @@ public partial class AppShell : Shell
 		// ios15 >= ref: https://zenn.dev/paraches/articles/windows_was_depricated_in_ios15
 		if (UIWindow is null)
 		{
-			UIWindow = GetUIWindowOnIOS13OrLater();
+			UIWindow = OperatingSystem.IsIOSVersionAtLeast(13)
+				? GetUIWindowOnIOS13OrLater()
+				: GetUIWindow()
+			;
 			logger.Info("UIWindow: {0}", UIWindow is null ? "null" : UIWindow.ToString());
 		}
 

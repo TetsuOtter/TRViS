@@ -8,10 +8,16 @@ namespace TRViS.Services;
 /// pdf.js / pdf.worker は base64 で埋め込み、Blob URL 経由で実行させる。
 /// ベクター描画 (SVGGraphics) を採用しており、ピンチズーム時もピクセル化しない。
 /// </summary>
+/// <remarks>
+/// 既定では pdf.js v3 (pdfjs/) を使うが、iOS 12 系 (Safari 12; nullish coalescing 未対応で
+/// v3 を eval できない) では v2.16.105 のレガシービルド (pdfjs/legacy/) にフォールバックする。
+/// </remarks>
 internal static class PdfJsViewerHtmlBuilder
 {
 	private const string ModernMainAssetPath = "pdfjs/pdf.min.js";
 	private const string ModernWorkerAssetPath = "pdfjs/pdf.worker.min.js";
+	private const string LegacyMainAssetPath = "pdfjs/legacy/pdf.min.js";
+	private const string LegacyWorkerAssetPath = "pdfjs/legacy/pdf.worker.min.js";
 
 	private const string MainPlaceholder = "__PDFJS_MAIN_B64__";
 	private const string WorkerPlaceholder = "__PDFJS_WORKER_B64__";
@@ -33,10 +39,20 @@ internal static class PdfJsViewerHtmlBuilder
 		return BuildHtml(pdfBase64, mainB64, workerB64);
 	}
 
+	// iOS 12 系 WebView は nullish coalescing (??) を解釈できないため、現行 (v3) ビルドの
+	// pdf.min.js は eval 時に SyntaxError となり pdfjsLib が定義されない。
+	// iOS 13 以降は Safari 13+ で ?? を含む構文を扱えるので、現行ビルドをそのまま使う。
+	private static bool UseLegacyBuild()
+		=> OperatingSystem.IsIOS() && !OperatingSystem.IsIOSVersionAtLeast(13);
+
 	private static async Task<(string MainBase64, string WorkerBase64)> LoadScriptsAsync()
 	{
-		var mainTask = _assetBase64Cache.GetOrAdd(ModernMainAssetPath, ReadAssetAsBase64Async);
-		var workerTask = _assetBase64Cache.GetOrAdd(ModernWorkerAssetPath, ReadAssetAsBase64Async);
+		bool legacy = UseLegacyBuild();
+		string mainPath = legacy ? LegacyMainAssetPath : ModernMainAssetPath;
+		string workerPath = legacy ? LegacyWorkerAssetPath : ModernWorkerAssetPath;
+
+		var mainTask = _assetBase64Cache.GetOrAdd(mainPath, ReadAssetAsBase64Async);
+		var workerTask = _assetBase64Cache.GetOrAdd(workerPath, ReadAssetAsBase64Async);
 
 		return (await mainTask.ConfigureAwait(false), await workerTask.ConfigureAwait(false));
 	}
