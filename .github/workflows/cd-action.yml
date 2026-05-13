@@ -222,7 +222,7 @@ jobs:
       - name: Prepare Python Package
         run: |
           python --version
-          python -m pip install aiofiles aiohttp
+          python -m pip install aiofiles aiohttp fonttools brotli
       - name: Dump Third Party License Info
         id: dump-third-party-license-info
         continue-on-error: true
@@ -249,6 +249,19 @@ jobs:
           ls -l TRViS/GoogleService-Info.plist
           plutil -lint TRViS/GoogleService-Info.plist
 
+      - name: Subset MaterialIcons font
+        # Reduce MaterialIcons-Regular.ttf (348 KB) to only the 27 codepoints
+        # actually used in XAML/C# source, cutting it to ~15-20 KB.
+        run: |
+          FONT=TRViS/Resources/Fonts/MaterialIcons-Regular.ttf
+          BEFORE=$(du -sk "$FONT" | cut -f1)
+          pyftsubset "$FONT" \
+            --unicodes="E002,E039,E145,E14B,E157,E1DB,E241,E2C4,E2C7,E2C8,E324,E3E7,E5C4,E5CC,E5CD,E5CE,E5CF,E5D2,E5D8,E63E,E86F,E873,E876,E894,E89E,E9A2,EA4B" \
+            --output-file="$FONT" \
+            --no-layout-closure
+          AFTER=$(du -sk "$FONT" | cut -f1)
+          echo "MaterialIcons: ${BEFORE} KB -> ${AFTER} KB (saved $((BEFORE - AFTER)) KB)"
+
       - name: Build
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
@@ -266,6 +279,23 @@ jobs:
           /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_IOS }}"
           /p:CodesignProvision="${{ secrets.CODESIGN_PROVISION_NAME_IOS }}"
           /p:_RequireCodeSigning=true
+
+      - name: Analyze IPA contents
+        run: |
+          mkdir -p /tmp/ipa_analysis
+          cp "${{ env.IPA_PATH }}" /tmp/ipa_analysis/TRViS.zip
+          cd /tmp/ipa_analysis && unzip -q TRViS.zip
+          echo "=== IPA total size ==="
+          du -sh "${{ env.IPA_PATH }}"
+          echo ""
+          echo "=== Top 30 largest files ==="
+          find . -type f -exec du -sk {} \; | sort -rn | head -30
+          echo ""
+          echo "=== Native frameworks (sorted by size) ==="
+          find . -name "*.framework" -type d -exec du -sh {} \; | sort -rh
+          echo ""
+          echo "=== .dylib files ==="
+          find . -name "*.dylib" -type f -exec du -sh {} \; | sort -rh | head -20
 
       - name: Upload IPA
         uses: actions/upload-artifact@v7
@@ -458,7 +488,7 @@ jobs:
       - name: Prepare Python Package
         run: |
           python --version
-          python -m pip install aiofiles aiohttp
+          python -m pip install aiofiles aiohttp fonttools brotli
       - name: Dump Third Party License Info
         id: dump-third-party-license-info
         continue-on-error: true
@@ -476,6 +506,17 @@ jobs:
           ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
       - name: Print Third Party License Info Files
         run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+      - name: Subset MaterialIcons font
+        run: |
+          FONT=TRViS/Resources/Fonts/MaterialIcons-Regular.ttf
+          BEFORE=$(du -sk "$FONT" | cut -f1)
+          pyftsubset "$FONT" \
+            --unicodes="E002,E039,E145,E14B,E157,E1DB,E241,E2C4,E2C7,E2C8,E324,E3E7,E5C4,E5CC,E5CD,E5CE,E5CF,E5D2,E5D8,E63E,E86F,E873,E876,E894,E89E,E9A2,EA4B" \
+            --output-file="$FONT" \
+            --no-layout-closure
+          AFTER=$(du -sk "$FONT" | cut -f1)
+          echo "MaterialIcons: ${BEFORE} KB -> ${AFTER} KB (saved $((BEFORE - AFTER)) KB)"
 
       - name: Build
         run: >
