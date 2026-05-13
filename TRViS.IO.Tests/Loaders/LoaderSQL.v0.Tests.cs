@@ -46,9 +46,9 @@ public class LoaderSQLV0Tests
 	}
 
 	[Test]
-	public void GetTrainData()
+	public async Task GetTrainData()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 		TimetableRow[] emptyArr = Array.Empty<TimetableRow>();
 
 		var all = loader.GetTrainData("1");
@@ -85,61 +85,72 @@ public class LoaderSQLV0Tests
 	}
 
 	[Test]
-	public void GetWorkGroupListTest()
+	public async Task GetWorkGroupListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetWorkGroupList();
 
-		Assert.That(actual, Has.Member(new Models.DB.WorkGroup()
-		{
-			Id = "1",
-			Name = "Group01"
-		}));
+		Assert.That(actual, Has.Member(new WorkGroup(
+			Id: "1",
+			Name: "Group01",
+			DBVersion: 0
+		)));
 	}
 
 	[Test]
-	public void GetWorkListTest()
+	public async Task GetWorkListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetWorkList("1");
 
 		for (int i = 1; i <= 3; i++)
 		{
-			Assert.That(actual, Has.Member(new Models.DB.Work()
-			{
-				Id = i.ToString(),
-				WorkGroupId = "1",
-				Name = $"Work0{i}",
-				AffectDate = "2022-09-15"
-			}));
+			Assert.That(actual, Has.Member(new Work(
+				Id: i.ToString(),
+				WorkGroupId: "1",
+				Name: $"Work0{i}",
+				AffectDate: new DateOnly(2022, 9, 15),
+				AffixContentType: null,
+				AffixContent: null,
+				Remarks: null,
+				HasETrainTimetable: null,
+				ETrainTimetableContentType: null,
+				ETrainTimetableContent: null
+			)));
 		}
 	}
 
 	[Test]
-	public void GetTrainDataListTest()
+	public async Task GetTrainDataListTest()
 	{
-		using LoaderSQL loader = new(DB_FILE_PATH);
+		using LoaderSQL loader = await LoaderSQL.CreateAsync(DB_FILE_PATH);
 
 		var actual = loader.GetTrainDataList("1");
 
-		Assert.That(actual, Has.Member(new Models.DB.TrainData()
-		{
-			Id = "1",
-			WorkId = "1",
-			TrainNumber = "T9910X",
-			MaxSpeed = "95",
-			SpeedType = "高速特定",
-			NominalTractiveCapacity = "E237系\n1M",
-			CarCount = 1,
-			Destination = "行き先",
-			Remarks = "試験用データ",
-			BeginRemarks = "〜試験用データ~",
-			AfterRemarks = "〜試験用データ終わり~",
-			BeforeDeparture = "発前点検300分",
-			TrainInfo = "試験用ダミーデータ",
-			Direction = 1
-		}));
+		Assert.That(actual, Has.Member(new TrainData(
+			Id: "1",
+			Direction: Direction.Outbound,
+			WorkName: null,
+			AffectDate: null,
+			TrainNumber: "T9910X",
+			MaxSpeed: "95",
+			SpeedType: "高速特定",
+			NominalTractiveCapacity: "E237系\n1M",
+			CarCount: 1,
+			Destination: "行き先",
+			BeginRemarks: "〜試験用データ~",
+			AfterRemarks: "〜試験用データ終わり~",
+			Remarks: "試験用データ",
+			BeforeDeparture: "発前点検300分",
+			TrainInfo: "試験用ダミーデータ",
+			Rows: null,
+			AfterArrive: null,
+			DayCount: 0,
+			IsRideOnMoving: null,
+			LineColor_RGB: null,
+			NextTrainId: null
+		)));
 	}
 }

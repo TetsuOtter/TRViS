@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls;
 using TRViS.MyAppCustomizables;
 using TRViS.Services;
 using TRViS.Utils;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.ViewModels;
 
@@ -38,26 +39,29 @@ public partial class EasterEggPageViewModel : ObservableObject
 	}
 
 	[ObservableProperty]
-	int _Color_Red;
+	public partial int Color_Red { get; set; }
 	[ObservableProperty]
-	int _Color_Green;
+	public partial int Color_Green { get; set; }
 	[ObservableProperty]
-	int _Color_Blue;
+	public partial int Color_Blue { get; set; }
 
 	[ObservableProperty]
-	double _LocationServiceInterval_Seconds = 1;
+	public partial double LocationServiceInterval_Seconds { get; set; } = 1;
 
 	[ObservableProperty]
-	bool _ShowMapWhenLandscape = false;
+	public partial bool ShowMapWhenLandscape { get; set; } = false;
 
 	[ObservableProperty]
-	bool _KeepScreenOnWhenRunning = true;
+	public partial bool KeepScreenOnWhenRunning { get; set; } = false;
 
 	[ObservableProperty]
-	AppTheme _SelectedAppTheme = AppTheme.Unspecified;
+	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
 
 	[ObservableProperty]
-	TimeProgressionRate _TimeProgressionRate = TimeProgressionRate.X60;
+	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
+
+	[ObservableProperty]
+	public partial TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.X60;
 
 	partial void OnSelectedAppThemeChanged(AppTheme value)
 	{
@@ -172,6 +176,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		LocationServiceInterval_Seconds = settingFile.LocationServiceInterval_Seconds;
 		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
+		HorizontalTimetableButtonLabel = settingFile.HorizontalTimetableButtonLabel;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
 		// TimeProgressionRate = settingFile.TimeProgressionRate;
 
@@ -203,6 +208,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 			LocationServiceInterval_Seconds = LocationServiceInterval_Seconds,
 			ShowMapWhenLandscape = ShowMapWhenLandscape,
 			KeepScreenOnWhenRunning = KeepScreenOnWhenRunning,
+			HorizontalTimetableButtonLabel = HorizontalTimetableButtonLabel,
 			InitialTheme = SelectedAppTheme,
 			TimeProgressionRate = TimeProgressionRate,
 		};

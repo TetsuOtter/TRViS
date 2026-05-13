@@ -8,16 +8,56 @@ public class LoaderSQL : ILoader, IDisposable
 {
 	SQLiteConnection Connection { get; }
 
-	public LoaderSQL(string path)
+	private LoaderSQL(string path)
 	{
-		Connection = new(path);
+		// ReadOnly: this loader never writes, and the default ReadWrite|Create
+		// silently creates an empty DB if `path` is wrong/inaccessible — the
+		// subsequent table queries would then fail with "no such table" rather
+		// than the clearer "cannot open" the user expects. FullMutex preserves
+		// the thread-safety the default constructor would have given us.
+		Connection = new(path, SQLiteOpenFlags.ReadOnly | SQLiteOpenFlags.FullMutex);
 	}
+
+	public static Task<LoaderSQL> CreateAsync(string path)
+		=> CreateAsync(path, CancellationToken.None);
+	public static Task<LoaderSQL> CreateAsync(string path, CancellationToken token)
+		=> Task.Run(() => new LoaderSQL(path), token);
 
 	static TimeData? GetTimeData(int? hh, int? mm, int? ss, string? str)
 		=> hh is null && mm is null && ss is null && string.IsNullOrEmpty(str) ? null : new(hh, mm, ss, str);
 
+	private bool HasColorTable()
+	{
+		try
+		{
+			var result = Connection.ExecuteScalar<int>("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Color' LIMIT 1");
+			return result > 0;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	private bool? _hasColorTableCache;
+
 	public TrainData? GetTrainData(string trainId)
-		=> (from t in Connection.Table<Models.DB.TrainData>()
+	{
+		_hasColorTableCache ??= HasColorTable();
+
+		if (_hasColorTableCache.Value)
+		{
+			return GetTrainDataWithColor(trainId);
+		}
+		else
+		{
+			return GetTrainDataWithoutColor(trainId);
+		}
+	}
+
+	private TrainData? GetTrainDataWithColor(string trainId)
+	{
+		return (from t in Connection.Table<Models.DB.TrainData>()
 				where t.Id == trainId
 				join w in Connection.Table<Models.DB.Work>()
 				on t.WorkId equals w.Id
@@ -68,7 +108,7 @@ public class LoaderSQL : ILoader, IDisposable
 
 							IsInfoRow: s.RecordType
 								is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
-								or (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain,
+								or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
 
 							DefaultMarkerColor_RGB: cj?.RGB,
 							DefaultMarkerText: r.MarkerText
@@ -84,6 +124,75 @@ public class LoaderSQL : ILoader, IDisposable
 					LineColor_RGB: null
 					)
 				).FirstOrDefault();
+	}
+
+	private TrainData? GetTrainDataWithoutColor(string trainId)
+	{
+		return (from t in Connection.Table<Models.DB.TrainData>()
+				where t.Id == trainId
+				join w in Connection.Table<Models.DB.Work>()
+				on t.WorkId equals w.Id
+				select new TrainData(
+					Id: t.Id.ToString(),
+					Direction: DirectionExtensions.FromInt(t.Direction),
+					WorkName: w.Name,
+					AffectDate: Utils.StringToDateOnlyOrNull(w.AffectDate),
+					TrainNumber: t.TrainNumber,
+					MaxSpeed: t.MaxSpeed,
+					SpeedType: t.SpeedType,
+					NominalTractiveCapacity: t.NominalTractiveCapacity,
+					CarCount: t.CarCount,
+					Destination: t.Destination,
+					BeginRemarks: t.BeginRemarks,
+					AfterRemarks: t.AfterRemarks,
+					Remarks: t.Remarks,
+					BeforeDeparture: t.BeforeDeparture,
+					TrainInfo: t.TrainInfo,
+					(
+						from r in Connection.Table<Models.DB.TimetableRowData>()
+						where r.TrainId == trainId
+						join s in Connection.Table<Models.DB.Station>()
+						on r.StationId equals s.Id
+						join n in Connection.Table<Models.DB.StationTrack>()
+						on r.StationTrackId equals n.Id into track
+						from tj in track.DefaultIfEmpty()
+						orderby t.Direction >= 0 ? s.Location : (s.Location * -1)
+						select new TimetableRow(
+							Id: r.Id.ToString(),
+							Location: new(s.Location, s.Location_Lon_deg, s.Location_Lat_deg, s.OnStationDetectRadius_m),
+							DriveTimeMM: r.DriveTime_MM,
+							DriveTimeSS: r.DriveTime_SS,
+							StationName: s.Name,
+							IsOperationOnlyStop: r.IsOperationOnlyStop ?? false,
+							IsPass: r.IsPass ?? false,
+							HasBracket: r.HasBracket ?? false,
+							IsLastStop: r.IsLastStop ?? false,
+							ArriveTime: GetTimeData(r.Arrive_HH, r.Arrive_MM, r.Arrive_SS, r.Arrive_Str),
+							DepartureTime: GetTimeData(r.Departure_HH, r.Departure_MM, r.Departure_SS, r.Departure_Str),
+							TrackName: tj?.Name,
+							RunInLimit: r.RunInLimit,
+							RunOutLimit: r.RunOutLimit,
+							Remarks: r.Remarks,
+
+							IsInfoRow: s.RecordType
+								is (int)Models.DB.StationRecordType.InfoRow_ForAlmostTrain
+								or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
+
+							DefaultMarkerColor_RGB: null,
+							DefaultMarkerText: null
+						)
+					).ToArray(),
+					AfterArrive: t.AfterArrive,
+					// BeforeDepartureOnStationTrackCol: t.BeforeDeparture_OnStationTrackCol,
+					// AfterArriveOnStationTrackCol: t.AfterArrive_OnStationTrackCol,
+					DayCount: t.DayCount ?? 0,
+					IsRideOnMoving: t.IsRideOnMoving,
+
+					// TODO: E電時刻表用の線色設定のサポート
+					LineColor_RGB: null
+					)
+				).FirstOrDefault();
+	}
 
 	public IReadOnlyList<WorkGroup> GetWorkGroupList()
 		=> Connection.Table<Models.DB.WorkGroup>().Select(v => new WorkGroup(
@@ -93,19 +202,28 @@ public class LoaderSQL : ILoader, IDisposable
 		)).ToList();
 
 	public IReadOnlyList<Work> GetWorkList(string workGroupId)
-		=> Connection.Table<Models.DB.Work>().Where(v => v.WorkGroupId == workGroupId).Select(v => new Work(
-			v.Id,
-			v.WorkGroupId,
-			v.Name,
-			Utils.StringToDateOnlyOrNull(v.AffectDate),
+		=> Connection.Table<Models.DB.Work>().Where(v => v.WorkGroupId == workGroupId).Select(v =>
+		{
+			DateOnly? affectDate = Utils.StringToDateOnlyOrNull(v.AffectDate);
+			// 日付として解釈できない任意の文字列は AffectDateText に格納する
+			string? affectDateText = (affectDate is null && !string.IsNullOrEmpty(v.AffectDate))
+				? v.AffectDate
+				: null;
+			return new Work(
+				v.Id,
+				v.WorkGroupId,
+				v.Name,
+				affectDate,
 
-			v.AffixContentType,
-			v.AffixContent,
-			v.Remarks,
-			v.HasETrainTimetable,
-			v.ETrainTimetableContentType,
-			v.ETrainTimetableContent
-		)).ToList();
+				v.AffixContentType,
+				v.AffixContent,
+				v.Remarks,
+				v.HasETrainTimetable,
+				v.ETrainTimetableContentType,
+				v.ETrainTimetableContent,
+				AffectDateText: affectDateText
+			);
+		}).ToList();
 
 	public IReadOnlyList<TrainData> GetTrainDataList(string workId)
 		=> Connection.Table<Models.DB.TrainData>().Where(v => v.WorkId == workId).Select(v => new TrainData(

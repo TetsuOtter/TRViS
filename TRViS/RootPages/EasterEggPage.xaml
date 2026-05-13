@@ -64,9 +64,11 @@
 			<HorizontalStackLayout
 				HorizontalOptions="End">
 				<Button
+					AutomationId="Settings.ReloadSavedButton"
 					Text="Reload Saved"
 					Clicked="OnReloadSavedClicked"/>
 				<Button
+					AutomationId="Settings.SaveButton"
 					Text="Save"
 					Clicked="OnSaveClicked"/>
 			</HorizontalStackLayout>
@@ -170,6 +172,24 @@
 							OnColor="GreenYellow"
 							VerticalOptions="Center"
 							IsToggled="{Binding KeepScreenOnWhenRunning}"/>
+					</HorizontalStackLayout>
+					<HorizontalStackLayout
+						HorizontalOptions="End"
+						Spacing="8">
+						<Label
+							Text="横型時刻表ボタンの表示名"
+							VerticalOptions="Center"/>
+						<Picker
+							x:Name="HorizontalTimetableButtonLabelPicker"
+							AutomationId="Settings.HorizontalTimetableButtonLabelPicker"
+							VerticalOptions="Center"
+							SelectedIndexChanged="OnHorizontalTimetableButtonLabelPickerSelectedIndexChanged">
+							<Picker.Items>
+								<x:String>横型時刻表</x:String>
+								<x:String>電車時刻表</x:String>
+								<x:String>Ｅ電時刻表</x:String>
+							</Picker.Items>
+						</Picker>
 					</HorizontalStackLayout>
 				</VerticalStackLayout>
 			</Border>

@@ -85,7 +85,7 @@ public class LoaderJsonTests
 			// Assert.That(actual[0].WorkId, Is.EqualTo(workId));
 			Assert.That(actual[0].TrainNumber, Is.EqualTo("WG01-W01-Train01"));
 			Assert.That(actual[0].Direction, Is.EqualTo(Direction.Outbound));
-			Assert.That(actual[0].LineColor_RGB, Is.Null);
+			Assert.That(actual[0].LineColor_RGB, Is.EqualTo(0x2255BB));
 			Assert.That(actual[0].TrainInfo, Is.EqualTo("列車情報 (列車名など)"));
 			Assert.That(actual[0].Destination, Is.EqualTo("終着駅"));
 			Assert.That(actual[0].CarCount, Is.EqualTo(10));
@@ -183,6 +183,52 @@ public class LoaderJsonTests
 
 			Assert.That(rows2[2].DefaultMarkerColor_RGB, Is.Null);
 			Assert.That(rows2[2].DefaultMarkerText, Is.Null);
+		});
+	}
+
+	[Test]
+	public async Task ETrainTimetableContent_Base64Decoded()
+	{
+		// JSON 上の ETrainTimetableContent は base64 文字列として与えられ、
+		// Models.Work.ETrainTimetableContent では byte[] にデコードされて格納されること。
+		const string base64 = "aGVsbG8="; // "hello"
+		string json = $$"""
+		[
+			{
+				"Id": "g",
+				"Name": "G",
+				"Works": [
+					{
+						"Id": "w-bytes",
+						"Name": "W-bytes",
+						"HasETrainTimetable": true,
+						"ETrainTimetableContentType": 2,
+						"ETrainTimetableContent": "{{base64}}",
+						"Trains": []
+					},
+					{
+						"Id": "w-empty",
+						"Name": "W-empty",
+						"HasETrainTimetable": false,
+						"ETrainTimetableContent": "",
+						"Trains": []
+					}
+				]
+			}
+		]
+		""";
+		using var ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+		using var l = await LoaderJson.InitFromStreamAsync(ms, CancellationToken.None);
+
+		var works = l.GetWorkList(l.GetWorkGroupList()[0].Id);
+		var withBytes = works.First(w => w.Id == "w-bytes");
+		var emptyContent = works.First(w => w.Id == "w-empty");
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(withBytes.ETrainTimetableContent, Is.EqualTo(new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F }));
+			Assert.That(withBytes.ETrainTimetableContentType, Is.EqualTo(2));
+			Assert.That(emptyContent.ETrainTimetableContent, Is.Null);
 		});
 	}
 }

@@ -1,0 +1,373 @@
+using Microsoft.Maui.Controls.PlatformConfiguration;
+using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
+using Microsoft.Maui.Controls.Shapes;
+
+using TRViS.IO.RequestInfo;
+using TRViS.Services;
+using TRViS.Utils;
+
+using IOSPage = Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific.Page;
+
+namespace TRViS.RootPages;
+
+/// <summary>
+/// Modal page used by Start/Home → "サーバーから読み込み". Two-state UI: a
+/// rich-card history list (one card per past URL) and a new-connection
+/// form with a "接続先を保存する" toggle that gates whether the URL is
+/// added to <see cref="ViewModels.AppViewModel.ExternalResourceUrlHistory"/>.
+/// </summary>
+public partial class ConnectServerDialog : ContentPage
+{
+	internal const string AutomationId_HistoryItemPrefix = "ConnectServer.HistoryItem.";
+
+	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+
+	// Re-entrancy guard for history-card taps. SetInputEnabled disables the
+	// form Buttons but the TapGestureRecognizer on each history Border stays
+	// live — a second tap during an in-flight load could queue a duplicate
+	// HandleAppLinkUriAsync, race on viewModel.SetLoader, and PopModalAsync
+	// after the page is already disposed.
+	private bool _isBusy;
+
+	// Cancels any in-flight HandleAppLinkUriAsync when the page disappears
+	// (modal swipe-dismiss on iOS, hardware back on Android, OS-level
+	// dismissal). Without this, a connect started mid-flight would still
+	// resolve and call SetLoader on a dismissed page, surprising the user
+	// with an AppViewModel change after they intended to bail out.
+	private CancellationTokenSource _cts = new();
+
+	public ConnectServerDialog()
+	{
+		logger.Trace("Creating");
+		InitializeComponent();
+
+		// iPad / Mac Catalyst: present as a centered FormSheet so a few-line URL
+		// form doesn't take the whole screen. iPhone falls back to fullscreen
+		// automatically because UIKit ignores FormSheet on compact widths.
+		IOSPage.SetModalPresentationStyle(this.On<iOS>(), UIModalPresentationStyle.FormSheet);
+
+		// Set initial sub-view visibility BEFORE first paint based on whether the
+		// app already has URL history. Both views default IsVisible=true in XAML
+		// (so each gets a UIA peer on Windows, where IsVisible='False' XAML
+		// defaults skip peer creation and miss the runtime flip), but they
+		// occupy the same Grid.Row and would visually overlap if both stayed
+		// visible. Hiding the inactive one synchronously from the constructor
+		// avoids any first-paint frame where both render simultaneously.
+		PopulateHistory();
+	}
+
+	protected override void OnAppearing()
+	{
+		base.OnAppearing();
+		// Re-populate on each appearance so a re-show after preferences changed
+		// (e.g., user added a URL elsewhere) reflects the latest history.
+		PopulateHistory();
+
+		// If the dialog was previously dismissed and is now being shown again
+		// (rare but supported by Navigation), the CTS from the prior session
+		// is already cancelled — replace it so new loads aren't immediately
+		// cancelled.
+		if (_cts.IsCancellationRequested)
+		{
+			_cts.Dispose();
+			_cts = new();
+		}
+	}
+
+	protected override void OnDisappearing()
+	{
+		base.OnDisappearing();
+		// Cancel any in-flight load. The token is wired into HandleAppLinkUriAsync,
+		// which checks ThrowIfCancellationRequested at several await points and
+		// catches OperationCanceledException internally to return false cleanly.
+		_cts.Cancel();
+	}
+
+	void PopulateHistory()
+	{
+		var urls = InstanceManager.AppViewModel.ExternalResourceUrlHistory.Reverse().ToList();
+
+		HistoryListContainer.Children.Clear();
+
+		if (urls.Count == 0)
+		{
+			// No history -> jump straight to the new-connection form. The
+			// "+ 新規接続" / back-to-history affordances stay hidden so the
+			// dialog reads as a single-purpose form.
+			ShowNewConnectionView(showBackButton: false);
+			NewConnectionButton.IsVisible = false;
+			return;
+		}
+
+		foreach (string url in urls)
+		{
+			HistoryListContainer.Children.Add(CreateHistoryCard(url));
+		}
+
+		ShowHistoryView();
+	}
+
+	View CreateHistoryCard(string url)
+	{
+		// Parse the scheme so we can show a Material icon + host as the primary
+		// line. Falls back to the raw URL if parsing fails (defensive: a
+		// malformed stored entry shouldn't crash the dialog).
+		string glyph;
+		string title;
+		// UriKind.Absolute so a malformed stored entry actually trips the catch;
+		// the previous RelativeOrAbsolute swallowed everything (catch was dead code).
+		try
+		{
+			Uri uri = new(url, UriKind.Absolute);
+			string scheme = uri.Scheme;
+			glyph = scheme switch
+			{
+				"https" or "http" => MaterialIcons.Language,
+				"wss" or "ws" => MaterialIcons.FlashOn,
+				"trvis" => MaterialIcons.PhoneIphone,
+				_ => MaterialIcons.Link,
+			};
+			title = !string.IsNullOrEmpty(uri.Host) ? uri.Host : url;
+		}
+		catch
+		{
+			glyph = MaterialIcons.Link;
+			title = url;
+		}
+
+		var border = new Border
+		{
+			Style = (Style)Resources["HistoryCard"],
+			AutomationId = AutomationId_HistoryItemPrefix + url,
+			StrokeShape = new RoundRectangle { CornerRadius = 8 },
+		};
+
+		var grid = new Grid
+		{
+			ColumnDefinitions =
+			{
+				new ColumnDefinition { Width = GridLength.Auto },
+				new ColumnDefinition { Width = GridLength.Star },
+			},
+			ColumnSpacing = 12,
+			RowDefinitions =
+			{
+				new RowDefinition { Height = GridLength.Auto },
+				new RowDefinition { Height = GridLength.Auto },
+			},
+		};
+
+		var glyphLabel = new Label
+		{
+			Text = glyph,
+			FontFamily = "MaterialIconsRegular",
+			FontSize = 28,
+			VerticalOptions = LayoutOptions.Center,
+		};
+		RootStyles.TableTextColor.Apply(glyphLabel, Label.TextColorProperty);
+		Grid.SetColumn(glyphLabel, 0);
+		Grid.SetRowSpan(glyphLabel, 2);
+		grid.Children.Add(glyphLabel);
+
+		var titleLabel = new Label
+		{
+			Text = title,
+			FontSize = 15,
+			FontAttributes = FontAttributes.Bold,
+			LineBreakMode = LineBreakMode.TailTruncation,
+		};
+		RootStyles.TableTextColor.Apply(titleLabel, Label.TextColorProperty);
+		Grid.SetColumn(titleLabel, 1);
+		Grid.SetRow(titleLabel, 0);
+		grid.Children.Add(titleLabel);
+
+		var subtitleLabel = new Label
+		{
+			Text = url,
+			FontSize = 12,
+			LineBreakMode = LineBreakMode.TailTruncation,
+		};
+		RootStyles.TableDetailColor.Apply(subtitleLabel, Label.TextColorProperty);
+		Grid.SetColumn(subtitleLabel, 1);
+		Grid.SetRow(subtitleLabel, 1);
+		grid.Children.Add(subtitleLabel);
+
+		border.Content = grid;
+
+		// Card-tap loads directly. No shared Entry to populate, so this
+		// avoids the SelectionChanged↔TextChanged re-entrancy that the
+		// legacy popup had to guard against.
+		var tap = new TapGestureRecognizer();
+		tap.Tapped += async (_, __) => await LoadFromHistoryAsync(url);
+		border.GestureRecognizers.Add(tap);
+
+		return border;
+	}
+
+	void ShowHistoryView()
+	{
+		HistoryView.IsVisible = true;
+		NewConnectionView.IsVisible = false;
+		NewConnectionButton.IsVisible = true;
+	}
+
+	void ShowNewConnectionView(bool showBackButton)
+	{
+		HistoryView.IsVisible = false;
+		NewConnectionView.IsVisible = true;
+		NewConnectionButton.IsVisible = false;
+		BackToHistoryButton.IsVisible = showBackButton;
+	}
+
+	void SetInputEnabled(bool isEnabled)
+	{
+		_isBusy = !isEnabled;
+		UrlInput.IsEnabled = isEnabled;
+		ConnectButton.IsEnabled = isEnabled;
+		SaveConnectionSwitch.IsEnabled = isEnabled;
+		NewConnectionButton.IsEnabled = isEnabled;
+		BackToHistoryButton.IsEnabled = isEnabled;
+		// Disable the X button during a load so the user can't tap it mid-flight.
+		// OS-level dismiss paths (iOS swipe-down on FormSheet, Android hardware
+		// back) still fire OnDisappearing → CTS.Cancel, so users aren't trapped.
+		CloseButton.IsEnabled = isEnabled;
+		LoadingIndicator.IsRunning = !isEnabled;
+		LoadingIndicator.IsVisible = !isEnabled;
+	}
+
+	async Task LoadFromHistoryAsync(string url)
+	{
+		if (_isBusy)
+			return;
+		logger.Info("Loading from history: {0}", url);
+		try
+		{
+			SetInputEnabled(false);
+			// History tap always re-saves (bumps to top). The "save connection"
+			// toggle is a property of the new-connection form only — toggling
+			// it during a history tap could let users accidentally remove
+			// already-saved entries, which the spec does not call for.
+			bool ok = await TryLoadAsync(url, addToHistory: true);
+			if (ok)
+				await Navigation.PopModalAsync();
+		}
+		finally
+		{
+			SetInputEnabled(true);
+		}
+	}
+
+	async Task<bool> TryLoadAsync(string urlText, bool addToHistory)
+	{
+		CancellationToken token = _cts.Token;
+		try
+		{
+			if (string.IsNullOrWhiteSpace(urlText))
+			{
+				await Util.DisplayAlertAsync("接続できませんでした", "URLを入力してください。", "OK");
+				return false;
+			}
+
+			if (urlText.StartsWith("trvis://"))
+			{
+				return await InstanceManager.AppViewModel.HandleAppLinkUriAsync(urlText, addToHistory, token);
+			}
+
+			AppLinkInfo appLinkInfo = new(
+				AppLinkInfo.FileType.Json,
+				Version: new(1, 0),
+				ResourceUri: new(urlText)
+			);
+			// Pass urlText as originalAppLink so the WebSocket branch (ws:// / wss://)
+			// can persist it to history — without it, HandleWebSocketAppLinkAsync skips
+			// the history write because the constructed AppLinkInfo doesn't retain
+			// the originating URL form.
+			return await InstanceManager.AppViewModel.HandleAppLinkUriAsync(appLinkInfo, urlText, addToHistory, token);
+		}
+		catch (OperationCanceledException) when (token.IsCancellationRequested)
+		{
+			// User dismissed the dialog while the connect was in flight. Don't
+			// show an alert on a page that's being torn down.
+			logger.Debug("TryLoadAsync cancelled by dialog dismissal");
+			return false;
+		}
+		catch (UriFormatException ex)
+		{
+			logger.Warn(ex, "Invalid URL: {0}", urlText);
+			await Util.DisplayAlertAsync("接続できませんでした", "URLの形式が正しくありません。", "OK");
+			return false;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TryLoadAsync failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ConnectServerDialog.TryLoadAsync");
+			// HandleAppLinkUriAsync owns most user-facing alerts (Cannot Open File,
+			// Timeout, etc.) — but a fall-through exception (e.g. unexpected
+			// HttpRequestException, generic IO failure) reaches us with the
+			// spinner still spinning and no feedback. Tell the user something
+			// went wrong instead of silently re-enabling input.
+			await Util.DisplayAlertAsync("接続できませんでした", $"読み込みに失敗しました: {ex.Message}", "OK");
+			return false;
+		}
+	}
+
+	// ----- Event handlers -----
+
+	async void OnCloseClicked(object sender, EventArgs e)
+	{
+		logger.Trace("Close clicked");
+		try
+		{
+			await Navigation.PopModalAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "PopModalAsync failed");
+		}
+	}
+
+	void OnNewConnectionClicked(object sender, EventArgs e)
+	{
+		logger.Trace("New connection clicked");
+		// Show back button only when there's history to go back to.
+		bool hasHistory = HistoryListContainer.Children.Count > 0;
+		ShowNewConnectionView(showBackButton: hasHistory);
+	}
+
+	void OnBackToHistoryClicked(object sender, EventArgs e)
+	{
+		logger.Trace("Back to history clicked");
+		ShowHistoryView();
+	}
+
+	async void OnUrlInputCompleted(object sender, EventArgs e)
+	{
+		await SubmitNewConnectionAsync();
+	}
+
+	async void OnConnectClicked(object sender, EventArgs e)
+	{
+		await SubmitNewConnectionAsync();
+	}
+
+	async Task SubmitNewConnectionAsync()
+	{
+		// Trim before submit: clipboard paste on mobile commonly carries a leading/trailing
+		// whitespace which makes new Uri(...) throw UriFormatException.
+		string urlText = (UrlInput.Text ?? string.Empty).Trim();
+		bool addToHistory = SaveConnectionSwitch.IsToggled;
+		logger.Info("Connect clicked: addToHistory={0}", addToHistory);
+
+		try
+		{
+			SetInputEnabled(false);
+			bool ok = await TryLoadAsync(urlText, addToHistory);
+			if (ok)
+				await Navigation.PopModalAsync();
+		}
+		finally
+		{
+			SetInputEnabled(true);
+		}
+	}
+}

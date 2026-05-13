@@ -17,6 +17,8 @@ public partial class OpenCloseButton : Button
 	{
 		logger.Trace("Creating...");
 
+		AutomationId = "DTAC.OpenCloseButton";
+
 		Text = IsOpen ? TextWhenOpen : TextWhenClosed;
 		CornerRadius = 4;
 		Padding = 0;
@@ -51,7 +53,7 @@ public partial class OpenCloseButton : Button
 		catch (Exception ex)
 		{
 			logger.Fatal(ex, "Unknown Exception");
-			InstanceManager.CrashlyticsWrapper.Log(ex, "OpenCloseButton.OnIsOpenChanged");
+			Adapters.PresenterFactory.GetCrashLogger().Log(ex, "OpenCloseButton.OnIsOpenChanged");
 			Util.ExitWithAlertAsync(ex);
 		}
 	}

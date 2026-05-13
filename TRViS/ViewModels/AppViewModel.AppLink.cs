@@ -24,8 +24,42 @@ public partial class AppViewModel
 	private readonly List<string> _ExternalResourceUrlHistory;
 	public IReadOnlyList<string> ExternalResourceUrlHistory => _ExternalResourceUrlHistory;
 
-	public async Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
+	public Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
+		=> HandleAppLinkUriAsync(uri, addToHistory: true, token);
+
+	/// <summary>
+	/// <paramref name="addToHistory"/> controls whether a successful load is
+	/// added to <see cref="ExternalResourceUrlHistory"/>. Default <c>true</c>
+	/// preserves OS-deeplink / App.xaml.cs entry points; the in-app
+	/// "Connect to Server" dialog passes <c>false</c> when the user
+	/// unticks "接続先を保存する".
+	/// </summary>
+	public async Task<bool> HandleAppLinkUriAsync(string uri, bool addToHistory, CancellationToken token)
 	{
+#if UI_TEST
+		// Test-only: seed the URL history list so UI tests can exercise the
+		// "tap a history item" flow without standing up a real HTTP server.
+		// Format: trvis://_test/seed-url-history?urls=<url1>|<url2>|...
+		// The "|" separator avoids URL-encoding ambiguity with comma in URIs.
+		// Guarded by #if UI_TEST so this only ships in CI test builds.
+		const string TestSeedHistoryPrefix = "trvis://_test/seed-url-history";
+		if (uri.StartsWith(TestSeedHistoryPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestSeedUrlHistory(uri);
+			return true;
+		}
+
+		// Test-only: push a GPS coord into LocationService so UI tests can
+		// exercise the GPS-driven auto-scroll path without CoreLocation/permissions.
+		// Format: trvis://_test/set-gps-location?lon=<num>&lat=<num>[&acc=<num>]
+		const string TestSetGpsLocationPrefix = "trvis://_test/set-gps-location";
+		if (uri.StartsWith(TestSetGpsLocationPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestSetGpsLocation(uri);
+			return true;
+		}
+#endif
+
 		AppLinkInfo appLinkInfo;
 		try
 		{
@@ -60,15 +94,43 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
-		return await HandleAppLinkUriAsync(appLinkInfo, uri, token);
+		return await HandleAppLinkUriAsync(appLinkInfo, uri, addToHistory, token);
 	}
-	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
-		=> await HandleAppLinkUriAsync(appLinkInfo, null, token);
+	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
+		=> HandleAppLinkUriAsync(appLinkInfo, addToHistory: true, token);
+	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, bool addToHistory, CancellationToken token)
+		=> HandleAppLinkUriAsync(appLinkInfo, null, addToHistory, token);
 
-	private async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
+	/// <summary>
+	/// <paramref name="originalAppLink"/> is the raw URL string the user/system supplied
+	/// before it was parsed into <see cref="AppLinkInfo"/>. The WebSocket branch only adds
+	/// to <see cref="ExternalResourceUrlHistory"/> when this is non-null, because the
+	/// constructed <see cref="AppLinkInfo"/> does not retain the originating URL form.
+	/// Callers that build an <see cref="AppLinkInfo"/> directly (e.g. ConnectServerDialog
+	/// for raw <c>ws://</c> / <c>wss://</c> entries) must pass the original text here so
+	/// history persistence works for the WebSocket path.
+	/// </summary>
+	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
 	{
 		string? decodedUrl = null;
 		string? appLinkString = originalAppLink;
+
+		// `local=` AppLink: file lives inside the app's TimetableFileDirectory.
+		// Resolve to an absolute file path here (where we know the directory),
+		// reject anything that escapes it, then rewrite to a file:// ResourceUri
+		// so the rest of the pipeline treats it like a normal local file.
+		// No privacy-policy gate or confirmation prompt: the user explicitly
+		// invoked this AppLink for a file already on their device.
+		if (appLinkInfo.LocalPath is not null)
+		{
+			if (!TryResolveLocalTimetablePath(appLinkInfo.LocalPath, out string? resolvedPath, out string? errorMessage))
+			{
+				logger.Warn("LocalPath rejected: {0} (input: {1})", errorMessage, appLinkInfo.LocalPath);
+				await Util.DisplayAlertAsync("Cannot Open File", errorMessage ?? "LocalPath is invalid", "OK");
+				return false;
+			}
+			appLinkInfo = appLinkInfo with { ResourceUri = new Uri(resolvedPath!), LocalPath = null };
+		}
 
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
 		{
@@ -81,7 +143,7 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "ws" or "wss")
 		{
 			logger.Info("ResourceUri is WebSocket -> Connect to NetworkSyncService directly");
-			return await HandleWebSocketAppLinkAsync(appLinkInfo, appLinkString, token);
+			return await HandleWebSocketAppLinkAsync(appLinkInfo, appLinkString, addToHistory, token);
 		}
 
 		OpenFile openFile = new(InstanceManager.HttpClient)
@@ -124,13 +186,13 @@ public partial class AppViewModel
 		}
 
 		ILoader? lastLoader = this.Loader;
-		this.Loader = loader;
+		this.SetLoader(loader, decodedUrl ?? appLinkInfo.ResourceUri?.ToString() ?? appLinkString);
 		logger.Info("Loader Initialized");
 		lastLoader?.Dispose();
 		logger.Debug("Last Loader Disposed");
 
 		// 履歴に追加（HTTPSのURLまたはAppLink）
-		string? historyEntry = decodedUrl ?? appLinkString;
+		string? historyEntry = addToHistory ? (decodedUrl ?? appLinkString) : null;
 		if (historyEntry is not null)
 		{
 			// pathがListに存在しない場合は、Removeは何も実行されずに終了する
@@ -185,7 +247,7 @@ public partial class AppViewModel
 		return true;
 	}
 
-	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, CancellationToken token)
+	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
 	{
 		if (appLinkInfo.ResourceUri is null)
 		{
@@ -208,15 +270,15 @@ public partial class AppViewModel
 			WebSocketNetworkSyncService service = await openFile.OpenWebSocketAppLinkAsync(appLinkInfo, token);
 
 			ILoader? lastLoader = this.Loader;
-			this.Loader = service;
+			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
 			logger.Info("Loader Initialized from WebSocket");
 			lastLoader?.Dispose();
 			logger.Debug("Last Loader Disposed");
 
-			await InstanceManager.LocationService.SetNetworkSyncServiceAsync(service);
+			InstanceManager.LocationService.SetNetworkSyncService(service);
 
 			// WebSocketのAppLinkを履歴に追加
-			if (originalAppLink is not null)
+			if (addToHistory && originalAppLink is not null)
 			{
 				_ExternalResourceUrlHistory.Remove(originalAppLink);
 				if (EXTERNAL_RESOURCE_URL_HISTORY_MAX <= _ExternalResourceUrlHistory.Count)
@@ -260,6 +322,48 @@ public partial class AppViewModel
 			{
 				await Util.DisplayAlertAsync("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
 			}
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Resolve a `local=` AppLink path against <see cref="DirectoryPathProvider.TimetableFileDirectory"/>.
+	/// AppLinkInfo has already done the syntactic checks (no `..`, `/`, `\`,
+	/// drive letters, invalid filename chars). This is the *semantic* check —
+	/// it canonicalises the path and verifies the result still lives under the
+	/// expected base directory. (Symlinks would bypass this; the app does not
+	/// create symlinks in TimetableFileDirectory so we accept that gap.)
+	/// </summary>
+	private static bool TryResolveLocalTimetablePath(string localPath, out string? resolvedPath, out string? errorMessage)
+	{
+		resolvedPath = null;
+		errorMessage = null;
+		try
+		{
+			string baseDir = Path.GetFullPath(DirectoryPathProvider.TimetableFileDirectory.FullName);
+			string baseDirWithSep = baseDir.EndsWith(Path.DirectorySeparatorChar)
+				? baseDir
+				: baseDir + Path.DirectorySeparatorChar;
+
+			string candidate = Path.GetFullPath(Path.Combine(baseDir, localPath));
+			if (!candidate.StartsWith(baseDirWithSep, StringComparison.Ordinal))
+			{
+				errorMessage = "指定されたファイルは時刻表フォルダの外にあります。";
+				return false;
+			}
+
+			if (!File.Exists(candidate))
+			{
+				errorMessage = $"ファイルが見つかりません: {localPath}";
+				return false;
+			}
+
+			resolvedPath = candidate;
+			return true;
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"ファイルパスの解決に失敗しました: {ex.Message}";
 			return false;
 		}
 	}
@@ -386,5 +490,128 @@ public partial class AppViewModel
 		byte[] localNetworkAddress = localIp.Select((x, i) => (byte)(x & subnetMask[i])).ToArray();
 		return remoteNetworkAddress.SequenceEqual(localNetworkAddress);
 	}
+
+#if UI_TEST
+	/// <summary>
+	/// Test-only seed for ExternalResourceUrlHistory. Invoked when a UI test
+	/// passes a "trvis://_test/seed-url-history?urls=a|b|c" deeplink through
+	/// the LoadFromWeb popup. Adds the URLs to history and persists, mimicking
+	/// what HandleAppLinkUriAsync does on a successful load.
+	/// </summary>
+	private void HandleTestSeedUrlHistory(string uri)
+	{
+		logger.Info("Test seed URL history invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		if (qIndex < 0)
+		{
+			logger.Warn("Test seed URL history: no query string");
+			return;
+		}
+
+		var query = HttpUtility.ParseQueryString(uri.Substring(qIndex + 1));
+		string? urlsRaw = query["urls"];
+		if (string.IsNullOrEmpty(urlsRaw))
+		{
+			logger.Warn("Test seed URL history: 'urls' parameter missing");
+			return;
+		}
+
+		// "|" separator chosen because it does not require percent-encoding
+		// inside a query value and won't conflict with URL chars in entries.
+		string[] urls = urlsRaw.Split('|', StringSplitOptions.RemoveEmptyEntries);
+		foreach (string url in urls)
+		{
+			_ExternalResourceUrlHistory.Remove(url);
+			_ExternalResourceUrlHistory.Add(url);
+		}
+		AppPreferenceService.SetToJson(
+			AppPreferenceKeys.ExternalResourceUrlHistory,
+			_ExternalResourceUrlHistory,
+			StringListJsonSourceGenerationContext.Default.ListString);
+
+		logger.Info("Test seed URL history: persisted {0} URLs", urls.Length);
+	}
+
+	/// <summary>
+	/// Public test-only seed for ExternalResourceUrlHistory. Called from the
+	/// StartHomePage's hidden test seed button; lets UI tests bypass typing
+	/// through Appium SendKeys (which is flaky on iOS XCUITest for long URLs).
+	/// </summary>
+	public void SeedUrlHistoryForTesting(IEnumerable<string> urls)
+	{
+		foreach (string url in urls)
+		{
+			if (string.IsNullOrWhiteSpace(url))
+				continue;
+			_ExternalResourceUrlHistory.Remove(url);
+			_ExternalResourceUrlHistory.Add(url);
+		}
+		AppPreferenceService.SetToJson(
+			AppPreferenceKeys.ExternalResourceUrlHistory,
+			_ExternalResourceUrlHistory,
+			StringListJsonSourceGenerationContext.Default.ListString);
+		logger.Info("SeedUrlHistoryForTesting: persisted {0} URLs", _ExternalResourceUrlHistory.Count);
+	}
+
+	/// <summary>
+	/// Public test-only clear for ExternalResourceUrlHistory. Lets the
+	/// "empty history" code path tests start from a known-clean state without
+	/// relying on per-session filesystem resets — on iOS, simctl-level
+	/// preference deletion has been observed to race with the app's in-memory
+	/// list when noReset:true is set.
+	/// </summary>
+	public void ClearUrlHistoryForTesting()
+	{
+		_ExternalResourceUrlHistory.Clear();
+		AppPreferenceService.SetToJson(
+			AppPreferenceKeys.ExternalResourceUrlHistory,
+			_ExternalResourceUrlHistory,
+			StringListJsonSourceGenerationContext.Default.ListString);
+		logger.Info("ClearUrlHistoryForTesting: cleared in-memory + persisted history");
+	}
+
+	/// <summary>
+	/// Test-only: push a GPS coord into LocationService.SetGpsLocation. Used by
+	/// the UI test that exercises GPS-driven auto-scroll without CoreLocation
+	/// or runtime permission prompts.
+	/// </summary>
+	private void HandleTestSetGpsLocation(string uri)
+	{
+		logger.Info("Test set GPS location invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		if (qIndex < 0)
+		{
+			logger.Warn("Test set GPS location: no query string");
+			return;
+		}
+
+		var query = HttpUtility.ParseQueryString(uri.Substring(qIndex + 1));
+		string? lonStr = query["lon"];
+		string? latStr = query["lat"];
+		if (!double.TryParse(lonStr, System.Globalization.CultureInfo.InvariantCulture, out double lon)
+			|| !double.TryParse(latStr, System.Globalization.CultureInfo.InvariantCulture, out double lat))
+		{
+			logger.Warn("Test set GPS location: invalid lon/lat ('{0}'/'{1}')", lonStr, latStr);
+			return;
+		}
+
+		double? acc = null;
+		if (double.TryParse(query["acc"], System.Globalization.CultureInfo.InvariantCulture, out double parsedAcc))
+			acc = parsedAcc;
+
+		// Initialize the LonLatLocationService first so SetGpsLocation has a
+		// _CurrentService to dispatch to. Do NOT toggle IsEnabled — on iOS that
+		// triggers LocationServiceGpsAdapter.StartListening which prompts the
+		// system CoreLocation permission alert and stalls the test. The
+		// OnGpsLocationUpdated event still fires at the top of SetGpsLocation
+		// before the IsEnabled gate would early-return.
+		var locationService = InstanceManager.LocationService;
+		locationService.SetLonLatLocationService();
+		locationService.SetGpsLocation(lon, lat, acc, useAverageDistance: false);
+		logger.Info("Test set GPS location: dispatched (lon={0}, lat={1}, acc={2})", lon, lat, acc);
+	}
+#endif
 
 }

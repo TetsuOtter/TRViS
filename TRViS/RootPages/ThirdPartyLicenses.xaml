@@ -7,15 +7,45 @@
 	x:DataType="viewmodels:ThirdPartyLicensesViewModel"
 	x:Class="TRViS.RootPages.ThirdPartyLicenses"
 	Title="ThirdPartyLicenses">
-	<FlexLayout
-		AlignContent="Stretch"
-		AlignItems="Stretch"
-		Wrap="Wrap">
+	<Grid
+		x:Name="RootGrid"
+		RowDefinitions="Auto,*">
+		<!-- Modal-mode close header. Hidden by default; ThirdPartyLicenses(asModal: true)
+		     toggles its IsVisible so the Shell-flyout entry doesn't get a redundant button. -->
+		<Grid
+			x:Name="ModalCloseHeader"
+			Grid.Row="0"
+			ColumnDefinitions="*,Auto"
+			Padding="8,4"
+			IsVisible="False">
+			<Label
+				Grid.Column="0"
+				Text="Third Party Licenses"
+				FontSize="18"
+				FontAttributes="Bold"
+				VerticalOptions="Center"
+				Margin="8,0"/>
+			<Button
+				AutomationId="ThirdParty.ModalCloseButton"
+				Grid.Column="1"
+				x:Name="ModalCloseButton"
+				Text="閉じる"
+				Padding="16,8"
+				CornerRadius="8"
+				Clicked="OnModalCloseClicked"/>
+		</Grid>
+
+		<FlexLayout
+			Grid.Row="1"
+			AlignContent="Stretch"
+			AlignItems="Stretch"
+			Wrap="Wrap">
 		<Border
 			FlexLayout.Grow="1"
 			FlexLayout.Basis="200"
 			Margin="4">
 			<CollectionView
+				AutomationId="ThirdParty.LicenseList"
 				SelectionMode="Single"
 				SelectedItem="{Binding SelectedLicenseData}"
 				ItemsSource="{Binding LicenseDataArray}">
@@ -73,5 +103,6 @@
 					Grid.Row="2"/>
 			</Grid>
 		</Border>
-	</FlexLayout>
+		</FlexLayout>
+	</Grid>
 </ContentPage>

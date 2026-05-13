@@ -27,6 +27,15 @@ public static class MauiProgram
 
 	public static MauiApp CreateMauiApp()
 	{
+		// sqlite-net-pcl relies on a SQLitePCLRaw provider being registered before
+		// any SQLiteConnection is opened. bundle_green's auto-init via a static
+		// ctor works on Windows MAUI but is not guaranteed under Android linker
+		// or iOS AOT trimming, so a stripped registration would surface as
+		// "You need to call SQLitePCL.raw.SetProvider()" the first time a
+		// SQLiteConnection is opened. Call Init explicitly here as a defensive
+		// measure — registration cannot be stripped if it's directly referenced.
+		SQLitePCL.Batteries_V2.Init();
+
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
@@ -40,6 +49,10 @@ public static class MauiProgram
 				if (!OperatingSystem.IsIOSVersionAtLeast(13))
 				{
 					handlers.AddHandler<CollectionView, Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler>();
+					// MAUI's default ClearButtonVisibility / TextColor mappers both crash
+					// on iOS 12 when an Entry has TextColor + ClearButtonVisibility set
+					// (NRE in GetClearButtonTintImage). Issue #241.
+					iOS12EntryHandlerFix.Apply();
 				}
 			})
 			.UseMauiMaps()
@@ -64,6 +77,13 @@ public static class MauiProgram
 
 		logger.Fatal(ex, "UnhandledException");
 		InstanceManager.CrashlyticsWrapper.Log(ex, "UnhandledException");
+
+		// NLog's AsyncTargetWrapper buffers writes (~100ms batch). When the
+		// runtime aborts immediately after this hook (typical for an UI-thread
+		// unhandled exception that escapes through Mono), the buffered Fatal
+		// line is lost. Flush synchronously so the disk log captures it.
+		try { NLog.LogManager.Flush(TimeSpan.FromSeconds(2)); }
+		catch { /* best-effort */ }
 	}
 
 	private static MauiAppBuilder ConfigureFirebase(this MauiAppBuilder builder)

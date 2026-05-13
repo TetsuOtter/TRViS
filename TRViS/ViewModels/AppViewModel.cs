@@ -1,8 +1,8 @@
-using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using TRViS.Core;
 using TRViS.IO;
 using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
@@ -15,39 +15,49 @@ public partial class AppViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	[ObservableProperty]
-	ILoader? _Loader;
+	public TimetableSelectionManager SelectionManager { get; } = new();
 
 	[ObservableProperty]
-	IReadOnlyList<WorkGroup>? _WorkGroupList;
+	public partial ILoader? Loader { get; set; }
 
+	// Human-readable label for the current Loader's source. Set atomically alongside
+	// Loader via SetLoader() so the Home info card cannot momentarily show a stale
+	// source between the two assignments. Cleared automatically when Loader becomes null.
 	[ObservableProperty]
-	IReadOnlyList<Work>? _WorkList;
+	public partial string? LoaderSourceLabel { get; set; }
 
-	[ObservableProperty]
-	WorkGroup? _SelectedWorkGroup;
-	Work? _SelectedWork;
+	/// <summary>
+	/// Atomically replaces <see cref="Loader"/> and <see cref="LoaderSourceLabel"/>.
+	/// Call sites should prefer this over assigning Loader directly so the Home info
+	/// card metadata stays in sync with the active loader.
+	/// </summary>
+	public void SetLoader(ILoader? loader, string? sourceLabel)
+	{
+		LoaderSourceLabel = sourceLabel;
+		Loader = loader;
+	}
+
+	public IReadOnlyList<WorkGroup>? WorkGroupList => SelectionManager.WorkGroupList;
+	public IReadOnlyList<Work>? WorkList => SelectionManager.WorkList;
+	public IReadOnlyList<TrainData>? OrderedTrainDataList => SelectionManager.OrderedTrainDataList;
+
+	public WorkGroup? SelectedWorkGroup
+	{
+		get => SelectionManager.SelectedWorkGroup;
+		set => SelectionManager.SelectedWorkGroup = value;
+	}
+
 	public Work? SelectedWork
 	{
-		get => _SelectedWork;
-		set
-		{
-			if (SetProperty(ref _SelectedWork, value))
-			{
-				OnSelectedWorkChanged(value);
-			}
-		}
+		get => SelectionManager.SelectedWork;
+		set => SelectionManager.SelectedWork = value;
 	}
 
-	TrainData? _SelectedTrainData;
 	public TrainData? SelectedTrainData
 	{
-		get => _SelectedTrainData;
-		set => SetProperty(ref _SelectedTrainData, value);
+		get => SelectionManager.SelectedTrainData;
+		set => SelectionManager.SelectedTrainData = value;
 	}
-
-	[ObservableProperty]
-	IReadOnlyList<TrainData>? _OrderedTrainDataList;
 
 	bool _IsBgAppIconVisible = true;
 	public bool IsBgAppIconVisible
@@ -65,10 +75,10 @@ public partial class AppViewModel : ObservableObject
 	}
 
 	[ObservableProperty]
-	double _WindowHeight;
+	public partial double WindowHeight { get; set; }
 
 	[ObservableProperty]
-	double _WindowWidth;
+	public partial double WindowWidth { get; set; }
 
 	public event EventHandler<ValueChangedEventArgs<AppTheme>>? CurrentAppThemeChanged;
 	AppTheme _SystemAppTheme;
@@ -102,6 +112,8 @@ public partial class AppViewModel : ObservableObject
 
 	public AppViewModel()
 	{
+		SelectionManager.PropertyChanged += (_, e) => OnPropertyChanged(e.PropertyName);
+
 		if (Application.Current is not null)
 		{
 			_CurrentAppTheme = Application.Current.RequestedTheme;
@@ -118,171 +130,25 @@ public partial class AppViewModel : ObservableObject
 		}
 
 		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _, StringListJsonSourceGenerationContext.Default.ListString);
+	}
 
-		// LocationService の時刻表更新イベントをサブスクライブ
-		InstanceManager.LocationService.TimetableUpdated += OnTimetableUpdated;
+	internal void SubscribeToLocationService(TRViS.Services.LocationService locationService)
+	{
+		locationService.TimetableUpdated += OnTimetableUpdated;
+		locationService.TrainSelectionRequested += OnTrainSelectionRequested;
+		locationService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
+		locationService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
+		// NotificationReceived / OperationCommandReceived / ServerInfo / DiagramInfo は
+		// LocationService 側で受信される。OperationCommand の動作 (位置情報 ON/OFF) は
+		// LocationService が直接適用する。Notification / ServerInfo / DiagramInfo の UI 表示は
+		// 個別画面側で必要に応じて購読する。
 	}
 
 	partial void OnLoaderChanged(ILoader? value)
 	{
-		SelectedWorkGroup = null;
-		WorkGroupList = value?.GetWorkGroupList();
-		SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
-	}
-
-	partial void OnSelectedWorkGroupChanged(WorkGroup? value)
-	{
-		WorkList = null;
-		SelectedWork = null;
-
-		if (value is not null)
-		{
-			WorkList = Loader?.GetWorkList(value.Id);
-
-			SelectedWork = WorkList?.FirstOrDefault();
-		}
-	}
-
-	void OnSelectedWorkChanged(Work? value)
-	{
-		logger.Debug("Work: {0}", value?.Id ?? "null");
-		if (value is not null && Loader is not null)
-		{
-			// Get the list of trains and create an ordered list based on NextTrainId chains
-			var trainDataList = Loader.GetTrainDataList(value.Id);
-			var orderedTrainList = GetOrderedTrainDataList(trainDataList, Loader);
-			OrderedTrainDataList = orderedTrainList;
-
-			// Select the first train in the ordered list
-			if (orderedTrainList.Count > 0)
-			{
-				logger.Debug("FirstTrainId (from ordered list): {0}", orderedTrainList[0].Id);
-				SelectedTrainData = orderedTrainList[0];
-			}
-			else
-			{
-				SelectedTrainData = null;
-			}
-			logger.Debug("SelectedTrainData: {0}", SelectedTrainData?.Id ?? "null");
-		}
-		else
-		{
-			OrderedTrainDataList = null;
-			SelectedTrainData = null;
-		}
-	}
-
-	/// <summary>
-	/// Orders trains starting from chain heads, following NextTrainId chain.
-	/// A chain head is a train that is not pointed to by any other train's NextTrainId.
-	/// If a visited train is referenced, stops the chain.
-	/// Chains are ordered by the DayCount of the head train, then by departure time of the first station.
-	/// </summary>
-	private List<TrainData> GetOrderedTrainDataList(IReadOnlyList<TrainData> trainDataList, ILoader loader)
-	{
-		List<TrainData> orderedList = [];
-		HashSet<string> visitedTrainIds = [];
-		Dictionary<string, TrainData> trainDataById = [];
-
-		// Build a map of train IDs to train data for quick lookup
-		// Need to fetch full TrainData objects which include NextTrainId
-		foreach (var trainData in trainDataList)
-		{
-			try
-			{
-				var fullTrainData = loader.GetTrainData(trainData.Id);
-				if (fullTrainData is not null)
-				{
-					trainDataById[trainData.Id] = fullTrainData;
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.Warn(ex, "Failed to get full train data for {0}", trainData.Id);
-				trainDataById[trainData.Id] = trainData;
-			}
-		}
-
-		// Find all chain heads (trains that are not pointed to by any other train's NextTrainId)
-		HashSet<string> chainHeadIds = [.. trainDataById.Keys];
-		foreach (var trainData in trainDataById.Values)
-		{
-			if (!string.IsNullOrEmpty(trainData.NextTrainId))
-			{
-				chainHeadIds.Remove(trainData.NextTrainId);
-			}
-		}
-
-		// If no chain heads found (circular references), treat all trains as chain heads
-		if (chainHeadIds.Count == 0)
-		{
-			chainHeadIds = [.. trainDataById.Keys];
-		}
-
-		// Group chains by their head train
-		List<List<TrainData>> chainGroups = [];
-		foreach (var chainHeadId in chainHeadIds)
-		{
-			List<TrainData> chain = [];
-			string? currentId = chainHeadId;
-			while (!string.IsNullOrEmpty(currentId) && !visitedTrainIds.Contains(currentId))
-			{
-				if (trainDataById.TryGetValue(currentId, out var trainData))
-				{
-					chain.Add(trainData);
-					visitedTrainIds.Add(currentId);
-					currentId = trainData.NextTrainId;
-				}
-				else
-				{
-					// Invalid NextTrainId reference - stop the chain
-					logger.Warn("Next train ID '{0}' not found", currentId);
-					break;
-				}
-			}
-
-			// If chain ended because of a visited train (circular reference), log it
-			if (!string.IsNullOrEmpty(currentId) && visitedTrainIds.Contains(currentId))
-			{
-				logger.Debug("Chain stopped at already-visited train {0}", currentId);
-			}
-
-			if (chain.Count > 0)
-			{
-				chainGroups.Add(chain);
-			}
-		}
-
-		// Sort chain groups by DayCount of head train, then by departure time of first station
-		chainGroups = [.. chainGroups
-			.OrderBy(group => group[0].DayCount)
-			.ThenBy(group => GetFirstDepartureTime(group[0]))];
-
-		// Flatten the groups into the final ordered list
-		foreach (var group in chainGroups)
-		{
-			orderedList.AddRange(group);
-		}
-
-		logger.Debug("Ordered {0} trains (original: {1})", orderedList.Count, trainDataList.Count);
-		return orderedList;
-	}
-
-	private TimeOnly? GetFirstDepartureTime(TrainData trainData)
-	{
-		if (trainData.Rows is null || trainData.Rows.Length == 0)
-			return null;
-
-		// Find the first row with a departure time
-		foreach (var row in trainData.Rows)
-		{
-			if (row.DepartureTime is not null)
-			{
-				return row.DepartureTime.ToTimeOnly();
-			}
-		}
-
-		return null;
+		SelectionManager.Loader = value;
+		if (value is null)
+			LoaderSourceLabel = null;
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
@@ -290,169 +156,72 @@ public partial class AppViewModel : ObservableObject
 		logger.Debug("TimetableUpdated: WorkGroupId={0}, WorkId={1}, TrainId={2}, Scope={3}",
 			timetableData.WorkGroupId, timetableData.WorkId, timetableData.TrainId, timetableData.Scope);
 
-		// 時刻表の変更スコープに応じて、表示継続可能か判定する
-		bool canContinue = CanContinueCurrentTimetable(timetableData);
-
-		if (!canContinue)
-		{
-			// 表示継続不可の場合は初期状態に戻す
-			logger.Info("Timetable changed and cannot continue -> reset to initial state");
-			ResetToInitialTimetable();
-		}
-
-		// Loader のキャッシュが更新された可能性があるため、UI を再読み込み
-		// 特に WebSocket の場合は Loader のデータが動的に更新されるため、毎回再読み込みする必要がある
-		RefreshLoaderDisplay();
-	}
-
-	private void RefreshLoaderDisplay()
-	{
-		if (Loader is null)
-			return;
-
-		logger.Debug("RefreshLoaderDisplay: Refreshing UI from Loader cache");
-		WorkGroupList = Loader.GetWorkGroupList();
-
-		// 現在選択中の WorkGroup が存在しない場合は、最初のものを選択
-		if (SelectedWorkGroup is not null && !WorkGroupList?.Any(wg => wg.Id == SelectedWorkGroup.Id) == true)
-		{
-			SelectedWorkGroup = WorkGroupList?.FirstOrDefault();
-		}
-		else if (SelectedWorkGroup is null && WorkGroupList?.Count > 0)
-		{
-			SelectedWorkGroup = WorkGroupList.FirstOrDefault();
-		}
-
-		// WorkList も更新
-		if (SelectedWorkGroup is not null)
-		{
-			WorkList = Loader.GetWorkList(SelectedWorkGroup.Id);
-
-			// 現在選択中の Work が存在しない場合は、最初のものを選択
-			if (SelectedWork is not null && !WorkList?.Any(w => w.Id == SelectedWork.Id) == true)
-			{
-				SelectedWork = WorkList?.FirstOrDefault();
-			}
-			else if (SelectedWork is null && WorkList?.Count > 0)
-			{
-				SelectedWork = WorkList.FirstOrDefault();
-			}
-			else
-			{
-				// WorkList が更新された場合、選択中の Work でも UI を更新する必要がある
-				// OnSelectedWorkChanged を明示的に呼ぶ
-				OnSelectedWorkChanged(SelectedWork);
-			}
-		}
-	}
-
-	bool CanContinueCurrentTimetable(TimetableData timetableData)
-	{
-		// 変更スコープに基づいて判定する
-		return timetableData.Scope switch
-		{
-			// All：全体の情報が更新された場合は表示継続不可
-			TimetableScopeType.All => false,
-
-			// WorkGroup単位の変更：現在の選択がこのWorkGroupと異なる場合のみ継続可能
-			TimetableScopeType.WorkGroup => SelectedWorkGroup?.Id != timetableData.WorkGroupId,
-
-			// Work単位の変更：現在の選択がこのWorkと異なる場合のみ継続可能
-			TimetableScopeType.Work => SelectedWork?.Id != timetableData.WorkId,
-
-			// Train単位の変更：現在の選択がこのTrainと異なる場合のみ継続可能
-			TimetableScopeType.Train => SelectedTrainData?.Id != timetableData.TrainId,
-
-			_ => true
-		};
-	}
-
-	void ResetToInitialTimetable()
-	{
-		// Loader情報をリセットして、表示を初期状態に戻す
+		// リアルタイム編集対応: 自スコープと一致する更新では選択を維持し、
+		// 異なるスコープの更新では現在の表示は無関係なのでそのまま継続する。
+		// SelectionManager.Refresh() が各階層で選択 Id を保持しつつ最新データを反映する。
+		// - 既存選択が新ペイロードに存在する → 同じ Id の最新インスタンスに差し替え
+		// - 既存選択が消えた階層から先 → 先頭にフォールバック
+		// この挙動は Scope.All / WorkGroup / Work / Train すべてのケースをカバーする。
 		if (Loader is not null)
 		{
-			var workGroupList = Loader.GetWorkGroupList();
-			SelectedWorkGroup = workGroupList?.FirstOrDefault();
+			logger.Debug("Refreshing selection from Loader cache");
+			SelectionManager.Refresh();
 		}
 	}
 
 	/// <summary>
-	/// Attempts to load default timetable file with privacy policy check.
-	/// If privacy policy is not accepted, returns false to indicate policy screen is needed first.
+	/// サーバーから送られた SelectTrain コマンドを反映する。
+	/// WorkGroupId / WorkId / TrainId に対応する階層を選択する。
 	/// </summary>
-	/// <param name="cancellationToken">Cancellation token for async operations</param>
-	/// <returns>Tuple (success, requiresFileSelection, selectedFilePath, errorMessage)</returns>
-	public async Task<(bool success, bool requiresFileSelection, string? selectedFilePath, string? errorMessage)> TryLoadDefaultTimetableAsync(
-		CancellationToken cancellationToken = default)
+	void OnTrainSelectionRequested(object? sender, SelectTrainCommand cmd)
 	{
-		try
+		logger.Info("OnTrainSelectionRequested: WorkGroupId={0}, WorkId={1}, TrainId={2}",
+			cmd.WorkGroupId, cmd.WorkId, cmd.TrainId);
+
+		if (cmd.WorkGroupId is not null)
 		{
-			// Check privacy policy first
-			var firebaseSetting = InstanceManager.FirebaseSettingViewModel;
-			if (!firebaseSetting.IsPrivacyPolicyAccepted)
-			{
-				logger.Info("Privacy policy not accepted yet - file loading deferred");
-				return (false, false, null, "PrivacyPolicyNotAccepted");
-			}
-
-			// Try to load default timetable
-			(var loader, var selectedFilePath, var requiresFileSelection) =
-				await DefaultTimetableFileLoader.TryLoadDefaultTimetableAsync(cancellationToken);
-
-			if (loader is not null)
-			{
-				logger.Info("Successfully loaded default timetable: {0}", selectedFilePath);
-				Loader = loader;
-				return (true, false, selectedFilePath, null);
-			}
-
-			if (requiresFileSelection)
-			{
-				logger.Info("Multiple JSON files found - user selection required");
-				return (true, true, null, null);
-			}
-
-			// No files found or failed to load
-			logger.Info("No default timetable file found");
-			return (false, false, null, null);
+			var wg = SelectionManager.WorkGroupList?.FirstOrDefault(w => w.Id == cmd.WorkGroupId);
+			if (wg is not null && SelectionManager.SelectedWorkGroup?.Id != wg.Id)
+				SelectionManager.SelectedWorkGroup = wg;
 		}
-		catch (Exception ex)
+
+		if (cmd.WorkId is not null)
 		{
-			logger.Error(ex, "Error in TryLoadDefaultTimetableAsync");
-			return (false, false, null, ex.Message);
+			var work = SelectionManager.WorkList?.FirstOrDefault(w => w.Id == cmd.WorkId);
+			if (work is not null && SelectionManager.SelectedWork?.Id != work.Id)
+				SelectionManager.SelectedWork = work;
+		}
+
+		if (cmd.TrainId is not null)
+		{
+			var train = SelectionManager.OrderedTrainDataList?.FirstOrDefault(t => t.Id == cmd.TrainId);
+			if (train is not null && SelectionManager.SelectedTrainData?.Id != train.Id)
+				SelectionManager.SelectedTrainData = train;
 		}
 	}
 
 	/// <summary>
-	/// Loads a specific timetable file after user selection
+	/// サーバーから指示されたヘッダの色 (RGB)。null は端末既定。
+	/// View 側はこの値を購読してタイトルバー色を変更する。
 	/// </summary>
-	/// <param name="filePath">Full path to the file to load</param>
-	/// <param name="cancellationToken">Cancellation token for async operations</param>
-	/// <returns>True if successfully loaded, false otherwise</returns>
-	public async Task<bool> LoadSelectedTimetableFileAsync(
-		string filePath,
-		CancellationToken cancellationToken = default)
+	[ObservableProperty]
+	public partial int? HeaderColorOverride_RGB { get; set; }
+
+	void OnHeaderColorChangeRequested(object? sender, HeaderColorCommand cmd)
 	{
-		try
-		{
-			logger.Info("Loading selected timetable file: {0}", filePath);
-			var loader = await DefaultTimetableFileLoader.LoadTimetableFileAsync(filePath, cancellationToken);
-
-			if (loader is not null)
-			{
-				Loader = loader;
-				logger.Trace("Successfully loaded selected timetable file");
-				return true;
-			}
-
-			logger.Warn("Failed to load selected timetable file");
-			return false;
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "Error in LoadSelectedTimetableFileAsync");
-			return false;
-		}
+		HeaderColorOverride_RGB = cmd.ResetToDefault ? null : cmd.Color_RGB;
 	}
+
+	/// <summary>
+	/// サーバーから指示されたタイトルバー時刻表示フォーマット ("HH:mm:ss" 等)。
+	/// null は端末既定 ("HH:mm:ss" を内部既定とする)。
+	/// </summary>
+	[ObservableProperty]
+	public partial string? HeaderTimeFormat { get; set; }
+
+	void OnTimeFormatChangeRequested(object? sender, TimeFormatCommand cmd)
+	{
+		HeaderTimeFormat = cmd.Format;
+	}
+
 }

@@ -26,33 +26,43 @@
 				Margin="8"
 				Padding="8">
 				<Label
+					AutomationId="Shell.VersionLabel"
 					Text="{x:Static local:AppShell.AppVersionString}"/>
 			</Border>
 		</VerticalStackLayout>
 	</Shell.FlyoutFooter>
 
 	<FlyoutItem
-		Title="Select Train"
-		Route="{x:Static pages:SelectTrainPage.NameOfThisClass}">
-		<ShellContent ContentTemplate="{DataTemplate pages:SelectTrainPage}"/>
+		AutomationId="Shell.Flyout.StartHome"
+		Title="Home"
+		Route="{x:Static pages:StartHomePage.NameOfThisClass}">
+		<ShellContent ContentTemplate="{DataTemplate pages:StartHomePage}"/>
 	</FlyoutItem>
 	<FlyoutItem
+		AutomationId="Shell.Flyout.DTAC"
 		Title="D-TAC"
 		Route="{x:Static dtac:ViewHost.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
 	</FlyoutItem>
-	<FlyoutItem Title="Third Party Licenses">
+	<FlyoutItem
+		AutomationId="Shell.Flyout.ThirdPartyLicenses"
+		Title="Third Party Licenses">
 		<ShellContent ContentTemplate="{DataTemplate pages:ThirdPartyLicenses}"/>
 	</FlyoutItem>
-	<FlyoutItem Title="Settings">
+	<FlyoutItem
+		AutomationId="Shell.Flyout.Settings"
+		Title="Settings">
 		<ShellContent ContentTemplate="{DataTemplate pages:EasterEggPage}"/>
 	</FlyoutItem>
 	<FlyoutItem
+		AutomationId="Shell.Flyout.Firebase"
 		Title="Firebase Setting"
 		Route="{x:Static pages:FirebaseSettingPage.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate pages:FirebaseSettingPage}"/>
 	</FlyoutItem>
-	<FlyoutItem Title="Privacy Policy">
+	<FlyoutItem
+		AutomationId="Shell.Flyout.PrivacyPolicy"
+		Title="Privacy Policy">
 		<ShellContent>
 			<pages:ShowMarkdownPage
 				FileName="PrivacyPolicy_md"

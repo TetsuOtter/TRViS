@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:rootpages="clr-namespace:TRViS.RootPages"
+	xmlns:local="clr-namespace:TRViS"
+	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
+	x:DataType="viewmodels:AppViewModel"
+	x:Class="TRViS.RootPages.StartHomePage"
+	Title="TRViS">
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="StartHomeStyles.xaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</ContentPage.Resources>
+
+	<!-- Three-layer stack (RootGrid is a 1-cell wrapper, layers overlap at z-order):
+	       1) BackgroundGrid — always visible. Owns AppHeader. In UI_TEST builds
+	          StartHomePage.BuildTestSeamHost() also adds an invisible 24×24
+	          button grid into Row 0 from code-behind; production builds never
+	          construct it, so no "StartHome.Test*" AutomationIds appear in the
+	          release accessibility tree.
+	          RowDefinitions swap between Start (*,0,Auto,0,Auto) and Home
+	          (<HOME_HEADER_ROW_HEIGHT>,Auto,*,Auto,Auto) so AppHeader's row aligns with
+	          the body layers.
+	       2) StartGrid (rootpages:StartGridView) — visible only in Start mode. Owns
+	          StartBody. Fixed RowDefinitions injected by the page so they match
+	          BackgroundGrid's Start mode.
+	       3) HomeGrid (rootpages:HomeGridView) — visible only in Home mode. Owns
+	          LoaderInfoCard, HomeBody, HomeButtonsRow. Fixed RowDefinitions
+	          injected by the page so they match BackgroundGrid's Home mode.
+	     FooterLinks lives directly under RootGrid (above the three layered grids in
+	     z-order) and is pinned to the page bottom via VerticalOptions=End, so it
+	     receives taps regardless of which layer covers row 4 and doesn't shift
+	     during the Start↔Home row-height animation. -->
+	<Grid x:Name="RootGrid">
+
+		<!-- ========== Background layer ========== -->
+		<!-- RowDefinitions are assigned in code-behind from the static readonly
+		     PortraitStartRows / PortraitHomeRows / LandscapePhoneRows so there is a
+		     single source of truth. -->
+		<Grid x:Name="BackgroundGrid"
+					ColumnDefinitions="3*,4*">
+
+			<!-- Animated app header (icon + title). VerticalOptions=Center centers it
+			     inside Row 0 (* in Start mode, fixed HOME_HEADER_ROW_HEIGHT in Home mode). -->
+			<VerticalStackLayout
+				x:Name="AppHeader"
+				AutomationId="StartHome.AppHeader"
+				Grid.Row="0"
+				Grid.ColumnSpan="2"
+				VerticalOptions="Center"
+				HorizontalOptions="Center"
+				Spacing="8"
+				Padding="16,32,16,0"
+				AnchorY="0"
+				AnchorX="0.5">
+				<Image
+					x:Name="AppIcon"
+					AutomationId="StartHome.AppIcon"
+					Source="appiconfg.png"
+					HeightRequest="{x:Static rootpages:StartHomePage.APPICON_HERO_SIZE}"
+					WidthRequest="{x:Static rootpages:StartHomePage.APPICON_HERO_SIZE}"
+					Aspect="AspectFit"/>
+				<Label
+					x:Name="AppTitle"
+					AutomationId="StartHome.Title"
+					Text="TRViS"
+					FontSize="{x:Static rootpages:StartHomePage.APPTITLE_HERO_FONT_SIZE}"
+					FontAttributes="Bold"
+					HorizontalOptions="Center"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+			</VerticalStackLayout>
+
+			<!-- UI_TEST seam buttons (an invisible 24×24 button column anchored at the
+			     upper-left of Row 0) are NOT declared here. They are built and inserted
+			     by StartHomePage.BuildTestSeamHost() under #if UI_TEST so production
+			     builds carry no test-only controls and no "StartHome.Test*" AutomationIds
+			     in their accessibility tree. -->
+		</Grid>
+
+		<!-- ========== Start layer ========== -->
+		<!-- Shares PortraitStartRows with BackgroundGrid (in Start mode) so StartBody
+		     aligns with the AppHeader+Footer slots in the background layer.
+		     Visibility flipped by code-behind. -->
+		<rootpages:StartGridView x:Name="StartGrid"/>
+
+		<!-- ========== Home layer ========== -->
+		<!-- Shares PortraitHomeRows with BackgroundGrid (in Home mode). Visibility
+		     flipped by code-behind. -->
+		<rootpages:HomeGridView x:Name="HomeGrid"/>
+
+		<!-- Footer links: Privacy / TPL pinned to the page bottom. Lives at the
+		     RootGrid level (above all three layered grids) so (a) taps reach the
+		     buttons regardless of which body grid overlaps row 4, and (b) the
+		     footer position stays put during the Start↔Home row-height animation
+		     instead of riding up while Background's Row 0 is mid-animation. -->
+		<HorizontalStackLayout
+			x:Name="FooterLinks"
+			HorizontalOptions="Center"
+			VerticalOptions="End"
+			Padding="0,0"
+			Spacing="4">
+			<Button
+				AutomationId="StartHome.PrivacyPolicyButton"
+				Text="プライバシーポリシー"
+				Style="{StaticResource LinkButton}"
+				Clicked="OnPrivacyPolicyClicked"/>
+			<Label
+				Text="·"
+				VerticalOptions="Center"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			<Button
+				AutomationId="StartHome.ThirdPartyLicensesButton"
+				Text="Third Party Licenses"
+				Style="{StaticResource LinkButton}"
+				Clicked="OnThirdPartyLicensesClicked"/>
+		</HorizontalStackLayout>
+
+	</Grid>
+</ContentPage>

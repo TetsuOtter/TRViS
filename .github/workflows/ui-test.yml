@@ -1,0 +1,951 @@
+name: UI Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # .NET / tooling versions
+  SDK_VERSION: "10.0.x"
+  NODE_VERSION: "24"
+  XCODE_VERSION: "26.4"
+
+  # Project paths
+  CSPROJ_PATH: ./TRViS/TRViS.csproj
+  UITESTS_CSPROJ_PATH: ./TRViS.UITests/TRViS.UITests.csproj
+
+  # Target frameworks
+  TARGET_FRAMEWORK_ANDROID: net10.0-android
+  TARGET_FRAMEWORK_IOS: net10.0-ios
+  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
+  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
+
+  # Target runtimes
+  TARGET_RUNTIME_ANDROID: android-x64
+  TARGET_RUNTIME_IOS_SIM: iossimulator-arm64
+  TARGET_RUNTIME_WIN: win-x64
+
+  # App identity
+  APP_PACKAGE: dev.t0r.trvis
+
+  # Build flags
+  # UI_TEST gates the in-app test seed buttons and deeplink handlers
+  # (see RootPages/SelectTrainPage.xaml.cs and
+  # ViewModels/AppViewModel.AppLink.cs); DISABLE_FIREBASE swaps Firebase
+  # SDKs for the no-op wrappers so the placeholder google-services.json
+  # works end-to-end. The semicolon is URL-encoded (%3B) because dotnet's
+  # CLI parser splits unescaped semicolons in /p: values into separate
+  # arguments. Note: passing /p:DefineConstants=... overrides the
+  # implicit DEBUG/TRACE that `-c Debug` would otherwise add — anything
+  # gated on `#if DEBUG` will not compile in these builds.
+  UI_TEST_DEFINES: "DISABLE_FIREBASE%3BUI_TEST"
+
+  # Appium
+  # Use 127.0.0.1 (not localhost) on Windows because PowerShell's
+  # Invoke-WebRequest resolves "localhost" to ::1 (IPv6) while Appium
+  # listens on 0.0.0.0 (IPv4 only), causing connection refused.
+  APPIUM_URL: http://127.0.0.1:4723
+
+  # Android emulator settings
+  ANDROID_EMULATOR_API_LEVEL: 34
+  ANDROID_EMULATOR_ARCH: x86_64
+  ANDROID_EMULATOR_PROFILE: pixel_6
+  ANDROID_EMULATOR_AVD_NAME: trvis-test
+  # google_apis includes Google Play Services, required to prevent Firebase
+  # native ContentProviders (FirebaseInitProvider) from crashing on startup.
+  ANDROID_EMULATOR_TAG: google_apis
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Android UI Tests  (self-managed emulator)
+  # ─────────────────────────────────────────────
+  ui-test-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo chown -R $USER /dev/kvm
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install Android workload
+        run: dotnet workload install maui-android
+
+      - name: Create placeholder google-services.json
+        run: |
+          cat > TRViS/Google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "placeholder-project-id",
+              "storage_bucket": "placeholder-project-id.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "${{ env.APP_PACKAGE }}"
+                  }
+                },
+                "api_key": [{ "current_key": "placeholder_api_key" }],
+                "services": {}
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
+      - name: Build Android app
+        # -r android-x86_64 ensures the APK contains x86_64 native libraries so it
+        # can run natively on the x86_64 emulator (no ARM translation needed).
+        # EmbedAssembliesIntoApk=true is required so assemblies are bundled in the APK
+        # file itself. Debug builds default to Fast Deployment (assemblies deployed
+        # separately via adb), which causes a startup crash when Appium installs the
+        # APK without also pushing the assembly files.
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+          -r ${{ env.TARGET_RUNTIME_ANDROID }}
+          -c Debug
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
+          /p:AndroidCreatePackagePerAbi=false
+          /p:EmbedAssembliesIntoApk=true
+
+      - name: Install Appium and UiAutomator2 driver
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+
+      - name: Install Android emulator system image
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "emulator" \
+            "platform-tools" \
+            "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};${{ env.ANDROID_EMULATOR_TAG }};${{ env.ANDROID_EMULATOR_ARCH }}" \
+            > /dev/null
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+
+      - name: Create Android AVD
+        run: |
+          # Ubuntu 24.04 cmdline-tools default to $XDG_CONFIG_HOME/.android/avd
+          # rather than $HOME/.android/avd.  Set ANDROID_AVD_HOME explicitly so
+          # avdmanager, the emulator, and our config.ini patch all agree on the
+          # same path.  Also write it to GITHUB_ENV so subsequent steps inherit it.
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_AVD_HOME"
+          # Note: --device flag is intentionally omitted. Specifying a device profile
+          # (e.g. pixel_6) that does not match the installed system-image tag
+          # causes avdmanager to exit 0 but skip AVD directory creation.
+          echo no | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager \
+            create avd \
+            --force \
+            -n ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+            --package "system-images;android-${{ env.ANDROID_EMULATOR_API_LEVEL }};${{ env.ANDROID_EMULATOR_TAG }};${{ env.ANDROID_EMULATOR_ARCH }}" \
+            2>&1
+          if [ ! -d "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd" ]; then
+            echo "ERROR: AVD directory was not created by avdmanager"
+            $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager list avd
+            exit 1
+          fi
+          # Use all 4 CPU cores from the ubuntu-latest runner (was 2) — more
+          # CPU lets the guest schedule heavier work (XAML compile + UIA2 +
+          # custom-drawn VerticalTimetableView) without throttling, which we
+          # suspect contributes to mid-suite stalls during DTAC tests.
+          # Set display to Pixel 6-like resolution (1080x2400 @ 420dpi) so the app
+          # renders at a realistic size. The default AVD (no --device flag) uses
+          # 320x640 @ 160dpi, which is extremely small and causes slow rendering
+          # and element-detection failures during UI tests.
+          # hw.ramSize=6144 (was 4096) speculatively raises the guest RAM
+          # budget. ubuntu-latest has 16 GiB host, so 6 GiB to the emulator
+          # still leaves ~10 GiB for dotnet + appium + node + the host. The
+          # earlier 4 GiB bump fixed UIA2 dying with exit 255; the residual
+          # failure mode is qemu itself disappearing mid-suite during DTAC
+          # tests (run 25634831839: 13/23 failed after `DEVICE_STATE=missing`,
+          # then 8/23 again on retry). The new failure-dump diagnostics
+          # capture host OOM signatures so we can confirm whether this bump
+          # actually addresses the root cause or whether it's elsewhere.
+          # vm.heapSize=768 (was 512) raises the per-process Dalvik heap so
+          # MAUI debug builds, which carry mono-AOT'd metadata + XAML
+          # compiled bytecode in the same managed heap, have more headroom.
+          printf 'hw.cpu.ncore=4\nhw.lcd.width=1080\nhw.lcd.height=2400\nhw.lcd.density=420\nhw.ramSize=6144\nvm.heapSize=768\ndisk.dataPartition.size=4096M\n' >> "$ANDROID_AVD_HOME/${{ env.ANDROID_EMULATOR_AVD_NAME }}.avd/config.ini"
+
+      - name: Start Android emulator
+        run: |
+          # -memory mirrors hw.ramSize in config.ini for older emulator versions
+          # that ignore the config value when the flag isn't passed explicitly.
+          # Redirect output so we can grep it from the diagnostics step if the
+          # emulator crashes during the run (it dies silently otherwise).
+          $ANDROID_SDK_ROOT/emulator/emulator \
+            -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -no-snapshot \
+            -noaudio \
+            -no-boot-anim \
+            -memory 6144 \
+            > emulator.log 2>&1 &
+          EMULATOR_PID=$!
+          echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
+          echo "Emulator started with PID $EMULATOR_PID"
+
+      - name: Wait for emulator to boot
+        run: |
+          echo "Waiting for ADB device..."
+          $ANDROID_SDK_ROOT/platform-tools/adb wait-for-device
+          echo "Waiting for sys.boot_completed (up to 5 min)..."
+          timeout 300 bash -c \
+            'until $ANDROID_SDK_ROOT/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | grep -q "^1$"; do sleep 5; done'
+          # Disable animations to speed up UI tests
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global window_animation_scale 0.0
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global transition_animation_scale 0.0
+          $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global animator_duration_scale 0.0
+          # Unlock screen
+          $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
+          echo "Emulator is ready!"
+
+      - name: Start streaming logcat
+        # Stream logcat to a file from boot through teardown so we have a full
+        # record covering whichever test fails — `adb logcat -d -t 2000` after
+        # the fact only captures the last few seconds and misses earlier
+        # failures in a multi-test fixture (the 14:16 PrivacyDialog timeout in
+        # run 25603154274 happened before the on-failure dump, leaving us
+        # blind). The streaming process is killed in "Stop Android emulator".
+        run: |
+          $ANDROID_SDK_ROOT/platform-tools/adb logcat -v threadtime > logcat.log 2>&1 &
+          LOGCAT_PID=$!
+          echo "LOGCAT_PID=$LOGCAT_PID" >> $GITHUB_ENV
+          echo "Logcat streaming started with PID $LOGCAT_PID"
+
+      - name: Run Android UI Tests
+        # `bash -e` (the GitHub Actions default) terminates the script on the
+        # first non-zero exit. Disable errexit so the retry loop below can
+        # observe `dotnet test`'s failure code instead of being killed by it.
+        # Pipefail is still desirable, so set it explicitly.
+        shell: bash --noprofile --norc -o pipefail {0}
+        run: |
+          APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: No APK found in TRViS/bin/Debug/net10.0-android"
+            find TRViS/bin/Debug/ -type f -name "*.apk" 2>/dev/null \
+              || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+            exit 1
+          fi
+          echo "APK: $APK_PATH"
+
+          # Helpers for emulator + appium lifecycle. The MAUI debug build's
+          # accessibility tree under DTAC has been observed killing the
+          # UIA2 instrumentation hard enough to take the emulator process
+          # with it ("Could not find a connected Android device" on every
+          # subsequent test, even after [RetryAllTests(2)] tears down the
+          # Driver per attempt). When that happens, only restarting the
+          # emulator binary brings ADB back; per-test SetUp can't recover.
+
+          start_appium() {
+            appium > "appium-attempt-${1}.log" 2>&1 &
+            APPIUM_PID=$!
+            echo "Appium PID (attempt ${1}): $APPIUM_PID"
+            for i in $(seq 1 30); do
+              if curl -s http://localhost:4723/status > /dev/null 2>&1; then
+                echo "Appium server is ready!"
+                return 0
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "ERROR: Appium server did not start within 30 seconds"
+                kill "$APPIUM_PID" 2>/dev/null || true
+                return 1
+              fi
+              sleep 1
+            done
+          }
+
+          start_emulator() {
+            $ANDROID_SDK_ROOT/emulator/emulator \
+              -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
+              -no-window \
+              -gpu swiftshader_indirect \
+              -no-snapshot \
+              -noaudio \
+              -no-boot-anim \
+              -memory 6144 \
+              > "emulator-attempt-${1}.log" 2>&1 &
+            EMULATOR_PID=$!
+            echo "Emulator started for attempt ${1} (PID $EMULATOR_PID)"
+            $ANDROID_SDK_ROOT/platform-tools/adb wait-for-device
+            timeout 300 bash -c \
+              'until $ANDROID_SDK_ROOT/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | grep -q "^1$"; do sleep 5; done'
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global window_animation_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global transition_animation_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global animator_duration_scale 0.0
+            $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
+          }
+
+          # First attempt uses the emulator + appium that the prior workflow
+          # steps already started; later attempts spin up fresh ones.
+          start_appium 1 || exit 1
+          MAX_ATTEMPTS=2
+          TEST_EXIT_CODE=1
+          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+            timeout 900 dotnet test ./TRViS.UITests/TRViS.UITests.csproj \
+              --configuration Debug \
+              --logger "trx;LogFileName=android-results-attempt-${ATTEMPT}.trx" \
+              -- \
+              "TestRunParameters.Parameter(name=\"platform\",value=\"android\")" \
+              "TestRunParameters.Parameter(name=\"appPath\",value=\"$APK_PATH\")" \
+              "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"http://localhost:4723\")"
+            TEST_EXIT_CODE=$?
+
+            if [ $TEST_EXIT_CODE -eq 0 ]; then
+              echo "Tests passed on attempt $ATTEMPT"
+              break
+            fi
+            if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+              echo "Tests still failing after $ATTEMPT attempts"
+              break
+            fi
+            # Distinguish "real failures" (emulator alive, tests just don't
+            # pass) from "infrastructure death" (emulator/UIA2 dead). Only
+            # the latter is worth a fresh-emulator retry — re-running the
+            # same suite against the same alive emulator would just
+            # reproduce real bugs at extra CI cost.
+            DEVICE_STATE=$(timeout 10 $ANDROID_SDK_ROOT/platform-tools/adb get-state 2>/dev/null || echo "missing")
+            if [ "$DEVICE_STATE" = "device" ]; then
+              echo "Tests failed but emulator is alive (state=device) — not retrying"
+              break
+            fi
+            echo "Emulator state '$DEVICE_STATE' — restarting for attempt $((ATTEMPT + 1))"
+            kill "$APPIUM_PID" 2>/dev/null || true
+            $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
+            pkill -9 -f "qemu-system-x86" 2>/dev/null || true
+            pkill -9 -f "/emulator/emulator" 2>/dev/null || true
+            sleep 5
+            start_emulator $((ATTEMPT + 1))
+            start_appium $((ATTEMPT + 1)) || break
+          done
+
+          kill "$APPIUM_PID" 2>/dev/null || true
+          exit $TEST_EXIT_CODE
+
+      - name: Dump diagnostics on failure
+        if: failure()
+        # If the emulator process has died, `adb logcat` will block indefinitely
+        # waiting for a device. Wrap each adb call in `timeout` so the step
+        # cannot stall the whole job (previously caused a 36-minute hang until
+        # the 45-minute job timeout cancelled everything).
+        timeout-minutes: 3
+        run: |
+          # Capture host-side state FIRST: if the emulator died, the most
+          # informative signal is whether the Linux OOM killer reaped qemu
+          # (look for "Killed process NNN (qemu-system-x86)" in dmesg) or
+          # whether qemu exited on its own (no dmesg trace, look in
+          # emulator-attempt-N.log for the actual exit reason). Without
+          # this we cannot tell host-OOM apart from a qemu/guest crash,
+          # and a memory bump becomes a guess instead of a fix.
+          echo "=== host memory (free -h) ==="
+          free -h || true
+          echo "=== running qemu/emulator processes ==="
+          ps -eo pid,stat,rss,etime,cmd | grep -iE 'qemu|emulator' | grep -v grep || echo "(none — emulator process is gone)"
+          echo "=== dmesg OOM-killer hits ==="
+          # `sudo dmesg` because ubuntu-latest restricts kernel.dmesg_restrict;
+          # the runner user has passwordless sudo on hosted runners.
+          sudo dmesg -T 2>/dev/null | grep -iE 'killed process|out of memory|oom-killer' || echo "(no OOM messages)"
+          echo "=== dmesg (last 200 lines) ==="
+          sudo dmesg -T 2>/dev/null | tail -n 200 || echo "(dmesg unavailable)"
+
+          echo "=== adb devices ==="
+          timeout 15 $ANDROID_SDK_ROOT/platform-tools/adb devices -l 2>&1 || echo "(adb devices timed out)"
+          # Tail the *streamed* logcat.log, not `adb logcat -d`, which only sees
+          # the last few seconds of the in-emulator ring buffer. The streaming
+          # file covers from emulator-boot through failure.
+          echo "=== logcat.log (last 2000 lines) ==="
+          tail -n 2000 logcat.log 2>/dev/null || echo "(no logcat.log)"
+          # appium-attempt-N.log + emulator-attempt-N.log are created per retry
+          # by the workflow-level emulator-restart loop. emulator.log is the
+          # initial boot from the dedicated step. Glob over all of them so a
+          # mid-run restart's logs aren't lost.
+          for f in appium-attempt-*.log; do
+            [ -f "$f" ] || continue
+            echo "=== $f (last 500 lines) ==="
+            tail -n 500 "$f"
+          done
+          for f in emulator.log emulator-attempt-*.log; do
+            [ -f "$f" ] || continue
+            echo "=== $f (last 200 lines) ==="
+            tail -n 200 "$f"
+          done
+
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-ui-test-diagnostics
+          path: |
+            appium-attempt-*.log
+            emulator.log
+            emulator-attempt-*.log
+            logcat.log
+            **/*.trx
+          if-no-files-found: ignore
+
+      - name: Stop Android emulator
+        if: always()
+        run: |
+          # Stop the streamed logcat first so its file handle is released
+          # before the emulator dies (which would close adb anyway, but doing
+          # it in order makes the log tail clean).
+          if [ -n "${LOGCAT_PID:-}" ]; then
+            kill "$LOGCAT_PID" 2>/dev/null || true
+          fi
+          # Force-kill all emulator processes immediately.
+          # Using 'adb emu kill' alone can leave QEMU hanging for 30+ minutes.
+          $ANDROID_SDK_ROOT/platform-tools/adb emu kill 2>/dev/null || true
+          pkill -9 -f "qemu-system-x86" 2>/dev/null || true
+          pkill -9 -f "/emulator/emulator" 2>/dev/null || true
+          if [ -n "${EMULATOR_PID:-}" ]; then
+            kill -9 "$EMULATOR_PID" 2>/dev/null || true
+          fi
+          echo "Emulator stopped."
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # iOS Simulator app build (shared by all device-class matrix entries)
+  #
+  # Building the simulator .app once and reusing it across the device-class
+  # matrix is the main lever for reducing iOS UI-test wall-clock time and
+  # runner-minutes. Each test job used to repeat workload install + dotnet
+  # build (~6-9 min), tripling the cost of the matrix on a runner pool that
+  # is already queue-bound. After the split, the iOS path consumes ~50
+  # runner-minutes instead of ~90.
+  # ─────────────────────────────────────────────
+  build-ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install dotnet workloads
+        # `dotnet workload restore` because TRViS.csproj on macOS declares
+        # <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+        # (line 1-3 of the csproj) and the implicit restore that `dotnet build`
+        # runs evaluates every TFM in the list — even when `-f net10.0-ios`
+        # restricts the actual build. Without maui-android installed, the
+        # workload-check pre-pass fires `NETSDK1147: ... workloads must be
+        # installed: android [TargetFramework=net10.0-android]` and the build
+        # never gets started (see failure on run 25665479712). Mirroring the
+        # same `workload restore` pattern the previous ui-test-ios job used
+        # before the build/test split.
+        run: dotnet workload restore
+
+      - name: Create placeholder GoogleService-Info.plist
+        # TRViS.csproj declares <BundleResource Include="GoogleService-Info.plist" />
+        # next to the csproj, so the build needs a file at TRViS/GoogleService-Info.plist
+        # (not the Platforms/iOS path that run-ui-tests.sh writes locally).
+        run: |
+          cat > TRViS/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>000000000000-placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>com.googleusercontent.apps.000000000000-placeholder</string>
+            <key>API_KEY</key>
+            <string>placeholder_api_key</string>
+            <key>GCM_SENDER_ID</key>
+            <string>000000000000</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>${{ env.APP_PACKAGE }}</string>
+            <key>PROJECT_ID</key>
+            <string>placeholder-project-id</string>
+            <key>STORAGE_BUCKET</key>
+            <string>placeholder-project-id.appspot.com</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <true/>
+            <key>IS_SIGNIN_ENABLED</key>
+            <true/>
+            <key>GOOGLE_APP_ID</key>
+            <string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build iOS Simulator app
+        # Mirrors the build performed by run-ui-tests.sh for the iOS simulator:
+        # ad-hoc signing (CodesignKey="-", _RequireCodeSigning=false) and the
+        # same UI_TEST/DISABLE_FIREBASE defines as the other platforms.
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_IOS }}
+          -r ${{ env.TARGET_RUNTIME_IOS_SIM }}
+          -c Debug
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
+          /p:_RequireCodeSigning=false
+          /p:CodesignKey="-"
+
+      - name: Package iOS Simulator app
+        # Tar the .app to preserve symlinks, executable bits, and code-signing
+        # extended attributes across the artifact round-trip. macos-26 ships
+        # bsdtar, which preserves xattrs by default; run-ui-tests.sh re-signs
+        # everything in the bundle after extraction regardless, so any
+        # signature damage from packaging would be repaired before launch.
+        run: |
+          set -euo pipefail
+          APP_DIR=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }} -maxdepth 1 -name "*.app" -type d | head -1)
+          if [ -z "$APP_DIR" ]; then
+            echo "ERROR: No .app bundle found under TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+            find TRViS/bin/Debug -maxdepth 4 -name "*.app" -type d 2>/dev/null || true
+            exit 1
+          fi
+          echo "Packaging: $APP_DIR"
+          tar -czf trvis-ios-sim-app.tar.gz -C "$(dirname "$APP_DIR")" "$(basename "$APP_DIR")"
+          ls -lh trvis-ios-sim-app.tar.gz
+
+      - name: Upload iOS app artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-sim-app
+          path: trvis-ios-sim-app.tar.gz
+          # The tarball is already gzip-compressed; skip the artifact action's
+          # own zlib pass so the upload doesn't pay for compression twice.
+          compression-level: 0
+          # Test jobs run in the same workflow, so the artifact is only needed
+          # for the duration of this run.
+          retention-days: 1
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────
+  # iOS Simulator UI Tests
+  #
+  # Runs the same suite in parallel across an iPhone and two iPad mini
+  # device classes. iPad mini 5th gen needs an iPadOS 17 runtime which is
+  # not pre-installed on macos-26 runners; the job attempts to download
+  # it but tolerates failure (continue-on-error) since macos-26 runners
+  # may not be able to install older runtimes.
+  #
+  # Each entry downloads the .app produced by `build-ios` instead of
+  # rebuilding it; the iOS/MacCatalyst MAUI workloads are not installed
+  # here because TRViS.UITests.csproj targets plain net10.0 with no
+  # ProjectReferences and `dotnet test` does not need them.
+  # ─────────────────────────────────────────────
+  ui-test-ios:
+    runs-on: macos-26
+    # iPhone simulator cold start on macos-26 (~5-7 min for WDA install +
+    # first session) is unavoidable; subsequent sessions are cheap because
+    # each fixture shares a single session (BaseUITest.RestartAppInSharedSession).
+    # 50 min keeps comfortable headroom above the script's internal 2400 s
+    # dotnet test timeout for Appium boot + cleanup steps.
+    timeout-minutes: 50
+    needs: build-ios
+    # Both iPad mini matrix entries are permitted to fail without failing the
+    # whole job — see the matrix below. The expression resolves to false for
+    # the iphone entry, making this a no-op there.
+    continue-on-error: ${{ matrix.continue-on-error == true }}
+    strategy:
+      # Run all device classes regardless of one failing — useful while a class
+      # is being added/stabilized (e.g. iPad mini 5th gen runtime availability).
+      fail-fast: false
+      matrix:
+        include:
+          - device-class: iphone
+          # iPad mini A17 + macos-26 + Xcode 26 + xcuitest@10.32.1 has a
+          # recurring WDA instability mid-suite: WDA becomes unreachable
+          # (ProxyRequestError: status code 404) after the first few tests,
+          # subsequent test sessions hang trying to reach it, and the
+          # 30-min `timeout` wrapper inside run-ui-tests.sh fires (exit 124).
+          # Run 25668762228 is the canonical example — 1 test reached a
+          # result before WDA died, then the run sat for ~20 min before
+          # being killed. The root cause is the per-test session +
+          # noReset:true churn — every test creates a new WDA connection,
+          # and the iPad mini's simulator/WDA combination doesn't tolerate
+          # that pattern reliably on Xcode 26. The proper fix is to share
+          # one WDA session across tests in a fixture (NUnit OneTimeSetUp);
+          # marking continue-on-error keeps the matrix entry exercising the
+          # iPad-A17 layout when it works, without blocking the workflow
+          # when the upstream WDA instability hits.
+          - device-class: ipad-mini-a17
+            continue-on-error: true
+          # iPad mini 5 caps at iPadOS 17. macos-26 + Xcode 26 + WDA
+          # routinely fails to connect WDA over port 8100 on the iPadOS 17
+          # runtime (`connect ECONNREFUSED 127.0.0.1:8100`, then session
+          # creation times out — see run 25634821932). The runtime download
+          # is also best-effort and may fail entirely on a given runner
+          # image. Mark this matrix entry continue-on-error so the
+          # incompatibility doesn't fail the workflow while we keep
+          # exercising the path: when the WDA/runtime story stabilises
+          # upstream the entry quietly starts succeeding again.
+          - device-class: ipad-mini-5
+            continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install GNU coreutils (provides timeout)
+        run: brew install coreutils
+
+      - name: Download iOS simulator runtime (if needed)
+        run: |
+          # Xcode 26+ on macos-26 runners may not have the iOS simulator runtime
+          # pre-installed. Download it if no iOS runtimes are available.
+          if xcrun simctl list runtimes | grep -qi ios; then
+            echo "iOS simulator runtime already available."
+          else
+            echo "No iOS simulator runtime found. Downloading..."
+            xcodebuild -downloadPlatform iOS
+            echo "Download complete."
+          fi
+          xcrun simctl list runtimes
+
+      - name: Download iPadOS 17 runtime (iPad mini 5th gen only)
+        if: matrix.device-class == 'ipad-mini-5'
+        # 5th-gen iPad mini caps at iPadOS 17. macos-26 ships iOS 26.x by default,
+        # so we need an explicit iPadOS 17 runtime. xcodebuild -downloadPlatform
+        # supports -buildVersion in Xcode 16+. This step is best-effort: if the
+        # runtime is unavailable, the test job will fail when simctl create can't
+        # match the device type to a runtime — we let it fail so the issue is visible
+        # but mark the step continue-on-error so the iPhone / 6th-gen / A17 jobs
+        # are not blocked by an iPadOS 17 download regression.
+        continue-on-error: true
+        run: |
+          set -euxo pipefail
+          # Use an iPadOS 17.x runtime if available. Try common build numbers.
+          for VERSION in "17.5" "17.4" "17.0"; do
+            if xcodebuild -downloadPlatform iOS -buildVersion "$VERSION"; then
+              echo "Successfully downloaded iPadOS $VERSION runtime."
+              break
+            fi
+            echo "Failed to download iPadOS $VERSION runtime; trying next..."
+          done
+          xcrun simctl list runtimes
+
+      - name: Install Appium globally
+        # Pin to avoid an upstream regression in Appium 3.4.x + xcuitest 11.x
+        # where doNativeFind passes a null context to unwrapElement and
+        # @appium/support throws "Cannot convert undefined or null to object"
+        # on every root-level findElement call.
+        run: npm install -g appium@3.2.2
+
+      - name: Install XCUITest driver
+        run: appium driver install xcuitest@10.32.1
+
+      - name: Download iOS app artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ios-sim-app
+
+      - name: Extract iOS app to build output path
+        # run-ui-tests.sh discovers the app via
+        # `find TRViS/bin/Debug/$TARGET_FRAMEWORK/$TARGET_RUNTIME -name "*.app"`,
+        # so the tarball is extracted into the exact path the script expects.
+        # The script's --skip-build flag prevents a rebuild from clobbering it.
+        run: |
+          set -euo pipefail
+          DEST="TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+          mkdir -p "$DEST"
+          tar -xzf trvis-ios-sim-app.tar.gz -C "$DEST"
+          ls -la "$DEST"
+
+      - name: Run iOS UI Tests (${{ matrix.device-class }})
+        run: ./run-ui-tests.sh ios --skip-build --skip-install --device-class=${{ matrix.device-class }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ui-test-results-${{ matrix.device-class }}
+          # Include TestResults subdirectories — they hold per-test PNG screenshots
+          # and PageSource XML dumps attached on failure (BaseUITest.TearDown).
+          # Without these the .trx alone surfaces only the exception and leaves us
+          # blind to what was actually on screen at the moment of timeout.
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml
+
+  # ─────────────────────────────────────────────
+  # macOS (Mac Catalyst) UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-macos:
+    runs-on: macos-26
+    # Bumped from 20 to 30 minutes after run 25665479712 was cancelled at
+    # exactly the 20-min cap with the test suite still executing. The
+    # macos-26 runner image and Xcode 26 produce variable per-test latency
+    # — historical baseline is ~14 min, but slow runs creep past 18 min
+    # without any test logic regression. 30 minutes leaves comfortable
+    # headroom while still bounding the worst-case far below the per-job
+    # cancellation timeout of the workflow as a whole. There's no
+    # workflow-level retry on macOS (unlike Android), so a single
+    # timeout-driven cancellation costs the entire job.
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install MacCatalyst workload
+        run: dotnet workload install maccatalyst
+
+      - name: Install GNU coreutils (provides timeout)
+        run: brew install coreutils
+
+      - name: Install Appium globally
+        run: npm install -g appium
+
+      - name: Install mac2 driver
+        run: appium driver install mac2
+
+      - name: Run macOS UI Tests
+        run: ./run-ui-tests.sh mac --skip-install
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-ui-test-results
+          path: "**/*.trx"
+
+  # ─────────────────────────────────────────────
+  # Windows UI Tests
+  # ─────────────────────────────────────────────
+  ui-test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Install Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Enable Developer Mode
+        run: |
+          reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
+
+      - name: Build Windows app
+        run: >
+          dotnet build ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_WIN }}
+          -c Debug
+          /p:WindowsPackageType=None
+          /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WIN }}
+          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
+
+      - name: Install Appium and Windows driver
+        run: |
+          npm install -g appium
+          appium driver install --source=npm appium-windows-driver
+
+      - name: Run Windows UI Tests
+        run: |
+          # Find the main app executable (not RestartAgent.exe)
+          $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "TRViS.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $exePath) {
+            Write-Host "[ERROR] TRViS.exe not found"
+            exit 1
+          }
+          Write-Host "EXE: $exePath"
+
+          # Find the Appium CLI entry point from the installed package's package.json.
+          # This is the only reliable way to get the correct JS file regardless of
+          # Appium version (2.x used build/lib/main.js, 3.x uses bin/appium.js).
+          # Running node.exe directly avoids the cmd.exe wrapper that breaks
+          # -RedirectStandardOutput when used with Start-Process.
+          $nodeExe = (Get-Command node).Source
+          $npmRoot = (npm root -g).Trim()
+          Write-Host "node: $nodeExe"
+          Write-Host "npm root: $npmRoot"
+
+          $appiumPkgJson = Join-Path $npmRoot "appium\package.json"
+          if (-not (Test-Path $appiumPkgJson)) {
+            Write-Host "[ERROR] appium package.json not found at $appiumPkgJson"
+            exit 1
+          }
+          $binField = (Get-Content $appiumPkgJson -Raw | ConvertFrom-Json).bin.appium
+          $binRelative = $binField -replace '^\./', ''
+          $appiumBinJs = Join-Path $npmRoot "appium\$binRelative"
+          Write-Host "appium script: $appiumBinJs"
+          if (-not (Test-Path $appiumBinJs)) {
+            Write-Host "[ERROR] appium script not found: $appiumBinJs"
+            Write-Host "package.json bin field: $binField"
+            exit 1
+          }
+
+          Write-Host "Starting Appium server..."
+          $appiumProcess = Start-Process `
+            -FilePath $nodeExe `
+            -ArgumentList $appiumBinJs `
+            -PassThru `
+            -RedirectStandardOutput "appium.log" `
+            -RedirectStandardError "appium-error.log"
+          Write-Host "Appium PID: $($appiumProcess.Id)"
+
+          # Give the process 5 seconds to start, then verify it did not exit immediately.
+          Start-Sleep -Seconds 5
+          if ($appiumProcess.HasExited) {
+            Write-Host "[ERROR] Appium exited immediately (exit code $($appiumProcess.ExitCode))"
+            Write-Host "=== appium.log ==="
+            Get-Content appium.log -ErrorAction SilentlyContinue
+            Write-Host "=== appium-error.log ==="
+            Get-Content appium-error.log -ErrorAction SilentlyContinue
+            exit 1
+          }
+
+          # Wait for Appium to be ready by polling the /status endpoint.
+          # Each iteration: up to 1s request timeout + 1s sleep = ~2s.
+          # Allow 120 iterations (~4 minutes total) for Windows Defender / AV
+          # to inspect the new node process before it can bind to the port.
+          $timeout = 120
+          $elapsed = 0
+          $ready = $false
+          while ($elapsed -lt $timeout) {
+            try {
+              $response = Invoke-WebRequest -Uri "${{ env.APPIUM_URL }}/status" -Method GET -TimeoutSec 1 -ErrorAction Stop
+              if ($response.StatusCode -eq 200) {
+                Write-Host "Appium server is ready!"
+                $ready = $true
+                break
+              }
+            } catch {
+              if ($appiumProcess.HasExited) {
+                Write-Host "[ERROR] Appium process exited unexpectedly (exit code $($appiumProcess.ExitCode))"
+                Write-Host "=== appium.log ==="
+                Get-Content appium.log -ErrorAction SilentlyContinue
+                Write-Host "=== appium-error.log ==="
+                Get-Content appium-error.log -ErrorAction SilentlyContinue
+                exit 1
+              }
+              Start-Sleep -Seconds 1
+              $elapsed++
+            }
+          }
+
+          if (-not $ready) {
+            Write-Host "[ERROR] Appium server did not respond within $($timeout * 2) seconds"
+            Write-Host "=== appium.log ==="
+            Get-Content appium.log -ErrorAction SilentlyContinue
+            Write-Host "=== appium-error.log ==="
+            Get-Content appium-error.log -ErrorAction SilentlyContinue
+            exit 1
+          }
+          Write-Host "=== appium.log (startup) ==="
+          Get-Content appium.log -ErrorAction SilentlyContinue
+
+          # Run tests
+          dotnet test ${{ env.UITESTS_CSPROJ_PATH }} `
+            --configuration Debug `
+            --logger "trx;LogFileName=windows-results.trx" `
+            -- `
+            "TestRunParameters.Parameter(name=`"platform`",value=`"windows`")" `
+            "TestRunParameters.Parameter(name=`"appPath`",value=`"$exePath`")" `
+            "TestRunParameters.Parameter(name=`"appiumUrl`",value=`"${{ env.APPIUM_URL }}`")"
+        shell: pwsh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-ui-test-results
+          # Include screenshots and page-source dumps from BaseUITest.TearDown
+          # so we can diagnose layout-specific failures (Windows MAUI's
+          # ScrollView visibility quirks needed this once already).
+          path: |
+            **/*.trx
+            **/TestResults/**/*.png
+            **/TestResults/**/*.xml

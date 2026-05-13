@@ -8,7 +8,6 @@
 	xmlns:dtacConv="clr-namespace:TRViS.ValueConverters.DTAC">
 	<conv:ToWideConverter x:Key="ToWideConverter"/>
 	<dtacConv:StationNameConverter x:Key="StationNameConverter"/>
-	<dtacConv:TrainNumberConverter x:Key="TrainNumberConverter"/>
 
 	<ColumnDefinitionCollection x:Key="TrainInfoColumnWidthCollection">
 		<!-- 列車 -->

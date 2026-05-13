@@ -11,6 +11,7 @@ public partial class ToggleButton : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	public EventHandler<ValueChangedEventArgs<bool>>? IsCheckedChanged;
+	public event EventHandler? Tapped;
 
 	public ToggleButton()
 	{
@@ -24,7 +25,10 @@ public partial class ToggleButton : ContentView
 				Point? pt = e.GetPosition(this);
 				logger.Debug("Tapped (Pont: {0}, IsEnabled: {1}, IsChecked Before: {2})", pt, IsEnabled, IsChecked);
 				if (IsEnabled)
+				{
 					IsChecked = IsRadio || !IsChecked;
+					Tapped?.Invoke(this, EventArgs.Empty);
+				}
 			}
 			catch (Exception ex)
 			{

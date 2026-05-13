@@ -119,7 +119,7 @@ public class OpenFile(HttpClient httpClient)
 			"file" => appLinkInfo.FileTypeInfo switch
 			{
 				AppLinkInfo.FileType.Json => await LoaderJson.InitFromFileAsync(uri.LocalPath, token),
-				AppLinkInfo.FileType.Sqlite => new LoaderSQL(uri.LocalPath),
+				AppLinkInfo.FileType.Sqlite => await LoaderSQL.CreateAsync(uri.LocalPath, token),
 				_ => throw new ArgumentException("Unknown file type"),
 			},
 			"http" or "https" => await OpenAppLink_HttpTypeAsync(

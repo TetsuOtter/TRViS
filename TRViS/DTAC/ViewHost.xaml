@@ -7,113 +7,42 @@
 	x:Class="TRViS.DTAC.ViewHost"
 	x:DataType="viewmodels:DTACViewHostViewModel"
 	BackgroundColor="{x:Static local:DTACElementStyles.DefaultBGColor}">
-	<Grid SafeAreaEdges="None">
+	<Grid x:Name="MainGrid" SafeAreaEdges="None">
 		<Grid.RowDefinitions>
-			<RowDefinition x:Name="TitlePaddingViewHeight"
-										 Height="0"/>
-			<RowDefinition Height="{x:Static local:ViewHost.TITLE_VIEW_HEIGHT}"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="60"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 
-		<BoxView
-			x:Name="TitleBGBoxView"
+		<local:AppBar
+			x:Name="AppBarView"
 			Grid.Row="0"
-			Grid.RowSpan="2"
-			Margin="-100,-100,-100,0"/>
-		<BoxView
-			x:Name="TitleBGGradientBox"
-			CornerRadius="0"
-			Grid.Row="0"
-			Grid.RowSpan="2"
-			Margin="0,0,0,30"/>
-
-		<Button
-			x:Name="MenuButton"
-			Grid.Row="1"
-			Margin="8,4"
-			Padding="0"
-			HorizontalOptions="Start"
-			VerticalOptions="Center"
-			Text="&#xe241;"
-			FontFamily="MaterialIconsRegular"
-			FontSize="36"
-			FontAutoScalingEnabled="False"
-			BackgroundColor="Transparent"
-			Clicked="MenuButton_Clicked"/>
+			LeftButtonText="&#xe241;"
+			LeftButtonAutomationId="DTAC.MenuButton"
+			TitleLabelAutomationId="DTAC.TitleLabel"
+			TimeLabelAutomationId="DTAC.TimeLabel"
+			IsTimeLabelEnabled="True"
+			IsThemeButtonEnabled="True"
+			IsAppIconButtonEnabled="True"
+			IsTitleTappable="True"/>
 
 		<HorizontalStackLayout
-			x:Name="TimeLabelStack"
 			Grid.Row="1"
-			Margin="8,4"
-			Padding="0"
-			HorizontalOptions="End"
-			VerticalOptions="End"
-			Spacing="8">
-			<ImageButton
-				Aspect="AspectFill"
-				Margin="12,8"
-				HeightRequest="30"
-				WidthRequest="30"
-				Padding="0"
-				CornerRadius="7"
-				Source="{x:Static local:DTACElementStyles.AppIconSource}"
-				BackgroundColor="{x:Static local:DTACElementStyles.AppIconBgColor}"
-				Clicked="OnToggleBgAppIconButtonClicked"/>
-			<Button
-				x:Name="ChangeThemeButton"
-				Margin="0,6"
-				Padding="0"
-				FontFamily="MaterialIconsRegular"
-				FontSize="28"
-				FontAutoScalingEnabled="False"
-				HorizontalOptions="Center"
-				VerticalOptions="End"
-				BackgroundColor="Transparent"
-				Clicked="OnChangeThemeButtonClicked"/>
-			<Label
-				x:Name="TimeLabel"
-				Text="12:34:56"
-				Margin="0"
-				Padding="0"
-				FontFamily="{x:Static local:DTACElementStyles.TimetableNumFontFamily}"
-				HorizontalOptions="End"
-				VerticalOptions="End"
-				VerticalTextAlignment="End"
-				FontAutoScalingEnabled="False"
-				FontAttributes="Bold"
-				FontSize="40"/>
-		</HorizontalStackLayout>
-
-		<Label
-			x:Name="TitleLabel"
-			Grid.Row="1"
-			FontFamily=""
-			Margin="4,8"
-			HorizontalOptions="Center"
-			VerticalOptions="End"
-			FontAutoScalingEnabled="False"
-			FontAttributes="Bold"
-			FontSize="20">
-			<Label.GestureRecognizers>
-				<TapGestureRecognizer Tapped="TitleLabel_Tapped"/>
-			</Label.GestureRecognizers>
-		</Label>
-
-		<HorizontalStackLayout
-			Grid.Row="2"
 			Margin="0"
 			Padding="4,0"
 			BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}">
 			<local:TabButton
+				AutomationId="DTAC.TabHako"
 				Text="ハ　コ"
 				CurrentMode="{Binding TabMode}"
 				TargetMode="Hako"/>
 			<local:TabButton
+				AutomationId="DTAC.TabTimetable"
 				Text="時刻表"
 				CurrentMode="{Binding TabMode}"
 				TargetMode="VerticalView"/>
 			<local:TabButton
+				AutomationId="DTAC.TabWorkAffix"
 				Text="行路添付"
 				IsEnabled="False"
 				CurrentMode="{Binding TabMode}"
@@ -123,7 +52,7 @@
 		<local:WithRemarksView
 			x:Name="HakoRemarksView"
 			IsVisible="False"
-			Grid.Row="3">
+			Grid.Row="2">
 			<local:Hako
 				x:Name="HakoView"/>
 		</local:WithRemarksView>
@@ -131,12 +60,12 @@
 		<local:WorkAffix
 			x:Name="WorkAffixView"
 			IsVisible="False"
-			Grid.Row="3"/>
+			Grid.Row="2"/>
 
 		<local:WithRemarksView
 			x:Name="VerticalStylePageRemarksView"
 			IsVisible="False"
-			Grid.Row="3">
+			Grid.Row="2">
 			<local:VerticalStylePage
 				x:Name="VerticalStylePageView"/>
 		</local:WithRemarksView>

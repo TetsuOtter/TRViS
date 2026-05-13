@@ -33,7 +33,7 @@ public static class NetworkSyncServiceUtil
 		return new HttpNetworkSyncService(uri, httpClient);
 	}
 
-	public static async Task<WebSocketNetworkSyncService> CreateFromWebSocketAsync(Uri uri, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null)
+	public static async Task<WebSocketNetworkSyncService> CreateFromWebSocketAsync(Uri uri, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null, int reconnectIntervalMs = 5000, int reconnectAttemptMax = 3)
 	{
 		cancellationToken ??= CancellationToken.None;
 		webSocket ??= new ClientWebSocket();
@@ -45,19 +45,19 @@ public static class NetworkSyncServiceUtil
 			throw new ArgumentException("URI must use ws:// or wss:// scheme for WebSocket connections.", nameof(uri));
 		}
 
-		WebSocketNetworkSyncService manager = new(uri, webSocket);
+		WebSocketNetworkSyncService manager = new(uri, webSocket, reconnectIntervalMs, reconnectAttemptMax);
 		await manager.ConnectAsync(cancellationToken.Value);
 
 		return manager;
 	}
 
-	public static async Task<NetworkSyncServiceBase> CreateAsync(Uri uri, HttpClient? httpClient = null, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null)
+	public static async Task<NetworkSyncServiceBase> CreateAsync(Uri uri, HttpClient? httpClient = null, ClientWebSocket? webSocket = null, CancellationToken? cancellationToken = null, int reconnectIntervalMs = 5000, int reconnectAttemptMax = 3)
 	{
 		// スキームに基づいて適切なプロバイダーを選択
 		if (uri.Scheme == "ws" || uri.Scheme == "wss")
 		{
 			logger.Info("CreateAsync: Using WebSocket for URI: {0}", uri);
-			return await CreateFromWebSocketAsync(uri, webSocket, cancellationToken);
+			return await CreateFromWebSocketAsync(uri, webSocket, cancellationToken, reconnectIntervalMs, reconnectAttemptMax);
 		}
 		else
 		{

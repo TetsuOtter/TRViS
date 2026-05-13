@@ -5,11 +5,15 @@ using DependencyPropertyGenerator;
 
 using Microsoft.Maui.Controls.Shapes;
 
+using TRViS.DTAC.Adapters;
+using TRViS.DTAC.Logic.Formatters;
+using TRViS.DTAC.Logic.Presenter;
 using TRViS.DTAC.TimetableParts;
 using TRViS.DTAC.ViewModels;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
+using TRViS.DTAC.Logic.Layout;
 
 namespace TRViS.DTAC;
 
@@ -47,11 +51,14 @@ public partial class VerticalTimetableView : Grid
 	private readonly Line TopSeparatorLine;
 	private readonly List<Line> SeparatorLines = [];
 
+	private readonly VerticalTimetableViewPresenter _presenter;
+	private readonly LocationServiceAdapter _locationServiceAdapter;
+
 	#endregion
 
 	#region Properties
 
-	public DTACMarkerViewModel MarkerViewModel { get; } = InstanceManager.DTACMarkerViewModel;
+	public DTACMarkerViewModel MarkerViewModel { get; } = PresenterFactory.GetDTACMarkerViewModel();
 
 	public VerticalTimetableColumnVisibilityState ColumnVisibilityState { get; } = new((int)DeviceDisplay.MainDisplayInfo.Width);
 
@@ -67,8 +74,8 @@ public partial class VerticalTimetableView : Grid
 			_isBusy = value;
 			try
 			{
-				logger.Trace("IsBusy is changed to {0}", IsBusy);
-				IsBusyChanged?.Invoke(this, new());
+				logger.Trace("IsBusy is changed to {0}", _isBusy);
+				IsBusyChanged?.Invoke(this, _isBusy);
 			}
 			catch (Exception ex)
 			{
@@ -86,13 +93,24 @@ public partial class VerticalTimetableView : Grid
 	public event EventHandler<bool>? IsBusyChanged;
 	public event EventHandler<ScrollRequestedEventArgs>? ScrollRequested;
 
+	/// <summary>
+	/// Callback invoked when a row is tapped. Set by the parent page to forward
+	/// the tap directly to the page-level presenter (no event-bus indirection).
+	/// </summary>
+	public Action<int>? RowTappedCallback { get; set; }
+
 	#endregion
 
 	#region Constructor
 
-	public VerticalTimetableView()
+	public VerticalTimetableView(TRViS.DTAC.Logic.Abstractions.ILocationMarkerStateSource locationMarkerSource)
 	{
 		logger.Trace("Creating...");
+
+		AutomationId = "DTAC.VerticalTimetableView";
+
+		_presenter = PresenterFactory.BuildVerticalTimetableViewPresenter(ViewModel, locationMarkerSource);
+		_locationServiceAdapter = PresenterFactory.GetLocationServiceAdapter();
 
 		// Initialize location marker views
 		CurrentLocationBoxView = new()
@@ -135,14 +153,15 @@ public partial class VerticalTimetableView : Grid
 		Children.Add(CurrentLocationBoxView);
 		Children.Add(CurrentLocationLine);
 
-		// Setup location service error handling
-		InstanceManager.LocationService.ExceptionThrown += (s, e) =>
+		// Setup location service error handling via adapter (no InstanceManager)
+		_locationServiceAdapter.ExceptionThrown += (s, e) =>
 		{
 			MainThread.BeginInvokeOnMainThread(() => Shell.Current.DisplayAlertAsync("Location Service Error", e.ToString(), "OK"));
 		};
 
 		// Subscribe to events
-		MarkerViewModel.PropertyChanged += OnMarkerViewModelPropertyChanged;
+		_presenter.StateChanged += OnPresenterStateChanged;
+		_presenter.ScrollRequested += OnPresenterScrollRequested;
 		ViewModel.PropertyChanged += OnViewModelPropertyChanged;
 		ViewModel.CurrentRows.CollectionChanged += OnCurrentRowsCollectionChangedAsync;
 
@@ -160,7 +179,7 @@ public partial class VerticalTimetableView : Grid
 
 		try
 		{
-			ViewModel.HandleRowTappedWithDoubleTapDetection(row.Model, RowViewList.Count);
+			RowTappedCallback?.Invoke(row.Model.RowIndex);
 		}
 		catch (Exception ex)
 		{
@@ -191,28 +210,12 @@ public partial class VerticalTimetableView : Grid
 
 	#region Event Handlers - ViewModel Property Changes
 
-	private void OnMarkerViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		switch (e.PropertyName)
-		{
-			case nameof(DTACMarkerViewModel.IsToggled):
-				ViewModel.IsMarkingMode = MarkerViewModel.IsToggled;
-				break;
-		}
-	}
-
 	private async void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
 		switch (e.PropertyName)
 		{
 			case nameof(ViewModel.CurrentRows):
 				await OnViewModelCurrentRowsChangedAsync();
-				break;
-			case nameof(ViewModel.LocationMarkerState):
-				OnViewModelLocationMarkerStateChanged();
-				break;
-			case nameof(ViewModel.LocationMarkerPosition):
-				OnViewModelLocationMarkerPositionChanged();
 				break;
 			case nameof(ViewModel.AfterRemarksText):
 				OnViewModelAfterRemarksTextChanged();
@@ -252,86 +255,12 @@ public partial class VerticalTimetableView : Grid
 	private async void OnCurrentRowsCollectionChangedAsync(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
 		=> await OnViewModelCurrentRowsChangedAsync();
 
-	private void OnViewModelLocationMarkerStateChanged()
-	{
-		MainThread.BeginInvokeOnMainThread(() =>
-		{
-			try
-			{
-				switch (ViewModel.LocationMarkerState)
-				{
-					case VerticalTimetableRowModel.LocationStates.Undefined:
-						CurrentLocationBoxView.IsVisible = CurrentLocationLine.IsVisible = false;
-						break;
-					case VerticalTimetableRowModel.LocationStates.AroundThisStation:
-						CurrentLocationBoxView.IsVisible = true;
-						CurrentLocationBoxView.Margin = new(0);
-						CurrentLocationLine.IsVisible = false;
-						Util.PerformHaptic(HapticFeedbackType.Click);
-						break;
-
-					case VerticalTimetableRowModel.LocationStates.RunningToNextStation:
-						CurrentLocationBoxView.IsVisible = true;
-						CurrentLocationBoxView.Margin = new(0, -(RowHeight.Value / 2));
-						CurrentLocationLine.IsVisible = true;
-						Util.PerformHaptic(HapticFeedbackType.Click);
-						break;
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelLocationMarkerStateChanged");
-				Util.ExitWithAlertAsync(ex);
-			}
-		});
-	}
-
-	private void OnViewModelLocationMarkerPositionChanged()
-	{
-		MainThread.BeginInvokeOnMainThread(() =>
-		{
-			try
-			{
-				if (0 <= ViewModel.LocationMarkerPosition)
-				{
-					Grid.SetRow(CurrentLocationBoxView, ViewModel.LocationMarkerPosition);
-					Grid.SetRow(CurrentLocationLine, ViewModel.LocationMarkerPosition);
-					Util.PerformHaptic(HapticFeedbackType.Click);
-				}
-				else
-				{
-					Grid.SetRow(CurrentLocationBoxView, 0);
-					Grid.SetRow(CurrentLocationLine, 0);
-				}
-
-				if (0 == ViewModel.LocationMarkerPosition)
-				{
-					ScrollRequested?.Invoke(this, new(ViewModel.LocationMarkerPosition * RowHeight.Value));
-				}
-				else if (1 <= ViewModel.LocationMarkerPosition)
-				{
-					ScrollRequested?.Invoke(this, new((ViewModel.LocationMarkerPosition - 1) * RowHeight.Value));
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnViewModelLocationMarkerPositionChanged");
-				Util.ExitWithAlertAsync(ex);
-			}
-		});
-	}
-
 	private void OnViewModelAfterRemarksTextChanged()
 	{
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			try
 			{
-				EnsureRowDefinitions();
-				AddSeparatorLines();
-
 				if (ViewModel.AfterRemarksText is not null)
 				{
 					AfterRemarks.Text = ViewModel.AfterRemarksText;
@@ -357,11 +286,6 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
-				int rowsCount = ViewModel.CurrentRows.Count;
-				EnsureRowDefinitions();
-				AddSeparatorLines();
-				AfterArrive.SetRow(rowsCount + 1);
-				Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? rowsCount + 2 : rowsCount + 1);
 				if (ViewModel.AfterArriveText is not null)
 				{
 					AfterArrive.Text = ViewModel.AfterArriveText;
@@ -387,20 +311,21 @@ public partial class VerticalTimetableView : Grid
 		{
 			try
 			{
-				EnsureRowDefinitions();
-				AddSeparatorLines();
-				int rowsCount = ViewModel.CurrentRows.Count;
-				Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? rowsCount + 2 : rowsCount + 1);
-
-				if (ViewModel.NextTrainId is not null)
+				// Empty-string is "no next train" by convention (matches the
+				// Presenter's IsNullOrEmpty check). Treat it the same as null
+				// so the button is not added to Children at all — otherwise
+				// Mac Catalyst / iOS keep the IsVisible=false element in the
+				// accessibility tree, confusing the user-perceptible state.
+				if (!string.IsNullOrEmpty(ViewModel.NextTrainId))
 				{
-					NextTrainButton.NextTrainId = ViewModel.NextTrainId;
-					Children.Add(NextTrainButton);
+					if (!Children.Contains(NextTrainButton))
+						Children.Add(NextTrainButton);
 				}
 				else
 				{
 					Children.Remove(NextTrainButton);
 				}
+				NextTrainButton.Refresh();
 			}
 			catch (Exception ex)
 			{
@@ -409,6 +334,62 @@ public partial class VerticalTimetableView : Grid
 				Util.ExitWithAlertAsync(ex);
 			}
 		});
+	}
+
+	#endregion
+
+	#region Event Handlers - Presenter
+
+	private void OnPresenterStateChanged(object? sender, VerticalTimetableViewStateChangedEventArgs e)
+		=> ApplyPresenterState(_presenter.CurrentState);
+
+	private void OnPresenterScrollRequested(object? sender, int rowIndex)
+	{
+		if (rowIndex < 0)
+			return;
+		double positionY = rowIndex == 0
+			? 0
+			: (rowIndex - 1) * RowHeight.Value;
+		ScrollRequested?.Invoke(this, new(positionY));
+	}
+
+	private void ApplyPresenterState(VerticalTimetableViewPageState state)
+	{
+		ViewModel.IsMarkingMode = state.IsMarkingMode;
+
+		EnsureRowDefinitions();
+		AddSeparatorLines();
+		AfterRemarks.SetRow(state.AfterArriveRowIndex - 1);
+		AfterArrive.SetRow(state.AfterArriveRowIndex);
+		Grid.SetRow(NextTrainButton, state.NextTrainButtonRowIndex);
+
+		bool prevBoxVisible = CurrentLocationBoxView.IsVisible;
+		bool prevLineVisible = CurrentLocationLine.IsVisible;
+		int prevRow = Grid.GetRow(CurrentLocationBoxView);
+
+		CurrentLocationBoxView.IsVisible = state.Marker.IsBoxVisible;
+		CurrentLocationLine.IsVisible = state.Marker.IsLineVisible;
+
+		if (state.Marker.IsLineVisible)
+			CurrentLocationBoxView.Margin = new(0, -(RowHeight.Value / 2));
+		else
+			CurrentLocationBoxView.Margin = new(0);
+
+		int markerRow = Math.Max(0, state.Marker.MarkerRow);
+		Grid.SetRow(CurrentLocationBoxView, markerRow);
+		Grid.SetRow(CurrentLocationLine, markerRow);
+
+		// Update per-row highlight directly — no ViewModel round-trip
+		int effectiveMarkerRow = state.Marker.IsBoxVisible ? markerRow : -1;
+		for (int i = 0; i < RowViewList.Count; i++)
+			RowViewList[i].Model.IsLocationMarkerOnThisRow = (i == effectiveMarkerRow);
+
+		bool shouldHaptic = state.Marker.IsBoxVisible
+			&& (prevBoxVisible != state.Marker.IsBoxVisible
+				|| prevLineVisible != state.Marker.IsLineVisible
+				|| (state.Marker.MarkerRow >= 0 && prevRow != state.Marker.MarkerRow));
+		if (shouldHaptic)
+			Util.PerformHaptic(HapticFeedbackType.Click);
 	}
 
 	#endregion
@@ -454,30 +435,6 @@ public partial class VerticalTimetableView : Grid
 
 			int newCount = newValue?.Count ?? 0;
 			logger.Debug("newCount: {0}", newCount);
-			try
-			{
-				await MainThread.InvokeOnMainThreadAsync(() =>
-				{
-					EnsureRowDefinitions();
-					AddSeparatorLines();
-					AfterRemarks.SetRow(newCount);
-					AfterArrive.SetRow(newCount + 1);
-					Grid.SetRow(NextTrainButton, ViewModel.AfterArriveText is not null ? newCount + 2 : newCount + 1);
-				});
-
-				logger.Trace("Starting RowViewInit Task...");
-			}
-			catch (OperationCanceledException)
-			{
-				logger.Debug("SetRowViews was cancelled during SetRowDefinitions or AddSeparatorLines");
-				return;
-			}
-			catch (Exception ex)
-			{
-				logger.Fatal(ex, "Unknown Exception");
-				InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.SetRowViews (SetRowDefinitions etc failed)");
-				await Util.ExitWithAlertAsync(ex);
-			}
 
 			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
 				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs, cancellationToken);
@@ -613,34 +570,25 @@ public partial class VerticalTimetableView : Grid
 	private void EnsureRowDefinitions()
 	{
 		int currentCount = RowDefinitions.Count;
-		int newCount = ViewModel.CurrentRows.Count;
+		int rowCount = ViewModel.CurrentRows.Count;
 		bool hasAfterArrive = ViewModel.AfterArriveText is not null;
-		bool hasNextTrainButton = ViewModel.NextTrainId is not null;
-		logger.Debug("Count {0} -> {1}", currentCount, newCount);
+		bool hasNextTrainButton = !string.IsNullOrEmpty(ViewModel.NextTrainId);
+		bool isPhone = DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
+		logger.Debug("Count {0} -> {1}", currentCount, rowCount);
 
-		if (newCount < 0)
-			throw new ArgumentOutOfRangeException(nameof(newCount), "count must be 0 or more");
+		if (rowCount < 0)
+			throw new ArgumentOutOfRangeException(nameof(rowCount), "count must be 0 or more");
 
-		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
-		{
-			// AfterRemarks
-			newCount += 1;
-			if (hasAfterArrive)
-				newCount += 1;
-			if (hasNextTrainButton)
-				newCount += 1;
-		}
-		else
-		{
-			int minCount = (int)Math.Floor(ScrollViewHeight / RowHeight.Value);
-			int additionalRowsCount = Math.Max(2, (int)Math.Ceiling(ScrollViewHeight / RowHeight.Value) - 2);
-			logger.Debug("additionalRowsCount: {0}", additionalRowsCount);
+		int newCount = TimetableLayoutCalculator.CalculateRowDefinitionCount(
+			rowCount,
+			false,
+			hasAfterArrive,
+			hasNextTrainButton,
+			isPhone,
+			ScrollViewHeight,
+			RowHeight.Value);
 
-			newCount += additionalRowsCount;
-			newCount = Math.Max(minCount, newCount);
-		}
-
-		HeightRequest = newCount * RowHeight.Value;
+		HeightRequest = TimetableLayoutCalculator.CalculateGridHeightRequest(newCount, RowHeight.Value);
 		logger.Debug("HeightRequest: {0}", HeightRequest);
 
 		if (newCount <= 0)

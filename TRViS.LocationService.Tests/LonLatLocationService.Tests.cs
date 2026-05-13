@@ -1,4 +1,5 @@
 using TRViS.Services;
+using TRViS.LocationService.Abstractions;
 
 namespace TRViS.LocationService.Tests;
 

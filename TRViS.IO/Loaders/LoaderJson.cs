@@ -65,6 +65,14 @@ public class LoaderJson : ILoader
 		throw new InvalidOperationException("Failed to generate a unique ID");
 	}
 
+	static byte[]? DecodeBase64OrNull(string? s)
+	{
+		if (string.IsNullOrEmpty(s))
+			return null;
+		try { return Convert.FromBase64String(s); }
+		catch (FormatException) { return null; }
+	}
+
 	static readonly JsonSerializerOptions opts = new()
 	{
 		AllowTrailingCommas = true,
@@ -117,18 +125,25 @@ public class LoaderJson : ILoader
 			{
 				WorkData workData = workList[workIndex];
 				string workId = workIdDict[workData];
+				DateOnly? affectDate = Utils.StringToDateOnlyOrNull(workData.AffectDate);
+				// 日付として解釈できない任意の文字列は AffectDateText に格納する
+				string? affectDateText = (affectDate is null && !string.IsNullOrEmpty(workData.AffectDate))
+					? workData.AffectDate
+					: null;
 				WorkData[workId] = new(
 					WorkGroupId: workGroupId,
 					Id: workId,
 					Name: workData.Name,
 
-					AffectDate: Utils.StringToDateOnlyOrNull(workData.AffectDate),
+					AffectDate: affectDate,
 					AffixContent: null, // workData.AffixContent,
 					AffixContentType: workData.AffixContentType,
-					ETrainTimetableContent: null, // workData.ETrainTimetableContent,
+					// JSON 上は base64 文字列。空・不正値は内容なしとして扱う。
+					ETrainTimetableContent: DecodeBase64OrNull(workData.ETrainTimetableContent),
 					ETrainTimetableContentType: workData.ETrainTimetableContentType,
 					HasETrainTimetable: workData.HasETrainTimetable,
-					Remarks: workData.Remarks
+					Remarks: workData.Remarks,
+					AffectDateText: affectDateText
 				);
 				WorkGroupIdByWorkId[workId] = workGroupId;
 				System.Diagnostics.Debug.WriteLine($"\tWork: {workId} {workData.Name} (WorkGroupId: {workGroupId})");
@@ -168,7 +183,7 @@ public class LoaderJson : ILoader
 							BeforeDeparture: trainData.BeforeDeparture,
 							BeginRemarks: trainData.BeginRemarks,
 							CarCount: trainData.CarCount,
-							LineColor_RGB: null, // Not Implemented
+							LineColor_RGB: Utils.HexStringToRgbInt(trainData.Color),
 							DayCount: trainData.DayCount ?? 0,
 							Destination: trainData.Destination,
 							Id: trainId,
