@@ -117,8 +117,35 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 			return;
 		}
 
+		// 同じ列車 (Id 一致 + 行数一致) なら soft 更新パスへ。WS リアルタイム編集 (TRViS_Realtime_Editor)
+		// が同一 TrainId に対して都度新インスタンスを発行するため、ここで参照が変わったからといって
+		// 運行状態を巻き戻すと、ユーザーが「運行開始」を押した直後に列の DriveTime を 1 つ直しただけで
+		// 「運行前」に戻されてしまう。同 Id + 同行数の更新は表示 field の更新だけに留め、
+		// IsRunning / IsRunStarted / marker toggle / IsLocationServiceEnabled は維持する。
+		string? newId = trainData?.Id;
+		string? oldId = _lastTrainData?.Id;
+		int newRowCount = trainData?.Rows?.Length ?? 0;
+		int oldRowCount = _currentState.RowStates.Count;
+		bool canSoftUpdate = trainData is not null
+			&& TimetableRebuildPolicy.CanUpdateInPlace(oldId, oldRowCount, newId, newRowCount);
+
 		_lastTrainData = trainData;
 
+		if (canSoftUpdate)
+		{
+			VerticalPageStateFactory.ApplyTrainDataFields(_currentState, trainData, affectDate);
+			VerticalPageStateFactory.SyncRowStatesIsInfoRow(_currentState, trainData!.Rows!);
+
+			// 駅情報は更新する。NetworkSyncServiceBase.StaLocationInfo の setter が
+			// 旧 current 駅の Location_m を新配列で再検索して index を再計算するので、
+			// 走行中の駅追跡は維持される。
+			_locationService.SetTimetableRows(trainData.Rows);
+
+			RaiseStateChanged(VerticalPageStateSection.All);
+			return;
+		}
+
+		// 全面リセットパス: 列車切替 / 行数変化 / null クリア / 初回ロード のいずれか。
 		bool isLocationServiceEnabled = _currentState.LocationServiceState.IsEnabled;
 		bool canUseLocationService = _currentState.PageHeaderState.CanUseLocationService;
 
