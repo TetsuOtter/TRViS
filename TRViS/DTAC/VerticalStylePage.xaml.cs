@@ -329,16 +329,26 @@ public partial class VerticalStylePage : ContentView
 		}
 
 		// Apply scroll position on All change (train data changed).
-		// 横型時刻表ページから戻った時の OnViewBecameActive も "All" を投げてくるが、
-		// その時 TrainData の参照は変わっていない。SetTrainData は ObservableCollection
-		// を都度作り直してしまうため、行を完全再描画し、走行フラグもリセットしてしまう
-		// (見た目がチラつく / 描画状態が失われる)。参照同一の時はスキップする。
+		// 「列車自体が切り替わったか」は TrainData の参照ではなく Id で判定する。
+		// WebSocket 経由のリアルタイム編集では、同一列車でも CacheTimetableData が
+		// 都度新しい TrainData インスタンスを作る (= 参照は毎回変わる) ため、参照だけで
+		// 判定するとリアルタイム編集のたびに「列車切替扱い」になってスクロール位置が
+		// 先頭に飛んでしまう。Id 一致なら同じ列車として扱い、ユーザーの閲覧位置を維持する。
+		//
+		// SetTrainData 自体は常に呼ぶ。ViewModel 内の TimetableRebuildPolicy が
+		// 「同 Id + 同行数 → field 単位の in-place 更新 (行 UI は dispose しない)」/
+		// 「列車切替 or 行数変化 → 全面再構築」を切り分けるので、ここでは
+		// 「列車自体が切り替わった時だけスクロール位置と DebugMap をリセットする」だけを担う。
 		if (changed == VerticalPageStateSection.All)
 		{
 			var currentTrainData = _presenter.CurrentTrainData;
-			if (!ReferenceEquals(_lastAppliedTrainData, currentTrainData))
+			string? newId = currentTrainData?.Id;
+			string? oldId = _lastAppliedTrainData?.Id;
+			bool isTrainSwitch = !string.Equals(newId, oldId, StringComparison.Ordinal);
+			_lastAppliedTrainData = currentTrainData;
+
+			if (isTrainSwitch)
 			{
-				_lastAppliedTrainData = currentTrainData;
 				MainThread.BeginInvokeOnMainThread(() =>
 				{
 					TimetableAreaScrollView.ScrollToAsync(0, 0, false);
@@ -350,9 +360,10 @@ public partial class VerticalStylePage : ContentView
 					// page instance.
 					_phoneOuterScrollView?.ScrollToAsync(0, 0, false);
 				});
-				TimetableView.ViewModel.SetTrainData(currentTrainData);
-				DebugMap?.SetTimetableRowList(currentTrainData?.Rows);
 			}
+
+			TimetableView.ViewModel.SetTrainData(currentTrainData);
+			DebugMap?.SetTimetableRowList(currentTrainData?.Rows);
 		}
 	}
 
