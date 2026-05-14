@@ -379,10 +379,14 @@ public partial class VerticalTimetableView : Grid
 		Grid.SetRow(CurrentLocationBoxView, markerRow);
 		Grid.SetRow(CurrentLocationLine, markerRow);
 
-		// Update per-row highlight directly — no ViewModel round-trip
-		int effectiveMarkerRow = state.Marker.IsBoxVisible ? markerRow : -1;
-		for (int i = 0; i < RowViewList.Count; i++)
-			RowViewList[i].Model.IsLocationMarkerOnThisRow = (i == effectiveMarkerRow);
+		// 現在位置マーカーが被る行の DriveTime ラベルを白文字 (反転色) にするため、
+		// マーカー位置を ViewModel に書き込む。ViewModel 側 (LocationMarkerRowCoordinator)
+		// が現在の CurrentRows と、その後 SetTrainData で差し替わる新しい行の双方に対して
+		// 適用してくれるので、ここで RowViewList を直接 for-loop する必要はない。
+		// (旧実装は async な SetRowViewsAsync が新行を populate する前にこの for-loop が
+		//  古い RowViewList に対して走ってしまい、新行が黒文字のまま残る不具合があった)
+		ViewModel.MarkerRowIndex = markerRow;
+		ViewModel.IsMarkerVisible = state.Marker.IsBoxVisible;
 
 		bool shouldHaptic = state.Marker.IsBoxVisible
 			&& (prevBoxVisible != state.Marker.IsBoxVisible
