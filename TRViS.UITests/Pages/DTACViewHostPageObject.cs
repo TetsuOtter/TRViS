@@ -19,6 +19,34 @@ public class DTACViewHostPageObject : PageObject
 	public AppiumElement MenuButton => WaitForElement(AutomationIds.DTAC.MenuButton);
 	public AppiumElement TimeLabel => FindByAutomationId(AutomationIds.DTAC.TimeLabel);
 	public AppiumElement TitleLabel => FindByAutomationId(AutomationIds.DTAC.TitleLabel);
+
+	// UI_TEST seams mirroring AppBar Title / TimeLabelText. Always non-empty
+	// (sentinel-prefixed) so they appear in iOS's accessibility tree even
+	// before the first state update, and not affected by TimeLabel's
+	// narrow-screen visibility threshold. Reads return the *stripped* value.
+	public AppiumElement TestTitleSeam => WaitForElement(AutomationIds.DTAC.TestTitleSeam);
+	public AppiumElement TestTimeSeam => WaitForElement(AutomationIds.DTAC.TestTimeSeam);
+
+	/// <summary>
+	/// Current AppBar title as seen by the presenter. Reads the UI_TEST-only
+	/// TestTitleSeam Label and strips its sentinel prefix. Returns "" when
+	/// the presenter has set TitleText to empty (no Work selected).
+	/// </summary>
+	public string ReadTitleViaSeam() => StripSeamPrefix(
+		TestTitleSeam.Text ?? string.Empty,
+		AutomationIds.DTAC.TestSeamTitlePrefix);
+
+	/// <summary>
+	/// Current AppBar clock text as seen by the presenter. Reads the
+	/// UI_TEST-only TestTimeSeam Label and strips its sentinel prefix.
+	/// Updates once per second when the presenter is alive.
+	/// </summary>
+	public string ReadTimeViaSeam() => StripSeamPrefix(
+		TestTimeSeam.Text ?? string.Empty,
+		AutomationIds.DTAC.TestSeamTimePrefix);
+
+	private static string StripSeamPrefix(string raw, string prefix)
+		=> raw.StartsWith(prefix) ? raw.Substring(prefix.Length) : raw;
 	public AppiumElement TabHako => FindCustomControl(AutomationIds.DTAC.TabHako, "ハ　コ");
 	public AppiumElement TabTimetable => FindCustomControl(AutomationIds.DTAC.TabTimetable, "時刻表");
 	public AppiumElement TabWorkAffix => FindCustomControl(AutomationIds.DTAC.TabWorkAffix, "行路添付");

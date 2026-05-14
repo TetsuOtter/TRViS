@@ -165,6 +165,18 @@ public static class AutomationIds
 		// shell navigation triggers ViewHost.OnDisappearing which also unlocks
 		// the orientation.
 		public const string TestNavigateHomeButton = "DTAC.TestNavigateHomeButton";
+
+		// UI_TEST-only state mirrors. The real AppBar TitleLabel / TimeLabel
+		// don't reliably surface on iOS (iOS only exposes a Label in the
+		// accessibility tree when its text is non-empty, and TimeLabel
+		// additionally hides on narrow phones via a width threshold). These
+		// invisible mirror labels are kept always non-empty by sentinel
+		// prefixes (TestSeamTitlePrefix / TestSeamTimePrefix) so they are
+		// always findable. Tests strip the prefix before asserting.
+		public const string TestTitleSeam = "DTAC.TestTitleSeam";
+		public const string TestTimeSeam = "DTAC.TestTimeSeam";
+		public const string TestSeamTitlePrefix = "T:";
+		public const string TestSeamTimePrefix = "C:";
 	}
 
 	/// <summary>

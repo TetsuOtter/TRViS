@@ -35,7 +35,12 @@ public partial class ViewHost : ContentPage
 		_dtacViewModel = dtacViewModel;
 
 		_presenter.StateChanged += OnPresenterStateChanged;
-		Unloaded += (_, _) => _presenter.Dispose();
+		// ViewHost is a cached ShellContent (DataTemplate) — the same instance is
+		// reused on every navigation. Disposing the presenter on Unloaded would
+		// permanently sever its event subscriptions, so the second visit would
+		// freeze the clock and stop updating the title (#240).
+		// HorizontalTimetablePage uses the same factory but is RegisterRoute'd
+		// (a fresh page per navigation), so its Unloaded+Dispose remains correct.
 
 		Shell.SetNavBarIsVisible(this, false);
 
@@ -76,6 +81,8 @@ public partial class ViewHost : ContentPage
 
 #if UI_TEST
 		AddTestNavigateHomeSeam();
+		AddTestStateSeams();
+		ApplyTestStateSeams(_presenter.CurrentState);
 #endif
 
 		logger.Trace("Created");
@@ -119,6 +126,78 @@ public partial class ViewHost : ContentPage
 	// Mirrors AutomationIds.DTAC.TestNavigateHomeButton in the test project
 	// (which is the consumer). Inlined here to avoid a project reference.
 	private const string AutomationIdValueForTestNavigateHome = "DTAC.TestNavigateHomeButton";
+
+	// UI_TEST-only state seams. The AppBar's TitleLabel / TimeLabel are MAUI
+	// Labels; iOS only surfaces a Label in the accessibility tree when its
+	// text is non-empty, and TimeLabel additionally hides itself on narrow
+	// screens (width threshold in AppBar). Both make assertions over the
+	// presenter's state flaky on iPhone-portrait. These seam labels mirror
+	// state.TitleText and state.TimeLabelText with a sentinel prefix so they
+	// are always non-empty (always findable), and are kept invisible to the
+	// user via transparent text + zero size + InputTransparent. Tests strip
+	// the sentinel before asserting.
+	private const string AutomationIdValueForTestTitleSeam = "DTAC.TestTitleSeam";
+	private const string AutomationIdValueForTestTimeSeam = "DTAC.TestTimeSeam";
+	private const string TestTitleSeamPrefix = "T:";
+	private const string TestTimeSeamPrefix = "C:";
+	private Label _testTitleSeamLabel = null!;
+	private Label _testTimeSeamLabel = null!;
+
+	private void AddTestStateSeams()
+	{
+		// Stack above the existing TestNavigateHomeButton in the bottom-LEFT
+		// corner. The bottom-left of row 2 is already established as the
+		// reserved test-seam region (see AddTestNavigateHomeSeam) so production
+		// controls (NextTrainButton at bottom-right of the timetable, the AppBar
+		// AppIcon/Theme/Time stack on the right) are guaranteed not to compete
+		// with these labels. TestNavigateHomeButton sits at margin 0; offset
+		// these by 28/56 px so the three seams form a non-overlapping vertical
+		// strip up the left edge.
+		_testTimeSeamLabel = BuildSeamLabel(
+			AutomationIdValueForTestTimeSeam,
+			TestTimeSeamPrefix,
+			bottomMarginPx: 28);
+		_testTitleSeamLabel = BuildSeamLabel(
+			AutomationIdValueForTestTitleSeam,
+			TestTitleSeamPrefix,
+			bottomMarginPx: 56);
+		Grid.SetRow(_testTimeSeamLabel, 2);
+		Grid.SetRow(_testTitleSeamLabel, 2);
+		MainGrid.Children.Add(_testTimeSeamLabel);
+		MainGrid.Children.Add(_testTitleSeamLabel);
+	}
+
+	private static Label BuildSeamLabel(string automationId, string initialText, double bottomMarginPx)
+	{
+		// iOS XCUITest sets accessible="true" only when isAccessibilityElement
+		// is YES, which UILabel computes from frame size + text presence + alpha.
+		// 1×1 with transparent text falls below the threshold and the element is
+		// returned as accessible="false" (FindElement skips it). Match the
+		// existing TestNavigateHomeButton 24×24 footprint with a non-zero
+		// FontSize so the text drives a11y presence; TextColor=Transparent +
+		// InputTransparent keep it invisible and click-through.
+		return new Label
+		{
+			AutomationId = automationId,
+			Text = initialText,
+			TextColor = Colors.Transparent,
+			BackgroundColor = Colors.Transparent,
+			InputTransparent = true,
+			FontSize = 8,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 0, 0, bottomMarginPx),
+			Padding = 0,
+		};
+	}
+
+	private void ApplyTestStateSeams(ViewHostPageState state)
+	{
+		_testTitleSeamLabel.Text = TestTitleSeamPrefix + (state.TitleText ?? string.Empty);
+		_testTimeSeamLabel.Text = TestTimeSeamPrefix + (state.TimeLabelText ?? string.Empty);
+	}
 #endif
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
@@ -190,6 +269,10 @@ public partial class ViewHost : ContentPage
 	private void ApplyPresenterState(ViewHostStateSection changed)
 	{
 		var state = _presenter.CurrentState;
+
+#if UI_TEST
+		ApplyTestStateSeams(state);
+#endif
 
 		if ((changed & ViewHostStateSection.TitleText) != 0)
 		{
