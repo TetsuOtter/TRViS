@@ -54,6 +54,11 @@ public partial class VerticalTimetableView : Grid
 	private readonly VerticalTimetableViewPresenter _presenter;
 	private readonly LocationServiceAdapter _locationServiceAdapter;
 
+	// 現在 CollectionChanged を購読中の ObservableCollection への参照。CurrentRows が
+	// ObservableProperty で差し替えられた時に、古い方の購読を外して新しい方に貼り替えるために保持する。
+	// これを忘れると同 Train 内の Add/Remove (mutate 経由の差分更新) が View 側で見えなくなる。
+	private ObservableCollection<VerticalTimetableRowModel> _trackedCurrentRows;
+
 	#endregion
 
 	#region Properties
@@ -163,7 +168,8 @@ public partial class VerticalTimetableView : Grid
 		_presenter.StateChanged += OnPresenterStateChanged;
 		_presenter.ScrollRequested += OnPresenterScrollRequested;
 		ViewModel.PropertyChanged += OnViewModelPropertyChanged;
-		ViewModel.CurrentRows.CollectionChanged += OnCurrentRowsCollectionChangedAsync;
+		_trackedCurrentRows = ViewModel.CurrentRows;
+		_trackedCurrentRows.CollectionChanged += OnCurrentRowsCollectionChangedAsync;
 
 		logger.Trace("Created");
 	}
@@ -215,6 +221,12 @@ public partial class VerticalTimetableView : Grid
 		switch (e.PropertyName)
 		{
 			case nameof(ViewModel.CurrentRows):
+				// CurrentRows が ObservableCollection ごと差し替えられた → 旧 collection の
+				// CollectionChanged 購読を外して、新 collection に貼り直す。これを怠ると、
+				// 以降の同 Train mutate (Add/Remove) が View に届かなくなり、行 UI が更新されない。
+				_trackedCurrentRows.CollectionChanged -= OnCurrentRowsCollectionChangedAsync;
+				_trackedCurrentRows = ViewModel.CurrentRows;
+				_trackedCurrentRows.CollectionChanged += OnCurrentRowsCollectionChangedAsync;
 				await OnViewModelCurrentRowsChangedAsync();
 				break;
 			case nameof(ViewModel.AfterRemarksText):
@@ -253,7 +265,107 @@ public partial class VerticalTimetableView : Grid
 	}
 
 	private async void OnCurrentRowsCollectionChangedAsync(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-		=> await OnViewModelCurrentRowsChangedAsync();
+	{
+		// 同 Train 内での mutate 経由更新 (= ObservableCollection.Add / RemoveAt) は
+		// 該当行だけを incremental に追加/削除して、行 UI 全体の dispose+再構築を回避する。
+		// それ以外 (Reset / Replace / Move) は安全側に倒して従来通り SetRowViewsAsync で全面再構築する。
+		try
+		{
+			switch (e.Action)
+			{
+				case System.Collections.Specialized.NotifyCollectionChangedAction.Add:
+					await HandleCollectionAddAsync(e);
+					break;
+				case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
+					await HandleCollectionRemoveAsync(e);
+					break;
+				default:
+					await OnViewModelCurrentRowsChangedAsync();
+					break;
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "VerticalTimetableView.OnCurrentRowsCollectionChanged");
+			await Util.ExitWithAlertAsync(ex);
+		}
+	}
+
+	/// <summary>
+	/// CollectionChanged.Add に対応する incremental 追加。ViewModel の差分更新パスは
+	/// 末尾追加しか発火しないので NewStartingIndex は通常 RowViewList.Count と等しい。
+	/// </summary>
+	private async Task HandleCollectionAddAsync(System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+	{
+		if (e.NewItems is null || e.NewItems.Count == 0)
+			return;
+
+		int startIndex = e.NewStartingIndex >= 0 ? e.NewStartingIndex : RowViewList.Count;
+		var modelsToAdd = new List<VerticalTimetableRowModel>(e.NewItems.Count);
+		foreach (var item in e.NewItems)
+		{
+			if (item is VerticalTimetableRowModel m)
+				modelsToAdd.Add(m);
+		}
+		if (modelsToAdd.Count == 0)
+			return;
+
+		// 「最後の station 行」index は新規追加で変わり得る。追加対象の中で最も末尾寄りの
+		// 非 info 行に isLastRow=true を付ける (= 1 つだけが last station)。先行の Add 群は false。
+		int lastStationOffset = -1;
+		for (int i = modelsToAdd.Count - 1; i >= 0; i--)
+		{
+			if (!modelsToAdd[i].IsInfoRow)
+			{
+				lastStationOffset = i;
+				break;
+			}
+		}
+
+		await MainThread.InvokeOnMainThreadAsync(() =>
+		{
+			for (int i = 0; i < modelsToAdd.Count; i++)
+			{
+				int rowIndex = startIndex + i;
+				bool isLastRow = i == lastStationOffset;
+				VerticalTimetableRow rowView = new(this, modelsToAdd[i], ColumnVisibilityState, MarkerViewModel, isLastRow);
+				rowView.RowTapped += RowTapped;
+				rowView.MarkerBoxClicked += OnMarkerBoxClicked;
+				if (rowIndex >= RowViewList.Count)
+					RowViewList.Add(rowView);
+				else
+					RowViewList.Insert(rowIndex, rowView);
+			}
+		});
+	}
+
+	/// <summary>
+	/// CollectionChanged.Remove に対応する incremental 削除。ViewModel の差分更新パスは
+	/// 末尾削除しか発火しないので OldStartingIndex は通常 (RowViewList.Count - count) と等しい。
+	/// </summary>
+	private Task HandleCollectionRemoveAsync(System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+	{
+		if (e.OldItems is null || e.OldItems.Count == 0)
+			return Task.CompletedTask;
+
+		int startIndex = e.OldStartingIndex;
+		int removeCount = e.OldItems.Count;
+
+		return MainThread.InvokeOnMainThreadAsync(() =>
+		{
+			// index 末尾側から外す: 前から消すと残りの index がずれて狙った行を捨てそこねる。
+			for (int i = removeCount - 1; i >= 0; i--)
+			{
+				int removeAt = startIndex + i;
+				if (removeAt >= 0 && removeAt < RowViewList.Count)
+				{
+					RowViewList[removeAt].Dispose();
+					RowViewList.RemoveAt(removeAt);
+				}
+			}
+		});
+	}
 
 	private void OnViewModelAfterRemarksTextChanged()
 	{

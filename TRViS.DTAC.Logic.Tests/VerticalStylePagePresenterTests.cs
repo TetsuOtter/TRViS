@@ -290,19 +290,36 @@ public class VerticalStylePagePresenterTests
 	}
 
 	/// <summary>
-	/// 同じ Id でも行数が変わった (= 駅が追加/削除された) ら、構造変化なので「運行前」にリセットされる。
+	/// 同じ Id で行数が変わった (= 駅が追加/削除された) 場合でも、同じ列車の編集なので
+	/// 運行中状態は維持される。RowStates dict は新 row 数に揃えてリサイズされる。
 	/// </summary>
 	[Fact]
-	public void SelectedTrainDataChanged_SameIdDifferentRowCount_ResetsRunningState()
+	public void SelectedTrainDataChanged_SameIdDifferentRowCount_PreservesRunningStateAndResizesRowStates()
 	{
 		var (presenter, _, _, _, appVm) = CreatePresenter();
 		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
 		presenter.OnStartButtonClicked();
 		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
 
-		appVm.SelectedTrainData = CreateTrainData(rowCount: 4);
+		// 行数を 3 → 5 に増やす (駅 2 つ追加に相当)
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 5);
 
-		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.Multiple(() =>
+		{
+			Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+				"同じ列車に対する更新なら、行数が増えても運行中フラグは維持される");
+			Assert.Equal(5, presenter.CurrentState.RowStates.Count);
+		});
+
+		// 今度は逆に 5 → 2 に減らす
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 2);
+
+		Assert.Multiple(() =>
+		{
+			Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+				"同じ列車の行削除でも運行中フラグは維持される");
+			Assert.Equal(2, presenter.CurrentState.RowStates.Count);
+		});
 	}
 
 	/// <summary>
