@@ -62,19 +62,30 @@ internal static class VerticalPageStateFactory
 	}
 
 	/// <summary>
-	/// 既存の <see cref="VerticalPageState.RowStates"/> エントリに対し、TimetableRow 側の
-	/// <c>IsInfoRow</c> フラグだけを上書きする。同 Id + 同行数の soft 更新で使う。
-	/// 行数が一致しない場合は何もしない (= 呼び出し側で全面再構築すべきケース)。
+	/// 同 Id soft 更新で使う RowStates の差分同期。既存 entry の <c>IsInfoRow</c> を上書きしつつ、
+	/// 行数の増減に合わせて末尾の entry を Add / Remove する。LocationState など RowStates が
+	/// 保持している運行状態 (マーカー位置等) は重なっている index 範囲では維持される。
 	/// </summary>
-	public static void SyncRowStatesIsInfoRow(VerticalPageState state, TimetableRow[] rows)
+	public static void ResizeAndSyncRowStates(VerticalPageState state, TimetableRow[] rows)
 	{
-		if (state.RowStates.Count != rows.Length)
-			return;
-		for (int i = 0; i < rows.Length; i++)
+		int oldCount = state.RowStates.Count;
+		int newCount = rows.Length;
+		int overlap = System.Math.Min(oldCount, newCount);
+
+		// 1. 重なっている position の IsInfoRow を再同期。
+		for (int i = 0; i < overlap; i++)
 		{
-			if (state.RowStates.TryGetValue(i, out var rowState))
-				rowState.IsInfoRow = rows[i].IsInfoRow;
+			if (state.RowStates.TryGetValue(i, out var rs))
+				rs.IsInfoRow = rows[i].IsInfoRow;
 		}
+
+		// 2. 末尾追加: 新 row 数が多いなら不足分を作る。
+		for (int i = oldCount; i < newCount; i++)
+			state.RowStates[i] = new VerticalTimetableRowState { IsInfoRow = rows[i].IsInfoRow };
+
+		// 3. 末尾削除: 旧 row 数が多いなら余剰分を消す。逆順で index 安定。
+		for (int i = oldCount - 1; i >= newCount; i--)
+			state.RowStates.Remove(i);
 	}
 
 	/// <summary>
