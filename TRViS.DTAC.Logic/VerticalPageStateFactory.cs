@@ -21,26 +21,36 @@ internal static class VerticalPageStateFactory
 		bool isLocationServiceEnabled)
 	{
 		var state = new VerticalPageState();
+		state.LocationServiceState.IsEnabled = isLocationServiceEnabled;
+		state.PageHeaderState.IsLocationServiceEnabled = isLocationServiceEnabled;
+		ApplyTrainDataFields(state, trainData, affectDate);
+		return state;
+	}
 
-		if (trainData == null)
+	/// <summary>
+	/// 既存の <see cref="VerticalPageState"/> に TrainData 由来の表示用 field のみを
+	/// 上書きする。<c>IsRunning</c> / <c>IsRunStarted</c> / <c>IsLocationServiceEnabled</c>
+	/// など、表示外の運行状態は触らない。
+	///
+	/// 同 Id + 同行数の WS リアルタイム編集 (soft 更新) と、新規列車選択時の初期化
+	/// (= <see cref="CreateStateFromTrainData"/>) の両方からこの helper を呼ぶことで、
+	/// 「表示用 field を作る」ロジックを一箇所にまとめている。
+	/// </summary>
+	public static void ApplyTrainDataFields(VerticalPageState state, TrainData? trainData, string? affectDate)
+	{
+		if (trainData is null)
 		{
-			state.LocationServiceState.IsEnabled = isLocationServiceEnabled;
 			state.PageHeaderState.AffectDateLabelText = affectDate ?? string.Empty;
-			state.PageHeaderState.IsLocationServiceEnabled = isLocationServiceEnabled;
-			return state;
+			return;
 		}
 
-		// Set destination
 		VerticalPageStateUpdater.UpdateDestinationState(state.Destination, trainData.Destination);
 
-		// Set train info
 		state.TrainInfoAreaState.TrainInfoText = trainData.TrainInfo ?? string.Empty;
 		state.TrainInfoAreaState.BeforeDepartureText = trainData.BeforeDeparture ?? string.Empty;
 
-		// Set next day indicator
 		VerticalPageStateUpdater.UpdateNextDayIndicatorState(state.NextDayIndicatorState, trainData.DayCount);
 
-		// Set train display info
 		state.TrainDisplayInfo.TrainNumber = trainData.TrainNumber ?? string.Empty;
 		state.TrainDisplayInfo.CarCount = trainData.CarCount;
 		state.TrainDisplayInfo.MaxSpeed = trainData.MaxSpeed ?? string.Empty;
@@ -48,14 +58,34 @@ internal static class VerticalPageStateFactory
 		state.TrainDisplayInfo.NominalTractiveCapacity = trainData.NominalTractiveCapacity ?? string.Empty;
 		state.TrainDisplayInfo.BeginRemarks = trainData.BeginRemarks ?? string.Empty;
 
-		// Set location service state
-		state.LocationServiceState.IsEnabled = isLocationServiceEnabled;
-
-		// Set page header state
 		state.PageHeaderState.AffectDateLabelText = affectDate ?? string.Empty;
-		state.PageHeaderState.IsLocationServiceEnabled = isLocationServiceEnabled;
+	}
 
-		return state;
+	/// <summary>
+	/// 同 Id soft 更新で使う RowStates の差分同期。既存 entry の <c>IsInfoRow</c> を上書きしつつ、
+	/// 行数の増減に合わせて末尾の entry を Add / Remove する。LocationState など RowStates が
+	/// 保持している運行状態 (マーカー位置等) は重なっている index 範囲では維持される。
+	/// </summary>
+	public static void ResizeAndSyncRowStates(VerticalPageState state, TimetableRow[] rows)
+	{
+		int oldCount = state.RowStates.Count;
+		int newCount = rows.Length;
+		int overlap = System.Math.Min(oldCount, newCount);
+
+		// 1. 重なっている position の IsInfoRow を再同期。
+		for (int i = 0; i < overlap; i++)
+		{
+			if (state.RowStates.TryGetValue(i, out var rs))
+				rs.IsInfoRow = rows[i].IsInfoRow;
+		}
+
+		// 2. 末尾追加: 新 row 数が多いなら不足分を作る。
+		for (int i = oldCount; i < newCount; i++)
+			state.RowStates[i] = new VerticalTimetableRowState { IsInfoRow = rows[i].IsInfoRow };
+
+		// 3. 末尾削除: 旧 row 数が多いなら余剰分を消す。逆順で index 安定。
+		for (int i = oldCount - 1; i >= newCount; i--)
+			state.RowStates.Remove(i);
 	}
 
 	/// <summary>
