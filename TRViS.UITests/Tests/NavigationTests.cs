@@ -120,12 +120,29 @@ public class NavigationTests : BaseUITest
 	[Test]
 	public void DTAC_ReopenAfterWorkSelected_TitleUpdated()
 	{
+		// Clear any loader/SelectedWork left by a prior test in this
+		// fixture's shared Appium session — base SetUp only navigates to
+		// StartHome and accepts the privacy policy. Without this, a
+		// non-empty AppBar title carried over from an earlier test would
+		// let the later `Is.Not.EqualTo(initialTitle)` assertion pass
+		// trivially even with the bug present.
+		var startHome = new StartHomePageObject(Driver);
+		startHome.ClearLoaderForTesting();
+
 		// First DTAC visit with no Work selected — primes the broken
 		// codepath by triggering Unloaded → Dispose on the way back.
 		var dtac = _shell.NavigateToDTAC();
 		Assert.That(dtac.IsDisplayed(), Is.True);
 
-		var startHome = _shell.NavigateToHome();
+		// Capture the post-clear title baseline. With no SelectedWork the
+		// presenter sets TitleText to "", so the seam reads its sentinel
+		// prefix only (stripped to "" by the page object). Asserting the
+		// later title differs from this baseline catches the bug even on
+		// platforms where an empty TitleText still surfaces non-empty
+		// fallback text in the seam.
+		string initialTitle = dtac.ReadTitleViaSeam();
+
+		startHome = _shell.NavigateToHome();
 		// Demo data load + auto-open commits SelectedWork AND navigates to
 		// DTAC in one shot. Both side-effects happen *after* the dead
 		// presenter from the first visit would have missed them.
@@ -142,6 +159,9 @@ public class NavigationTests : BaseUITest
 		Assert.That(title, Is.Not.Empty,
 			$"AppBar Title must reflect the committed Work on the second " +
 			$"DTAC visit (#240). Got='{title}'.");
+		Assert.That(title, Is.Not.EqualTo(initialTitle),
+			$"AppBar Title must change after a Work is selected (#240). " +
+			$"Initial='{initialTitle}', After='{title}'.");
 
 		// Restore Start mode for any subsequent test in this fixture's
 		// shared session. Mirrors DTACTimetableTests.SetUp's assumption.
