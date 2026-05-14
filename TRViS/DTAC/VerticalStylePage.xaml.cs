@@ -50,6 +50,11 @@ public partial class VerticalStylePage : ContentView
 	// after a Work switch when this page instance is reused across navigations.
 	private ScrollView? _phoneOuterScrollView;
 
+	// 直近に ApplyPresenterState(All) で TimetableView に流し込んだ TrainData の参照。
+	// OnViewBecameActive (横型時刻表ページから戻った時など) は常に All を投げてくるので、
+	// ここで前回と同じ参照かを見て不要な行再構築・スクロールリセットを抑止する。
+	private IO.Models.TrainData? _lastAppliedTrainData = null;
+
 	public VerticalStylePage()
 	{
 		logger.Trace("Creating...");
@@ -323,22 +328,31 @@ public partial class VerticalStylePage : ContentView
 			UpdateTimetableActivityIndicator();
 		}
 
-		// Apply scroll position on All change (train data changed)
+		// Apply scroll position on All change (train data changed).
+		// 横型時刻表ページから戻った時の OnViewBecameActive も "All" を投げてくるが、
+		// その時 TrainData の参照は変わっていない。SetTrainData は ObservableCollection
+		// を都度作り直してしまうため、行を完全再描画し、走行フラグもリセットしてしまう
+		// (見た目がチラつく / 描画状態が失われる)。参照同一の時はスキップする。
 		if (changed == VerticalPageStateSection.All)
 		{
-			MainThread.BeginInvokeOnMainThread(() =>
+			var currentTrainData = _presenter.CurrentTrainData;
+			if (!ReferenceEquals(_lastAppliedTrainData, currentTrainData))
 			{
-				TimetableAreaScrollView.ScrollToAsync(0, 0, false);
-				// On phone the inner TimetableAreaScrollView is hidden behind
-				// _phoneOuterScrollView, which is the actual user-facing scroller.
-				// Reset its position too so a Work switch returns the PageHeader
-				// (and the 横型時刻表 button) to the top of the viewport instead
-				// of inheriting the previous Work's scroll offset on a cached
-				// page instance.
-				_phoneOuterScrollView?.ScrollToAsync(0, 0, false);
-			});
-			TimetableView.ViewModel.SetTrainData(_presenter.CurrentTrainData);
-			DebugMap?.SetTimetableRowList(_presenter.CurrentTrainData?.Rows);
+				_lastAppliedTrainData = currentTrainData;
+				MainThread.BeginInvokeOnMainThread(() =>
+				{
+					TimetableAreaScrollView.ScrollToAsync(0, 0, false);
+					// On phone the inner TimetableAreaScrollView is hidden behind
+					// _phoneOuterScrollView, which is the actual user-facing scroller.
+					// Reset its position too so a Work switch returns the PageHeader
+					// (and the 横型時刻表 button) to the top of the viewport instead
+					// of inheriting the previous Work's scroll offset on a cached
+					// page instance.
+					_phoneOuterScrollView?.ScrollToAsync(0, 0, false);
+				});
+				TimetableView.ViewModel.SetTrainData(currentTrainData);
+				DebugMap?.SetTimetableRowList(currentTrainData?.Rows);
+			}
 		}
 	}
 
