@@ -883,8 +883,12 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
-	public async Task Timetable_AllScopeUpdate_AlwaysResetsState()
+	public async Task Timetable_AllScopeUpdate_PreservesLocationStateWhenCurrentTrainStillExists()
 	{
+		// #245: 運行中 (TrainId 選択済み・StationIndex>0 or IsRunning=true) に Scope.All を
+		// 受信しても、現在の TrainId が新ペイロードに依然含まれていれば位置情報は維持される。
+		// 「全データ配信」ボタンや (実装の良し悪しはさておき) 周期的な All 配信のたびに
+		// 駅 index と走行フラグが初期化されてしまう以前の挙動を防ぐ。
 		var service = await ConnectServiceAsync();
 		try
 		{
@@ -892,16 +896,231 @@ public class WebSocketIntegrationTests
 			service.TrainId = TestData.TrainId;
 			service.ForceSetLocationInfo(2, true);
 
+			int locationChangedCount = 0;
+			service.LocationStateChanged += (_, _) => locationChangedCount++;
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+
+			// 新ペイロードには現在の TrainId が含まれる → リセットしないはず
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+
+			await timetableTask;
+			await Task.Delay(300); // リセットが起きないことを確認するための猶予
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(locationChangedCount, Is.EqualTo(0));
+				Assert.That(service.CurrentStationIndex, Is.EqualTo(2));
+				Assert.That(service.IsRunningToNextStation, Is.True);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_AllScopeUpdate_ResetsLocationStateWhenCurrentTrainGone()
+	{
+		// #245: 現在の TrainId が新ペイロードに存在しない (= その列車が削除された) 場合は、
+		// 位置情報をリセットする。古い列車の駅 index が新しい時刻表に対して有効である保証がないため。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.TrainId = "non-existent-train-id";
+			service.ForceSetLocationInfo(2, true);
+
 			var locationTask = WaitForEventAsync<LocationStateChangedEventArgs>(
 				h => service.LocationStateChanged += h,
 				h => service.LocationStateChanged -= h
 			);
 
-			// All スコープは常にリセット
 			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
 
 			var state = await locationTask;
-			Assert.That(state.NewStationIndex, Is.EqualTo(0));
+			Assert.Multiple(() =>
+			{
+				Assert.That(state.NewStationIndex, Is.EqualTo(0));
+				Assert.That(state.IsRunningToNextStation, Is.False);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Timetable_AllScopeUpdate_ResetsLocationStateWhenNoTrainSelected()
+	{
+		// #245: TrainId が未選択の状態で Scope.All を受信した場合は、リセットされる。
+		// (「現在の Train が新ペイロードに残っている」と見なすべき判断材料がないため)
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			// TrainId は設定しない
+			service.ForceSetLocationInfo(2, true);
+
+			var locationTask = WaitForEventAsync<LocationStateChangedEventArgs>(
+				h => service.LocationStateChanged += h,
+				h => service.LocationStateChanged -= h
+			);
+
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+
+			var state = await locationTask;
+			Assert.Multiple(() =>
+			{
+				Assert.That(state.NewStationIndex, Is.EqualTo(0));
+				Assert.That(state.IsRunningToNextStation, Is.False);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
+	// StaLocationInfo 差し替え時の駅 index 再計算 (#245)
+	// ================================================================
+
+	[Test]
+	public async Task StaLocationInfo_StationBeforeCurrentRemoved_ShiftsIndexUp()
+	{
+		// #245: 運行中に「現在駅よりも前の駅」が削除された場合は、駅 index が
+		// 削除された分だけ繰り上がる (= 現在駅の物理的位置に追従する)。
+		// 旧配列: [0m, 1000m, 2000m, 3000m], CurrentStationIndex=2 (= 2000m, 走行中)
+		// 新配列: [1000m, 2000m, 3000m]            (先頭駅 0m を削除)
+		//   → 旧 current(2000m) は 新 index=1 にずれる; 走行フラグは維持
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.StaLocationInfo = new StaLocationInfo[]
+			{
+				new(0.0,    null, null, 200.0),
+				new(1000.0, null, null, 200.0),
+				new(2000.0, null, null, 200.0),
+				new(3000.0, null, null, 200.0),
+			};
+			service.ForceSetLocationInfo(2, true);
+
+			var stateTask = WaitForEventAsync<LocationStateChangedEventArgs>(
+				h => service.LocationStateChanged += h,
+				h => service.LocationStateChanged -= h
+			);
+
+			service.StaLocationInfo = new StaLocationInfo[]
+			{
+				new(1000.0, null, null, 200.0),
+				new(2000.0, null, null, 200.0),
+				new(3000.0, null, null, 200.0),
+			};
+
+			var state = await stateTask;
+			Assert.Multiple(() =>
+			{
+				Assert.That(state.NewStationIndex, Is.EqualTo(1));
+				Assert.That(state.IsRunningToNextStation, Is.True);
+				Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+				Assert.That(service.IsRunningToNextStation, Is.True);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task StaLocationInfo_StationAfterCurrentRemoved_PreservesIndex()
+	{
+		// #245: 現在駅より「後」の駅が削除されても、現在駅自体が残っていれば
+		// 駅 index は変わらず走行フラグも維持される。
+		// 旧配列: [0m, 1000m, 2000m, 3000m], CurrentStationIndex=1 (= 1000m, 走行中)
+		// 新配列: [0m, 1000m, 2000m]            (末尾駅 3000m を削除)
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.StaLocationInfo = new StaLocationInfo[]
+			{
+				new(0.0,    null, null, 200.0),
+				new(1000.0, null, null, 200.0),
+				new(2000.0, null, null, 200.0),
+				new(3000.0, null, null, 200.0),
+			};
+			service.ForceSetLocationInfo(1, true);
+
+			int locationChangedCount = 0;
+			service.LocationStateChanged += (_, _) => locationChangedCount++;
+
+			service.StaLocationInfo = new StaLocationInfo[]
+			{
+				new(0.0,    null, null, 200.0),
+				new(1000.0, null, null, 200.0),
+				new(2000.0, null, null, 200.0),
+			};
+
+			await Task.Delay(100); // 余計なイベントが起きないことを確認する猶予
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(locationChangedCount, Is.EqualTo(0));
+				Assert.That(service.CurrentStationIndex, Is.EqualTo(1));
+				Assert.That(service.IsRunningToNextStation, Is.True);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task StaLocationInfo_CurrentStationRemoved_ResetsLocationInfo()
+	{
+		// #245: 現在駅そのものが削除された場合は、駅 index を 0 にリセットして走行も停止する。
+		// 旧配列: [0m, 1000m, 2000m], CurrentStationIndex=1 (= 1000m, 走行中)
+		// 新配列: [0m, 2000m]            (現在駅 1000m を削除)
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			service.StaLocationInfo = new StaLocationInfo[]
+			{
+				new(0.0,    null, null, 200.0),
+				new(1000.0, null, null, 200.0),
+				new(2000.0, null, null, 200.0),
+			};
+			service.ForceSetLocationInfo(1, true);
+
+			var stateTask = WaitForEventAsync<LocationStateChangedEventArgs>(
+				h => service.LocationStateChanged += h,
+				h => service.LocationStateChanged -= h
+			);
+
+			service.StaLocationInfo = new StaLocationInfo[]
+			{
+				new(0.0,    null, null, 200.0),
+				new(2000.0, null, null, 200.0),
+			};
+
+			var state = await stateTask;
+			Assert.Multiple(() =>
+			{
+				Assert.That(state.NewStationIndex, Is.EqualTo(0));
+				Assert.That(state.IsRunningToNextStation, Is.False);
+				Assert.That(service.CurrentStationIndex, Is.EqualTo(0));
+				Assert.That(service.IsRunningToNextStation, Is.False);
+			});
 		}
 		finally
 		{
