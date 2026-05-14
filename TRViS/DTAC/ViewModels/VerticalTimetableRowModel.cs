@@ -1,10 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using TRViS.DTAC.Logic;
 using TRViS.IO.Models;
 
 namespace TRViS.DTAC.ViewModels;
 
-public partial class VerticalTimetableRowModel : ObservableObject
+public partial class VerticalTimetableRowModel : ObservableObject, ILocationMarkerHighlightTarget
 {
 	public enum LocationStates
 	{
