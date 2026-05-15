@@ -48,8 +48,29 @@ public partial class AppViewModel : ObservableObject
 	/// </summary>
 	public event EventHandler? AutoNavigateToTimetableRequested;
 
+	/// <summary>
+	/// Latched intent backing <see cref="AutoNavigateToTimetableRequested"/>.
+	/// The event alone is fire-and-forget: a cold-start deeplink
+	/// (App handles a <c>trvis://…path=http…</c> AppLink while Shell is still
+	/// navigating to StartHomePage) can raise the request before StartHomePage
+	/// has subscribed, losing it and stranding the user on the Home picker.
+	/// AppViewModel always exists, so the intent is stored here and StartHomePage
+	/// also consumes it on OnAppearing — covering the race regardless of
+	/// subscribe-vs-raise ordering.
+	/// </summary>
+	public bool AutoNavigateToTimetablePending { get; private set; }
+
+	public void ConsumeAutoNavigateToTimetablePending()
+		=> AutoNavigateToTimetablePending = false;
+
 	internal void RequestAutoNavigateToTimetable()
-		=> AutoNavigateToTimetableRequested?.Invoke(this, EventArgs.Empty);
+	{
+		AutoNavigateToTimetablePending = true;
+		// Still raise the event for the warm path (StartHomePage already
+		// subscribed) so navigation happens immediately rather than waiting
+		// for the next OnAppearing.
+		AutoNavigateToTimetableRequested?.Invoke(this, EventArgs.Empty);
+	}
 
 	public IReadOnlyList<WorkGroup>? WorkGroupList => SelectionManager.WorkGroupList;
 	public IReadOnlyList<Work>? WorkList => SelectionManager.WorkList;

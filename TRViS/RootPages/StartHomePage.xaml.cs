@@ -643,33 +643,31 @@ public partial class StartHomePage : ContentPage
 		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
 	}
 
-	// Set when AppViewModel raises AutoNavigateToTimetableRequested (HTTP /
-	// WebSocket TRViS.LocalServers load). Consumed either immediately (deep-link
-	// path: we're already foreground, no modal) or on the next OnAppearing
-	// (ConnectServerDialog path: the dialog modal is still up when the event
-	// fires, so we wait for it to pop). Fail-safe: if neither path consumes it,
-	// the user simply stays on Home — no crash.
-	bool _pendingAutoNavigateToTimetable;
-
+	// The pending intent is latched on AppViewModel (not a field here): a
+	// cold-start deeplink can raise it before this page subscribes, so the
+	// subscriber must not own the state. We consume it on the live event (warm
+	// path: already subscribed → immediate) AND on every OnAppearing (cold-start
+	// race, and the ConnectServerDialog-modal path where the event fires while
+	// the dialog is still up). Fail-safe: if nothing consumes it the user just
+	// stays on Home — no crash.
 	void OnAutoNavigateToTimetableRequested(object? sender, EventArgs e)
 	{
-		_pendingAutoNavigateToTimetable = true;
 		// Hop to the UI thread (the event may be raised from an off-thread WS
 		// callback) and try now; if a modal is still up this no-ops and the
-		// pending flag is consumed by the next OnAppearing instead.
+		// latched flag is consumed by the next OnAppearing instead.
 		MainThread.BeginInvokeOnMainThread(async () => await TryConsumeAutoNavigateAsync());
 	}
 
 	async Task TryConsumeAutoNavigateAsync()
 	{
-		if (!_pendingAutoNavigateToTimetable)
+		if (!viewModel.AutoNavigateToTimetablePending)
 			return;
 		// Don't navigate while a modal (e.g. ConnectServerDialog) is still on the
 		// stack — Shell.GoToAsync underneath a modal is ill-defined. Leave the
-		// flag set; OnAppearing retries once the modal pops and reveals us.
+		// flag latched; OnAppearing retries once the modal pops and reveals us.
 		if ((Shell.Current?.Navigation?.ModalStack?.Count ?? 0) > 0)
 			return;
-		_pendingAutoNavigateToTimetable = false;
+		viewModel.ConsumeAutoNavigateToTimetablePending();
 		await HomeGridView.NavigateToDTACAsync();
 	}
 
