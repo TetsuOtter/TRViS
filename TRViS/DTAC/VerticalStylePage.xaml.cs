@@ -50,6 +50,11 @@ public partial class VerticalStylePage : ContentView
 	// after a Work switch when this page instance is reused across navigations.
 	private ScrollView? _phoneOuterScrollView;
 
+	// 直近に ApplyPresenterState(All) で TimetableView に流し込んだ TrainData の参照。
+	// OnViewBecameActive (横型時刻表ページから戻った時など) は常に All を投げてくるので、
+	// ここで前回と同じ参照かを見て不要な行再構築・スクロールリセットを抑止する。
+	private IO.Models.TrainData? _lastAppliedTrainData = null;
+
 	public VerticalStylePage()
 	{
 		logger.Trace("Creating...");
@@ -323,22 +328,42 @@ public partial class VerticalStylePage : ContentView
 			UpdateTimetableActivityIndicator();
 		}
 
-		// Apply scroll position on All change (train data changed)
+		// Apply scroll position on All change (train data changed).
+		// 「列車自体が切り替わったか」は TrainData の参照ではなく Id で判定する。
+		// WebSocket 経由のリアルタイム編集では、同一列車でも CacheTimetableData が
+		// 都度新しい TrainData インスタンスを作る (= 参照は毎回変わる) ため、参照だけで
+		// 判定するとリアルタイム編集のたびに「列車切替扱い」になってスクロール位置が
+		// 先頭に飛んでしまう。Id 一致なら同じ列車として扱い、ユーザーの閲覧位置を維持する。
+		//
+		// SetTrainData 自体は常に呼ぶ。ViewModel 内の TimetableRebuildPolicy が
+		// 「同 Id + 同行数 → field 単位の in-place 更新 (行 UI は dispose しない)」/
+		// 「列車切替 or 行数変化 → 全面再構築」を切り分けるので、ここでは
+		// 「列車自体が切り替わった時だけスクロール位置と DebugMap をリセットする」だけを担う。
 		if (changed == VerticalPageStateSection.All)
 		{
-			MainThread.BeginInvokeOnMainThread(() =>
+			var currentTrainData = _presenter.CurrentTrainData;
+			string? newId = currentTrainData?.Id;
+			string? oldId = _lastAppliedTrainData?.Id;
+			bool isTrainSwitch = !string.Equals(newId, oldId, StringComparison.Ordinal);
+			_lastAppliedTrainData = currentTrainData;
+
+			if (isTrainSwitch)
 			{
-				TimetableAreaScrollView.ScrollToAsync(0, 0, false);
-				// On phone the inner TimetableAreaScrollView is hidden behind
-				// _phoneOuterScrollView, which is the actual user-facing scroller.
-				// Reset its position too so a Work switch returns the PageHeader
-				// (and the 横型時刻表 button) to the top of the viewport instead
-				// of inheriting the previous Work's scroll offset on a cached
-				// page instance.
-				_phoneOuterScrollView?.ScrollToAsync(0, 0, false);
-			});
-			TimetableView.ViewModel.SetTrainData(_presenter.CurrentTrainData);
-			DebugMap?.SetTimetableRowList(_presenter.CurrentTrainData?.Rows);
+				MainThread.BeginInvokeOnMainThread(() =>
+				{
+					TimetableAreaScrollView.ScrollToAsync(0, 0, false);
+					// On phone the inner TimetableAreaScrollView is hidden behind
+					// _phoneOuterScrollView, which is the actual user-facing scroller.
+					// Reset its position too so a Work switch returns the PageHeader
+					// (and the 横型時刻表 button) to the top of the viewport instead
+					// of inheriting the previous Work's scroll offset on a cached
+					// page instance.
+					_phoneOuterScrollView?.ScrollToAsync(0, 0, false);
+				});
+			}
+
+			TimetableView.ViewModel.SetTrainData(currentTrainData);
+			DebugMap?.SetTimetableRowList(currentTrainData?.Rows);
 		}
 	}
 
