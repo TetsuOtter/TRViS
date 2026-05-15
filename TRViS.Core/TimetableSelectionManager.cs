@@ -124,7 +124,30 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		WorkGroupList = loader?.GetWorkGroupList();
 
 		if (WorkGroupList?.Count == 1)
-			SelectedWorkGroup = WorkGroupList[0];
+		{
+			// Auto-select is a convenience, never a load requirement. Committing
+			// the WorkGroup cascades into loader.GetWorkList / GetTrainDataList;
+			// on a malformed or partial source (e.g. a SQLite DB that has a
+			// WorkGroup row but no Work table yet) those throw. Before this
+			// auto-pick existed, opening such a source still succeeded and just
+			// showed the WorkGroup picker — so a cascade failure must roll back
+			// to that exact state, not bubble up and fail the whole load.
+			try
+			{
+				SelectedWorkGroup = WorkGroupList[0];
+			}
+			catch
+			{
+				_selectedWorkGroup = null;
+				_selectedWork = null;
+				_selectedTrainData = null;
+				WorkList = null;
+				OrderedTrainDataList = null;
+				RaisePropertyChanged(nameof(SelectedWorkGroup));
+				RaisePropertyChanged(nameof(SelectedWork));
+				RaisePropertyChanged(nameof(SelectedTrainData));
+			}
+		}
 	}
 
 	/// <summary>

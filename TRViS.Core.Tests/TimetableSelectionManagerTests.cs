@@ -207,6 +207,26 @@ public class TimetableSelectionManagerTests
 	}
 
 	[Fact]
+	public void OnLoaderChanged_SingleWorkGroup_CascadeThrows_LoadStillSucceeds()
+	{
+		// 不完全なソース (WorkGroup 行はあるが Work テーブルが無い SQLite 等):
+		// 単一 WG 自動選択の cascade で GetWorkList が例外を投げても、Loader 設定
+		// 自体は失敗してはならない (= auto-pick 導入前と同じく「開けて WG ピッカー
+		// 表示」まで成功する)。選択は巻き戻り null、WorkGroupList は維持される。
+		var loader = new FakeLoader { ThrowOnGetWorkList = true };
+		loader.Setup(BuildSampleData()); // WorkGroup 1 個
+
+		// コンストラクタ内の Loader 設定 (= OnLoaderChanged) が例外を伝播しない
+		var manager = new TimetableSelectionManager { Loader = loader };
+
+		Assert.Single(manager.WorkGroupList!);          // 一覧は読めている
+		Assert.Null(manager.SelectedWorkGroup);         // auto-pick はロールバック
+		Assert.Null(manager.SelectedWork);
+		Assert.Null(manager.SelectedTrainData);
+		Assert.Null(manager.WorkList);
+	}
+
+	[Fact]
 	public void Refresh_DoesNotAutoCommit_WhenNoPriorSelection()
 	{
 		// #224 — Refresh は「すでにコミット済み」のときだけフォールバックする。
@@ -327,10 +347,18 @@ public class TimetableSelectionManagerTests
 		public TrainData? GetTrainData(string trainId) =>
 			TrainDataById.TryGetValue(trainId, out var t) ? t : null;
 
+		/// <summary>
+		/// Simulates a malformed/partial source (e.g. SQLite with a WorkGroup
+		/// row but no Work table): GetWorkGroupList works, GetWorkList throws.
+		/// </summary>
+		public bool ThrowOnGetWorkList { get; set; }
+
 		public IReadOnlyList<WorkGroup> GetWorkGroupList() => WorkGroups;
 
 		public IReadOnlyList<Work> GetWorkList(string workGroupId) =>
-			WorkLists.TryGetValue(workGroupId, out var list) ? list : [];
+			ThrowOnGetWorkList
+				? throw new InvalidOperationException("no such table: Work")
+				: WorkLists.TryGetValue(workGroupId, out var list) ? list : [];
 
 		public IReadOnlyList<TrainData> GetTrainDataList(string workId) =>
 			TrainListsByWorkId.TryGetValue(workId, out var list) ? list : [];
