@@ -9,8 +9,10 @@ The core data structures shared by both HTTP and WebSocket.
 
 ## 1. SyncedData
 
-The core operation-sync object: location, time, and start-permission.
-Over HTTP it is the body of the polling response; over WebSocket it is
+The core operation-sync object: location, time, and service
+availability (= permission to auto-start operation; see
+[§4](#4-meaning-of-canstart)). Over HTTP it is the body of the polling
+response; over WebSocket it is
 the body of a `SyncedData` message.
 
 ### 1.1 Field definitions
@@ -19,7 +21,7 @@ the body of a `SyncedData` message.
 |---|---|:---:|---|---|
 | `Location_m` | number \| null | optional | HTTP / WS | Train position (distance from start) [m]. `null` = "distance undetermined". |
 | `Time_ms` | integer | optional | HTTP / WS | **Milliseconds elapsed since 00:00:00 of that day.** Not a UNIX epoch. |
-| `CanStart` | boolean | optional | HTTP / WS | Whether departure (start of operation) is permitted. |
+| `CanStart` | boolean | optional | HTTP / WS | Location-service availability / permission to auto-start operation (same value as `CanUseService`). **Over WebSocket `true` auto-starts operation.** See [§4](#4-meaning-of-canstart). |
 | `Latitude_deg` | number \| null | optional | **WS only** | Latitude [deg]. |
 | `Longitude_deg` | number \| null | optional | **WS only** | Longitude [deg]. |
 | `Accuracy_m` | number \| null | optional | **WS only** | Positioning accuracy of the lat/lon [m]. |
@@ -43,9 +45,12 @@ back to a safe default.
 | `Accuracy_m` | `null` | `null` | `null` (invalid unless number type) |
 
 > **Important — `CanStart` defaults to `true`**
-> "Cannot start" is treated as a special state, so omitting `CanStart`
-> means **can start (`true`)**. To suppress departure you must
-> explicitly send `false`.
+> "Not available" is treated as a special state, so omitting `CanStart`
+> means **available (`true`)**. `CanStart` does not mean "departure
+> permitted"; it means "location-service availability / permission to
+> auto-start operation", and **over WebSocket `true` auto-starts
+> operation** (see [§4](#4-meaning-of-canstart)). To avoid
+> unintentionally starting operation you must explicitly send `false`.
 
 > **Important — `Latitude_deg` etc. must be JSON number type**
 > A value like the string `"35.0"` is invalid (treated as `null`).
@@ -131,11 +136,76 @@ that day**. It is **not** UNIX epoch seconds/milliseconds.
 
 ## 4. Meaning of `CanStart`
 
-`CanStart` is a boolean indicating whether the client may perform the
-departure (start-of-operation) action.
+> **Naming caveat**: `CanStart` is **not** a "may the train depart"
+> (departure-permission) field. Its actual meaning is **"may the
+> location service be made available / may operation be started
+> automatically"**. Internally `CanStart` is set to the **same value**
+> as `CanUseService` (the `ILocationService` "service availability"
+> flag). `CanStart` and `CanUseService` always hold the same boolean.
 
-- In TRViS this value is also tied to "service availability": operation
-  cannot start while `CanStart` is `false`.
-- A corresponding state change is propagated downstream when the value
-  transitions `false` → `true` or `true` → `false`.
-- As noted above, the default when the field is missing is **`true`**.
+`CanStart` is a server-driven flag for "may the client start/use
+location-based tracking (operating mode)".
+
+- The user's "Start operation" ("運行開始") button itself is **always
+  pressable** regardless of `CanStart`. What `CanStart` controls is the
+  **automatic** path below.
+- The `CanStart` value is mirrored into `CanUseService`; a corresponding
+  state change is propagated downstream when it transitions
+  `false` ↔ `true`.
+- The default when the field is missing is **`true`**
+  ([§1.2](#12-defaults-on-missing--type-mismatched-fields)).
+
+### 4.1 `CanStart` = `true` auto-starts operation (WebSocket only)
+
+**Only over a WebSocket connection**, when `CanStart` transitions to
+`true`, TRViS **automatically enables the location service and starts
+operation** with no user action (the UI also auto-transitions to the
+"running" state). This is an implementation business rule.
+
+```mermaid
+flowchart TD
+    S["Server: SyncedData CanStart=true"] --> P[ProcessSyncedData]
+    P --> C["CanStart=true / CanUseService=true<br/>(same value) → CanStartChanged fires"]
+    C --> W{Current connection<br/>is WebSocket?}
+    W -- yes --> A["Auto-enable location service<br/>(IsEnabled=true)"]
+    A --> U["UI auto-starts operation<br/>(IsRunning=true / location ON)"]
+    W -- no HTTP --> N["No auto-start<br/>(only reflected in CanUseService)"]
+```
+
+- **WebSocket**: the instant `CanStart` goes `false`→`true`, the
+  location service auto-enables and operation auto-starts. The user does
+  not need to press "Start operation". The server can put a client into
+  operating mode with this single flag.
+- **HTTP**: the auto-start above does **not** happen (the automation is
+  limited to WebSocket connections). Over HTTP `CanStart` is only
+  mirrored into `CanUseService`; starting operation is left to the
+  user's button action.
+
+### 4.2 Behavior of `CanStart` = `false`
+
+- `CanUseService` becomes `false` (reflected e.g. in service-unavailable
+  UI state).
+- The auto-enable handler acts only on `true`. A `true`→`false`
+  transition does **not** auto-stop operation via this path (`false`
+  means "do not auto-start / not available", it is not a trigger that
+  force-ends an operation in progress). Explicit stopping is done via
+  `OperationCommand` (e.g. `EndOperation`) or user action.
+
+### 4.3 Implications for server implementers
+
+- To "not let operation start yet", explicitly send `CanStart: false`
+  (omitting it defaults to `true` = available / auto-start permitted).
+- **Beware serializer default-omission**: with a JSON library that does
+  not emit a boolean's default (`false`), a message intended as
+  `CanStart=false` ends up with the field **absent** on the wire, the
+  client interprets the absence as the default `true`, and a WebSocket
+  client unintentionally starts operation. Always emit `CanStart`
+  explicitly regardless of value and verify the actual bytes.
+- For a WebSocket client, understand the side effect that sending
+  `CanStart: true` puts that client into operating mode automatically
+  (sending `true` with the intent of "just show data" will
+  unintentionally start operation).
+- To control operation actively, consider combining `CanStart` with
+  `OperationCommand` (`StartOperation` / `EndOperation` /
+  `EnableLocationService` / `DisableLocationService`,
+  [server-to-client-messages.md](server-to-client-messages.md#6-operationcommand)).

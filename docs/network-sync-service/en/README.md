@@ -14,7 +14,7 @@ external system (the server). Two transports are supported:
 
 | Transport | Scheme | Model | Typical use |
 |---|---|---|---|
-| **HTTP** | `http://` / `https://` | Client polling | Minimal: location, time, start-permission only |
+| **HTTP** | `http://` / `https://` | Client polling | Minimal: location, time, service-availability only |
 | **WebSocket** | `ws://` / `wss://` | Server push (event driven) | Full integration incl. timetable & remote control |
 
 TRViS automatically selects the transport from the URI scheme
@@ -39,14 +39,14 @@ client-to-server-messages → timetable**
 ## 3. Capability matrix
 
 HTTP is a **strict subset** of WebSocket. Over HTTP only sync data
-(location, time, start-permission) is available. For timetable delivery
+(location, time, service-availability) is available. For timetable delivery
 or remote commands you must implement WebSocket.
 
 | Capability | HTTP | WebSocket | Detail |
 |---|:---:|:---:|---|
 | Location sync (`Location_m`) | ✅ | ✅ | [common-data-model](common-data-model.md) |
 | Time sync (`Time_ms`) | ✅ | ✅ | [common-data-model](common-data-model.md) |
-| Start permission (`CanStart`) | ✅ | ✅ | [common-data-model](common-data-model.md) |
+| Service availability / auto-start (`CanStart`) | ✅ ※3 | ✅ | [common-data-model](common-data-model.md#4-meaning-of-canstart) |
 | Lat/Lon fallback | ❌ ※1 | ✅ | [common-data-model](common-data-model.md) |
 | Timetable delivery | ❌ | ✅ | [timetable](timetable.md) |
 | Server info (ServerInfo) | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
@@ -61,6 +61,10 @@ or remote commands you must implement WebSocket.
 - ※1: The HTTP client **ignores** lat/lon even if present in the
   response (it parses only `Location_m` / `Time_ms` / `CanStart`).
 - ※2: HTTP uses query parameters; WebSocket uses a JSON message.
+- ※3: `CanStart` is the same value as `CanUseService`. **Auto-start of
+  operation happens only over WebSocket**; over HTTP, even `CanStart`
+  `true` does not auto-start operation
+  ([common-data-model §4](common-data-model.md#4-meaning-of-canstart)).
 
 ## 4. Security (important)
 

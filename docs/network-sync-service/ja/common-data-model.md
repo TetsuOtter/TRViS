@@ -9,7 +9,8 @@ HTTP と WebSocket の双方で共通する中核データ構造です。
 
 ## 1. SyncedData
 
-運行同期の中核となるオブジェクト。位置・時刻・発車可否を表します。
+運行同期の中核となるオブジェクト。位置・時刻・サービス利用可否
+（＝自動運行開始の許可。[§4](#4-canstart-の意味) 参照）を表します。
 HTTP ではポーリング応答の本文として、WebSocket では `SyncedData`
 メッセージの本体として配信されます。
 
@@ -19,7 +20,7 @@ HTTP ではポーリング応答の本文として、WebSocket では `SyncedDat
 |---|---|:---:|---|---|
 | `Location_m` | number \| null | 任意 | HTTP / WS | 列車位置（始点からの距離）[m]。`null` は「距離未確定」を意味する。 |
 | `Time_ms` | integer | 任意 | HTTP / WS | **その日の 00:00:00 からの経過ミリ秒**。UNIX エポックではない。 |
-| `CanStart` | boolean | 任意 | HTTP / WS | 発車（運行開始）を許可するか。 |
+| `CanStart` | boolean | 任意 | HTTP / WS | 位置情報サービス利用可否／自動運行開始の許可（`CanUseService` と同値）。**WebSocket では `true` で自動運行開始**。[§4](#4-canstart-の意味) 参照。 |
 | `Latitude_deg` | number \| null | 任意 | **WS のみ** | 緯度 [度]。 |
 | `Longitude_deg` | number \| null | 任意 | **WS のみ** | 経度 [度]。 |
 | `Accuracy_m` | number \| null | 任意 | **WS のみ** | 緯度経度の測位精度 [m]。 |
@@ -44,9 +45,12 @@ HTTP ではポーリング応答の本文として、WebSocket では `SyncedDat
 | `Accuracy_m` | `null` | `null` | `null`（number 型でなければ無効） |
 
 > **重要 — `CanStart` の既定は `true`**
-> 「発車できない」は特殊状態と見なされるため、`CanStart` を省略すると
-> **発車可（`true`）** として扱われます。発車を抑止したい場合は明示的に
-> `false` を送る必要があります。
+> 「利用不可」は特殊状態と見なされるため、`CanStart` を省略すると
+> **利用可（`true`）** として扱われます。`CanStart` の意味は
+> 「発車可否」ではなく「位置情報サービス利用可否／自動運行開始の許可」
+> であり、**WebSocket では `true` で自動的に運行が開始**します
+> （[§4](#4-canstart-の意味) 参照）。意図せず運行を開始させたくない
+> 場合は明示的に `false` を送る必要があります。
 
 > **重要 — `Latitude_deg` 等は JSON number 型必須**
 > 文字列 `"35.0"` のような値は無効（`null` 扱い）です。必ず数値リテラル
@@ -128,11 +132,71 @@ UNIX エポック秒／ミリ秒ではありません。
 
 ## 4. `CanStart` の意味
 
-`CanStart` はクライアントが発車（運行開始）操作を行ってよいかを表す
-真偽値です。
+> **名称に関する注意**: `CanStart` は「発車してよいか（発車可否）」を
+> 表すフィールドでは **ありません**。実際の意味は
+> **「位置情報サービスを利用可能にしてよいか／自動で運行を開始して
+> よいか」** です。`CanStart` は内部的に `CanUseService`
+> （`ILocationService` の「サービス利用可否」フラグ）と **同じ値** に
+> 設定されます。`CanStart` と `CanUseService` は同一の真偽値を持ちます。
 
-- TRViS 側ではこの値が「サービス利用可否」とも連動します。`CanStart` が
-  `false` の間は運行を開始できません。
-- 値が `false` → `true`／`true` → `false` と変化したときに、対応する
-  状態変更が下流へ通知されます。
-- 前述の通り、フィールド欠落時の既定は **`true`** です。
+`CanStart` は「クライアントが位置情報ベースの追従（運行モード）を
+開始・利用してよいか」をサーバーが指示するフラグです。
+
+- ユーザーの「運行開始」ボタン自体は `CanStart` に関係なく **いつでも
+  押せます**。`CanStart` が制御するのは下記の **自動** 経路です。
+- `CanStart` の値はそのまま `CanUseService` に反映され、値が
+  `false`↔`true` で変化したときに対応する状態変更が下流へ通知されます。
+- フィールド欠落時の既定は **`true`**（[§1.2](#12-欠落時型不一致時のデフォルト)）。
+
+### 4.1 `CanStart` = `true` で自動的に運行開始する（WebSocket のみ）
+
+**WebSocket 接続時に限り**、`CanStart` が `true` に変化すると、TRViS は
+ユーザー操作なしで **自動的に位置情報サービスを有効化し、運行を開始**
+します（画面上も「運行中」状態へ自動遷移）。これは実装上の業務ルール
+です。
+
+```mermaid
+flowchart TD
+    S["サーバー: SyncedData CanStart=true"] --> P[ProcessSyncedData]
+    P --> C["CanStart=true / CanUseService=true<br/>(同値) → CanStartChanged 発火"]
+    C --> W{現在の接続は<br/>WebSocket?}
+    W -- はい --> A["位置情報サービスを自動で有効化<br/>(IsEnabled=true)"]
+    A --> U["UI も自動で運行開始<br/>(IsRunning=true / 位置情報ON)"]
+    W -- いいえ HTTP --> N["自動運行開始しない<br/>(CanUseService に反映されるのみ)"]
+```
+
+- **WebSocket**: `CanStart` が `false`→`true` になった瞬間、位置情報
+  サービスが自動 ON になり、運行が自動的に開始されます。ユーザーが
+  「運行開始」ボタンを押す必要はありません。サーバーはこの 1 フラグで
+  クライアントを運行モードに入れられます。
+- **HTTP**: 上記の自動運行開始は **行われません**（自動化は WebSocket
+  接続時に限定されます）。HTTP では `CanStart` は `CanUseService` に
+  反映されるだけで、運行開始はユーザーのボタン操作に委ねられます。
+
+### 4.2 `CanStart` = `false` の挙動
+
+- `CanUseService` が `false` になります（サービス利用不可の表示等に反映）。
+- 自動有効化のハンドラは `true` のときだけ作用します。`true`→`false`
+  に変化しても、この自動経路によって運行が **自動停止される設計には
+  なっていません**（`false` は「自動開始しない／利用不可」を意味し、
+  進行中の運行を強制終了するトリガーではありません）。運行の明示的な
+  停止は `OperationCommand`（`EndOperation` 等）やユーザー操作で行います。
+
+### 4.3 サーバー実装者への含意
+
+- 「まだ運行を始めさせたくない」場合は、明示的に `CanStart: false` を
+  送ってください（省略すると既定 `true` ＝ 利用可・自動開始許可）。
+- **シリアライザの既定値省略に注意**: boolean の既定値（`false`）を
+  出力しない JSON ライブラリを使うと、`CanStart=false` のつもりでも
+  ワイヤ上はフィールドが欠落し、クライアント側で既定 `true` と解釈され、
+  WebSocket クライアントが意図せず運行を開始します。`CanStart` は
+  値に関わらず**常に明示出力**し、実際のバイト列で確認してください。
+- WebSocket クライアントに対しては、`CanStart: true` を送った時点で
+  そのクライアントは自動的に運行モードへ入る、という副作用を理解した
+  上で送出してください（「データを見せるだけ」のつもりで `true` を
+  送ると、意図せず運行が開始されます）。
+- 運行を能動的に制御したい場合は、`CanStart` に加えて
+  `OperationCommand`（`StartOperation` / `EndOperation` /
+  `EnableLocationService` / `DisableLocationService`、
+  [server-to-client-messages.md](server-to-client-messages.md#6-operationcommand)）
+  の併用を検討してください。

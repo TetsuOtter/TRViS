@@ -143,8 +143,11 @@ Host: example.com
 | `Time_ms` | 端末のその時点の時刻（その日の 0 時からのミリ秒） |
 | `CanStart` | `false` |
 
-`CanStart=false` となるため、通信が途切れている間は発車不可
-（運行開始できない）状態になります。これは安全側のフォールバックです。
+`CanStart=false` となるため、通信が途切れている間は
+`CanUseService=false`（位置情報サービス利用不可）になります。これは
+安全側のフォールバックです。なお `CanStart` の自動運行開始の挙動は
+**WebSocket 接続時のみ**で、HTTP では `CanStart` が `true` でも自動的に
+運行は開始されません（[common-data-model §4](common-data-model.md#4-canstart-の意味)）。
 
 ## 7. ポーリング間隔について
 
@@ -160,5 +163,5 @@ Host: example.com
 - [ ] `workgroup` / `work` / `train` クエリを解釈する（必要なら）
 - [ ] `Location_m` 未確定時は JSON の `null` を返す（`NaN` を使わない）
 - [ ] `Time_ms` を「その日の 0 時からの経過ミリ秒」で返す
-- [ ] 発車を抑止したいときは明示的に `CanStart: false` を返す
+- [ ] サービスを利用させたくないときは明示的に `CanStart: false` を返す（`CanStart` の意味は [common-data-model §4](common-data-model.md#4-canstart-の意味) 参照）
 - [ ] 各 `GET` にステートレスかつ最新状態で応答する

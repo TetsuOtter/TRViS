@@ -147,9 +147,12 @@ request as "no data" and uses the synthetic values below:
 | `Time_ms` | The device's current time (ms since midnight) |
 | `CanStart` | `false` |
 
-Because `CanStart=false`, while communication is broken the client is in
-a cannot-start state (operation cannot begin). This is a fail-safe
-fallback.
+Because `CanStart=false`, while communication is broken the client has
+`CanUseService=false` (location service unavailable). This is a
+fail-safe fallback. Note that `CanStart`'s auto-start-operation behavior
+applies **only over WebSocket**; over HTTP, even `CanStart=true` does
+not auto-start operation
+([common-data-model §4](common-data-model.md#4-meaning-of-canstart)).
 
 ## 7. About the polling interval
 
@@ -166,5 +169,5 @@ statelessly for each `GET`.
 - [ ] Interpret the `workgroup` / `work` / `train` query (if needed)
 - [ ] Return JSON `null` when `Location_m` is undetermined (not `NaN`)
 - [ ] Return `Time_ms` as milliseconds since midnight of that day
-- [ ] Explicitly return `CanStart: false` when suppressing departure
+- [ ] Explicitly return `CanStart: false` to make the service unavailable (for `CanStart`'s meaning see [common-data-model §4](common-data-model.md#4-meaning-of-canstart))
 - [ ] Respond statelessly with the latest state to each `GET`

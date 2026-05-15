@@ -11,7 +11,7 @@ must carry a `MessageType` field (exact case). Unknown/missing
 
 | `MessageType` | Purpose | Section |
 |---|---|---|
-| `SyncedData` | Sync of location/time/start-permission | [§1](#1-synceddata) |
+| `SyncedData` | Sync of location/time/service-availability (auto-start) | [§1](#1-synceddata) |
 | `Timetable` | Timetable delivery | [§2](#2-timetable) |
 | `ServerInfo` | Server information | [§3](#3-serverinfo) |
 | `DiagramInfo` | Diagram information | [§4](#4-diagraminfo) |
@@ -31,8 +31,8 @@ must carry a `MessageType` field (exact case). Unknown/missing
 ## 1. SyncedData
 
 The most fundamental message: pushes location, time, and
-start-permission. Over WebSocket it is processed immediately on receipt
-(no buffering).
+service-availability. Over WebSocket it is processed immediately on
+receipt (no buffering).
 
 ```jsonc
 {
@@ -50,7 +50,7 @@ start-permission. Over WebSocket it is processed immediately on receipt
 |---|---|---|---|
 | `Location_m` | number \| null | `null` (NaN) | Distance from start [m]. `null`/wrong type → NaN. |
 | `Time_ms` | integer | `0` | Ms since midnight that day. |
-| `CanStart` | boolean | **`true`** | Start permission. |
+| `CanStart` | boolean | **`true`** | Service availability / permission to auto-start operation (same value as `CanUseService`; over WS `true` auto-starts operation). |
 | `Latitude_deg` | number | `null` | Latitude. Invalid unless number type. |
 | `Longitude_deg` | number | `null` | Longitude. Invalid unless number type. |
 | `Accuracy_m` | number | `null` | Positioning accuracy [m]. |
@@ -262,8 +262,11 @@ Common pitfalls for external implementers:
   case-insensitive.
 - **Wrong-type fields are generally "ignored = default"**, never an
   exception. Send correct JSON types to reliably deliver values.
-- `SyncedData.CanStart` **defaults to `true` when omitted**. Suppress
-  departure with an explicit `false`.
+- `SyncedData.CanStart` **defaults to `true` when omitted**. It means
+  "service availability / permission to auto-start operation" and **over
+  WS `true` auto-starts operation**. To avoid unintentionally starting
+  operation, send an explicit `false`
+  ([common-data-model §4](common-data-model.md#4-meaning-of-canstart)).
 - `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority`
   **must be JSON number type** (strings are invalid).
 - Each ID in `SelectTrain` **must be JSON string type**.
