@@ -205,11 +205,24 @@ public class OpenFile(HttpClient httpClient)
 				);
 			}
 
-			await using Stream stream = result.Content.ReadAsStream(token);
-			// メソッドの先頭でJSONかチェックしているため、ここにはJSONしか来ない
-			ILoader loader = await LoaderJson.InitFromStreamAsync(stream, token);
+			// TRViS.LocalServers はゲーム側でシナリオ/列車が未ロードのとき
+			// 204 No Content、または 200 + 空ボディ を返す。空ボディをそのまま
+			// LoaderJson に渡すと "The input does not contain any JSON tokens" と
+			// いう利用者に意味の伝わらない JsonException になってしまうため、
+			// ここで明示的に弾いて行動可能なメッセージに変換する。
+			byte[] body = await result.Content.ReadAsByteArrayAsync(token);
+			if (result.StatusCode == HttpStatusCode.NoContent || body.Length == 0)
+			{
+				throw new HttpRequestException(
+					"サーバーには接続できましたが、時刻表データがまだありません。\n"
+					+ "連携元のソフト(ゲーム等)でシナリオ・列車を読み込んでから、もう一度お試しください。",
+					inner: null,
+					statusCode: result.StatusCode
+				);
+			}
 
-			return loader;
+			// メソッドの先頭でJSONかチェックしているため、ここにはJSONしか来ない
+			return LoaderJson.InitFromBytes(body);
 		}
 	}
 }

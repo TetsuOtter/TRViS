@@ -28,6 +28,16 @@
     <ProjectReference Include="..\TRViS.Core\TRViS.Core.csproj" />
     <!-- ローカル開発時: in-process でサーバーを起動するために参照 -->
     <ProjectReference Include="..\TRViS.ReferenceServer\TRViS.ReferenceServer.csproj" />
+    <!-- OpenFile / LoaderJson (HTTP 経由の時刻表読み込み経路) のテスト対象 -->
+    <ProjectReference Include="..\TRViS.IO\TRViS.IO.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- LoaderJson の単体テストと同じ正準サンプルを HTTP サーバーから配信する。
+         スキーマのドリフトを避けるためコピーではなくリンク参照する。 -->
+    <None Include="..\TRViS.IO.Tests\Resources\db.sample.json"
+          Link="Resources\db.sample.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

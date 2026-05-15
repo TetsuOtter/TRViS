@@ -433,7 +433,8 @@ public partial class AppViewModel
 		{
 			await Util.DisplayAlertAsync(
 				"Cannot Open File",
-				$"時刻表ファイルを確認しましたが、ファイルの中身がありませんでした。",
+				"サーバーには接続できましたが、時刻表データがまだありません。\n"
+				+ "連携元のソフト(ゲーム等)でシナリオ・列車を読み込んでから、もう一度お試しください。",
 				"OK"
 			);
 			return false;
