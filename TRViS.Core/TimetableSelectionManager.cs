@@ -105,10 +105,14 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 	private void OnLoaderChanged(ILoader? loader)
 	{
-		// Selection is intentionally cleared rather than auto-picking the first
-		// WorkGroup. The Home page presents a tentative-selection picker; the
-		// committed selection on this manager only changes when the user presses
-		// "Open" (StartHomePage) or via Refresh() (websocket flows).
+		// When there is a *real* choice (2+ WorkGroups) selection is intentionally
+		// cleared rather than auto-picking the first one: the Home page presents a
+		// tentative-selection picker and the committed selection only changes when
+		// the user presses "Open" (StartHomePage) or via Refresh() (websocket flows).
+		// This was the #224 contract. The single-WorkGroup case below is a scoped
+		// re-introduction of the pre-#224 auto-pick: a one-item picker is pure
+		// friction, so commit it straight away (the cascade then picks the first
+		// Work and Train, so the timetable is ready without any user taps).
 		_selectedWorkGroup = null;
 		_selectedWork = null;
 		_selectedTrainData = null;
@@ -118,7 +122,9 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		RaisePropertyChanged(nameof(SelectedWork));
 		RaisePropertyChanged(nameof(SelectedTrainData));
 		WorkGroupList = loader?.GetWorkGroupList();
-		// (intentional: no SelectedWorkGroup auto-pick — see comment above)
+
+		if (WorkGroupList?.Count == 1)
+			SelectedWorkGroup = WorkGroupList[0];
 	}
 
 	/// <summary>

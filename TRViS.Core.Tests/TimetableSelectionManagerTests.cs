@@ -173,19 +173,37 @@ public class TimetableSelectionManagerTests
 	}
 
 	[Fact]
-	public void OnLoaderChanged_DoesNotAutoSelectFirstWorkGroup()
+	public void OnLoaderChanged_DoesNotAutoSelectFirstWorkGroup_WhenMultipleWorkGroups()
 	{
-		// #224 — OnLoaderChanged は auto-pick せず、選択を null にする。
-		// ホーム画面の tentative-selection 設計に合わせた契約。
+		// #224 の契約は「実際に選択肢がある (WorkGroup が 2 個以上)」場合に限り維持。
+		// 複数 WorkGroup ではホーム画面の tentative-selection picker を見せたいので
+		// auto-pick しない。単一 WorkGroup の場合は下のテストの通り自動選択する。
 		var loader = new FakeLoader();
-		loader.Setup(BuildSampleData());
+		loader.Setup(BuildMultiWgSampleData());
 
 		var manager = new TimetableSelectionManager { Loader = loader };
 
-		Assert.NotEmpty(manager.WorkGroupList!);
+		Assert.True(manager.WorkGroupList!.Count >= 2);
 		Assert.Null(manager.SelectedWorkGroup);
 		Assert.Null(manager.SelectedWork);
 		Assert.Null(manager.SelectedTrainData);
+	}
+
+	[Fact]
+	public void OnLoaderChanged_AutoSelectsWhenSingleWorkGroup()
+	{
+		// 単一 WorkGroup のときは #224 の auto-pick 抑止をスコープ付きで巻き戻す:
+		// 1 項目だけの picker は摩擦でしかないため即コミットし、cascade で
+		// 先頭 Work / 先頭 Train まで自動選択して時刻表を即表示できる状態にする。
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData()); // BuildSampleData は WorkGroup 1 個構成
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+
+		Assert.Single(manager.WorkGroupList!);
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id);
+		Assert.Equal("w-1-0", manager.SelectedWork?.Id);     // cascade: 先頭 Work
+		Assert.Equal("t-1-0-0", manager.SelectedTrainData?.Id); // cascade: 先頭 Train
 	}
 
 	[Fact]
@@ -194,8 +212,10 @@ public class TimetableSelectionManagerTests
 		// #224 — Refresh は「すでにコミット済み」のときだけフォールバックする。
 		// 未コミット状態 (Home picker 上で何も選んでいない) で WebSocket Refresh が
 		// 飛んできても勝手に最初の項目を選んではならない。
+		// 単一 WorkGroup は OnLoaderChanged 時点で自動コミットされてしまうため、
+		// 「未コミット」状態を作るには複数 WorkGroup の構成が必要。
 		var loader = new FakeLoader();
-		loader.Setup(BuildSampleData());
+		loader.Setup(BuildMultiWgSampleData());
 
 		var manager = new TimetableSelectionManager { Loader = loader };
 		Assert.Null(manager.SelectedWorkGroup);
@@ -268,6 +288,24 @@ public class TimetableSelectionManagerTests
 		foreach (var workTrains in d.TrainListsByWorkId.Values)
 			foreach (var t in workTrains)
 				d.TrainDataById[t.Id] = t;
+		return d;
+	}
+
+	/// <summary>
+	/// 2 個以上の WorkGroup を持つ構成。OnLoaderChanged の単一 WorkGroup
+	/// auto-select が発火しないため、「未コミット (= ユーザーが picker で
+	/// 未選択)」の契約を検証するテストで使う。
+	/// </summary>
+	private static SampleData BuildMultiWgSampleData()
+	{
+		var d = BuildSampleData();
+		d.WorkGroups.Add(new WorkGroup("wg-2", "WG2"));
+		d.WorkLists["wg-2"] =
+		[
+			new Work("w-2-0", "wg-2", "Work2-0"),
+		];
+		d.TrainListsByWorkId["w-2-0"] = [SimpleTrain("t-2-0-0")];
+		d.TrainDataById["t-2-0-0"] = d.TrainListsByWorkId["w-2-0"][0];
 		return d;
 	}
 

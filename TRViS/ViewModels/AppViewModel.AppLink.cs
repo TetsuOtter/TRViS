@@ -191,6 +191,18 @@ public partial class AppViewModel
 		lastLoader?.Dispose();
 		logger.Debug("Last Loader Disposed");
 
+		// HTTP(S) integration (TRViS.LocalServers): the user explicitly pointed the
+		// app at a server to show its timetable, so skip the Home picker entirely.
+		// SelectionManager.OnLoaderChanged already auto-committed when there was a
+		// single WorkGroup; force the first one here for the multi-WorkGroup case
+		// so a timetable is always ready, then ask the UI to jump to it.
+		if (appLinkInfo.ResourceUri?.Scheme is "http" or "https")
+		{
+			if (SelectionManager.SelectedWorkGroup is null)
+				SelectionManager.SelectedWorkGroup = SelectionManager.WorkGroupList?.FirstOrDefault();
+			RequestAutoNavigateToTimetable();
+		}
+
 		// 履歴に追加（HTTPSのURLまたはAppLink）
 		string? historyEntry = addToHistory ? (decodedUrl ?? appLinkString) : null;
 		if (historyEntry is not null)
@@ -276,6 +288,15 @@ public partial class AppViewModel
 			logger.Debug("Last Loader Disposed");
 
 			InstanceManager.LocationService.SetNetworkSyncService(service);
+
+			// WebSocket is a server-driven integration: jump straight to the
+			// timetable. WorkGroup data may still be arriving via server push, so
+			// the selection is best-effort here (SelectionManager.OnLoaderChanged
+			// already auto-committed if a single WorkGroup was present); the
+			// server's SelectTrain push refines it afterwards regardless.
+			if (SelectionManager.SelectedWorkGroup is null)
+				SelectionManager.SelectedWorkGroup = SelectionManager.WorkGroupList?.FirstOrDefault();
+			RequestAutoNavigateToTimetable();
 
 			// WebSocketのAppLinkを履歴に追加
 			if (addToHistory && originalAppLink is not null)
