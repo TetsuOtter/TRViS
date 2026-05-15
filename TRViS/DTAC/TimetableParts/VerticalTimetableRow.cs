@@ -360,19 +360,63 @@ public class VerticalTimetableRow : IDisposable
 			return;
 		}
 
+		InfoRowLabel ??= DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
+#if UI_TEST
+		// AutomationId must be assigned before the component is added to the
+		// (live) ParentGrid: MAUI Android reads it once at handler-connect, and
+		// EnsureComponent's ParentGrid.Add triggers connect synchronously, so a
+		// post-Add assignment is a no-op on Android (it works on iOS regardless).
+		// The id is baked once at construction; row-move scenarios are immutable
+		// on Android by MAUI design.
+		if (InfoRowLabel.Parent is null)
+			InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
+#endif
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
 		InfoRowLabel.Text = Model.InfoText;
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);
 	}
+	private void RemoveNonInfoRowComponents()
+	{
+		RemoveComponent(ref DriveTimeGrid);
+		DriveTimeMMLabel = null;
+		DriveTimeSSLabel = null;
+		RemoveComponent(ref StationNameLabel);
+		RemoveComponent(ref ArrivalTimeCell);
+		if (Brackets is var (open, close))
+		{
+			RemoveComponent(ref open);
+			RemoveComponent(ref close);
+		}
+		Brackets = null;
+		if (OpOnlyStopBrackets is var (opOpen, opClose))
+		{
+			RemoveComponent(ref opOpen);
+			RemoveComponent(ref opClose);
+		}
+		OpOnlyStopBrackets = null;
+		RemoveComponent(ref DepartureTimeCell);
+		RemoveComponent(ref LastStopLineGrid);
+		RemoveComponent(ref TrackNameLabel);
+		RemoveComponent(ref RunInOutLimitGrid);
+		RunInLimitLabel = null;
+		RunOutLimitLabel = null;
+		RemoveComponent(ref RemarksLabel);
+		RemoveComponent(ref MarkerBox);
+		RemoveComponent(ref MarkerTransparentBox);
+		BackgroundBoxView!.Color = Colors.Transparent;
+	}
+
 	private void UpdateAllComponents()
 	{
 		if (Model.IsInfoRow)
 		{
+			RemoveNonInfoRowComponents();
 			UpdateInfoRow();
 		}
 		else
 		{
+			RemoveComponent(ref InfoRowLabel);
 			UpdateDriveTime();
 			UpdateStationName();
 			UpdateArrivalTime();
@@ -408,6 +452,7 @@ public class VerticalTimetableRow : IDisposable
 		SetRowIfAttached(RunInOutLimitGrid);
 		SetRowIfAttached(RemarksLabel);
 		SetRowIfAttached(MarkerBox);
+		SetRowIfAttached(MarkerTransparentBox);
 		SetRowIfAttached(InfoRowLabel);
 	}
 
@@ -447,6 +492,17 @@ public class VerticalTimetableRow : IDisposable
 			return;
 		}
 
+		StationNameLabel ??= CreateStationNameComponent();
+#if UI_TEST
+		// AutomationId must be assigned before the component is added to the
+		// (live) ParentGrid: MAUI Android reads it once at handler-connect, and
+		// EnsureComponent's ParentGrid.Add triggers connect synchronously, so a
+		// post-Add assignment is a no-op on Android (it works on iOS regardless).
+		// The id is baked once at construction; row-move scenarios are immutable
+		// on Android by MAUI design.
+		if (StationNameLabel.Parent is null)
+			StationNameLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
+#endif
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
 		label.Text = StationNameConverter.Convert(Model.StationName);
 	}

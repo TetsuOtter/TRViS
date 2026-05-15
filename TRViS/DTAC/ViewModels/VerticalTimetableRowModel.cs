@@ -1,10 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using TRViS.DTAC.Logic;
 using TRViS.IO.Models;
 
 namespace TRViS.DTAC.ViewModels;
 
-public partial class VerticalTimetableRowModel : ObservableObject
+public partial class VerticalTimetableRowModel : ObservableObject, ILocationMarkerHighlightTarget
 {
 	public enum LocationStates
 	{
@@ -15,6 +16,13 @@ public partial class VerticalTimetableRowModel : ObservableObject
 
 	[ObservableProperty]
 	public partial int RowIndex { get; set; } = -1;
+
+	/// <summary>
+	/// この行に対応する <see cref="TimetableRow.Id"/>。WS リアルタイム編集で行が
+	/// 追加・削除された時、index ベースの mutate 更新を当てて良いか
+	/// (= position alignment) を判定するために保持する。表示には使わない。
+	/// </summary>
+	public string? RowId { get; set; }
 
 	[ObservableProperty]
 	public partial bool IsInfoRow { get; set; } = false;
