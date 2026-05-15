@@ -361,6 +361,9 @@ public class VerticalTimetableRow : IDisposable
 		}
 
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
+#if UI_TEST
+		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
+#endif
 		InfoRowLabel.Text = Model.InfoText;
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);
@@ -448,6 +451,9 @@ public class VerticalTimetableRow : IDisposable
 		}
 
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
+#if UI_TEST
+		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
+#endif
 		label.Text = StationNameConverter.Convert(Model.StationName);
 	}
 
