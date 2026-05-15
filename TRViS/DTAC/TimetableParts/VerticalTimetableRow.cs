@@ -360,19 +360,17 @@ public class VerticalTimetableRow : IDisposable
 			return;
 		}
 
-		InfoRowLabel ??= DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
-#if UI_TEST
-		// AutomationId must be assigned before the component is added to the
-		// (live) ParentGrid: MAUI Android reads it once at handler-connect, and
-		// EnsureComponent's ParentGrid.Add triggers connect synchronously, so a
-		// post-Add assignment is a no-op on Android (it works on iOS regardless).
-		// The id is baked once at construction; row-move scenarios are immutable
-		// on Android by MAUI design.
-		if (InfoRowLabel.Parent is null)
-			InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
-#endif
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
+#if UI_TEST
+		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
+#endif
 		InfoRowLabel.Text = Model.InfoText;
+#if UI_TEST
+		// Mirror the id onto the inner Label (set synchronously by the Text
+		// setter) so it surfaces as an Android resource-id; see UpdateStationName.
+		if (InfoRowLabel.Content is Element infoInner)
+			infoInner.AutomationId = InfoRowLabel.AutomationId;
+#endif
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);
 	}
@@ -492,19 +490,20 @@ public class VerticalTimetableRow : IDisposable
 			return;
 		}
 
-		StationNameLabel ??= CreateStationNameComponent();
-#if UI_TEST
-		// AutomationId must be assigned before the component is added to the
-		// (live) ParentGrid: MAUI Android reads it once at handler-connect, and
-		// EnsureComponent's ParentGrid.Add triggers connect synchronously, so a
-		// post-Add assignment is a no-op on Android (it works on iOS regardless).
-		// The id is baked once at construction; row-move scenarios are immutable
-		// on Android by MAUI design.
-		if (StationNameLabel.Parent is null)
-			StationNameLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
-#endif
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
+#if UI_TEST
+		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
+#endif
 		label.Text = StationNameConverter.Convert(Model.StationName);
+#if UI_TEST
+		// HtmlAutoDetectLabel is a ContentView whose AutomationId does not surface
+		// as an Android UIAutomator2 resource-id. Its inner Content (set
+		// synchronously by the Text setter above) is a Label subclass, which does
+		// map to a resource-id, so mirror the id onto it. The outer id is kept for
+		// iOS/macOS which find the ContentView wrapper directly.
+		if (label.Content is Element inner)
+			inner.AutomationId = label.AutomationId;
+#endif
 	}
 
 	private void UpdateArrivalTime()
