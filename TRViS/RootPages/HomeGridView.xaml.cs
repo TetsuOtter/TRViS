@@ -420,6 +420,15 @@ public partial class HomeGridView : Grid
 			// Work list for the new group.
 			_pendingWork = null;
 			RebuildWorkItems();
+			// Symmetric with the single-WorkGroup auto-select in
+			// TimetableSelectionManager: a Work list with exactly one entry is a
+			// no-choice step, so auto-pick it here too — the user goes straight
+			// to 開く instead of tapping a one-item list. (The committed-state and
+			// single-WG load paths already get the only Work via
+			// TimetableSelectionManager.OnWorkGroupChanged; this covers the
+			// remaining gap: manually picking a WG in the multi-WG picker.)
+			if (_workItems.Count == 1)
+				_pendingWork = _workItems[0].Source;
 			SyncListViewSelections();
 			RefreshStepUi();
 		}
