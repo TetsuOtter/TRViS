@@ -37,6 +37,20 @@ public partial class AppViewModel : ObservableObject
 		Loader = loader;
 	}
 
+	/// <summary>
+	/// Raised after a server-driven load (HTTP / WebSocket TRViS.LocalServers
+	/// integration) has set the loader and committed a WorkGroup selection, to
+	/// request that the UI jump straight to the timetable instead of leaving the
+	/// user on the Home picker. StartHomePage subscribes and performs the actual
+	/// navigation (it owns navigation + modal lifecycle; raising an event here
+	/// avoids doing Shell navigation from the AppLink handler while the
+	/// ConnectServerDialog modal may still be on the stack).
+	/// </summary>
+	public event EventHandler? AutoNavigateToTimetableRequested;
+
+	internal void RequestAutoNavigateToTimetable()
+		=> AutoNavigateToTimetableRequested?.Invoke(this, EventArgs.Empty);
+
 	public IReadOnlyList<WorkGroup>? WorkGroupList => SelectionManager.WorkGroupList;
 	public IReadOnlyList<Work>? WorkList => SelectionManager.WorkList;
 	public IReadOnlyList<TrainData>? OrderedTrainDataList => SelectionManager.OrderedTrainDataList;
