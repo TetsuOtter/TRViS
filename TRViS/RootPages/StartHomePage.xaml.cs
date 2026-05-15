@@ -609,6 +609,8 @@ public partial class StartHomePage : ContentPage
 		// unsubscribe — avoids accumulating handlers if Shell recreates the page.
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 		viewModel.PropertyChanged += OnViewModelPropertyChanged;
+		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
+		viewModel.AutoNavigateToTimetableRequested += OnAutoNavigateToTimetableRequested;
 
 		UpdatePrivacyDependentControls();
 
@@ -627,12 +629,46 @@ public partial class StartHomePage : ContentPage
 		// here. The user opens files explicitly via the "ファイルを選択" button
 		// (SelectFileDialog) or via a `trvis://app/open/json?local=…` AppLink.
 		await ApplyModeForCurrentLoaderAsync();
+
+		// A server-driven load that fired while the ConnectServerDialog modal was
+		// still up could not navigate then; this OnAppearing (after the modal
+		// popped and revealed us) is where that deferred jump finally runs.
+		await TryConsumeAutoNavigateAsync();
 	}
 
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
+	}
+
+	// The pending intent is latched on AppViewModel (not a field here): a
+	// cold-start deeplink can raise it before this page subscribes, so the
+	// subscriber must not own the state. We consume it on the live event (warm
+	// path: already subscribed → immediate) AND on every OnAppearing (cold-start
+	// race, and the ConnectServerDialog-modal path where the event fires while
+	// the dialog is still up). Fail-safe: if nothing consumes it the user just
+	// stays on Home — no crash.
+	void OnAutoNavigateToTimetableRequested(object? sender, EventArgs e)
+	{
+		// Hop to the UI thread (the event may be raised from an off-thread WS
+		// callback) and try now; if a modal is still up this no-ops and the
+		// latched flag is consumed by the next OnAppearing instead.
+		MainThread.BeginInvokeOnMainThread(async () => await TryConsumeAutoNavigateAsync());
+	}
+
+	async Task TryConsumeAutoNavigateAsync()
+	{
+		if (!viewModel.AutoNavigateToTimetablePending)
+			return;
+		// Don't navigate while a modal (e.g. ConnectServerDialog) is still on the
+		// stack — Shell.GoToAsync underneath a modal is ill-defined. Leave the
+		// flag latched; OnAppearing retries once the modal pops and reveals us.
+		if ((Shell.Current?.Navigation?.ModalStack?.Count ?? 0) > 0)
+			return;
+		viewModel.ConsumeAutoNavigateToTimetablePending();
+		await HomeGridView.NavigateToDTACAsync();
 	}
 
 	void UpdatePrivacyDependentControls()
