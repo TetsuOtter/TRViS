@@ -75,21 +75,19 @@ public partial class VerticalTimetableViewModel : ObservableObject
 	/// <summary>
 	/// Updates timetable view with train data.
 	///
-	/// 同じ列車 (= TrainId 一致) の更新では、ObservableCollection 自体を作り直さず、
-	/// 既存の行モデル列を mutate する形で差分を反映する:
-	///   - 重なっている position (= 既存と新の両方に存在する 0..min(N) -1) は field 上書き。
-	///     ObservableObject の同値ガードにより、本当に変わった field の PropertyChanged だけ
-	///     飛ぶので、変更のあった行 (例: DriveTimeMM を直した 1 行) の UI だけが再描画される。
-	///   - 新規行は末尾に Add (= CollectionChanged.Add)。View 側は incremental に行 UI を 1 つ追加する。
-	///   - 余剰行は末尾から Remove (= CollectionChanged.Remove)。View 側は対応する行 UI を 1 つ捨てる。
+	/// 同じ列車 (= TrainId 一致) の更新では、RowId ベースでモデルインスタンスを再利用しながら
+	/// 差分を反映する (ApplySmartDiff):
+	///   - RowId が一致する行はインスタンスを再利用し、変更フィールドのみ PropertyChanged が
+	///     発火する (= 本当に変わったセルの UI だけが再描画される)。
+	///   - 位置だけが変わった行は RowIndex のみ更新 (= Grid.SetRow の呼び出しだけ)。行 UI の
+	///     dispose/再生成は一切行われない。
+	///   - 新規行は CollectionChanged.Add → View が行 UI を 1 つ追加する。
+	///   - 消えた行は CollectionChanged.Remove → View が対応する行 UI を破棄する。
+	///   - 並び替えは CollectionChanged.Move → View は RowViewList のエントリを組み替えるだけ。
 	/// これにより、行 UI 全体の dispose / 再生成 (= 上から再描画される flash) と、
 	/// 走行中フラグ / スクロール位置 / マーカー被り行ハイライトの View 状態リセットを回避する。
 	///
-	/// ただし「行が中間で挿入・削除された」場合は position が Id でずれるので、上記 mutate を
-	/// 適用すると見た目上 行のデータが横滑り表示されてしまう。RowId による position alignment
-	/// チェックでこれを検出し、ずれた場合のみ ObservableCollection を作り直す fallback に倒す。
-	///
-	/// 列車自体が違う (= 異なる TrainId) / 初回ロード / null クリアの場合も
+	/// 列車自体が違う (= 異なる TrainId) / 初回ロード / null クリアの場合は
 	/// ObservableCollection を作り直す全面再構築になる。
 	/// </summary>
 	public void SetTrainData(TrainData? trainData)
@@ -100,18 +98,14 @@ public partial class VerticalTimetableViewModel : ObservableObject
 			&& TimetableRebuildPolicy.IsSameTrainEdit(_lastTrainId, newId))
 		{
 			TimetableRow[] newRows = trainData.Rows ?? [];
-			if (IsPositionAlignedByRowId(CurrentRows, newRows))
-			{
-				ApplyPositionAlignedDiff(newRows);
-				AfterRemarksText = trainData.AfterRemarks;
-				AfterArriveText = trainData.AfterArrive;
-				NextTrainId = trainData.NextTrainId;
-				// 新規に Add された行は IsLocationMarkerOnThisRow が既定 false で生まれているので、
-				// 保持中のマーカー位置をもう一度全行に分配する。同 index 同値ならば内部で no-op。
-				_markerCoordinator.SetRows(CurrentRows);
-				return;
-			}
-			// position alignment 不一致 (= 中間挿入/削除) は fall-through で全面再構築。
+			ApplySmartDiff(newRows);
+			AfterRemarksText = trainData.AfterRemarks;
+			AfterArriveText = trainData.AfterArrive;
+			NextTrainId = trainData.NextTrainId;
+			// 新規に Add された行は IsLocationMarkerOnThisRow が既定 false で生まれているので、
+			// 保持中のマーカー位置をもう一度全行に分配する。同 index 同値ならば内部で no-op。
+			_markerCoordinator.SetRows(CurrentRows);
+			return;
 		}
 
 		// 全面再構築パス: 列車切替 / 初回ロード / null クリア / 中間挿入/削除のいずれか。
@@ -132,47 +126,92 @@ public partial class VerticalTimetableViewModel : ObservableObject
 	}
 
 	/// <summary>
-	/// 現在の行列と新しい行配列が「同 index に同じ RowId が並ぶ」関係になっているかを返す。
-	/// true なら mutate ベースの差分更新で対応可能 (= 末尾の Add / Remove + field 上書き)。
-	/// false (= 中間挿入や中間削除で position が Id ベースでずれた) なら、ObservableCollection を
-	/// 作り直す全面再構築に倒す必要がある。
+	/// RowId ベースで既存モデルのインスタンスを再利用しながら差分を反映する。
+	///
+	/// - RowId が一致する既存モデルはインスタンスを再利用し、位置変更は RowIndex 更新
+	///   (→ Grid.SetRow のみ) で対応する。フィールドが同じなら PropertyChanged も抑制される。
+	/// - RowId が新しい行はモデルを新規生成 (CollectionChanged.Add → View が行 UI を追加)。
+	/// - RowId が消えた行はモデルを削除 (CollectionChanged.Remove → View が行 UI を破棄)。
+	/// - 位置変更がある場合は ObservableCollection.Move を発火し、View 側は RowViewList の
+	///   エントリだけを組み替える (行 UI の dispose/再生成なし)。
 	/// </summary>
-	private static bool IsPositionAlignedByRowId(
-		IReadOnlyList<VerticalTimetableRowModel> oldRows,
-		TimetableRow[] newRows
-	)
+	private void ApplySmartDiff(TimetableRow[] newRows)
 	{
-		int overlap = Math.Min(oldRows.Count, newRows.Length);
-		for (int i = 0; i < overlap; i++)
+		// Step 1: 既存モデルの RowId → インデックス マップを構築する。
+		var oldIndexById = new Dictionary<string, int>(CurrentRows.Count, StringComparer.Ordinal);
+		for (int i = 0; i < CurrentRows.Count; i++)
 		{
-			if (!string.Equals(oldRows[i].RowId, newRows[i].Id, StringComparison.Ordinal))
-				return false;
+			string? rid = CurrentRows[i].RowId;
+			if (rid is not null)
+				oldIndexById[rid] = i;
 		}
-		return true;
-	}
 
-	/// <summary>
-	/// 同 index 同 RowId の前提のもと、既存行を field 上書き、超過分を末尾 Add、不足分を末尾 Remove する。
-	/// ObservableCollection の Add / Remove は CollectionChanged を発火するため、View 側は incremental
-	/// に対応する行 UI を追加/削除できる (= 全 dispose の flash を回避できる)。
-	/// </summary>
-	private void ApplyPositionAlignedDiff(TimetableRow[] newRows)
-	{
-		int oldCount = CurrentRows.Count;
-		int newCount = newRows.Length;
-		int overlap = Math.Min(oldCount, newCount);
+		// Step 2: 新しい各行について、再利用できる既存モデルを決定する。
+		var finalModels = new List<(VerticalTimetableRowModel model, bool isNew)>(newRows.Length);
+		var usedOldIndices = new HashSet<int>(newRows.Length);
+		for (int i = 0; i < newRows.Length; i++)
+		{
+			if (oldIndexById.TryGetValue(newRows[i].Id, out int oldIdx))
+			{
+				finalModels.Add((CurrentRows[oldIdx], false));
+				usedOldIndices.Add(oldIdx);
+			}
+			else
+			{
+				finalModels.Add((BuildRowModel(i, newRows[i]), true));
+			}
+		}
 
-		// 1. 重なっている position は field 上書き。
-		for (int i = 0; i < overlap; i++)
+		// Step 3: 新しい行リストに存在しない古い行を削除する (後ろから削除して index を安定させる)。
+		for (int i = CurrentRows.Count - 1; i >= 0; i--)
+		{
+			if (!usedOldIndices.Contains(i))
+				CurrentRows.RemoveAt(i);
+		}
+		// 削除後は CurrentRows = [生き残った既存モデル (旧い相対順序を保持)]。
+
+		// Step 4: 新しい順序になるよう Move / Insert を発火しながら CurrentRows を組み替える。
+		// 左から処理する。処理済み位置 0..i-1 には正しいモデルが収まっているため、
+		// 対象モデルは常に CurrentRows[i..] の中に存在する (= currentPos >= i が成立する)。
+		for (int i = 0; i < finalModels.Count; i++)
+		{
+			var (model, isNew) = finalModels[i];
+			if (isNew)
+			{
+				// 新規モデルは正しい位置に挿入する (CollectionChanged.Add → View が行 UI を追加)。
+				if (i >= CurrentRows.Count)
+					CurrentRows.Add(model);
+				else
+					CurrentRows.Insert(i, model);
+			}
+			else
+			{
+				// 既存モデルが既に正しい位置にあれば何もしない。
+				// 異なる位置にいれば Move する (CollectionChanged.Move → View は RowViewList を並び替える)。
+				int currentPos = -1;
+				for (int j = i; j < CurrentRows.Count; j++)
+				{
+					if (ReferenceEquals(CurrentRows[j], model))
+					{
+						currentPos = j;
+						break;
+					}
+				}
+				if (currentPos > i)
+					CurrentRows.Move(currentPos, i);
+				else if (currentPos < 0)
+					logger.Warn("ApplySmartDiff: model at new index {0} (RowId={1}) not found in CurrentRows; likely a duplicate RowId", i, model.RowId);
+			}
+		}
+
+		// Step 5: フィールドを更新する (RowIndex を含む)。
+		// 変更がなければ ObservableObject の同値ガードが PropertyChanged を抑制するため、
+		// 「位置のみ移動」な行の再描画は Grid.SetRow の呼び出しだけになる。
+		// CurrentRows.Count との Min は、重複 RowId など不正データで Step 4 が currentPos=-1 の
+		// ままになった行が存在する場合の IndexOutOfRangeException を防ぐ防御的ガード。
+		int updateCount = Math.Min(newRows.Length, CurrentRows.Count);
+		for (int i = 0; i < updateCount; i++)
 			ApplyRowToExistingModel(CurrentRows[i], i, newRows[i]);
-
-		// 2. 末尾追加 (newCount > oldCount のときだけ実行される)。
-		for (int i = oldCount; i < newCount; i++)
-			CurrentRows.Add(BuildRowModel(i, newRows[i]));
-
-		// 3. 末尾削除 (oldCount > newCount のときだけ実行される)。逆順で index 安定。
-		for (int i = oldCount - 1; i >= newCount; i--)
-			CurrentRows.RemoveAt(i);
 	}
 
 	private VerticalTimetableRowModel BuildRowModel(int index, TimetableRow row)
@@ -204,8 +243,8 @@ public partial class VerticalTimetableViewModel : ObservableObject
 	/// 既存の行モデルに field 単位で上書きする。各 setter は <c>ObservableObject</c> の
 	/// 同値ガードで PropertyChanged を抑制するので、変更のあった field の UI だけが更新される。
 	/// <c>IsMarkingMode</c> / <c>IsLocationMarkerOnThisRow</c> は別経路 (toggle / coordinator) で
-	/// 管理されているのでここでは触らない。<c>RowId</c> は position alignment 判定で使った後の
-	/// 同じ row に当てに行っているはずなので明示的に上書きしない (元から同じ Id)。
+	/// 管理されているのでここでは触らない。<c>RowId</c> は ApplySmartDiff が RowId で
+	/// 既存モデルを引いているため、model.RowId == row.Id が保証されており上書き不要。
 	/// </summary>
 	private static void ApplyRowToExistingModel(VerticalTimetableRowModel model, int index, TimetableRow row)
 	{

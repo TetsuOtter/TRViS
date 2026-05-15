@@ -266,9 +266,13 @@ public partial class VerticalTimetableView : Grid
 
 	private async void OnCurrentRowsCollectionChangedAsync(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
 	{
-		// 同 Train 内での mutate 経由更新 (= ObservableCollection.Add / RemoveAt) は
-		// 該当行だけを incremental に追加/削除して、行 UI 全体の dispose+再構築を回避する。
-		// それ以外 (Reset / Replace / Move) は安全側に倒して従来通り SetRowViewsAsync で全面再構築する。
+		// 同 Train 内での mutate 経由更新 (= ObservableCollection.Add / RemoveAt / Move) は
+		// 該当行だけを incremental に追加/削除/並び替えして、行 UI 全体の dispose+再構築を回避する。
+		// - Add: 新規行 UI を 1 つ追加する。
+		// - Remove: 対応する行 UI を破棄する。
+		// - Move: RowViewList のエントリを組み替えるだけ。実際の視覚位置は model.RowIndex →
+		//   Grid.SetRow 側で制御するため、ここでは List の順序のみを合わせる。
+		// それ以外 (Reset / Replace) は安全側に倒して従来通り SetRowViewsAsync で全面再構築する。
 		try
 		{
 			switch (e.Action)
@@ -278,6 +282,9 @@ public partial class VerticalTimetableView : Grid
 					break;
 				case System.Collections.Specialized.NotifyCollectionChangedAction.Remove:
 					await HandleCollectionRemoveAsync(e);
+					break;
+				case System.Collections.Specialized.NotifyCollectionChangedAction.Move:
+					await HandleCollectionMoveAsync(e);
 					break;
 				default:
 					await OnViewModelCurrentRowsChangedAsync();
@@ -364,6 +371,26 @@ public partial class VerticalTimetableView : Grid
 					RowViewList.RemoveAt(removeAt);
 				}
 			}
+		});
+	}
+
+	/// <summary>
+	/// CollectionChanged.Move に対応する incremental 並び替え。
+	/// ViewModel の ApplySmartDiff が発火する。Grid 上の視覚位置は model.RowIndex →
+	/// Grid.SetRow で制御されるため、ここでは RowViewList の要素順序だけを合わせる。
+	/// </summary>
+	private Task HandleCollectionMoveAsync(System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+	{
+		int oldIndex = e.OldStartingIndex;
+		int newIndex = e.NewStartingIndex;
+
+		return MainThread.InvokeOnMainThreadAsync(() =>
+		{
+			if (oldIndex < 0 || oldIndex >= RowViewList.Count) return;
+			if (newIndex < 0 || newIndex >= RowViewList.Count) return;
+			var rowView = RowViewList[oldIndex];
+			RowViewList.RemoveAt(oldIndex);
+			RowViewList.Insert(newIndex, rowView);
 		});
 	}
 

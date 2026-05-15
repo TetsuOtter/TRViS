@@ -444,6 +444,7 @@ public class VerticalTimetableRow : IDisposable
 		SetRowIfAttached(RunInOutLimitGrid);
 		SetRowIfAttached(RemarksLabel);
 		SetRowIfAttached(MarkerBox);
+		SetRowIfAttached(MarkerTransparentBox);
 		SetRowIfAttached(InfoRowLabel);
 	}
 
