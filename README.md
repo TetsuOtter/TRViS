@@ -37,6 +37,11 @@ JSONを書ける人や、SQLiteを扱える人向けです。
 HTTP / WebSocket を用いて、外部システムから運行同期データ・時刻表・リモートコマンドを TRViS へ配信できます。  
 外部サーバーを実装する方向けの連携仕様 (日本語 / English) を [docs/network-sync-service](./docs/network-sync-service/) に用意しています。
 
+## AppLink (URLでのアプリ起動)
+
+`trvis://` カスタム URL スキームのリンクで TRViS を起動し、指定した時刻表を読み込ませる (任意でリアルタイム同期サーバーへ接続させる) ことができます。  
+リンク (QR コード等) を生成する方向けの仕様 (日本語 / English) を [docs/app-link](./docs/app-link/) に用意しています。
+
 ## 注意事項
 
 - iPad miniにて縦向きで動作させることを想定して作成しています。それ以外の環境では、レイアウトが崩れる場合があります。
