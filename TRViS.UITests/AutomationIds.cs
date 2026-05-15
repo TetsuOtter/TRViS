@@ -177,6 +177,19 @@ public static class AutomationIds
 		public const string TestTimeSeam = "DTAC.TestTimeSeam";
 		public const string TestSeamTitlePrefix = "T:";
 		public const string TestSeamTimePrefix = "C:";
+
+		// UI_TEST-only seam: changes the first non-InfoRow in the current train's
+		// TimetableRows to IsInfoRow=true, then re-sets AppViewModel.SelectedTrainData
+		// with the modified clone. This exercises the WebSocket soft-update code path
+		// (same train ID → ApplyPositionAlignedDiff → PropertyChanged("IsInfoRow") →
+		// UpdateAllComponents) to reproduce the "station-name label stays visible after
+		// IsInfoRow false→true transition" bug.
+		public const string TestSeedIsInfoRowTransitionButton = "DTAC.TestSeedIsInfoRowTransitionButton";
+
+		// AutomationId pattern for timetable row components (set in UI_TEST builds only).
+		// Use string.Format: TimetableRowStationNamePattern.Replace("{0}", rowIndex.ToString())
+		public const string TimetableRowStationNamePattern = "TimetableRow.{0}.StationName";
+		public const string TimetableRowInfoRowPattern = "TimetableRow.{0}.InfoRow";
 	}
 
 	/// <summary>

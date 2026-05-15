@@ -361,18 +361,54 @@ public class VerticalTimetableRow : IDisposable
 		}
 
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
+#if UI_TEST
+		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
+#endif
 		InfoRowLabel.Text = Model.InfoText;
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);
 	}
+	private void RemoveNonInfoRowComponents()
+	{
+		RemoveComponent(ref DriveTimeGrid);
+		DriveTimeMMLabel = null;
+		DriveTimeSSLabel = null;
+		RemoveComponent(ref StationNameLabel);
+		RemoveComponent(ref ArrivalTimeCell);
+		if (Brackets is var (open, close))
+		{
+			RemoveComponent(ref open);
+			RemoveComponent(ref close);
+		}
+		Brackets = null;
+		if (OpOnlyStopBrackets is var (opOpen, opClose))
+		{
+			RemoveComponent(ref opOpen);
+			RemoveComponent(ref opClose);
+		}
+		OpOnlyStopBrackets = null;
+		RemoveComponent(ref DepartureTimeCell);
+		RemoveComponent(ref LastStopLineGrid);
+		RemoveComponent(ref TrackNameLabel);
+		RemoveComponent(ref RunInOutLimitGrid);
+		RunInLimitLabel = null;
+		RunOutLimitLabel = null;
+		RemoveComponent(ref RemarksLabel);
+		RemoveComponent(ref MarkerBox);
+		RemoveComponent(ref MarkerTransparentBox);
+		BackgroundBoxView!.Color = Colors.Transparent;
+	}
+
 	private void UpdateAllComponents()
 	{
 		if (Model.IsInfoRow)
 		{
+			RemoveNonInfoRowComponents();
 			UpdateInfoRow();
 		}
 		else
 		{
+			RemoveComponent(ref InfoRowLabel);
 			UpdateDriveTime();
 			UpdateStationName();
 			UpdateArrivalTime();
@@ -408,6 +444,7 @@ public class VerticalTimetableRow : IDisposable
 		SetRowIfAttached(RunInOutLimitGrid);
 		SetRowIfAttached(RemarksLabel);
 		SetRowIfAttached(MarkerBox);
+		SetRowIfAttached(MarkerTransparentBox);
 		SetRowIfAttached(InfoRowLabel);
 	}
 
@@ -448,6 +485,9 @@ public class VerticalTimetableRow : IDisposable
 		}
 
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
+#if UI_TEST
+		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
+#endif
 		label.Text = StationNameConverter.Convert(Model.StationName);
 	}
 
