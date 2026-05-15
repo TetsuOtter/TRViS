@@ -66,6 +66,21 @@ public class VerticalTimetableRow : IDisposable
 	// InfoRow component
 	private HtmlAutoDetectLabel? InfoRowLabel;
 
+#if UI_TEST && ANDROID
+	// Android-only test seam. The real StationName/InfoRow components are
+	// HtmlAutoDetectLabel (a ContentView). On Android UIAutomator2 their
+	// resource-id never surfaces: at the moment EnsureComponent attaches them
+	// the ContentView's Content is still null (Text — and thus the inner
+	// BBCodeLabel — is assigned afterwards), and MAUI Android bakes AutomationId
+	// at handler-connect (so a post-attach assignment is a no-op). iOS/macOS/
+	// Windows surface the wrapper id fine, so the mirror is Android-only to keep
+	// those green platforms untouched. These plain Labels follow the proven
+	// ViewHost seam pattern: fully configured (id + non-empty text + non-zero
+	// size) before grid attach, invisible to the user.
+	private Label? StationNameTestLabel;
+	private Label? InfoRowTestLabel;
+#endif
+
 	public event EventHandler? MarkerBoxClicked;
 	public event EventHandler? RowTapped;
 
@@ -234,6 +249,73 @@ public class VerticalTimetableRow : IDisposable
 		MarkerBoxClicked?.Invoke(this, e);
 	}
 
+	// Android test-mirror seam. All call sites invoke these unconditionally;
+	// the bodies compile to no-ops off Android / outside UI_TEST.
+	private void EnsureStationNameTestMirror()
+	{
+#if UI_TEST && ANDROID
+		EnsureComponent(
+			ref StationNameTestLabel,
+			() => CreateTestMirrorLabel($"TimetableRow.{Model.RowIndex}.StationName"),
+			STATION_NAME_COLUMN);
+#endif
+	}
+
+	private void RemoveStationNameTestMirror()
+	{
+#if UI_TEST && ANDROID
+		RemoveComponent(ref StationNameTestLabel);
+#endif
+	}
+
+	private void EnsureInfoRowTestMirror()
+	{
+#if UI_TEST && ANDROID
+		EnsureComponent(
+			ref InfoRowTestLabel,
+			() => CreateTestMirrorLabel($"TimetableRow.{Model.RowIndex}.InfoRow"),
+			STATION_NAME_COLUMN);
+#endif
+	}
+
+	private void RemoveInfoRowTestMirror()
+	{
+#if UI_TEST && ANDROID
+		RemoveComponent(ref InfoRowTestLabel);
+#endif
+	}
+
+	private void SyncTestMirrorRows()
+	{
+#if UI_TEST && ANDROID
+		SetRowIfAttached(StationNameTestLabel);
+		SetRowIfAttached(InfoRowTestLabel);
+#endif
+	}
+
+#if UI_TEST && ANDROID
+	// Proven ViewHost seam pattern: AutomationId baked at construction (before
+	// grid attach, which is when MAUI Android reads it); non-empty Text + 24×24
+	// drive the UIAutomator2 / a11y node; transparent + InputTransparent keep it
+	// invisible and click-through so it never disturbs the real row.
+	private static Label CreateTestMirrorLabel(string automationId)
+		=> new()
+		{
+			AutomationId = automationId,
+			Text = automationId,
+			TextColor = Colors.Transparent,
+			BackgroundColor = Colors.Transparent,
+			InputTransparent = true,
+			FontSize = 8,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0),
+			Padding = 0,
+		};
+#endif
+
 	// Create系
 	private void EnsureDriveTimeComponents()
 	{
@@ -357,20 +439,23 @@ public class VerticalTimetableRow : IDisposable
 		if (!Model.IsInfoRow || string.IsNullOrEmpty(Model.InfoText))
 		{
 			RemoveComponent(ref InfoRowLabel);
+			RemoveInfoRowTestMirror();
 			return;
 		}
 
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
 #if UI_TEST
+		// iOS/macOS/Windows surface the wrapper (and inner) id natively — kept
+		// byte-identical to the proven-green baseline. Android can't see either
+		// (empty Content at handler-connect) and relies on the mirror instead.
 		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
 #endif
 		InfoRowLabel.Text = Model.InfoText;
 #if UI_TEST
-		// Mirror the id onto the inner Label (set synchronously by the Text
-		// setter) so it surfaces as an Android resource-id; see UpdateStationName.
 		if (InfoRowLabel.Content is Element infoInner)
 			infoInner.AutomationId = InfoRowLabel.AutomationId;
 #endif
+		EnsureInfoRowTestMirror();
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);
 	}
@@ -380,6 +465,7 @@ public class VerticalTimetableRow : IDisposable
 		DriveTimeMMLabel = null;
 		DriveTimeSSLabel = null;
 		RemoveComponent(ref StationNameLabel);
+		RemoveStationNameTestMirror();
 		RemoveComponent(ref ArrivalTimeCell);
 		if (Brackets is var (open, close))
 		{
@@ -415,6 +501,7 @@ public class VerticalTimetableRow : IDisposable
 		else
 		{
 			RemoveComponent(ref InfoRowLabel);
+			RemoveInfoRowTestMirror();
 			UpdateDriveTime();
 			UpdateStationName();
 			UpdateArrivalTime();
@@ -452,6 +539,7 @@ public class VerticalTimetableRow : IDisposable
 		SetRowIfAttached(MarkerBox);
 		SetRowIfAttached(MarkerTransparentBox);
 		SetRowIfAttached(InfoRowLabel);
+		SyncTestMirrorRows();
 	}
 
 	private void UpdateDriveTime()
@@ -487,23 +575,23 @@ public class VerticalTimetableRow : IDisposable
 		if (!VisibilityState.StationName || string.IsNullOrEmpty(Model.StationName))
 		{
 			RemoveComponent(ref StationNameLabel);
+			RemoveStationNameTestMirror();
 			return;
 		}
 
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
 #if UI_TEST
+		// iOS/macOS/Windows surface the wrapper (and inner) id natively — kept
+		// byte-identical to the proven-green baseline. Android can't see either
+		// (empty Content at handler-connect) and relies on the mirror instead.
 		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
 #endif
 		label.Text = StationNameConverter.Convert(Model.StationName);
 #if UI_TEST
-		// HtmlAutoDetectLabel is a ContentView whose AutomationId does not surface
-		// as an Android UIAutomator2 resource-id. Its inner Content (set
-		// synchronously by the Text setter above) is a Label subclass, which does
-		// map to a resource-id, so mirror the id onto it. The outer id is kept for
-		// iOS/macOS which find the ContentView wrapper directly.
 		if (label.Content is Element inner)
 			inner.AutomationId = label.AutomationId;
 #endif
+		EnsureStationNameTestMirror();
 	}
 
 	private void UpdateArrivalTime()
@@ -706,6 +794,7 @@ public class VerticalTimetableRow : IDisposable
 		DriveTimeMMLabel = null;
 		DriveTimeSSLabel = null;
 		RemoveComponent(ref StationNameLabel);
+		RemoveStationNameTestMirror();
 		RemoveComponent(ref ArrivalTimeCell);
 		if (Brackets is var (open, close))
 		{
@@ -729,6 +818,8 @@ public class VerticalTimetableRow : IDisposable
 		RemoveComponent(ref MarkerBox);
 		RemoveComponent(ref MarkerTransparentBox);
 		RemoveComponent(ref InfoRowLabel);
+		RemoveStationNameTestMirror();
+		RemoveInfoRowTestMirror();
 	}
 
 	public void Dispose()
