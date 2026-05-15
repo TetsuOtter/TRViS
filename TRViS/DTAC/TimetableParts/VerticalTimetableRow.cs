@@ -365,6 +365,12 @@ public class VerticalTimetableRow : IDisposable
 		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
 #endif
 		InfoRowLabel.Text = Model.InfoText;
+#if UI_TEST
+		// Mirror the id onto the inner Label (set synchronously by the Text
+		// setter) so it surfaces as an Android resource-id; see UpdateStationName.
+		if (InfoRowLabel.Content is Element infoInner)
+			infoInner.AutomationId = InfoRowLabel.AutomationId;
+#endif
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);
 	}
@@ -489,6 +495,15 @@ public class VerticalTimetableRow : IDisposable
 		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
 #endif
 		label.Text = StationNameConverter.Convert(Model.StationName);
+#if UI_TEST
+		// HtmlAutoDetectLabel is a ContentView whose AutomationId does not surface
+		// as an Android UIAutomator2 resource-id. Its inner Content (set
+		// synchronously by the Text setter above) is a Label subclass, which does
+		// map to a resource-id, so mirror the id onto it. The outer id is kept for
+		// iOS/macOS which find the ContentView wrapper directly.
+		if (label.Content is Element inner)
+			inner.AutomationId = label.AutomationId;
+#endif
 	}
 
 	private void UpdateArrivalTime()
