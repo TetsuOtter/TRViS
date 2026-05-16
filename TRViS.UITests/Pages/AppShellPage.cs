@@ -367,18 +367,6 @@ public class AppShellPage : PageObject
 		return new StartHomePageObject(Driver);
 	}
 
-	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()
-	{
-		if (_isWindows)
-			NavigateViaKeyboard("Third Party Licenses");
-		else
-		{
-			OpenFlyout();
-			WaitForFlyoutItem(AutomationIds.Shell.Flyout.ThirdPartyLicenses, "Third Party Licenses").Click();
-		}
-		return new ThirdPartyLicensesPageObject(Driver);
-	}
-
 	public EasterEggPageObject NavigateToSettings()
 	{
 		if (_isWindows)

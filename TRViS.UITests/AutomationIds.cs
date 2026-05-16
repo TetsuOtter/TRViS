@@ -13,19 +13,8 @@ public static class AutomationIds
 		{
 			public const string StartHome = "Shell.Flyout.StartHome";
 			public const string DTAC = "Shell.Flyout.DTAC";
-			public const string ThirdPartyLicenses = "Shell.Flyout.ThirdPartyLicenses";
 			public const string Settings = "Shell.Flyout.Settings";
-			public const string Firebase = "Shell.Flyout.Firebase";
-			public const string PrivacyPolicy = "Shell.Flyout.PrivacyPolicy";
 		}
-	}
-
-	public static class Firebase
-	{
-		public const string Title = "Firebase.Title";
-		public const string AnalyticsSwitch = "Firebase.AnalyticsSwitch";
-		public const string ResetButton = "Firebase.ResetButton";
-		public const string SaveButton = "Firebase.SaveButton";
 	}
 
 	/// <summary>
