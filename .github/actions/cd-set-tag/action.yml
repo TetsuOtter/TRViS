@@ -46,17 +46,6 @@ runs:
       run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
 
     - name: push new tag
-      # Tolerate push failure ONLY on PR events. The default GITHUB_TOKEN
-      # cannot include `workflows: write` (GitHub enforces this as a
-      # security policy — the scope is not grantable via the workflow's
-      # `permissions:` block), so when a PR modifies `.github/workflows/*`
-      # GitHub rejects `git push origin <tag>` against that commit with
-      # "refusing to allow a GitHub App to create or update workflow ...
-      # without `workflows` permission". The PR tag is for traceability
-      # only — losing it on a workflow-modifying PR is acceptable; the
-      # release tag pushed from `push:` on main is unaffected because the
-      # merge commit there does not itself modify workflows.
-      continue-on-error: ${{ github.event_name == 'pull_request' }}
       shell: bash
       env:
         TAG_NAME: ${{ steps.tag-name.outputs.tag-name }}
