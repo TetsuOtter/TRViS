@@ -1,0 +1,70 @@
+name: Dump Third Party License Info
+description: >
+  Install the Python tooling and generate the third-party license JSON for
+  the given platform, retrying once on failure.
+
+inputs:
+  platform:
+    description: Platform argument for tools/getThirdPartyLicenseJson.py (ios|maccatalyst|android|windows)
+    required: true
+  license-info-dir:
+    description: Output directory for the generated license info
+    required: true
+  license-list-name:
+    description: Base name (no extension) of the generated license list JSON
+    required: true
+  github-token:
+    # Composite actions cannot read the `secrets` context, so the token the
+    # license fetch script needs must be passed in explicitly by the caller.
+    description: Token used by the license fetch script
+    required: true
+  clear-pip-cache:
+    description: Clear the stale macOS-runner pip HTTP cache before setup-python (set 'true' on macOS runners)
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Clear stale pip HTTP cache
+      # The macos-26 runner image pre-populates ~/Library/Caches/pip with
+      # cachecontrol entries written by a different pip version than the
+      # one bundled with the Python actions/setup-python@v6 installs.
+      # That mismatch surfaces during setup-python's internal "Install
+      # OpenSSL certificates" sub-step as
+      #   WARNING: Cache entry deserialization failed, entry ignored
+      # which GitHub Actions renders as ##[error] in the log. The warning
+      # is benign (pip refetches on cache miss), but the spurious error
+      # indicator hides real failures. Clearing the cache removes it.
+      if: ${{ inputs.clear-pip-cache == 'true' }}
+      shell: bash
+      run: rm -rf "$HOME/Library/Caches/pip"
+
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.13"
+    - name: Prepare Python Package
+      shell: bash
+      run: |
+        python --version
+        python -m pip install aiofiles aiohttp
+    - name: Dump Third Party License Info
+      id: dump-third-party-license-info
+      continue-on-error: true
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py ${{ inputs.platform }} ${{ inputs.license-info-dir }}
+        ls -l ${{ inputs.license-info-dir }}
+    - name: Dump Third Party License Info (Retry)
+      if: steps.dump-third-party-license-info.outcome == 'failure'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        python ./tools/getThirdPartyLicenseJson.py ${{ inputs.platform }} ${{ inputs.license-info-dir }}
+        ls -l ${{ inputs.license-info-dir }}
+    - name: Print Third Party License Info Files
+      shell: bash
+      run: cat ${{ inputs.license-info-dir }}/${{ inputs.license-list-name }}.json
