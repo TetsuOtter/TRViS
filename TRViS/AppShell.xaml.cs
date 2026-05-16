@@ -41,9 +41,10 @@ public partial class AppShell : Shell
 		InitializeComponent();
 
 		// Always launch into the Start/Home page. The Start screen handles the
-		// privacy-policy-not-accepted case via an in-page banner + modal dialog,
-		// so the dedicated FirebaseSettingPage is no longer the launch destination
-		// (it remains accessible from the flyout for re-entry).
+		// privacy-policy-not-accepted case via an in-page banner + modal dialog
+		// (PrivacyPolicyDialog), which also hosts the Firebase analytics opt-in.
+		// The dedicated FirebaseSettingPage / Privacy / TPL flyout entries were
+		// removed since Home now covers all three.
 		// Fire-and-forget: the Shell ctor cannot be async; we discard the Task and
 		// log via continuation so a navigation failure doesn't vanish.
 		_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
@@ -61,8 +62,8 @@ public partial class AppShell : Shell
 		// Privacy gating now happens at the *button* level inside StartHomePage
 		// (Connect/SelectFile/Demo are disabled until accepted) and at Firebase
 		// analytics opt-in, not at the Shell navigation level. Letting users tap
-		// through to ThirdPartyLicenses / Settings / D-TAC before accepting is
-		// acceptable: D-TAC has no committed selection so it shows nothing.
+		// through to Settings / D-TAC before accepting is acceptable: D-TAC has
+		// no committed selection so it shows nothing.
 		FlyoutIcon = FlyoutIconImage;
 		FlyoutBehavior = FlyoutBehavior.Flyout;
 

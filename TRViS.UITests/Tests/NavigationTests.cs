@@ -44,12 +44,24 @@ public class NavigationTests : BaseUITest
 		_shell = new AppShellPage(Driver);
 	}
 
+	/// <summary>
+	/// TPL is no longer a flyout entry — it is reached via the StartHome
+	/// footer "Third Party Licenses" link, which pushes it as a modal with
+	/// an in-page close (X) icon. Opens it, asserts it renders, then closes
+	/// via the icon and asserts we return to StartHome.
+	/// </summary>
 	[Test]
-	public void Flyout_NavigateToThirdPartyLicenses()
+	public void Footer_OpenAndCloseThirdPartyLicenses()
 	{
-		var page = _shell.NavigateToThirdPartyLicenses();
+		var startHome = new StartHomePageObject(Driver);
+
+		var page = startHome.OpenThirdPartyLicenses();
 		Assert.That(page.IsDisplayed(), Is.True,
-			"ThirdPartyLicensesPage should be displayed after navigation.");
+			"ThirdPartyLicenses modal should be displayed after tapping the footer link.");
+
+		startHome = page.CloseModal();
+		Assert.That(startHome.IsDisplayed(), Is.True,
+			"StartHomePage should be displayed again after closing the TPL modal.");
 	}
 
 	[Test]
