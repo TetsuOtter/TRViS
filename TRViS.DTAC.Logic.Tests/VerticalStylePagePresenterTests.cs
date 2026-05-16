@@ -842,6 +842,39 @@ public class VerticalStylePagePresenterTests
 		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
 	}
 
+	// 回帰テスト: サーバ駆動の自動 ON は presenter 生成前に発火する
+	// (WebSocket は 接続→CanStart有効化→DTAC遷移→presenter ctor の順)。
+	// IsEnabledChanged のエッジは購読前に消えるため、ctor で現在値を
+	// レベル補正しないとボタン/ゲートが OFF のまま・運行も開始されない。
+	[Fact]
+	public void PresenterCtor_ReconcilesAlreadyEnabledServerDrivenState()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		// 列車は presenter 生成前に確定済み (WS の Refresh cascade 相当)
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		Assert.True(presenter.CurrentState.LocationServiceState.IsEnabled);
+		Assert.True(presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled,
+			"marker gate must be open from the ctor level-reconcile");
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+			"server-driven run must auto-start from the ctor level-reconcile");
+
+		// ゲートが開いているので位置更新でマーカーが動く
+		locationService.RaiseLocationStateChanged(1, false);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
+	}
+
 	#endregion
 
 }

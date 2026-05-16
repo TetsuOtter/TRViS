@@ -53,6 +53,14 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 
 		// Sync initial train: PropertyChanged may have fired before this presenter subscribed.
 		SetSelectedTrainData(_appViewModelProvider.SelectedTrainData);
+
+		// Server-driven auto-enable fires on the LocationService BEFORE this
+		// presenter exists: the WebSocket flow is connect → CanStart enable →
+		// (navigate to DTAC) → presenter ctor. The IsEnabledChanged edge is
+		// gone by the time we subscribe above, so reconcile the current level
+		// now (after the train state is built) — otherwise the button/gate
+		// stay OFF and the server-driven run never starts on first display.
+		OnLocationServiceIsEnabledChanged_Internal(this, _locationService.IsEnabled);
 	}
 
 	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
