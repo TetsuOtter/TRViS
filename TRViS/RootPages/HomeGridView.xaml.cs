@@ -77,6 +77,7 @@ public partial class HomeGridView : Grid
 	{
 		RebuildWorkGroupItems();
 		SyncPendingFromCommitted();
+		UpdateDiagramInfoLabels();
 	}
 
 	/// <summary>
@@ -97,6 +98,11 @@ public partial class HomeGridView : Grid
 
 			case nameof(AppViewModel.LoaderSourceLabel):
 				UpdateLoaderInfoLabels();
+				break;
+
+			case nameof(AppViewModel.CurrentDiagramInfo):
+				// サーバーがダイヤ情報を送ってきた (RequestDiagramInfo 応答 or ブロードキャスト)。
+				UpdateDiagramInfoLabels();
 				break;
 
 			case nameof(AppViewModel.WorkGroupList):
@@ -141,6 +147,8 @@ public partial class HomeGridView : Grid
 	/// </summary>
 	public void UpdateLoaderInfoLabels()
 	{
+		UpdateDiagramInfoLabels();
+
 		ILoader? loader = viewModel.Loader;
 		if (loader is null)
 		{
@@ -163,6 +171,25 @@ public partial class HomeGridView : Grid
 		LoaderInfoTitleLabel.Text = title;
 		LoaderInfoGlyphLabel.Text = glyph;
 		LoaderInfoDetailLabel.Text = viewModel.LoaderSourceLabel ?? string.Empty;
+	}
+
+	/// <summary>
+	/// サーバーから受信したダイヤ情報 (ダイヤ名・説明) を接続情報カードに読み取り専用で
+	/// 反映する。未受信時は両ラベルを非表示にして行を潰す。
+	/// </summary>
+	public void UpdateDiagramInfoLabels()
+	{
+		DiagramInfo? info = viewModel.CurrentDiagramInfo;
+
+		string? name = info?.Name;
+		bool hasName = !string.IsNullOrWhiteSpace(name);
+		DiagramInfoNameLabel.IsVisible = hasName;
+		DiagramInfoNameLabel.Text = hasName ? $"ダイヤ: {name}" : string.Empty;
+
+		string? description = info?.Description;
+		bool hasDescription = !string.IsNullOrWhiteSpace(description);
+		DiagramInfoDescriptionLabel.IsVisible = hasDescription;
+		DiagramInfoDescriptionLabel.Text = hasDescription ? description ?? string.Empty : string.Empty;
 	}
 
 	// ----- Two-step picker (WorkGroup -> Work) -----

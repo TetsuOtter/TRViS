@@ -69,6 +69,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private Task? _ReceiveLoopTask;
 	private volatile bool _isDisconnecting = false;
 
+	// ClientWebSocket は同時に 1 つの SendAsync しか許さない。ID 更新 / 各種 Request
+	// (ServerInfo / DiagramInfo) / 再接続後の再送が fire-and-forget で重なり得るため、
+	// すべての送信をこのセマフォで直列化する。
+	private readonly SemaphoreSlim _sendLock = new(1, 1);
+
 	// 再接続管理用
 	private readonly int _reconnectAttemptMax;  // 最大再接続試行回数
 	private readonly int _reconnectIntervalMs;  // 再接続間隔
@@ -843,12 +848,20 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			string json = JsonSerializer.Serialize(payload);
 			logger.Debug("SendRequestMessageAsync: Sending request: {0}", json);
 			byte[] bytes = Encoding.UTF8.GetBytes(json);
-			await _WebSocket.SendAsync(
-				new ArraySegment<byte>(bytes),
-				WebSocketMessageType.Text,
-				endOfMessage: true,
-				cancellationToken
-			);
+			await _sendLock.WaitAsync(cancellationToken);
+			try
+			{
+				await _WebSocket.SendAsync(
+					new ArraySegment<byte>(bytes),
+					WebSocketMessageType.Text,
+					endOfMessage: true,
+					cancellationToken
+				);
+			}
+			finally
+			{
+				_sendLock.Release();
+			}
 		}
 		catch (WebSocketException ex)
 		{
@@ -877,12 +890,20 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			string json = JsonSerializer.Serialize(updateMessage);
 			logger.Debug("SendIdUpdateAsync: Sending ID update: {0}", json);
 			byte[] bytes = Encoding.UTF8.GetBytes(json);
-			await _WebSocket.SendAsync(
-				new ArraySegment<byte>(bytes),
-				WebSocketMessageType.Text,
-				endOfMessage: true,
-				CancellationToken.None
-			);
+			await _sendLock.WaitAsync();
+			try
+			{
+				await _WebSocket.SendAsync(
+					new ArraySegment<byte>(bytes),
+					WebSocketMessageType.Text,
+					endOfMessage: true,
+					CancellationToken.None
+				);
+			}
+			finally
+			{
+				_sendLock.Release();
+			}
 		}
 		catch (WebSocketException ex)
 		{
@@ -1049,5 +1070,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		_ReceiveLoopCts?.Cancel();
 		_ReceiveLoopCts?.Dispose();
 		_WebSocket.Dispose();
+		_sendLock.Dispose();
 	}
 }

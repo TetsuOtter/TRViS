@@ -60,6 +60,26 @@
 					LineBreakMode="MiddleTruncation"
 					TextColor="{x:Static local:RootStyles.TableDetailColor}"
 					Text=""/>
+				<!-- ダイヤ情報 (サーバーから RequestDiagramInfo の応答 / ブロードキャストで
+				     受信)。未受信時は両ラベルとも IsVisible=false で行が潰れる。読み取り専用。 -->
+				<Label
+					AutomationId="StartHome.DiagramInfoName"
+					x:Name="DiagramInfoNameLabel"
+					FontSize="13"
+					FontAttributes="Bold"
+					Margin="0,4,0,0"
+					LineBreakMode="TailTruncation"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					IsVisible="False"
+					Text=""/>
+				<Label
+					AutomationId="StartHome.DiagramInfoDescription"
+					x:Name="DiagramInfoDescriptionLabel"
+					FontSize="11"
+					LineBreakMode="TailTruncation"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"
+					IsVisible="False"
+					Text=""/>
 			</VerticalStackLayout>
 		</Grid>
 	</Border>
