@@ -443,6 +443,17 @@ void OnIsEnabledChanged(bool value)
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
 
+		// CanStartChanged は値の遷移時にしか発火しない (エッジトリガ)。WebSocket は
+		// SetNetworkSyncService より前に ConnectAsync 済みで、最初の SyncedData
+		// (CanStart false->true) をここで購読する前に受信し得る。その場合 false->true
+		// の遷移が失われ、以後 SyncedData が来ても CanStart は true のまま遷移しないため
+		// 自動 IsEnabled=true が二度と走らない (特にサーバが接続直後に状態を push する
+		// 再接続時に位置情報が disable のまま固定される)。購読完了後に現在の CanStart
+		// レベルを取り込んで補正する。OnNetworkSyncServiceCanStartChanged 側で
+		// WebSocket 限定ガードが掛かっているため HTTP の挙動は変わらない。
+		if (nextService.CanStart)
+			OnNetworkSyncServiceCanStartChanged(nextService, true);
+
 		if (nextService is not WebSocketNetworkSyncService)
 		{
 			CancellationTokenSource nextTokenSource = new();
