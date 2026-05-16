@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using TRViS.Localization;
 using TRViS.Models;
 
 namespace TRViS.ViewModels;
@@ -71,7 +72,7 @@ public partial class ThirdPartyLicensesViewModel : ObservableObject
 		catch (Exception ex)
 		{
 			Console.WriteLine(ex);
-			await Shell.Current.DisplayAlertAsync("Cannot load License Info", $"{value.id}に関するライセンス情報の読み込みに失敗しました。\n(license: {value.license})\n{ex.Message}", "OK");
+			await Shell.Current.DisplayAlertAsync(AppResources.ThirdParty_AlertCannotLoadTitle, string.Format(AppResources.ThirdParty_AlertCannotLoadBodyFormat, value.id, value.license, ex.Message), AppResources.Common_OK);
 		}
 	}
 

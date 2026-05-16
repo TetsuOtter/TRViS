@@ -334,6 +334,23 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void SimulateWebSocketDisconnectForTesting() => TestSimulateWebSocketDisconnectButton.Click();
 
+	public AppiumElement TestSetLanguageEnglishButton => FindByAutomationId(AutomationIds.StartHome.TestSetLanguageEnglishButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that switches the UI language to English
+	/// through the same ViewModel path the Settings language picker uses (#40).
+	/// </summary>
+	public void SetLanguageEnglishForTesting() => TestSetLanguageEnglishButton.Click();
+
+	public AppiumElement TestSetLanguageJapaneseButton => FindByAutomationId(AutomationIds.StartHome.TestSetLanguageJapaneseButton);
+
+	/// <summary>
+	/// Pins the UI language to Japanese (#40). Fixtures that assert hard-coded
+	/// Japanese strings call this in SetUp so the resx-resolved text is
+	/// deterministic regardless of the CI device locale.
+	/// </summary>
+	public void SetLanguageJapaneseForTesting() => TestSetLanguageJapaneseButton.Click();
+
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
 	/// constant in StartHomePage.xaml.cs so tests can look up the rendered

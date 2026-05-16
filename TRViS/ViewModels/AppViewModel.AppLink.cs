@@ -5,6 +5,7 @@ using System.Web;
 
 using TRViS.IO;
 using TRViS.IO.RequestInfo;
+using TRViS.Localization;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
@@ -128,7 +129,7 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Warn(ex, "AppLinkInfo Identify Failed");
-			await Util.DisplayAlertAsync("Cannot Open File", "AppLinkInfo Identify Failed\n" + ex.Message, "OK");
+			await Util.DisplayAlertAsync(AppResources.AppLink_CannotOpenFileTitle, string.Format(AppResources.AppLink_IdentifyFailedFormat, ex.Message), AppResources.Common_OK);
 			return false;
 		}
 
@@ -140,10 +141,10 @@ public partial class AppViewModel
 			string decodedUrl = HttpUtility.UrlDecode(path);
 
 			bool openRemoteFileCheckResult = await Util.DisplayAlertAsync(
-				"外部ファイルを開く",
-				$"ファイル `{decodedUrl}` を開きますか?",
-				"はい",
-				"いいえ"
+				AppResources.AppLink_OpenExternalFileTitle,
+				string.Format(AppResources.AppLink_OpenExternalFileFormat, decodedUrl),
+				AppResources.Common_Yes,
+				AppResources.Common_No
 			);
 			logger.Info("Uri: {0} -> openFile: {1}", path, openRemoteFileCheckResult);
 			if (!openRemoteFileCheckResult)
@@ -186,7 +187,7 @@ public partial class AppViewModel
 			if (!TryResolveLocalTimetablePath(appLinkInfo.LocalPath, out string? resolvedPath, out string? errorMessage))
 			{
 				logger.Warn("LocalPath rejected: {0} (input: {1})", errorMessage, appLinkInfo.LocalPath);
-				await Util.DisplayAlertAsync("Cannot Open File", errorMessage ?? "LocalPath is invalid", "OK");
+				await Util.DisplayAlertAsync(AppResources.AppLink_CannotOpenFileTitle, errorMessage ?? AppResources.AppLink_LocalPathInvalid, AppResources.Common_OK);
 				return false;
 			}
 			appLinkInfo = appLinkInfo with { ResourceUri = new Uri(resolvedPath!), LocalPath = null };
@@ -230,17 +231,14 @@ public partial class AppViewModel
 			{
 				logger.Error(ex, "Timeout Error");
 				await Util.DisplayAlertAsync(
-					"接続できませんでした (Timeout)",
-					"接続先がパソコンの場合は、\n"
-					+ "接続先が同じネットワークに属しているか、\n"
-					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
-					+ "を確認してください。",
-					"OK"
+					AppResources.AppLink_TimeoutTitle,
+					AppResources.AppLink_TimeoutBody,
+					AppResources.Common_OK
 				);
 			}
 			else
 			{
-				await Util.DisplayAlertAsync("Cannot Open File", "OpenAppLinkAsync Failed\n" + ex.Message, "OK");
+				await Util.DisplayAlertAsync(AppResources.AppLink_CannotOpenFileTitle, string.Format(AppResources.AppLink_OpenAppLinkFailedFormat, ex.Message), AppResources.Common_OK);
 			}
 			return false;
 		}
@@ -286,13 +284,10 @@ public partial class AppViewModel
 			if (appLinkInfo.ResourceUri?.Host != appLinkInfo.RealtimeServiceUri.Host)
 			{
 				doConnect = await Util.DisplayAlertAsync(
-					"External Location Service",
-					"位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。"
-					+ '\n' +
-					"このサーバーを使用してもよろしいですか?"
-					+ "Server: " + appLinkInfo.RealtimeServiceUri,
-					"はい",
-					"いいえ"
+					AppResources.AppLink_ExternalLocationServiceTitle,
+					string.Format(AppResources.AppLink_ExternalLocationServiceBodyFormat, appLinkInfo.RealtimeServiceUri),
+					AppResources.Common_Yes,
+					AppResources.Common_No
 				);
 				logger.Debug(
 					"ResourceUri.Host: {0}, RealtimeServiceUri.Host: {1} -> doConnect: {2}",
@@ -310,12 +305,12 @@ public partial class AppViewModel
 				catch (Exception ex)
 				{
 					logger.Error(ex, "SetNetworkSyncServiceAsync Failed");
-					await Util.DisplayAlertAsync("Cannot Set External Location Service", "SetNetworkSyncServiceAsync Failed\n" + ex.Message, "OK");
+					await Util.DisplayAlertAsync(AppResources.AppLink_CannotSetExternalLocationTitle, string.Format(AppResources.AppLink_SetNetworkSyncFailedFormat, ex.Message), AppResources.Common_OK);
 				}
 			}
 		}
 
-		await Util.DisplayAlertAsync("Success!", "ファイルの読み込みが完了しました", "OK");
+		await Util.DisplayAlertAsync(AppResources.Common_Success, AppResources.AppLink_FileLoadCompleteBody, AppResources.Common_OK);
 		return true;
 	}
 
@@ -324,7 +319,7 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is null)
 		{
 			logger.Error("ResourceUri is null");
-			await Util.DisplayAlertAsync("Error", "WebSocket URLが指定されていません", "OK");
+			await Util.DisplayAlertAsync(AppResources.Common_Error, AppResources.AppLink_WebSocketUrlMissing, AppResources.Common_OK);
 			return false;
 		}
 
@@ -381,7 +376,7 @@ public partial class AppViewModel
 				AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 			}
 
-			await Util.DisplayAlertAsync("Success!", "WebSocket接続が完了しました", "OK");
+			await Util.DisplayAlertAsync(AppResources.Common_Success, AppResources.AppLink_WebSocketConnectedBody, AppResources.Common_OK);
 			return true;
 		}
 		catch (OperationCanceledException)
@@ -399,17 +394,14 @@ public partial class AppViewModel
 			{
 				logger.Error(ex, "Timeout Error");
 				await Util.DisplayAlertAsync(
-					"接続できませんでした (Timeout)",
-					"接続先がパソコンの場合は、\n"
-					+ "接続先が同じネットワークに属しているか、\n"
-					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
-					+ "を確認してください。",
-					"OK"
+					AppResources.AppLink_TimeoutTitle,
+					AppResources.AppLink_TimeoutBody,
+					AppResources.Common_OK
 				);
 			}
 			else
 			{
-				await Util.DisplayAlertAsync("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
+				await Util.DisplayAlertAsync(AppResources.AppLink_CannotConnectWebSocketTitle, string.Format(AppResources.AppLink_WebSocketConnectFailedFormat, ex.Message), AppResources.Common_OK);
 			}
 			return false;
 		}
@@ -437,13 +429,13 @@ public partial class AppViewModel
 			string candidate = Path.GetFullPath(Path.Combine(baseDir, localPath));
 			if (!candidate.StartsWith(baseDirWithSep, StringComparison.Ordinal))
 			{
-				errorMessage = "指定されたファイルは時刻表フォルダの外にあります。";
+				errorMessage = AppResources.AppLink_LocalFileOutsideFolder;
 				return false;
 			}
 
 			if (!File.Exists(candidate))
 			{
-				errorMessage = $"ファイルが見つかりません: {localPath}";
+				errorMessage = string.Format(AppResources.AppLink_FileNotFoundFormat, localPath);
 				return false;
 			}
 
@@ -452,7 +444,7 @@ public partial class AppViewModel
 		}
 		catch (Exception ex)
 		{
-			errorMessage = $"ファイルパスの解決に失敗しました: {ex.Message}";
+			errorMessage = string.Format(AppResources.AppLink_PathResolveFailedFormat, ex.Message);
 			return false;
 		}
 	}
@@ -500,12 +492,12 @@ public partial class AppViewModel
 		token.ThrowIfCancellationRequested();
 
 		logger.Warn("remoteIp is private but not same network");
-		string myIpListStr = string.Join('\n', myIpList.Select(static (x, i) => $"この端末[{i}]:{x}"));
+		string myIpListStr = string.Join('\n', myIpList.Select(static (x, i) => string.Format(AppResources.AppLink_ThisDeviceFormat, i, x)));
 		bool continueProcessing = await Util.DisplayAlertAsync(
-			"Maybe Different Network",
-			$"接続先と違うネットワークに属しているため、接続に失敗する可能性があります。\nこのまま接続しますか?\n接続先:{remoteIp}\n{myIpListStr}",
-			"続ける",
-			"やめる"
+			AppResources.AppLink_MaybeDifferentNetworkTitle,
+			string.Format(AppResources.AppLink_MaybeDifferentNetworkBodyFormat, remoteIp, myIpListStr),
+			AppResources.Common_Continue,
+			AppResources.Common_Stop
 		);
 		logger.Trace("continueProcessing: {0}", continueProcessing);
 		token.ThrowIfCancellationRequested();
@@ -521,9 +513,9 @@ public partial class AppViewModel
 		if (response.StatusCode == HttpStatusCode.NoContent)
 		{
 			await Util.DisplayAlertAsync(
-				"Cannot Open File",
-				$"時刻表ファイルを確認しましたが、ファイルの中身がありませんでした。",
-				"OK"
+				AppResources.AppLink_CannotOpenFileTitle,
+				AppResources.AppLink_EmptyFileBody,
+				AppResources.Common_OK
 			);
 			return false;
 		}
@@ -538,19 +530,19 @@ public partial class AppViewModel
 		{
 			logger.Warn("File Size Check Failed (Content-Length not set) -> check continue or not");
 			return await Util.DisplayAlertAsync(
-				"Continue to download?",
-				"ダウンロードするファイルのサイズが不明です。ダウンロードを継続しますか?",
-				"続ける",
-				"やめる"
+				AppResources.AppLink_ContinueDownloadTitle,
+				AppResources.AppLink_UnknownSizeBody,
+				AppResources.Common_Continue,
+				AppResources.Common_Stop
 			);
 		}
 
 		logger.Info("File Size Check Succeeded: {0} bytes", contentLength);
 		return await Util.DisplayAlertAsync(
-			"Continue to download?",
-			$"ダウンロードするファイルのサイズは {contentLength} byte です。このファイルをダウンロードしますか?",
-			"続ける",
-			"やめる"
+			AppResources.AppLink_ContinueDownloadTitle,
+			string.Format(AppResources.AppLink_FileSizeFormat, contentLength),
+			AppResources.Common_Continue,
+			AppResources.Common_Stop
 		);
 	}
 

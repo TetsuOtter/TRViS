@@ -1,3 +1,4 @@
+using TRViS.Localization;
 using TRViS.MyAppCustomizables;
 using TRViS.Services;
 using TRViS.Utils;
@@ -22,20 +23,12 @@ public partial class EasterEggPage : ContentPage
 
 		LogFilePathLabel.Text = DirectoryPathProvider.GeneralLogFileDirectory.FullName;
 
-		// Initialize AppThemePicker selection based on ViewModel
-		UpdateAppThemePickerSelection();
-
-		// Initialize TimeProgressionRatePicker selection based on ViewModel
-		UpdateTimeProgressionRatePickerSelection();
-
-		// Initialize HorizontalTimetableButtonLabelPicker selection based on ViewModel
-		UpdateHorizontalTimetableButtonLabelPickerSelection();
-
-		// Populate the PDF render engine picker with the options available on this
-		// device (iOS < 13 → v2 only; iOS 13–16.3 → v3; iOS 16.4+ → v3 + v5),
-		// then sync the selection.
-		PopulatePdfJsRenderEnginePicker();
-		UpdatePdfJsRenderEnginePickerSelection();
+		// Picker item text is localized, so the items are populated from code
+		// (not static <Picker.Items> in XAML) and rebuilt whenever the UI
+		// language changes. Selection is restored from the ViewModel afterwards.
+		RebuildLocalizedPickers();
+		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
+			MainThread.BeginInvokeOnMainThread(RebuildLocalizedPickers);
 
 		// Update picker when ViewModel's SelectedAppTheme changes
 		ViewModel.PropertyChanged += (_, e) =>
@@ -55,6 +48,10 @@ public partial class EasterEggPage : ContentPage
 			else if (e.PropertyName == nameof(EasterEggPageViewModel.PdfJsRenderEngine))
 			{
 				UpdatePdfJsRenderEnginePickerSelection();
+			}
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.SelectedAppLanguage))
+			{
+				UpdateLanguagePickerSelection();
 			}
 		};
 
@@ -92,7 +89,7 @@ public partial class EasterEggPage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to reload");
-			await DisplayAlertAsync("Error", "Failed to reload\n" + ex.Message, "OK");
+			await DisplayAlertAsync(AppResources.Common_Error, string.Format(AppResources.Settings_AlertReloadFailedFormat, ex.Message), AppResources.Common_OK);
 		}
 	}
 
@@ -105,12 +102,12 @@ public partial class EasterEggPage : ContentPage
 			await ViewModel.SaveAsync();
 
 			logger.Info("Saved");
-			await DisplayAlertAsync("Success!", "Successfully saved", "OK");
+			await DisplayAlertAsync(AppResources.Common_Success, AppResources.Settings_AlertSavedSuccess, AppResources.Common_OK);
 		}
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to save");
-			await DisplayAlertAsync("Error", "Failed to save\n" + ex.Message, "OK");
+			await DisplayAlertAsync(AppResources.Common_Error, string.Format(AppResources.Settings_AlertSaveFailedFormat, ex.Message), AppResources.Common_OK);
 		}
 	}
 
@@ -237,6 +234,101 @@ public partial class EasterEggPage : ContentPage
 		}
 	}
 
+	// ----- Language picker -----
+
+	private bool _isUpdatingLanguagePicker = false;
+
+	private void OnLanguagePickerSelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (_isUpdatingLanguagePicker)
+			return;
+
+		if (sender is not Picker picker)
+			return;
+
+		AppLanguage newLanguage = picker.SelectedIndex switch
+		{
+			0 => AppLanguage.System,
+			1 => AppLanguage.Japanese,
+			2 => AppLanguage.English,
+			_ => AppLanguage.System
+		};
+
+		logger.Info("AppLanguage changed to {0}", newLanguage);
+		ViewModel.SelectedAppLanguage = newLanguage;
+	}
+
+	private void UpdateLanguagePickerSelection()
+	{
+		_isUpdatingLanguagePicker = true;
+		try
+		{
+			LanguagePicker.SelectedIndex = ViewModel.SelectedAppLanguage switch
+			{
+				AppLanguage.System => 0,
+				AppLanguage.Japanese => 1,
+				AppLanguage.English => 2,
+				_ => 0
+			};
+		}
+		finally
+		{
+			_isUpdatingLanguagePicker = false;
+		}
+	}
+
+	/// <summary>
+	/// 言語依存の Picker (テーマ / 時間進行 / 横型時刻表ラベル / 言語) の
+	/// 表示項目を現在の言語で再構築し、選択状態を復元する。起動時と
+	/// 言語変更時に呼ばれる。PDF エンジン Picker も表示名がローカライズ
+	/// されるため併せて再構築する。
+	/// </summary>
+	private void RebuildLocalizedPickers()
+	{
+		_isUpdatingAppThemePicker = true;
+		_isUpdatingTimeProgressionRatePicker = true;
+		_isUpdatingHorizontalTimetableButtonLabelPicker = true;
+		_isUpdatingLanguagePicker = true;
+		try
+		{
+			AppThemePicker.Items.Clear();
+			AppThemePicker.Items.Add(AppResources.Settings_Theme_System);
+			AppThemePicker.Items.Add(AppResources.Settings_Theme_Light);
+			AppThemePicker.Items.Add(AppResources.Settings_Theme_Dark);
+
+			TimeProgressionRatePicker.Items.Clear();
+			TimeProgressionRatePicker.Items.Add(AppResources.Settings_TimeProgression_1x);
+			TimeProgressionRatePicker.Items.Add(AppResources.Settings_TimeProgression_30x);
+			TimeProgressionRatePicker.Items.Add(AppResources.Settings_TimeProgression_60x);
+
+			HorizontalTimetableButtonLabelPicker.Items.Clear();
+			HorizontalTimetableButtonLabelPicker.Items.Add(AppResources.Settings_HTBL_Horizontal);
+			HorizontalTimetableButtonLabelPicker.Items.Add(AppResources.Settings_HTBL_Train);
+			HorizontalTimetableButtonLabelPicker.Items.Add(AppResources.Settings_HTBL_ETrain);
+
+			LanguagePicker.Items.Clear();
+			LanguagePicker.Items.Add(AppResources.Settings_Language_System);
+			LanguagePicker.Items.Add(AppResources.Settings_Language_Japanese);
+			LanguagePicker.Items.Add(AppResources.Settings_Language_English);
+		}
+		finally
+		{
+			_isUpdatingAppThemePicker = false;
+			_isUpdatingTimeProgressionRatePicker = false;
+			_isUpdatingHorizontalTimetableButtonLabelPicker = false;
+			_isUpdatingLanguagePicker = false;
+		}
+
+		UpdateAppThemePickerSelection();
+		UpdateTimeProgressionRatePickerSelection();
+		UpdateHorizontalTimetableButtonLabelPickerSelection();
+		UpdateLanguagePickerSelection();
+
+		// PDF engine options depend on the device; its display names are localized.
+		PopulatePdfJsRenderEnginePicker();
+		UpdatePdfJsRenderEnginePickerSelection();
+	}
+
 	// v3 は Safari 13+ (nullish coalescing) が必要なため iOS 13 以降で提供する。
 	// v5 (pdf.js 公式 legacy ビルド) の対応下限は Safari 16.4 (= iOS 16.4) のため
 	// iOS 16.4 以降でのみ提供する。iOS 12 系は v2 系のみ。
@@ -257,15 +349,20 @@ public partial class EasterEggPage : ContentPage
 	}
 
 	private static string PdfJsRenderEngineDisplayName(PdfJsRenderEngine engine)
-		=> engine switch
+	{
+		// "pdf.js v2" のバージョン部分は固有名なので翻訳しない。描画方式
+		// (SVG / canvas) のみローカライズする。
+		(string version, string mode) = engine switch
 		{
-			PdfJsRenderEngine.V2Svg => "pdf.js v2 (SVG描画)",
-			PdfJsRenderEngine.V2Canvas => "pdf.js v2 (canvas描画)",
-			PdfJsRenderEngine.V3Svg => "pdf.js v3 (SVG描画)",
-			PdfJsRenderEngine.V3Canvas => "pdf.js v3 (canvas描画)",
-			PdfJsRenderEngine.V5Canvas => "pdf.js v5 (canvas描画)",
-			_ => engine.ToString()
+			PdfJsRenderEngine.V2Svg => ("v2", AppResources.Settings_PdfRender_Svg),
+			PdfJsRenderEngine.V2Canvas => ("v2", AppResources.Settings_PdfRender_Canvas),
+			PdfJsRenderEngine.V3Svg => ("v3", AppResources.Settings_PdfRender_Svg),
+			PdfJsRenderEngine.V3Canvas => ("v3", AppResources.Settings_PdfRender_Canvas),
+			PdfJsRenderEngine.V5Canvas => ("v5", AppResources.Settings_PdfRender_Canvas),
+			_ => (engine.ToString(), string.Empty)
 		};
+		return string.Format(AppResources.Settings_PdfEngineDisplayFormat, version, mode);
+	}
 
 	private IReadOnlyList<PdfJsRenderEngine> _pdfJsRenderEngineOptions = [];
 	private bool _isUpdatingPdfJsRenderEnginePicker = false;
@@ -327,8 +424,8 @@ public partial class EasterEggPage : ContentPage
 			PdfJsRenderEnginePicker.SelectedIndex = index;
 
 			PdfJsRenderEngineStatusLabel.Text = index >= 0
-				? $"現在の描画エンジン: {PdfJsRenderEngineDisplayName(current)}"
-				: $"現在の描画エンジン: {PdfJsRenderEngineDisplayName(current)} (変更するには上のリストから選択してください)";
+				? string.Format(AppResources.Settings_PdfEngineCurrentFormat, PdfJsRenderEngineDisplayName(current))
+				: string.Format(AppResources.Settings_PdfEngineCurrentFallbackFormat, PdfJsRenderEngineDisplayName(current));
 		}
 		finally
 		{

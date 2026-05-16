@@ -1,4 +1,5 @@
 using TRViS.FirebaseWrapper;
+using TRViS.Localization;
 using TRViS.Services;
 using TRViS.ViewModels;
 
@@ -44,7 +45,7 @@ public partial class FirebaseSettingPage : ContentPage
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.PrivacyPolicyAccepted);
 
 #if !DISABLE_FIREBASE
-		await DisplayAlertAsync("Success!", "Successfully saved\nYour InstallId: " + FirebaseSettingViewModel.InstallId, "OK");
+		await DisplayAlertAsync(AppResources.Common_Success, string.Format(AppResources.Firebase_AlertSavedBodyFormat, FirebaseSettingViewModel.InstallId), AppResources.Common_OK);
 #endif
 
 		// 初回はこのページが自動で表示されている状態のため、自動でページを移動するようにする

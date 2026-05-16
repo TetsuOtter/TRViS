@@ -121,6 +121,13 @@ public static class AutomationIds
 		// and flips IsServerConnectionLost=true, putting Home into the #261
 		// "サーバー未接続 + 再接続" state WITHOUT a real WebSocket server.
 		public const string TestSimulateWebSocketDisconnectButton = "StartHome.TestSimulateWebSocketDisconnectButton";
+		// Switches the UI language to English through the same ViewModel path
+		// the Settings language picker uses (#40). Lets the i18n E2E assert a
+		// {loc:Translate}-bound label flips without driving a native Picker.
+		public const string TestSetLanguageEnglishButton = "StartHome.TestSetLanguageEnglishButton";
+		// Pins the UI language to Japanese so fixtures asserting hard-coded
+		// Japanese strings stay deterministic regardless of CI device locale.
+		public const string TestSetLanguageJapaneseButton = "StartHome.TestSetLanguageJapaneseButton";
 
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
 		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against

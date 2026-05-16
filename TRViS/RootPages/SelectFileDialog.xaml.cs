@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.IO;
+using TRViS.Localization;
 using TRViS.Services;
 using TRViS.Utils;
 
@@ -226,7 +227,7 @@ public partial class SelectFileDialog : ContentPage
 		Grid.SetRowSpan(glyphLabel, 2);
 		grid.Children.Add(glyphLabel);
 
-		var titleLabel = NewTitleLabel("上の階層へ");
+		var titleLabel = NewTitleLabel(AppResources.SelectFile_UpFolder);
 		Grid.SetColumn(titleLabel, 1);
 		Grid.SetRow(titleLabel, 0);
 		grid.Children.Add(titleLabel);
@@ -283,12 +284,12 @@ public partial class SelectFileDialog : ContentPage
 				.Count(f => s_listedExtensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase));
 
 			if (folderCount == 0 && fileCount == 0)
-				return "(空)";
+				return AppResources.SelectFile_FolderEmpty;
 			var parts = new List<string>(2);
 			if (folderCount > 0)
-				parts.Add($"フォルダ {folderCount}");
+				parts.Add(string.Format(AppResources.SelectFile_FolderCountFormat, folderCount));
 			if (fileCount > 0)
-				parts.Add($"ファイル {fileCount}");
+				parts.Add(string.Format(AppResources.SelectFile_FileCountFormat, fileCount));
 			return string.Join(" ・ ", parts);
 		}
 		catch
@@ -464,7 +465,7 @@ public partial class SelectFileDialog : ContentPage
 			else
 			{
 				logger.Warn("Unknown file type: {0}", ext);
-				await Util.DisplayAlertAsync("読み込めませんでした", "対応していないファイル形式です。", "OK");
+				await Util.DisplayAlertAsync(AppResources.SelectFile_AlertCannotLoadTitle, AppResources.SelectFile_AlertUnsupportedFormat, AppResources.Common_OK);
 				return false;
 			}
 
@@ -481,7 +482,7 @@ public partial class SelectFileDialog : ContentPage
 			// current control flow it was dead code.)
 			logger.Error(ex, "TryLoadFileAsync failed: {0}", fullPath);
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectFileDialog.TryLoadFileAsync");
-			await Util.DisplayAlertAsync("読み込めませんでした", $"ファイルの読み込みに失敗しました: {ex.Message}", "OK");
+			await Util.DisplayAlertAsync(AppResources.SelectFile_AlertCannotLoadTitle, string.Format(AppResources.SelectFile_AlertLoadFailedFormat, ex.Message), AppResources.Common_OK);
 			return false;
 		}
 	}
@@ -541,7 +542,7 @@ public partial class SelectFileDialog : ContentPage
 		{
 			logger.Error(ex, "FilePicker failed");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectFileDialog.OnBrowseClicked");
-			await Util.DisplayAlertAsync("ファイルを開けませんでした", ex.Message, "OK");
+			await Util.DisplayAlertAsync(AppResources.SelectFile_AlertCannotOpenFileTitle, ex.Message, AppResources.Common_OK);
 		}
 		finally
 		{
@@ -614,7 +615,7 @@ public partial class SelectFileDialog : ContentPage
 		{
 			logger.Error(ex, "OnOpenStorageLocationClicked failed");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectFileDialog.OnOpenStorageLocationClicked");
-			await Util.DisplayAlertAsync("フォルダを開けませんでした", ex.Message, "OK");
+			await Util.DisplayAlertAsync(AppResources.SelectFile_AlertCannotOpenFolderTitle, ex.Message, AppResources.Common_OK);
 		}
 	}
 

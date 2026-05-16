@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 using TRViS.DTAC;
 using TRViS.FirebaseWrapper;
+using TRViS.Localization;
 using TRViS.RootPages;
 using TRViS.Services;
 using TRViS.Utils;
@@ -39,6 +40,12 @@ public partial class AppShell : Shell
 		}
 
 		InitializeComponent();
+
+		// Flyout/MenuItem Title binding refresh is unreliable in MAUI Shell, so
+		// set them imperatively now and again whenever the UI language changes.
+		ApplyLocalization();
+		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
+			MainThread.BeginInvokeOnMainThread(ApplyLocalization);
 
 		// Always launch into the Start/Home page. The Start screen handles the
 		// privacy-policy-not-accepted case via an in-page banner + modal dialog,
@@ -103,6 +110,20 @@ public partial class AppShell : Shell
 #endif
 
 		logger.Trace("AppShell Created");
+	}
+
+	/// <summary>
+	/// Flyout / MenuItem のタイトルを現在の言語で再設定する。"D-TAC" は
+	/// ブランド名のため翻訳しない。
+	/// </summary>
+	void ApplyLocalization()
+	{
+		FlyoutStartHome.Title = AppResources.Shell_Home;
+		FlyoutThirdPartyLicenses.Title = AppResources.Shell_ThirdPartyLicenses;
+		FlyoutSettings.Title = AppResources.Shell_Settings;
+		FlyoutFirebase.Title = AppResources.Shell_FirebaseSetting;
+		FlyoutPrivacyPolicy.Title = AppResources.Shell_PrivacyPolicy;
+		MenuPrivacyPolicyOnline.Text = AppResources.Shell_PrivacyPolicyOnline;
 	}
 
 	/// <summary>
