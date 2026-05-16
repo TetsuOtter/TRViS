@@ -18,6 +18,10 @@ internal class LocationServiceAdapter : IDtacLocationServiceController
 
 		// Bridge GPS location updates
 		_locationService.OnGpsLocationUpdated += OnGpsLocationUpdatedInternal;
+		// Bridge enabled-state changes (incl. server-driven CanStart auto-enable)
+		// so the presenter can mirror them; the on-screen toggle is not the only
+		// thing that flips IsEnabled.
+		_locationService.IsEnabledChanged += OnLocationServiceIsEnabledChangedInternal;
 	}
 
 	private void OnGpsLocationUpdatedInternal(object? sender, (double Longitude, double Latitude, double? Accuracy) location)
@@ -26,6 +30,11 @@ internal class LocationServiceAdapter : IDtacLocationServiceController
 			location.Latitude,
 			location.Longitude,
 			location.Accuracy));
+	}
+
+	private void OnLocationServiceIsEnabledChangedInternal(object? sender, TRViS.Utils.ValueChangedEventArgs<bool> e)
+	{
+		IsEnabledChanged?.Invoke(this, e.NewValue);
 	}
 
 	public bool IsEnabled
@@ -65,6 +74,8 @@ internal class LocationServiceAdapter : IDtacLocationServiceController
 	}
 
 	public event EventHandler<GpsLocationUpdate>? GpsLocationUpdated;
+
+	public event EventHandler<bool>? IsEnabledChanged;
 
 	public event EventHandler<Exception>? ExceptionThrown
 	{

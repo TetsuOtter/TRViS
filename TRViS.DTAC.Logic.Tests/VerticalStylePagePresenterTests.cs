@@ -35,11 +35,22 @@ public class VerticalStylePagePresenterTests
 		public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 		public event EventHandler<GpsLocationUpdate>? GpsLocationUpdated;
 		public event EventHandler<Exception>? ExceptionThrown;
+		public event EventHandler<bool>? IsEnabledChanged;
 
 		public void RaiseCanUseServiceChanged(bool value)
 		{
 			CanUseService = value;
 			CanUseServiceChanged?.Invoke(this, value);
+		}
+
+		/// <summary>
+		/// Simulates a server-driven enable change (NetworkSyncService CanStart
+		/// auto-enable) that flips IsEnabled without going through the toggle.
+		/// </summary>
+		public void RaiseIsEnabledChanged(bool value)
+		{
+			IsEnabled = value;
+			IsEnabledChanged?.Invoke(this, value);
 		}
 
 		public void RaiseLocationStateChanged(int stationIndex, bool isRunningToNextStation)
@@ -730,6 +741,39 @@ public class VerticalStylePagePresenterTests
 		presenter.OnNetworkSyncAutoStartRequested();
 
 		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.False(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// 回帰テスト: サーバ駆動の自動 ON (NetworkSyncService の CanStart) で
+	// LocationService.IsEnabled がトグルを経由せず true になったとき、
+	// presenter が自前の状態フラグ (特に位置マーカーのゲートである
+	// TimetableViewState.IsLocationServiceEnabled) に反映しないと、自動 ON
+	// されても位置マーカーが動かず手動 OFF→ON するまで直らない不具合の防止。
+	[Fact]
+	public void ServerDrivenIsEnabledChanged_MirrorsPresenterState_AndOpensMarkerGate()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		// 前提: 画面トグルでは有効化していない
+		Assert.False(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+
+		// サーバ駆動の自動 ON (ボタンを経由しない)
+		locationService.RaiseIsEnabledChanged(true);
+
+		// presenter の全状態フラグに反映される
+		Assert.True(presenter.CurrentState.LocationServiceState.IsEnabled);
+		Assert.True(presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+
+		// よってサービスからの位置更新でマーカーが動く
+		// (修正前は OnLocationStateChanged_Internal のゲートで握り潰されていた)
+		locationService.RaiseLocationStateChanged(1, false);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
+
+		// サーバ駆動の OFF も同様に反映される
+		locationService.RaiseIsEnabledChanged(false);
 		Assert.False(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
 	}
 
