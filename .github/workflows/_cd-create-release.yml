@@ -1,0 +1,97 @@
+name: CD - Create Release
+
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+
+env:
+  CSPROJ_PATH: ./TRViS/TRViS.csproj
+  THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+  THIRD_PARTY_LICENSE_LIST_NAME: license_list
+  TARGET_FRAMEWORK: net10.0-ios
+  TARGET_RUNTIME: ios-arm64
+  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
+  TARGET_RUNTIME_MAC: osx
+  TARGET_FRAMEWORK_ANDROID: net10.0-android
+  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
+  TARGET_RUNTIME_WINX64: win-x64
+  TARGET_RUNTIME_WINX86: win-x86
+  OUTPUT_DIR: ./out
+  IPA_PATH: ./out/TRViS.ipa
+  PKG_PATH: ./out/TRViS.pkg
+  AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
+  APK_PATH: ./out/dev.t0r.trvis-Signed.apk
+  ASSET_NAME_WIN_X64: TRViS-win-x64
+  ASSET_NAME_WIN_X86: TRViS-win-x86
+  ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
+  ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
+  SDK_VERSION: "10.0.x"
+  IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
+  IOS_DSYM_FILENAME: TRViS.app.dSYM
+  XCODE_VERSION: "26.4"
+  FIREBASE_PROJECT_ID: trvis-app
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v8
+        with:
+          name: apk
+          path: ${{ env.OUTPUT_DIR }}
+      - name: Download windows asset (x64)
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X64 }}
+          path: ${{ env.ASSET_NAME_WIN_X64 }}
+      - name: Download windows asset (x86)
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X86 }}
+          path: ${{ env.ASSET_NAME_WIN_X86 }}
+      - name: Download windows asset (x64 self-contained)
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+          path: ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+      - name: Download windows asset (x86 self-contained)
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+          path: ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+
+      - name: pack win-x64
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.zip ${{ env.ASSET_NAME_WIN_X64 }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64 }}.7z ${{ env.ASSET_NAME_WIN_X64 }}
+      - name: pack win-x86
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.zip ${{ env.ASSET_NAME_WIN_X86 }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86 }}.7z ${{ env.ASSET_NAME_WIN_X86 }}
+      - name: pack win-x64-self-contained
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+      - name: pack win-x86-self-contained
+        run: |
+          7z a -tzip ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.zip ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+          7z a -t7z ${{ env.OUTPUT_DIR }}/${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.7z ${{ env.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+
+      - name: Create Release
+        run: >
+          gh release create ${{ inputs.tag_name }}
+          --draft
+          --generate-notes
+          ${{ env.OUTPUT_DIR }}/*.apk
+          ${{ env.OUTPUT_DIR }}/*.zip
+          ${{ env.OUTPUT_DIR }}/*.7z
+          --repo ${{ github.repository }}
+          --notes 'This release is automatically created by actions ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

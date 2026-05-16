@@ -1,0 +1,122 @@
+name: CD - Build Android
+
+on:
+  workflow_call:
+    inputs:
+      display_version:
+        required: true
+        type: string
+      build_number:
+        required: true
+        type: string
+
+env:
+  CSPROJ_PATH: ./TRViS/TRViS.csproj
+  THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+  THIRD_PARTY_LICENSE_LIST_NAME: license_list
+  TARGET_FRAMEWORK: net10.0-ios
+  TARGET_RUNTIME: ios-arm64
+  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
+  TARGET_RUNTIME_MAC: osx
+  TARGET_FRAMEWORK_ANDROID: net10.0-android
+  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
+  TARGET_RUNTIME_WINX64: win-x64
+  TARGET_RUNTIME_WINX86: win-x86
+  OUTPUT_DIR: ./out
+  IPA_PATH: ./out/TRViS.ipa
+  PKG_PATH: ./out/TRViS.pkg
+  AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
+  APK_PATH: ./out/dev.t0r.trvis-Signed.apk
+  ASSET_NAME_WIN_X64: TRViS-win-x64
+  ASSET_NAME_WIN_X86: TRViS-win-x86
+  ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
+  ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
+  SDK_VERSION: "10.0.x"
+  IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
+  IOS_DSYM_FILENAME: TRViS.app.dSYM
+  XCODE_VERSION: "26.4"
+  FIREBASE_PROJECT_ID: trvis-app
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+      - name: Install dotnet workloads
+        run: dotnet workload install maui-android
+
+      - name: Install dependencies
+        run: dotnet restore ${{ env.CSPROJ_PATH }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Prepare Python Package
+        run: |
+          python --version
+          python -m pip install aiofiles aiohttp
+      - name: Dump Third Party License Info
+        id: dump-third-party-license-info
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Dump Third Party License Info (Retry)
+        if: steps.dump-third-party-license-info.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+      - name: Print Third Party License Info Files
+        run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+
+      - name: Add Google-services.json
+        env:
+          FIREBASE_ANDROID_JSON: ${{ secrets.FIREBASE_ANDROID_JSON }}
+        run: |
+          echo "$FIREBASE_ANDROID_JSON" > TRViS/Google-services.json
+          ls -l TRViS/Google-services.json
+
+      # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
+      - name: Install Android SDK Platform Tools
+        run: >
+          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
+          --sdk_root="$ANDROID_SDK_ROOT"
+          "platform-tools"
+      - name: Create Android Signing Key
+        run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > '${{ github.workspace }}/keystore.jks'
+      - name: Build
+        run: >
+          dotnet publish ${{ env.CSPROJ_PATH }}
+          -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+          -c Release
+          -o "${{ env.OUTPUT_DIR }}"
+          /p:ApplicationDisplayVersion=${{ inputs.display_version }}
+          /p:ApplicationVersion=${{ inputs.build_number }}
+          /p:AndroidKeyStore=true
+          /p:AndroidSigningKeyAlias='${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
+          /p:AndroidSigningKeyPass='${{ secrets.ANDROID_SIGNING_KEY_PASS }}'
+          /p:AndroidSigningKeyStore='${{ github.workspace }}/keystore.jks'
+          /p:AndroidSigningStorePass='${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}'
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v7
+        with:
+          name: aab
+          path: ${{ env.AAB_PATH }}
+          retention-days: 3
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk
+          path: ${{ env.APK_PATH }}
+          retention-days: 3
