@@ -62,6 +62,17 @@ internal class FakeNetworkSyncService : NetworkSyncServiceBase
 	public new void RaiseConnectionClosed() => base.RaiseConnectionClosed();
 	public new void RaiseConnectionFailed() => base.RaiseConnectionFailed();
 
+	public int RequestDiagramInfoCallCount { get; private set; }
+	public string? LastRequestedDiagramId { get; private set; }
+	public override Task RequestDiagramInfoAsync(string? diagramId = null, CancellationToken cancellationToken = default)
+	{
+		RequestDiagramInfoCallCount++;
+		LastRequestedDiagramId = diagramId;
+		return Task.CompletedTask;
+	}
+
+	public void SimulateDiagramInfoUpdated(DiagramInfo info) => RaiseDiagramInfoUpdated(info);
+
 	public void SimulateProcessSyncedData(SyncedData syncedData) => ProcessSyncedData(syncedData);
 
 	protected override Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
@@ -408,6 +419,78 @@ public class LocationServiceIntegrationTests
 			Longitude_deg: 139.0,
 			Accuracy_m: null
 		));
+
+		Assert.That(callCount, Is.EqualTo(0));
+	}
+
+	// -------------------------------------------------------
+	// 16. NetworkSyncService 設定時にカレントダイヤ情報を要求する
+	// -------------------------------------------------------
+	[Test]
+	public void SetNetworkSyncService_RequestsCurrentDiagramInfo()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		Assert.That(fakeNs.RequestDiagramInfoCallCount, Is.EqualTo(1));
+		Assert.That(fakeNs.LastRequestedDiagramId, Is.Null);
+	}
+
+	// -------------------------------------------------------
+	// 17. RequestDiagramInfoAsync は現在の NetworkSyncService に委譲する
+	// -------------------------------------------------------
+	[Test]
+	public async Task RequestDiagramInfoAsync_DelegatesToCurrentService()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		await _locationService.RequestDiagramInfoAsync("d-1");
+
+		// 接続時の1回 + 明示要求の1回
+		Assert.That(fakeNs.RequestDiagramInfoCallCount, Is.EqualTo(2));
+		Assert.That(fakeNs.LastRequestedDiagramId, Is.EqualTo("d-1"));
+	}
+
+	// -------------------------------------------------------
+	// 18. NetworkSyncService の DiagramInfoUpdated は pass-through される
+	// -------------------------------------------------------
+	[Test]
+	public void DiagramInfoUpdated_PassedThroughFromNetworkSyncService()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		DiagramInfo? received = null;
+		_locationService.DiagramInfoUpdated += (_, info) => received = info;
+
+		fakeNs.SimulateDiagramInfoUpdated(new DiagramInfo
+		{
+			Id = "d-1",
+			Name = "平日ダイヤ",
+			Description = "2024年3月改正",
+		});
+
+		Assert.That(received, Is.Not.Null);
+		Assert.That(received!.Id, Is.EqualTo("d-1"));
+		Assert.That(received!.Name, Is.EqualTo("平日ダイヤ"));
+		Assert.That(received!.Description, Is.EqualTo("2024年3月改正"));
+	}
+
+	// -------------------------------------------------------
+	// 19. LonLat に戻すと DiagramInfoUpdated は二重発火しない
+	// -------------------------------------------------------
+	[Test]
+	public void DiagramInfoUpdated_Unsubscribed_AfterSwitchToLonLat()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		_locationService.SetLonLatLocationService();
+
+		int callCount = 0;
+		_locationService.DiagramInfoUpdated += (_, _) => callCount++;
+
+		fakeNs.SimulateDiagramInfoUpdated(new DiagramInfo { Id = "d-1" });
 
 		Assert.That(callCount, Is.EqualTo(0));
 	}

@@ -1,4 +1,5 @@
 using TRViS.IO;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -92,6 +93,10 @@ public partial class StartHomePage : ContentPage
 	const double HOME_HEADER_ROW_HEIGHT_LARGE_BASE = 208.0;
 	const double FOOTER_ROW_HEIGHT_BASE = 36.0;
 	const double LOADER_INFO_ROW_HEIGHT_BASE = 60.0;
+	// ダイヤ情報 (ダイヤ名・説明) を受信すると LoaderInfoCard は 4 行 (種別 / ソース /
+	// ダイヤ名 / 説明) になり 60pt では潰れる。受信後はこの拡張高さに切り替える。
+	// 未受信時は従来どおりコンパクトな 60pt 行のまま。
+	const double LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM_BASE = 104.0;
 	const double HOME_BUTTONS_ROW_HEIGHT_BASE = 44.0;
 	const double START_BODY_ROW_HEIGHT_FULL_BASE = 280.0;
 	const double START_BODY_ROW_HEIGHT_COMPACT_BASE = 200.0;
@@ -105,6 +110,7 @@ public partial class StartHomePage : ContentPage
 	static readonly double HOME_HEADER_ROW_HEIGHT_LARGE = HOME_HEADER_ROW_HEIGHT_LARGE_BASE * _fontScale;
 	static readonly double FOOTER_ROW_HEIGHT = FOOTER_ROW_HEIGHT_BASE * _fontScale;
 	static readonly double LOADER_INFO_ROW_HEIGHT = LOADER_INFO_ROW_HEIGHT_BASE * _fontScale;
+	static readonly double LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM = LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM_BASE * _fontScale;
 	static readonly double HOME_BUTTONS_ROW_HEIGHT = HOME_BUTTONS_ROW_HEIGHT_BASE * _fontScale;
 	static readonly double START_BODY_ROW_HEIGHT_FULL = START_BODY_ROW_HEIGHT_FULL_BASE * _fontScale;
 	static readonly double START_BODY_ROW_HEIGHT_COMPACT = START_BODY_ROW_HEIGHT_COMPACT_BASE * _fontScale;
@@ -250,6 +256,13 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Debug("Loader changed -> evaluate page mode");
 			_ = ApplyModeForCurrentLoaderAsync();
+		}
+		else if (propertyName == nameof(AppViewModel.CurrentDiagramInfo))
+		{
+			// Diagram info just arrived/cleared; HomeGrid above already settled the
+			// label IsVisible flags. Now grow/shrink the LoaderInfoCard band so the
+			// (now visible) ダイヤ名・説明 lines aren't squeezed into the 60pt row.
+			RefreshLoaderInfoRowHeight();
 		}
 	}
 
@@ -442,6 +455,18 @@ public partial class StartHomePage : ContentPage
 	double EffectiveHomeHeaderRowHeight() =>
 		(Height > 0 && Height <= HOME_SMALL_HEIGHT_THRESHOLD) ? HOME_HEADER_ROW_HEIGHT : HOME_HEADER_ROW_HEIGHT_LARGE;
 
+	// LoaderInfoCard 行の実効高さ。サーバーからダイヤ情報 (名称/説明) を受信して
+	// いる間はカードが 4 行に増えるため拡張高さ、未受信時は従来の 60pt 行。
+	// PortraitHomeRows[1] / PortraitHomeRowsBg[1] / LandscapePhoneRows[3] と
+	// TransitionToAsync の Row3 アニメ目標値がすべてこの一点を参照することで、
+	// 接続済みのまま回転・モード遷移しても拡張高さが維持される。
+	// InstanceManager.AppViewModel を直接読むのは、コンストラクタで viewModel
+	// 代入より前に UpdateGridRowDefinitions が呼ばれるため (その時点では未受信)。
+	double EffectiveLoaderInfoRowHeight() =>
+		DiagramInfo.HasDisplayableContent(InstanceManager.AppViewModel.CurrentDiagramInfo)
+			? LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM
+			: LOADER_INFO_ROW_HEIGHT;
+
 	/// <summary>
 	/// When in Home mode on a small screen (≤ HOME_SMALL_HEIGHT_THRESHOLD), shrinks
 	/// the AppHeader to a compact icon-only band so the WorkGroup/Work list has
@@ -584,21 +609,52 @@ public partial class StartHomePage : ContentPage
 			// Home-only), so collapse it and give the Star row that extra space.
 			LandscapePhoneRows[3].Height = mode == PageMode.Start
 				? new GridLength(0)
-				: new GridLength(LOADER_INFO_ROW_HEIGHT);
+				: new GridLength(EffectiveLoaderInfoRowHeight());
 			BackgroundGrid.RowDefinitions = LandscapePhoneRows;
 			StartGrid.RowDefinitions = LandscapePhoneRows;
 			HomeGrid.RowDefinitions = LandscapePhoneRows;
 			return;
 		}
 		double headerHeight = EffectiveHomeHeaderRowHeight();
+		double loaderInfoHeight = EffectiveLoaderInfoRowHeight();
 		PortraitStartRowsBg[0].Height = GridLength.Star;
 		// Both body-grid and BG-grid Home row 0 must match so AppHeader's row
 		// stays in sync with the body grids (which depend on the same scheme).
 		PortraitHomeRows[0].Height = new GridLength(headerHeight);
 		PortraitHomeRowsBg[0].Height = new GridLength(headerHeight);
+		// Same alignment rule for Row 1: the LoaderInfoCard band grows when
+		// diagram info is received, so keep body-grid and BG-grid in lockstep.
+		PortraitHomeRows[1].Height = new GridLength(loaderInfoHeight);
+		PortraitHomeRowsBg[1].Height = new GridLength(loaderInfoHeight);
 		StartGrid.RowDefinitions = PortraitStartRows;
 		HomeGrid.RowDefinitions = PortraitHomeRows;
 		BackgroundGrid.RowDefinitions = mode == PageMode.Start ? PortraitStartRowsBg : PortraitHomeRowsBg;
+	}
+
+	/// <summary>
+	/// Snaps just the LoaderInfoCard row to its effective height when diagram
+	/// info is received/cleared while the page is already laid out. Deliberately
+	/// does NOT call UpdateGridRowDefinitions: that also resets Row 0 / reassigns
+	/// the BackgroundGrid scheme, which would fight an in-flight Start↔Home
+	/// transition animation. Mutating the shared collection's row height alone
+	/// invalidates layout and keeps body grid + BackgroundGrid aligned (portrait
+	/// uses the paired *Home/*HomeBg collections; landscape shares one instance).
+	/// </summary>
+	void RefreshLoaderInfoRowHeight()
+	{
+		double h = EffectiveLoaderInfoRowHeight();
+		if (_isLandscapePhone)
+		{
+			// Start mode collapses Row 3 to 0 (LoaderInfoCard is Home-only); leave
+			// it alone so we don't reveal the card behind the Start layout.
+			if (_currentMode != PageMode.Start)
+				LandscapePhoneRows[3].Height = new GridLength(h);
+		}
+		else
+		{
+			PortraitHomeRows[1].Height = new GridLength(h);
+			PortraitHomeRowsBg[1].Height = new GridLength(h);
+		}
 	}
 
 	protected override async void OnAppearing()
@@ -787,7 +843,7 @@ public partial class StartHomePage : ContentPage
 		if (landscapePhone)
 		{
 			fromRow3 = LandscapePhoneRows[3].Height.Value;
-			toRow3 = target == PageMode.Home ? LOADER_INFO_ROW_HEIGHT : 0;
+			toRow3 = target == PageMode.Home ? EffectiveLoaderInfoRowHeight() : 0;
 			animateRow3 = Math.Abs(fromRow3 - toRow3) > 0.5;
 		}
 
