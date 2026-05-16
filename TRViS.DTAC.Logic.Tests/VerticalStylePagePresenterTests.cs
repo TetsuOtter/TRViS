@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using TRViS.DTAC.Logic;
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
@@ -912,6 +913,74 @@ public class VerticalStylePagePresenterTests
 		presenter.OnStartButtonClicked();
 		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
 		Assert.True(presenter.CurrentState.PageHeaderState.CanUseLocationService);
+	}
+
+	// 弁別テスト (始発駅マーカー不具合): サーバ駆動 WS 接続では列車確定 →
+	// presenter ctor の順で、ctor 内 reconcile が SetIsRunning(true) を走らせる。
+	// その fallback が「アクティブなマーカーが無ければ最初の非 info 行に
+	// AroundThisStation を置く」ので、ctor 完了時点で presenter state には
+	// 始発駅マーカーが入っているはず。ここが PASS なら presenter state は
+	// 正しく、不具合は下流 (View の初期描画 / StateChanged 購読タイミング)。
+	// FAIL なら presenter state 側でマーカーが欠落している。
+	[Fact]
+	public void PresenterCtor_ServerDriven_SetsFirstStationMarker()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			CanUseService = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+			"server-driven run must auto-start at ctor");
+
+		var firstStationKey = presenter.CurrentState.RowStates
+			.Where(kvp => !kvp.Value.IsInfoRow)
+			.Select(kvp => (int?)kvp.Key)
+			.FirstOrDefault();
+		Assert.NotNull(firstStationKey);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[firstStationKey!.Value].LocationState);
+	}
+
+	// 弁別テスト (info 行混在): 先頭が info 行のとき、始発駅マーカーは
+	// info 行ではなく最初の「駅」行に入らなければならない。RowStates は
+	// info 行込みで採番、StaLocationInfo は info 行除外で採番される
+	// (index 不整合の懸念) ため、両方を検証する。
+	[Fact]
+	public void PresenterCtor_ServerDriven_LeadingInfoRow_MarksFirstStationNotInfoRow()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			CanUseService = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		appVm.SelectedTrainData = CreateTrainDataWithInfoRow(rowCount: 4, infoRowIndex: 0);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		// info 行 (key 0) にはマーカーが付かないこと
+		Assert.True(presenter.CurrentState.RowStates[0].IsInfoRow);
+		Assert.Equal(TimetableLocationState.Undefined,
+			presenter.CurrentState.RowStates[0].LocationState);
+
+		// 最初の「駅」行 (key 1) にマーカーが付くこと
+		Assert.False(presenter.CurrentState.RowStates[1].IsInfoRow);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
 	}
 
 	#endregion

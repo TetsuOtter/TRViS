@@ -100,6 +100,19 @@ public class VerticalTimetableViewPresenterTests
 				rs.LocationState = TimetableLocationState.Undefined;
 			StateChanged?.Invoke(this, new VerticalPageStateChangedEventArgs(VerticalPageStateSection.RowStates));
 		}
+
+		/// <summary>
+		/// Seeds a marker WITHOUT raising StateChanged — simulates the page
+		/// presenter having set the first-station marker inside its own ctor,
+		/// before the view presenter is constructed and subscribes (so the
+		/// edge-triggered StateChanged is gone by then).
+		/// </summary>
+		public void PreSeedMarker(int row, TimetableLocationState state)
+		{
+			if (!_rowStates.ContainsKey(row))
+				_rowStates[row] = new VerticalTimetableRowState();
+			_rowStates[row].LocationState = state;
+		}
 	}
 
 	private static VerticalTimetableViewPresenter CreatePresenter(
@@ -236,6 +249,40 @@ public class VerticalTimetableViewPresenterTests
 
 		Assert.True(p.CurrentState.Marker.IsBoxVisible);
 		Assert.True(p.CurrentState.Marker.IsLineVisible);
+	}
+
+	// 回帰テスト (始発駅マーカー不具合): page presenter が自身の ctor で
+	// 始発駅マーカーを RowStates に立てるのは、この view presenter が構築・
+	// 購読するより前 (VerticalStylePage.xaml.cs:63 → :64)。エッジトリガの
+	// StateChanged は購読時には消えているため、ctor で現在の RowStates レベルを
+	// 補正しないと、運行開始時のマーカーが「発車して検出器が次の StateChanged を
+	// 出すまで」表示されない。ctor 構築前に marker source を seed して再現する。
+	[Fact]
+	public void Ctor_ReconcilesPreExistingMarker_FromSource()
+	{
+		var markerToggle = new FakeMarkerToggle();
+		var crashLogger = new FakeCrashLogger();
+		var dataSource = new FakeDataSource();
+		var markerSource = new FakeLocationMarkerSource();
+
+		// page presenter ctor 相当: 購読前に始発駅マーカーが既に立っている
+		markerSource.PreSeedMarker(1, TimetableLocationState.AroundThisStation);
+
+		var p = new VerticalTimetableViewPresenter(markerToggle, crashLogger, dataSource, markerSource);
+
+		Assert.True(p.CurrentState.Marker.IsBoxVisible,
+			"ctor must level-reconcile the marker that was set before subscription");
+		Assert.False(p.CurrentState.Marker.IsLineVisible);
+		Assert.Equal(1, p.CurrentState.Marker.MarkerRow);
+	}
+
+	[Fact]
+	public void Ctor_NoPreExistingMarker_MarkerStaysHidden()
+	{
+		var p = CreatePresenter(out _, out _, out _, out _);
+
+		Assert.False(p.CurrentState.Marker.IsBoxVisible);
+		Assert.False(p.CurrentState.Marker.IsLineVisible);
 	}
 
 	[Fact]
