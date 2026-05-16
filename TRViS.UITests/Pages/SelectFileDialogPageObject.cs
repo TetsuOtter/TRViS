@@ -132,6 +132,33 @@ public class SelectFileDialogPageObject : PageObject
 	public void TapOpenStorageLocation() => OpenStorageLocationButton.Click();
 
 	/// <summary>
+	/// Dismisses the "読み込めませんでした" error alert raised on a failed load
+	/// (issue #49). Mirrors the cross-platform accept pattern used elsewhere:
+	/// the W3C alert endpoint first, then the iOS/Mac sheet/alert OK button.
+	/// No-op if no alert is up. Call before <see cref="Close"/> so the modal
+	/// CloseButton is reachable again in the shared-session fixtures.
+	/// </summary>
+	public void DismissErrorAlert()
+	{
+		try
+		{
+			Driver.SwitchTo().Alert().Accept();
+		}
+		catch (NoAlertPresentException) { }
+		catch
+		{
+			try
+			{
+				Driver.FindElement(By.XPath(
+					"//XCUIElementTypeSheet//XCUIElementTypeButton[@label='OK']" +
+					" | //XCUIElementTypeAlert//XCUIElementTypeButton[@label='OK']"
+				)).Click();
+			}
+			catch { /* no alert/sheet present */ }
+		}
+	}
+
+	/// <summary>
 	/// Closes the dialog and returns to StartHomePage.
 	/// </summary>
 	public StartHomePageObject Close()

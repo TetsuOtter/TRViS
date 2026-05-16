@@ -1055,7 +1055,7 @@ public partial class StartHomePage : ContentPage
 			Padding = new Thickness(0),
 			Margin = new Thickness(0),
 		};
-		for (int i = 0; i < 12; i++)
+		for (int i = 0; i < 13; i++)
 			host.RowDefinitions.Add(new RowDefinition { Height = 24 });
 		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
 		Grid.SetRow(host, 0);
@@ -1080,6 +1080,10 @@ public partial class StartHomePage : ContentPage
 		// share a single Appium session and need each test to start from a
 		// "no loader" state.
 		AddSeamButton(host, 11, "StartHome.TestClearLoaderButton", TestClearLoaderButton_Clicked);
+		// Row 12: writes a syntactically-broken JSON into TimetableFileDirectory
+		// so the SelectFileDialog friendly-error path (issue #49) can be driven
+		// end-to-end without an OS picker.
+		AddSeamButton(host, 12, "StartHome.TestSeedMalformedJsonButton", TestSeedMalformedJsonButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1401,6 +1405,19 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestClearSampleFilesButton failed");
+		}
+	}
+
+	void TestSeedMalformedJsonButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSeedMalformedJsonButton clicked: seeding broken JSON fixture");
+		try
+		{
+			SelectFileDialogTestSeams.SeedMalformedJson();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedMalformedJsonButton failed");
 		}
 	}
 

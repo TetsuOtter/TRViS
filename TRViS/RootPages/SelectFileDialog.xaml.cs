@@ -481,7 +481,7 @@ public partial class SelectFileDialog : ContentPage
 			// current control flow it was dead code.)
 			logger.Error(ex, "TryLoadFileAsync failed: {0}", fullPath);
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectFileDialog.TryLoadFileAsync");
-			await Util.DisplayAlertAsync("読み込めませんでした", $"ファイルの読み込みに失敗しました: {ex.Message}", "OK");
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 	}
