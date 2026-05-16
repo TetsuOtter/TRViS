@@ -86,40 +86,6 @@ public class DTACViewHostPageObject : PageObject
 		return false;
 	}
 
-	// Real (visible) status indicator — tappable when Disconnected to open
-	// the reconnect-confirm popover (#266).
-	public AppiumElement ConnectionStatusButton => FindByAutomationId(AutomationIds.AppBar.ConnectionStatusButton);
-
-	public void TapConnectionStatusIndicator() => ConnectionStatusButton.Click();
-
-	public bool IsReconnectPopupShown(double timeoutSeconds = 5)
-		=> PollDisplayed(AutomationIds.ReconnectPopup.ConfirmButton, timeoutSeconds);
-
-	public bool IsReconnectPopupGone(double timeoutSeconds = 5)
-	{
-		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
-		do
-		{
-			try
-			{
-				if (!FindByAutomationId(AutomationIds.ReconnectPopup.ConfirmButton).Displayed)
-					return true;
-			}
-			catch (OpenQA.Selenium.WebDriverException)
-			{
-				return true; // not in tree => dismissed
-			}
-			Thread.Sleep(200);
-		} while (DateTime.UtcNow < deadline);
-		return false;
-	}
-
-	public void TapReconnectPopupCancel()
-		=> FindByAutomationId(AutomationIds.ReconnectPopup.CancelButton).Click();
-
-	public void TapReconnectPopupConfirm()
-		=> FindByAutomationId(AutomationIds.ReconnectPopup.ConfirmButton).Click();
-
 	public void TapWsConnectedSeam()
 		=> FindByAutomationId(AutomationIds.DTAC.TestWsConnectedButton).Click();
 

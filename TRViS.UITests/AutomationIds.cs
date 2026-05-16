@@ -227,20 +227,9 @@ public static class AutomationIds
 		public const string ConnectionStatusPrefix = "S:";
 
 		// The real (visible) status indicator. Tappable when Disconnected to
-		// open the reconnect-confirm popover (#266). Not UI_TEST-gated — it's
-		// a real interactive control.
+		// confirm reconnect (#266). Not UI_TEST-gated — it's a real
+		// interactive control.
 		public const string ConnectionStatusButton = "AppBar.ConnectionStatusButton";
-	}
-
-	/// <summary>
-	/// Reconnect-confirm popover shown when the (red) AppBar status indicator
-	/// is tapped while disconnected (#266).
-	/// </summary>
-	public static class ReconnectPopup
-	{
-		public const string Prompt = "ReconnectPopup.Prompt";
-		public const string ConfirmButton = "ReconnectPopup.ConfirmButton";
-		public const string CancelButton = "ReconnectPopup.CancelButton";
 	}
 
 	/// <summary>

@@ -87,46 +87,4 @@ public class WebSocketStatusIndicatorTests : BaseUITest
 			"AppBar indicator must return to Connected after a successful reconnect. "
 			+ $"Actual: \"{dtac.ReadConnectionStatusViaSeam()}\".");
 	}
-
-	[Test]
-	public void DisconnectedIndicatorTap_ShowsReconnectConfirmPopover()
-	{
-		_startHomePage.SimulateWebSocketConnectedForTesting();
-
-		var dtac = new DTACViewHostPageObject(Driver);
-		Assert.That(dtac.IsDisplayed(), Is.True);
-		Assert.That(dtac.WaitForConnectionStatus("Connected"), Is.True);
-
-		dtac.TapWsDisconnectedSeam();
-		Assert.That(dtac.WaitForConnectionStatus("Disconnected"), Is.True,
-			"precondition: indicator must be Disconnected (red) before tapping it.");
-
-		// Tap the red indicator -> "再接続しますか?" confirm popover.
-		dtac.TapConnectionStatusIndicator();
-		Assert.That(dtac.IsReconnectPopupShown(), Is.True,
-			"Tapping the disconnected indicator must show the reconnect-confirm popover.");
-
-		// キャンセル -> popover dismissed, indicator stays Disconnected.
-		dtac.TapReconnectPopupCancel();
-		Assert.That(dtac.IsReconnectPopupGone(), Is.True,
-			"キャンセル must dismiss the popover.");
-		Assert.That(dtac.WaitForConnectionStatus("Disconnected"), Is.True,
-			"Cancelling must leave the indicator Disconnected.");
-
-		// Tap again and confirm. The seam stored no reconnect target, so
-		// ReconnectWebSocketAsync is a deterministic, network-free no-op
-		// (returns false, no alert) — same rationale as WebSocketReconnectTests.
-		// The popover must close, the app must not crash, and the indicator
-		// must settle back on Disconnected.
-		dtac.TapConnectionStatusIndicator();
-		Assert.That(dtac.IsReconnectPopupShown(), Is.True,
-			"precondition: popover must reopen on the second tap.");
-		dtac.TapReconnectPopupConfirm();
-		Assert.That(dtac.IsReconnectPopupGone(), Is.True,
-			"再接続 must dismiss the popover.");
-		Assert.That(dtac.WaitForConnectionStatus("Disconnected"), Is.True,
-			"With no stored target the reconnect is a no-op; indicator stays Disconnected.");
-		Assert.That(dtac.IsDisplayed(), Is.True,
-			"The app must remain on DTAC (no crash) after confirming reconnect.");
-	}
 }

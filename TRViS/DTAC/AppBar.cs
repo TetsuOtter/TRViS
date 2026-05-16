@@ -2,8 +2,6 @@ using System.ComponentModel;
 
 using Microsoft.Maui.Controls.Shapes;
 
-using TR.Maui.AnchorPopover;
-
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -489,26 +487,25 @@ public class AppBar : Grid
 	{
 		try
 		{
-			// 切断 (赤丸) のときだけ再接続確認ポップオーバーを出す (#266)。
-			// 接続済 (緑) / 再接続中 (ぐるぐる) / 非表示では何もしない。
+			// 切断 (赤丸) のときだけ再接続確認を出す (#266)。接続済 (緑) /
+			// 再接続中 (ぐるぐる) / 非表示では何もしない。
 			if (_appViewModel.ServerConnectionStatus != ServerConnectionStatus.Disconnected)
 				return;
 
-			logger.Info("Status indicator tapped while Disconnected -> show reconnect confirm popover");
+			logger.Info("Status indicator tapped while Disconnected -> ask reconnect");
 
-			var popup = new ReconnectConfirmPopup(StartReconnect);
-			var popover = AnchorPopover.Create();
-			popup.SetPopover(popover);
-
-			var options = new PopoverOptions
-			{
-				PreferredWidth = 240,
-				PreferredHeight = 140,
-				DismissOnTapOutside = true,
-			};
-
-			await popover.ShowAsync(popup, StatusIndicator, options);
-			logger.Trace("ReconnectConfirmPopup shown");
+			// TR.Maui.AnchorPopover は Windows MAUI でバイナリ非互換
+			// (Method not found: ElementExtensions.ToPlatform) でクラッシュする。
+			// アプリ全体で使われている Util.DisplayAlertAsync の確認ダイアログに
+			// 統一し、全プラットフォームで確実に動くようにする (#266)。
+			bool doReconnect = await Util.DisplayAlertAsync(
+				"再接続",
+				"再接続しますか?",
+				"はい",
+				"いいえ");
+			logger.Info("Reconnect confirm result: {0}", doReconnect);
+			if (doReconnect)
+				StartReconnect();
 		}
 		catch (Exception ex)
 		{
@@ -519,7 +516,7 @@ public class AppBar : Grid
 
 	async void StartReconnect()
 	{
-		logger.Info("Reconnect confirmed from AppBar status popover");
+		logger.Info("Reconnect confirmed from AppBar status indicator");
 		// 手動再接続中もぐるぐる表示にする。ReconnectWebSocketAsync は内部で
 		// HandleWebSocketAppLinkAsync を呼び、成功時に両フラグを false に戻して
 		// 独自に成功/失敗アラートを出す。失敗時は IsServerConnectionLost が true
