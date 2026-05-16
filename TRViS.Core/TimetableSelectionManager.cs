@@ -105,10 +105,14 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 	private void OnLoaderChanged(ILoader? loader)
 	{
-		// Selection is intentionally cleared rather than auto-picking the first
-		// WorkGroup. The Home page presents a tentative-selection picker; the
-		// committed selection on this manager only changes when the user presses
-		// "Open" (StartHomePage) or via Refresh() (websocket flows).
+		// When there is a *real* choice (2+ WorkGroups) selection is intentionally
+		// cleared rather than auto-picking the first one: the Home page presents a
+		// tentative-selection picker and the committed selection only changes when
+		// the user presses "Open" (StartHomePage) or via Refresh() (websocket flows).
+		// This was the #224 contract. The single-WorkGroup case below is a scoped
+		// re-introduction of the pre-#224 auto-pick: a one-item picker is pure
+		// friction, so commit it straight away (the cascade then picks the first
+		// Work and Train, so the timetable is ready without any user taps).
 		_selectedWorkGroup = null;
 		_selectedWork = null;
 		_selectedTrainData = null;
@@ -118,7 +122,32 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		RaisePropertyChanged(nameof(SelectedWork));
 		RaisePropertyChanged(nameof(SelectedTrainData));
 		WorkGroupList = loader?.GetWorkGroupList();
-		// (intentional: no SelectedWorkGroup auto-pick — see comment above)
+
+		if (WorkGroupList?.Count == 1)
+		{
+			// Auto-select is a convenience, never a load requirement. Committing
+			// the WorkGroup cascades into loader.GetWorkList / GetTrainDataList;
+			// on a malformed or partial source (e.g. a SQLite DB that has a
+			// WorkGroup row but no Work table yet) those throw. Before this
+			// auto-pick existed, opening such a source still succeeded and just
+			// showed the WorkGroup picker — so a cascade failure must roll back
+			// to that exact state, not bubble up and fail the whole load.
+			try
+			{
+				SelectedWorkGroup = WorkGroupList[0];
+			}
+			catch
+			{
+				_selectedWorkGroup = null;
+				_selectedWork = null;
+				_selectedTrainData = null;
+				WorkList = null;
+				OrderedTrainDataList = null;
+				RaisePropertyChanged(nameof(SelectedWorkGroup));
+				RaisePropertyChanged(nameof(SelectedWork));
+				RaisePropertyChanged(nameof(SelectedTrainData));
+			}
+		}
 	}
 
 	/// <summary>

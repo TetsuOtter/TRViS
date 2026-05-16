@@ -207,8 +207,44 @@ public class StartHomePageObject : PageObject
 	/// <summary>
 	/// Loads the demo (sample) data set. After load, the page transitions to Home mode
 	/// and the WorkGroup/Work lists become visible.
+	///
+	/// Tap-then-poll-then-retry-once: iPhone iOS-26 simulators intermittently
+	/// drop the first <c>LoadDemoButton</c> tap — WDA's pointerInput races the
+	/// Start→Home layout pass, so the button press never reaches the handler
+	/// and the page stays in Start mode (#251). When the WorkGroup list doesn't
+	/// appear within a generous budget AND the demo button is still on screen,
+	/// re-tap once.
+	///
+	/// "Button still on screen" does not by itself prove the first tap was
+	/// lost — the handler keeps LoadDemoButton visible while
+	/// SampleDataLoader.CreateAsync is awaited, so a genuinely slow load could
+	/// also still show it. The re-tap is nonetheless safe because
+	/// OnLoadDemoClicked carries a re-entrancy guard (StartGridView.xaml.cs):
+	/// a second tap arriving while a load is in flight is a logged no-op, so a
+	/// slow-but-progressing load is never double-triggered, and a truly lost
+	/// tap (handler never ran) is retried cleanly.
+	///
+	/// Timing: the happy path returns within ~1 s (the Start→Home transition
+	/// is ~380 ms). The hard-failure path is ~12 s + ~1 s + ~12 s here, then
+	/// the caller's existing WaitForElement(WorkGroupList) adds its own 30 s
+	/// before the canonical timeout + page-source dump — so a doubly-failed
+	/// load surfaces in roughly ~55 s rather than the previous 30 s, in
+	/// exchange for absorbing the lost-tap flake without a fixture rerun.
+	/// Mirrors the defensive probe-and-retry style of AppShellPage.OpenFlyout.
 	/// </summary>
-	public void LoadSample() => LoadDemoButton.Click();
+	public void LoadSample()
+	{
+		LoadDemoButton.Click();
+
+		if (IsWorkGroupListVisible(timeoutSeconds: 12))
+			return;
+
+		if (PollDisplayed(AutomationIds.StartHome.LoadDemoButton, timeoutSeconds: 1))
+		{
+			LoadDemoButton.Click();
+			IsWorkGroupListVisible(timeoutSeconds: 12);
+		}
+	}
 
 	/// <summary>
 	/// Taps "Connect to Server" and returns the dialog's page object.

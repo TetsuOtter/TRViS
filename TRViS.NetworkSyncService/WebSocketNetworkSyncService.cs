@@ -786,6 +786,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 	}
 
+	protected override bool IsCurrentTrainStillTracked()
+	{
+		// RaiseTimetableUpdated は CacheTimetableData の後に呼ばれるため、
+		// All スコープ受信時はここでチェックする時点で既に新ペイロードを反映した
+		// _TrainDataCache になっている。残っていれば「同じ列車が新時刻表にも存在する」
+		// と見なし、駅 index / 走行フラグを維持する。
+		if (string.IsNullOrEmpty(TrainId))
+			return false;
+		return _TrainDataCache.ContainsKey(TrainId);
+	}
+
 	protected override void OnWorkGroupIdChanged(string? value)
 	{
 		logger.Debug("OnWorkGroupIdChanged: {0}", value);

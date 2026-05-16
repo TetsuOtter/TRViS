@@ -5,6 +5,7 @@ using TR.Maui.AnchorPopover;
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
+using TRViS.IO.Models;
 using TRViS.RootPages;
 using TRViS.Services;
 using TRViS.Utils;
@@ -23,6 +24,10 @@ public partial class ViewHost : ContentPage
 	private readonly ViewHostPresenter _presenter;
 	private readonly DTACViewHostViewModel _dtacViewModel;
 
+#if UI_TEST
+	private AppViewModel? _testAppVm;
+#endif
+
 	public ViewHost()
 	{
 		logger.Trace("Creating...");
@@ -33,6 +38,10 @@ public partial class ViewHost : ContentPage
 			out DTACViewHostViewModel dtacViewModel);
 
 		_dtacViewModel = dtacViewModel;
+
+#if UI_TEST
+		_testAppVm = vm;
+#endif
 
 		_presenter.StateChanged += OnPresenterStateChanged;
 		// ViewHost is a cached ShellContent (DataTemplate) — the same instance is
@@ -83,6 +92,7 @@ public partial class ViewHost : ContentPage
 		AddTestNavigateHomeSeam();
 		AddTestStateSeams();
 		ApplyTestStateSeams(_presenter.CurrentState);
+		AddTestIsInfoRowTransitionSeam();
 #endif
 
 		logger.Trace("Created");
@@ -197,6 +207,62 @@ public partial class ViewHost : ContentPage
 	{
 		_testTitleSeamLabel.Text = TestTitleSeamPrefix + (state.TitleText ?? string.Empty);
 		_testTimeSeamLabel.Text = TestTimeSeamPrefix + (state.TimeLabelText ?? string.Empty);
+	}
+
+	// UI_TEST-only seam: invisible 24×24 button at the top-right of the main content area.
+	// Tapping it modifies the first TimetableRow of the currently selected train from a
+	// station row (IsInfoRow=false) to an info row (IsInfoRow=true), then re-sets
+	// AppViewModel.SelectedTrainData with the modified clone. This exercises the same
+	// WebSocket soft-update code path (same train ID → ApplyPositionAlignedDiff →
+	// ApplyRowToExistingModel → PropertyChanged("IsInfoRow") → UpdateAllComponents).
+	// Used to reproduce and verify the fix for "non-InfoRow components remain visible
+	// after IsInfoRow false→true transition via WebSocket edit".
+	private void AddTestIsInfoRowTransitionSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestIsInfoRowTransition,
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+			Margin = 0,
+		};
+		seam.Clicked += TestIsInfoRowTransitionButton_Clicked;
+		Grid.SetRow(seam, 2);
+		MainGrid.Children.Add(seam);
+	}
+
+	private const string AutomationIdValueForTestIsInfoRowTransition = "DTAC.TestSeedIsInfoRowTransitionButton";
+
+	void TestIsInfoRowTransitionButton_Clicked(object? sender, EventArgs e)
+	{
+		if (_testAppVm?.SelectedTrainData is not TrainData current || current.Rows is not { Length: > 0 } rows)
+			return;
+
+		// Find the first non-InfoRow and change it to IsInfoRow=true.
+		int target = -1;
+		for (int i = 0; i < rows.Length; i++)
+		{
+			if (!rows[i].IsInfoRow)
+			{
+				target = i;
+				break;
+			}
+		}
+		if (target < 0)
+			return;
+
+		TimetableRow[] modified = (TimetableRow[])rows.Clone();
+		modified[target] = rows[target] with { IsInfoRow = true };
+
+		// Re-assign via AppViewModel so the presenter soft-update path is exercised
+		// (same train ID → canSoftUpdate=true → VerticalTimetableViewModel.SetTrainData).
+		_testAppVm.SelectedTrainData = current with { Rows = modified };
+		logger.Debug("TestIsInfoRowTransitionButton: changed row {0} to IsInfoRow=true", target);
 	}
 #endif
 
