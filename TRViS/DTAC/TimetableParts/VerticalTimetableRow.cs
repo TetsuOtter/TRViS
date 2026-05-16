@@ -264,7 +264,12 @@ public class VerticalTimetableRow : IDisposable
 	private static HtmlAutoDetectLabel CreateStationNameComponent()
 	{
 		var label = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
-		label.Margin = new Thickness(0);
+		// A 4-char station name (e.g. "さ新都心") rendered at the fixed timetable
+		// font no longer fits the fixed station-name column width, so it wrapped
+		// and only the first line ("さ新") stayed visible. Neither the font nor
+		// the column width may change, so widen only this label past its cell
+		// with a negative horizontal margin to keep the name on one line.
+		label.Margin = new Thickness(-16, 0);
 		return label;
 	}
 

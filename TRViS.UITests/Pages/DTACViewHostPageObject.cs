@@ -215,6 +215,13 @@ public class DTACViewHostPageObject : PageObject
 		}
 	}
 
+	/// <summary>
+	/// Best-effort scroll of the timetable toward the bottom by one viewport.
+	/// Reuses the same cross-platform swipe the NextTrainButton lookup relies
+	/// on (no-op on Windows, whose window is tall enough to fit the rows).
+	/// </summary>
+	public void SwipeTimetableUp() => TrySwipeUp();
+
 	// Hidden when the selected Work has no embedded horizontal timetable;
 	// FindCustomControl falls back to UIA Name lookup on Windows because
 	// the inner Border doesn't surface as an addressable AccessibilityId there.

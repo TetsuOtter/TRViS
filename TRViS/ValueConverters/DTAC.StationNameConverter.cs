@@ -19,11 +19,7 @@ public class StationNameConverter : IValueConverter
 		{
 			2 => StringUtils.InsertCharBetweenCharAndMakeWide(s, $"{StringUtils.SPACE_CHAR}{StringUtils.SPACE_CHAR}{StringUtils.SPACE_CHAR}{StringUtils.SPACE_CHAR}"),
 			3 => StringUtils.InsertCharBetweenCharAndMakeWide(s, StringUtils.SPACE_CHAR),
-#if IOS
-			4 => DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Tablet
-				? StringUtils.InsertCharBetweenCharAndMakeWide(s, StringUtils.THIN_SPACE)
-				: s,
-#endif
+			4 => StringUtils.InsertCharBetweenCharAndMakeWide(s, StringUtils.THIN_SPACE),
 			_ => s
 		};
 
