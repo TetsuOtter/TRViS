@@ -45,6 +45,17 @@ public partial class AppViewModel : ObservableObject
 	public partial DiagramInfo? CurrentDiagramInfo { get; set; }
 
 	/// <summary>
+	/// 現在の <see cref="WebSocketNetworkSyncService"/> ローダーがサーバーとの接続を
+	/// 失っているか。接続断時に Home 画面が「サーバー接続中」のまま表示され続ける問題
+	/// (#261) を解消するため、Home 画面はこの値を購読して切断表示と再接続ボタンを出す。
+	/// 切断後もキャッシュ済みデータは <see cref="Loader"/> から読めるため Loader 自体は
+	/// 置き換えない。WebSocket 以外のローダーに切り替わった時点で false に戻る
+	/// (<see cref="OnLoaderChanged"/>)。
+	/// </summary>
+	[ObservableProperty]
+	public partial bool IsServerConnectionLost { get; set; }
+
+	/// <summary>
 	/// Raised after a server-driven load (HTTP / WebSocket TRViS.LocalServers
 	/// integration) has set the loader and committed a WorkGroup selection, to
 	/// request that the UI jump straight to the timetable instead of leaving the
@@ -208,6 +219,16 @@ public partial class AppViewModel : ObservableObject
 		CurrentDiagramInfo = null;
 		if (value is null)
 			LoaderSourceLabel = null;
+
+		// WebSocket 以外 (ファイル等) / null に切り替わったら、切断状態と再接続情報は
+		// 無意味なのでクリアする。WebSocket → WebSocket の再接続では value も
+		// WebSocketNetworkSyncService なので保持される (再接続成功時の false リセットは
+		// HandleWebSocketAppLinkAsync 側で行う)。
+		if (value is not WebSocketNetworkSyncService)
+		{
+			IsServerConnectionLost = false;
+			ClearWebSocketConnectionTracking();
+		}
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)

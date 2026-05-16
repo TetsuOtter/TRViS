@@ -66,6 +66,9 @@ public static class AutomationIds
 		public const string WorkChip = "StartHome.WorkChip";
 		public const string OpenButton = "StartHome.OpenButton";
 		public const string DisconnectButton = "StartHome.DisconnectButton";
+		// Shown in the LoaderInfoCard only when a WebSocket loader's connection
+		// dropped (#261). Tapping it re-runs the last WebSocket connect.
+		public const string ReconnectButton = "StartHome.ReconnectButton";
 
 		// UI_TEST-only seed seams.
 		public const string TestSeedButton = "StartHome.TestSeedButton";
@@ -114,6 +117,10 @@ public static class AutomationIds
 		// default a prior LoadSample leaves the page in Home mode and the
 		// LoadDemo button hidden behind the loader-info card.
 		public const string TestClearLoaderButton = "StartHome.TestClearLoaderButton";
+		// Sets a non-connected WebSocketNetworkSyncService as AppViewModel.Loader
+		// and flips IsServerConnectionLost=true, putting Home into the #261
+		// "サーバー未接続 + 再接続" state WITHOUT a real WebSocket server.
+		public const string TestSimulateWebSocketDisconnectButton = "StartHome.TestSimulateWebSocketDisconnectButton";
 
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
 		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against

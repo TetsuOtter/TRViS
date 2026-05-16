@@ -1362,6 +1362,48 @@ public class WebSocketIntegrationTests
 		}
 	}
 
+	// #261: 切断時 LocationService は GPS へフォールバックして
+	// WebSocketNetworkSyncService を Dispose するが、AppViewModel.Loader は
+	// その (Dispose 済み) サービスのまま据え置き、Home 画面は「サーバー未接続 +
+	// 再接続ボタン」を出しつつキャッシュ済みデータの閲覧/「開く」を継続できる。
+	// この UX が成立する前提 = Dispose 後も ILoader のキャッシュ読み出しが
+	// 生き続けること、を回帰テストで固定する。
+	[Test]
+	public async Task CachedLoaderData_RemainsReadableAfterDispose()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var timetableTask = WaitForEventAsync<TimetableData>(
+				h => service.TimetableUpdated += h,
+				h => service.TimetableUpdated -= h
+			);
+			await _control.BroadcastTimetableAsync(TestData.AllScopeJson);
+			await timetableTask;
+
+			// 切断時の LocationService.SetLonLatLocationService() 相当。
+			service.Dispose();
+
+			var loader = (ILoader)service;
+			Assert.Multiple(() =>
+			{
+				var workGroups = loader.GetWorkGroupList();
+				Assert.That(workGroups, Has.Count.EqualTo(1));
+				Assert.That(workGroups[0].Id, Is.EqualTo(TestData.WorkGroupId));
+
+				Assert.That(loader.GetWorkList(TestData.WorkGroupId), Has.Count.EqualTo(1));
+				Assert.That(loader.GetTrainDataList(TestData.WorkId), Has.Count.EqualTo(2));
+				Assert.That(loader.GetTrainData(TestData.TrainId), Is.Not.Null);
+			});
+		}
+		finally
+		{
+			service.Dispose();
+		}
+	}
+
 	// ================================================================
 	// 再接続
 	// ================================================================
