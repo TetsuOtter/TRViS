@@ -65,7 +65,7 @@ public partial class SettingFileStructure
 	/// <summary>
 	/// 横型時刻表ボタンに表示するラベル
 	/// </summary>
-	public HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
+	public HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Train;
 
 	/// <summary>
 	/// PDF 表示に使用する pdf.js のバージョンと描画方式
