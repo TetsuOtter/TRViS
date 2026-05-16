@@ -208,10 +208,14 @@ void OnIsEnabledChanged(bool value)
 	{
 		logger.Debug("NetworkSyncServiceCanStartChanged: {0}", canStart);
 
-		// WebSocket接続時にのみ、CanStartがtrueになったら自動で「運行開始」と「位置情報ON」をする
-		if (canStart && _CurrentService is WebSocketNetworkSyncService)
+		// NetworkSyncService (HTTP / WebSocket) 接続時は、サーバが CanStart=true を
+		// 通知したら自動で「運行開始」=「位置情報ON」にする。サーバ駆動の連携
+		// (TRViS.LocalServers 等) では利用者が手動でトグルする想定がないため。
+		// HTTP も同じ連携形態なので WebSocket と挙動を揃える。
+		// LonLatLocationService (GPS) は NetworkSyncServiceBase ではないので対象外。
+		if (canStart && _CurrentService is NetworkSyncServiceBase)
 		{
-			logger.Info("CanStart is true and WebSocket is being used -> automatically enable location service");
+			logger.Info("CanStart is true on a NetworkSyncService -> automatically enable location service");
 			IsEnabled = true;
 		}
 	}

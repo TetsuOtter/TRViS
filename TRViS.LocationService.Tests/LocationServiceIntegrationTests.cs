@@ -302,6 +302,25 @@ public class LocationServiceIntegrationTests
 	}
 
 	// -------------------------------------------------------
+	// 7c. HTTP (非WebSocket) の NetworkSyncService でも CanStart=true で
+	//     位置情報が自動 ON になる (WebSocket と挙動を揃える)。
+	//     HTTP 連携で位置情報が更新されない不具合の修正。
+	// -------------------------------------------------------
+	[Test]
+	public void NonWebSocketNetworkSyncService_CanStartTrue_AlsoEnablesLocationService()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		Assert.That(_locationService.IsEnabled, Is.False, "Initially should be disabled");
+
+		fakeNs.SimulateCanStart(true);
+
+		Assert.That(_locationService.IsEnabled, Is.True,
+			"HTTP/non-WebSocket NetworkSyncService should also auto-enable on CanStart=true");
+	}
+
+	// -------------------------------------------------------
 	// 8. Interval property 書き込み → 内部参照値が更新される
 	// -------------------------------------------------------
 	[Test]
