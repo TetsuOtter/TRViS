@@ -345,7 +345,13 @@ void OnIsEnabledChanged(bool value)
 	{
 		logger.Trace("Setting StationLocations...");
 
-		IsEnabled = false;
+		// GPS (LonLat) は駅集合が変わると初回測位からやり直す必要があるため一旦停止する。
+		// サーバ駆動 (NetworkSyncService) は次の同期で新しい駅集合に対して再評価され
+		// (NetworkSyncServiceBase.StaLocationInfo セッタが検出器をリセットする)、
+		// かつ自動 ON は CanStart のエッジトリガなので、ここで IsEnabled を落とすと
+		// 二度と自動 ON されず位置マーカーが固まる。NetworkSyncService では落とさない。
+		if (_CurrentService is not NetworkSyncServiceBase)
+			IsEnabled = false;
 		if (_CurrentService is null)
 		{
 			logger.Debug("_CurrentService is null -> do nothing");

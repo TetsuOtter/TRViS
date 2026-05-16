@@ -48,6 +48,7 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		_locationService.CanUseServiceChanged += OnLocationServiceCanUseChanged;
 		_locationService.LocationStateChanged += OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated += OnGpsLocationUpdated_Internal;
+		_locationService.IsEnabledChanged += OnLocationServiceIsEnabledChanged_Internal;
 		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
 
 		// Sync initial train: PropertyChanged may have fired before this presenter subscribed.
@@ -276,6 +277,30 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 	private void SetLocationServiceEnabled(bool enabled)
 	{
 		_locationService.IsEnabled = enabled;
+		ApplyLocationServiceEnabledState(enabled);
+	}
+
+	/// <summary>
+	/// Mirrors the location-service enabled state into presenter state (button,
+	/// page header, and the position-marker gate in
+	/// <see cref="OnLocationStateChanged_Internal"/>). Split out from
+	/// <see cref="SetLocationServiceEnabled"/> so server-driven enable
+	/// (NetworkSyncService CanStart auto-enable, via
+	/// <see cref="OnLocationServiceIsEnabledChanged_Internal"/>) opens the same
+	/// gate the on-screen toggle does — without this, the marker stays frozen
+	/// after an auto-enable until the user manually toggles OFF→ON.
+	/// Idempotent so the echo from our own <see cref="SetLocationServiceEnabled"/>
+	/// write is a no-op.
+	/// </summary>
+	private void ApplyLocationServiceEnabledState(bool enabled)
+	{
+		if (_currentState.LocationServiceState.IsEnabled == enabled
+			&& _currentState.PageHeaderState.IsLocationServiceEnabled == enabled
+			&& _currentState.TimetableViewState.IsLocationServiceEnabled == enabled)
+		{
+			return;
+		}
+
 		_currentState.LocationServiceState.IsEnabled = enabled;
 		_currentState.PageHeaderState.IsLocationServiceEnabled = enabled;
 		_currentState.TimetableViewState.IsLocationServiceEnabled = enabled;
@@ -284,6 +309,11 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 			VerticalPageStateSection.LocationService
 			| VerticalPageStateSection.PageHeader
 			| VerticalPageStateSection.TimetableView);
+	}
+
+	private void OnLocationServiceIsEnabledChanged_Internal(object? sender, bool enabled)
+	{
+		ApplyLocationServiceEnabledState(enabled);
 	}
 
 	/// <summary>
@@ -339,6 +369,7 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		_locationService.CanUseServiceChanged -= OnLocationServiceCanUseChanged;
 		_locationService.LocationStateChanged -= OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated -= OnGpsLocationUpdated_Internal;
+		_locationService.IsEnabledChanged -= OnLocationServiceIsEnabledChanged_Internal;
 		_appViewModelProvider.PropertyChanged -= OnAppViewModelPropertyChanged;
 	}
 }

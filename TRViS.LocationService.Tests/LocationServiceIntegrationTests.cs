@@ -321,6 +321,40 @@ public class LocationServiceIntegrationTests
 	}
 
 	// -------------------------------------------------------
+	// 7d. SetStationLocations は NetworkSyncService (サーバ駆動) では
+	//     IsEnabled を落とさない。落とすと CanStart のエッジを取り逃して
+	//     二度と自動 ON されず位置マーカーが固まる不具合の防止。
+	//     GPS (LonLat) では従来どおり一旦停止する。
+	// -------------------------------------------------------
+	[Test]
+	public void SetStationLocations_NetworkSyncService_KeepsEnabled()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		fakeNs.SimulateCanStart(true);
+		Assert.That(_locationService.IsEnabled, Is.True, "precondition: auto-enabled");
+
+		_locationService.SetStationLocations(SampleStations());
+
+		Assert.That(_locationService.IsEnabled, Is.True,
+			"NetworkSyncService must stay enabled across SetStationLocations");
+		Assert.That(_locationService.CurrentService!.StaLocationInfo, Is.Not.Null);
+	}
+
+	[Test]
+	public void SetStationLocations_GpsService_StillDisables()
+	{
+		_locationService.SetLonLatLocationService();
+		_locationService.IsEnabled = true;
+		Assert.That(_locationService.IsEnabled, Is.True, "precondition: GPS enabled");
+
+		_locationService.SetStationLocations(SampleStations());
+
+		Assert.That(_locationService.IsEnabled, Is.False,
+			"GPS path must still disable on station change (re-acquire first fix)");
+	}
+
+	// -------------------------------------------------------
 	// 8. Interval property 書き込み → 内部参照値が更新される
 	// -------------------------------------------------------
 	[Test]
