@@ -1,5 +1,4 @@
 using TRViS.Controls;
-using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Formatters;
 using TRViS.DTAC.Logic.Presenter;
@@ -40,27 +39,46 @@ public partial class VerticalStylePage : ContentView
 	MyMap? DebugMap = null;
 	private bool _isLandscape;
 
+	// When true, the whole page is wrapped in a single outer ScrollView (the
+	// "full scroll" experience). When false, only the timetable area scrolls
+	// while the header stays fixed. This used to be keyed off DeviceIdiom.Phone;
+	// it is now an explicit mode so the full-scroll variant lives on its own
+	// dedicated page (#155) and the embedded ViewHost copy carries no
+	// idiom-special-casing.
+	private readonly bool _fullScroll;
+
 	private readonly VerticalStylePagePresenter _presenter;
 	private bool _isTimetableViewBusy = false;
 
-	// Phone-only outer ScrollView wrapper. Captured so the train-data scroll-reset
-	// at OnPresenterStateChanged(All) can scroll the user-facing scrollview back
-	// to top — on phone the inner TimetableAreaScrollView is hidden and resetting
-	// only it leaves the PageHeader (and the 横型時刻表 button) scrolled out of view
-	// after a Work switch when this page instance is reused across navigations.
-	private ScrollView? _phoneOuterScrollView;
+	// Outer ScrollView wrapper, only created in full-scroll mode. Captured so the
+	// train-data scroll-reset at OnPresenterStateChanged(All) can scroll the
+	// user-facing scrollview back to top — in full-scroll mode the inner
+	// TimetableAreaScrollView is hidden and resetting only it leaves the
+	// PageHeader (and the 横型時刻表 button) scrolled out of view after a Work
+	// switch when this page instance is reused across navigations.
+	private ScrollView? _fullScrollOuterScrollView;
 
 	// 直近に ApplyPresenterState(All) で TimetableView に流し込んだ TrainData の参照。
 	// OnViewBecameActive (横型時刻表ページから戻った時など) は常に All を投げてくるので、
 	// ここで前回と同じ参照かを見て不要な行再構築・スクロールリセットを抑止する。
 	private IO.Models.TrainData? _lastAppliedTrainData = null;
 
+	// Parameterless ctor is the one MAUI XAML uses (ViewHost embeds this via
+	// <local:VerticalStylePage/>). It is the non-full-scroll, shared-presenter
+	// variant. The dedicated full-scroll page calls the (presenter, fullScroll)
+	// ctor explicitly with the same shared presenter so run / location state
+	// stays consistent between the two surfaces.
 	public VerticalStylePage()
+		: this(InstanceManager.VerticalStylePagePresenter, fullScroll: false)
 	{
-		logger.Trace("Creating...");
+	}
 
-		// Build presenter - all InstanceManager references are inside PresenterFactory
-		_presenter = PresenterFactory.Build();
+	public VerticalStylePage(VerticalStylePagePresenter presenter, bool fullScroll)
+	{
+		logger.Trace("Creating... (fullScroll: {0})", fullScroll);
+
+		_fullScroll = fullScroll;
+		_presenter = presenter;
 		TimetableView = new VerticalTimetableView(_presenter);
 		_presenter.StateChanged += OnPresenterStateChanged;
 
@@ -84,38 +102,25 @@ public partial class VerticalStylePage : ContentView
 
 		_isLandscape = DeviceDisplay.Current.MainDisplayInfo.Orientation == DisplayOrientation.Landscape;
 
-		DeviceDisplay.Current.MainDisplayInfoChanged += (_, e) =>
-		{
-			logger.Debug("MainDisplayInfoChanged: {0}", e.DisplayInfo);
-			_isLandscape = e.DisplayInfo.Orientation == DisplayOrientation.Landscape;
-			UpdateDebugMapVisibility();
-		};
+		DeviceDisplay.Current.MainDisplayInfoChanged += OnMainDisplayInfoChanged;
 
 		InstanceManager.EasterEggPageViewModel.PropertyChanged += OnEasterEggSettingChanged;
 
-		InstanceManager.LocationServiceGpsAdapter.OnGpsLocationUpdated += (_, e) =>
-		{
-			if (DebugMap is null || e is null)
-			{
-				return;
-			}
-			logger.Debug("OnGpsLocationUpdated: {0}", e);
-			DebugMap.SetCurrentLocation(e.Latitude, e.Longitude, e.Accuracy ?? 20);
-		};
+		InstanceManager.LocationServiceGpsAdapter.OnGpsLocationUpdated += OnGpsLocationUpdated;
 
-		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+		if (_fullScroll)
 		{
-			logger.Info("Device is Phone or Unknown -> make it to fill-scrollable");
+			logger.Info("FullScroll mode -> make it to fill-scrollable");
 			this.Content.VerticalOptions = LayoutOptions.Start;
-			_phoneOuterScrollView = new ScrollView()
+			_fullScrollOuterScrollView = new ScrollView()
 			{
-				// Inner TimetableAreaScrollView is hidden on Phone; expose this
-				// outer wrapper under the same id so UI tests can locate the
-				// active scroll container regardless of idiom.
+				// Inner TimetableAreaScrollView is hidden in full-scroll mode;
+				// expose this outer wrapper under the same id so UI tests can
+				// locate the active scroll container regardless of mode.
 				AutomationId = "DTAC.TimetableScrollView",
 				Content = this.Content,
 			};
-			Content = _phoneOuterScrollView;
+			Content = _fullScrollOuterScrollView;
 			DTACElementStyles.DefaultBGColor.Apply(Content, BackgroundColorProperty);
 		}
 
@@ -153,16 +158,23 @@ public partial class VerticalStylePage : ContentView
 		PageHeaderArea.StartButtonTappedCallback = _presenter.OnStartButtonClicked;
 		PageHeaderArea.LocationServiceButtonTappedCallback = _presenter.OnLocationServiceToggled;
 
-		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone || DeviceInfo.Current.Idiom == DeviceIdiom.Unknown)
+		// The full-scroll experience is iPhone-only (#155): on tablets the
+		// non-full-scroll page already shows everything without needing the
+		// separated page. Don't offer it while already on the full-scroll page.
+		bool isPhoneIdiom = DeviceInfo.Current.Idiom == DeviceIdiom.Phone
+			|| DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
+		PageHeaderArea.IsFullScrollButtonVisible = isPhoneIdiom && !_fullScroll;
+
+		if (_fullScroll)
 		{
-			logger.Info("Device is Phone or Unknown -> set ScrollView to main grid");
+			logger.Info("FullScroll mode -> set TimetableView directly into main grid");
 			Grid.SetRow(TimetableView, Grid.GetRow(TimetableAreaScrollView));
 			TimetableAreaScrollView.IsVisible = false;
 			MainGrid.Add(TimetableView);
 		}
 		else
 		{
-			logger.Info("Device is not Phone nor Unknown -> set TimetableView to TimetableAreaScrollView");
+			logger.Info("Non-full-scroll mode -> set TimetableView to TimetableAreaScrollView");
 			TimetableAreaScrollView.Content = TimetableView;
 			TimetableAreaScrollView.PropertyChanged += (_, e) =>
 			{
@@ -177,16 +189,19 @@ public partial class VerticalStylePage : ContentView
 
 		TimetableView.ScrollRequested += async (_, e) =>
 		{
-			if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone && DeviceInfo.Current.Idiom != DeviceIdiom.Unknown)
+			if (!_fullScroll)
 			{
-				logger.Debug("Device is not Phone nor Unknown -> scroll from {0} to {1}",
+				logger.Debug("Non-full-scroll mode -> scroll from {0} to {1}",
 					TimetableAreaScrollView.ScrollY,
 					e.PositionY);
 				await TimetableAreaScrollView.ScrollToAsync(TimetableAreaScrollView.ScrollX, e.PositionY, true);
 			}
 			else
 			{
-				logger.Debug("Device is Phone or Unknown -> do nothing");
+				// Pre-existing behavior: GPS auto-scroll is not propagated to the
+				// outer ScrollView in full-scroll mode. Kept intentionally as-is
+				// (out of scope for #155).
+				logger.Debug("FullScroll mode -> ScrollRequested no-op");
 			}
 		};
 
@@ -203,13 +218,8 @@ public partial class VerticalStylePage : ContentView
 
 		UpdateDebugMapVisibility();
 
-		var appVm = InstanceManager.AppViewModel;
-		appVm.PropertyChanged += (_, e) =>
-		{
-			if (e.PropertyName == nameof(TRViS.ViewModels.AppViewModel.SelectedWork))
-				UpdateHasHorizontalTimetable(appVm.SelectedWork);
-		};
-		UpdateHasHorizontalTimetable(appVm.SelectedWork);
+		InstanceManager.AppViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
+		UpdateHasHorizontalTimetable(InstanceManager.AppViewModel.SelectedWork);
 
 		logger.Trace("Created");
 	}
@@ -228,6 +238,27 @@ public partial class VerticalStylePage : ContentView
 	{
 		ApplyPresenterState(VerticalPageStateSection.All);
 		UpdateDebugMapVisibility();
+	}
+
+	private void OnMainDisplayInfoChanged(object? sender, DisplayInfoChangedEventArgs e)
+	{
+		logger.Debug("MainDisplayInfoChanged: {0}", e.DisplayInfo);
+		_isLandscape = e.DisplayInfo.Orientation == DisplayOrientation.Landscape;
+		UpdateDebugMapVisibility();
+	}
+
+	private void OnGpsLocationUpdated(object? sender, Microsoft.Maui.Devices.Sensors.Location? e)
+	{
+		if (DebugMap is null || e is null)
+			return;
+		logger.Debug("OnGpsLocationUpdated: {0}", e);
+		DebugMap.SetCurrentLocation(e.Latitude, e.Longitude, e.Accuracy ?? 20);
+	}
+
+	private void OnAppViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(TRViS.ViewModels.AppViewModel.SelectedWork))
+			UpdateHasHorizontalTimetable(InstanceManager.AppViewModel.SelectedWork);
 	}
 
 	private void OnEasterEggSettingChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -352,13 +383,13 @@ public partial class VerticalStylePage : ContentView
 				MainThread.BeginInvokeOnMainThread(() =>
 				{
 					TimetableAreaScrollView.ScrollToAsync(0, 0, false);
-					// On phone the inner TimetableAreaScrollView is hidden behind
-					// _phoneOuterScrollView, which is the actual user-facing scroller.
-					// Reset its position too so a Work switch returns the PageHeader
-					// (and the 横型時刻表 button) to the top of the viewport instead
-					// of inheriting the previous Work's scroll offset on a cached
-					// page instance.
-					_phoneOuterScrollView?.ScrollToAsync(0, 0, false);
+					// In full-scroll mode the inner TimetableAreaScrollView is
+					// hidden behind _fullScrollOuterScrollView, which is the actual
+					// user-facing scroller. Reset its position too so a Work switch
+					// returns the PageHeader (and the 横型時刻表 button) to the top
+					// of the viewport instead of inheriting the previous Work's
+					// scroll offset on a cached page instance.
+					_fullScrollOuterScrollView?.ScrollToAsync(0, 0, false);
 				});
 			}
 
