@@ -93,6 +93,7 @@ public partial class ViewHost : ContentPage
 		AddTestStateSeams();
 		ApplyTestStateSeams(_presenter.CurrentState);
 		AddTestIsInfoRowTransitionSeam();
+		AddTestConnectionStateSeams();
 #endif
 
 		logger.Trace("Created");
@@ -136,6 +137,66 @@ public partial class ViewHost : ContentPage
 	// Mirrors AutomationIds.DTAC.TestNavigateHomeButton in the test project
 	// (which is the consumer). Inlined here to avoid a project reference.
 	private const string AutomationIdValueForTestNavigateHome = "DTAC.TestNavigateHomeButton";
+
+	// UI_TEST-only seams for the AppBar WebSocket status indicator (#266).
+	// Three invisible 24×24 buttons stacked up the bottom-left strip above
+	// NavigateHome(0)/TimeSeam(28)/TitleSeam(56). They mutate the singleton
+	// AppViewModel's connection flags directly so the test can drive the
+	// indicator through Connected→Disconnected→Reconnecting while on DTAC
+	// (the only place the AppBar is shown) without a real WebSocket server.
+	private const string AutomationIdValueForTestWsConnected = "DTAC.TestWsConnectedButton";
+	private const string AutomationIdValueForTestWsDisconnected = "DTAC.TestWsDisconnectedButton";
+	private const string AutomationIdValueForTestWsReconnecting = "DTAC.TestWsReconnectingButton";
+
+	private void AddTestConnectionStateSeams()
+	{
+		MainGrid.Children.Add(BuildConnectionStateSeam(
+			AutomationIdValueForTestWsConnected, bottomMarginPx: 84, (vm) =>
+			{
+				vm.IsServerReconnecting = false;
+				vm.IsServerConnectionLost = false;
+			}));
+		MainGrid.Children.Add(BuildConnectionStateSeam(
+			AutomationIdValueForTestWsDisconnected, bottomMarginPx: 112, (vm) =>
+			{
+				vm.IsServerReconnecting = false;
+				vm.IsServerConnectionLost = true;
+			}));
+		MainGrid.Children.Add(BuildConnectionStateSeam(
+			AutomationIdValueForTestWsReconnecting, bottomMarginPx: 140, (vm) =>
+			{
+				vm.IsServerReconnecting = true;
+			}));
+	}
+
+	private static Button BuildConnectionStateSeam(string automationId, double bottomMarginPx, Action<AppViewModel> apply)
+	{
+		var seam = new Button
+		{
+			AutomationId = automationId,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+			Margin = new Thickness(0, 0, 0, bottomMarginPx),
+		};
+		seam.Clicked += (_, _) =>
+		{
+			try
+			{
+				apply(InstanceManager.AppViewModel);
+			}
+			catch (Exception ex)
+			{
+				logger.Error(ex, "Connection-state seam {0} failed", automationId);
+			}
+		};
+		Grid.SetRow(seam, 2);
+		return seam;
+	}
 
 	// UI_TEST-only state seams. The AppBar's TitleLabel / TimeLabel are MAUI
 	// Labels; iOS only surfaces a Label in the accessibility tree when its

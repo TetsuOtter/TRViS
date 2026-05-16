@@ -223,6 +223,7 @@ public partial class StartHomePage : ContentPage
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
 		AddTestSimulateWebSocketDisconnectSeam();
+		AddTestSimulateWebSocketConnectedSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1161,6 +1162,35 @@ public partial class StartHomePage : ContentPage
 		RootGrid.Children.Add(seam);
 	}
 
+	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketConnectedButton.
+	private const string AutomationIdValueForTestSimulateWsConnected = "StartHome.TestSimulateWebSocketConnectedButton";
+
+	// UI_TEST-only seam (#266): builds a WebSocket-TYPED loader carrying real
+	// sample data (so the picker/commit/DTAC nav path works without a server),
+	// commits the first WG/Work and navigates to DTAC. On DTAC the AppBar status
+	// indicator is shown; status is Connected (Loader is WS, not lost, not
+	// reconnecting). The DTAC-side seams then drive it to Disconnected /
+	// Reconnecting. Margin y = 336 continues the seam column below the WS
+	// disconnect seam (y=[312,336]).
+	private void AddTestSimulateWebSocketConnectedSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSimulateWsConnected,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 336, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSimulateWebSocketConnectedButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
 	// Drives Home into the #261 "サーバー未接続 + 再接続" state without a real
 	// server: a WebSocketNetworkSyncService constructed but never connected is a
 	// valid (empty) ILoader, so SetLoader flips the page to Home mode showing
@@ -1184,6 +1214,44 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSimulateWebSocketDisconnectButton failed");
+		}
+	}
+
+	async void TestSimulateWebSocketConnectedButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSimulateWebSocketConnectedButton clicked: WS-typed loader (sample data) -> DTAC");
+		try
+		{
+			var sample = await SampleDataLoader.CreateAsync();
+			var service = new WebSocketNetworkSyncService(
+				new Uri("ws://uitest.invalid/"),
+				new System.Net.WebSockets.ClientWebSocket());
+			service.SeedCachesFromLoaderForTesting(sample);
+			sample.Dispose();
+
+			var previous = viewModel.Loader;
+			viewModel.SetLoader(service, "ws://uitest.invalid/");
+			previous?.Dispose();
+
+			var firstGroup = viewModel.WorkGroupList?.FirstOrDefault();
+			if (firstGroup is null)
+			{
+				logger.Warn("TestSimulateWebSocketConnected: no WorkGroup in sample data — ignoring");
+				return;
+			}
+			var firstWork = service.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+			if (firstWork is null)
+			{
+				logger.Warn("TestSimulateWebSocketConnected: first WorkGroup has no Work — aborting");
+				return;
+			}
+
+			HomeGrid.CommitPendingSelection(firstGroup, firstWork);
+			await HomeGridView.NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSimulateWebSocketConnectedButton failed");
 		}
 	}
 

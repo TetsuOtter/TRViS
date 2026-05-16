@@ -1,5 +1,9 @@
 using System.ComponentModel;
 
+using Microsoft.Maui.Controls.Shapes;
+
+using TR.Maui.AnchorPopover;
+
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -17,6 +21,20 @@ public class AppBar : Grid
 	public const double TITLE_VIEW_HEIGHT = 50;
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_LIGHT = "\uE518";
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\uE51C";
+
+	// WebSocket \u63A5\u7D9A\u30B9\u30C6\u30FC\u30BF\u30B9\u8868\u793A (#266) \u306E\u56FA\u5B9A\u8272\u3002\u80CC\u666F\u8272\u306B\u5DE6\u53F3\u3055\u308C\u306A\u3044\u3088\u3046
+	// \u7E01\u53D6\u308A (StatusDot.Stroke) \u306F ShellTitleTextColor \u3092\u4F7F\u3046\u304C\u3001\u5857\u308A (\u7DD1/\u8D64) \u306F
+	// \u72B6\u614B\u304C\u4E00\u76EE\u3067\u5206\u304B\u308B\u3088\u3046\u56FA\u5B9A\u306E\u9BAE\u3084\u304B\u306A\u8272\u306B\u3059\u308B\u3002
+	static readonly Color StatusConnectedColor = Color.FromRgb(0x2E, 0x7D, 0x32);
+	static readonly Color StatusDisconnectedColor = Color.FromRgb(0xC6, 0x28, 0x28);
+	// Tap target for the status indicator. Mirrors
+	// AutomationIds.AppBar.ConnectionStatusButton (test project). Not
+	// UI_TEST-gated: it identifies a real interactive control (#266).
+	const string StatusIndicatorAutomationId = "AppBar.ConnectionStatusButton";
+	const double STATUS_DOT_SIZE = 18;
+	// 切断時はタップで再接続確認ポップオーバーを出すため、見た目の丸 (18px) より
+	// 広いタップ領域を確保する (#266)。
+	const double STATUS_HIT_SIZE = 28;
 	// 時刻表示が160px、残りはアイコンとWorkName分
 	const int TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH = (160 + 90) * 2;
 
@@ -32,6 +50,21 @@ public class AppBar : Grid
 	readonly ImageButton AppIconButton;
 	readonly Button ThemeButton;
 	readonly Label TimeLabel;
+
+	// WebSocket 接続ステータス表示 (#266)。StatusDot は常に「縁取りの輪」を兼ね、
+	// 接続済/未接続では塗りに色が入り、再接続中は塗りを透明にして StatusSpinner
+	// (ぐるぐる) を輪の中に重ねる。WebSocket 以外/未ロード時はコンテナごと非表示。
+	readonly Grid StatusIndicator;
+	readonly Ellipse StatusDot;
+	readonly ActivityIndicator StatusSpinner;
+#if UI_TEST
+	// iOS XCUITest は Ellipse/ActivityIndicator を確実にはツリーへ出さないため、
+	// ViewHost の TestTitleSeam と同じ方式で不可視ミラー Label に状態を映す。
+	// 常に非空 (prefix 付き) なので必ず検索可能。テストは prefix を剥がして判定。
+	const string StatusSeamAutomationId = "AppBar.ConnectionStatus";
+	const string StatusSeamPrefix = "S:";
+	readonly Label StatusSeamLabel;
+#endif
 
 	readonly GradientStop TitleBG_Top = new(Colors.White.WithAlpha(0.8f), 0);
 	readonly GradientStop TitleBG_Middle = new(Colors.White.WithAlpha(0.5f), 0.5f);
@@ -264,6 +297,44 @@ public class AppBar : Grid
 			IsVisible = false,
 		};
 
+		StatusDot = new Ellipse
+		{
+			WidthRequest = STATUS_DOT_SIZE,
+			HeightRequest = STATUS_DOT_SIZE,
+			StrokeThickness = 1.5,
+			Stroke = new SolidColorBrush(_eevm.ShellTitleTextColor),
+			Fill = new SolidColorBrush(StatusConnectedColor),
+			HorizontalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.Center,
+			InputTransparent = true,
+		};
+		StatusSpinner = new ActivityIndicator
+		{
+			WidthRequest = STATUS_DOT_SIZE - 4,
+			HeightRequest = STATUS_DOT_SIZE - 4,
+			Color = _eevm.ShellTitleTextColor,
+			HorizontalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.Center,
+			IsVisible = false,
+			IsRunning = false,
+			InputTransparent = true,
+		};
+		StatusIndicator = new Grid
+		{
+			AutomationId = StatusIndicatorAutomationId,
+			WidthRequest = STATUS_HIT_SIZE,
+			HeightRequest = STATUS_HIT_SIZE,
+			HorizontalOptions = LayoutOptions.Center,
+			VerticalOptions = LayoutOptions.Center,
+			BackgroundColor = Colors.Transparent,
+			IsVisible = false,
+		};
+		StatusIndicator.Children.Add(StatusDot);
+		StatusIndicator.Children.Add(StatusSpinner);
+		var statusTap = new TapGestureRecognizer();
+		statusTap.Tapped += OnStatusIndicatorTapped;
+		StatusIndicator.GestureRecognizers.Add(statusTap);
+
 		RightStack = new HorizontalStackLayout
 		{
 			Margin = new Thickness(8, 4),
@@ -272,16 +343,41 @@ public class AppBar : Grid
 			VerticalOptions = LayoutOptions.End,
 			Spacing = 8,
 		};
+		// ステータスは AppIcon の左 (先頭) に置く。狭幅で TimeLabel が消えても
+		// 隠れず、視線が最初に届く位置になる。
+		RightStack.Children.Add(StatusIndicator);
 		RightStack.Children.Add(AppIconButton);
 		RightStack.Children.Add(ThemeButton);
 		RightStack.Children.Add(TimeLabel);
 		Grid.SetRow((BindableObject)RightStack, 1);
 		Children.Add(RightStack);
 
+#if UI_TEST
+		StatusSeamLabel = new Label
+		{
+			AutomationId = StatusSeamAutomationId,
+			Text = StatusSeamPrefix + ServerConnectionStatus.None,
+			TextColor = Colors.Transparent,
+			BackgroundColor = Colors.Transparent,
+			InputTransparent = true,
+			FontSize = 8,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = 0,
+			Padding = 0,
+		};
+		Grid.SetRow((BindableObject)StatusSeamLabel, 1);
+		Children.Add(StatusSeamLabel);
+#endif
+
 		_appViewModel.CurrentAppThemeChanged += OnAppThemeChanged;
 		SetTitleBGGradientColor(_appViewModel.CurrentAppTheme);
 		UpdateThemeButtonText(_appViewModel.CurrentAppTheme);
 		_eevm.PropertyChanged += Eevm_PropertyChanged;
+		_appViewModel.PropertyChanged += AppViewModel_PropertyChanged;
+		UpdateConnectionStatus();
 
 		logger.Trace("Created");
 	}
@@ -324,7 +420,112 @@ public class AppBar : Grid
 				LeftButton.TextColor = vm.ShellTitleTextColor;
 				ThemeButton.TextColor = vm.ShellTitleTextColor;
 				TimeLabel.TextColor = vm.ShellTitleTextColor;
+				// ステータス表示の縁取り/ぐるぐるはタイトル文字色に追従させる
+				// (ヘッダ背景に対し常に視認できる色になる #266)。
+				StatusDot.Stroke = new SolidColorBrush(vm.ShellTitleTextColor);
+				StatusSpinner.Color = vm.ShellTitleTextColor;
 				break;
+		}
+	}
+
+	private void AppViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(AppViewModel.ServerConnectionStatus))
+			UpdateConnectionStatus();
+	}
+
+	void UpdateConnectionStatus()
+	{
+		ServerConnectionStatus status = _appViewModel.ServerConnectionStatus;
+		logger.Trace("ServerConnectionStatus -> {0}", status);
+#if UI_TEST
+		StatusSeamLabel.Text = StatusSeamPrefix + status;
+#endif
+		switch (status)
+		{
+			case ServerConnectionStatus.None:
+				StatusIndicator.IsVisible = false;
+				StatusSpinner.IsRunning = false;
+				StatusSpinner.IsVisible = false;
+				break;
+
+			case ServerConnectionStatus.Connecting:
+				StatusIndicator.IsVisible = true;
+				// 塗りを透明にして輪 (縁取り) だけ残し、その中でぐるぐる回す。
+				StatusDot.Fill = new SolidColorBrush(Colors.Transparent);
+				StatusSpinner.IsVisible = true;
+				StatusSpinner.IsRunning = true;
+				break;
+
+			case ServerConnectionStatus.Connected:
+				StatusIndicator.IsVisible = true;
+				StatusSpinner.IsRunning = false;
+				StatusSpinner.IsVisible = false;
+				StatusDot.Fill = new SolidColorBrush(StatusConnectedColor);
+				break;
+
+			case ServerConnectionStatus.Disconnected:
+				StatusIndicator.IsVisible = true;
+				StatusSpinner.IsRunning = false;
+				StatusSpinner.IsVisible = false;
+				StatusDot.Fill = new SolidColorBrush(StatusDisconnectedColor);
+				break;
+		}
+	}
+
+	async void OnStatusIndicatorTapped(object? sender, TappedEventArgs e)
+	{
+		try
+		{
+			// 切断 (赤丸) のときだけ再接続確認ポップオーバーを出す (#266)。
+			// 接続済 (緑) / 再接続中 (ぐるぐる) / 非表示では何もしない。
+			if (_appViewModel.ServerConnectionStatus != ServerConnectionStatus.Disconnected)
+				return;
+
+			logger.Info("Status indicator tapped while Disconnected -> show reconnect confirm popover");
+
+			var popup = new ReconnectConfirmPopup(StartReconnect);
+			var popover = AnchorPopover.Create();
+			popup.SetPopover(popover);
+
+			var options = new PopoverOptions
+			{
+				PreferredWidth = 240,
+				PreferredHeight = 140,
+				DismissOnTapOutside = true,
+			};
+
+			await popover.ShowAsync(popup, StatusIndicator, options);
+			logger.Trace("ReconnectConfirmPopup shown");
+		}
+		catch (Exception ex)
+		{
+			logger.Fatal(ex, "Unknown Exception");
+			await Util.ExitWithAlertAsync(ex);
+		}
+	}
+
+	async void StartReconnect()
+	{
+		logger.Info("Reconnect confirmed from AppBar status popover");
+		// 手動再接続中もぐるぐる表示にする。ReconnectWebSocketAsync は内部で
+		// HandleWebSocketAppLinkAsync を呼び、成功時に両フラグを false に戻して
+		// 独自に成功/失敗アラートを出す。失敗時は IsServerConnectionLost が true
+		// のままなので、ここでは finally で再接続中フラグだけ確実に下ろす
+		// (失敗なら赤丸へ、成功なら HandleWebSocketAppLinkAsync 側で緑へ)。
+		_appViewModel.IsServerReconnecting = true;
+		try
+		{
+			await _appViewModel.ReconnectWebSocketAsync(System.Threading.CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "AppBar reconnect failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "AppBar.StartReconnect");
+		}
+		finally
+		{
+			_appViewModel.IsServerReconnecting = false;
 		}
 	}
 

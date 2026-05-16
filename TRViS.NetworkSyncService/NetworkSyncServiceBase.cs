@@ -168,6 +168,10 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? ConnectionClosed;
 	public event EventHandler? ConnectionFailed;
+	/// <summary>接続が切れて自動再接続を開始した時に発火する (#266)。</summary>
+	public event EventHandler? Reconnecting;
+	/// <summary>自動再接続に成功して受信を再開した時に発火する (#266)。</summary>
+	public event EventHandler? Reconnected;
 	public event EventHandler<bool>? CanStartChanged;
 
 	/// <summary>
@@ -404,6 +408,16 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	protected void RaiseConnectionFailed()
 	{
 		ConnectionFailed?.Invoke(this, EventArgs.Empty);
+	}
+
+	protected void RaiseReconnecting()
+	{
+		Reconnecting?.Invoke(this, EventArgs.Empty);
+	}
+
+	protected void RaiseReconnected()
+	{
+		Reconnected?.Invoke(this, EventArgs.Empty);
 	}
 
 	/// <summary>

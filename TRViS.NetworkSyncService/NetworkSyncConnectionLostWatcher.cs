@@ -9,6 +9,12 @@ namespace TRViS.NetworkSyncService;
 /// 「現在監視しているサービス」が接続を失ったときだけコールバックを呼ぶ。
 ///
 /// <para>
+/// 自動再接続の開始 / 成功 (<see cref="NetworkSyncServiceBase.Reconnecting"/> /
+/// <see cref="NetworkSyncServiceBase.Reconnected"/>, #266) も同じ
+/// sender ガード付きで任意コールバックへ中継する。
+/// </para>
+///
+/// <para>
 /// 別サービスを <see cref="Watch"/> し直すと旧サービスのハンドラを必ず外すため、
 /// 再接続で差し替えられた旧インスタンスの遅延イベントがコールバックを
 /// 再発火させることはない (#261)。AppViewModel 側はこのコールバックで
@@ -19,12 +25,28 @@ namespace TRViS.NetworkSyncService;
 public sealed class NetworkSyncConnectionLostWatcher
 {
 	private readonly Action _onConnectionLost;
+	private readonly Action? _onReconnecting;
+	private readonly Action? _onReconnected;
 	private NetworkSyncServiceBase? _watched;
 
-	public NetworkSyncConnectionLostWatcher(Action onConnectionLost)
+	/// <param name="onConnectionLost">
+	/// 接続断 (ConnectionClosed / ConnectionFailed) で呼ばれる。必須。
+	/// </param>
+	/// <param name="onReconnecting">
+	/// 自動再接続の開始 (Reconnecting, #266) で呼ばれる。任意。
+	/// </param>
+	/// <param name="onReconnected">
+	/// 自動再接続の成功 (Reconnected, #266) で呼ばれる。任意。
+	/// </param>
+	public NetworkSyncConnectionLostWatcher(
+		Action onConnectionLost,
+		Action? onReconnecting = null,
+		Action? onReconnected = null)
 	{
 		ArgumentNullException.ThrowIfNull(onConnectionLost);
 		_onConnectionLost = onConnectionLost;
+		_onReconnecting = onReconnecting;
+		_onReconnected = onReconnected;
 	}
 
 	/// <summary>現在監視中のサービス。未監視なら null。</summary>
@@ -44,6 +66,8 @@ public sealed class NetworkSyncConnectionLostWatcher
 		_watched = service;
 		service.ConnectionClosed += OnConnectionLost;
 		service.ConnectionFailed += OnConnectionLost;
+		service.Reconnecting += OnReconnecting;
+		service.Reconnected += OnReconnected;
 	}
 
 	/// <summary>監視を解除する。以後どのサービスのイベントでもコールバックは呼ばれない。</summary>
@@ -55,6 +79,8 @@ public sealed class NetworkSyncConnectionLostWatcher
 			return;
 		_watched.ConnectionClosed -= OnConnectionLost;
 		_watched.ConnectionFailed -= OnConnectionLost;
+		_watched.Reconnecting -= OnReconnecting;
+		_watched.Reconnected -= OnReconnected;
 		_watched = null;
 	}
 
@@ -64,5 +90,19 @@ public sealed class NetworkSyncConnectionLostWatcher
 		if (!ReferenceEquals(sender, _watched))
 			return;
 		_onConnectionLost();
+	}
+
+	private void OnReconnecting(object? sender, EventArgs e)
+	{
+		if (!ReferenceEquals(sender, _watched))
+			return;
+		_onReconnecting?.Invoke();
+	}
+
+	private void OnReconnected(object? sender, EventArgs e)
+	{
+		if (!ReferenceEquals(sender, _watched))
+			return;
+		_onReconnected?.Invoke();
 	}
 }
