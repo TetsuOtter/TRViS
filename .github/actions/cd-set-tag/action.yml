@@ -1,0 +1,72 @@
+name: CD - Set Tag
+description: Create and push the release/PR tag for the current build.
+
+inputs:
+  display_version:
+    required: true
+  build_number:
+    required: true
+
+outputs:
+  tag-name:
+    value: ${{ steps.tag-name.outputs.tag-name }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v6
+    - name: fetch all history to assign tag
+      if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+      shell: bash
+      run: git fetch --unshallow --no-tags --no-recurse-submodules origin +${{ github.sha }}:${{ github.ref }}
+
+    - name: Setup github-actions[bot] account
+      shell: bash
+      run: |
+        git config user.name 'github-actions[bot]'
+        git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+    - name: set PR number
+      id: pr-num
+      shell: bash
+      run: |
+        if [ '${{ github.event_name }}' == 'pull_request' ]; then
+          echo "str=#${{ github.event.number }}" >> $GITHUB_OUTPUT
+        else
+          echo "str=" >> $GITHUB_OUTPUT
+        fi
+
+    - name: generate tag name
+      id: tag-name
+      shell: bash
+      run: echo "tag-name=v${{ inputs.display_version }}-${{ inputs.build_number }}" >> $GITHUB_OUTPUT
+
+    - name: tagging new tag
+      shell: bash
+      run: git tag -a ${{ steps.tag-name.outputs.tag-name }} -m "Auto Generated tag ${{ steps.pr-num.outputs.str }} ( https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} )"
+
+    - name: push new tag
+      shell: bash
+      env:
+        TAG_NAME: ${{ steps.tag-name.outputs.tag-name }}
+      run: |
+        local_sha=$(git rev-parse "${TAG_NAME}^{}")
+        remote_sha=$(git ls-remote origin "refs/tags/${TAG_NAME}^{}" | awk '{print $1}')
+        if [ -n "$remote_sha" ]; then
+          if [ "$remote_sha" = "$local_sha" ]; then
+            echo "Tag ${TAG_NAME} already exists on remote at ${remote_sha}; skipping push (idempotent re-run)."
+            exit 0
+          fi
+          echo "ERROR: Tag ${TAG_NAME} exists on remote at ${remote_sha} but this run points to ${local_sha}"
+          exit 1
+        fi
+        if ! git push origin "${TAG_NAME}"; then
+          # Another concurrent set-tag job may have pushed first.
+          remote_sha=$(git ls-remote origin "refs/tags/${TAG_NAME}^{}" | awk '{print $1}')
+          if [ "$remote_sha" = "$local_sha" ]; then
+            echo "Tag ${TAG_NAME} pushed by concurrent job at same SHA; treating as success."
+            exit 0
+          fi
+          echo "ERROR: push failed and remote tag SHA does not match local SHA"
+          exit 1
+        fi
