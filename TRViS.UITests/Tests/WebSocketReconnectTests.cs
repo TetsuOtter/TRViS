@@ -88,11 +88,16 @@ public class WebSocketReconnectTests : BaseUITest
 
 		_startHomePage.ReconnectButton.Click();
 
-		// State preserved: still disconnected, button still there, app alive.
+		// State preserved after the tap: still disconnected, button still
+		// available, and the Home action row is intact — i.e. we did NOT
+		// navigate to DTAC or crash. NOTE: StartHome.Title is the Start-mode
+		// header element and is intentionally absent from the Home-mode
+		// accessibility tree, so IsDisplayed()/Title cannot be the liveness
+		// probe here — assert on Home-mode elements instead.
 		Assert.That(_startHomePage.IsReconnectButtonVisible(), Is.True,
 			"再接続 must remain available when reconnection cannot proceed.");
 		Assert.That(_startHomePage.LoaderInfoTitle.Text, Does.Contain("サーバー未接続"));
-		Assert.That(_startHomePage.IsDisplayed(), Is.True,
-			"the page must still be alive after the 再接続 tap.");
+		Assert.That(_startHomePage.DisconnectButton.Displayed, Is.True,
+			"the Home page must still be intact (no crash / no navigation) after the 再接続 tap.");
 	}
 }
