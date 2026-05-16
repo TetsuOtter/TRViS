@@ -105,6 +105,11 @@ public partial class HomeGridView : Grid
 				UpdateDiagramInfoLabels();
 				break;
 
+			case nameof(AppViewModel.IsServerConnectionLost):
+				// 切断 / 再接続成功で状態が変わった -> ステータス行と再接続ボタンを更新。
+				UpdateLoaderInfoLabels();
+				break;
+
 			case nameof(AppViewModel.WorkGroupList):
 				// WorkGroupList changes can come from a Refresh() (websocket) which
 				// may also reset committed AppViewModel selections. Rebuild the items;
@@ -155,8 +160,15 @@ public partial class HomeGridView : Grid
 			LoaderInfoTitleLabel.Text = "読み込み済みデータ";
 			LoaderInfoDetailLabel.Text = "";
 			LoaderInfoGlyphLabel.Text = MaterialIcons.Description;
+			ReconnectButton.IsVisible = false;
 			return;
 		}
+
+		// #261: a WebSocket loader whose connection dropped must not keep showing
+		// "サーバー接続中". Cached WorkGroup/Work/Train data is still readable from
+		// the (LocationService-disposed) service, so the picker stays usable and
+		// 開く still works — only the status line + 再接続 button change.
+		bool wsConnectionLost = loader is WebSocketNetworkSyncService && viewModel.IsServerConnectionLost;
 
 		// Title = loader type, glyph = matching Material Icon, detail = source label
 		// (file name, URL) set atomically with the loader via AppViewModel.SetLoader.
@@ -165,12 +177,14 @@ public partial class HomeGridView : Grid
 			SampleDataLoader => ("デモデータ", MaterialIcons.Science),
 			LoaderJson => ("JSON ファイル", MaterialIcons.Description),
 			LoaderSQL => ("SQLite ファイル", MaterialIcons.Storage),
+			WebSocketNetworkSyncService when wsConnectionLost => ("サーバー未接続", MaterialIcons.WifiOff),
 			WebSocketNetworkSyncService => ("サーバー接続中", MaterialIcons.Wifi),
 			_ => (loader.GetType().Name, MaterialIcons.Description),
 		};
 		LoaderInfoTitleLabel.Text = title;
 		LoaderInfoGlyphLabel.Text = glyph;
 		LoaderInfoDetailLabel.Text = viewModel.LoaderSourceLabel ?? string.Empty;
+		ReconnectButton.IsVisible = wsConnectionLost;
 	}
 
 	/// <summary>
@@ -573,6 +587,35 @@ public partial class HomeGridView : Grid
 		viewModel.Loader = null;
 		loader.Dispose();
 		// Loader change triggers OnViewModelPropertyChanged -> animate back to Start mode.
+	}
+
+	async void OnReconnectClicked(object sender, EventArgs e)
+	{
+		logger.Info("Reconnect clicked");
+		if (viewModel.Loader is not WebSocketNetworkSyncService)
+			return;
+
+		ReconnectButton.IsEnabled = false;
+		ReconnectButton.Text = "再接続中...";
+		try
+		{
+			// HandleWebSocketAppLinkAsync (via ReconnectWebSocketAsync) owns user
+			// feedback: on success it resets IsServerConnectionLost (-> this button
+			// hides via the PropertyChanged path) and shows its own "Success!"
+			// alert; on failure it shows its own connection-error alert and the
+			// banner stays so the user can retry.
+			await viewModel.ReconnectWebSocketAsync(CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "OnReconnectClicked failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "HomeGridView.OnReconnectClicked");
+		}
+		finally
+		{
+			ReconnectButton.Text = "再接続";
+			ReconnectButton.IsEnabled = true;
+		}
 	}
 
 	// ----- Navigation -----

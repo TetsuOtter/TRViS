@@ -40,6 +40,16 @@ public class StartHomePageObject : PageObject
 	public AppiumElement OpenButton => FindByAutomationId(AutomationIds.StartHome.OpenButton);
 	public AppiumElement DisconnectButton => FindByAutomationId(AutomationIds.StartHome.DisconnectButton);
 
+	// Home mode — loader/connection status (#261).
+	public AppiumElement LoaderInfoTitle => FindByAutomationId(AutomationIds.StartHome.LoaderInfoTitle);
+	// Visible only while a WebSocket loader's connection is lost. Use
+	// WaitForElement: it flips visible asynchronously after IsServerConnectionLost.
+	public AppiumElement ReconnectButton => WaitForElement(AutomationIds.StartHome.ReconnectButton);
+
+	/// <summary>True once the #261 reconnect button is on screen (disconnected state).</summary>
+	public bool IsReconnectButtonVisible(double timeoutSeconds = 8)
+		=> PollDisplayed(AutomationIds.StartHome.ReconnectButton, timeoutSeconds);
+
 	/// <summary>
 	/// Returns true when the WorkGroupChip is currently visible (i.e. a tentative
 	/// WorkGroup has been selected). Returns false on any lookup error so callers
@@ -71,6 +81,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestSetupBrowseFallbackButton => FindByAutomationId(AutomationIds.StartHome.TestSetupBrowseFallbackButton);
 	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
 	public AppiumElement TestClearLoaderButton => FindByAutomationId(AutomationIds.StartHome.TestClearLoaderButton);
+	public AppiumElement TestSimulateWebSocketDisconnectButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton);
 
 	public bool IsDisplayed()
 	{
@@ -314,6 +325,14 @@ public class StartHomePageObject : PageObject
 	/// from "no loader" regardless of where the previous test left things.
 	/// </summary>
 	public void ClearLoaderForTesting() => TestClearLoaderButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that sets a non-connected
+	/// WebSocketNetworkSyncService loader and flips IsServerConnectionLost=true,
+	/// driving Home into the #261 "サーバー未接続 + 再接続" state without a real
+	/// WebSocket server.
+	/// </summary>
+	public void SimulateWebSocketDisconnectForTesting() => TestSimulateWebSocketDisconnectButton.Click();
 
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
