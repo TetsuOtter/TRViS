@@ -33,7 +33,7 @@
 		<Border.StrokeShape>
 			<RoundRectangle CornerRadius="8"/>
 		</Border.StrokeShape>
-		<Grid ColumnDefinitions="Auto,*"
+		<Grid ColumnDefinitions="Auto,*,Auto"
 					ColumnSpacing="10">
 			<Label
 				x:Name="LoaderInfoGlyphLabel"
@@ -81,6 +81,22 @@
 					IsVisible="False"
 					Text=""/>
 			</VerticalStackLayout>
+			<!-- 再接続ボタン: WebSocket 接続が切断されたときだけ表示する (#261)。
+			     既存の 閉じる/開く 行 (HomeButtonsRow) は親 StartHomePage が
+			     reparent するため触らず、自己完結するこのカード内に置く。 -->
+			<Button
+				x:Name="ReconnectButton"
+				AutomationId="StartHome.ReconnectButton"
+				Grid.Column="2"
+				Text="再接続"
+				FontSize="13"
+				FontAttributes="Bold"
+				HeightRequest="36"
+				Padding="14,0"
+				CornerRadius="8"
+				VerticalOptions="Center"
+				IsVisible="False"
+				Clicked="OnReconnectClicked"/>
 		</Grid>
 	</Border>
 

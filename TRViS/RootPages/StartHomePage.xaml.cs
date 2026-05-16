@@ -222,6 +222,7 @@ public partial class StartHomePage : ContentPage
 
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
+		AddTestSimulateWebSocketDisconnectSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1132,6 +1133,59 @@ public partial class StartHomePage : ContentPage
 	// Mirrors AutomationIds.StartHome.TestOpenSelectFileDialogButton in the
 	// test project. Inlined here to avoid a project reference.
 	private const string AutomationIdValueForTestOpenSelectFileDialog = "StartHome.TestOpenSelectFileDialogButton";
+
+	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton.
+	private const string AutomationIdValueForTestSimulateWsDisconnect = "StartHome.TestSimulateWebSocketDisconnectButton";
+
+	// UI_TEST-only seam: same standalone-code-behind pattern as
+	// AddTestOpenSelectFileDialogSeam (kept out of TestSeamHost's 12-row Grid
+	// for the documented iPhone layout-row-growth reason). Margin y = 312 sits
+	// directly below the SelectFile seam (which occupies y=[288,312]), keeping
+	// the seam column contiguous in the top-left corner.
+	private void AddTestSimulateWebSocketDisconnectSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSimulateWsDisconnect,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSimulateWebSocketDisconnectButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	// Drives Home into the #261 "サーバー未接続 + 再接続" state without a real
+	// server: a WebSocketNetworkSyncService constructed but never connected is a
+	// valid (empty) ILoader, so SetLoader flips the page to Home mode showing
+	// "サーバー接続中", then IsServerConnectionLost=true swaps it to the
+	// disconnected status + reveals the 再接続 button. No _lastWebSocketAppLinkInfo
+	// is stored, so a subsequent 再接続 tap is a deterministic no-op
+	// (ReconnectWebSocketAsync returns false) — keeps the test network-free.
+	void TestSimulateWebSocketDisconnectButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSimulateWebSocketDisconnectButton clicked: simulating WS connection-lost state");
+		try
+		{
+			var service = new WebSocketNetworkSyncService(
+				new Uri("ws://uitest.invalid/"),
+				new System.Net.WebSockets.ClientWebSocket());
+			var previous = viewModel.Loader;
+			viewModel.SetLoader(service, "ws://uitest.invalid/");
+			previous?.Dispose();
+			viewModel.IsServerConnectionLost = true;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSimulateWebSocketDisconnectButton failed");
+		}
+	}
 
 	static void AddSeamButton(Grid host, int row, string automationId, EventHandler clicked)
 	{
