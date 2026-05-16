@@ -37,6 +37,13 @@ public partial class AppViewModel : ObservableObject
 		Loader = loader;
 	}
 
+	/// <summary>
+	/// サーバーから受信した最新のダイヤ情報 (ダイヤ名・説明など)。未受信／非接続時は null。
+	/// 接続情報画面で読み取り専用表示するために購読される。
+	/// </summary>
+	[ObservableProperty]
+	public partial DiagramInfo? CurrentDiagramInfo { get; set; }
+
 	public IReadOnlyList<WorkGroup>? WorkGroupList => SelectionManager.WorkGroupList;
 	public IReadOnlyList<Work>? WorkList => SelectionManager.WorkList;
 	public IReadOnlyList<TrainData>? OrderedTrainDataList => SelectionManager.OrderedTrainDataList;
@@ -138,15 +145,32 @@ public partial class AppViewModel : ObservableObject
 		locationService.TrainSelectionRequested += OnTrainSelectionRequested;
 		locationService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
 		locationService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
-		// NotificationReceived / OperationCommandReceived / ServerInfo / DiagramInfo は
+		locationService.DiagramInfoUpdated += OnDiagramInfoUpdated;
+		// NotificationReceived / OperationCommandReceived / ServerInfo は
 		// LocationService 側で受信される。OperationCommand の動作 (位置情報 ON/OFF) は
-		// LocationService が直接適用する。Notification / ServerInfo / DiagramInfo の UI 表示は
+		// LocationService が直接適用する。Notification / ServerInfo の UI 表示は
 		// 個別画面側で必要に応じて購読する。
+	}
+
+	/// <summary>
+	/// サーバーからダイヤ情報を受信した際に最新値を保持する。
+	/// WebSocket 受信スレッドから呼ばれるため、UI 反映側 (View) で
+	/// メインスレッドへのマーシャリングを行う。
+	/// </summary>
+	void OnDiagramInfoUpdated(object? sender, DiagramInfo info)
+	{
+		logger.Info("DiagramInfoUpdated: Id={0}, Name={1}", info.Id, info.Name);
+		CurrentDiagramInfo = info;
 	}
 
 	partial void OnLoaderChanged(ILoader? value)
 	{
 		SelectionManager.Loader = value;
+		// ローダーが切り替わったら以前のダイヤ情報は無効。サーバー接続なら
+		// 接続時に再要求され DiagramInfoUpdated で改めて設定される。SetLoader は
+		// この後に NetworkSyncService を接続するため、ここでのクリアが新しい応答を
+		// 消すことはない。
+		CurrentDiagramInfo = null;
 		if (value is null)
 			LoaderSourceLabel = null;
 	}
