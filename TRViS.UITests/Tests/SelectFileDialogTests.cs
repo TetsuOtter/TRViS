@@ -300,6 +300,53 @@ public class SelectFileDialogTests : BaseUITest
 	}
 
 	/// <summary>
+	/// Issue #49: tapping a syntactically-broken JSON must surface the new
+	/// friendly LoadErrorMessage alert instead of a raw JsonException, and the
+	/// SelectFile dialog must stay open (load failed → modal not popped). This
+	/// drives the JsonException → Util.DisplayLoadErrorAsync path end-to-end in
+	/// the real MAUI runtime; the exact friendly wording is asserted
+	/// exhaustively by TRViS.IO.Tests/LoadErrorMessageTests. Excluded on
+	/// Windows for the same per-card-AutomationId UIA limitation as the
+	/// SQLite-card tests.
+	/// </summary>
+	[Test]
+	[Platform(Exclude = "Win", Reason = "Windows MAUI does not expose the dynamically-created Border (file card) via the UIA tree — same limitation documented on SeededSqlite_TappingCard_LoadsAndDismissesDialog.")]
+	public void TapMalformedJsonCard_ShowsFriendlyError_DialogStaysOpen()
+	{
+		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+
+		_startHomePage.SeedMalformedJsonForTesting();
+		Thread.Sleep(500);
+
+		var dialog = _startHomePage.OpenSelectFileDialog();
+		Assert.That(dialog.IsDisplayed(), Is.True, "Dialog should be displayed.");
+
+		var fileItem = dialog.FileItem(StartHomePageObject.MalformedJsonFileName);
+		Assert.That(fileItem.Displayed, Is.True,
+			$"Seeded malformed JSON '{StartHomePageObject.MalformedJsonFileName}' should appear as a card.");
+
+		fileItem.Click();
+		// Load path is async (JsonSerializer.DeserializeAsync) + the alert
+		// raise. Generous settle, same budget as the SQLite-fail card test.
+		Thread.Sleep(1500);
+
+		// File list still visible ⇒ TryLoadFileAsync caught the JsonException
+		// and Util.DisplayLoadErrorAsync put the friendly "読み込めませんでした"
+		// alert up; the modal was NOT popped. If the file list were gone the
+		// load would have wrongly succeeded.
+		Assert.That(dialog.IsFileListVisible(), Is.True,
+			"After tapping a malformed-JSON card the SelectFile dialog should stay open " +
+			"(load failed → friendly error alert shown, modal not dismissed).");
+
+		// Shared-session hygiene: clear the alert + close the modal so the
+		// next test's [SetUp] recovery isn't blocked by a stacked alert.
+		dialog.DismissErrorAlert();
+		Thread.Sleep(300);
+		dialog.Close();
+		Thread.Sleep(300);
+	}
+
+	/// <summary>
 	/// Browse → OS FilePicker fallback. The seam writes a JSON outside
 	/// TimetableFileDirectory and installs an override that returns its path,
 	/// so the in-app load path runs without driving the OS picker dialog.
