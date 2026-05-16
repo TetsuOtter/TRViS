@@ -153,28 +153,37 @@ public class StationNameDisplayTests : Infrastructure.BaseUITest
 	}
 
 	/// <summary>
-	/// Reads an element's rendered text across drivers. iOS/mac2 expose a
-	/// Label's text through Selenium's <c>Text</c> (AXValue), but WinUI surfaces
-	/// a MAUI Label's text via the UIA <c>Name</c> property and leaves the Value
-	/// pattern (Selenium <c>Text</c>) empty — the same reason the NextTrainButton
-	/// lookup falls back to an <c>@Name</c> XPath on Windows.
+	/// Reads an element's rendered text. iOS/mac2 expose a Label's text through
+	/// Selenium's <c>Text</c> (AXValue), so that alone is used there. WinUI
+	/// surfaces a MAUI Label's text via the UIA <c>Name</c> property and leaves
+	/// the Value pattern (Selenium <c>Text</c>) empty, so the Name/Value
+	/// attributes are tried only on Windows — the same reason the
+	/// NextTrainButton lookup falls back to an <c>@Name</c> XPath there.
+	/// (XCUITest rejects the capitalised "Name"/"Value" attributes with a 500,
+	/// so probing them on iOS would only spam the shared session.)
 	/// </summary>
-	private static string? ExtractText(AppiumElement el)
+	private string? ExtractText(AppiumElement el)
 	{
-		foreach (var read in new Func<string?>[]
+		try
 		{
-			() => el.Text,
-			() => el.GetAttribute("Name"),
-			() => el.GetAttribute("Value"),
-		})
+			string t = el.Text;
+			if (!string.IsNullOrEmpty(t))
+				return t;
+		}
+		catch { }
+
+		if (Driver is WindowsDriver)
 		{
-			try
+			foreach (string attr in new[] { "Name", "Value" })
 			{
-				string? v = read();
-				if (!string.IsNullOrEmpty(v))
-					return v;
+				try
+				{
+					string? v = el.GetAttribute(attr);
+					if (!string.IsNullOrEmpty(v))
+						return v;
+				}
+				catch { }
 			}
-			catch { }
 		}
 		return null;
 	}
