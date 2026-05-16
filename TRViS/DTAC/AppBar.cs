@@ -321,7 +321,6 @@ public class AppBar : Grid
 		};
 		StatusIndicator = new Grid
 		{
-			AutomationId = StatusIndicatorAutomationId,
 			WidthRequest = STATUS_HIT_SIZE,
 			HeightRequest = STATUS_HIT_SIZE,
 			HorizontalOptions = LayoutOptions.Center,
@@ -331,9 +330,22 @@ public class AppBar : Grid
 		};
 		StatusIndicator.Children.Add(StatusDot);
 		StatusIndicator.Children.Add(StatusSpinner);
-		var statusTap = new TapGestureRecognizer();
-		statusTap.Tapped += OnStatusIndicatorTapped;
-		StatusIndicator.GestureRecognizers.Add(statusTap);
+		// 透明 Button をオーバーレイしてタップを受ける。Grid + TapGestureRecognizer
+		// は Windows (UIA) のアクセシビリティツリーに出ず Appium から掴めない
+		// (#266: CI ui-test-windows で NoSuchElement)。リポジトリの各シームと
+		// 同様、可搬性の高い透明 Button をタップ対象にする。切断時のみ動作する
+		// ゲートはハンドラ側 (OnStatusIndicatorTapped) で行う。
+		var statusTapButton = new Button
+		{
+			AutomationId = StatusIndicatorAutomationId,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			BorderWidth = 0,
+			Padding = 0,
+			Margin = 0,
+		};
+		statusTapButton.Clicked += OnStatusIndicatorTapped;
+		StatusIndicator.Children.Add(statusTapButton);
 
 		RightStack = new HorizontalStackLayout
 		{
@@ -473,7 +485,7 @@ public class AppBar : Grid
 		}
 	}
 
-	async void OnStatusIndicatorTapped(object? sender, TappedEventArgs e)
+	async void OnStatusIndicatorTapped(object? sender, EventArgs e)
 	{
 		try
 		{
