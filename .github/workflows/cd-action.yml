@@ -21,30 +21,6 @@ concurrency: cd-action-${{ github.ref }}
 
 env:
   CSPROJ_PATH: ./TRViS/TRViS.csproj
-  THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
-  THIRD_PARTY_LICENSE_LIST_NAME: license_list
-  TARGET_FRAMEWORK: net10.0-ios
-  TARGET_RUNTIME: ios-arm64
-  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
-  TARGET_RUNTIME_MAC: osx
-  TARGET_FRAMEWORK_ANDROID: net10.0-android
-  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
-  TARGET_RUNTIME_WINX64: win-x64
-  TARGET_RUNTIME_WINX86: win-x86
-  OUTPUT_DIR: ./out
-  IPA_PATH: ./out/TRViS.ipa
-  PKG_PATH: ./out/TRViS.pkg
-  AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
-  APK_PATH: ./out/dev.t0r.trvis-Signed.apk
-  ASSET_NAME_WIN_X64: TRViS-win-x64
-  ASSET_NAME_WIN_X86: TRViS-win-x86
-  ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
-  ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
-  SDK_VERSION: "10.0.x"
-  IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
-  IOS_DSYM_FILENAME: TRViS.app.dSYM
-  XCODE_VERSION: "26.4"
-  FIREBASE_PROJECT_ID: trvis-app
 
 jobs:
   generate-bundle-version:
@@ -154,6 +130,17 @@ jobs:
     with:
       display_version: ${{ needs.get-version.outputs.display_version }}
       build_number: ${{ needs.get-version.outputs.build_number }}
+      CSPROJ_PATH: ./TRViS/TRViS.csproj
+      IOS_DSYM_FILENAME: TRViS.app.dSYM
+      IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
+      IPA_PATH: ./out/TRViS.ipa
+      OUTPUT_DIR: ./out
+      SDK_VERSION: "10.0.x"
+      TARGET_FRAMEWORK: net10.0-ios
+      TARGET_RUNTIME: ios-arm64
+      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+      THIRD_PARTY_LICENSE_LIST_NAME: license_list
+      XCODE_VERSION: "26.4"
     secrets: inherit
 
   build-android:
@@ -170,6 +157,14 @@ jobs:
     with:
       display_version: ${{ needs.get-version.outputs.display_version }}
       build_number: ${{ needs.get-version.outputs.build_number }}
+      AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
+      APK_PATH: ./out/dev.t0r.trvis-Signed.apk
+      CSPROJ_PATH: ./TRViS/TRViS.csproj
+      OUTPUT_DIR: ./out
+      SDK_VERSION: "10.0.x"
+      TARGET_FRAMEWORK_ANDROID: net10.0-android
+      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+      THIRD_PARTY_LICENSE_LIST_NAME: license_list
     secrets: inherit
 
   build-mac:
@@ -186,6 +181,15 @@ jobs:
     with:
       display_version: ${{ needs.get-version.outputs.display_version }}
       build_number: ${{ needs.get-version.outputs.build_number }}
+      CSPROJ_PATH: ./TRViS/TRViS.csproj
+      OUTPUT_DIR: ./out
+      PKG_PATH: ./out/TRViS.pkg
+      SDK_VERSION: "10.0.x"
+      TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
+      TARGET_RUNTIME_MAC: osx
+      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+      THIRD_PARTY_LICENSE_LIST_NAME: license_list
+      XCODE_VERSION: "26.4"
     secrets: inherit
 
   build-windows:
@@ -202,6 +206,18 @@ jobs:
     with:
       display_version: ${{ needs.get-version.outputs.display_version }}
       build_number: ${{ needs.get-version.outputs.build_number }}
+      ASSET_NAME_WIN_X64: TRViS-win-x64
+      ASSET_NAME_WIN_X86: TRViS-win-x86
+      ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
+      ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
+      CSPROJ_PATH: ./TRViS/TRViS.csproj
+      OUTPUT_DIR: ./out
+      SDK_VERSION: "10.0.x"
+      TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
+      TARGET_RUNTIME_WINX64: win-x64
+      TARGET_RUNTIME_WINX86: win-x86
+      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+      THIRD_PARTY_LICENSE_LIST_NAME: license_list
     secrets: inherit
 
   publish-ios:
@@ -219,6 +235,9 @@ jobs:
       platform: ios
       artifact_name: ipa
       timeout_minutes: 10
+      IPA_PATH: ./out/TRViS.ipa
+      OUTPUT_DIR: ./out
+      PKG_PATH: ./out/TRViS.pkg
     secrets: inherit
 
   publish-mac:
@@ -236,6 +255,9 @@ jobs:
       platform: mac
       artifact_name: pkg
       timeout_minutes: 30
+      IPA_PATH: ./out/TRViS.ipa
+      OUTPUT_DIR: ./out
+      PKG_PATH: ./out/TRViS.pkg
     secrets: inherit
 
   set-tag:
@@ -285,5 +307,10 @@ jobs:
     uses: ./.github/workflows/_cd-create-release.yml
     with:
       tag_name: ${{ needs.set-tag.outputs.tag-name }}
+      ASSET_NAME_WIN_X64: TRViS-win-x64
+      ASSET_NAME_WIN_X86: TRViS-win-x86
+      ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
+      ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
+      OUTPUT_DIR: ./out
     secrets: inherit
 

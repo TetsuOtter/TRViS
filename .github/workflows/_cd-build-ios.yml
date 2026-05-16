@@ -9,33 +9,39 @@ on:
       build_number:
         required: true
         type: string
-
-env:
-  CSPROJ_PATH: ./TRViS/TRViS.csproj
-  THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
-  THIRD_PARTY_LICENSE_LIST_NAME: license_list
-  TARGET_FRAMEWORK: net10.0-ios
-  TARGET_RUNTIME: ios-arm64
-  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
-  TARGET_RUNTIME_MAC: osx
-  TARGET_FRAMEWORK_ANDROID: net10.0-android
-  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
-  TARGET_RUNTIME_WINX64: win-x64
-  TARGET_RUNTIME_WINX86: win-x86
-  OUTPUT_DIR: ./out
-  IPA_PATH: ./out/TRViS.ipa
-  PKG_PATH: ./out/TRViS.pkg
-  AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
-  APK_PATH: ./out/dev.t0r.trvis-Signed.apk
-  ASSET_NAME_WIN_X64: TRViS-win-x64
-  ASSET_NAME_WIN_X86: TRViS-win-x86
-  ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
-  ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
-  SDK_VERSION: "10.0.x"
-  IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
-  IOS_DSYM_FILENAME: TRViS.app.dSYM
-  XCODE_VERSION: "26.4"
-  FIREBASE_PROJECT_ID: trvis-app
+      CSPROJ_PATH:
+        required: true
+        type: string
+      IOS_DSYM_FILENAME:
+        required: true
+        type: string
+      IOS_DSYM_PATH:
+        required: true
+        type: string
+      IPA_PATH:
+        required: true
+        type: string
+      OUTPUT_DIR:
+        required: true
+        type: string
+      SDK_VERSION:
+        required: true
+        type: string
+      TARGET_FRAMEWORK:
+        required: true
+        type: string
+      TARGET_RUNTIME:
+        required: true
+        type: string
+      THIRD_PARTY_LICENSE_INFO_DIR:
+        required: true
+        type: string
+      THIRD_PARTY_LICENSE_LIST_NAME:
+        required: true
+        type: string
+      XCODE_VERSION:
+        required: true
+        type: string
 
 jobs:
   build-ios:
@@ -80,23 +86,23 @@ jobs:
       - name: Setup Xcode version
         uses: maxim-lobanov/setup-xcode@v1.7.0
         with:
-          xcode-version: ${{ env.XCODE_VERSION }}
+          xcode-version: ${{ inputs.XCODE_VERSION }}
 
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: ${{ env.SDK_VERSION }}
+          dotnet-version: ${{ inputs.SDK_VERSION }}
       - name: Install dotnet workloads
         run: dotnet workload install maui-ios maccatalyst
 
       - name: Install dependencies
-        run: dotnet restore ${{ env.CSPROJ_PATH }} -r ${{ env.TARGET_RUNTIME }}
+        run: dotnet restore ${{ inputs.CSPROJ_PATH }} -r ${{ inputs.TARGET_RUNTIME }}
 
       - name: Dump third-party license info
         uses: ./.github/actions/dump-third-party-licenses
         with:
           platform: ios
-          license-info-dir: ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-          license-list-name: ${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}
+          license-info-dir: ${{ inputs.THIRD_PARTY_LICENSE_INFO_DIR }}
+          license-list-name: ${{ inputs.THIRD_PARTY_LICENSE_LIST_NAME }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           clear-pip-cache: "true"
 
@@ -115,11 +121,11 @@ jobs:
           DOTNET_CLI_UI_LANGUAGE: en-US
           ACTOOL_DISABLE: true
         run: >
-          dotnet publish ${{ env.CSPROJ_PATH }}
-          -f ${{ env.TARGET_FRAMEWORK }}
-          -r ${{ env.TARGET_RUNTIME }}
+          dotnet publish ${{ inputs.CSPROJ_PATH }}
+          -f ${{ inputs.TARGET_FRAMEWORK }}
+          -r ${{ inputs.TARGET_RUNTIME }}
           -c Release
-          -o "${{ env.OUTPUT_DIR }}"
+          -o "${{ inputs.OUTPUT_DIR }}"
           /p:ApplicationDisplayVersion=${{ inputs.display_version }}
           /p:ApplicationVersion=${{ inputs.build_number }}
           /p:CodesignKey="${{ secrets.CODESIGN_KEY_NAME_IOS }}"
@@ -130,16 +136,16 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ipa
-          path: ${{ env.IPA_PATH }}
+          path: ${{ inputs.IPA_PATH }}
           retention-days: 3
 
       - name: tar dSYM
-        run: cd ${{ env.IOS_DSYM_PATH }} && tar -czf ${{ env.IOS_DSYM_FILENAME }}.tar.gz ${{ env.IOS_DSYM_FILENAME }}
+        run: cd ${{ inputs.IOS_DSYM_PATH }} && tar -czf ${{ inputs.IOS_DSYM_FILENAME }}.tar.gz ${{ inputs.IOS_DSYM_FILENAME }}
       - name: Upload dSYM
         uses: actions/upload-artifact@v7
         with:
           name: dSYM
-          path: ${{ env.IOS_DSYM_PATH }}/${{ env.IOS_DSYM_FILENAME }}.tar.gz
+          path: ${{ inputs.IOS_DSYM_PATH }}/${{ inputs.IOS_DSYM_FILENAME }}.tar.gz
           retention-days: 3
 
       - name: Post 'Import Code Sign Certificates'

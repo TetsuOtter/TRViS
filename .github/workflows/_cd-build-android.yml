@@ -9,33 +9,30 @@ on:
       build_number:
         required: true
         type: string
-
-env:
-  CSPROJ_PATH: ./TRViS/TRViS.csproj
-  THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
-  THIRD_PARTY_LICENSE_LIST_NAME: license_list
-  TARGET_FRAMEWORK: net10.0-ios
-  TARGET_RUNTIME: ios-arm64
-  TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
-  TARGET_RUNTIME_MAC: osx
-  TARGET_FRAMEWORK_ANDROID: net10.0-android
-  TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
-  TARGET_RUNTIME_WINX64: win-x64
-  TARGET_RUNTIME_WINX86: win-x86
-  OUTPUT_DIR: ./out
-  IPA_PATH: ./out/TRViS.ipa
-  PKG_PATH: ./out/TRViS.pkg
-  AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
-  APK_PATH: ./out/dev.t0r.trvis-Signed.apk
-  ASSET_NAME_WIN_X64: TRViS-win-x64
-  ASSET_NAME_WIN_X86: TRViS-win-x86
-  ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
-  ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
-  SDK_VERSION: "10.0.x"
-  IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
-  IOS_DSYM_FILENAME: TRViS.app.dSYM
-  XCODE_VERSION: "26.4"
-  FIREBASE_PROJECT_ID: trvis-app
+      AAB_PATH:
+        required: true
+        type: string
+      APK_PATH:
+        required: true
+        type: string
+      CSPROJ_PATH:
+        required: true
+        type: string
+      OUTPUT_DIR:
+        required: true
+        type: string
+      SDK_VERSION:
+        required: true
+        type: string
+      TARGET_FRAMEWORK_ANDROID:
+        required: true
+        type: string
+      THIRD_PARTY_LICENSE_INFO_DIR:
+        required: true
+        type: string
+      THIRD_PARTY_LICENSE_LIST_NAME:
+        required: true
+        type: string
 
 jobs:
   build-android:
@@ -46,19 +43,19 @@ jobs:
 
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: ${{ env.SDK_VERSION }}
+          dotnet-version: ${{ inputs.SDK_VERSION }}
       - name: Install dotnet workloads
         run: dotnet workload install maui-android
 
       - name: Install dependencies
-        run: dotnet restore ${{ env.CSPROJ_PATH }}
+        run: dotnet restore ${{ inputs.CSPROJ_PATH }}
 
       - name: Dump third-party license info
         uses: ./.github/actions/dump-third-party-licenses
         with:
           platform: android
-          license-info-dir: ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-          license-list-name: ${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}
+          license-info-dir: ${{ inputs.THIRD_PARTY_LICENSE_INFO_DIR }}
+          license-list-name: ${{ inputs.THIRD_PARTY_LICENSE_LIST_NAME }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add Google-services.json
@@ -78,10 +75,10 @@ jobs:
         run: echo "${{ secrets.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > '${{ github.workspace }}/keystore.jks'
       - name: Build
         run: >
-          dotnet publish ${{ env.CSPROJ_PATH }}
-          -f ${{ env.TARGET_FRAMEWORK_ANDROID }}
+          dotnet publish ${{ inputs.CSPROJ_PATH }}
+          -f ${{ inputs.TARGET_FRAMEWORK_ANDROID }}
           -c Release
-          -o "${{ env.OUTPUT_DIR }}"
+          -o "${{ inputs.OUTPUT_DIR }}"
           /p:ApplicationDisplayVersion=${{ inputs.display_version }}
           /p:ApplicationVersion=${{ inputs.build_number }}
           /p:AndroidKeyStore=true
@@ -94,12 +91,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: aab
-          path: ${{ env.AAB_PATH }}
+          path: ${{ inputs.AAB_PATH }}
           retention-days: 3
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
           name: apk
-          path: ${{ env.APK_PATH }}
+          path: ${{ inputs.APK_PATH }}
           retention-days: 3
