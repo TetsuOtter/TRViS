@@ -39,13 +39,24 @@ public partial class VerticalStylePage : ContentView
 	MyMap? DebugMap = null;
 	private bool _isLandscape;
 
-	// When true, the whole page is wrapped in a single outer ScrollView (the
-	// "full scroll" experience). When false, only the timetable area scrolls
-	// while the header stays fixed. This used to be keyed off DeviceIdiom.Phone;
-	// it is now an explicit mode so the full-scroll variant lives on its own
-	// dedicated page (#155) and the embedded ViewHost copy carries no
-	// idiom-special-casing.
+	// Explicit "this is the separated full-scroll page instance" flag (#155).
+	// The dedicated FullScrollVerticalTimetablePage passes true; the embedded
+	// ViewHost copy passes false.
 	private readonly bool _fullScroll;
+
+	// Effective layout decision. #155 only re-scopes *iPhone*: there the
+	// embedded page becomes non-full-scroll (header fixed, timetable area
+	// scrolls) and the full-scroll experience moves to the dedicated page.
+	// Android phones / Unknown idiom keep their original full-scroll behavior
+	// (changing them is out of #155 scope and regressed Android — the
+	// non-full-scroll path blanked the app on the timetable tab). Tablets /
+	// desktop were never full-scroll and stay non-full-scroll.
+	private readonly bool _useFullScrollLayout;
+
+	// iPhone == Phone idiom AND iOS platform (excludes iPad and Mac Catalyst).
+	// Every #155 behavior change is gated on this so non-iPhone targets keep
+	// their pre-#155 behavior verbatim.
+	private readonly bool _isIPhone;
 
 	private readonly VerticalStylePagePresenter _presenter;
 	private bool _isTimetableViewBusy = false;
@@ -78,6 +89,16 @@ public partial class VerticalStylePage : ContentView
 		logger.Trace("Creating... (fullScroll: {0})", fullScroll);
 
 		_fullScroll = fullScroll;
+		_isIPhone = DeviceInfo.Current.Idiom == DeviceIdiom.Phone
+			&& DeviceInfo.Current.Platform == DevicePlatform.iOS;
+		// Original pre-#155 full-scroll condition was "Phone || Unknown idiom".
+		// Keep it for everything except iPhone, which #155 moves to the
+		// dedicated page. The dedicated page itself forces full-scroll via the
+		// explicit flag.
+		bool isPhoneOrUnknown = DeviceInfo.Current.Idiom == DeviceIdiom.Phone
+			|| DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
+		_useFullScrollLayout = _fullScroll || (isPhoneOrUnknown && !_isIPhone);
+
 		_presenter = presenter;
 		TimetableView = new VerticalTimetableView(_presenter);
 		_presenter.StateChanged += OnPresenterStateChanged;
@@ -108,7 +129,7 @@ public partial class VerticalStylePage : ContentView
 
 		InstanceManager.LocationServiceGpsAdapter.OnGpsLocationUpdated += OnGpsLocationUpdated;
 
-		if (_fullScroll)
+		if (_useFullScrollLayout)
 		{
 			logger.Info("FullScroll mode -> make it to fill-scrollable");
 			this.Content.VerticalOptions = LayoutOptions.Start;
@@ -158,14 +179,13 @@ public partial class VerticalStylePage : ContentView
 		PageHeaderArea.StartButtonTappedCallback = _presenter.OnStartButtonClicked;
 		PageHeaderArea.LocationServiceButtonTappedCallback = _presenter.OnLocationServiceToggled;
 
-		// The full-scroll experience is iPhone-only (#155): on tablets the
-		// non-full-scroll page already shows everything without needing the
-		// separated page. Don't offer it while already on the full-scroll page.
-		bool isPhoneIdiom = DeviceInfo.Current.Idiom == DeviceIdiom.Phone
-			|| DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
-		PageHeaderArea.IsFullScrollButtonVisible = isPhoneIdiom && !_fullScroll;
+		// The separated full-scroll page is iPhone-only (#155). Android phones
+		// keep the embedded full-scroll layout (no separated page, no button);
+		// tablets/desktop already show everything. Hidden on the full-scroll
+		// page itself.
+		PageHeaderArea.IsFullScrollButtonVisible = _isIPhone && !_fullScroll;
 
-		if (_fullScroll)
+		if (_useFullScrollLayout)
 		{
 			logger.Info("FullScroll mode -> set TimetableView directly into main grid");
 			Grid.SetRow(TimetableView, Grid.GetRow(TimetableAreaScrollView));
@@ -189,7 +209,7 @@ public partial class VerticalStylePage : ContentView
 
 		TimetableView.ScrollRequested += async (_, e) =>
 		{
-			if (!_fullScroll)
+			if (!_useFullScrollLayout)
 			{
 				logger.Debug("Non-full-scroll mode -> scroll from {0} to {1}",
 					TimetableAreaScrollView.ScrollY,

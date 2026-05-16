@@ -310,14 +310,33 @@ public partial class ViewHost : ContentPage
 
 	private void UpdateOrientation()
 	{
-		// #155: the embedded D-TAC page is portrait-locked on iPhone for every
-		// tab now (previously the VerticalView tab locked Landscape). The
-		// landscape full-scroll timetable moved to the separated
-		// FullScrollVerticalTimetablePage. Off-phone keeps free rotation.
-		bool isPhone = DeviceInfo.Current.Idiom == DeviceIdiom.Phone
-			|| DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
-		InstanceManager.OrientationService.SetOrientation(
-			isPhone ? AppDisplayOrientation.Portrait : AppDisplayOrientation.All);
+		// #155 only re-scopes iPhone: the embedded D-TAC page is portrait-locked
+		// for every tab there (the landscape full-scroll timetable moved to the
+		// separated FullScrollVerticalTimetablePage). Every other target keeps
+		// its pre-#155 orientation behavior verbatim — in particular Android
+		// phones still lock Landscape on the VerticalView tab (changing that
+		// regressed Android).
+		bool isIPhone = DeviceInfo.Current.Idiom == DeviceIdiom.Phone
+			&& DeviceInfo.Current.Platform == DevicePlatform.iOS;
+		if (isIPhone)
+		{
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.Portrait);
+			return;
+		}
+
+		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
+		{
+			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
+			return;
+		}
+
+		AppDisplayOrientation desired = _dtacViewModel.TabMode switch
+		{
+			DTACViewHostViewModel.Mode.Hako => AppDisplayOrientation.Portrait,
+			DTACViewHostViewModel.Mode.VerticalView => AppDisplayOrientation.Landscape,
+			_ => AppDisplayOrientation.All,
+		};
+		InstanceManager.OrientationService.SetOrientation(desired);
 	}
 
 	// ---------- Presenter state change handling ----------

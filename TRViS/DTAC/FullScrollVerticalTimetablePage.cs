@@ -138,7 +138,7 @@ public class FullScrollVerticalTimetablePage : ContentPage
 		base.OnDisappearing();
 		// Unlock so back-navigation to the (now portrait-locked) ViewHost can
 		// re-apply Portrait via its OnAppearing.
-		if (IsPhoneIdiom)
+		if (IsIPhone)
 			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
 		InstanceManager.ScreenWakeLockService.DisableWakeLock();
 	}
@@ -146,12 +146,15 @@ public class FullScrollVerticalTimetablePage : ContentPage
 	private void UpdateOrientation()
 	{
 		// Landscape is the point of the full-scroll page on iPhone (it preserves
-		// the prior 時刻表-tab landscape UX). Off-phone keeps free rotation.
+		// the prior 時刻表-tab landscape UX). This page is only reachable from
+		// iPhone today; the non-iPhone arm is defensive.
 		InstanceManager.OrientationService.SetOrientation(
-			IsPhoneIdiom ? AppDisplayOrientation.Landscape : AppDisplayOrientation.All);
+			IsIPhone ? AppDisplayOrientation.Landscape : AppDisplayOrientation.All);
 	}
 
-	private static bool IsPhoneIdiom
+	// iPhone == Phone idiom AND iOS platform (excludes iPad / Mac Catalyst),
+	// matching the gating used by ViewHost / VerticalStylePage for #155.
+	private static bool IsIPhone
 		=> DeviceInfo.Current.Idiom == DeviceIdiom.Phone
-		|| DeviceInfo.Current.Idiom == DeviceIdiom.Unknown;
+		&& DeviceInfo.Current.Platform == DevicePlatform.iOS;
 }
