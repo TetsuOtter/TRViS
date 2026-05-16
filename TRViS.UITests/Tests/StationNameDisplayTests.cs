@@ -135,13 +135,9 @@ public class StationNameDisplayTests : Infrastructure.BaseUITest
 					var elements = Driver.FindElements(locator);
 					foreach (var el in elements)
 					{
-						try
-						{
-							string t = el.Text;
-							if (!string.IsNullOrEmpty(t))
-								return t;
-						}
-						catch { }
+						string? t = ExtractText(el);
+						if (!string.IsNullOrEmpty(t))
+							return t;
 					}
 				}
 				catch { }
@@ -153,6 +149,33 @@ public class StationNameDisplayTests : Infrastructure.BaseUITest
 		{
 			Driver.Manage().Timeouts().ImplicitWait = prevWait;
 		}
+	}
+
+	/// <summary>
+	/// Reads an element's rendered text across drivers. iOS/mac2 expose a
+	/// Label's text through Selenium's <c>Text</c> (AXValue), but WinUI surfaces
+	/// a MAUI Label's text via the UIA <c>Name</c> property and leaves the Value
+	/// pattern (Selenium <c>Text</c>) empty — the same reason the NextTrainButton
+	/// lookup falls back to an <c>@Name</c> XPath on Windows.
+	/// </summary>
+	private static string? ExtractText(AppiumElement el)
+	{
+		foreach (var read in new Func<string?>[]
+		{
+			() => el.Text,
+			() => el.GetAttribute("Name"),
+			() => el.GetAttribute("Value"),
+		})
+		{
+			try
+			{
+				string? v = read();
+				if (!string.IsNullOrEmpty(v))
+					return v;
+			}
+			catch { }
+		}
+		return null;
 	}
 
 	private By AutomationIdLocator(string automationId)
