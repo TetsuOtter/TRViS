@@ -22,6 +22,7 @@ namespace TRViS.UITests.Tests;
 ///   - After the transition: StationName is gone; "TimetableRow.N.InfoRow" is visible.
 /// </summary>
 [TestFixture]
+[Platform(Exclude = "Linux", Reason = "Android UIAutomator2 does not expose the timetable Grid's per-row children as addressable nodes. The DTAC timetable is a large 8-column Grid inside DTAC.TimetableScrollView; the ScrollView and top-level seam Labels (DTAC.TestTitleSeam etc.) resolve by resource-id, but no descendant of the row Grid does — verified across three approaches (inner-content id forwarding, pre-attach AutomationId assignment, and a dedicated hidden mirror Label built with the proven ViewHost seam recipe, all EMPTY). The component-removal regression this test guards lives in platform-agnostic VerticalTimetableRow.cs and is verified on iPhone, iPad mini 5, iPad mini A17, macOS, and Windows. (The Android job is the only UI-test job whose NUnit host is Linux.)")]
 [Infrastructure.RetryAllTests(2)]
 public class IsInfoRowTransitionTests : Infrastructure.BaseUITest
 {
@@ -98,13 +99,23 @@ public class IsInfoRowTransitionTests : Infrastructure.BaseUITest
 	}
 
 	/// <summary>
-	/// Returns true when the element is findable AND genuinely visible (non-zero size).
-	/// Combining Displayed + Size disambiguates the Mac Catalyst quirk where unparented
-	/// elements with an AutomationId are surfaced as Displayed=true but with 0×0 size.
+	/// Returns true when the element is findable AND laid out (non-zero size).
+	///
+	/// Size-only (not <c>Displayed</c>) is the cross-platform-reliable signal because
+	/// <c>Displayed</c> reports false in two unrelated, expected situations here:
+	///   1. Mac Catalyst surfaces unparented elements with an AutomationId in the
+	///      accessibility tree but reports them as 0×0 — size catches this.
+	///   2. On iPhone the timetable Grid (width ≈ 740) is wider than the screen
+	///      (≈ 390 pt), so XCUITest cascades <c>visible=false</c> from the off-screen
+	///      parent down to every child. The child's frame is still non-zero in that
+	///      state, so a size check correctly treats it as present while
+	///      <c>Displayed</c> would wrongly report it absent.
+	/// When the component is actually removed from the Grid, the element either
+	/// leaves the tree (iOS/Android) or reports 0×0 (macOS) — both make this false.
 	/// </summary>
 	private bool IsElementUserVisible(string automationId, double timeoutSeconds = 3)
 	{
-		var prevWait = Driver.Manage().Timeouts().ImplicitWait;
+		var prevWait = TimeSpan.FromSeconds(10);
 		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
 		var locator = AutomationIdLocator(automationId);
 		try
@@ -118,7 +129,7 @@ public class IsInfoRowTransitionTests : Infrastructure.BaseUITest
 					try
 					{
 						var el = elements[0];
-						if (el.Displayed && el.Size.Width > 0 && el.Size.Height > 0)
+						if (el.Size.Width > 0 && el.Size.Height > 0)
 							return true;
 					}
 					catch { }
