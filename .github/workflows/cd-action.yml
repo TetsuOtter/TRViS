@@ -351,7 +351,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo 'Tag `v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}` was automatically created and pushed with ... https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} (Platform Status iOS: ${{ needs.set-tag-ios.result }} / macOS: ${{ needs.set-tag-mac.result }} / Android: ${{ needs.set-tag-android.result }} / Windows: ${{ needs.set-tag-windows.result }})' | gh pr comment ${{ github.event.number }} -F -
+          echo 'Tag `v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}` was automatically created and pushed with ... https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} (Platform Status iOS: ${{ needs.set-tag-ios.result }} / macOS: ${{ needs.set-tag-mac.result }} / Android: ${{ needs.set-tag-android.result }} / Windows: ${{ needs.set-tag-windows.result }})' | gh pr comment ${{ github.event.number }} -F - --repo ${{ github.repository }}
 
   create-release:
     if: |
