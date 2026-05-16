@@ -21,8 +21,13 @@ internal static class VerticalPageStateFactory
 		bool isLocationServiceEnabled)
 	{
 		var state = new VerticalPageState();
-		state.LocationServiceState.IsEnabled = isLocationServiceEnabled;
-		state.PageHeaderState.IsLocationServiceEnabled = isLocationServiceEnabled;
+		// Set all three location-enabled flags in lockstep (incl. the
+		// TimetableView marker gate read by OnLocationStateChanged_Internal).
+		// Setting only LocationServiceState/PageHeader left the gate false on
+		// every train (re)selection, so a server-driven-enabled session showed
+		// the button ON but the position marker never moved until a manual
+		// OFF→ON. Use the canonical helper so the flags cannot drift again.
+		VerticalPageStateUpdater.UpdateLocationServiceEnabledState(state, isLocationServiceEnabled);
 		ApplyTrainDataFields(state, trainData, affectDate);
 		return state;
 	}

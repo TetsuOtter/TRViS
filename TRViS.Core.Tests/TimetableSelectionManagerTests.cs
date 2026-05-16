@@ -248,6 +248,43 @@ public class TimetableSelectionManagerTests
 	}
 
 	[Fact]
+	public void Refresh_AutoSelectsSingleWorkGroup_WhenListArrivesAsync()
+	{
+		// WebSocket: Loader is set before the WorkGroup list arrives, so
+		// OnLoaderChanged saw an empty list and could not apply the
+		// single-WorkGroup auto-pick. When the server push lands and Refresh
+		// runs, the single-WorkGroup convenience must finally kick in
+		// (otherwise a single-WG WebSocket connection is never selected).
+		var loader = new FakeLoader();
+		loader.Setup(new SampleData()); // empty at connect time
+		var manager = new TimetableSelectionManager { Loader = loader };
+		Assert.Null(manager.SelectedWorkGroup);
+
+		loader.Setup(BuildSampleData()); // single-WG data arrives via push
+		manager.Refresh();
+
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id);
+		Assert.Equal("w-1-0", manager.SelectedWork?.Id);      // cascade
+		Assert.Equal("t-1-0-0", manager.SelectedTrainData?.Id); // cascade
+	}
+
+	[Fact]
+	public void Refresh_DoesNotAutoSelect_WhenMultipleWorkGroupsArriveAsync()
+	{
+		// Multi-WorkGroup remains a genuine choice owned by the Home picker:
+		// even when the list arrives late, Refresh must NOT force a default.
+		var loader = new FakeLoader();
+		loader.Setup(new SampleData());
+		var manager = new TimetableSelectionManager { Loader = loader };
+
+		loader.Setup(BuildMultiWgSampleData());
+		manager.Refresh();
+
+		Assert.True(manager.WorkGroupList!.Count >= 2);
+		Assert.Null(manager.SelectedWorkGroup);
+	}
+
+	[Fact]
 	public void Refresh_WhenNewWorkListBecomesEmpty_ClearsTrainSelection()
 	{
 		var loader = new FakeLoader();
