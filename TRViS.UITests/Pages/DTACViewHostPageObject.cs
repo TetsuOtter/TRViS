@@ -274,6 +274,45 @@ public class DTACViewHostPageObject : PageObject
 		return this;
 	}
 
+	/// <summary>
+	/// Polls briefly for the iPhone-only full-scroll entry button (#155).
+	/// Returns true only when it is both findable and Displayed within the
+	/// timeout. False on tablet / desktop idioms where it is intentionally
+	/// hidden, and on the full-scroll page itself. AutomationId-only: the
+	/// button never appears on Windows (desktop idiom) so no UIA Name fallback
+	/// is needed, and its label is a Material-icon glyph anyway.
+	/// </summary>
+	public bool IsFullScrollButtonVisible(double timeoutSeconds = 1)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				try
+				{
+					if (FindByAutomationId(AutomationIds.DTAC.FullScrollButton).Displayed)
+						return true;
+				}
+				catch { }
+				Thread.Sleep(100);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	public FullScrollVerticalTimetablePageObject TapFullScrollButton()
+	{
+		FindByAutomationId(AutomationIds.DTAC.FullScrollButton).Click();
+		return new FullScrollVerticalTimetablePageObject(Driver);
+	}
+
 	private AppiumElement FindCustomControl(string automationId, params string[] candidateTexts)
 	{
 		if (IsWindows)
