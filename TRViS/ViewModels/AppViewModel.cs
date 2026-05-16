@@ -166,11 +166,13 @@ public partial class AppViewModel : ObservableObject
 	partial void OnLoaderChanged(ILoader? value)
 	{
 		SelectionManager.Loader = value;
+		// ローダーが切り替わったら以前のダイヤ情報は無効。サーバー接続なら
+		// 接続時に再要求され DiagramInfoUpdated で改めて設定される。SetLoader は
+		// この後に NetworkSyncService を接続するため、ここでのクリアが新しい応答を
+		// 消すことはない。
+		CurrentDiagramInfo = null;
 		if (value is null)
-		{
 			LoaderSourceLabel = null;
-			CurrentDiagramInfo = null;
-		}
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
