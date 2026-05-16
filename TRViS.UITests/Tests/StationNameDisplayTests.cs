@@ -74,24 +74,37 @@ public class StationNameDisplayTests : Infrastructure.BaseUITest
 
 		var rendered = new HashSet<string>();
 
-		// The Grid is not virtualised, but mac2 only populates an element's text
-		// once it is laid out on-screen, so sweep the visible rows, swipe the
-		// timetable down, and sweep again until every target name has been seen
-		// (or the swipe budget is exhausted).
-		const int maxSweeps = 8;
-		for (int sweep = 0; sweep < maxSweeps; sweep++)
+		// Drive the lookups with a zero implicit wait so absent rows fail fast.
+		// Only the setter is touched and it is restored to this codebase's
+		// default (10 s, as IsInfoRowTransitionTests does) — the getter is
+		// unimplemented on the Windows driver and must never be read.
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
 		{
-			for (int i = 0; i <= MaxRowIndexToScan; i++)
+			// The Grid is not virtualised, but mac2 only populates an element's
+			// text once it is laid out on-screen, so sweep the visible rows,
+			// swipe the timetable down, and sweep again until every target name
+			// has been seen (or the swipe budget is exhausted).
+			const int maxSweeps = 8;
+			for (int sweep = 0; sweep < maxSweeps; sweep++)
 			{
-				string? text = ReadStrippedStationName(i);
-				if (!string.IsNullOrEmpty(text))
-					rendered.Add(text!);
+				for (int i = 0; i <= MaxRowIndexToScan; i++)
+				{
+					string? text = ReadStrippedStationName(i);
+					if (!string.IsNullOrEmpty(text))
+						rendered.Add(text!);
+				}
+
+				if (Targets.All(rendered.Contains))
+					break;
+
+				dtac.SwipeTimetableUp();
 			}
-
-			if (Targets.All(rendered.Contains))
-				break;
-
-			dtac.SwipeTimetableUp();
+		}
+		finally
+		{
+			try { Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10); }
+			catch { }
 		}
 
 		var missing = Targets.Where(t => !rendered.Contains(t)).ToList();
@@ -114,10 +127,8 @@ public class StationNameDisplayTests : Infrastructure.BaseUITest
 	{
 		string automationId = string.Format(
 			AutomationIds.DTAC.TimetableRowStationNamePattern, rowIndex);
-		var prevWait = Driver.Manage().Timeouts().ImplicitWait;
 		try
 		{
-			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			var elements = Driver.FindElements(AutomationIdLocator(automationId));
 			foreach (var el in elements)
 			{
@@ -127,10 +138,6 @@ public class StationNameDisplayTests : Infrastructure.BaseUITest
 			}
 		}
 		catch { }
-		finally
-		{
-			Driver.Manage().Timeouts().ImplicitWait = prevWait;
-		}
 		return null;
 	}
 
