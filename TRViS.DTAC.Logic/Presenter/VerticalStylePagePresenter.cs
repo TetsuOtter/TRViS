@@ -56,10 +56,15 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 
 		// Server-driven auto-enable fires on the LocationService BEFORE this
 		// presenter exists: the WebSocket flow is connect → CanStart enable →
-		// (navigate to DTAC) → presenter ctor. The IsEnabledChanged edge is
-		// gone by the time we subscribe above, so reconcile the current level
-		// now (after the train state is built) — otherwise the button/gate
-		// stay OFF and the server-driven run never starts on first display.
+		// (navigate to DTAC) → presenter ctor. The CanUseServiceChanged /
+		// IsEnabledChanged edges are gone by the time we subscribe above, so
+		// reconcile the current levels now (after the train state is built).
+		// CanUse must be reconciled too: the LocationService button's
+		// *tappable* state is CanUseLocationService && IsRunning, so a missed
+		// CanUseServiceChanged leaves the button permanently disabled (cannot
+		// be turned OFF, and stays disabled across 運行終了→運行開始) even
+		// though it correctly reads ON.
+		OnLocationServiceCanUseChanged(this, _locationService.CanUseService);
 		OnLocationServiceIsEnabledChanged_Internal(this, _locationService.IsEnabled);
 	}
 

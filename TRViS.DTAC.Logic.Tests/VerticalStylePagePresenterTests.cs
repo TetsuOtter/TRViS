@@ -875,6 +875,45 @@ public class VerticalStylePagePresenterTests
 			presenter.CurrentState.RowStates[1].LocationState);
 	}
 
+	// 回帰テスト: 位置情報ボタンの「押下可能」状態は CanUseLocationService
+	// && IsRunning。サーバ駆動接続では CanUseServiceChanged も presenter 生成
+	// 前に発火するため、ctor で CanUse をレベル補正しないとボタンが永久に
+	// disabled (ON でも OFF にできない / 運行終了→運行開始しても enabled に
+	// 戻らない) になる不具合の防止。
+	[Fact]
+	public void PresenterCtor_ReconcilesCanUse_ButtonUsableAcrossRunCycle()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			CanUseService = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		// ctor reconcile: CanUse が反映され、運行も自動開始
+		// (ボタン押下可能 = CanUseLocationService && IsRunning)
+		Assert.True(presenter.CurrentState.PageHeaderState.CanUseLocationService,
+			"CanUseLocationService must be reconciled at ctor");
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		// 運行終了 → 位置情報は自動 OFF だが CanUse は維持される
+		presenter.OnStartButtonClicked();
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.True(presenter.CurrentState.PageHeaderState.CanUseLocationService,
+			"CanUseLocationService must survive 運行終了 so the button can be re-enabled");
+
+		// 運行開始 → ボタンは再び押下可能 (CanUse && IsRunning 共に true)
+		presenter.OnStartButtonClicked();
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.True(presenter.CurrentState.PageHeaderState.CanUseLocationService);
+	}
+
 	#endregion
 
 }
