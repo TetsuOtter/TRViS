@@ -132,30 +132,48 @@ public class SelectFileDialogPageObject : PageObject
 	public void TapOpenStorageLocation() => OpenStorageLocationButton.Click();
 
 	/// <summary>
-	/// Dismisses the "読み込めませんでした" error alert raised on a failed load
-	/// (issue #49). Mirrors the cross-platform accept pattern used elsewhere:
+	/// Polls for the friendly load-error alert (issue #49) and dismisses it,
+	/// returning <c>true</c> if one was found within <paramref name="timeoutSeconds"/>.
+	/// The alert is raised asynchronously after JsonSerializer throws, so a
+	/// fixed sleep races on slow CI — poll instead. Mirrors the cross-platform
+	/// accept pattern used by StartHomePageObject / FirebaseSettingPageObject:
 	/// the W3C alert endpoint first, then the iOS/Mac sheet/alert OK button.
-	/// No-op if no alert is up. Call before <see cref="Close"/> so the modal
-	/// CloseButton is reachable again in the shared-session fixtures.
+	///
+	/// Returning a bool lets the test positively assert the alert appeared
+	/// (proving the #49 friendly-error path) without scraping platform-specific
+	/// alert text — the exact wording is covered by TRViS.IO.Tests. Dismissing
+	/// it here also unwedges the shared Appium session so a later assertion
+	/// failure can't leave a modal alert stacked over the dialog.
 	/// </summary>
-	public void DismissErrorAlert()
+	public bool DismissErrorAlert(double timeoutSeconds = 10)
 	{
-		try
-		{
-			Driver.SwitchTo().Alert().Accept();
-		}
-		catch (NoAlertPresentException) { }
-		catch
+		DateTime deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		while (DateTime.UtcNow < deadline)
 		{
 			try
 			{
-				Driver.FindElement(By.XPath(
-					"//XCUIElementTypeSheet//XCUIElementTypeButton[@label='OK']" +
-					" | //XCUIElementTypeAlert//XCUIElementTypeButton[@label='OK']"
-				)).Click();
+				Driver.SwitchTo().Alert().Accept();
+				return true;
 			}
-			catch { /* no alert/sheet present */ }
+			catch (NoAlertPresentException) { }
+			catch (WebDriverException)
+			{
+				// Driver without the W3C alert endpoint (e.g. mac2): the
+				// DisplayAlert renders as a sheet/alert element instead.
+				try
+				{
+					Driver.FindElement(By.XPath(
+						"//XCUIElementTypeSheet//XCUIElementTypeButton[@label='OK']" +
+						" | //XCUIElementTypeAlert//XCUIElementTypeButton[@label='OK']"
+					)).Click();
+					return true;
+				}
+				catch (NoSuchElementException) { }
+				catch (WebDriverException) { }
+			}
+			Thread.Sleep(300);
 		}
+		return false;
 	}
 
 	/// <summary>

@@ -326,22 +326,30 @@ public class SelectFileDialogTests : BaseUITest
 			$"Seeded malformed JSON '{StartHomePageObject.MalformedJsonFileName}' should appear as a card.");
 
 		fileItem.Click();
-		// Load path is async (JsonSerializer.DeserializeAsync) + the alert
-		// raise. Generous settle, same budget as the SQLite-fail card test.
-		Thread.Sleep(1500);
 
-		// File list still visible ⇒ TryLoadFileAsync caught the JsonException
-		// and Util.DisplayLoadErrorAsync put the friendly "読み込めませんでした"
-		// alert up; the modal was NOT popped. If the file list were gone the
-		// load would have wrongly succeeded.
-		Assert.That(dialog.IsFileListVisible(), Is.True,
-			"After tapping a malformed-JSON card the SelectFile dialog should stay open " +
-			"(load failed → friendly error alert shown, modal not dismissed).");
+		// The friendly error alert (issue #49) is raised asynchronously after
+		// JsonSerializer throws. DismissErrorAlert polls for it and dismisses
+		// it: its return value positively proves the friendly alert appeared
+		// (the #49 deliverable) without scraping platform-specific alert text,
+		// and dismissing it BEFORE the assertions guarantees a failed
+		// assertion can't leave a modal alert wedging the shared Appium
+		// session for the rest of the run.
+		bool alertShown = dialog.DismissErrorAlert();
+		Thread.Sleep(500);
 
-		// Shared-session hygiene: clear the alert + close the modal so the
-		// next test's [SetUp] recovery isn't blocked by a stacked alert.
-		dialog.DismissErrorAlert();
-		Thread.Sleep(300);
+		Assert.Multiple(() =>
+		{
+			Assert.That(alertShown, Is.True,
+				"Malformed JSON must surface the friendly load-error alert (#49), " +
+				"not a raw JsonException or a silent failure.");
+			// Modal NOT popped on failure: with the alert now gone the file
+			// list is queryable again. A wrongly-successful load would have
+			// dismissed the modal (as asserted by SeededSqlite_TappingCard).
+			Assert.That(dialog.IsFileListVisible(), Is.True,
+				"After the friendly error the SelectFile dialog must remain open " +
+				"(load failed → modal not dismissed).");
+		});
+
 		dialog.Close();
 		Thread.Sleep(300);
 	}
