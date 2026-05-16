@@ -132,6 +132,51 @@ public class SelectFileDialogPageObject : PageObject
 	public void TapOpenStorageLocation() => OpenStorageLocationButton.Click();
 
 	/// <summary>
+	/// Polls for the friendly load-error alert (issue #49) and dismisses it,
+	/// returning <c>true</c> if one was found within <paramref name="timeoutSeconds"/>.
+	/// The alert is raised asynchronously after JsonSerializer throws, so a
+	/// fixed sleep races on slow CI — poll instead. Mirrors the cross-platform
+	/// accept pattern used by StartHomePageObject / FirebaseSettingPageObject:
+	/// the W3C alert endpoint first, then the iOS/Mac sheet/alert OK button.
+	///
+	/// Returning a bool lets the test positively assert the alert appeared
+	/// (proving the #49 friendly-error path) without scraping platform-specific
+	/// alert text — the exact wording is covered by TRViS.IO.Tests. Dismissing
+	/// it here also unwedges the shared Appium session so a later assertion
+	/// failure can't leave a modal alert stacked over the dialog.
+	/// </summary>
+	public bool DismissErrorAlert(double timeoutSeconds = 10)
+	{
+		DateTime deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		while (DateTime.UtcNow < deadline)
+		{
+			try
+			{
+				Driver.SwitchTo().Alert().Accept();
+				return true;
+			}
+			catch (NoAlertPresentException) { }
+			catch (WebDriverException)
+			{
+				// Driver without the W3C alert endpoint (e.g. mac2): the
+				// DisplayAlert renders as a sheet/alert element instead.
+				try
+				{
+					Driver.FindElement(By.XPath(
+						"//XCUIElementTypeSheet//XCUIElementTypeButton[@label='OK']" +
+						" | //XCUIElementTypeAlert//XCUIElementTypeButton[@label='OK']"
+					)).Click();
+					return true;
+				}
+				catch (NoSuchElementException) { }
+				catch (WebDriverException) { }
+			}
+			Thread.Sleep(300);
+		}
+		return false;
+	}
+
+	/// <summary>
 	/// Closes the dialog and returns to StartHomePage.
 	/// </summary>
 	public StartHomePageObject Close()

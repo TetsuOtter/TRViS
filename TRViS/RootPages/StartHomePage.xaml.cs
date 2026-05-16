@@ -223,6 +223,7 @@ public partial class StartHomePage : ContentPage
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
 		AddTestSimulateWebSocketDisconnectSeam();
+		AddTestSeedMalformedJsonSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1161,6 +1162,36 @@ public partial class StartHomePage : ContentPage
 		RootGrid.Children.Add(seam);
 	}
 
+	// Mirrors AutomationIds.StartHome.TestSeedMalformedJsonButton.
+	private const string AutomationIdValueForTestSeedMalformedJson = "StartHome.TestSeedMalformedJsonButton";
+
+	// UI_TEST-only seam (issue #49): writes a syntactically-broken JSON into
+	// TimetableFileDirectory so the SelectFileDialog friendly-error path can be
+	// driven end-to-end. Same standalone-code-behind pattern as the two seams
+	// above — deliberately NOT a 13th row of TestSeamHost, because growing that
+	// Grid triggers the documented iPhone XCUITest layout-row-growth hang (see
+	// AddTestOpenSelectFileDialogSeam). Margin y = 336 sits directly below the
+	// WebSocket-disconnect seam (y=[312,336]), keeping the seam column
+	// contiguous in the top-left corner.
+	private void AddTestSeedMalformedJsonSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSeedMalformedJson,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 336, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSeedMalformedJsonButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
 	// Drives Home into the #261 "サーバー未接続 + 再接続" state without a real
 	// server: a WebSocketNetworkSyncService constructed but never connected is a
 	// valid (empty) ILoader, so SetLoader flips the page to Home mode showing
@@ -1401,6 +1432,19 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestClearSampleFilesButton failed");
+		}
+	}
+
+	void TestSeedMalformedJsonButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSeedMalformedJsonButton clicked: seeding broken JSON fixture");
+		try
+		{
+			SelectFileDialogTestSeams.SeedMalformedJson();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedMalformedJsonButton failed");
 		}
 	}
 

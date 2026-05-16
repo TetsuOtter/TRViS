@@ -300,6 +300,61 @@ public class SelectFileDialogTests : BaseUITest
 	}
 
 	/// <summary>
+	/// Issue #49: tapping a syntactically-broken JSON must surface the new
+	/// friendly LoadErrorMessage alert instead of a raw JsonException, and the
+	/// SelectFile dialog must stay open (load failed → modal not popped). This
+	/// drives the JsonException → Util.DisplayLoadErrorAsync path end-to-end in
+	/// the real MAUI runtime; the exact friendly wording is asserted
+	/// exhaustively by TRViS.IO.Tests/LoadErrorMessageTests. Excluded on
+	/// Windows for the same per-card-AutomationId UIA limitation as the
+	/// SQLite-card tests.
+	/// </summary>
+	[Test]
+	[Platform(Exclude = "Win", Reason = "Windows MAUI does not expose the dynamically-created Border (file card) via the UIA tree — same limitation documented on SeededSqlite_TappingCard_LoadsAndDismissesDialog.")]
+	public void TapMalformedJsonCard_ShowsFriendlyError_DialogStaysOpen()
+	{
+		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+
+		_startHomePage.SeedMalformedJsonForTesting();
+		Thread.Sleep(500);
+
+		var dialog = _startHomePage.OpenSelectFileDialog();
+		Assert.That(dialog.IsDisplayed(), Is.True, "Dialog should be displayed.");
+
+		var fileItem = dialog.FileItem(StartHomePageObject.MalformedJsonFileName);
+		Assert.That(fileItem.Displayed, Is.True,
+			$"Seeded malformed JSON '{StartHomePageObject.MalformedJsonFileName}' should appear as a card.");
+
+		fileItem.Click();
+
+		// The friendly error alert (issue #49) is raised asynchronously after
+		// JsonSerializer throws. DismissErrorAlert polls for it and dismisses
+		// it: its return value positively proves the friendly alert appeared
+		// (the #49 deliverable) without scraping platform-specific alert text,
+		// and dismissing it BEFORE the assertions guarantees a failed
+		// assertion can't leave a modal alert wedging the shared Appium
+		// session for the rest of the run.
+		bool alertShown = dialog.DismissErrorAlert();
+		Thread.Sleep(500);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(alertShown, Is.True,
+				"Malformed JSON must surface the friendly load-error alert (#49), " +
+				"not a raw JsonException or a silent failure.");
+			// Modal NOT popped on failure: with the alert now gone the file
+			// list is queryable again. A wrongly-successful load would have
+			// dismissed the modal (as asserted by SeededSqlite_TappingCard).
+			Assert.That(dialog.IsFileListVisible(), Is.True,
+				"After the friendly error the SelectFile dialog must remain open " +
+				"(load failed → modal not dismissed).");
+		});
+
+		dialog.Close();
+		Thread.Sleep(300);
+	}
+
+	/// <summary>
 	/// Browse → OS FilePicker fallback. The seam writes a JSON outside
 	/// TimetableFileDirectory and installs an override that returns its path,
 	/// so the in-app load path runs without driving the OS picker dialog.
