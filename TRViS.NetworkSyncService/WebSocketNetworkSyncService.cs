@@ -958,9 +958,36 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		return new List<TrainData>();
 	}
 
+#if UI_TEST
+	/// <summary>
+	/// UI_TEST 専用: 実サーバー無しで、この WebSocket ローダーの ILoader キャッシュを
+	/// 別ローダー (サンプルデータ等) の内容で埋める。AppBar の接続ステータス表示 (#266)
+	/// を DTAC 画面で検証するために、データを持つ "WebSocket 型" のローダーを
+	/// ネットワーク無しで用意する用途。
+	/// </summary>
+	public void SeedCachesFromLoaderForTesting(TRViS.IO.ILoader source)
+	{
+		ArgumentNullException.ThrowIfNull(source);
+		foreach (var wg in source.GetWorkGroupList())
+		{
+			_WorkGroupCache[wg.Id] = wg;
+			var works = source.GetWorkList(wg.Id).ToList();
+			_WorkListCache[wg.Id] = works;
+			foreach (var w in works)
+			{
+				var trains = source.GetTrainDataList(w.Id).ToList();
+				_TrainListByWorkIdCache[w.Id] = trains;
+				foreach (var t in trains)
+					_TrainDataCache[t.Id] = t;
+			}
+		}
+	}
+#endif
+
 	private async Task<int> AttemptReconnectAsync(int reconnectAttempt, CancellationToken cancellationToken)
 	{
 		logger.Info("AttemptReconnectAsync: Starting reconnection attempts (max: {0})", _reconnectAttemptMax);
+		RaiseReconnecting();
 
 		while (reconnectAttempt < _reconnectAttemptMax && !cancellationToken.IsCancellationRequested)
 		{
@@ -990,6 +1017,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				await SendIdUpdateAsync();
 
 				logger.Info("AttemptReconnectAsync: Successfully reconnected on attempt {0}", reconnectAttempt);
+				RaiseReconnected();
 				return reconnectAttempt;  // 再接続成功 (ReceiveLoopAsync がループを再開する)
 			}
 			catch (OperationCanceledException)
