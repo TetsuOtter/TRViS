@@ -22,17 +22,47 @@ public partial class VerticalStylePage : ContentView
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT = 60;
 	const double TIMETABLE_HEADER_ROW_HEIGHT = 65;
 
+	// issue #41: 縦に短い画面 (iPad マルチタスク下段・小型端末横向き等) では
+	// ヘッダ系の行を縮め、時刻表の表示領域を確保する。旧 feature/support-smartphone
+	// ブランチの DTACRowDefinitionsProvider の Low モード (しきい値 800px / 各行の
+	// 減少量) を、main の const ベース RowDefinitions 構成に移植したもの。
+	const double SHORT_SCREEN_HEIGHT_THRESHOLD = 800;
+	const double DATE_AND_START_BUTTON_ROW_HEIGHT_LOW = DATE_AND_START_BUTTON_ROW_HEIGHT - 6;
+	const double TRAIN_INFO_HEADER_ROW_HEIGHT_LOW = TRAIN_INFO_HEADER_ROW_HEIGHT - 18;
+	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT_LOW = CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT - 12;
+	const double TIMETABLE_HEADER_ROW_HEIGHT_LOW = TIMETABLE_HEADER_ROW_HEIGHT - 18;
+
+	RowDefinition DateAndStartButtonRowDefinition { get; } = new(DATE_AND_START_BUTTON_ROW_HEIGHT);
+	RowDefinition TrainInfoHeaderRowDefinition { get; } = new(TRAIN_INFO_HEADER_ROW_HEIGHT);
+	RowDefinition CarCountRowDefinition { get; } = new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT);
+	RowDefinition TimetableHeaderRowDefinition { get; } = new(TIMETABLE_HEADER_ROW_HEIGHT);
 	RowDefinition TrainInfo_BeforeDepature_RowDefinition { get; } = new(0);
 	ColumnDefinition MainColumnDefinition { get; } = new(new(1, GridUnitType.Star));
 	ColumnDefinition DebugMapColumnDefinition { get; } = new(0);
 
-	const double CONTENT_OTHER_THAN_TIMETABLE_HEIGHT
-		= DATE_AND_START_BUTTON_ROW_HEIGHT
-		+ TRAIN_INFO_HEADER_ROW_HEIGHT
+	// issue #41: 列車情報ヘッダ (列車/最高速度/速度種別/けん引定数) を狭幅で可変化する。
+	// 旧 main は Style_VerticalView.xaml の固定 ColumnDefinitionCollection を 2 つの
+	// Grid で共有していたが、幅が狭いと最高速度/速度種別/けん引定数が見切れるため、
+	// それらを 0 幅へ畳んで列車番号を Star 拡張する。表示判定は単一の真実源
+	// (TimetableView.ColumnVisibilityState) を経由するので他の列と食い違わない。
+	const double TRAIN_INFO_TRAIN_NUMBER_COLUMN_WIDTH = 270;
+	const double TRAIN_INFO_MAX_SPEED_COLUMN_WIDTH = 130;
+	const double TRAIN_INFO_NOMINAL_TRACTIVE_COLUMN_WIDTH = 168;
+	ColumnDefinition[]? _trainInfoHeaderColumns;
+	ColumnDefinition[]? _trainInfoValueColumns;
+
+	enum ViewHeightMode { Normal, Low }
+	ViewHeightMode _currentViewHeightMode = ViewHeightMode.Normal;
+
+	// 全スクロール ScrollView の高さ算出に使う「時刻表以外の高さ」。
+	// Low モードで縮んだ行高さを反映する (出発前行は従来どおり full 高で見積もる)。
+	double ContentOtherThanTimetableHeight
+		=> DateAndStartButtonRowDefinition.Height.Value
+		+ TrainInfoHeaderRowDefinition.Height.Value
 		+ TRAIN_INFO_ROW_HEIGHT
 		+ TRAIN_INFO_BEFORE_DEPARTURE_ROW_HEIGHT
-		+ CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT
-		+ TIMETABLE_HEADER_ROW_HEIGHT;
+		+ CarCountRowDefinition.Height.Value
+		+ TimetableHeaderRowDefinition.Height.Value;
 
 	public static double TimetableViewActivityIndicatorBorderMaxOpacity { get; } = 0.6;
 
@@ -69,14 +99,51 @@ public partial class VerticalStylePage : ContentView
 		DTACElementStyles.SetTimetableColumnWidthCollection(TrainBeforeRemarksArea);
 
 		MainGrid.RowDefinitions = new(
-			new(DATE_AND_START_BUTTON_ROW_HEIGHT),
-			new(new(TRAIN_INFO_HEADER_ROW_HEIGHT)),
+			DateAndStartButtonRowDefinition,
+			TrainInfoHeaderRowDefinition,
 			new(new(TRAIN_INFO_ROW_HEIGHT)),
 			TrainInfo_BeforeDepature_RowDefinition,
-			new(new(CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT)),
-			new(new(TIMETABLE_HEADER_ROW_HEIGHT)),
+			CarCountRowDefinition,
+			TimetableHeaderRowDefinition,
 			new(new(1, GridUnitType.Star))
 		);
+
+		// issue #41: ビュー高さに応じて Low/Normal の行高さを切り替える
+		ApplyRowHeights(Height);
+		SizeChanged += (_, _) => ApplyRowHeights(Height);
+
+		// issue #41: 列車情報ヘッダの 4 列を可変化。表示判定は時刻表側と同じ
+		// ColumnVisibilityState (単一の真実源) を購読する。
+		_trainInfoHeaderColumns = BuildTrainInfoColumns();
+		TrainInfoHeaderGrid.ColumnDefinitions = [
+			_trainInfoHeaderColumns[0],
+			_trainInfoHeaderColumns[1],
+			_trainInfoHeaderColumns[2],
+			_trainInfoHeaderColumns[3]
+		];
+		_trainInfoValueColumns = BuildTrainInfoColumns();
+		TrainInfoValueGrid.ColumnDefinitions = [
+			_trainInfoValueColumns[0],
+			_trainInfoValueColumns[1],
+			_trainInfoValueColumns[2],
+			_trainInfoValueColumns[3]
+		];
+		TimetableView.ColumnVisibilityState.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName == nameof(VerticalTimetableColumnVisibilityState.MaxSpeed))
+				ApplyTrainInfoHeaderLayout(TimetableView.ColumnVisibilityState.MaxSpeed);
+		};
+		ApplyTrainInfoHeaderLayout(TimetableView.ColumnVisibilityState.MaxSpeed);
+
+#if UI_TEST
+		// issue #41: 幅→列表示の追従パスが動いていること & 表示判定が幅判定と
+		// 食い違わないことを E2E で検証できるよう、現在の ViewWidthMode と各
+		// 可視フラグを不可視ラベルにミラーする (TestTitleSeam と同じ手法)。
+		AddColumnVisibilityTestSeam();
+		TimetableView.ColumnVisibilityState.PropertyChanged += (_, _) => RefreshColumnVisibilityTestSeam();
+		RefreshColumnVisibilityTestSeam();
+#endif
+
 		MainGrid.ColumnDefinitions = new(
 			MainColumnDefinition,
 			DebugMapColumnDefinition
@@ -134,7 +201,7 @@ public partial class VerticalStylePage : ContentView
 				// iPhoneにて、画面を回転させないとScrollViewのDesiredSizeが正常に更新されないバグに対応するため
 				if (Content is ScrollView sv)
 				{
-					double heightRequest = CONTENT_OTHER_THAN_TIMETABLE_HEIGHT + Math.Max(0, TimetableView.HeightRequest);
+					double heightRequest = ContentOtherThanTimetableHeight + Math.Max(0, TimetableView.HeightRequest);
 					logger.Debug("set full-scrollable-ScrollView.HeightRequest -> Max(this.HeightRequest: {0}, heightRequest: {1})", this.HeightRequest, heightRequest);
 					sv.Content.HeightRequest = Math.Max(this.Height, heightRequest);
 				}
@@ -417,6 +484,107 @@ public partial class VerticalStylePage : ContentView
 			}
 		}
 	}
+
+	// issue #41: ビュー高さがしきい値未満なら Low モードでヘッダ系の行を縮める。
+	// 出発前行 (TrainInfo_BeforeDepature) は開閉アニメーションが高さを制御するため
+	// ここでは触らない。モードが変わった時だけ反映し、レイアウト連鎖を抑える。
+	void ApplyRowHeights(double viewHeight)
+	{
+		if (viewHeight <= 0)
+			return;
+
+		ViewHeightMode next = viewHeight < SHORT_SCREEN_HEIGHT_THRESHOLD
+			? ViewHeightMode.Low
+			: ViewHeightMode.Normal;
+		if (next == _currentViewHeightMode)
+			return;
+		_currentViewHeightMode = next;
+		logger.Debug("ViewHeightMode -> {0} (viewHeight={1})", next, viewHeight);
+
+		bool low = next == ViewHeightMode.Low;
+		DateAndStartButtonRowDefinition.Height = new(low ? DATE_AND_START_BUTTON_ROW_HEIGHT_LOW : DATE_AND_START_BUTTON_ROW_HEIGHT);
+		TrainInfoHeaderRowDefinition.Height = new(low ? TRAIN_INFO_HEADER_ROW_HEIGHT_LOW : TRAIN_INFO_HEADER_ROW_HEIGHT);
+		CarCountRowDefinition.Height = new(low ? CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT_LOW : CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT);
+		TimetableHeaderRowDefinition.Height = new(low ? TIMETABLE_HEADER_ROW_HEIGHT_LOW : TIMETABLE_HEADER_ROW_HEIGHT);
+	}
+
+	static ColumnDefinition[] BuildTrainInfoColumns() =>
+	[
+		new(new(TRAIN_INFO_TRAIN_NUMBER_COLUMN_WIDTH)),
+		new(new(TRAIN_INFO_MAX_SPEED_COLUMN_WIDTH)),
+		new(new(1, GridUnitType.Star)),
+		new(new(TRAIN_INFO_NOMINAL_TRACTIVE_COLUMN_WIDTH)),
+	];
+
+	// issue #41: 列車情報ヘッダを表示できる幅が無い時は、最高速度/速度種別/けん引定数の
+	// 列を 0 幅へ畳み、見出し・値・区切り線を非表示にして列車番号を Star 拡張する。
+	void ApplyTrainInfoHeaderLayout(bool visible)
+	{
+		if (_trainInfoHeaderColumns is null || _trainInfoValueColumns is null)
+			return;
+
+		foreach (ColumnDefinition[] cols in new[] { _trainInfoHeaderColumns, _trainInfoValueColumns })
+		{
+			cols[0].Width = visible ? new(TRAIN_INFO_TRAIN_NUMBER_COLUMN_WIDTH) : new(1, GridUnitType.Star);
+			cols[1].Width = visible ? new(TRAIN_INFO_MAX_SPEED_COLUMN_WIDTH) : new(0);
+			cols[2].Width = visible ? new(1, GridUnitType.Star) : new(0);
+			cols[3].Width = visible ? new(TRAIN_INFO_NOMINAL_TRACTIVE_COLUMN_WIDTH) : new(0);
+		}
+
+		MaxSpeedHeaderLabel.IsVisible = SpeedTypeHeaderLabel.IsVisible = NominalTractiveHeaderLabel.IsVisible = visible;
+		MaxSpeedLabel.IsVisible = SpeedTypeLabel.IsVisible = NominalTractiveCapacityLabel.IsVisible = visible;
+		TrainInfoHeaderSep0.IsVisible = TrainInfoHeaderSep1.IsVisible = TrainInfoHeaderSep2.IsVisible = visible;
+		TrainInfoValueSep0.IsVisible = TrainInfoValueSep1.IsVisible = TrainInfoValueSep2.IsVisible = visible;
+		logger.Debug("TrainInfoHeader layout -> visible={0}", visible);
+	}
+
+#if UI_TEST
+	// UI_TEST-only seam: mirrors the timetable's responsive state (issue #41)
+	// into an invisible always-non-empty Label so an Appium test can assert,
+	// device-independently, that the width→visibility path ran and that the
+	// flags never drift from the ViewWidthMode. Same invisibility technique as
+	// ViewHost's TestTitleSeam (transparent text + tiny size + InputTransparent).
+	private const string TestColumnVisibilitySeamId = "DTAC.TestColumnVisibilitySeam";
+	private const string TestColumnVisibilitySeamPrefix = "RV41|";
+	private Label? _testColumnVisibilitySeamLabel;
+
+	private void AddColumnVisibilityTestSeam()
+	{
+		_testColumnVisibilitySeamLabel = new Label
+		{
+			AutomationId = TestColumnVisibilitySeamId,
+			Text = TestColumnVisibilitySeamPrefix,
+			TextColor = Colors.Transparent,
+			BackgroundColor = Colors.Transparent,
+			InputTransparent = true,
+			FontSize = 8,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 0, 0, 84),
+			Padding = 0,
+		};
+		Grid.SetRow(_testColumnVisibilitySeamLabel, MainGrid.RowDefinitions.Count - 1);
+		MainGrid.Children.Add(_testColumnVisibilitySeamLabel);
+	}
+
+	private void RefreshColumnVisibilityTestSeam()
+	{
+		if (_testColumnVisibilitySeamLabel is null)
+			return;
+		var s = TimetableView.ColumnVisibilityState;
+		static int B(bool v) => v ? 1 : 0;
+		// w = the exact width that drove CurrentMode (same VerticalTimetableView
+		// instance whose SizeChanged calls ColumnVisibilityState.UpdateState).
+		// The E2E asserts ClassifyWidth(w) == mode, so a stuck/seed-only mode
+		// (the #41 regression) is detectable independently of the device.
+		_testColumnVisibilitySeamLabel.Text =
+			$"{TestColumnVisibilitySeamPrefix}mode={s.CurrentMode}|w={(int)TimetableView.Width}" +
+			$"|rt={B(s.RunTime)}|rl={B(s.RunInOutLimit)}|rm={B(s.Remarks)}" +
+			$"|mk={B(s.Marker)}|snn={B(s.IsStationNameNarrow)}|tnn={B(s.IsTrackNameNarrow)}";
+	}
+#endif
 
 	const string DateAndStartButton_AnimationName = nameof(DateAndStartButton_AnimationName);
 	void BeforeRemarks_TrainInfo_OpenCloseChanged(object sender, ValueChangedEventArgs<bool> e)

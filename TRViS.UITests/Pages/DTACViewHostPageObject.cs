@@ -47,6 +47,31 @@ public class DTACViewHostPageObject : PageObject
 
 	private static string StripSeamPrefix(string raw, string prefix)
 		=> raw.StartsWith(prefix) ? raw.Substring(prefix.Length) : raw;
+
+	// issue #41: 縦型時刻表のレスポンシブ状態ミラー。
+	// "mode=<ViewWidthMode>|rt=0/1|rl=0/1|rm=0/1|mk=0/1|snn=0/1|tnn=0/1"
+	public AppiumElement ColumnVisibilitySeam
+		=> WaitForElement(AutomationIds.DTAC.TestColumnVisibilitySeam);
+
+	/// <summary>
+	/// Reads the responsive-state seam and returns its key→value pairs
+	/// (mode + each visibility flag). Empty dictionary if the seam is missing
+	/// or only the sentinel prefix is present.
+	/// </summary>
+	public IReadOnlyDictionary<string, string> ReadColumnVisibilityState()
+	{
+		string payload = StripSeamPrefix(
+			ColumnVisibilitySeam.Text ?? string.Empty,
+			AutomationIds.DTAC.TestSeamColumnVisibilityPrefix);
+		var result = new Dictionary<string, string>(StringComparer.Ordinal);
+		foreach (var pair in payload.Split('|', StringSplitOptions.RemoveEmptyEntries))
+		{
+			int eq = pair.IndexOf('=');
+			if (eq > 0)
+				result[pair.Substring(0, eq)] = pair.Substring(eq + 1);
+		}
+		return result;
+	}
 	public AppiumElement TabHako => FindCustomControl(AutomationIds.DTAC.TabHako, "ハ　コ");
 	public AppiumElement TabTimetable => FindCustomControl(AutomationIds.DTAC.TabTimetable, "時刻表");
 	public AppiumElement TabWorkAffix => FindCustomControl(AutomationIds.DTAC.TabWorkAffix, "行路添付");
@@ -272,6 +297,37 @@ public class DTACViewHostPageObject : PageObject
 	{
 		HorizontalTimetableButton.Click();
 		return this;
+	}
+
+	/// <summary>
+	/// issue #41: scans the first <paramref name="maxRows"/> timetable rows for
+	/// a station-name label that is genuinely visible to the user (non-zero
+	/// frame). The user-facing promise of #41 is that station names stay
+	/// readable instead of being clipped off-screen on narrow widths.
+	/// </summary>
+	public bool HasVisibleStationName(int maxRows = 20)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			for (int i = 0; i < maxRows; i++)
+			{
+				string id = AutomationIds.DTAC.TimetableRowStationNamePattern.Replace("{0}", i.ToString());
+				try
+				{
+					var el = Driver.FindElement(AutomationIdLocator(id));
+					if (IsElementUserVisible(el))
+						return true;
+				}
+				catch (NoSuchElementException) { }
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
 	}
 
 	private AppiumElement FindCustomControl(string automationId, params string[] candidateTexts)

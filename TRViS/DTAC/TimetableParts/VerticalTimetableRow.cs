@@ -161,6 +161,7 @@ public class VerticalTimetableRow : IDisposable
 				UpdateDriveTime();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.StationName):
+			case nameof(VerticalTimetableColumnVisibilityState.IsStationNameNarrow):
 				UpdateStationName();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.ArrivalTime):
@@ -172,6 +173,7 @@ public class VerticalTimetableRow : IDisposable
 				UpdateOperationOnlyStop();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.TrackName):
+			case nameof(VerticalTimetableColumnVisibilityState.IsTrackNameNarrow):
 				UpdateTrackName();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.RunInOutLimit):
@@ -494,7 +496,11 @@ public class VerticalTimetableRow : IDisposable
 #if UI_TEST
 		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
 #endif
-		label.Text = StationNameConverter.Convert(Model.StationName);
+		// issue #41: 狭幅モードでは詰めて表示し、フォントも縮める
+		label.Text = StationNameConverter.Convert(Model.StationName, VisibilityState.IsStationNameNarrow);
+		label.FontSize = VisibilityState.IsStationNameNarrow
+			? DTACElementStyles.TimetableFontSizeNarrow
+			: DTACElementStyles.TimetableFontSize;
 #if UI_TEST
 		// HtmlAutoDetectLabel is a ContentView whose AutomationId does not surface
 		// as an Android UIAutomator2 resource-id. Its inner Content (set
@@ -601,7 +607,13 @@ public class VerticalTimetableRow : IDisposable
 
 		var label = EnsureComponent(ref TrackNameLabel, CreateTrackNameComponent, TRACK_NAME_COLUMN);
 		label.Text = Model.TrackName;
-		label.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(Model.TrackName, label.FontSize);
+		// issue #41: 狭幅モードでは縮小したベースサイズから算出する。
+		// label.FontSize を基準にすると再利用時に縮小が複合してしまうため、
+		// 毎回モードに応じたベースサイズを明示的に渡す。
+		double trackBaseFontSize = VisibilityState.IsTrackNameNarrow
+			? DTACElementStyles.TimetableFontSizeNarrow
+			: DTACElementStyles.TimetableFontSize;
+		label.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(Model.TrackName, trackBaseFontSize);
 	}
 
 	private void UpdateRunInOutLimit()

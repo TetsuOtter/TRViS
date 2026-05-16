@@ -18,8 +18,7 @@
 
 	<Grid
 		x:Name="MainGrid"
-		SafeAreaEdges="None"
-		MinimumWidthRequest="740">
+		SafeAreaEdges="None">
 
 		<dtac:PageHeader
 			x:Name="PageHeaderArea"
@@ -29,43 +28,49 @@
 			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}"/>
 
 		<Grid
+			x:Name="TrainInfoHeaderGrid"
 			Grid.Row="1"
-			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.HeaderBackgroundColor}">
 			<Label
 				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="列　車"
 				Grid.Column="0"/>
 			<Line
+				x:Name="TrainInfoHeaderSep0"
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
 			<Label
+				x:Name="MaxSpeedHeaderLabel"
 				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="最高速度&#xa;(Ｋｍ / ｈ)"
 				HorizontalTextAlignment="Center"
 				Grid.Column="1"/>
 			<Line
+				x:Name="TrainInfoHeaderSep1"
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
 			<Label
+				x:Name="SpeedTypeHeaderLabel"
 				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="速度種別"
 				Grid.Column="2"/>
 			<Line
+				x:Name="TrainInfoHeaderSep2"
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="2"/>
 
 			<Label
+				x:Name="NominalTractiveHeaderLabel"
 				Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 				Text="けん引定数"
 				Grid.Column="3"/>
 		</Grid>
 
 		<Grid
+			x:Name="TrainInfoValueGrid"
 			Grid.Row="2"
-			ColumnDefinitions="{StaticResource TrainInfoColumnWidthCollection}"
 			BackgroundColor="{x:Static dtac:DTACElementStyles.DefaultBGColor}">
 			<Label
 				x:Name="TrainNumberLabel"
@@ -75,6 +80,7 @@
 				FontAttributes="Bold"
 				Grid.Column="0"/>
 			<Line
+				x:Name="TrainInfoValueSep0"
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="0"/>
 
@@ -85,6 +91,7 @@
 				HorizontalOptions="End"
 				Grid.Column="1"/>
 			<Line
+				x:Name="TrainInfoValueSep1"
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="1"/>
 
@@ -95,6 +102,7 @@
 				HorizontalOptions="End"
 				Grid.Column="2"/>
 			<Line
+				x:Name="TrainInfoValueSep2"
 				Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 				Grid.Column="2"/>
 

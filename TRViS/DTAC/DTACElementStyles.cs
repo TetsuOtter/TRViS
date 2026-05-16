@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
+using TRViS.DTAC.ViewModels;
 using TRViS.Services;
 using TRViS.Utils;
 
@@ -77,6 +78,8 @@ public static partial class DTACElementStyles
 	public const double BEFORE_REMARKS_FONT_SIZE = 17;
 	public const double AFTER_REMARKS_FONT_SIZE = 20;
 	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 32 : 30;
+	// 狭い画面で停車場名・着線/発線を詰めて表示するときのフォントサイズ (issue #41)
+	public static readonly double TimetableFontSizeNarrow = TimetableFontSize - 4;
 	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 26 : 24;
 	public static readonly double DriveTimeMMFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
 	public static readonly double DriveTimeSSFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 18 : 16;
@@ -110,17 +113,45 @@ public static partial class DTACElementStyles
 	};
 
 	public const double RUN_TIME_COLUMN_WIDTH = 60;
-	private const int DEFAULT_TIME_COLUMN_WIDTH = 140;
-	private const int NARROW_TIME_COLUMN_WIDTH = 134;
+	private const double RUN_TIME_COLUMN_WIDTH_NARROW = 4;
+	private const double STA_NAME_COLUMN_WIDTH = 140;
+	private const double STA_NAME_COLUMN_WIDTH_NARROW = 96;
+	private const double ARR_DEP_COLUMN_WIDTH = 140;
+	private const double ARR_DEP_COLUMN_WIDTH_NARROW = 110;
+	private const double ARR_DEP_COLUMN_WIDTH_MINI6 = 134;
+	private const double TRACK_NUMBER_COLUMN_WIDTH = 60;
+	private const double TRACK_NUMBER_COLUMN_WIDTH_NARROW = 48;
+	private const double SPEED_LIMIT_COLUMN_WIDTH = 60;
+	private const double MARKER_COLUMN_WIDTH = 64;
+
+	/// <summary>
+	/// 縦型時刻表の 8 列 (運転時分/停車場名/着/発/着線発線/制限速度/記事/マーカー) の
+	/// 列定義を <paramref name="grid"/> に設定し、画面幅に応じて段階的に幅を変える
+	/// SizeChanged ハンドラを取り付ける (issue #41)。
+	///
+	/// <para>
+	/// 旧 main は &lt;768 で着発時刻列を 134px にするだけの単一ブレークポイントだったため、
+	/// 狭い画面で非表示相当の列が幅を占有し続け内容が見切れていた。
+	/// 旧 feature/support-smartphone ブランチの <c>DTACColumnDefinitionsProvider</c> の
+	/// 段階的ロジック (非表示列は 0 幅へ畳む / 停車場名・着線発線は狭幅へ /
+	/// 最後に残る可変列を Star にして余白を埋める) を移植する。
+	/// </para>
+	/// <para>
+	/// 幅判定は必ず <see cref="VerticalTimetableColumnVisibilityState"/> の
+	/// 分類器・述語を経由するため、列の表示/非表示 (内容側) と列幅が食い違わない。
+	/// この grid 自身の幅で判定するので、同じ列構成を持つ複数 grid
+	/// (ヘッダ・出発前・記事前・行本体) は同一幅で一貫した結果になる。
+	/// </para>
+	/// </summary>
 	public static void SetTimetableColumnWidthCollection(Grid grid)
 	{
 		ColumnDefinition runTimeColumn = new(new(RUN_TIME_COLUMN_WIDTH));
-		ColumnDefinition stationNameColumn = new(new(140));
-		ColumnDefinition arrivalDepartureTimeColumn = new(new(140));
-		ColumnDefinition trackNumberColumn = new(new(60));
-		ColumnDefinition speedLimitColumn = new(new(60));
+		ColumnDefinition stationNameColumn = new(new(STA_NAME_COLUMN_WIDTH));
+		ColumnDefinition arrivalDepartureTimeColumn = new(new(ARR_DEP_COLUMN_WIDTH));
+		ColumnDefinition trackNumberColumn = new(new(TRACK_NUMBER_COLUMN_WIDTH));
+		ColumnDefinition speedLimitColumn = new(new(SPEED_LIMIT_COLUMN_WIDTH));
 		ColumnDefinition remarksColumn = new(new(1, GridUnitType.Star));
-		ColumnDefinition markerColumn = new(new(64));
+		ColumnDefinition markerColumn = new(new(MARKER_COLUMN_WIDTH));
 		grid.ColumnDefinitions = [
 			runTimeColumn,
 			stationNameColumn,
@@ -131,22 +162,55 @@ public static partial class DTACElementStyles
 			remarksColumn,
 			markerColumn
 		];
+
+		VerticalTimetableColumnVisibilityState.ViewWidthMode? lastMode = null;
 		grid.SizeChanged += (s, e) =>
 		{
-			logger.Debug("TimetableColumnWidthCollection SizeChanged (height={0}, width={1})", grid.Height, grid.Width);
-			if (0 < grid.Width && grid.Width < 768)
+			if (grid.Width <= 0)
+				return;
+
+			VerticalTimetableColumnVisibilityState.ViewWidthMode m
+				= VerticalTimetableColumnVisibilityState.ClassifyWidth(grid.Width);
+			if (lastMode == m)
+				return;
+			lastMode = m;
+			logger.Debug("TimetableColumnWidthCollection mode -> {0} (width={1})", m, grid.Width);
+
+			bool isRunTimeVisible = VerticalTimetableColumnVisibilityState.IsRunTimeVisible(m);
+			bool isStaNameNarrow = VerticalTimetableColumnVisibilityState.IsStationNameNarrowMode(m);
+			bool isTrackNarrow = VerticalTimetableColumnVisibilityState.IsTrackNameNarrowMode(m);
+			bool isSpeedLimitVisible = VerticalTimetableColumnVisibilityState.IsRunInOutLimitVisible(m);
+			bool isRemarksVisible = VerticalTimetableColumnVisibilityState.IsRemarksVisible(m);
+			bool isMarkerVisible = VerticalTimetableColumnVisibilityState.IsMarkerVisible(m);
+
+			// 運転時分: 非表示時も 0 ではなく細い帯を残す (列車情報出発前ヘッダと幅を揃えるため)
+			runTimeColumn.Width = isRunTimeVisible ? RUN_TIME_COLUMN_WIDTH : RUN_TIME_COLUMN_WIDTH_NARROW;
+
+			// 停車場名: 後続の記事列が消えたら Star にして余白を吸収する
+			stationNameColumn.Width = new(
+				isStaNameNarrow ? STA_NAME_COLUMN_WIDTH_NARROW : STA_NAME_COLUMN_WIDTH,
+				isRemarksVisible ? GridUnitType.Absolute : GridUnitType.Star
+			);
+
+			// 着/発: モードごとに最適幅
+			arrivalDepartureTimeColumn.Width = m switch
 			{
-				if (arrivalDepartureTimeColumn.Width.Value != NARROW_TIME_COLUMN_WIDTH)
-				{
-					arrivalDepartureTimeColumn.Width = new(NARROW_TIME_COLUMN_WIDTH);
-					logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: NARROW_TIME_COLUMN_WIDTH");
-				}
-			}
-			else if (arrivalDepartureTimeColumn.Width.Value != DEFAULT_TIME_COLUMN_WIDTH)
-			{
-				arrivalDepartureTimeColumn.Width = new(DEFAULT_TIME_COLUMN_WIDTH);
-				logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: DEFAULT_TIME_COLUMN_WIDTH");
-			}
+				<= VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_6_7_8_PLUS_V
+					=> ARR_DEP_COLUMN_WIDTH_NARROW,
+				VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_6_V
+					=> ARR_DEP_COLUMN_WIDTH_MINI6,
+				_ => ARR_DEP_COLUMN_WIDTH,
+			};
+
+			// 着線/発線: 後続の制限速度列が消えたら Star にして余白を吸収する
+			trackNumberColumn.Width = new(
+				isTrackNarrow ? TRACK_NUMBER_COLUMN_WIDTH_NARROW : TRACK_NUMBER_COLUMN_WIDTH,
+				isSpeedLimitVisible ? GridUnitType.Absolute : GridUnitType.Star
+			);
+
+			speedLimitColumn.Width = isSpeedLimitVisible ? SPEED_LIMIT_COLUMN_WIDTH : 0;
+			remarksColumn.Width = isRemarksVisible ? new(1, GridUnitType.Star) : new(0);
+			markerColumn.Width = isMarkerVisible ? MARKER_COLUMN_WIDTH : 0;
 		};
 	}
 

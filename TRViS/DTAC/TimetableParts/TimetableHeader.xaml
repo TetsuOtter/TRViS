@@ -12,11 +12,13 @@
 		</ResourceDictionary>
 	</Grid.Resources>
 	<Label
+		x:Name="RunTimeLabel"
 		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="0"
 		LineBreakMode="CharacterWrap"
 		Text="運転&#xa;時分"/>
 	<Line
+		x:Name="RunTimeSeparator"
 		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="0"/>
 
@@ -71,15 +73,18 @@
 		Grid.Column="4"/>
 
 	<Label
+		x:Name="LimitLabel"
 		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="5"
 		LineBreakMode="CharacterWrap"
 		Text="制限&#xa;速度"/>
 	<Line
+		x:Name="LimitSeparator"
 		Style="{x:Static dtac:DTACElementStyles.VerticalSeparatorLineStyleResource}"
 		Grid.Column="5"/>
 
 	<Label
+		x:Name="RemarksLabel"
 		Style="{x:Static dtac:DTACElementStyles.HeaderLabelStyleResource}"
 		Grid.Column="6"
 		Text="記事"/>

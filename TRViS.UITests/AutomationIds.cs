@@ -197,6 +197,16 @@ public static class AutomationIds
 		// Use string.Format: TimetableRowStationNamePattern.Replace("{0}", rowIndex.ToString())
 		public const string TimetableRowStationNamePattern = "TimetableRow.{0}.StationName";
 		public const string TimetableRowInfoRowPattern = "TimetableRow.{0}.InfoRow";
+
+		// UI_TEST-only mirror of the 縦型時刻表 responsive state (issue #41).
+		// Always non-empty (TestSeamColumnVisibilityPrefix) so it surfaces in
+		// iOS's accessibility tree regardless of width. Text payload after the
+		// prefix is "mode=<ViewWidthMode>|rt=0/1|rl=0/1|rm=0/1|mk=0/1|snn=0/1|tnn=0/1"
+		// where rt=RunTime rl=RunInOutLimit rm=Remarks mk=Marker
+		// snn=IsStationNameNarrow tnn=IsTrackNameNarrow. Used to assert the
+		// width→column-visibility path actually runs and never drifts.
+		public const string TestColumnVisibilitySeam = "DTAC.TestColumnVisibilitySeam";
+		public const string TestSeamColumnVisibilityPrefix = "RV41|";
 	}
 
 	/// <summary>
