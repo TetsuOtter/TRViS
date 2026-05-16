@@ -24,7 +24,8 @@ public partial class FirebaseSettingPage : ContentPage
 		logger.Trace("Executing...");
 		FirebaseSettingViewModel.CopyFrom(InstanceManager.FirebaseSettingViewModel);
 		FirebaseSettingViewModel.IsEnabled = false;
-		FirebaseSettingViewModel.SaveAndApplySettings(true);
+		InstanceManager.FirebaseSettingViewModel.CopyFrom(FirebaseSettingViewModel);
+		InstanceManager.FirebaseSettingViewModel.SaveAndApplySettings(true);
 		logger.Trace("Executed");
 	}
 
