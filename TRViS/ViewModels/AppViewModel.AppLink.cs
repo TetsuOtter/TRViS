@@ -24,6 +24,66 @@ public partial class AppViewModel
 	private readonly List<string> _ExternalResourceUrlHistory;
 	public IReadOnlyList<string> ExternalResourceUrlHistory => _ExternalResourceUrlHistory;
 
+	// --- WebSocket connection-lost tracking / reconnect (#261) ---
+	// Captured at the last successful WebSocket connect so the Home screen's
+	// 再接続 button can re-run the exact same connect. The AppLinkInfo is kept
+	// (not just LoaderSourceLabel) because AppLinkInfo.FromAppLink rejects a raw
+	// ws:// string (it requires host == "app"), so the display label alone is
+	// not reconnectable.
+	private AppLinkInfo? _lastWebSocketAppLinkInfo;
+	private string? _lastWebSocketOriginalAppLink;
+	// Watches the active WS service for ConnectionClosed / ConnectionFailed and
+	// detaches the old one on reconnect. The subscribe/resubscribe/sender-guard
+	// logic is extracted here so it can be unit-tested without MAUI; the only
+	// MAUI-bound part (MainThread marshaling + observable set) stays in the
+	// MarkServerConnectionLost callback below.
+	private NetworkSyncConnectionLostWatcher? _wsConnectionLostWatcherField;
+	private NetworkSyncConnectionLostWatcher WsConnectionLostWatcher
+		=> _wsConnectionLostWatcherField ??= new NetworkSyncConnectionLostWatcher(MarkServerConnectionLost);
+
+	/// <summary>
+	/// 切断イベント監視を解除し、再接続情報を破棄する。WebSocket 以外 / null の
+	/// ローダーに切り替わったとき (<see cref="OnLoaderChanged"/>) に呼ばれる。
+	/// </summary>
+	internal void ClearWebSocketConnectionTracking()
+	{
+		WsConnectionLostWatcher.Clear();
+		_lastWebSocketAppLinkInfo = null;
+		_lastWebSocketOriginalAppLink = null;
+	}
+
+	// ConnectionClosed / ConnectionFailed は WebSocket の受信ループスレッドから
+	// 発火する。ここでは Loader を差し替えず (切断後もキャッシュ済みデータを
+	// Home 画面に出し続けたいため。LocationService 側が GPS へフォールバックして
+	// サービスを Dispose 済みでもキャッシュは読める)、フラグだけ立てる。
+	// 観測対象プロパティの set は HomeGridView のラベル / 表示更新を駆動するので
+	// UI スレッドへマーシャリングする。
+	private void MarkServerConnectionLost()
+	{
+		logger.Info("WebSocket connection lost -> IsServerConnectionLost = true");
+		if (MainThread.IsMainThread)
+			IsServerConnectionLost = true;
+		else
+			MainThread.BeginInvokeOnMainThread(() => IsServerConnectionLost = true);
+	}
+
+	/// <summary>
+	/// 直近に成功した WebSocket 接続と同じ接続先へ再接続する。Home 画面の
+	/// 再接続ボタンから呼ばれる。再接続情報が無い場合は何もせず false を返す。
+	/// </summary>
+	public Task<bool> ReconnectWebSocketAsync(CancellationToken token)
+	{
+		AppLinkInfo? info = _lastWebSocketAppLinkInfo;
+		if (info is null)
+		{
+			logger.Warn("ReconnectWebSocketAsync: no stored WebSocket AppLink to reconnect with");
+			return Task.FromResult(false);
+		}
+		logger.Info("ReconnectWebSocketAsync: reconnecting to {0}", info.ResourceUri);
+		// addToHistory: false — a reconnect is not a new user-initiated entry.
+		return HandleWebSocketAppLinkAsync(info, _lastWebSocketOriginalAppLink, addToHistory: false, token);
+	}
+
 	public Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
 		=> HandleAppLinkUriAsync(uri, addToHistory: true, token);
 
@@ -280,6 +340,14 @@ public partial class AppViewModel
 			};
 
 			WebSocketNetworkSyncService service = await openFile.OpenWebSocketAppLinkAsync(appLinkInfo, token);
+
+			// Remember how to reconnect, watch this service for disconnects, and
+			// clear any prior "connection lost" banner — we now have a fresh live
+			// connection. Subscribe before SetLoader so an immediate drop is caught.
+			_lastWebSocketAppLinkInfo = appLinkInfo;
+			_lastWebSocketOriginalAppLink = originalAppLink;
+			WsConnectionLostWatcher.Watch(service);
+			IsServerConnectionLost = false;
 
 			ILoader? lastLoader = this.Loader;
 			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
