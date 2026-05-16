@@ -777,6 +777,34 @@ public class VerticalStylePagePresenterTests
 		Assert.False(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
 	}
 
+	// 回帰テスト: 位置情報が有効な状態で別の列車が選択された (cascade /
+	// サーバ push) とき、状態再構築 (CreateStateFromTrainData) が
+	// TimetableViewState.IsLocationServiceEnabled (マーカーのゲート) を
+	// 落としていたため、ボタンは ON でも位置マーカーが動かない不具合の防止。
+	[Fact]
+	public void SelectingTrainWhileLocationEnabled_KeepsMarkerGateOpen()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-A");
+
+		// サーバ駆動で有効化 (ボタン ON / ゲート開)
+		locationService.RaiseIsEnabledChanged(true);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+
+		// 別の列車が選択される (full-reset path = CreateStateFromTrainData)
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-B");
+
+		Assert.True(presenter.CurrentState.LocationServiceState.IsEnabled);
+		Assert.True(presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled,
+			"marker gate must survive a train reselection while location is enabled");
+
+		// ゲートが開いているので位置更新でマーカーが動く
+		locationService.RaiseLocationStateChanged(1, false);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
+	}
+
 	#endregion
 
 }

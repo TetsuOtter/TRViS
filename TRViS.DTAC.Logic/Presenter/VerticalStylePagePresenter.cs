@@ -328,9 +328,7 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 			return;
 		}
 
-		_currentState.LocationServiceState.IsEnabled = enabled;
-		_currentState.PageHeaderState.IsLocationServiceEnabled = enabled;
-		_currentState.TimetableViewState.IsLocationServiceEnabled = enabled;
+		VerticalPageStateUpdater.UpdateLocationServiceEnabledState(_currentState, enabled);
 
 		RaiseStateChanged(
 			VerticalPageStateSection.LocationService
