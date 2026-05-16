@@ -127,7 +127,8 @@ public class HorizontalTimetablePage : ContentPage
 			case HorizontalTimetableRenderKind.Pdf:
 				try
 				{
-					string html = await PdfJsViewerHtmlBuilder.BuildAsync(result.Payload).ConfigureAwait(true);
+					var pdfEngine = InstanceManager.EasterEggPageViewModel.PdfJsRenderEngine;
+					string html = await PdfJsViewerHtmlBuilder.BuildAsync(result.Payload, pdfEngine).ConfigureAwait(true);
 					ContentWebView.Source = new HtmlWebViewSource { Html = html };
 				}
 				catch (Exception ex)

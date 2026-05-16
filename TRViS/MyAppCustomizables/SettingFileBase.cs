@@ -67,6 +67,11 @@ public partial class SettingFileStructure
 	/// </summary>
 	public HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
 
+	/// <summary>
+	/// PDF 表示に使用する pdf.js のバージョンと描画方式
+	/// </summary>
+	public PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;
+
 	public override string ToString()
 	{
 		return
@@ -78,7 +83,8 @@ public partial class SettingFileStructure
 			+ $"ShowMapWhenLandscape: {ShowMapWhenLandscape},"
 			+ $"KeepScreenOnWhenRunning: {KeepScreenOnWhenRunning},"
 			+ $"TimeProgressionRate: {TimeProgressionRate},"
-			+ $"HorizontalTimetableButtonLabel: {HorizontalTimetableButtonLabel}"
+			+ $"HorizontalTimetableButtonLabel: {HorizontalTimetableButtonLabel},"
+			+ $"PdfJsRenderEngine: {PdfJsRenderEngine}"
 		;
 	}
 
@@ -97,6 +103,7 @@ public partial class SettingFileStructure
 			&& KeepScreenOnWhenRunning.Equals(v.KeepScreenOnWhenRunning)
 			&& TimeProgressionRate.Equals(v.TimeProgressionRate)
 			&& HorizontalTimetableButtonLabel.Equals(v.HorizontalTimetableButtonLabel)
+			&& PdfJsRenderEngine.Equals(v.PdfJsRenderEngine)
 		;
 	}
 
@@ -104,7 +111,7 @@ public partial class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, HorizontalTimetableButtonLabel));
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, HorizontalTimetableButtonLabel, PdfJsRenderEngine));
 
 	#region Loaders
 

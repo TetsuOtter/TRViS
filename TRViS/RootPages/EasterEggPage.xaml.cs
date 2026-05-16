@@ -31,6 +31,12 @@ public partial class EasterEggPage : ContentPage
 		// Initialize HorizontalTimetableButtonLabelPicker selection based on ViewModel
 		UpdateHorizontalTimetableButtonLabelPickerSelection();
 
+		// Populate the PDF render engine picker with the options available on this
+		// device (iOS < 13 → v2 only; iOS 13–16.3 → v3; iOS 16.4+ → v3 + v5),
+		// then sync the selection.
+		PopulatePdfJsRenderEnginePicker();
+		UpdatePdfJsRenderEnginePickerSelection();
+
 		// Update picker when ViewModel's SelectedAppTheme changes
 		ViewModel.PropertyChanged += (_, e) =>
 		{
@@ -45,6 +51,10 @@ public partial class EasterEggPage : ContentPage
 			else if (e.PropertyName == nameof(EasterEggPageViewModel.HorizontalTimetableButtonLabel))
 			{
 				UpdateHorizontalTimetableButtonLabelPickerSelection();
+			}
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.PdfJsRenderEngine))
+			{
+				UpdatePdfJsRenderEnginePickerSelection();
 			}
 		};
 
@@ -224,6 +234,105 @@ public partial class EasterEggPage : ContentPage
 		finally
 		{
 			_isUpdatingHorizontalTimetableButtonLabelPicker = false;
+		}
+	}
+
+	// v3 は Safari 13+ (nullish coalescing) が必要なため iOS 13 以降で提供する。
+	// v5 (pdf.js 公式 legacy ビルド) の対応下限は Safari 16.4 (= iOS 16.4) のため
+	// iOS 16.4 以降でのみ提供する。iOS 12 系は v2 系のみ。
+	// iOS 以外 (Android/Windows/macCatalyst) は近代 WebView のため全て扱える。
+	private static bool SupportsV3()
+		=> !OperatingSystem.IsIOS() || OperatingSystem.IsIOSVersionAtLeast(13);
+
+	private static bool SupportsV5()
+		=> !OperatingSystem.IsIOS() || OperatingSystem.IsIOSVersionAtLeast(16, 4);
+
+	private static IReadOnlyList<PdfJsRenderEngine> PdfJsRenderEngineOptions()
+	{
+		if (!SupportsV3())
+			return new[] { PdfJsRenderEngine.V2Svg, PdfJsRenderEngine.V2Canvas };
+		if (!SupportsV5())
+			return new[] { PdfJsRenderEngine.V3Svg, PdfJsRenderEngine.V3Canvas };
+		return new[] { PdfJsRenderEngine.V3Svg, PdfJsRenderEngine.V3Canvas, PdfJsRenderEngine.V5Canvas };
+	}
+
+	private static string PdfJsRenderEngineDisplayName(PdfJsRenderEngine engine)
+		=> engine switch
+		{
+			PdfJsRenderEngine.V2Svg => "pdf.js v2 (SVG描画)",
+			PdfJsRenderEngine.V2Canvas => "pdf.js v2 (canvas描画)",
+			PdfJsRenderEngine.V3Svg => "pdf.js v3 (SVG描画)",
+			PdfJsRenderEngine.V3Canvas => "pdf.js v3 (canvas描画)",
+			PdfJsRenderEngine.V5Canvas => "pdf.js v5 (canvas描画)",
+			_ => engine.ToString()
+		};
+
+	private IReadOnlyList<PdfJsRenderEngine> _pdfJsRenderEngineOptions = [];
+	private bool _isUpdatingPdfJsRenderEnginePicker = false;
+
+	private void PopulatePdfJsRenderEnginePicker()
+	{
+		_pdfJsRenderEngineOptions = PdfJsRenderEngineOptions();
+
+		_isUpdatingPdfJsRenderEnginePicker = true;
+		try
+		{
+			PdfJsRenderEnginePicker.Items.Clear();
+			foreach (PdfJsRenderEngine engine in _pdfJsRenderEngineOptions)
+				PdfJsRenderEnginePicker.Items.Add(PdfJsRenderEngineDisplayName(engine));
+		}
+		finally
+		{
+			_isUpdatingPdfJsRenderEnginePicker = false;
+		}
+	}
+
+	private void OnPdfJsRenderEnginePickerSelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (_isUpdatingPdfJsRenderEnginePicker)
+			return;
+
+		if (sender is not Picker picker)
+			return;
+
+		int index = picker.SelectedIndex;
+		if (index < 0 || index >= _pdfJsRenderEngineOptions.Count)
+			return;
+
+		PdfJsRenderEngine newEngine = _pdfJsRenderEngineOptions[index];
+		logger.Info("PdfJsRenderEngine changed to {0}", newEngine);
+		ViewModel.PdfJsRenderEngine = newEngine;
+	}
+
+	private void UpdatePdfJsRenderEnginePickerSelection()
+	{
+		_isUpdatingPdfJsRenderEnginePicker = true;
+		try
+		{
+			PdfJsRenderEngine current = ViewModel.PdfJsRenderEngine;
+
+			int index = -1;
+			for (int i = 0; i < _pdfJsRenderEngineOptions.Count; i++)
+			{
+				if (_pdfJsRenderEngineOptions[i] == current)
+				{
+					index = i;
+					break;
+				}
+			}
+
+			// 保存値がこの端末の選択肢に無い場合 (例: 既定値 V2Svg を iOS 13+ で表示、
+			// あるいは新しい端末で設定した値が古い端末に同期された場合)。
+			// Picker は未選択にし、現在の実効エンジンはラベルで明示する。
+			PdfJsRenderEnginePicker.SelectedIndex = index;
+
+			PdfJsRenderEngineStatusLabel.Text = index >= 0
+				? $"現在の描画エンジン: {PdfJsRenderEngineDisplayName(current)}"
+				: $"現在の描画エンジン: {PdfJsRenderEngineDisplayName(current)} (変更するには上のリストから選択してください)";
+		}
+		finally
+		{
+			_isUpdatingPdfJsRenderEnginePicker = false;
 		}
 	}
 }
