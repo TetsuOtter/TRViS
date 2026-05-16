@@ -130,7 +130,8 @@ public partial class PrivacyPolicyDialog : ContentPage
 		logger.Trace("Reset clicked");
 		FirebaseSettingViewModel.CopyFrom(InstanceManager.FirebaseSettingViewModel);
 		FirebaseSettingViewModel.IsEnabled = false;
-		FirebaseSettingViewModel.SaveAndApplySettings(true);
+		InstanceManager.FirebaseSettingViewModel.CopyFrom(FirebaseSettingViewModel);
+		InstanceManager.FirebaseSettingViewModel.SaveAndApplySettings(true);
 	}
 
 	private async void OnSaveButtonClicked(object? sender, EventArgs e)
