@@ -9,25 +9,13 @@ on:
       build_number:
         required: true
         type: string
-      publish_ios_result:
-        required: true
-        type: string
-      publish_mac_result:
-        required: true
-        type: string
-      build_android_result:
-        required: true
-        type: string
-      build_windows_result:
-        required: true
-        type: string
     outputs:
       tag-name:
         value: ${{ jobs.set-tag.outputs.tag-name }}
 
 jobs:
   set-tag:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     outputs:
       tag-name: ${{ steps.tag-name.outputs.tag-name }}
@@ -84,14 +72,13 @@ jobs:
             echo "ERROR: Tag ${TAG_NAME} exists on remote at ${remote_sha} but this run points to ${local_sha}"
             exit 1
           fi
-          git push origin "${TAG_NAME}"
-
-      - name: Comment TagName and Actions-Run URL to PR
-        if: ${{ github.event_name == 'pull_request' }}
-        run: >
-          echo Tag \`${{ steps.tag-name.outputs.tag-name }}\` was automatically created and pushed with
-          ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-          ' (Publish Status iOS: ${{ inputs.publish_ios_result }} / macOS: ${{ inputs.publish_mac_result }} / Android: ${{ inputs.build_android_result }} / Windows: ${{ inputs.build_windows_result }})'
-          | gh pr comment ${{ github.event.number }} -F -
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if ! git push origin "${TAG_NAME}"; then
+            # Another concurrent set-tag job may have pushed first.
+            remote_sha=$(git ls-remote origin "refs/tags/${TAG_NAME}^{}" | awk '{print $1}')
+            if [ "$remote_sha" = "$local_sha" ]; then
+              echo "Tag ${TAG_NAME} pushed by concurrent job at same SHA; treating as success."
+              exit 0
+            fi
+            echo "ERROR: push failed and remote tag SHA does not match local SHA"
+            exit 1
+          fi

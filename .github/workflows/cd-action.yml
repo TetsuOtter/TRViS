@@ -32,7 +32,7 @@ jobs:
       )
       && !cancelled()
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 5
 
     outputs:
@@ -95,7 +95,7 @@ jobs:
         github.event_name != 'pull_request'
         || github.event.pull_request.draft == false
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 2
     needs:
       - generate-bundle-version
@@ -260,16 +260,10 @@ jobs:
       PKG_PATH: ./out/TRViS.pkg
     secrets: inherit
 
-  set-tag:
+  set-tag-ios:
     if: |
-      always()
-      && needs.generate-bundle-version.result == 'success'
-      && (
-        needs.publish-ios.result == 'success'
-        || needs.publish-mac.result == 'success'
-        || needs.build-android.result == 'success'
-        || needs.build-windows.result == 'success'
-      )
+      needs.generate-bundle-version.result == 'success'
+      && needs.publish-ios.result == 'success'
       && (
         github.event_name != 'workflow_dispatch'
         || github.event.inputs.version != ''
@@ -277,40 +271,121 @@ jobs:
     needs:
       - generate-bundle-version
       - publish-ios
+    uses: ./.github/workflows/_cd-set-tag.yml
+    with:
+      display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
+      build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
+    secrets: inherit
+
+  set-tag-mac:
+    if: |
+      needs.generate-bundle-version.result == 'success'
+      && needs.publish-mac.result == 'success'
+      && (
+        github.event_name != 'workflow_dispatch'
+        || github.event.inputs.version != ''
+      )
+    needs:
+      - generate-bundle-version
       - publish-mac
+    uses: ./.github/workflows/_cd-set-tag.yml
+    with:
+      display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
+      build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
+    secrets: inherit
+
+  set-tag-android:
+    if: |
+      needs.generate-bundle-version.result == 'success'
+      && needs.build-android.result == 'success'
+      && (
+        github.event_name != 'workflow_dispatch'
+        || github.event.inputs.version != ''
+      )
+    needs:
+      - generate-bundle-version
       - build-android
+    uses: ./.github/workflows/_cd-set-tag.yml
+    with:
+      display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
+      build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
+    secrets: inherit
+
+  set-tag-windows:
+    if: |
+      needs.generate-bundle-version.result == 'success'
+      && needs.build-windows.result == 'success'
+      && (
+        github.event_name != 'workflow_dispatch'
+        || github.event.inputs.version != ''
+      )
+    needs:
+      - generate-bundle-version
       - build-windows
     uses: ./.github/workflows/_cd-set-tag.yml
     with:
       display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
       build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
-      publish_ios_result: ${{ needs.publish-ios.result }}
-      publish_mac_result: ${{ needs.publish-mac.result }}
-      build_android_result: ${{ needs.build-android.result }}
-      build_windows_result: ${{ needs.build-windows.result }}
     secrets: inherit
+
+  comment-pr:
+    if: |
+      always()
+      && github.event_name == 'pull_request'
+      && (
+        needs.set-tag-ios.result == 'success'
+        || needs.set-tag-mac.result == 'success'
+        || needs.set-tag-android.result == 'success'
+        || needs.set-tag-windows.result == 'success'
+      )
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    needs:
+      - generate-bundle-version
+      - set-tag-ios
+      - set-tag-mac
+      - set-tag-android
+      - set-tag-windows
+    steps:
+      - name: Comment TagName and Actions-Run URL to PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo 'Tag `v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}` was automatically created and pushed with ... https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} (Platform Status iOS: ${{ needs.set-tag-ios.result }} / macOS: ${{ needs.set-tag-mac.result }} / Android: ${{ needs.set-tag-android.result }} / Windows: ${{ needs.set-tag-windows.result }})' | gh pr comment ${{ github.event.number }} -F -
 
   create-release:
     if: |
-      (
-        github.event_name == 'push'
-        && github.ref_name == 'main'
+      always()
+      && (
+        needs.set-tag-ios.result == 'success'
+        || needs.set-tag-mac.result == 'success'
+        || needs.set-tag-android.result == 'success'
+        || needs.set-tag-windows.result == 'success'
       )
-      || (
-        github.event_name == 'workflow_dispatch'
-        && github.event.inputs.version != ''
+      && (
+        (
+          github.event_name == 'push'
+          && github.ref_name == 'main'
+        )
+        || (
+          github.event_name == 'workflow_dispatch'
+          && github.event.inputs.version != ''
+        )
       )
     needs:
-      - set-tag
+      - generate-bundle-version
+      - set-tag-ios
+      - set-tag-mac
+      - set-tag-android
+      - set-tag-windows
       - build-android
       - build-windows
     uses: ./.github/workflows/_cd-create-release.yml
     with:
-      tag_name: ${{ needs.set-tag.outputs.tag-name }}
+      tag_name: v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}
       ASSET_NAME_WIN_X64: TRViS-win-x64
       ASSET_NAME_WIN_X86: TRViS-win-x86
       ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
       ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
       OUTPUT_DIR: ./out
     secrets: inherit
-
