@@ -55,6 +55,9 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
 
 	[ObservableProperty]
+	public partial PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;
+
+	[ObservableProperty]
 	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
 
 	[ObservableProperty]
@@ -174,6 +177,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
 		HorizontalTimetableButtonLabel = settingFile.HorizontalTimetableButtonLabel;
+		PdfJsRenderEngine = settingFile.PdfJsRenderEngine;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
 		TimeProgressionRate = settingFile.TimeProgressionRate;
 
@@ -206,6 +210,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 			ShowMapWhenLandscape = ShowMapWhenLandscape,
 			KeepScreenOnWhenRunning = KeepScreenOnWhenRunning,
 			HorizontalTimetableButtonLabel = HorizontalTimetableButtonLabel,
+			PdfJsRenderEngine = PdfJsRenderEngine,
 			InitialTheme = SelectedAppTheme,
 			TimeProgressionRate = TimeProgressionRate,
 		};

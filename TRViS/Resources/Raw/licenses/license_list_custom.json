@@ -25,5 +25,14 @@
     "author": "Mozilla Foundation",
     "projectUrl": "https://github.com/mozilla/pdf.js",
     "copyrightText": null
+  },
+  {
+    "id": "pdf.js (v5 build)",
+    "resolvedVersion": "5.7.284",
+    "licenseDataType": "expression",
+    "license": "Apache-2.0",
+    "author": "Mozilla Foundation",
+    "projectUrl": "https://github.com/mozilla/pdf.js",
+    "copyrightText": null
   }
 ]
