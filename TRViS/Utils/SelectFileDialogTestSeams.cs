@@ -34,15 +34,25 @@ internal static class SelectFileDialogTestSeams
 	public const string BrowseFallbackFileName = "ui-test-browse-fallback.json";
 
 	/// <summary>
-	/// Minimal-but-non-empty WorkGroup payload. One WorkGroup, one Work, no
-	/// Trains. LoaderJson accepts this and the resulting Loader exposes a
+	/// Minimal-but-non-empty WorkGroup payload. TWO WorkGroups (each one Work,
+	/// no Trains). LoaderJson accepts this and the resulting Loader exposes a
 	/// non-empty WorkGroupList — the load-success test asserts against that
 	/// instead of just modal dismiss, so an "always returns true" regression
 	/// in TryLoadFileAsync would still fail the test.
+	///
+	/// Two WorkGroups (not one) on purpose: TimetableSelectionManager auto-
+	/// commits a *single* WorkGroup on load (zero-friction for the common
+	/// 1-WG case), which makes the Home picker skip the WorkGroup-list step.
+	/// These SelectFileDialog tests assert the post-load picker via
+	/// IsWorkGroupListVisible, so they need a multi-WG fixture to keep the
+	/// list step on screen. Single-WG auto-select itself is covered by
+	/// TimetableSelectionManagerTests.OnLoaderChanged_AutoSelectsWhenSingleWorkGroup.
 	/// </summary>
 	private const string FixtureJson =
 		"[{\"Id\":\"ui-test-wg\",\"Name\":\"UITest WG\",\"Works\":[" +
-		"{\"Id\":\"ui-test-work\",\"Name\":\"UITest Work\",\"AffectDate\":\"20260101\",\"Trains\":[]}]}]";
+		"{\"Id\":\"ui-test-work\",\"Name\":\"UITest Work\",\"AffectDate\":\"20260101\",\"Trains\":[]}]}," +
+		"{\"Id\":\"ui-test-wg2\",\"Name\":\"UITest WG2\",\"Works\":[" +
+		"{\"Id\":\"ui-test-work2\",\"Name\":\"UITest Work2\",\"AffectDate\":\"20260101\",\"Trains\":[]}]}]";
 
 	/// <summary>
 	/// Writes the canonical SelectFileDialog fixture into TimetableFileDirectory:

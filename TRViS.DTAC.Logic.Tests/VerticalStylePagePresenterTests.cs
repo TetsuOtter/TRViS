@@ -156,7 +156,7 @@ public class VerticalStylePagePresenterTests
 		return (presenter, locationService, markerToggle, clock, appVm);
 	}
 
-	private static TrainData CreateTrainData(string destination = "Tokyo", int rowCount = 3, DateOnly? affectDate = null)
+	private static TrainData CreateTrainData(string destination = "Tokyo", int rowCount = 3, DateOnly? affectDate = null, string id = "train-001", int firstRowDriveTimeMM = 10)
 	{
 		var rows = new TimetableRow[rowCount];
 		for (int i = 0; i < rowCount; i++)
@@ -164,7 +164,7 @@ public class VerticalStylePagePresenterTests
 			rows[i] = new TimetableRow(
 				Id: $"row-{i}",
 				Location: new LocationInfo(i * 1000.0),
-				DriveTimeMM: 10,
+				DriveTimeMM: i == 0 ? firstRowDriveTimeMM : 10,
 				DriveTimeSS: 0,
 				StationName: $"Station {i}",
 				IsOperationOnlyStop: false,
@@ -181,7 +181,7 @@ public class VerticalStylePagePresenterTests
 		}
 
 		return new TrainData(
-			Id: "train-001",
+			Id: id,
 			Direction: 0,
 			WorkName: "Test Work",
 			TrainNumber: "101",
@@ -246,6 +246,112 @@ public class VerticalStylePagePresenterTests
 		Assert.Equal(trainData.Rows, locationService.LastSetRows);
 		Assert.Equal(1, markerToggle.ResetCount);
 		Assert.False(state.PageHeaderState.IsRunning);
+	}
+
+	/// <summary>
+	/// 不具合再現: 運行開始した状態で、同じ列車に対して 1 行だけ field 編集された
+	/// TrainData (= 別インスタンスだが Id と行数は同じ) が来た時、運行中状態 (IsRunning /
+	/// IsRunStarted) が維持されること。旧実装は SetSelectedTrainData が無条件に
+	/// false 代入していたため、WS 経由のリアルタイム編集ごとに「運行前」に戻されていた。
+	/// </summary>
+	[Fact]
+	public void SelectedTrainDataChanged_SameIdAndRowCount_PreservesRunningState()
+	{
+		var (presenter, _, markerToggle, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, firstRowDriveTimeMM: 5);
+
+		// 運行開始
+		presenter.OnStartButtonClicked();
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsRunStarted);
+		int markerResetsBeforeEdit = markerToggle.ResetCount;
+
+		// 同じ列車 (Id="train-001") に対するリアルタイム編集を模擬:
+		// 別インスタンス、行数は同じ、先頭行の DriveTimeMM だけ変える。
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, firstRowDriveTimeMM: 7);
+
+		Assert.Multiple(() =>
+		{
+			Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+				"運行中フラグは同一列車の field 編集で巻き戻されてはならない");
+			Assert.True(presenter.CurrentState.TimetableViewState.IsRunStarted,
+				"運行開始フラグも同様に維持される");
+			Assert.Equal(markerResetsBeforeEdit, markerToggle.ResetCount);
+		});
+	}
+
+	/// <summary>
+	/// 列車切替 (Id 変化) は従来通り「運行前」にリセットされる。
+	/// </summary>
+	[Fact]
+	public void SelectedTrainDataChanged_DifferentTrainId_ResetsRunningState()
+	{
+		var (presenter, _, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-A");
+		presenter.OnStartButtonClicked();
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-B");
+
+		Assert.Multiple(() =>
+		{
+			Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+			Assert.False(presenter.CurrentState.TimetableViewState.IsRunStarted);
+		});
+	}
+
+	/// <summary>
+	/// 同じ Id で行数が変わった (= 駅が追加/削除された) 場合でも、同じ列車の編集なので
+	/// 運行中状態は維持される。RowStates dict は新 row 数に揃えてリサイズされる。
+	/// </summary>
+	[Fact]
+	public void SelectedTrainDataChanged_SameIdDifferentRowCount_PreservesRunningStateAndResizesRowStates()
+	{
+		var (presenter, _, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+		presenter.OnStartButtonClicked();
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		// 行数を 3 → 5 に増やす (駅 2 つ追加に相当)
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 5);
+
+		Assert.Multiple(() =>
+		{
+			Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+				"同じ列車に対する更新なら、行数が増えても運行中フラグは維持される");
+			Assert.Equal(5, presenter.CurrentState.RowStates.Count);
+		});
+
+		// 今度は逆に 5 → 2 に減らす
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 2);
+
+		Assert.Multiple(() =>
+		{
+			Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+				"同じ列車の行削除でも運行中フラグは維持される");
+			Assert.Equal(2, presenter.CurrentState.RowStates.Count);
+		});
+	}
+
+	/// <summary>
+	/// 同 Id + 同行数の soft 更新でも、表示用の field (Destination 等) は更新される。
+	/// 運行中状態維持と表示更新は両立させる。
+	/// </summary>
+	[Fact]
+	public void SelectedTrainDataChanged_SameIdAndRowCount_StillPropagatesFieldEdits()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(destination: "Tokyo", rowCount: 3);
+
+		var edited = CreateTrainData(destination: "Osaka", rowCount: 3);
+		appVm.SelectedTrainData = edited;
+
+		Assert.Multiple(() =>
+		{
+			Assert.Equal("Osaka", presenter.CurrentState.Destination.OriginalValue);
+			// SetTimetableRows は呼ばれている (StaLocationInfo の再計算に必要)
+			Assert.Equal(edited.Rows, locationService.LastSetRows);
+		});
 	}
 
 	#endregion
