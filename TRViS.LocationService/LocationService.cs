@@ -450,6 +450,37 @@ void OnIsEnabledChanged(bool value)
 			// バックグラウンドで実行し続ける
 			_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
 		}
+
+		// 接続確立直後にカレントダイヤ情報を要求する。
+		// WebSocket 以外では基底実装が no-op、応答／ブロードキャストは
+		// DiagramInfoUpdated イベントで通知される。
+		_ = RequestDiagramInfoOnConnectAsync(nextService);
+	}
+
+	async Task RequestDiagramInfoOnConnectAsync(NetworkSyncServiceBase service)
+	{
+		try
+		{
+			await service.RequestDiagramInfoAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Warn(ex, "RequestDiagramInfoAsync failed on connect");
+		}
+	}
+
+	/// <summary>
+	/// 現在使用中の NetworkSyncService にダイヤ情報を要求する。
+	/// NetworkSyncService が使用されていない場合は何もしない。
+	/// 応答は <see cref="DiagramInfoUpdated"/> イベントで通知される。
+	/// </summary>
+	/// <param name="diagramId">取得対象のダイヤID。null でカレントダイヤ。</param>
+	/// <param name="token">キャンセルトークン</param>
+	public Task RequestDiagramInfoAsync(string? diagramId = null, CancellationToken token = default)
+	{
+		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
+			return networkSyncService.RequestDiagramInfoAsync(diagramId, token);
+		return Task.CompletedTask;
 	}
 
 	/// <summary>
