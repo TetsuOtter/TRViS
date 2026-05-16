@@ -339,6 +339,21 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 	private void OnLocationServiceIsEnabledChanged_Internal(object? sender, bool enabled)
 	{
 		ApplyLocationServiceEnabledState(enabled);
+
+		// Server-driven integration (WebSocket / HTTP NetworkSyncService): when
+		// the server reports it can start, the run is server-driven too — auto
+		// start it so we don't leave a stale "運行開始" button while location is
+		// ON. Same intent as OnLocationServiceCanUseChanged's block, but driven
+		// off the (race-robust, level-reconciled) IsEnabled signal so a missed
+		// edge-triggered CanUseServiceChanged on (re)connect can't strand the
+		// run. NetworkSyncServiceCanStart is false for GPS/local sources, so the
+		// manual local-file flow is unaffected.
+		if (enabled
+			&& _locationService.NetworkSyncServiceCanStart
+			&& !_currentState.PageHeaderState.IsRunning)
+		{
+			SetIsRunning(true);
+		}
 	}
 
 	/// <summary>

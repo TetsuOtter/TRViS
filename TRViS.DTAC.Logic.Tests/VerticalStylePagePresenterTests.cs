@@ -805,6 +805,43 @@ public class VerticalStylePagePresenterTests
 			presenter.CurrentState.RowStates[1].LocationState);
 	}
 
+	// サーバ駆動 (NetworkSyncServiceCanStart) で位置情報が自動 ON になったとき、
+	// 運行も自動開始し「運行開始」ボタンが運行前のまま残らないこと。
+	// CanUseServiceChanged はエッジトリガで再接続時に取り逃し得るため、
+	// レベル補正される IsEnabled 経由でも運行開始が走る必要がある。
+	[Fact]
+	public void ServerDrivenEnable_WhenNetworkSyncCanStart_AlsoAutoStartsRun()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+		locationService.NetworkSyncServiceCanStart = true;
+
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		locationService.RaiseIsEnabledChanged(true);
+
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+			"server-driven enable should auto-start the run");
+		Assert.True(presenter.CurrentState.TimetableViewState.IsRunStarted);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// GPS / ローカルファイル (NetworkSyncServiceCanStart=false) では、手動で
+	// 位置情報を ON にしても運行は自動開始しない (従来の手動フロー維持)。
+	[Fact]
+	public void Enable_WhenNotNetworkSyncDriven_DoesNotAutoStartRun()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+		locationService.NetworkSyncServiceCanStart = false;
+
+		locationService.RaiseIsEnabledChanged(true);
+
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning,
+			"non-network-driven enable must NOT auto-start the run");
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
 	#endregion
 
 }
