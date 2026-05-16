@@ -207,8 +207,32 @@ public class StartHomePageObject : PageObject
 	/// <summary>
 	/// Loads the demo (sample) data set. After load, the page transitions to Home mode
 	/// and the WorkGroup/Work lists become visible.
+	///
+	/// Tap-then-poll-then-retry-once: iPhone iOS-26 simulators intermittently
+	/// drop the first <c>LoadDemoButton</c> tap — WDA's pointerInput races the
+	/// Start→Home layout pass, so the button press never reaches the handler
+	/// and the page stays in Start mode (#251). When the WorkGroup list doesn't
+	/// appear within a generous budget AND the demo button is still on screen,
+	/// the tap was lost, so re-tap once. The re-tap is safe: a successful first
+	/// load removes LoadDemoButton from the tree, so the guard skips it and a
+	/// merely-slow load is never double-triggered. On double-failure this falls
+	/// through to the caller's existing WaitForElement(WorkGroupList), which
+	/// keeps the canonical 30 s timeout + page-source dump for diagnosis.
+	/// Mirrors the defensive probe-and-retry style of AppShellPage.OpenFlyout.
 	/// </summary>
-	public void LoadSample() => LoadDemoButton.Click();
+	public void LoadSample()
+	{
+		LoadDemoButton.Click();
+
+		if (IsWorkGroupListVisible(timeoutSeconds: 12))
+			return;
+
+		if (PollDisplayed(AutomationIds.StartHome.LoadDemoButton, timeoutSeconds: 1))
+		{
+			LoadDemoButton.Click();
+			IsWorkGroupListVisible(timeoutSeconds: 12);
+		}
+	}
 
 	/// <summary>
 	/// Taps "Connect to Server" and returns the dialog's page object.
