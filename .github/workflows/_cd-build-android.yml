@@ -53,30 +53,13 @@ jobs:
       - name: Install dependencies
         run: dotnet restore ${{ env.CSPROJ_PATH }}
 
-      - uses: actions/setup-python@v6
+      - name: Dump third-party license info
+        uses: ./.github/actions/dump-third-party-licenses
         with:
-          python-version: "3.13"
-      - name: Prepare Python Package
-        run: |
-          python --version
-          python -m pip install aiofiles aiohttp
-      - name: Dump Third Party License Info
-        id: dump-third-party-license-info
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-      - name: Dump Third Party License Info (Retry)
-        if: steps.dump-third-party-license-info.outcome == 'failure'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python ./tools/getThirdPartyLicenseJson.py android ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-          ls -l ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
-      - name: Print Third Party License Info Files
-        run: cat ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}/${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}.json
+          platform: android
+          license-info-dir: ${{ env.THIRD_PARTY_LICENSE_INFO_DIR }}
+          license-list-name: ${{ env.THIRD_PARTY_LICENSE_LIST_NAME }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add Google-services.json
         env:
