@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using TRViS.DTAC.Logic;
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
@@ -35,11 +36,22 @@ public class VerticalStylePagePresenterTests
 		public event EventHandler<LocationStateChangedEventArgs>? LocationStateChanged;
 		public event EventHandler<GpsLocationUpdate>? GpsLocationUpdated;
 		public event EventHandler<Exception>? ExceptionThrown;
+		public event EventHandler<bool>? IsEnabledChanged;
 
 		public void RaiseCanUseServiceChanged(bool value)
 		{
 			CanUseService = value;
 			CanUseServiceChanged?.Invoke(this, value);
+		}
+
+		/// <summary>
+		/// Simulates a server-driven enable change (NetworkSyncService CanStart
+		/// auto-enable) that flips IsEnabled without going through the toggle.
+		/// </summary>
+		public void RaiseIsEnabledChanged(bool value)
+		{
+			IsEnabled = value;
+			IsEnabledChanged?.Invoke(this, value);
 		}
 
 		public void RaiseLocationStateChanged(int stationIndex, bool isRunningToNextStation)
@@ -731,6 +743,244 @@ public class VerticalStylePagePresenterTests
 
 		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
 		Assert.False(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// 回帰テスト: サーバ駆動の自動 ON (NetworkSyncService の CanStart) で
+	// LocationService.IsEnabled がトグルを経由せず true になったとき、
+	// presenter が自前の状態フラグ (特に位置マーカーのゲートである
+	// TimetableViewState.IsLocationServiceEnabled) に反映しないと、自動 ON
+	// されても位置マーカーが動かず手動 OFF→ON するまで直らない不具合の防止。
+	[Fact]
+	public void ServerDrivenIsEnabledChanged_MirrorsPresenterState_AndOpensMarkerGate()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		// 前提: 画面トグルでは有効化していない
+		Assert.False(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+
+		// サーバ駆動の自動 ON (ボタンを経由しない)
+		locationService.RaiseIsEnabledChanged(true);
+
+		// presenter の全状態フラグに反映される
+		Assert.True(presenter.CurrentState.LocationServiceState.IsEnabled);
+		Assert.True(presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+
+		// よってサービスからの位置更新でマーカーが動く
+		// (修正前は OnLocationStateChanged_Internal のゲートで握り潰されていた)
+		locationService.RaiseLocationStateChanged(1, false);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
+
+		// サーバ駆動の OFF も同様に反映される
+		locationService.RaiseIsEnabledChanged(false);
+		Assert.False(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// 回帰テスト: 位置情報が有効な状態で別の列車が選択された (cascade /
+	// サーバ push) とき、状態再構築 (CreateStateFromTrainData) が
+	// TimetableViewState.IsLocationServiceEnabled (マーカーのゲート) を
+	// 落としていたため、ボタンは ON でも位置マーカーが動かない不具合の防止。
+	[Fact]
+	public void SelectingTrainWhileLocationEnabled_KeepsMarkerGateOpen()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-A");
+
+		// サーバ駆動で有効化 (ボタン ON / ゲート開)
+		locationService.RaiseIsEnabledChanged(true);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+
+		// 別の列車が選択される (full-reset path = CreateStateFromTrainData)
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-B");
+
+		Assert.True(presenter.CurrentState.LocationServiceState.IsEnabled);
+		Assert.True(presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled,
+			"marker gate must survive a train reselection while location is enabled");
+
+		// ゲートが開いているので位置更新でマーカーが動く
+		locationService.RaiseLocationStateChanged(1, false);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
+	}
+
+	// サーバ駆動 (NetworkSyncServiceCanStart) で位置情報が自動 ON になったとき、
+	// 運行も自動開始し「運行開始」ボタンが運行前のまま残らないこと。
+	// CanUseServiceChanged はエッジトリガで再接続時に取り逃し得るため、
+	// レベル補正される IsEnabled 経由でも運行開始が走る必要がある。
+	[Fact]
+	public void ServerDrivenEnable_WhenNetworkSyncCanStart_AlsoAutoStartsRun()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+		locationService.NetworkSyncServiceCanStart = true;
+
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		locationService.RaiseIsEnabledChanged(true);
+
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+			"server-driven enable should auto-start the run");
+		Assert.True(presenter.CurrentState.TimetableViewState.IsRunStarted);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// GPS / ローカルファイル (NetworkSyncServiceCanStart=false) では、手動で
+	// 位置情報を ON にしても運行は自動開始しない (従来の手動フロー維持)。
+	[Fact]
+	public void Enable_WhenNotNetworkSyncDriven_DoesNotAutoStartRun()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+		locationService.NetworkSyncServiceCanStart = false;
+
+		locationService.RaiseIsEnabledChanged(true);
+
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning,
+			"non-network-driven enable must NOT auto-start the run");
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// 回帰テスト: サーバ駆動の自動 ON は presenter 生成前に発火する
+	// (WebSocket は 接続→CanStart有効化→DTAC遷移→presenter ctor の順)。
+	// IsEnabledChanged のエッジは購読前に消えるため、ctor で現在値を
+	// レベル補正しないとボタン/ゲートが OFF のまま・運行も開始されない。
+	[Fact]
+	public void PresenterCtor_ReconcilesAlreadyEnabledServerDrivenState()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		// 列車は presenter 生成前に確定済み (WS の Refresh cascade 相当)
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		Assert.True(presenter.CurrentState.LocationServiceState.IsEnabled);
+		Assert.True(presenter.CurrentState.PageHeaderState.IsLocationServiceEnabled);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled,
+			"marker gate must be open from the ctor level-reconcile");
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+			"server-driven run must auto-start from the ctor level-reconcile");
+
+		// ゲートが開いているので位置更新でマーカーが動く
+		locationService.RaiseLocationStateChanged(1, false);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
+	}
+
+	// 回帰テスト: 位置情報ボタンの「押下可能」状態は CanUseLocationService
+	// && IsRunning。サーバ駆動接続では CanUseServiceChanged も presenter 生成
+	// 前に発火するため、ctor で CanUse をレベル補正しないとボタンが永久に
+	// disabled (ON でも OFF にできない / 運行終了→運行開始しても enabled に
+	// 戻らない) になる不具合の防止。
+	[Fact]
+	public void PresenterCtor_ReconcilesCanUse_ButtonUsableAcrossRunCycle()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			CanUseService = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		// ctor reconcile: CanUse が反映され、運行も自動開始
+		// (ボタン押下可能 = CanUseLocationService && IsRunning)
+		Assert.True(presenter.CurrentState.PageHeaderState.CanUseLocationService,
+			"CanUseLocationService must be reconciled at ctor");
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		// 運行終了 → 位置情報は自動 OFF だが CanUse は維持される
+		presenter.OnStartButtonClicked();
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.True(presenter.CurrentState.PageHeaderState.CanUseLocationService,
+			"CanUseLocationService must survive 運行終了 so the button can be re-enabled");
+
+		// 運行開始 → ボタンは再び押下可能 (CanUse && IsRunning 共に true)
+		presenter.OnStartButtonClicked();
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.True(presenter.CurrentState.PageHeaderState.CanUseLocationService);
+	}
+
+	// 弁別テスト (始発駅マーカー不具合): サーバ駆動 WS 接続では列車確定 →
+	// presenter ctor の順で、ctor 内 reconcile が SetIsRunning(true) を走らせる。
+	// その fallback が「アクティブなマーカーが無ければ最初の非 info 行に
+	// AroundThisStation を置く」ので、ctor 完了時点で presenter state には
+	// 始発駅マーカーが入っているはず。ここが PASS なら presenter state は
+	// 正しく、不具合は下流 (View の初期描画 / StateChanged 購読タイミング)。
+	// FAIL なら presenter state 側でマーカーが欠落している。
+	[Fact]
+	public void PresenterCtor_ServerDriven_SetsFirstStationMarker()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			CanUseService = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+			"server-driven run must auto-start at ctor");
+
+		var firstStationKey = presenter.CurrentState.RowStates
+			.Where(kvp => !kvp.Value.IsInfoRow)
+			.Select(kvp => (int?)kvp.Key)
+			.FirstOrDefault();
+		Assert.NotNull(firstStationKey);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[firstStationKey!.Value].LocationState);
+	}
+
+	// 弁別テスト (info 行混在): 先頭が info 行のとき、始発駅マーカーは
+	// info 行ではなく最初の「駅」行に入らなければならない。RowStates は
+	// info 行込みで採番、StaLocationInfo は info 行除外で採番される
+	// (index 不整合の懸念) ため、両方を検証する。
+	[Fact]
+	public void PresenterCtor_ServerDriven_LeadingInfoRow_MarksFirstStationNotInfoRow()
+	{
+		var locationService = new FakeLocationService
+		{
+			IsEnabled = true,
+			CanUseService = true,
+			NetworkSyncServiceCanStart = true,
+		};
+		var markerToggle = new FakeMarkerToggle();
+		var clock = new FakeClock();
+		var appVm = new FakeAppViewModelProvider();
+		appVm.SelectedTrainData = CreateTrainDataWithInfoRow(rowCount: 4, infoRowIndex: 0);
+
+		var presenter = new VerticalStylePagePresenter(locationService, markerToggle, clock, appVm);
+
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		// info 行 (key 0) にはマーカーが付かないこと
+		Assert.True(presenter.CurrentState.RowStates[0].IsInfoRow);
+		Assert.Equal(TimetableLocationState.Undefined,
+			presenter.CurrentState.RowStates[0].LocationState);
+
+		// 最初の「駅」行 (key 1) にマーカーが付くこと
+		Assert.False(presenter.CurrentState.RowStates[1].IsInfoRow);
+		Assert.Equal(TimetableLocationState.AroundThisStation,
+			presenter.CurrentState.RowStates[1].LocationState);
 	}
 
 	#endregion

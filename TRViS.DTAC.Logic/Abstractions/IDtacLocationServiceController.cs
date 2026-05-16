@@ -32,4 +32,13 @@ public interface IDtacLocationServiceController : ILocationService
 	/// Fired when the location service encounters an exception.
 	/// </summary>
 	event EventHandler<Exception>? ExceptionThrown;
+
+	/// <summary>
+	/// Fired when the underlying location service enabled state changes,
+	/// including server-driven changes (NetworkSyncService CanStart auto-enable)
+	/// that do not go through the on-screen toggle. The argument is the new
+	/// enabled value. The presenter must mirror this into its own state so the
+	/// position-marker gate opens for server-driven enablement.
+	/// </summary>
+	event EventHandler<bool>? IsEnabledChanged;
 }

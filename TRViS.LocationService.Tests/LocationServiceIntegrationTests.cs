@@ -291,6 +291,81 @@ public class LocationServiceIntegrationTests
 	}
 
 	// -------------------------------------------------------
+	// 7b. WebSocket が SetNetworkSyncService より前に CanStart=true に
+	//     なっていても (購読前にエッジを取り逃しても) IsEnabled=true になる
+	//     回帰テスト: 再接続時にサーバが接続直後 SyncedData を push し、
+	//     LocationService の購読が間に合わず位置情報が disable のまま
+	//     固定される不具合 (Bug 2) の防止。
+	// -------------------------------------------------------
+	[Test]
+	public void WebSocketCanStartBeforeSubscribe_StillEnablesLocationService()
+	{
+		var fakeWs = new FakeWebSocketNetworkSyncService();
+
+		// 購読される前に CanStart が true に遷移してしまうケースを再現する。
+		// (CanStartChanged はエッジトリガなので、この時点では誰も受け取れない)
+		fakeWs.SimulateCanStart(true);
+
+		_locationService.SetNetworkSyncService(fakeWs);
+
+		Assert.That(_locationService.IsEnabled, Is.True,
+			"Should be enabled even when CanStart became true before SetNetworkSyncService subscribed");
+	}
+
+	// -------------------------------------------------------
+	// 7c. HTTP (非WebSocket) の NetworkSyncService でも CanStart=true で
+	//     位置情報が自動 ON になる (WebSocket と挙動を揃える)。
+	//     HTTP 連携で位置情報が更新されない不具合の修正。
+	// -------------------------------------------------------
+	[Test]
+	public void NonWebSocketNetworkSyncService_CanStartTrue_AlsoEnablesLocationService()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		Assert.That(_locationService.IsEnabled, Is.False, "Initially should be disabled");
+
+		fakeNs.SimulateCanStart(true);
+
+		Assert.That(_locationService.IsEnabled, Is.True,
+			"HTTP/non-WebSocket NetworkSyncService should also auto-enable on CanStart=true");
+	}
+
+	// -------------------------------------------------------
+	// 7d. SetStationLocations は NetworkSyncService (サーバ駆動) では
+	//     IsEnabled を落とさない。落とすと CanStart のエッジを取り逃して
+	//     二度と自動 ON されず位置マーカーが固まる不具合の防止。
+	//     GPS (LonLat) では従来どおり一旦停止する。
+	// -------------------------------------------------------
+	[Test]
+	public void SetStationLocations_NetworkSyncService_KeepsEnabled()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		fakeNs.SimulateCanStart(true);
+		Assert.That(_locationService.IsEnabled, Is.True, "precondition: auto-enabled");
+
+		_locationService.SetStationLocations(SampleStations());
+
+		Assert.That(_locationService.IsEnabled, Is.True,
+			"NetworkSyncService must stay enabled across SetStationLocations");
+		Assert.That(_locationService.CurrentService!.StaLocationInfo, Is.Not.Null);
+	}
+
+	[Test]
+	public void SetStationLocations_GpsService_StillDisables()
+	{
+		_locationService.SetLonLatLocationService();
+		_locationService.IsEnabled = true;
+		Assert.That(_locationService.IsEnabled, Is.True, "precondition: GPS enabled");
+
+		_locationService.SetStationLocations(SampleStations());
+
+		Assert.That(_locationService.IsEnabled, Is.False,
+			"GPS path must still disable on station change (re-acquire first fix)");
+	}
+
+	// -------------------------------------------------------
 	// 8. Interval property 書き込み → 内部参照値が更新される
 	// -------------------------------------------------------
 	[Test]

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -101,7 +102,35 @@ public class HttpNetworkSyncService : NetworkSyncServiceBase
 			);
 		}
 
-		using JsonDocument? json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(), cancellationToken: token);
+		// 連携元 (ゲーム等) がまだシナリオ/列車を読み込んでいない間、サーバは
+		// 204 No Content や空ボディを返す。これは一時的な正常状態。ここで例外を
+		// 投げると NetworkSyncServiceTask が規定回数で GPS 測位へフォールバック
+		// してしまい、時計が止まり位置も更新されなくなる。良性の SyncedData を
+		// 返してポーリングを継続させ、データが届き次第そのまま復帰させる。
+		if (response.StatusCode == HttpStatusCode.NoContent)
+		{
+			Logger.Debug("GetSyncedDataAsync: 204 No Content (scenario not loaded yet)");
+			return new(
+				Location_m: double.NaN,
+				Time_ms: (long)DateTime.Now.TimeOfDay.TotalMilliseconds,
+				CanStart: false
+			);
+		}
+
+		JsonDocument? json;
+		try
+		{
+			json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
+		}
+		catch (JsonException ex)
+		{
+			Logger.Warn(ex, "GetSyncedDataAsync: response body was not valid JSON (empty/partial?) -> treat as no-data");
+			return new(
+				Location_m: double.NaN,
+				Time_ms: (long)DateTime.Now.TimeOfDay.TotalMilliseconds,
+				CanStart: false
+			);
+		}
 		if (json is null)
 		{
 			Logger.Error("GetSyncedDataAsync: Failed to parse JSON response");
@@ -111,6 +140,8 @@ public class HttpNetworkSyncService : NetworkSyncServiceBase
 				CanStart: false
 			);
 		}
+		using (json)
+		{
 		JsonElement root = json.RootElement;
 		double location_m = double.NaN;
 		try
@@ -146,6 +177,7 @@ public class HttpNetworkSyncService : NetworkSyncServiceBase
 			Time_ms: time_ms,
 			CanStart: canStart
 		);
+		}
 	}
 
 	public override void Dispose()

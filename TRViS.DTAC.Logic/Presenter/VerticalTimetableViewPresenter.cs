@@ -56,6 +56,15 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 
 		// Sync initial state
 		_currentState.IsMarkingMode = _markerToggle.IsToggled;
+
+		// Level-reconcile the marker now: the page presenter sets the
+		// first-station marker in its RowStates inside *its* ctor, which runs
+		// (VerticalStylePage.xaml.cs) before this presenter is constructed and
+		// subscribes above — so the edge-triggered StateChanged for that marker
+		// is already gone. Without this, the start-of-run marker stays hidden
+		// until the next StateChanged (the detector firing post-departure),
+		// which is exactly the "始発駅でマーカーが出ない" symptom.
+		ReconcileMarkerFromSource();
 	}
 
 	// ---------- Intents from View ----------
@@ -103,6 +112,11 @@ public sealed class VerticalTimetableViewPresenter : IDisposable
 			&& e.Changed != VerticalPageStateSection.All)
 			return;
 
+		ReconcileMarkerFromSource();
+	}
+
+	private void ReconcileMarkerFromSource()
+	{
 		var rowStates = _locationMarkerSource.RowStates;
 
 		int markerRow = -1;
