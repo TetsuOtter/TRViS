@@ -4,6 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:models="clr-namespace:TRViS.Models"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:local="clr-namespace:TRViS"
 	x:DataType="viewmodels:ThirdPartyLicensesViewModel"
 	x:Class="TRViS.RootPages.ThirdPartyLicenses"
 	Title="ThirdPartyLicenses">
@@ -29,9 +30,14 @@
 				AutomationId="ThirdParty.ModalCloseButton"
 				Grid.Column="1"
 				x:Name="ModalCloseButton"
-				Text="閉じる"
-				Padding="16,8"
-				CornerRadius="8"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="40"
+				HeightRequest="40"
+				Padding="0"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
 				Clicked="OnModalCloseClicked"/>
 		</Grid>
 
