@@ -52,7 +52,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial bool KeepScreenOnWhenRunning { get; set; } = false;
 
 	[ObservableProperty]
-	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
+	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Train;
 
 	[ObservableProperty]
 	public partial PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;

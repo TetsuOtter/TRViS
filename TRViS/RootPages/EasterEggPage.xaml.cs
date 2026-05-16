@@ -211,7 +211,7 @@ public partial class EasterEggPage : ContentPage
 			0 => HorizontalTimetableButtonLabel.Horizontal,
 			1 => HorizontalTimetableButtonLabel.Train,
 			2 => HorizontalTimetableButtonLabel.ETrain,
-			_ => HorizontalTimetableButtonLabel.Horizontal
+			_ => HorizontalTimetableButtonLabel.Train
 		};
 
 		logger.Info("HorizontalTimetableButtonLabel changed to {0}", newLabel);
@@ -228,7 +228,7 @@ public partial class EasterEggPage : ContentPage
 				HorizontalTimetableButtonLabel.Horizontal => 0,
 				HorizontalTimetableButtonLabel.Train => 1,
 				HorizontalTimetableButtonLabel.ETrain => 2,
-				_ => 0
+				_ => 1
 			};
 		}
 		finally
