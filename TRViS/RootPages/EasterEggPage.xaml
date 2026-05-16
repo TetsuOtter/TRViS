@@ -210,6 +210,23 @@
 				</VerticalStackLayout>
 			</Border>
 			<Border>
+				<VerticalStackLayout Spacing="8">
+					<Label
+						Text="PDFの描画エンジン"
+						FontSize="Header"/>
+					<Label
+						Text="PDFがうまく表示されない場合は、別のエンジンに切り替えてください。"
+						FontSize="Caption"/>
+					<Picker
+						x:Name="PdfJsRenderEnginePicker"
+						AutomationId="Settings.PdfJsRenderEnginePicker"
+						SelectedIndexChanged="OnPdfJsRenderEnginePickerSelectedIndexChanged"/>
+					<Label
+						x:Name="PdfJsRenderEngineStatusLabel"
+						FontSize="Caption"/>
+				</VerticalStackLayout>
+			</Border>
+			<Border>
 				<VerticalStackLayout>
 					<Label
 						Text="Log File Path"
