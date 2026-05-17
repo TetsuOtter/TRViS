@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.IO.RequestInfo;
+using TRViS.Localization;
 using TRViS.Services;
 using TRViS.Utils;
 
@@ -264,7 +265,7 @@ public partial class ConnectServerDialog : ContentPage
 		{
 			if (string.IsNullOrWhiteSpace(urlText))
 			{
-				await Util.DisplayAlertAsync("接続できませんでした", "URLを入力してください。", "OK");
+				await Util.DisplayAlertAsync(AppResources.ConnectServer_AlertCannotConnectTitle, AppResources.ConnectServer_AlertEnterUrl, AppResources.Common_OK);
 				return false;
 			}
 
@@ -294,7 +295,7 @@ public partial class ConnectServerDialog : ContentPage
 		catch (UriFormatException ex)
 		{
 			logger.Warn(ex, "Invalid URL: {0}", urlText);
-			await Util.DisplayAlertAsync("接続できませんでした", "URLの形式が正しくありません。", "OK");
+			await Util.DisplayAlertAsync(AppResources.ConnectServer_AlertCannotConnectTitle, AppResources.ConnectServer_AlertInvalidUrl, AppResources.Common_OK);
 			return false;
 		}
 		catch (Exception ex)
@@ -306,7 +307,7 @@ public partial class ConnectServerDialog : ContentPage
 			// HttpRequestException, generic IO failure) reaches us with the
 			// spinner still spinning and no feedback. Tell the user something
 			// went wrong instead of silently re-enabling input.
-			await Util.DisplayAlertAsync("接続できませんでした", $"読み込みに失敗しました: {ex.Message}", "OK");
+			await Util.DisplayAlertAsync(AppResources.ConnectServer_AlertCannotConnectTitle, string.Format(AppResources.ConnectServer_AlertLoadFailedFormat, ex.Message), AppResources.Common_OK);
 			return false;
 		}
 	}

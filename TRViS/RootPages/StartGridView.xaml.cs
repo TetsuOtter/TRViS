@@ -1,4 +1,5 @@
 using TRViS.IO;
+using TRViS.Localization;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -104,7 +105,7 @@ public partial class StartGridView : Grid
 		{
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnConnectServerClicked (PushModalAsync failed)");
 			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlertAsync("Open Popup Failed", ex.ToString(), "OK");
+			await Util.DisplayAlertAsync("Open Popup Failed", ex.ToString(), AppResources.Common_OK);
 		}
 	}
 
@@ -120,7 +121,7 @@ public partial class StartGridView : Grid
 		{
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnSelectFileClicked (PushModalAsync failed)");
 			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlertAsync("Open Dialog Failed", ex.ToString(), "OK");
+			await Util.DisplayAlertAsync("Open Dialog Failed", ex.ToString(), AppResources.Common_OK);
 		}
 	}
 
@@ -151,7 +152,7 @@ public partial class StartGridView : Grid
 		{
 			logger.Error(ex, "Load demo failed");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnLoadDemoClicked (CreateAsync failed)");
-			await Util.DisplayAlertAsync("エラー", $"サンプルデータの読み込みに失敗しました: {ex.Message}", "OK");
+			await Util.DisplayAlertAsync(AppResources.Common_Error, string.Format(AppResources.StartHome_SampleLoadFailedFormat, ex.Message), AppResources.Common_OK);
 		}
 		finally
 		{

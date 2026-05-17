@@ -6,12 +6,14 @@ using SQLite;
 
 namespace TRViS.IO.Tests;
 
+// LoadErrorMessage.Describe only classifies the exception; the user-facing
+// strings are produced (and localized) in the app layer. These tests assert
+// the language-independent classification + carried parameters, not any
+// Japanese/English wording (issue #40).
 public class LoadErrorMessageTests
 {
-	const string FileErrorTitle = "読み込めませんでした";
-
 	[Test]
-	public void MalformedJson_GivesFriendlyBodyWithPosition()
+	public void MalformedJson_ClassifiesAsJsonMalformedWithPosition()
 	{
 		JsonException ex = Assert.Throws<JsonException>(
 			() => JsonSerializer.Deserialize<int[]>("{ broken"))!;
@@ -20,120 +22,132 @@ public class LoadErrorMessageTests
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(info.Title, Is.EqualTo(FileErrorTitle));
-			Assert.That(info.Body, Does.Contain("JSON"));
+			Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.JsonMalformed));
 			// A real parse failure carries a line number, so the position
-			// hint must be appended.
-			Assert.That(info.Body, Does.Contain("行目"));
-			// The raw library text must NOT be surfaced for a recognised type.
-			Assert.That(info.Body, Does.Not.Contain("詳細:"));
+			// fields must be populated (1-based).
+			Assert.That(info.JsonLine, Is.Not.Null);
+			Assert.That(info.JsonLine, Is.GreaterThanOrEqualTo(1));
+			Assert.That(info.JsonColumn, Is.Not.Null);
+			// The raw library text must NOT be carried for a recognised type.
+			Assert.That(info.RawDetail, Is.Null);
 		});
 	}
 
 	[Test]
-	public void JsonException_WithoutPosition_OmitsPositionHint()
+	public void JsonException_WithoutPosition_OmitsPositionFields()
 	{
 		LoadErrorInfo info = LoadErrorMessage.Describe(new JsonException("raw"));
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(info.Body, Does.Contain("JSON"));
-			Assert.That(info.Body, Does.Not.Contain("行目"));
-			Assert.That(info.Body, Does.Not.Contain("raw"));
+			Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.JsonMalformed));
+			Assert.That(info.JsonLine, Is.Null);
+			Assert.That(info.JsonColumn, Is.Null);
+			Assert.That(info.RawDetail, Is.Null);
 		});
 	}
 
-	[TestCase(SQLite3.Result.NonDBFile, "対応した形式")]
-	[TestCase(SQLite3.Result.Corrupt, "対応した形式")]
-	[TestCase(SQLite3.Result.CannotOpen, "開けませんでした")]
-	[TestCase(SQLite3.Result.Perm, "アクセスが拒否")]
-	[TestCase(SQLite3.Result.AccessDenied, "アクセスが拒否")]
-	[TestCase(SQLite3.Result.IOError, "読み込み中にエラー")]
-	[TestCase(SQLite3.Result.Busy, "使用中")]
-	[TestCase(SQLite3.Result.Locked, "使用中")]
-	[TestCase(SQLite3.Result.Constraint, "失敗しました")]
-	public void SqliteException_MapsResultToFriendlyBody(SQLite3.Result result, string expectedFragment)
+	[TestCase(SQLite3.Result.NonDBFile, LoadErrorKind.SqliteCorrupt)]
+	[TestCase(SQLite3.Result.Corrupt, LoadErrorKind.SqliteCorrupt)]
+	[TestCase(SQLite3.Result.Empty, LoadErrorKind.SqliteCorrupt)]
+	[TestCase(SQLite3.Result.Format, LoadErrorKind.SqliteCorrupt)]
+	[TestCase(SQLite3.Result.CannotOpen, LoadErrorKind.SqliteCannotOpen)]
+	[TestCase(SQLite3.Result.Perm, LoadErrorKind.SqlitePermission)]
+	[TestCase(SQLite3.Result.AccessDenied, LoadErrorKind.SqlitePermission)]
+	[TestCase(SQLite3.Result.ReadOnly, LoadErrorKind.SqlitePermission)]
+	[TestCase(SQLite3.Result.IOError, LoadErrorKind.SqliteIO)]
+	[TestCase(SQLite3.Result.Busy, LoadErrorKind.SqliteBusy)]
+	[TestCase(SQLite3.Result.Locked, LoadErrorKind.SqliteBusy)]
+	[TestCase(SQLite3.Result.Constraint, LoadErrorKind.SqliteOther)]
+	public void SqliteException_MapsResultToKind(SQLite3.Result result, LoadErrorKind expected)
 	{
 		LoadErrorInfo info = LoadErrorMessage.Describe(SQLiteException.New(result, "near \"x\": syntax error"));
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(info.Title, Is.EqualTo(FileErrorTitle));
-			Assert.That(info.Body, Does.Contain(expectedFragment));
-			Assert.That(info.Body, Does.Not.Contain("near \"x\""));
+			Assert.That(info.Kind, Is.EqualTo(expected));
+			// The raw library text must NOT be carried for a recognised type.
+			Assert.That(info.RawDetail, Is.Null);
 		});
 	}
 
 	[Test]
-	public void EmptyJson_DeserializesToNull_GivesEmptyFileMessage()
+	public void EmptyJson_DeserializesToNull_ClassifiesAsEmptyOrNull()
 	{
 		// LoaderJson throws ArgumentNullException when the JSON is the
-		// literal `null` (or an empty stream) — this is the "empty file"
-		// user-facing case.
+		// literal `null` (or an empty stream) — the "empty file" case.
 		ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
 			() => LoaderJson.InitFromBytes("null"u8))!;
 
 		LoadErrorInfo info = LoadErrorMessage.Describe(ex);
 
-		Assert.That(info.Body, Does.Contain("空"));
+		Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.EmptyOrNull));
 	}
 
 	[Test]
 	public void FileNotFound_TakesPrecedenceOverGenericIO()
 	{
-		LoadErrorInfo info = LoadErrorMessage.Describe(new FileNotFoundException());
-
-		Assert.That(info.Body, Does.Contain("見つかりません"));
+		Assert.Multiple(() =>
+		{
+			Assert.That(
+				LoadErrorMessage.Describe(new FileNotFoundException()).Kind,
+				Is.EqualTo(LoadErrorKind.FileNotFound));
+			Assert.That(
+				LoadErrorMessage.Describe(new DirectoryNotFoundException()).Kind,
+				Is.EqualTo(LoadErrorKind.FileNotFound));
+		});
 	}
 
 	[Test]
-	public void GenericIOException_GivesReadErrorMessage()
+	public void GenericIOException_ClassifiesAsIOError_WithoutRawDetail()
 	{
 		LoadErrorInfo info = LoadErrorMessage.Describe(new IOException("disk gone"));
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(info.Body, Does.Contain("読み込み中にエラー"));
-			Assert.That(info.Body, Does.Not.Contain("disk gone"));
+			Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.IOError));
+			Assert.That(info.RawDetail, Is.Null);
 		});
 	}
 
 	[Test]
-	public void UnauthorizedAccess_GivesPermissionMessage()
+	public void UnauthorizedAccess_ClassifiesAsUnauthorized()
 	{
 		LoadErrorInfo info = LoadErrorMessage.Describe(new UnauthorizedAccessException());
 
-		Assert.That(info.Body, Does.Contain("アクセスが拒否"));
+		Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.Unauthorized));
 	}
 
 	[Test]
-	public void HttpRequestException_WithStatusCode_ShowsCode()
+	public void HttpRequestException_WithStatusCode_CarriesCode()
 	{
 		LoadErrorInfo info = LoadErrorMessage.Describe(
 			new HttpRequestException("boom", null, HttpStatusCode.NotFound));
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(info.Title, Is.EqualTo("接続できませんでした"));
-			Assert.That(info.Body, Does.Contain("404"));
-			Assert.That(info.Body, Does.Not.Contain("boom"));
+			Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.HttpWithStatus));
+			Assert.That(info.HttpStatusCode, Is.EqualTo(404));
+			Assert.That(info.HttpStatusName, Is.EqualTo(nameof(HttpStatusCode.NotFound)));
+			// The raw library text must NOT be carried for a recognised type.
+			Assert.That(info.RawDetail, Is.Null);
 		});
 	}
 
 	[Test]
-	public void HttpRequestException_WithoutStatusCode_AsksToCheckNetwork()
+	public void HttpRequestException_WithoutStatusCode_ClassifiesAsHttpNoStatus()
 	{
 		LoadErrorInfo info = LoadErrorMessage.Describe(new HttpRequestException("boom"));
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(info.Title, Is.EqualTo("接続できませんでした"));
-			Assert.That(info.Body, Does.Contain("ネットワーク接続"));
+			Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.HttpNoStatus));
+			Assert.That(info.HttpStatusCode, Is.Null);
 		});
 	}
 
 	[Test]
-	public void Timeout_GivesNetworkGuidance()
+	public void Timeout_ClassifiesAsTimeout_BareAndWrapped()
 	{
 		LoadErrorInfo bare = LoadErrorMessage.Describe(new TimeoutException());
 		LoadErrorInfo wrapped = LoadErrorMessage.Describe(
@@ -141,25 +155,22 @@ public class LoadErrorMessageTests
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(bare.Title, Is.EqualTo("接続できませんでした (Timeout)"));
-			Assert.That(bare.Body, Does.Contain("ファイアウォール"));
-			Assert.That(wrapped.Title, Is.EqualTo("接続できませんでした (Timeout)"));
-			Assert.That(wrapped.Body, Does.Contain("ファイアウォール"));
+			Assert.That(bare.Kind, Is.EqualTo(LoadErrorKind.Timeout));
+			Assert.That(wrapped.Kind, Is.EqualTo(LoadErrorKind.Timeout));
 		});
 	}
 
 	[Test]
-	public void UnknownException_FallsBackAndIncludesRawDetail()
+	public void UnknownException_FallsBackAndCarriesRawDetail()
 	{
 		LoadErrorInfo info = LoadErrorMessage.Describe(
 			new InvalidOperationException("something obscure"));
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(info.Title, Is.EqualTo(FileErrorTitle));
-			// Only the unrecognised path is allowed to surface raw text.
-			Assert.That(info.Body, Does.Contain("詳細:"));
-			Assert.That(info.Body, Does.Contain("something obscure"));
+			Assert.That(info.Kind, Is.EqualTo(LoadErrorKind.Unknown));
+			// Only the unrecognised path is allowed to carry raw text.
+			Assert.That(info.RawDetail, Is.EqualTo("something obscure"));
 		});
 	}
 }
