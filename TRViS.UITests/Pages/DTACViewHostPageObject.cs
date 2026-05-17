@@ -445,22 +445,33 @@ public class DTACViewHostPageObject : PageObject
 	// every platform surfaces somewhere, the most robust cross-platform
 	// "it is on screen" signal.
 	public bool IsQuickSwitchPopupShown(double timeoutSeconds = 5)
-		=> IsPopupPresent(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds, "WorkGroup", "Work");
+		=> IsPopupPresent(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds,
+			new[] { "WorkGroup", "Work" }, useTextOnWindows: true);
 
 	public bool IsQuickSwitchPopupGone(double timeoutSeconds = 5)
-		=> IsPopupGone(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds, "WorkGroup", "Work");
+		=> IsPopupGone(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds,
+			new[] { "WorkGroup", "Work" }, useTextOnWindows: true);
 
 	// Probe the Close *Button* AutomationId with NO text candidate: a plain
 	// Button resolves by AccessibilityId / By.Id on every platform (cf.
 	// ConnectServer.CloseButton), and a "Close" text probe would collide with
 	// the WinUI title-bar Close button (run 25983087525 closed the whole app).
+	// "Close" text fallback on non-Windows only: a plain Button's AutomationId
+	// is as unreliable on Android as the QuickSwitch Grid was (run 25983883205
+	// — Close-button-AutomationId-only failed there while QuickSwitch's text
+	// probe passed via the same overlay, so the popup *does* render). On
+	// Windows the AutomationId resolves fine (24/24 green on e0ab887) and a
+	// "Close" text probe must NOT be used — it matches the WinUI title-bar
+	// Close button (run 25983087525 closed the whole app).
 	public bool IsSelectMarkerPopupShown(double timeoutSeconds = 5)
-		=> IsPopupPresent(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds);
+		=> IsPopupPresent(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds,
+			new[] { "Close" }, useTextOnWindows: false);
 
 	public bool IsSelectMarkerPopupGone(double timeoutSeconds = 5)
-		=> IsPopupGone(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds);
+		=> IsPopupGone(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds,
+			new[] { "Close" }, useTextOnWindows: false);
 
-	private bool IsPopupPresent(string automationId, double timeoutSeconds, params string[] textCandidates)
+	private bool IsPopupPresent(string automationId, double timeoutSeconds, string[] textCandidates, bool useTextOnWindows = true)
 	{
 		var prevWait = TimeSpan.FromSeconds(10);
 		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
@@ -469,7 +480,7 @@ public class DTACViewHostPageObject : PageObject
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			while (DateTime.UtcNow < deadline)
 			{
-				if (TryFindVisiblePopup(automationId, textCandidates))
+				if (TryFindVisiblePopup(automationId, textCandidates, useTextOnWindows))
 					return true;
 				Thread.Sleep(150);
 			}
@@ -481,7 +492,7 @@ public class DTACViewHostPageObject : PageObject
 		}
 	}
 
-	private bool IsPopupGone(string automationId, double timeoutSeconds, params string[] textCandidates)
+	private bool IsPopupGone(string automationId, double timeoutSeconds, string[] textCandidates, bool useTextOnWindows = true)
 	{
 		var prevWait = TimeSpan.FromSeconds(10);
 		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
@@ -490,7 +501,7 @@ public class DTACViewHostPageObject : PageObject
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			while (DateTime.UtcNow < deadline)
 			{
-				if (!TryFindVisiblePopup(automationId, textCandidates))
+				if (!TryFindVisiblePopup(automationId, textCandidates, useTextOnWindows))
 					return true;
 				Thread.Sleep(150);
 			}
@@ -502,12 +513,13 @@ public class DTACViewHostPageObject : PageObject
 		}
 	}
 
-	// Try the AutomationId first, then fall back to the rendered text on EVERY
-	// platform. Appium+MAUI element addressing for non-Button custom controls
-	// is unreliable platform-by-platform (the reason FindCustomControl exists);
-	// the popup's visible label text is the most robust cross-platform "it is
-	// on screen" signal, so probe it everywhere — not just Windows.
-	private bool TryFindVisiblePopup(string automationId, string[] textCandidates)
+	// Try the AutomationId first, then fall back to the rendered text. Appium+
+	// MAUI element addressing for non-Button custom controls is unreliable
+	// platform-by-platform (the reason FindCustomControl exists); the popup's
+	// visible label text is the most robust cross-platform "it is on screen"
+	// signal. <paramref name="useTextOnWindows"/> is false when the text would
+	// collide with a WinUI chrome element (e.g. "Close" == title-bar button).
+	private bool TryFindVisiblePopup(string automationId, string[] textCandidates, bool useTextOnWindows = true)
 	{
 		try
 		{
@@ -519,6 +531,8 @@ public class DTACViewHostPageObject : PageObject
 
 		if (textCandidates.Length == 0)
 			return false;
+		if (IsWindows && !useTextOnWindows)
+			return false; // text would match WinUI chrome (e.g. caption Close)
 
 		// Per-platform Appium exposes visible text under different attributes:
 		// Android=text/content-desc, iOS+macOS=label/name/value, Windows=Name.
@@ -561,12 +575,51 @@ public class DTACViewHostPageObject : PageObject
 		try
 		{
 			string src = Driver.PageSource ?? "(null PageSource)";
-			const int max = 16000;
-			return src.Length <= max ? src : src.Substring(0, max) + "\n…(truncated)";
+
+			// Android's PageSource is ~1 MB of deeply-nested, attribute-heavy
+			// XML; head-truncating just shows the Shell scaffold. Instead report
+			// which markers are present (does the overlay/popup exist at all?)
+			// plus a window around the first popup-related node.
+			string[] markers =
+			{
+				"DTAC.PopupScrim", "DTAC.QuickSwitchPopup", "DTAC.SelectMarkerPopup",
+				"WorkGroup", "Work", "Close", "DTAC.MenuButton", "不明なエラー",
+			};
+			var sb = new System.Text.StringBuilder();
+			sb.Append("PageSource length=").Append(src.Length).Append("; markers: ");
+			foreach (var m in markers)
+				sb.Append(m).Append('=').Append(CountOccurrences(src, m)).Append("  ");
+			sb.AppendLine();
+
+			int anchor = new[] { "Scrim", "Popup", "Close" }
+				.Select(t => src.IndexOf(t, StringComparison.Ordinal))
+				.Where(i => i >= 0)
+				.DefaultIfEmpty(-1)
+				.Min();
+			if (anchor >= 0)
+			{
+				int start = Math.Max(0, anchor - 2000);
+				int len = Math.Min(12000, src.Length - start);
+				sb.Append("…window@").Append(start).Append(":\n")
+				  .Append(src, start, len).Append("\n…(window end)");
+			}
+			else
+			{
+				sb.Append("(no Scrim/Popup/Close token anywhere — first 8000 chars)\n")
+				  .Append(src.Substring(0, Math.Min(8000, src.Length)));
+			}
+			return sb.ToString();
 		}
 		catch (Exception ex)
 		{
 			return $"(PageSource unavailable: {ex.GetType().Name}: {ex.Message})";
 		}
+	}
+
+	private static int CountOccurrences(string haystack, string needle)
+	{
+		int n = 0, i = 0;
+		while ((i = haystack.IndexOf(needle, i, StringComparison.Ordinal)) >= 0) { n++; i += needle.Length; }
+		return n;
 	}
 }
