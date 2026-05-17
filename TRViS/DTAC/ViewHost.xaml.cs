@@ -1,7 +1,5 @@
 using System.ComponentModel;
 
-using TR.Maui.AnchorPopover;
-
 using TRViS.DTAC.Adapters;
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.DTAC.Logic.Presenter;
@@ -13,7 +11,7 @@ using TRViS.ViewModels;
 
 namespace TRViS.DTAC;
 
-public partial class ViewHost : ContentPage
+public partial class ViewHost : ContentPage, IPagePopupHost
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
@@ -93,6 +91,7 @@ public partial class ViewHost : ContentPage
 		AddTestStateSeams();
 		ApplyTestStateSeams(_presenter.CurrentState);
 		AddTestIsInfoRowTransitionSeam();
+		AddTestPopupSeams();
 #endif
 
 		logger.Trace("Created");
@@ -363,6 +362,10 @@ public partial class ViewHost : ContentPage
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
+		// ViewHost is a cached ShellContent reused across navigations; drop any
+		// open popup so a stale overlay / dangling awaiter doesn't survive into
+		// the next visit.
+		DismissOverlayPopup();
 		if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
 			InstanceManager.OrientationService.SetOrientation(AppDisplayOrientation.All);
 		InstanceManager.ScreenWakeLockService.DisableWakeLock();
@@ -388,19 +391,7 @@ public partial class ViewHost : ContentPage
 		try
 		{
 			logger.Info("TitleLabel tapped - showing QuickSwitchPopup");
-
-			QuickSwitchPopup popup = new();
-			var popover = AnchorPopover.Create();
-
-			var options = new PopoverOptions
-			{
-				PreferredWidth = 280,
-				PreferredHeight = 400,
-				DismissOnTapOutside = true
-			};
-
-			await popover.ShowAsync(popup, AppBarView, options);
-			logger.Trace("QuickSwitchPopup shown");
+			await ShowQuickSwitchPopupAsync();
 		}
 		catch (Exception ex)
 		{
@@ -408,4 +399,193 @@ public partial class ViewHost : ContentPage
 			await Util.ExitWithAlertAsync(ex);
 		}
 	}
+
+	// ---------- In-page popup overlay (replaces TR.Maui.AnchorPopover, #273) ----------
+	//
+	// TR.Maui.AnchorPopover 1.0.0.2 is built against MAUI 9; on the project's
+	// MAUI 10 Windows target IAnchorPopover.ShowAsync throws
+	// MissingMethodException for ElementExtensions.ToPlatform and crashes the
+	// app (#266 retired its own usage for the same reason — these two,
+	// QuickSwitchPopup and SelectMarkerPopup, were the remaining ones, #273).
+	// The replacement renders the popup content in an overlay that spans the
+	// page (PopupScrim/PopupContainer in ViewHost.xaml), which works on every
+	// platform with no third-party dependency.
+
+	private TaskCompletionSource<bool>? _popupTcs;
+	private bool _popupDismissOnTapOutside = true;
+
+	/// <summary>
+	/// Shows <paramref name="content"/> centered in the in-page overlay. The
+	/// returned task completes when the popup is dismissed (scrim tap, the
+	/// content's own close affordance, or navigation away). Drop-in replacement
+	/// for the old IAnchorPopover.ShowAsync semantics ("await until closed").
+	/// </summary>
+	public Task ShowOverlayPopupAsync(View content, double preferredWidth, double preferredHeight, bool dismissOnTapOutside)
+	{
+		if (!MainThread.IsMainThread)
+			return MainThread.InvokeOnMainThreadAsync(() => ShowOverlayPopupAsync(content, preferredWidth, preferredHeight, dismissOnTapOutside));
+
+		// Replace any popup already on screen — complete its awaiter first so
+		// a caller blocked on the previous ShowOverlayPopupAsync unblocks.
+		if (_popupTcs is { } prev && !prev.Task.IsCompleted)
+		{
+			_popupTcs = null;
+			prev.TrySetResult(true);
+		}
+
+		_popupDismissOnTapOutside = dismissOnTapOutside;
+		PopupContainer.WidthRequest = preferredWidth;
+		PopupContainer.HeightRequest = preferredHeight;
+		PopupContentHost.Content = content;
+		PopupScrim.IsVisible = true;
+
+		var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+		_popupTcs = tcs;
+		return tcs.Task;
+	}
+
+	/// <summary>Dismisses the current in-page popup (<see cref="IPagePopupHost"/>).</summary>
+	public Task DismissAsync()
+	{
+		if (!MainThread.IsMainThread)
+			return MainThread.InvokeOnMainThreadAsync(DismissOverlayPopup);
+		DismissOverlayPopup();
+		return Task.CompletedTask;
+	}
+
+	private void DismissOverlayPopup()
+	{
+		if (!PopupScrim.IsVisible && _popupTcs is null)
+			return;
+
+		PopupScrim.IsVisible = false;
+		PopupContentHost.Content = null;
+		// -1 == "unset" so a later popup with no explicit size auto-measures.
+		PopupContainer.WidthRequest = -1;
+		PopupContainer.HeightRequest = -1;
+
+		var tcs = _popupTcs;
+		_popupTcs = null;
+		tcs?.TrySetResult(true);
+	}
+
+	void PopupScrim_Tapped(object? sender, TappedEventArgs e)
+	{
+		if (_popupDismissOnTapOutside)
+		{
+			logger.Trace("Popup scrim tapped -> dismiss");
+			DismissOverlayPopup();
+		}
+	}
+
+	// Absorb taps on the popup content so they don't bubble to the dismiss
+	// scrim's TapGestureRecognizer (no-op by design).
+	void PopupContainer_Tapped(object? sender, TappedEventArgs e) { }
+
+	private async Task ShowQuickSwitchPopupAsync()
+	{
+		logger.Info("Showing QuickSwitchPopup");
+		QuickSwitchPopup popup = new();
+		await ShowOverlayPopupAsync(popup, preferredWidth: 280, preferredHeight: 400, dismissOnTapOutside: true);
+		logger.Trace("QuickSwitchPopup dismissed");
+	}
+
+	/// <summary>
+	/// Builds and shows SelectMarkerPopup in the overlay. Centralized here (not
+	/// in MarkerButton) so the overlay is owned by the page and the UI_TEST
+	/// seam exercises the exact production path. SelectMarkerPopup binds to the
+	/// singleton DTACMarkerViewModel, so this is equivalent to MarkerButton's
+	/// previous <c>new SelectMarkerPopup(MarkerSettings)</c>.
+	/// </summary>
+	internal async Task ShowSelectMarkerPopupAsync()
+	{
+		logger.Info("Showing SelectMarkerPopup");
+		SelectMarkerPopup popup = new();
+		popup.SetPopupHost(this);
+		await ShowOverlayPopupAsync(popup, preferredWidth: 240, preferredHeight: 360, dismissOnTapOutside: true);
+		logger.Trace("SelectMarkerPopup dismissed");
+	}
+
+	/// <summary>
+	/// Resolves the ViewHost hosting <paramref name="element"/> so descendant
+	/// controls (e.g. MarkerButton) can present the in-page popup overlay
+	/// without referencing the page directly. Walks the visual-tree parent
+	/// chain, then falls back to the current Shell page (ViewHost is a cached
+	/// ShellContent, so it is the Shell's CurrentPage whenever its descendants
+	/// are interactive).
+	/// </summary>
+	public static ViewHost? GetHostFor(Element? element)
+	{
+		for (Element? e = element; e is not null; e = e.Parent)
+		{
+			if (e is ViewHost host)
+				return host;
+		}
+		return Shell.Current?.CurrentPage as ViewHost;
+	}
+
+#if UI_TEST
+	// UI_TEST-only seams: open each popup via the exact production code path
+	// (ShowQuickSwitchPopupAsync / ShowSelectMarkerPopupAsync) and a dismiss
+	// invoker. Real anchors (the AppBar title Label, the timetable MarkerButton
+	// Border) are MAUI custom controls that WinUI surfaces as non-control Panes
+	// Appium's AccessibilityId search can't reliably tap, and #266 established
+	// that real-gesture popover E2E is fragile cross-platform — these seams keep
+	// the regression test (the Windows ToPlatform crash) robust while still
+	// running the production show/dismiss code on every platform. Stacked above
+	// the existing bottom-left seam strip (offsets 0/28/56).
+	private const string AutomationIdValueForTestOpenQuickSwitch = "DTAC.TestOpenQuickSwitchButton";
+	private const string AutomationIdValueForTestOpenMarkerPopup = "DTAC.TestOpenMarkerPopupButton";
+	private const string AutomationIdValueForTestDismissPopup = "DTAC.TestDismissPopupButton";
+
+	private void AddTestPopupSeams()
+	{
+		MainGrid.Children.Add(BuildPopupSeamButton(
+			AutomationIdValueForTestOpenQuickSwitch, bottomMarginPx: 84, TestOpenQuickSwitchButton_Clicked));
+		MainGrid.Children.Add(BuildPopupSeamButton(
+			AutomationIdValueForTestOpenMarkerPopup, bottomMarginPx: 112, TestOpenMarkerPopupButton_Clicked));
+		MainGrid.Children.Add(BuildPopupSeamButton(
+			AutomationIdValueForTestDismissPopup, bottomMarginPx: 140, TestDismissPopupButton_Clicked));
+	}
+
+	private static Button BuildPopupSeamButton(string automationId, double bottomMarginPx, EventHandler clicked)
+	{
+		var seam = new Button
+		{
+			AutomationId = automationId,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+			Margin = new Thickness(0, 0, 0, bottomMarginPx),
+		};
+		seam.Clicked += clicked;
+		Grid.SetRow(seam, 2);
+		return seam;
+	}
+
+	async void TestOpenQuickSwitchButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestOpenQuickSwitchButton clicked: showing QuickSwitchPopup");
+		try { await ShowQuickSwitchPopupAsync(); }
+		catch (Exception ex) { logger.Error(ex, "TestOpenQuickSwitchButton failed"); }
+	}
+
+	async void TestOpenMarkerPopupButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestOpenMarkerPopupButton clicked: showing SelectMarkerPopup");
+		try { await ShowSelectMarkerPopupAsync(); }
+		catch (Exception ex) { logger.Error(ex, "TestOpenMarkerPopupButton failed"); }
+	}
+
+	async void TestDismissPopupButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestDismissPopupButton clicked: dismissing in-page popup");
+		try { await DismissAsync(); }
+		catch (Exception ex) { logger.Error(ex, "TestDismissPopupButton failed"); }
+	}
+#endif
 }

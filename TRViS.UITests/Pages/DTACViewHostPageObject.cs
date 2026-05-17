@@ -379,4 +379,283 @@ public class DTACViewHostPageObject : PageObject
 		}
 		return false;
 	}
+
+	// ---------- In-page popups (replaced TR.Maui.AnchorPopover, #273) ----------
+	//
+	// Open/dismiss go through UI_TEST seams that run the exact production
+	// ShowQuickSwitchPopupAsync / ShowSelectMarkerPopupAsync / DismissAsync
+	// path — the real anchors (AppBar title Label, timetable MarkerButton
+	// Border) are MAUI custom controls WinUI exposes as non-control Panes
+	// Appium can't reliably tap, and #266 found real-gesture popover E2E
+	// fragile cross-platform. Presence is probed by the popup root's
+	// AutomationId on iOS/Android/macOS and by the rendered visible text on
+	// Windows (where ContentView AutomationId surfaces as a non-control Pane),
+	// mirroring FindCustomControl's dual strategy.
+
+	public void DismissPopupViaSeam()
+		=> WaitForElement(AutomationIds.DTAC.TestDismissPopupButton).Click();
+
+	// Appium↔MAUI Button click dispatch is intermittently dropped on Android
+	// (this codebase already works around the same for the SelectFile seam):
+	// a single seam click occasionally no-ops, so the overlay never opens —
+	// run 25984214790's diagnostic showed DTAC.PopupScrim=0, 不明なエラー=0
+	// (no crash, the open just didn't take), while the identical path passed
+	// on run 25983883205. Re-click + re-poll a few times. ShowOverlayPopupAsync
+	// is re-entrant, so an extra click while already shown is harmless. Returns
+	// true once the popup is detected, false if every attempt failed.
+	public bool OpenQuickSwitchPopupReliably(int attempts = 4, double perAttemptSeconds = 8)
+		=> RetrySeam(AutomationIds.DTAC.TestOpenQuickSwitchButton, IsQuickSwitchPopupShown, attempts, perAttemptSeconds);
+
+	public bool OpenSelectMarkerPopupReliably(int attempts = 4, double perAttemptSeconds = 8)
+		=> RetrySeam(AutomationIds.DTAC.TestOpenMarkerPopupButton, IsSelectMarkerPopupShown, attempts, perAttemptSeconds);
+
+	public bool DismissQuickSwitchReliably(int attempts = 4, double perAttemptSeconds = 6)
+		=> RetrySeam(AutomationIds.DTAC.TestDismissPopupButton, IsQuickSwitchPopupGone, attempts, perAttemptSeconds);
+
+	private bool RetrySeam(string seamAutomationId, Func<double, bool> condition, int attempts, double perAttemptSeconds)
+	{
+		for (int i = 0; i < attempts; i++)
+		{
+			try { WaitForElement(seamAutomationId).Click(); }
+			catch { /* seam not hit this attempt — re-poll then retry */ }
+			if (condition(perAttemptSeconds))
+				return true;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// Best-effort popup dismissal for fixture TearDown: the overlay is a
+	/// full-screen modal scrim, so a popup left open by a failed assertion
+	/// blocks the flyout/menu and wedges every later test in a shared session
+	/// (run 25983087525: one QuickSwitch failure cascaded into ~8 unrelated
+	/// failures). Swallows everything — never throws out of TearDown.
+	/// </summary>
+	public void TryDismissAnyPopup()
+	{
+		try { DismissPopupViaSeam(); } catch { /* not on DTAC / no popup */ }
+	}
+
+	/// <summary>
+	/// Taps SelectMarkerPopup's real "Close" button (the production dismiss
+	/// path: OnCloseButtonClicked -> IPagePopupHost.DismissAsync) and confirms
+	/// the popup is gone, retrying for the same Android Appium click-drop reason
+	/// as the seams. The Close button is a plain MAUI Button resolved by
+	/// AutomationId on every platform (WinUI exposes a reachable
+	/// AccessibilityId, like ConnectServer.CloseButton); a "Close" visible-text
+	/// lookup must NOT be used — it matches the WinUI title-bar Close (X)
+	/// button, which closed the whole app in run 25983087525.
+	/// </summary>
+	public bool DismissSelectMarkerViaCloseReliably(int attempts = 4, double perAttemptSeconds = 6)
+	{
+		for (int i = 0; i < attempts; i++)
+		{
+			try { WaitForElement(AutomationIds.DTAC.SelectMarkerPopupCloseButton).Click(); }
+			catch { /* button gone (already dismissed) or not hit — re-check */ }
+			if (IsSelectMarkerPopupGone(perAttemptSeconds))
+				return true;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// Taps QuickSwitchPopup's "Work" tab — a plain TapGestureRecognizer on a
+	/// TabButtonSmall (no CollectionView, so not subject to this codebase's
+	/// documented iOS CollectionView-row-tap flakiness). Doubles as the
+	/// regression probe for the overlay's absorber Border: if the absorber
+	/// swallowed descendant input the tap would do nothing; if it failed to
+	/// stop bubbling, the tap would reach the scrim and dismiss the popup.
+	/// </summary>
+	public void TapQuickSwitchWorkTab()
+	{
+		if (IsWindows)
+			WaitForElementByVisibleText(TimeSpan.FromSeconds(15), "Work").Click();
+		else
+			FindByAutomationId(AutomationIds.DTAC.QuickSwitchPopupWorkTab).Click();
+	}
+
+	// Probe the WorkTab AutomationId, then the rendered tab labels
+	// "WorkGroup"/"Work" on every platform. The popup root is a ContentView
+	// (MAUI creates no native view for it, so its AutomationId is absent from
+	// the Android tree — run 25983087525); the tab labels are real text that
+	// every platform surfaces somewhere, the most robust cross-platform
+	// "it is on screen" signal.
+	public bool IsQuickSwitchPopupShown(double timeoutSeconds = 5)
+		=> IsPopupPresent(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds,
+			new[] { "WorkGroup", "Work" }, useTextOnWindows: true);
+
+	public bool IsQuickSwitchPopupGone(double timeoutSeconds = 5)
+		=> IsPopupGone(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds,
+			new[] { "WorkGroup", "Work" }, useTextOnWindows: true);
+
+	// Probe the Close *Button* AutomationId with NO text candidate: a plain
+	// Button resolves by AccessibilityId / By.Id on every platform (cf.
+	// ConnectServer.CloseButton), and a "Close" text probe would collide with
+	// the WinUI title-bar Close button (run 25983087525 closed the whole app).
+	// "Close" text fallback on non-Windows only: a plain Button's AutomationId
+	// is as unreliable on Android as the QuickSwitch Grid was (run 25983883205
+	// — Close-button-AutomationId-only failed there while QuickSwitch's text
+	// probe passed via the same overlay, so the popup *does* render). On
+	// Windows the AutomationId resolves fine (24/24 green on e0ab887) and a
+	// "Close" text probe must NOT be used — it matches the WinUI title-bar
+	// Close button (run 25983087525 closed the whole app).
+	public bool IsSelectMarkerPopupShown(double timeoutSeconds = 5)
+		=> IsPopupPresent(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds,
+			new[] { "Close" }, useTextOnWindows: false);
+
+	public bool IsSelectMarkerPopupGone(double timeoutSeconds = 5)
+		=> IsPopupGone(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds,
+			new[] { "Close" }, useTextOnWindows: false);
+
+	private bool IsPopupPresent(string automationId, double timeoutSeconds, string[] textCandidates, bool useTextOnWindows = true)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				if (TryFindVisiblePopup(automationId, textCandidates, useTextOnWindows))
+					return true;
+				Thread.Sleep(150);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	private bool IsPopupGone(string automationId, double timeoutSeconds, string[] textCandidates, bool useTextOnWindows = true)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				if (!TryFindVisiblePopup(automationId, textCandidates, useTextOnWindows))
+					return true;
+				Thread.Sleep(150);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	// Try the AutomationId first, then fall back to the rendered text. Appium+
+	// MAUI element addressing for non-Button custom controls is unreliable
+	// platform-by-platform (the reason FindCustomControl exists); the popup's
+	// visible label text is the most robust cross-platform "it is on screen"
+	// signal. <paramref name="useTextOnWindows"/> is false when the text would
+	// collide with a WinUI chrome element (e.g. "Close" == title-bar button).
+	private bool TryFindVisiblePopup(string automationId, string[] textCandidates, bool useTextOnWindows = true)
+	{
+		try
+		{
+			var els = Driver.FindElements(AutomationIdLocator(automationId));
+			if (els.Count > 0 && IsElementUserVisible((AppiumElement)els[0]))
+				return true;
+		}
+		catch { /* fall through to text probe */ }
+
+		if (textCandidates.Length == 0)
+			return false;
+		if (IsWindows && !useTextOnWindows)
+			return false; // text would match WinUI chrome (e.g. caption Close)
+
+		// Per-platform Appium exposes visible text under different attributes:
+		// Android=text/content-desc, iOS+macOS=label/name/value, Windows=Name.
+		string predicate = string.Join(" or ", textCandidates.SelectMany(t => new[]
+		{
+			$"@text={XPathLiteral(t)}",
+			$"@content-desc={XPathLiteral(t)}",
+			$"@label={XPathLiteral(t)}",
+			$"@name={XPathLiteral(t)}",
+			$"@value={XPathLiteral(t)}",
+			$"@Name={XPathLiteral(t)}",
+		}));
+		try
+		{
+			var els = Driver.FindElements(By.XPath($"//*[{predicate}]"));
+			return els.Count > 0 && IsElementUserVisible((AppiumElement)els[0]);
+		}
+		catch { return false; }
+	}
+
+	// XPath 1.0 has no escape for quotes; wrap in the other quote, or build a
+	// concat() when the literal contains both. Popup labels are simple ASCII,
+	// but keep this correct so a future label can't silently break the probe.
+	private static string XPathLiteral(string s)
+	{
+		if (!s.Contains('\'')) return $"'{s}'";
+		if (!s.Contains('"')) return $"\"{s}\"";
+		return "concat('" + s.Replace("'", "',\"'\",'") + "')";
+	}
+
+	/// <summary>
+	/// Best-effort Appium tree dump for failure diagnostics. Written to the
+	/// test's stdout (NUnit surfaces it as "Standard Output Messages" in the
+	/// CI log) so a "popup not shown" failure shows whether the scrim / popup
+	/// content is actually in the platform tree — same approach the flyout
+	/// helper uses. Truncated so it doesn't flood the log.
+	/// </summary>
+	public string CaptureTreeForDiagnostics()
+	{
+		try
+		{
+			string src = Driver.PageSource ?? "(null PageSource)";
+
+			// Android's PageSource is ~1 MB of deeply-nested, attribute-heavy
+			// XML; head-truncating just shows the Shell scaffold. Instead report
+			// which markers are present (does the overlay/popup exist at all?)
+			// plus a window around the first popup-related node.
+			string[] markers =
+			{
+				"DTAC.PopupScrim", "DTAC.QuickSwitchPopup", "DTAC.SelectMarkerPopup",
+				"WorkGroup", "Work", "Close", "DTAC.MenuButton", "不明なエラー",
+			};
+			var sb = new System.Text.StringBuilder();
+			sb.Append("PageSource length=").Append(src.Length).Append("; markers: ");
+			foreach (var m in markers)
+				sb.Append(m).Append('=').Append(CountOccurrences(src, m)).Append("  ");
+			sb.AppendLine();
+
+			int anchor = new[] { "Scrim", "Popup", "Close" }
+				.Select(t => src.IndexOf(t, StringComparison.Ordinal))
+				.Where(i => i >= 0)
+				.DefaultIfEmpty(-1)
+				.Min();
+			if (anchor >= 0)
+			{
+				int start = Math.Max(0, anchor - 2000);
+				int len = Math.Min(12000, src.Length - start);
+				sb.Append("…window@").Append(start).Append(":\n")
+				  .Append(src, start, len).Append("\n…(window end)");
+			}
+			else
+			{
+				sb.Append("(no Scrim/Popup/Close token anywhere — first 8000 chars)\n")
+				  .Append(src.Substring(0, Math.Min(8000, src.Length)));
+			}
+			return sb.ToString();
+		}
+		catch (Exception ex)
+		{
+			return $"(PageSource unavailable: {ex.GetType().Name}: {ex.Message})";
+		}
+	}
+
+	private static int CountOccurrences(string haystack, string needle)
+	{
+		int n = 0, i = 0;
+		while ((i = haystack.IndexOf(needle, i, StringComparison.Ordinal)) >= 0) { n++; i += needle.Length; }
+		return n;
+	}
 }
