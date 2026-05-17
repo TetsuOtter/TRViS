@@ -39,7 +39,10 @@ public partial class AppViewModel
 	// MarkServerConnectionLost callback below.
 	private NetworkSyncConnectionLostWatcher? _wsConnectionLostWatcherField;
 	private NetworkSyncConnectionLostWatcher WsConnectionLostWatcher
-		=> _wsConnectionLostWatcherField ??= new NetworkSyncConnectionLostWatcher(MarkServerConnectionLost);
+		=> _wsConnectionLostWatcherField ??= new NetworkSyncConnectionLostWatcher(
+			MarkServerConnectionLost,
+			MarkServerReconnecting,
+			MarkServerReconnected);
 
 	/// <summary>
 	/// 切断イベント監視を解除し、再接続情報を破棄する。WebSocket 以外 / null の
@@ -61,10 +64,43 @@ public partial class AppViewModel
 	private void MarkServerConnectionLost()
 	{
 		logger.Info("WebSocket connection lost -> IsServerConnectionLost = true");
-		if (MainThread.IsMainThread)
+		RunOnMainThread(() =>
+		{
+			// 再接続試行が終わった (クリーンクローズ or 再接続失敗) 状態。
+			// IsServerReconnecting も落として Connecting で固着しないようにする (#266)。
+			IsServerReconnecting = false;
 			IsServerConnectionLost = true;
+		});
+	}
+
+	// 自動再接続の開始 (#266): ぐるぐる表示へ。Loader / IsServerConnectionLost は
+	// そのまま (再接続成功までキャッシュ表示を継続)。ServerConnectionStatus の
+	// 算出で IsServerReconnecting が優先されるため Connecting になる。
+	private void MarkServerReconnecting()
+	{
+		logger.Info("WebSocket reconnecting -> IsServerReconnecting = true");
+		RunOnMainThread(() => IsServerReconnecting = true);
+	}
+
+	// 自動再接続の成功 (#266): 接続済みへ。#261 の「自動再接続成功後も
+	// IsServerConnectionLost が true のまま固着する」ギャップもここで解消する
+	// (Home の切断バナーも自動復帰するようになる)。
+	private void MarkServerReconnected()
+	{
+		logger.Info("WebSocket reconnected -> clear reconnecting/lost flags");
+		RunOnMainThread(() =>
+		{
+			IsServerReconnecting = false;
+			IsServerConnectionLost = false;
+		});
+	}
+
+	private static void RunOnMainThread(Action action)
+	{
+		if (MainThread.IsMainThread)
+			action();
 		else
-			MainThread.BeginInvokeOnMainThread(() => IsServerConnectionLost = true);
+			MainThread.BeginInvokeOnMainThread(action);
 	}
 
 	/// <summary>
@@ -348,6 +384,7 @@ public partial class AppViewModel
 			_lastWebSocketOriginalAppLink = originalAppLink;
 			WsConnectionLostWatcher.Watch(service);
 			IsServerConnectionLost = false;
+			IsServerReconnecting = false;
 
 			ILoader? lastLoader = this.Loader;
 			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
