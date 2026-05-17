@@ -47,5 +47,19 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Check whether you are near a station or not.</string>
+	<!-- App Transport Security: NetworkSyncService の接続先はユーザーが任意入力する
+	     URL (LAN 上のシミュレータ/ゲームの http:// や ws:// が典型)。TLS を張れない
+	     LAN ホストへ繋ぐため、ATS のデフォルト cleartext ブロックを解除する。
+	     ClientWebSocket も内部で NSURLSession を使うため ATS の対象。 -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<!-- iOS 14+ はローカルネットワーク上のホストへ初回アクセスする際に許可
+	     ダイアログを表示する。この説明文字列が無いとダイアログを出せず接続が
+	     黙って失敗するため必須。 -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ローカルネットワーク上の運転シミュレータ等のサーバーと連携するために使用します。</string>
 </dict>
 </plist>
