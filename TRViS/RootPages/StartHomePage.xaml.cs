@@ -223,7 +223,6 @@ public partial class StartHomePage : ContentPage
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
 		AddTestSimulateWebSocketDisconnectSeam();
-		AddTestSeedMalformedJsonSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1143,6 +1142,14 @@ public partial class StartHomePage : ContentPage
 	// for the documented iPhone layout-row-growth reason). Margin y = 312 sits
 	// directly below the SelectFile seam (which occupies y=[288,312]), keeping
 	// the seam column contiguous in the top-left corner.
+	//
+	// SEAM-COLUMN CEILING: y=336 is the bottom of the usable column. A further
+	// standalone seam at y=[336,360] was attempted in PR #271 and its tap was
+	// silently swallowed on iOS/Mac (element findable but hit-testing did not
+	// dispatch Clicked — overlapped by Start-mode content at that offset),
+	// while a 13th TestSeamHost row regresses Android and risks the iPhone
+	// hang above. If another seam is needed, rework the column (e.g. a
+	// horizontal second column / off-corner host) rather than extending down.
 	private void AddTestSimulateWebSocketDisconnectSeam()
 	{
 		var seam = new Button
@@ -1158,36 +1165,6 @@ public partial class StartHomePage : ContentPage
 			Padding = 0,
 		};
 		seam.Clicked += TestSimulateWebSocketDisconnectButton_Clicked;
-		Grid.SetRow(seam, 0);
-		RootGrid.Children.Add(seam);
-	}
-
-	// Mirrors AutomationIds.StartHome.TestSeedMalformedJsonButton.
-	private const string AutomationIdValueForTestSeedMalformedJson = "StartHome.TestSeedMalformedJsonButton";
-
-	// UI_TEST-only seam (issue #49): writes a syntactically-broken JSON into
-	// TimetableFileDirectory so the SelectFileDialog friendly-error path can be
-	// driven end-to-end. Same standalone-code-behind pattern as the two seams
-	// above — deliberately NOT a 13th row of TestSeamHost, because growing that
-	// Grid triggers the documented iPhone XCUITest layout-row-growth hang (see
-	// AddTestOpenSelectFileDialogSeam). Margin y = 336 sits directly below the
-	// WebSocket-disconnect seam (y=[312,336]), keeping the seam column
-	// contiguous in the top-left corner.
-	private void AddTestSeedMalformedJsonSeam()
-	{
-		var seam = new Button
-		{
-			AutomationId = AutomationIdValueForTestSeedMalformedJson,
-			HorizontalOptions = LayoutOptions.Start,
-			VerticalOptions = LayoutOptions.Start,
-			WidthRequest = 24,
-			HeightRequest = 24,
-			Margin = new Thickness(0, 336, 0, 0),
-			BackgroundColor = Colors.Transparent,
-			BorderColor = Colors.Transparent,
-			Padding = 0,
-		};
-		seam.Clicked += TestSeedMalformedJsonButton_Clicked;
 		Grid.SetRow(seam, 0);
 		RootGrid.Children.Add(seam);
 	}
@@ -1432,19 +1409,6 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestClearSampleFilesButton failed");
-		}
-	}
-
-	void TestSeedMalformedJsonButton_Clicked(object? sender, EventArgs e)
-	{
-		logger.Info("TestSeedMalformedJsonButton clicked: seeding broken JSON fixture");
-		try
-		{
-			SelectFileDialogTestSeams.SeedMalformedJson();
-		}
-		catch (Exception ex)
-		{
-			logger.Error(ex, "TestSeedMalformedJsonButton failed");
 		}
 	}
 

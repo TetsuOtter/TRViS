@@ -32,13 +32,6 @@ internal static class SelectFileDialogTestSeams
 	/// from the app process but does not pollute the in-app file list.
 	/// </summary>
 	public const string BrowseFallbackFileName = "ui-test-browse-fallback.json";
-	/// <summary>
-	/// Syntactically-broken JSON written at the root of TimetableFileDirectory
-	/// for the friendly-error test (issue #49). Loading it makes
-	/// <c>JsonSerializer</c> throw a <c>JsonException</c>, which the new
-	/// LoadErrorMessage path must turn into a readable alert.
-	/// </summary>
-	public const string MalformedJsonFileName = "ui-test-malformed.json";
 
 	/// <summary>
 	/// Minimal-but-non-empty WorkGroup payload. TWO WorkGroups (each one Work,
@@ -77,20 +70,6 @@ internal static class SelectFileDialogTestSeams
 		File.WriteAllText(Path.Combine(sub, NestedSampleFileName), FixtureJson);
 
 		logger.Info("SeedSampleFiles: root={0} sub={1}", root, sub);
-	}
-
-	/// <summary>
-	/// Writes a single syntactically-broken JSON file at the root of
-	/// TimetableFileDirectory so a SelectFileDialog tap exercises the
-	/// JsonException → friendly-alert path (issue #49). Wiped by
-	/// <see cref="ClearSampleFiles"/> like every other seeded fixture.
-	/// </summary>
-	public static void SeedMalformedJson()
-	{
-		string root = DirectoryPathProvider.TimetableFileDirectory.FullName;
-		Directory.CreateDirectory(root);
-		File.WriteAllText(Path.Combine(root, MalformedJsonFileName), "{ this is not valid json");
-		logger.Info("SeedMalformedJson: root={0}", root);
 	}
 
 	/// <summary>

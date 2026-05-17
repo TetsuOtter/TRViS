@@ -79,7 +79,6 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestSeedSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestSeedSampleFilesButton);
 	public AppiumElement TestClearSampleFilesButton => FindByAutomationId(AutomationIds.StartHome.TestClearSampleFilesButton);
 	public AppiumElement TestSetupBrowseFallbackButton => FindByAutomationId(AutomationIds.StartHome.TestSetupBrowseFallbackButton);
-	public AppiumElement TestSeedMalformedJsonButton => FindByAutomationId(AutomationIds.StartHome.TestSeedMalformedJsonButton);
 	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
 	public AppiumElement TestClearLoaderButton => FindByAutomationId(AutomationIds.StartHome.TestClearLoaderButton);
 	public AppiumElement TestSimulateWebSocketDisconnectButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton);
@@ -404,12 +403,6 @@ public class StartHomePageObject : PageObject
 	public const string SeededNestedFileName = "ui-test-nested.json";
 
 	/// <summary>
-	/// Broken-JSON fixture file name. Mirrors
-	/// <c>SelectFileDialogTestSeams.MalformedJsonFileName</c>.
-	/// </summary>
-	public const string MalformedJsonFileName = "ui-test-malformed.json";
-
-	/// <summary>
 	/// Taps the UI_TEST-only seed-sample-files button. Writes a known fixture
 	/// (root JSON + sub-folder containing another JSON) into TimetableFileDirectory
 	/// so drill-down / file-load tests have something to assert against.
@@ -442,14 +435,6 @@ public class StartHomePageObject : PageObject
 	/// real load path with no OS picker dialog.
 	/// </summary>
 	public void SetupBrowseFallbackForTesting() => TestSetupBrowseFallbackButton.Click();
-
-	/// <summary>
-	/// Taps the UI_TEST-only seed-malformed-JSON button. Writes a single
-	/// syntactically-broken JSON at the root of TimetableFileDirectory so a
-	/// SelectFileDialog tap drives the JsonException → friendly-alert path
-	/// (issue #49).
-	/// </summary>
-	public void SeedMalformedJsonForTesting() => TestSeedMalformedJsonButton.Click();
 
 	/// <summary>
 	/// Returns the count of WorkGroup rows after a sample load. Useful to verify
