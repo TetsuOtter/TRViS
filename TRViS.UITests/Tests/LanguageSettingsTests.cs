@@ -45,6 +45,13 @@ public class LanguageSettingsTests : BaseUITest
 			_startHomePage = new StartHomePageObject(Driver);
 		}
 
+		// On a fresh-install launch the PrivacyPolicyDialog modal is shown over
+		// StartHome and StartHome.Title is not in the accessibility tree until
+		// it is dismissed. Every other StartHome-based fixture dismisses it in
+		// SetUp; this #40-era fixture predated that modal, so mirror the same
+		// pattern (no-op after the first call within the session).
+		_startHomePage.AcceptPrivacyPolicyIfNeeded();
+
 		Assert.That(_startHomePage.IsDisplayed(), Is.True,
 			"StartHomePage should be displayed before the language test.");
 	}
