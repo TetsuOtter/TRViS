@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true"></application>
+	<!-- usesCleartextTraffic: NetworkSyncService の接続先はユーザーが任意入力する URL
+	     (典型例: LAN 上のシミュレータ/ゲームの http://192.168.x.x や ws://...)。
+	     TLS 証明書を持たない LAN ホストが大半のため、Android 9+ がデフォルトで
+	     ブロックする cleartext (非 TLS) 通信を許可する。接続先が固定ドメインでは
+	     ないため network-security-config によるドメインスコープ化は機能しない。 -->
+	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:usesCleartextTraffic="true"></application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
 </manifest>
