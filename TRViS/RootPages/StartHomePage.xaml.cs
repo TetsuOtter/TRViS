@@ -225,6 +225,7 @@ public partial class StartHomePage : ContentPage
 		AddTestSimulateWebSocketDisconnectSeam();
 		AddTestSetLanguageEnglishSeam();
 		AddTestSetLanguageJapaneseSeam();
+		AddTestSimulateWebSocketConnectedSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1150,6 +1151,14 @@ public partial class StartHomePage : ContentPage
 	// for the documented iPhone layout-row-growth reason). Margin y = 312 sits
 	// directly below the SelectFile seam (which occupies y=[288,312]), keeping
 	// the seam column contiguous in the top-left corner.
+	//
+	// SEAM-COLUMN CEILING: y=336 is the bottom of the usable column. A further
+	// standalone seam at y=[336,360] was attempted in PR #271 and its tap was
+	// silently swallowed on iOS/Mac (element findable but hit-testing did not
+	// dispatch Clicked — overlapped by Start-mode content at that offset),
+	// while a 13th TestSeamHost row regresses Android and risks the iPhone
+	// hang above. If another seam is needed, rework the column (e.g. a
+	// horizontal second column / off-corner host) rather than extending down.
 	private void AddTestSimulateWebSocketDisconnectSeam()
 	{
 		var seam = new Button
@@ -1165,6 +1174,44 @@ public partial class StartHomePage : ContentPage
 			Padding = 0,
 		};
 		seam.Clicked += TestSimulateWebSocketDisconnectButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketConnectedButton.
+	private const string AutomationIdValueForTestSimulateWsConnected = "StartHome.TestSimulateWebSocketConnectedButton";
+
+	// UI_TEST-only seam (#266): builds a WebSocket-TYPED loader carrying real
+	// sample data (so the picker/commit/DTAC nav path works without a server),
+	// commits the first WG/Work and navigates to DTAC. On DTAC the AppBar status
+	// indicator is shown; status is Connected (Loader is WS, not lost, not
+	// reconnecting). The DTAC-side seams then drive it to Disconnected /
+	// Reconnecting.
+	//
+	// Placed in a PARALLEL second column (Margin left = 30), NOT stacked below
+	// the WS-disconnect seam: continuing the single column past y=312 rendered
+	// at y≈414 on iPhone, which is below the visible cutoff (XCUITest reports
+	// visible="false" → Appium's tap silently no-ops → handler never runs →
+	// test timed out waiting for DTAC). iPad (taller) showed it, so only
+	// ui-test-ios (iphone) failed. Re-using the WS-disconnect seam's
+	// proven-visible y (=312) in a 24px-clear second column keeps it tappable
+	// on every device. The first column is 24px wide at x≈base; left margin 30
+	// clears it.
+	private void AddTestSimulateWebSocketConnectedSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSimulateWsConnected,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(30, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSimulateWebSocketConnectedButton_Clicked;
 		Grid.SetRow(seam, 0);
 		RootGrid.Children.Add(seam);
 	}
@@ -1267,6 +1314,44 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSetLanguageJapaneseButton failed");
+		}
+	}
+
+	async void TestSimulateWebSocketConnectedButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSimulateWebSocketConnectedButton clicked: WS-typed loader (sample data) -> DTAC");
+		try
+		{
+			var sample = await SampleDataLoader.CreateAsync();
+			var service = new WebSocketNetworkSyncService(
+				new Uri("ws://uitest.invalid/"),
+				new System.Net.WebSockets.ClientWebSocket());
+			service.SeedCachesFromLoaderForTesting(sample);
+			sample.Dispose();
+
+			var previous = viewModel.Loader;
+			viewModel.SetLoader(service, "ws://uitest.invalid/");
+			previous?.Dispose();
+
+			var firstGroup = viewModel.WorkGroupList?.FirstOrDefault();
+			if (firstGroup is null)
+			{
+				logger.Warn("TestSimulateWebSocketConnected: no WorkGroup in sample data — ignoring");
+				return;
+			}
+			var firstWork = service.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+			if (firstWork is null)
+			{
+				logger.Warn("TestSimulateWebSocketConnected: first WorkGroup has no Work — aborting");
+				return;
+			}
+
+			HomeGrid.CommitPendingSelection(firstGroup, firstWork);
+			await HomeGridView.NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSimulateWebSocketConnectedButton failed");
 		}
 	}
 

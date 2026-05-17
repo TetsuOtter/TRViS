@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+-.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-[0-9]+"
   pull_request:
     types:
       - opened
@@ -17,13 +17,19 @@ on:
         required: false
         type: string
 
-concurrency: cd-action-${{ github.ref }}
-
 env:
   CSPROJ_PATH: ./TRViS/TRViS.csproj
 
 jobs:
   generate-bundle-version:
+    # Critical section: read existing tags -> allocate next build number -> push the tag.
+    # Job-level concurrency keeps the lock only for THIS job (~minutes), so the rest of
+    # the pipeline (build/publish/release) runs lock-free and the next run's reservation
+    # can start as soon as this job finishes. queue: max lets up to 100 runs stack FIFO
+    # (queue: max is incompatible with cancel-in-progress: true, so it is omitted).
+    concurrency:
+      group: cd-action-${{ github.ref }}
+      queue: max
     if: |
       !startsWith(github.ref, 'refs/tags/v')
       && (
@@ -33,11 +39,12 @@ jobs:
       && !cancelled()
 
     runs-on: ubuntu-slim
-    timeout-minutes: 5
+    timeout-minutes: 8
 
     outputs:
       display_version: ${{ steps.set_display_version.outputs.disp-version }}
       build_number: ${{ steps.build_number.outputs.version }}
+      tag_name: ${{ steps.set-tag.outputs.tag-name }}
 
     steps:
       - uses: actions/checkout@v6
@@ -87,6 +94,17 @@ jobs:
       - name: print new version number
         run: echo "VersionNumber ... ${{ steps.set_display_version.outputs.disp-version }}-${{ steps.build_number.outputs.version }}"
 
+      # Reserve the version by pushing the tag here, inside the serialized job, so the
+      # build number allocation and the tag push are atomic across concurrent runs.
+      # On total build/publish failure the tag is removed later by the cleanup-tag job.
+      - name: Reserve & push tag
+        id: set-tag
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.version != '' }}
+        uses: ./.github/actions/cd-set-tag
+        with:
+          display_version: ${{ steps.set_display_version.outputs.disp-version }}
+          build_number: ${{ steps.build_number.outputs.version }}
+
   get-version:
     if: |
       !failure()
@@ -126,22 +144,34 @@ jobs:
       )
     needs:
       - get-version
-    uses: ./.github/workflows/_cd-build-ios.yml
-    with:
-      display_version: ${{ needs.get-version.outputs.display_version }}
-      build_number: ${{ needs.get-version.outputs.build_number }}
-      CSPROJ_PATH: ./TRViS/TRViS.csproj
-      IOS_DSYM_FILENAME: TRViS.app.dSYM
-      IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
-      IPA_PATH: ./out/TRViS.ipa
-      OUTPUT_DIR: ./out
-      SDK_VERSION: "10.0.x"
-      TARGET_FRAMEWORK: net10.0-ios
-      TARGET_RUNTIME: ios-arm64
-      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
-      THIRD_PARTY_LICENSE_LIST_NAME: license_list
-      XCODE_VERSION: "26.4"
-    secrets: inherit
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      WITHOUT_ANDROID: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/cd-build-ios
+        with:
+          display_version: ${{ needs.get-version.outputs.display_version }}
+          build_number: ${{ needs.get-version.outputs.build_number }}
+          CSPROJ_PATH: ./TRViS/TRViS.csproj
+          IOS_DSYM_FILENAME: TRViS.app.dSYM
+          IOS_DSYM_PATH: ./TRViS/bin/Release/net10.0-ios/ios-arm64
+          IPA_PATH: ./out/TRViS.ipa
+          OUTPUT_DIR: ./out
+          SDK_VERSION: "10.0.x"
+          TARGET_FRAMEWORK: net10.0-ios
+          TARGET_RUNTIME: ios-arm64
+          THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+          THIRD_PARTY_LICENSE_LIST_NAME: license_list
+          XCODE_VERSION: "26.4"
+          PROVISIONING_PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
+          P12_FILE_BASE64: ${{ secrets.P12_FILE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIREBASE_IOS_PLIST: ${{ secrets.FIREBASE_IOS_PLIST }}
+          CODESIGN_KEY_NAME_IOS: ${{ secrets.CODESIGN_KEY_NAME_IOS }}
+          CODESIGN_PROVISION_NAME_IOS: ${{ secrets.CODESIGN_PROVISION_NAME_IOS }}
 
   build-android:
     if: |
@@ -153,19 +183,28 @@ jobs:
       )
     needs:
       - get-version
-    uses: ./.github/workflows/_cd-build-android.yml
-    with:
-      display_version: ${{ needs.get-version.outputs.display_version }}
-      build_number: ${{ needs.get-version.outputs.build_number }}
-      AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
-      APK_PATH: ./out/dev.t0r.trvis-Signed.apk
-      CSPROJ_PATH: ./TRViS/TRViS.csproj
-      OUTPUT_DIR: ./out
-      SDK_VERSION: "10.0.x"
-      TARGET_FRAMEWORK_ANDROID: net10.0-android
-      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
-      THIRD_PARTY_LICENSE_LIST_NAME: license_list
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/cd-build-android
+        with:
+          display_version: ${{ needs.get-version.outputs.display_version }}
+          build_number: ${{ needs.get-version.outputs.build_number }}
+          AAB_PATH: ./out/dev.t0r.trvis-Signed.aab
+          APK_PATH: ./out/dev.t0r.trvis-Signed.apk
+          CSPROJ_PATH: ./TRViS/TRViS.csproj
+          OUTPUT_DIR: ./out
+          SDK_VERSION: "10.0.x"
+          TARGET_FRAMEWORK_ANDROID: net10.0-android
+          THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+          THIRD_PARTY_LICENSE_LIST_NAME: license_list
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIREBASE_ANDROID_JSON: ${{ secrets.FIREBASE_ANDROID_JSON }}
+          ANDROID_SIGNING_KEY_STORE: ${{ secrets.ANDROID_SIGNING_KEY_STORE }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASS: ${{ secrets.ANDROID_SIGNING_KEY_PASS }}
+          ANDROID_SIGNING_KEY_STORE_PASS: ${{ secrets.ANDROID_SIGNING_KEY_STORE_PASS }}
 
   build-mac:
     if: |
@@ -177,20 +216,32 @@ jobs:
       )
     needs:
       - get-version
-    uses: ./.github/workflows/_cd-build-mac.yml
-    with:
-      display_version: ${{ needs.get-version.outputs.display_version }}
-      build_number: ${{ needs.get-version.outputs.build_number }}
-      CSPROJ_PATH: ./TRViS/TRViS.csproj
-      OUTPUT_DIR: ./out
-      PKG_PATH: ./out/TRViS.pkg
-      SDK_VERSION: "10.0.x"
-      TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
-      TARGET_RUNTIME_MAC: osx
-      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
-      THIRD_PARTY_LICENSE_LIST_NAME: license_list
-      XCODE_VERSION: "26.4"
-    secrets: inherit
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      WITHOUT_ANDROID: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/cd-build-mac
+        with:
+          display_version: ${{ needs.get-version.outputs.display_version }}
+          build_number: ${{ needs.get-version.outputs.build_number }}
+          CSPROJ_PATH: ./TRViS/TRViS.csproj
+          OUTPUT_DIR: ./out
+          PKG_PATH: ./out/TRViS.pkg
+          SDK_VERSION: "10.0.x"
+          TARGET_FRAMEWORK_MAC: net10.0-maccatalyst
+          TARGET_RUNTIME_MAC: osx
+          THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+          THIRD_PARTY_LICENSE_LIST_NAME: license_list
+          XCODE_VERSION: "26.4"
+          PROVISIONING_PROFILE_MAC: ${{ secrets.PROVISIONING_PROFILE_MAC }}
+          P12_FILE_MAC_BASE64: ${{ secrets.P12_FILE_MAC_BASE64 }}
+          P12_PASSWORD_MAC: ${{ secrets.P12_PASSWORD_MAC }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CODESIGN_KEY_NAME_MAC: ${{ secrets.CODESIGN_KEY_NAME_MAC }}
+          CODESIGN_PROVISION_NAME_MAC: ${{ secrets.CODESIGN_PROVISION_NAME_MAC }}
+          PACKAGE_SIGN_KEY_NAME_MAC: ${{ secrets.PACKAGE_SIGN_KEY_NAME_MAC }}
 
   build-windows:
     if: |
@@ -202,23 +253,29 @@ jobs:
       )
     needs:
       - get-version
-    uses: ./.github/workflows/_cd-build-windows.yml
-    with:
-      display_version: ${{ needs.get-version.outputs.display_version }}
-      build_number: ${{ needs.get-version.outputs.build_number }}
-      ASSET_NAME_WIN_X64: TRViS-win-x64
-      ASSET_NAME_WIN_X86: TRViS-win-x86
-      ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
-      ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
-      CSPROJ_PATH: ./TRViS/TRViS.csproj
-      OUTPUT_DIR: ./out
-      SDK_VERSION: "10.0.x"
-      TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
-      TARGET_RUNTIME_WINX64: win-x64
-      TARGET_RUNTIME_WINX86: win-x86
-      THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
-      THIRD_PARTY_LICENSE_LIST_NAME: license_list
-    secrets: inherit
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      WITHOUT_ANDROID: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/cd-build-windows
+        with:
+          display_version: ${{ needs.get-version.outputs.display_version }}
+          build_number: ${{ needs.get-version.outputs.build_number }}
+          ASSET_NAME_WIN_X64: TRViS-win-x64
+          ASSET_NAME_WIN_X86: TRViS-win-x86
+          ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
+          ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
+          CSPROJ_PATH: ./TRViS/TRViS.csproj
+          OUTPUT_DIR: ./out
+          SDK_VERSION: "10.0.x"
+          TARGET_FRAMEWORK_WIN: net10.0-windows10.0.19041.0
+          TARGET_RUNTIME_WINX64: win-x64
+          TARGET_RUNTIME_WINX86: win-x86
+          THIRD_PARTY_LICENSE_INFO_DIR: ./TRViS/Resources/Raw/licenses
+          THIRD_PARTY_LICENSE_LIST_NAME: license_list
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-ios:
     if: |
@@ -230,15 +287,20 @@ jobs:
       )
     needs:
       - build-ios
-    uses: ./.github/workflows/_cd-publish-appstore.yml
-    with:
-      platform: ios
-      artifact_name: ipa
-      timeout_minutes: 10
-      IPA_PATH: ./out/TRViS.ipa
-      OUTPUT_DIR: ./out
-      PKG_PATH: ./out/TRViS.pkg
-    secrets: inherit
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/cd-publish-appstore
+        with:
+          platform: ios
+          artifact_name: ipa
+          IPA_PATH: ./out/TRViS.ipa
+          OUTPUT_DIR: ./out
+          PKG_PATH: ./out/TRViS.pkg
+          APPSTORECONNECT_API_PRIVATE_KEY: ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }}
+          APPSTORECONNECT_API_KEY: ${{ secrets.APPSTORECONNECT_API_KEY }}
+          APPSTORECONNECT_ISSUER_ID: ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
   publish-mac:
     if: |
@@ -250,117 +312,48 @@ jobs:
       )
     needs:
       - build-mac
-    uses: ./.github/workflows/_cd-publish-appstore.yml
-    with:
-      platform: mac
-      artifact_name: pkg
-      timeout_minutes: 30
-      IPA_PATH: ./out/TRViS.ipa
-      OUTPUT_DIR: ./out
-      PKG_PATH: ./out/TRViS.pkg
-    secrets: inherit
-
-  set-tag-ios:
-    if: |
-      needs.generate-bundle-version.result == 'success'
-      && needs.publish-ios.result == 'success'
-      && (
-        github.event_name != 'workflow_dispatch'
-        || github.event.inputs.version != ''
-      )
-    needs:
-      - generate-bundle-version
-      - publish-ios
-    uses: ./.github/workflows/_cd-set-tag.yml
-    with:
-      display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
-      build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
-    secrets: inherit
-
-  set-tag-mac:
-    if: |
-      needs.generate-bundle-version.result == 'success'
-      && needs.publish-mac.result == 'success'
-      && (
-        github.event_name != 'workflow_dispatch'
-        || github.event.inputs.version != ''
-      )
-    needs:
-      - generate-bundle-version
-      - publish-mac
-    uses: ./.github/workflows/_cd-set-tag.yml
-    with:
-      display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
-      build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
-    secrets: inherit
-
-  set-tag-android:
-    if: |
-      needs.generate-bundle-version.result == 'success'
-      && needs.build-android.result == 'success'
-      && (
-        github.event_name != 'workflow_dispatch'
-        || github.event.inputs.version != ''
-      )
-    needs:
-      - generate-bundle-version
-      - build-android
-    uses: ./.github/workflows/_cd-set-tag.yml
-    with:
-      display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
-      build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
-    secrets: inherit
-
-  set-tag-windows:
-    if: |
-      needs.generate-bundle-version.result == 'success'
-      && needs.build-windows.result == 'success'
-      && (
-        github.event_name != 'workflow_dispatch'
-        || github.event.inputs.version != ''
-      )
-    needs:
-      - generate-bundle-version
-      - build-windows
-    uses: ./.github/workflows/_cd-set-tag.yml
-    with:
-      display_version: ${{ needs.generate-bundle-version.outputs.display_version }}
-      build_number: ${{ needs.generate-bundle-version.outputs.build_number }}
-    secrets: inherit
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/cd-publish-appstore
+        with:
+          platform: mac
+          artifact_name: pkg
+          IPA_PATH: ./out/TRViS.ipa
+          OUTPUT_DIR: ./out
+          PKG_PATH: ./out/TRViS.pkg
+          APPSTORECONNECT_API_PRIVATE_KEY: ${{ secrets.APPSTORECONNECT_API_PRIVATE_KEY }}
+          APPSTORECONNECT_API_KEY: ${{ secrets.APPSTORECONNECT_API_KEY }}
+          APPSTORECONNECT_ISSUER_ID: ${{ secrets.APPSTORECONNECT_ISSUER_ID }}
 
   comment-pr:
+    # The tag name is fixed the moment generate-bundle-version finishes, so the PR
+    # comment no longer waits for the (now removed) per-platform set-tag jobs.
     if: |
       always()
       && github.event_name == 'pull_request'
-      && (
-        needs.set-tag-ios.result == 'success'
-        || needs.set-tag-mac.result == 'success'
-        || needs.set-tag-android.result == 'success'
-        || needs.set-tag-windows.result == 'success'
-      )
+      && needs.generate-bundle-version.result == 'success'
     runs-on: ubuntu-slim
     timeout-minutes: 5
     needs:
       - generate-bundle-version
-      - set-tag-ios
-      - set-tag-mac
-      - set-tag-android
-      - set-tag-windows
     steps:
       - name: Comment TagName and Actions-Run URL to PR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo 'Tag `v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}` was automatically created and pushed with ... https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} (Platform Status iOS: ${{ needs.set-tag-ios.result }} / macOS: ${{ needs.set-tag-mac.result }} / Android: ${{ needs.set-tag-android.result }} / Windows: ${{ needs.set-tag-windows.result }})' | gh pr comment ${{ github.event.number }} -F - --repo ${{ github.repository }}
+          echo 'Tag `v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}` was reserved and pushed. Build/publish status per platform: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}' | gh pr comment ${{ github.event.number }} -F - --repo ${{ github.repository }}
 
   create-release:
     if: |
       always()
+      && needs.generate-bundle-version.result == 'success'
       && (
-        needs.set-tag-ios.result == 'success'
-        || needs.set-tag-mac.result == 'success'
-        || needs.set-tag-android.result == 'success'
-        || needs.set-tag-windows.result == 'success'
+        needs.build-android.result == 'success'
+        || needs.build-windows.result == 'success'
+        || needs.publish-ios.result == 'success'
+        || needs.publish-mac.result == 'success'
       )
       && (
         (
@@ -374,18 +367,56 @@ jobs:
       )
     needs:
       - generate-bundle-version
-      - set-tag-ios
-      - set-tag-mac
-      - set-tag-android
-      - set-tag-windows
       - build-android
       - build-windows
-    uses: ./.github/workflows/_cd-create-release.yml
-    with:
-      tag_name: v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}
-      ASSET_NAME_WIN_X64: TRViS-win-x64
-      ASSET_NAME_WIN_X86: TRViS-win-x86
-      ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
-      ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
-      OUTPUT_DIR: ./out
-    secrets: inherit
+      - publish-ios
+      - publish-mac
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/cd-create-release
+        with:
+          tag_name: v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}
+          ASSET_NAME_WIN_X64: TRViS-win-x64
+          ASSET_NAME_WIN_X86: TRViS-win-x86
+          ASSET_NAME_WIN_X64_SELF_CONTAINED: TRViS-win-x64-self-contained
+          ASSET_NAME_WIN_X86_SELF_CONTAINED: TRViS-win-x86-self-contained
+          OUTPUT_DIR: ./out
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup-tag:
+    # The tag is reserved up-front (before building). If NO platform produced a
+    # deliverable, the reserved tag is an orphan with no release: delete it so the
+    # build number can be reclaimed by a later run.
+    # NOT run for tag-triggered builds: there the tag is the input/source of truth.
+    if: |
+      always()
+      && !startsWith(github.ref, 'refs/tags/v')
+      && needs.generate-bundle-version.result == 'success'
+      && needs.build-android.result != 'success'
+      && needs.build-windows.result != 'success'
+      && needs.publish-ios.result != 'success'
+      && needs.publish-mac.result != 'success'
+    needs:
+      - generate-bundle-version
+      - build-android
+      - build-windows
+      - publish-ios
+      - publish-mac
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Delete orphan reserved tag (no platform delivered)
+        env:
+          TAG_NAME: v${{ needs.generate-bundle-version.outputs.display_version }}-${{ needs.generate-bundle-version.outputs.build_number }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code origin "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+            git push origin ":refs/tags/${TAG_NAME}"
+            echo "Deleted orphan tag ${TAG_NAME} (no platform produced a release artifact)."
+          else
+            echo "Tag ${TAG_NAME} not present on remote; nothing to delete."
+          fi

@@ -284,6 +284,17 @@ public class StartHomePageObject : PageObject
 	}
 
 	/// <summary>
+	/// Taps the Start-mode footer "Third Party Licenses" link, which pushes
+	/// the TPL page as a modal (asModal:true). The flyout entry was removed
+	/// once this footer link became the canonical entry point.
+	/// </summary>
+	public ThirdPartyLicensesPageObject OpenThirdPartyLicenses()
+	{
+		WaitForElement(AutomationIds.StartHome.ThirdPartyLicensesButton, TimeSpan.FromSeconds(30)).Click();
+		return new ThirdPartyLicensesPageObject(Driver);
+	}
+
+	/// <summary>
 	/// Taps the UI_TEST-only test-seed button so tests can populate URL history
 	/// without typing through Appium SendKeys (flaky on iOS XCUITest).
 	/// </summary>
@@ -350,6 +361,15 @@ public class StartHomePageObject : PageObject
 	/// deterministic regardless of the CI device locale.
 	/// </summary>
 	public void SetLanguageJapaneseForTesting() => TestSetLanguageJapaneseButton.Click();
+
+	public AppiumElement TestSimulateWebSocketConnectedButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam (#266) that builds a WebSocket-TYPED loader
+	/// carrying real sample data, commits the first WG/Work and navigates to
+	/// DTAC — landing with the AppBar status indicator in the Connected state.
+	/// </summary>
+	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
 
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the

@@ -482,7 +482,11 @@ public partial class SelectFileDialog : ContentPage
 			// current control flow it was dead code.)
 			logger.Error(ex, "TryLoadFileAsync failed: {0}", fullPath);
 			InstanceManager.CrashlyticsWrapper.Log(ex, "SelectFileDialog.TryLoadFileAsync");
-			await Util.DisplayAlertAsync(AppResources.SelectFile_AlertCannotLoadTitle, string.Format(AppResources.SelectFile_AlertLoadFailedFormat, ex.Message), AppResources.Common_OK);
+			// main 側 (#49) の DisplayLoadErrorAsync は例外を分類して
+			// 分かりやすい文面を出す上位互換のため、#40 のインライン汎用
+			// アラートではなくこちらを採用する。LoadErrorMessage 自体の
+			// 多言語化は本 i18n の範囲外 (別途対応)。
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 	}

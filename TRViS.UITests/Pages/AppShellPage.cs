@@ -21,13 +21,14 @@ public class AppShellPage : PageObject
 	/// Ordered list of flyout item titles as they appear in AppShell.xaml.
 	/// Used by Windows keyboard navigation to calculate arrow-key presses.
 	/// </summary>
+	// Must mirror the FlyoutItem order in AppShell.xaml exactly: the Windows
+	// keyboard-nav path derives the ArrowDown count from this index. Privacy /
+	// Firebase / TPL flyout entries were removed (now reached from Home), so a
+	// stale entry here would overshoot the target on Windows.
 	private static readonly string[] FlyoutItemOrder = [
 		"Home",
 		"D-TAC",
-		"Third Party Licenses",
 		"Settings",
-		"Firebase Setting",
-		"Privacy Policy",
 	];
 
 	public void OpenFlyout()
@@ -365,18 +366,6 @@ public class AppShellPage : PageObject
 			WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
 		}
 		return new StartHomePageObject(Driver);
-	}
-
-	public ThirdPartyLicensesPageObject NavigateToThirdPartyLicenses()
-	{
-		if (_isWindows)
-			NavigateViaKeyboard("Third Party Licenses");
-		else
-		{
-			OpenFlyout();
-			WaitForFlyoutItem(AutomationIds.Shell.Flyout.ThirdPartyLicenses, "Third Party Licenses").Click();
-		}
-		return new ThirdPartyLicensesPageObject(Driver);
 	}
 
 	public EasterEggPageObject NavigateToSettings()

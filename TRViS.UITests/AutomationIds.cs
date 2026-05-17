@@ -13,19 +13,8 @@ public static class AutomationIds
 		{
 			public const string StartHome = "Shell.Flyout.StartHome";
 			public const string DTAC = "Shell.Flyout.DTAC";
-			public const string ThirdPartyLicenses = "Shell.Flyout.ThirdPartyLicenses";
 			public const string Settings = "Shell.Flyout.Settings";
-			public const string Firebase = "Shell.Flyout.Firebase";
-			public const string PrivacyPolicy = "Shell.Flyout.PrivacyPolicy";
 		}
-	}
-
-	public static class Firebase
-	{
-		public const string Title = "Firebase.Title";
-		public const string AnalyticsSwitch = "Firebase.AnalyticsSwitch";
-		public const string ResetButton = "Firebase.ResetButton";
-		public const string SaveButton = "Firebase.SaveButton";
 	}
 
 	/// <summary>
@@ -128,6 +117,11 @@ public static class AutomationIds
 		// Pins the UI language to Japanese so fixtures asserting hard-coded
 		// Japanese strings stay deterministic regardless of CI device locale.
 		public const string TestSetLanguageJapaneseButton = "StartHome.TestSetLanguageJapaneseButton";
+		// Builds a WebSocket-TYPED loader carrying real sample data, commits the
+		// first WG/Work and navigates to DTAC. Lands on DTAC with the AppBar
+		// status indicator in the Connected state (#266) so the indicator's
+		// states can be E2E-verified without a real WebSocket server.
+		public const string TestSimulateWebSocketConnectedButton = "StartHome.TestSimulateWebSocketConnectedButton";
 
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
 		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against
@@ -204,6 +198,34 @@ public static class AutomationIds
 		// Use string.Format: TimetableRowStationNamePattern.Replace("{0}", rowIndex.ToString())
 		public const string TimetableRowStationNamePattern = "TimetableRow.{0}.StationName";
 		public const string TimetableRowInfoRowPattern = "TimetableRow.{0}.InfoRow";
+
+		// UI_TEST-only seams (#266): mutate the singleton AppViewModel's
+		// WebSocket connection flags so the AppBar status indicator can be
+		// driven through Connected/Disconnected/Reconnecting while on DTAC
+		// (the only page that shows the AppBar) without a real server.
+		public const string TestWsConnectedButton = "DTAC.TestWsConnectedButton";
+		public const string TestWsDisconnectedButton = "DTAC.TestWsDisconnectedButton";
+		public const string TestWsReconnectingButton = "DTAC.TestWsReconnectingButton";
+	}
+
+	/// <summary>
+	/// Shared title bar (TRViS.DTAC.AppBar), shown on the DTAC ViewHost and the
+	/// HorizontalTimetable page.
+	/// </summary>
+	public static class AppBar
+	{
+		// UI_TEST-only invisible mirror Label reflecting AppViewModel.
+		// ServerConnectionStatus (#266). Ellipse/ActivityIndicator don't
+		// reliably surface in the iOS accessibility tree, so the indicator's
+		// state is mirrored here as ConnectionStatusPrefix + enum name (always
+		// non-empty → always findable). Strip the prefix before asserting.
+		public const string ConnectionStatus = "AppBar.ConnectionStatus";
+		public const string ConnectionStatusPrefix = "S:";
+
+		// The real (visible) status indicator. Tappable when Disconnected to
+		// confirm reconnect (#266). Not UI_TEST-gated — it's a real
+		// interactive control.
+		public const string ConnectionStatusButton = "AppBar.ConnectionStatusButton";
 	}
 
 	/// <summary>

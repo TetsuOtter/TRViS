@@ -40,7 +40,10 @@ public partial class AppViewModel
 	// MarkServerConnectionLost callback below.
 	private NetworkSyncConnectionLostWatcher? _wsConnectionLostWatcherField;
 	private NetworkSyncConnectionLostWatcher WsConnectionLostWatcher
-		=> _wsConnectionLostWatcherField ??= new NetworkSyncConnectionLostWatcher(MarkServerConnectionLost);
+		=> _wsConnectionLostWatcherField ??= new NetworkSyncConnectionLostWatcher(
+			MarkServerConnectionLost,
+			MarkServerReconnecting,
+			MarkServerReconnected);
 
 	/// <summary>
 	/// 切断イベント監視を解除し、再接続情報を破棄する。WebSocket 以外 / null の
@@ -62,10 +65,43 @@ public partial class AppViewModel
 	private void MarkServerConnectionLost()
 	{
 		logger.Info("WebSocket connection lost -> IsServerConnectionLost = true");
-		if (MainThread.IsMainThread)
+		RunOnMainThread(() =>
+		{
+			// 再接続試行が終わった (クリーンクローズ or 再接続失敗) 状態。
+			// IsServerReconnecting も落として Connecting で固着しないようにする (#266)。
+			IsServerReconnecting = false;
 			IsServerConnectionLost = true;
+		});
+	}
+
+	// 自動再接続の開始 (#266): ぐるぐる表示へ。Loader / IsServerConnectionLost は
+	// そのまま (再接続成功までキャッシュ表示を継続)。ServerConnectionStatus の
+	// 算出で IsServerReconnecting が優先されるため Connecting になる。
+	private void MarkServerReconnecting()
+	{
+		logger.Info("WebSocket reconnecting -> IsServerReconnecting = true");
+		RunOnMainThread(() => IsServerReconnecting = true);
+	}
+
+	// 自動再接続の成功 (#266): 接続済みへ。#261 の「自動再接続成功後も
+	// IsServerConnectionLost が true のまま固着する」ギャップもここで解消する
+	// (Home の切断バナーも自動復帰するようになる)。
+	private void MarkServerReconnected()
+	{
+		logger.Info("WebSocket reconnected -> clear reconnecting/lost flags");
+		RunOnMainThread(() =>
+		{
+			IsServerReconnecting = false;
+			IsServerConnectionLost = false;
+		});
+	}
+
+	private static void RunOnMainThread(Action action)
+	{
+		if (MainThread.IsMainThread)
+			action();
 		else
-			MainThread.BeginInvokeOnMainThread(() => IsServerConnectionLost = true);
+			MainThread.BeginInvokeOnMainThread(action);
 	}
 
 	/// <summary>
@@ -225,21 +261,11 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Error(ex, "OpenAppLinkAsync Failed");
-			if (appLinkInfo.ResourceUri?.HostNameType == UriHostNameType.IPv4
-				&& ex is TaskCanceledException
-				&& ex.InnerException is TimeoutException)
-			{
-				logger.Error(ex, "Timeout Error");
-				await Util.DisplayAlertAsync(
-					AppResources.AppLink_TimeoutTitle,
-					AppResources.AppLink_TimeoutBody,
-					AppResources.Common_OK
-				);
-			}
-			else
-			{
-				await Util.DisplayAlertAsync(AppResources.AppLink_CannotOpenFileTitle, string.Format(AppResources.AppLink_OpenAppLinkFailedFormat, ex.Message), AppResources.Common_OK);
-			}
+			// main 側 (#49) の DisplayLoadErrorAsync は TimeoutException /
+			// TaskCanceledException を分類し、#40 の IPv4 タイムアウト特例を
+			// 意図的に一般化した上位互換 (LoadErrorMessage 参照)。重複を避け
+			// こちらに統一する。LoadErrorMessage の多言語化は本 i18n の範囲外。
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 
@@ -343,6 +369,7 @@ public partial class AppViewModel
 			_lastWebSocketOriginalAppLink = originalAppLink;
 			WsConnectionLostWatcher.Watch(service);
 			IsServerConnectionLost = false;
+			IsServerReconnecting = false;
 
 			ILoader? lastLoader = this.Loader;
 			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
@@ -387,22 +414,9 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Error(ex, "HandleWebSocketAppLinkAsync Failed");
-
-			if (appLinkInfo.ResourceUri.HostNameType == UriHostNameType.IPv4
-				&& ex is TaskCanceledException
-				&& ex.InnerException is TimeoutException)
-			{
-				logger.Error(ex, "Timeout Error");
-				await Util.DisplayAlertAsync(
-					AppResources.AppLink_TimeoutTitle,
-					AppResources.AppLink_TimeoutBody,
-					AppResources.Common_OK
-				);
-			}
-			else
-			{
-				await Util.DisplayAlertAsync(AppResources.AppLink_CannotConnectWebSocketTitle, string.Format(AppResources.AppLink_WebSocketConnectFailedFormat, ex.Message), AppResources.Common_OK);
-			}
+			// main 側 (#49) の DisplayLoadErrorAsync に統一 (上記と同様、
+			// タイムアウト特例を含め LoadErrorMessage が上位互換)。
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 	}

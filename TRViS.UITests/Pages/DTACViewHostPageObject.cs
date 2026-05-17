@@ -47,6 +47,53 @@ public class DTACViewHostPageObject : PageObject
 
 	private static string StripSeamPrefix(string raw, string prefix)
 		=> raw.StartsWith(prefix) ? raw.Substring(prefix.Length) : raw;
+
+	// --- AppBar WebSocket status indicator (#266) ---
+
+	// Invisible mirror Label reflecting AppViewModel.ServerConnectionStatus.
+	// Sentinel-prefixed so it is always non-empty / findable on iOS.
+	public AppiumElement ConnectionStatusSeam => WaitForElement(AutomationIds.AppBar.ConnectionStatus);
+
+	/// <summary>
+	/// Current AppBar connection-status enum name ("None" / "Connecting" /
+	/// "Connected" / "Disconnected") as reflected by the UI_TEST mirror Label.
+	/// </summary>
+	public string ReadConnectionStatusViaSeam() => StripSeamPrefix(
+		ConnectionStatusSeam.Text ?? string.Empty,
+		AutomationIds.AppBar.ConnectionStatusPrefix);
+
+	/// <summary>
+	/// Polls the connection-status mirror until it equals <paramref name="expected"/>
+	/// (or times out). The seam updates via PropertyChanged after a state-toggle
+	/// seam tap, so a short poll absorbs the cross-process dispatch latency.
+	/// </summary>
+	public bool WaitForConnectionStatus(string expected, double timeoutSeconds = 8)
+	{
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		do
+		{
+			try
+			{
+				if (ReadConnectionStatusViaSeam() == expected)
+					return true;
+			}
+			catch (OpenQA.Selenium.WebDriverException)
+			{
+				// element momentarily not in tree mid-transition — keep polling
+			}
+			Thread.Sleep(200);
+		} while (DateTime.UtcNow < deadline);
+		return false;
+	}
+
+	public void TapWsConnectedSeam()
+		=> FindByAutomationId(AutomationIds.DTAC.TestWsConnectedButton).Click();
+
+	public void TapWsDisconnectedSeam()
+		=> FindByAutomationId(AutomationIds.DTAC.TestWsDisconnectedButton).Click();
+
+	public void TapWsReconnectingSeam()
+		=> FindByAutomationId(AutomationIds.DTAC.TestWsReconnectingButton).Click();
 	public AppiumElement TabHako => FindCustomControl(AutomationIds.DTAC.TabHako, "ハ　コ");
 	public AppiumElement TabTimetable => FindCustomControl(AutomationIds.DTAC.TabTimetable, "時刻表");
 	public AppiumElement TabWorkAffix => FindCustomControl(AutomationIds.DTAC.TabWorkAffix, "行路添付");
@@ -214,6 +261,13 @@ public class DTACViewHostPageObject : PageObject
 			// proceed to the next attempt.
 		}
 	}
+
+	/// <summary>
+	/// Best-effort scroll of the timetable toward the bottom by one viewport.
+	/// Reuses the same cross-platform swipe the NextTrainButton lookup relies
+	/// on (no-op on Windows, whose window is tall enough to fit the rows).
+	/// </summary>
+	public void SwipeTimetableUp() => TrySwipeUp();
 
 	// Hidden when the selected Work has no embedded horizontal timetable;
 	// FindCustomControl falls back to UIA Name lookup on Windows because
