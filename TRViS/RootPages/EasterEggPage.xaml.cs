@@ -26,6 +26,11 @@ public partial class EasterEggPage : ContentPage
 		// Picker item text is localized, so the items are populated from code
 		// (not static <Picker.Items> in XAML) and rebuilt whenever the UI
 		// language changes. Selection is restored from the ViewModel afterwards.
+		// The language picker is built once here (on iOS its items are
+		// language-invariant autonyms and must never be Clear()'d again — see
+		// PopulateLanguagePicker); RebuildLocalizedPickers only re-populates it
+		// on Android/Windows where the "Follow system" label is localized.
+		PopulateLanguagePicker();
 		RebuildLocalizedPickers();
 		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
 			MainThread.BeginInvokeOnMainThread(RebuildLocalizedPickers);
@@ -111,6 +116,16 @@ public partial class EasterEggPage : ContentPage
 		}
 	}
 
+	// iOS の Picker は Items.Clear()/Add() に伴う SelectedIndexChanged を、
+	// ガードを抜けた後の別ティックで遅延発火することがある (boolean ガードや
+	// その遅延解除では抑止しきれないことを実機ログで確認済み)。各ハンドラは
+	// 値が現在の ViewModel と同じイベントを冪等に無視することを最終防壁と
+	// する。ハンドラが読む picker.SelectedIndex は UpdateXSelection が設定した
+	// MAUI 側の値 (= ViewModel 値) であり、再構築でフィードバックループに
+	// 入らない Picker では冪等判定が確実に効く。言語 Picker のみループを
+	// 形成するため、iOS では Items.Clear() 自体を行わない構造的対策を併用する
+	// (PopulateLanguagePicker / RebuildLocalizedPickers 参照)。
+
 	private bool _isUpdatingAppThemePicker = false;
 
 	private void OnAppThemePickerSelectedIndexChanged(object sender, EventArgs e)
@@ -121,6 +136,10 @@ public partial class EasterEggPage : ContentPage
 		if (sender is not Picker picker)
 			return;
 
+		// Items.Clear() 直後の遷移的な未選択状態 (-1) は無視する。
+		if (picker.SelectedIndex < 0)
+			return;
+
 		AppTheme newTheme = picker.SelectedIndex switch
 		{
 			0 => AppTheme.Unspecified,
@@ -128,6 +147,10 @@ public partial class EasterEggPage : ContentPage
 			2 => AppTheme.Dark,
 			_ => AppTheme.Unspecified
 		};
+
+		// 遅延発火した再構築由来のイベントで現在値と同じなら何もしない。
+		if (newTheme == ViewModel.SelectedAppTheme)
+			return;
 
 		logger.Info("AppTheme changed to {0}", newTheme);
 		ViewModel.SelectedAppTheme = newTheme;
@@ -162,6 +185,10 @@ public partial class EasterEggPage : ContentPage
 		if (sender is not Picker picker)
 			return;
 
+		// Items.Clear() 直後の遷移的な未選択状態 (-1) は無視する。
+		if (picker.SelectedIndex < 0)
+			return;
+
 		TimeProgressionRate newRate = picker.SelectedIndex switch
 		{
 			0 => TimeProgressionRate.Normal,
@@ -169,6 +196,10 @@ public partial class EasterEggPage : ContentPage
 			2 => TimeProgressionRate.X60,
 			_ => TimeProgressionRate.Normal
 		};
+
+		// 遅延発火した再構築由来のイベントで現在値と同じなら何もしない。
+		if (newRate == ViewModel.TimeProgressionRate)
+			return;
 
 		logger.Info("TimeProgressionRate changed to {0}", newRate);
 		ViewModel.TimeProgressionRate = newRate;
@@ -203,6 +234,10 @@ public partial class EasterEggPage : ContentPage
 		if (sender is not Picker picker)
 			return;
 
+		// Items.Clear() 直後の遷移的な未選択状態 (-1) は無視する。
+		if (picker.SelectedIndex < 0)
+			return;
+
 		HorizontalTimetableButtonLabel newLabel = picker.SelectedIndex switch
 		{
 			0 => HorizontalTimetableButtonLabel.Horizontal,
@@ -210,6 +245,10 @@ public partial class EasterEggPage : ContentPage
 			2 => HorizontalTimetableButtonLabel.ETrain,
 			_ => HorizontalTimetableButtonLabel.Train
 		};
+
+		// 遅延発火した再構築由来のイベントで現在値と同じなら何もしない。
+		if (newLabel == ViewModel.HorizontalTimetableButtonLabel)
+			return;
 
 		logger.Info("HorizontalTimetableButtonLabel changed to {0}", newLabel);
 		ViewModel.HorizontalTimetableButtonLabel = newLabel;
@@ -236,7 +275,72 @@ public partial class EasterEggPage : ContentPage
 
 	// ----- Language picker -----
 
+	// iOS / macCatalyst (AppLanguageOsBridge.IsSupported) では言語選択を OS
+	// (AppleLanguages) に書き戻し、アプリは OS をミラーする。そのため
+	// アプリ内 Picker に「システムに従う」行を出すのは矛盾する。よって
+	// この OS では Picker 項目を {日本語, English} のみとし、これらは
+	// AppResources.resx / .ja.resx で同一の自言語表記 (autonym) なので
+	// 言語非依存 → コンストラクタで一度だけ構築し RebuildLocalizedPickers
+	// では Clear() しない。これが言語 Picker の無限ループを構造的に不可能に
+	// する核心 (タイミングガードでは抑止しきれないことを実機で確認済み)。
+	// 端末追従へ戻すには iOS「設定」アプリのアプリ別言語で行う (アプリ内導線
+	// は意図的に持たない)。Android / Windows は OS 橋渡しが無いので従来どおり
+	// {システムに従う, 日本語, English} を JSON 管理し、ここで再構築する
+	// (これらの OS の Picker は SelectedIndexChanged を同期発火しガードが効く)。
+	private readonly bool _languagePickerHasSystemRow = !AppLanguageOsBridge.IsSupported;
+
 	private bool _isUpdatingLanguagePicker = false;
+
+	private AppLanguage LanguageFromPickerIndex(int index)
+		=> _languagePickerHasSystemRow
+			? index switch
+			{
+				0 => AppLanguage.System,
+				1 => AppLanguage.Japanese,
+				2 => AppLanguage.English,
+				_ => AppLanguage.System
+			}
+			: index switch
+			{
+				0 => AppLanguage.Japanese,
+				1 => AppLanguage.English,
+				_ => AppLanguage.Japanese
+			};
+
+	private int PickerIndexFromLanguage(AppLanguage language)
+		=> _languagePickerHasSystemRow
+			? language switch
+			{
+				AppLanguage.System => 0,
+				AppLanguage.Japanese => 1,
+				AppLanguage.English => 2,
+				_ => 0
+			}
+			// iOS: System 行が無い。System (実効が ja/en 以外) は中立 (英語)
+			// リソースで描画されるため English 行に反映する。
+			: language switch
+			{
+				AppLanguage.Japanese => 0,
+				AppLanguage.English => 1,
+				_ => 1
+			};
+
+	private void PopulateLanguagePicker()
+	{
+		_isUpdatingLanguagePicker = true;
+		try
+		{
+			LanguagePicker.Items.Clear();
+			if (_languagePickerHasSystemRow)
+				LanguagePicker.Items.Add(AppResources.Settings_Language_System);
+			LanguagePicker.Items.Add(AppResources.Settings_Language_Japanese);
+			LanguagePicker.Items.Add(AppResources.Settings_Language_English);
+		}
+		finally
+		{
+			_isUpdatingLanguagePicker = false;
+		}
+	}
 
 	private void OnLanguagePickerSelectedIndexChanged(object sender, EventArgs e)
 	{
@@ -246,13 +350,17 @@ public partial class EasterEggPage : ContentPage
 		if (sender is not Picker picker)
 			return;
 
-		AppLanguage newLanguage = picker.SelectedIndex switch
-		{
-			0 => AppLanguage.System,
-			1 => AppLanguage.Japanese,
-			2 => AppLanguage.English,
-			_ => AppLanguage.System
-		};
+		// Items.Clear() 直後の遷移的な未選択状態 (-1) は無視する。
+		if (picker.SelectedIndex < 0)
+			return;
+
+		AppLanguage newLanguage = LanguageFromPickerIndex(picker.SelectedIndex);
+
+		// 再構築由来 (遅延発火を含む) で現在値と同じイベントは冪等に無視。
+		// ユーザー操作は必ず現在値と異なるため抑止されない。冗長な
+		// WriteOsOverride / ログ出力と再入を防ぐ。
+		if (newLanguage == ViewModel.SelectedAppLanguage)
+			return;
 
 		logger.Info("AppLanguage changed to {0}", newLanguage);
 		ViewModel.SelectedAppLanguage = newLanguage;
@@ -263,13 +371,7 @@ public partial class EasterEggPage : ContentPage
 		_isUpdatingLanguagePicker = true;
 		try
 		{
-			LanguagePicker.SelectedIndex = ViewModel.SelectedAppLanguage switch
-			{
-				AppLanguage.System => 0,
-				AppLanguage.Japanese => 1,
-				AppLanguage.English => 2,
-				_ => 0
-			};
+			LanguagePicker.SelectedIndex = PickerIndexFromLanguage(ViewModel.SelectedAppLanguage);
 		}
 		finally
 		{
@@ -278,17 +380,17 @@ public partial class EasterEggPage : ContentPage
 	}
 
 	/// <summary>
-	/// 言語依存の Picker (テーマ / 時間進行 / 横型時刻表ラベル / 言語) の
-	/// 表示項目を現在の言語で再構築し、選択状態を復元する。起動時と
-	/// 言語変更時に呼ばれる。PDF エンジン Picker も表示名がローカライズ
-	/// されるため併せて再構築する。
+	/// 言語依存の Picker (テーマ / 時間進行 / 横型時刻表ラベル / PDF エンジン)
+	/// の表示項目を現在の言語で再構築し、選択状態を復元する。起動時と
+	/// 言語変更時に呼ばれる。言語 Picker は項目が言語非依存 (iOS) または
+	/// 同期発火でガードが効く (Android/Windows) ため別扱い
+	/// (PopulateLanguagePicker / 下記の条件付き呼び出しを参照)。
 	/// </summary>
 	private void RebuildLocalizedPickers()
 	{
 		_isUpdatingAppThemePicker = true;
 		_isUpdatingTimeProgressionRatePicker = true;
 		_isUpdatingHorizontalTimetableButtonLabelPicker = true;
-		_isUpdatingLanguagePicker = true;
 		try
 		{
 			AppThemePicker.Items.Clear();
@@ -305,19 +407,22 @@ public partial class EasterEggPage : ContentPage
 			HorizontalTimetableButtonLabelPicker.Items.Add(AppResources.Settings_HTBL_Horizontal);
 			HorizontalTimetableButtonLabelPicker.Items.Add(AppResources.Settings_HTBL_Train);
 			HorizontalTimetableButtonLabelPicker.Items.Add(AppResources.Settings_HTBL_ETrain);
-
-			LanguagePicker.Items.Clear();
-			LanguagePicker.Items.Add(AppResources.Settings_Language_System);
-			LanguagePicker.Items.Add(AppResources.Settings_Language_Japanese);
-			LanguagePicker.Items.Add(AppResources.Settings_Language_English);
 		}
 		finally
 		{
 			_isUpdatingAppThemePicker = false;
 			_isUpdatingTimeProgressionRatePicker = false;
 			_isUpdatingHorizontalTimetableButtonLabelPicker = false;
-			_isUpdatingLanguagePicker = false;
 		}
+
+		// 言語 Picker: Android / Windows は "システムに従う" がローカライズ
+		// されるためここで再構築する (これらの Picker は同期発火でガードが
+		// 効く)。iOS / macCatalyst は自言語表記のみで言語非依存のため
+		// コンストラクタで一度だけ構築済み。ここで Clear() すると非同期
+		// SelectedIndexChanged のフィードバックループ (フリーズ) を再発させる
+		// ため絶対に触らない。
+		if (_languagePickerHasSystemRow)
+			PopulateLanguagePicker();
 
 		UpdateAppThemePickerSelection();
 		UpdateTimeProgressionRatePickerSelection();
@@ -397,6 +502,11 @@ public partial class EasterEggPage : ContentPage
 			return;
 
 		PdfJsRenderEngine newEngine = _pdfJsRenderEngineOptions[index];
+
+		// 遅延発火した再構築由来のイベントで現在値と同じなら何もしない。
+		if (newEngine == ViewModel.PdfJsRenderEngine)
+			return;
+
 		logger.Info("PdfJsRenderEngine changed to {0}", newEngine);
 		ViewModel.PdfJsRenderEngine = newEngine;
 	}
