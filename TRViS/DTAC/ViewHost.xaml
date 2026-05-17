@@ -69,5 +69,39 @@
 			<local:VerticalStylePage
 				x:Name="VerticalStylePageView"/>
 		</local:WithRemarksView>
+
+		<!--
+			In-page popup overlay (replaces TR.Maui.AnchorPopover, #273).
+			Last child of MainGrid + RowSpan=3 => covers the whole page at the
+			highest z-order (same overlay convention the UI_TEST seams use).
+			Hidden until ShowOverlayPopupAsync; the scrim dismisses on tap when
+			the request allows it, the inner Border swallows taps so taps on the
+			popup content don't dismiss it.
+		-->
+		<Grid
+			x:Name="PopupScrim"
+			Grid.Row="0"
+			Grid.RowSpan="3"
+			IsVisible="False"
+			AutomationId="DTAC.PopupScrim"
+			BackgroundColor="#80000000">
+			<Grid.GestureRecognizers>
+				<TapGestureRecognizer Tapped="PopupScrim_Tapped"/>
+			</Grid.GestureRecognizers>
+
+			<Border
+				x:Name="PopupContainer"
+				HorizontalOptions="Center"
+				VerticalOptions="Center"
+				Padding="0"
+				StrokeThickness="0"
+				StrokeShape="RoundRectangle 12">
+				<Border.GestureRecognizers>
+					<!-- absorb taps so they don't reach the dismiss scrim -->
+					<TapGestureRecognizer Tapped="PopupContainer_Tapped"/>
+				</Border.GestureRecognizers>
+				<ContentView x:Name="PopupContentHost"/>
+			</Border>
+		</Grid>
 	</Grid>
 </ContentPage>
