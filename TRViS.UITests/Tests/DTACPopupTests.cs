@@ -82,13 +82,28 @@ public class DTACPopupTests : BaseUITest
 		return dtac;
 	}
 
+	/// <summary>
+	/// Asserts a popup is shown, and on failure dumps the Appium tree to the
+	/// test's stdout (NUnit "Standard Output Messages" in the CI log) so a
+	/// "not shown" failure reveals whether the scrim / popup content is
+	/// actually in the platform tree — same diagnostic approach the flyout
+	/// helper uses.
+	/// </summary>
+	private static void AssertPopupShown(bool shown, DTACViewHostPageObject dtac, string label, string message)
+	{
+		if (!shown)
+			TestContext.Out.WriteLine(
+				$"[diag] {label} not shown — Appium tree follows:\n{dtac.CaptureTreeForDiagnostics()}");
+		Assert.That(shown, Is.True, message);
+	}
+
 	[Test]
 	public void QuickSwitchPopup_OpensAndDismisses_WithoutCrashing()
 	{
 		var dtac = OpenDTAC();
 
 		dtac.OpenQuickSwitchPopupViaSeam();
-		Assert.That(dtac.IsQuickSwitchPopupShown(), Is.True,
+		AssertPopupShown(dtac.IsQuickSwitchPopupShown(), dtac, "QuickSwitchPopup",
 			"QuickSwitchPopup must appear after the open seam fires. On Windows the "
 			+ "old AnchorPopover.ShowAsync threw MissingMethodException here and "
 			+ "crashed the app into the fatal error modal (#273).");
@@ -102,7 +117,7 @@ public class DTACPopupTests : BaseUITest
 		// absorber stops the tap bubbling to the dismiss scrim: the popup must
 		// still be shown and the app still alive afterwards.
 		dtac.TapQuickSwitchWorkTab();
-		Assert.That(dtac.IsQuickSwitchPopupShown(2), Is.True,
+		AssertPopupShown(dtac.IsQuickSwitchPopupShown(2), dtac, "QuickSwitchPopup (after Work-tab tap)",
 			"Tapping the Work tab inside the popup must not dismiss it (the "
 			+ "absorber Border must stop inner taps reaching the scrim) and must "
 			+ "not crash the app.");
@@ -125,7 +140,7 @@ public class DTACPopupTests : BaseUITest
 		var dtac = OpenDTAC();
 
 		dtac.OpenSelectMarkerPopupViaSeam();
-		Assert.That(dtac.IsSelectMarkerPopupShown(), Is.True,
+		AssertPopupShown(dtac.IsSelectMarkerPopupShown(), dtac, "SelectMarkerPopup",
 			"SelectMarkerPopup must appear after the open seam fires. On Windows the "
 			+ "old AnchorPopover.ShowAsync threw MissingMethodException here and "
 			+ "crashed the app into the fatal error modal (#273).");

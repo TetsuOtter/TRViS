@@ -438,30 +438,29 @@ public class DTACViewHostPageObject : PageObject
 			FindByAutomationId(AutomationIds.DTAC.QuickSwitchPopupWorkTab).Click();
 	}
 
-	// Key off the WorkTab (a TabButtonSmall = Grid custom control), NOT the
-	// popup root ContentView: MAUI does not create a native view for a plain
-	// ContentView, so its AutomationId is absent from the Android tree
-	// (run 25983087525 — QuickSwitch "not shown" though it had rendered).
-	// Grid AutomationId resolves via By.Id on Android / AccessibilityId on
-	// iOS+macOS (cf. NextTrainButton); Windows surfaces it as a Pane, so the
-	// rendered tab-label text ("WorkGroup"/"Work") is the Windows fallback.
+	// Probe the WorkTab AutomationId, then the rendered tab labels
+	// "WorkGroup"/"Work" on every platform. The popup root is a ContentView
+	// (MAUI creates no native view for it, so its AutomationId is absent from
+	// the Android tree — run 25983087525); the tab labels are real text that
+	// every platform surfaces somewhere, the most robust cross-platform
+	// "it is on screen" signal.
 	public bool IsQuickSwitchPopupShown(double timeoutSeconds = 5)
 		=> IsPopupPresent(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds, "WorkGroup", "Work");
 
 	public bool IsQuickSwitchPopupGone(double timeoutSeconds = 5)
 		=> IsPopupGone(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds, "WorkGroup", "Work");
 
-	// Probe the Close *Button* (not the popup root ContentView, which WinUI
-	// surfaces as a non-control Pane) and pass NO Windows text candidate: a
-	// plain Button resolves by AccessibilityId on every platform, and "Close"
-	// as a Name probe collides with the WinUI title-bar Close button.
+	// Probe the Close *Button* AutomationId with NO text candidate: a plain
+	// Button resolves by AccessibilityId / By.Id on every platform (cf.
+	// ConnectServer.CloseButton), and a "Close" text probe would collide with
+	// the WinUI title-bar Close button (run 25983087525 closed the whole app).
 	public bool IsSelectMarkerPopupShown(double timeoutSeconds = 5)
 		=> IsPopupPresent(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds);
 
 	public bool IsSelectMarkerPopupGone(double timeoutSeconds = 5)
 		=> IsPopupGone(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds);
 
-	private bool IsPopupPresent(string automationId, double timeoutSeconds, params string[] windowsTextCandidates)
+	private bool IsPopupPresent(string automationId, double timeoutSeconds, params string[] textCandidates)
 	{
 		var prevWait = TimeSpan.FromSeconds(10);
 		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
@@ -470,7 +469,7 @@ public class DTACViewHostPageObject : PageObject
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			while (DateTime.UtcNow < deadline)
 			{
-				if (TryFindVisiblePopup(automationId, windowsTextCandidates))
+				if (TryFindVisiblePopup(automationId, textCandidates))
 					return true;
 				Thread.Sleep(150);
 			}
@@ -482,7 +481,7 @@ public class DTACViewHostPageObject : PageObject
 		}
 	}
 
-	private bool IsPopupGone(string automationId, double timeoutSeconds, params string[] windowsTextCandidates)
+	private bool IsPopupGone(string automationId, double timeoutSeconds, params string[] textCandidates)
 	{
 		var prevWait = TimeSpan.FromSeconds(10);
 		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
@@ -491,7 +490,7 @@ public class DTACViewHostPageObject : PageObject
 			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 			while (DateTime.UtcNow < deadline)
 			{
-				if (!TryFindVisiblePopup(automationId, windowsTextCandidates))
+				if (!TryFindVisiblePopup(automationId, textCandidates))
 					return true;
 				Thread.Sleep(150);
 			}
@@ -503,25 +502,71 @@ public class DTACViewHostPageObject : PageObject
 		}
 	}
 
-	private bool TryFindVisiblePopup(string automationId, string[] windowsTextCandidates)
+	// Try the AutomationId first, then fall back to the rendered text on EVERY
+	// platform. Appium+MAUI element addressing for non-Button custom controls
+	// is unreliable platform-by-platform (the reason FindCustomControl exists);
+	// the popup's visible label text is the most robust cross-platform "it is
+	// on screen" signal, so probe it everywhere — not just Windows.
+	private bool TryFindVisiblePopup(string automationId, string[] textCandidates)
 	{
-		if (IsWindows && windowsTextCandidates.Length > 0)
-		{
-			string predicate = string.Join(" or ",
-				windowsTextCandidates.Select(t => $"@Name='{t}'"));
-			try
-			{
-				var els = Driver.FindElements(By.XPath($"//*[{predicate}]"));
-				return els.Count > 0 && IsElementUserVisible((AppiumElement)els[0]);
-			}
-			catch { return false; }
-		}
-
 		try
 		{
 			var els = Driver.FindElements(AutomationIdLocator(automationId));
+			if (els.Count > 0 && IsElementUserVisible((AppiumElement)els[0]))
+				return true;
+		}
+		catch { /* fall through to text probe */ }
+
+		if (textCandidates.Length == 0)
+			return false;
+
+		// Per-platform Appium exposes visible text under different attributes:
+		// Android=text/content-desc, iOS+macOS=label/name/value, Windows=Name.
+		string predicate = string.Join(" or ", textCandidates.SelectMany(t => new[]
+		{
+			$"@text={XPathLiteral(t)}",
+			$"@content-desc={XPathLiteral(t)}",
+			$"@label={XPathLiteral(t)}",
+			$"@name={XPathLiteral(t)}",
+			$"@value={XPathLiteral(t)}",
+			$"@Name={XPathLiteral(t)}",
+		}));
+		try
+		{
+			var els = Driver.FindElements(By.XPath($"//*[{predicate}]"));
 			return els.Count > 0 && IsElementUserVisible((AppiumElement)els[0]);
 		}
 		catch { return false; }
+	}
+
+	// XPath 1.0 has no escape for quotes; wrap in the other quote, or build a
+	// concat() when the literal contains both. Popup labels are simple ASCII,
+	// but keep this correct so a future label can't silently break the probe.
+	private static string XPathLiteral(string s)
+	{
+		if (!s.Contains('\'')) return $"'{s}'";
+		if (!s.Contains('"')) return $"\"{s}\"";
+		return "concat('" + s.Replace("'", "',\"'\",'") + "')";
+	}
+
+	/// <summary>
+	/// Best-effort Appium tree dump for failure diagnostics. Written to the
+	/// test's stdout (NUnit surfaces it as "Standard Output Messages" in the
+	/// CI log) so a "popup not shown" failure shows whether the scrim / popup
+	/// content is actually in the platform tree — same approach the flyout
+	/// helper uses. Truncated so it doesn't flood the log.
+	/// </summary>
+	public string CaptureTreeForDiagnostics()
+	{
+		try
+		{
+			string src = Driver.PageSource ?? "(null PageSource)";
+			const int max = 16000;
+			return src.Length <= max ? src : src.Substring(0, max) + "\n…(truncated)";
+		}
+		catch (Exception ex)
+		{
+			return $"(PageSource unavailable: {ex.GetType().Name}: {ex.Message})";
+		}
 	}
 }
