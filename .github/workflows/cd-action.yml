@@ -372,7 +372,7 @@ jobs:
       - publish-ios
       - publish-mac
     runs-on: ubuntu-slim
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/cd-create-release
