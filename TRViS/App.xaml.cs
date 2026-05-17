@@ -1,3 +1,4 @@
+using TRViS.Localization;
 using TRViS.Services;
 
 namespace TRViS;
@@ -9,6 +10,10 @@ public partial class App : Application
 	public App()
 	{
 		logger.Trace("App Creating (URL: {0})", AppLinkUri?.ToString() ?? "(null))");
+
+		// Resolve the saved UI language synchronously before any XAML is built so
+		// the very first render (AppShell + StartHomePage) is already localized.
+		LocalizationResourceManager.Current.InitializeFromSettings();
 
 		try
 		{

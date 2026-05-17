@@ -1,3 +1,5 @@
+using TRViS.Localization;
+
 namespace TRViS.Utils;
 
 public static partial class Util
@@ -41,5 +43,5 @@ public static partial class Util
 	}
 
 	public static Task ExitWithAlertAsync(Exception ex)
-		=> DisplayAlertAsync("エラー", "不明なエラーが発生しました。アプリを終了します。\n" + ex.Message, "OK").ContinueWith(static _ => Environment.Exit(1));
+		=> DisplayAlertAsync(AppResources.Common_Error, string.Format(AppResources.ShowAlert_UnknownErrorFormat, ex.Message), AppResources.Common_OK).ContinueWith(static _ => Environment.Exit(1));
 }
