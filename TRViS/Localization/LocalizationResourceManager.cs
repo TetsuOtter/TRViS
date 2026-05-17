@@ -12,7 +12,11 @@ namespace TRViS.Localization;
 ///
 /// XAML からは <see cref="TranslateExtension"/> 経由でインデクサ
 /// (<c>this[key]</c>) にバインドし、言語変更時に
-/// <c>PropertyChanged("Item[]")</c> を発火してラベルを更新する。
+/// <c>PropertyChanged("Item")</c> を発火してラベルを更新する。
+/// (MAUI のバインディングは <c>"Item[]"</c> という WPF 流の通知名を
+/// 解釈せず、ブラケットを含む名前は <c>"Item[&lt;key&gt;]"</c> と完全一致
+/// しない限り無視する。ブラケット無しの <c>"Item"</c> は IndexerName と
+/// 一致し、全インデクサバインドが再評価される。)
 ///
 /// Shell の FlyoutItem / ContentPage の Title はバインディングの
 /// 再評価が不安定なため、<see cref="CultureChanged"/> を購読して
@@ -88,7 +92,10 @@ public sealed class LocalizationResourceManager : INotifyPropertyChanged
 			return;
 
 		logger.Info("UI language changed: {0} (culture: {1})", language, newCulture.Name);
-		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+		// "Item[]" (WPF 流の「全インデクサ変更」) は MAUI のバインディングが
+		// 解釈しない。ブラケット無しの "Item" なら IndexerName と一致し、
+		// {loc:Translate} の全インデクサバインドが再評価される。
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item"));
 		CultureChanged?.Invoke(this, EventArgs.Empty);
 	}
 
