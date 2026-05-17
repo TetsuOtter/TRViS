@@ -127,7 +127,6 @@
   <data name="SelectFile_FileCountFormat" xml:space="preserve"><value>{0} files</value></data>
   <data name="SelectFile_AlertCannotLoadTitle" xml:space="preserve"><value>Could not load</value></data>
   <data name="SelectFile_AlertUnsupportedFormat" xml:space="preserve"><value>Unsupported file format.</value></data>
-  <data name="SelectFile_AlertLoadFailedFormat" xml:space="preserve"><value>Failed to load file: {0}</value></data>
   <data name="SelectFile_AlertCannotOpenFileTitle" xml:space="preserve"><value>Could not open file</value></data>
   <data name="SelectFile_AlertCannotOpenFolderTitle" xml:space="preserve"><value>Could not open folder</value></data>
   <data name="Privacy_Title" xml:space="preserve"><value>Privacy Policy</value></data>
@@ -206,12 +205,6 @@ Your InstallId: {0}</value></data>
   <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>Open external file</value></data>
   <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>Open file `{0}`?</value></data>
   <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>LocalPath is invalid</value></data>
-  <data name="AppLink_TimeoutTitle" xml:space="preserve"><value>Could not connect (Timeout)</value></data>
-  <data name="AppLink_TimeoutBody" xml:space="preserve"><value>If the destination is a PC,
-check that it is on the same network,
-and that firewall exceptions are configured correctly for the current network.</value></data>
-  <data name="AppLink_OpenAppLinkFailedFormat" xml:space="preserve"><value>OpenAppLinkAsync Failed
-{0}</value></data>
   <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>External Location Service</value></data>
   <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>A source for location info is specified, but it is a different server from the timetable file.
 Use this server?
@@ -222,9 +215,6 @@ Server: {0}</value></data>
   <data name="AppLink_FileLoadCompleteBody" xml:space="preserve"><value>File loaded successfully</value></data>
   <data name="AppLink_WebSocketUrlMissing" xml:space="preserve"><value>WebSocket URL is not specified</value></data>
   <data name="AppLink_WebSocketConnectedBody" xml:space="preserve"><value>WebSocket connection completed</value></data>
-  <data name="AppLink_CannotConnectWebSocketTitle" xml:space="preserve"><value>Cannot Connect WebSocket</value></data>
-  <data name="AppLink_WebSocketConnectFailedFormat" xml:space="preserve"><value>WebSocket connection failed
-{0}</value></data>
   <data name="AppLink_LocalFileOutsideFolder" xml:space="preserve"><value>The specified file is outside the timetable folder.</value></data>
   <data name="AppLink_FileNotFoundFormat" xml:space="preserve"><value>File not found: {0}</value></data>
   <data name="AppLink_PathResolveFailedFormat" xml:space="preserve"><value>Failed to resolve file path: {0}</value></data>
@@ -238,4 +228,29 @@ Destination:{0}
   <data name="AppLink_ContinueDownloadTitle" xml:space="preserve"><value>Continue to download?</value></data>
   <data name="AppLink_UnknownSizeBody" xml:space="preserve"><value>The size of the file to download is unknown. Continue downloading?</value></data>
   <data name="AppLink_FileSizeFormat" xml:space="preserve"><value>The file to download is {0} bytes. Download this file?</value></data>
+  <data name="LoadError_FileTitle" xml:space="preserve"><value>Could not load the file</value></data>
+  <data name="LoadError_ConnectionTitle" xml:space="preserve"><value>Could not connect</value></data>
+  <data name="LoadError_TimeoutTitle" xml:space="preserve"><value>Could not connect (Timeout)</value></data>
+  <data name="LoadError_JsonMalformedBody" xml:space="preserve"><value>The file is not valid JSON. Check that the file is not corrupted and that it is a timetable file supported by TRViS.</value></data>
+  <data name="LoadError_JsonPositionFormat" xml:space="preserve"><value>
+
+(Error position: line {0}, column {1})</value></data>
+  <data name="LoadError_SqliteCorruptBody" xml:space="preserve"><value>The database file is corrupted or is not a format supported by TRViS. Check that it is a valid timetable database file.</value></data>
+  <data name="LoadError_SqliteCannotOpenBody" xml:space="preserve"><value>Could not open the database file. Check that the file exists and is readable.</value></data>
+  <data name="LoadError_SqlitePermissionBody" xml:space="preserve"><value>Access to the database file was denied. Check the file's access permissions.</value></data>
+  <data name="LoadError_SqliteIOBody" xml:space="preserve"><value>An error occurred while reading the database file. Check that there are no problems with the file or storage.</value></data>
+  <data name="LoadError_SqliteBusyBody" xml:space="preserve"><value>The database file may be in use by another app. Wait a moment and try again.</value></data>
+  <data name="LoadError_SqliteOtherBody" xml:space="preserve"><value>Failed to read the database file. Check that it is a valid timetable database file.</value></data>
+  <data name="LoadError_TimeoutBody" xml:space="preserve"><value>If the destination is a PC,
+check that it is on the same network,
+and that firewall exceptions are configured correctly for the current network.</value></data>
+  <data name="LoadError_FileNotFoundBody" xml:space="preserve"><value>The file was not found. Check that it has not been moved or deleted.</value></data>
+  <data name="LoadError_UnauthorizedBody" xml:space="preserve"><value>Access to the file was denied. Check the file's access permissions.</value></data>
+  <data name="LoadError_EmptyOrNullBody" xml:space="preserve"><value>The file is empty or is not a valid timetable file. Check the file's contents.</value></data>
+  <data name="LoadError_HttpWithStatusFormat" xml:space="preserve"><value>Could not retrieve the file from the server. (Server response code: {0} {1})</value></data>
+  <data name="LoadError_HttpNoStatusBody" xml:space="preserve"><value>Could not retrieve the file from the server. Check your network connection and the destination URL.</value></data>
+  <data name="LoadError_IOBody" xml:space="preserve"><value>An error occurred while reading the file. Check that there are no problems with the file or storage.</value></data>
+  <data name="LoadError_UnknownFormat" xml:space="preserve"><value>Failed to load the file.
+
+Details: {0}</value></data>
 </root>

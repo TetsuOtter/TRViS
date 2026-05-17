@@ -86,7 +86,6 @@ public static class AppResources
 	public static string SelectFile_FileCountFormat => Get(nameof(SelectFile_FileCountFormat));
 	public static string SelectFile_AlertCannotLoadTitle => Get(nameof(SelectFile_AlertCannotLoadTitle));
 	public static string SelectFile_AlertUnsupportedFormat => Get(nameof(SelectFile_AlertUnsupportedFormat));
-	public static string SelectFile_AlertLoadFailedFormat => Get(nameof(SelectFile_AlertLoadFailedFormat));
 	public static string SelectFile_AlertCannotOpenFileTitle => Get(nameof(SelectFile_AlertCannotOpenFileTitle));
 	public static string SelectFile_AlertCannotOpenFolderTitle => Get(nameof(SelectFile_AlertCannotOpenFolderTitle));
 
@@ -162,9 +161,6 @@ public static class AppResources
 	public static string AppLink_OpenExternalFileTitle => Get(nameof(AppLink_OpenExternalFileTitle));
 	public static string AppLink_OpenExternalFileFormat => Get(nameof(AppLink_OpenExternalFileFormat));
 	public static string AppLink_LocalPathInvalid => Get(nameof(AppLink_LocalPathInvalid));
-	public static string AppLink_TimeoutTitle => Get(nameof(AppLink_TimeoutTitle));
-	public static string AppLink_TimeoutBody => Get(nameof(AppLink_TimeoutBody));
-	public static string AppLink_OpenAppLinkFailedFormat => Get(nameof(AppLink_OpenAppLinkFailedFormat));
 	public static string AppLink_ExternalLocationServiceTitle => Get(nameof(AppLink_ExternalLocationServiceTitle));
 	public static string AppLink_ExternalLocationServiceBodyFormat => Get(nameof(AppLink_ExternalLocationServiceBodyFormat));
 	public static string AppLink_CannotSetExternalLocationTitle => Get(nameof(AppLink_CannotSetExternalLocationTitle));
@@ -172,8 +168,6 @@ public static class AppResources
 	public static string AppLink_FileLoadCompleteBody => Get(nameof(AppLink_FileLoadCompleteBody));
 	public static string AppLink_WebSocketUrlMissing => Get(nameof(AppLink_WebSocketUrlMissing));
 	public static string AppLink_WebSocketConnectedBody => Get(nameof(AppLink_WebSocketConnectedBody));
-	public static string AppLink_CannotConnectWebSocketTitle => Get(nameof(AppLink_CannotConnectWebSocketTitle));
-	public static string AppLink_WebSocketConnectFailedFormat => Get(nameof(AppLink_WebSocketConnectFailedFormat));
 	public static string AppLink_LocalFileOutsideFolder => Get(nameof(AppLink_LocalFileOutsideFolder));
 	public static string AppLink_FileNotFoundFormat => Get(nameof(AppLink_FileNotFoundFormat));
 	public static string AppLink_PathResolveFailedFormat => Get(nameof(AppLink_PathResolveFailedFormat));
@@ -184,4 +178,26 @@ public static class AppResources
 	public static string AppLink_ContinueDownloadTitle => Get(nameof(AppLink_ContinueDownloadTitle));
 	public static string AppLink_UnknownSizeBody => Get(nameof(AppLink_UnknownSizeBody));
 	public static string AppLink_FileSizeFormat => Get(nameof(AppLink_FileSizeFormat));
+
+	// 時刻表ロード失敗 (LoadErrorMessage.Describe の LoadErrorKind を
+	// 文字列化する。例外分類は TRViS.IO 側、ローカライズはこの層。#40)
+	public static string LoadError_FileTitle => Get(nameof(LoadError_FileTitle));
+	public static string LoadError_ConnectionTitle => Get(nameof(LoadError_ConnectionTitle));
+	public static string LoadError_TimeoutTitle => Get(nameof(LoadError_TimeoutTitle));
+	public static string LoadError_JsonMalformedBody => Get(nameof(LoadError_JsonMalformedBody));
+	public static string LoadError_JsonPositionFormat => Get(nameof(LoadError_JsonPositionFormat));
+	public static string LoadError_SqliteCorruptBody => Get(nameof(LoadError_SqliteCorruptBody));
+	public static string LoadError_SqliteCannotOpenBody => Get(nameof(LoadError_SqliteCannotOpenBody));
+	public static string LoadError_SqlitePermissionBody => Get(nameof(LoadError_SqlitePermissionBody));
+	public static string LoadError_SqliteIOBody => Get(nameof(LoadError_SqliteIOBody));
+	public static string LoadError_SqliteBusyBody => Get(nameof(LoadError_SqliteBusyBody));
+	public static string LoadError_SqliteOtherBody => Get(nameof(LoadError_SqliteOtherBody));
+	public static string LoadError_TimeoutBody => Get(nameof(LoadError_TimeoutBody));
+	public static string LoadError_FileNotFoundBody => Get(nameof(LoadError_FileNotFoundBody));
+	public static string LoadError_UnauthorizedBody => Get(nameof(LoadError_UnauthorizedBody));
+	public static string LoadError_EmptyOrNullBody => Get(nameof(LoadError_EmptyOrNullBody));
+	public static string LoadError_HttpWithStatusFormat => Get(nameof(LoadError_HttpWithStatusFormat));
+	public static string LoadError_HttpNoStatusBody => Get(nameof(LoadError_HttpNoStatusBody));
+	public static string LoadError_IOBody => Get(nameof(LoadError_IOBody));
+	public static string LoadError_UnknownFormat => Get(nameof(LoadError_UnknownFormat));
 }

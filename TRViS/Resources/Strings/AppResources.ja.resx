@@ -128,7 +128,6 @@
   <data name="SelectFile_FileCountFormat" xml:space="preserve"><value>ファイル {0}</value></data>
   <data name="SelectFile_AlertCannotLoadTitle" xml:space="preserve"><value>読み込めませんでした</value></data>
   <data name="SelectFile_AlertUnsupportedFormat" xml:space="preserve"><value>対応していないファイル形式です。</value></data>
-  <data name="SelectFile_AlertLoadFailedFormat" xml:space="preserve"><value>ファイルの読み込みに失敗しました: {0}</value></data>
   <data name="SelectFile_AlertCannotOpenFileTitle" xml:space="preserve"><value>ファイルを開けませんでした</value></data>
   <data name="SelectFile_AlertCannotOpenFolderTitle" xml:space="preserve"><value>フォルダを開けませんでした</value></data>
   <data name="Privacy_Title" xml:space="preserve"><value>プライバシーポリシー</value></data>
@@ -208,13 +207,6 @@ InstallId: {0}</value></data>
   <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>外部ファイルを開く</value></data>
   <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>ファイル `{0}` を開きますか?</value></data>
   <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>ローカルパスが不正です</value></data>
-  <data name="AppLink_TimeoutTitle" xml:space="preserve"><value>接続できませんでした (Timeout)</value></data>
-  <data name="AppLink_TimeoutBody" xml:space="preserve"><value>接続先がパソコンの場合は、
-接続先が同じネットワークに属しているか、
-またファイアウォールの例外設定がきちんと今のネットワークに行われているか
-を確認してください。</value></data>
-  <data name="AppLink_OpenAppLinkFailedFormat" xml:space="preserve"><value>ファイルのオープンに失敗しました
-{0}</value></data>
   <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>外部位置情報サービス</value></data>
   <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。
 このサーバーを使用してもよろしいですか?
@@ -225,9 +217,6 @@ Server: {0}</value></data>
   <data name="AppLink_FileLoadCompleteBody" xml:space="preserve"><value>ファイルの読み込みが完了しました</value></data>
   <data name="AppLink_WebSocketUrlMissing" xml:space="preserve"><value>WebSocket URLが指定されていません</value></data>
   <data name="AppLink_WebSocketConnectedBody" xml:space="preserve"><value>WebSocket接続が完了しました</value></data>
-  <data name="AppLink_CannotConnectWebSocketTitle" xml:space="preserve"><value>WebSocketに接続できません</value></data>
-  <data name="AppLink_WebSocketConnectFailedFormat" xml:space="preserve"><value>WebSocket接続に失敗しました
-{0}</value></data>
   <data name="AppLink_LocalFileOutsideFolder" xml:space="preserve"><value>指定されたファイルは時刻表フォルダの外にあります。</value></data>
   <data name="AppLink_FileNotFoundFormat" xml:space="preserve"><value>ファイルが見つかりません: {0}</value></data>
   <data name="AppLink_PathResolveFailedFormat" xml:space="preserve"><value>ファイルパスの解決に失敗しました: {0}</value></data>
@@ -241,4 +230,30 @@ Server: {0}</value></data>
   <data name="AppLink_ContinueDownloadTitle" xml:space="preserve"><value>ダウンロードを続けますか?</value></data>
   <data name="AppLink_UnknownSizeBody" xml:space="preserve"><value>ダウンロードするファイルのサイズが不明です。ダウンロードを継続しますか?</value></data>
   <data name="AppLink_FileSizeFormat" xml:space="preserve"><value>ダウンロードするファイルのサイズは {0} byte です。このファイルをダウンロードしますか?</value></data>
+  <data name="LoadError_FileTitle" xml:space="preserve"><value>読み込めませんでした</value></data>
+  <data name="LoadError_ConnectionTitle" xml:space="preserve"><value>接続できませんでした</value></data>
+  <data name="LoadError_TimeoutTitle" xml:space="preserve"><value>接続できませんでした (Timeout)</value></data>
+  <data name="LoadError_JsonMalformedBody" xml:space="preserve"><value>ファイルのJSON形式が正しくありません。ファイルが壊れていないか、TRViSに対応した時刻表ファイルかを確認してください。</value></data>
+  <data name="LoadError_JsonPositionFormat" xml:space="preserve"><value>
+
+(エラー位置: {0}行目, {1}文字目)</value></data>
+  <data name="LoadError_SqliteCorruptBody" xml:space="preserve"><value>データベースファイルが壊れているか、TRViSに対応した形式ではありません。正しい時刻表データベースファイルかを確認してください。</value></data>
+  <data name="LoadError_SqliteCannotOpenBody" xml:space="preserve"><value>データベースファイルを開けませんでした。ファイルが存在し、読み取り可能かを確認してください。</value></data>
+  <data name="LoadError_SqlitePermissionBody" xml:space="preserve"><value>データベースファイルへのアクセスが拒否されました。ファイルのアクセス権を確認してください。</value></data>
+  <data name="LoadError_SqliteIOBody" xml:space="preserve"><value>データベースファイルの読み込み中にエラーが発生しました。ファイルやストレージに問題がないかを確認してください。</value></data>
+  <data name="LoadError_SqliteBusyBody" xml:space="preserve"><value>データベースファイルが他のアプリで使用中の可能性があります。しばらく待ってから再度お試しください。</value></data>
+  <data name="LoadError_SqliteOtherBody" xml:space="preserve"><value>データベースファイルの読み込みに失敗しました。正しい時刻表データベースファイルかを確認してください。</value></data>
+  <data name="LoadError_TimeoutBody" xml:space="preserve"><value>接続先がパソコンの場合は、
+接続先が同じネットワークに属しているか、
+またファイアウォールの例外設定がきちんと今のネットワークに行われているか
+を確認してください。</value></data>
+  <data name="LoadError_FileNotFoundBody" xml:space="preserve"><value>ファイルが見つかりませんでした。ファイルが移動・削除されていないかを確認してください。</value></data>
+  <data name="LoadError_UnauthorizedBody" xml:space="preserve"><value>ファイルへのアクセスが拒否されました。ファイルのアクセス権を確認してください。</value></data>
+  <data name="LoadError_EmptyOrNullBody" xml:space="preserve"><value>ファイルの内容が空か、正しい時刻表ファイルではありません。ファイルの内容を確認してください。</value></data>
+  <data name="LoadError_HttpWithStatusFormat" xml:space="preserve"><value>サーバーからファイルを取得できませんでした。(サーバー応答コード: {0} {1})</value></data>
+  <data name="LoadError_HttpNoStatusBody" xml:space="preserve"><value>サーバーからファイルを取得できませんでした。ネットワーク接続と接続先URLを確認してください。</value></data>
+  <data name="LoadError_IOBody" xml:space="preserve"><value>ファイルの読み込み中にエラーが発生しました。ファイルやストレージに問題がないかを確認してください。</value></data>
+  <data name="LoadError_UnknownFormat" xml:space="preserve"><value>ファイルの読み込みに失敗しました。
+
+詳細: {0}</value></data>
 </root>
