@@ -1,13 +1,12 @@
 using TRViS.Services;
 using TRViS.ViewModels;
-using TR.Maui.AnchorPopover;
 
 namespace TRViS.DTAC;
 
 public partial class SelectMarkerPopup : ContentView
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
-	private IAnchorPopover? _popover;
+	private IPagePopupHost? _host;
 
 	public SelectMarkerPopup() : this(Adapters.PresenterFactory.GetRawMarkerViewModel()) { }
 
@@ -28,16 +27,16 @@ public partial class SelectMarkerPopup : ContentView
 	{
 		logger.Trace("Closing...");
 
-		if (_popover != null)
+		if (_host != null)
 		{
-			await _popover.DismissAsync();
+			await _host.DismissAsync();
 		}
 
 		logger.Trace("Closed");
 	}
 
-	internal void SetPopover(IAnchorPopover popover)
+	internal void SetPopupHost(IPagePopupHost host)
 	{
-		_popover = popover;
+		_host = host;
 	}
 }

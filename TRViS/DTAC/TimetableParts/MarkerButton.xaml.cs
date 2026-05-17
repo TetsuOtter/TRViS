@@ -1,6 +1,5 @@
 using TRViS.Services;
 using TRViS.ViewModels;
-using TR.Maui.AnchorPopover;
 using TRViS.Utils;
 
 namespace TRViS.DTAC;
@@ -33,20 +32,17 @@ public partial class MarkerButton : Border
 
 			MarkerSettings.IsToggled = true;
 
-			SelectMarkerPopup popup = new(MarkerSettings);
-			var popover = AnchorPopover.Create();
-			popup.SetPopover(popover);
-
-			var options = new PopoverOptions
+			// TR.Maui.AnchorPopover crashes on Windows MAUI 10 (#273); the
+			// popup is now an in-page overlay owned by the hosting ViewHost.
+			ViewHost? host = ViewHost.GetHostFor(this);
+			if (host is null)
 			{
-				PreferredWidth = 240,
-				PreferredHeight = 360,
-				DismissOnTapOutside = true
-			};
+				logger.Warn("MarkerButton: hosting ViewHost not found — cannot show SelectMarkerPopup");
+				return;
+			}
 
-			logger.Info("Showing SelectMarkerPopup");
-			await popover.ShowAsync(popup, this, options);
-			logger.Trace("SelectMarkerPopup Shown");
+			await host.ShowSelectMarkerPopupAsync();
+			logger.Trace("SelectMarkerPopup dismissed");
 		}
 		catch (Exception ex)
 		{
