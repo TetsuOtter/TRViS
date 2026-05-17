@@ -34,6 +34,11 @@ public class DTACPopupTests : BaseUITest
 	{
 		base.SetUp();
 
+		// Belt-and-suspenders: if a prior test left the modal scrim up it
+		// blocks NavigateToHome's flyout. Dismiss before recovering state.
+		try { new DTACViewHostPageObject(Driver).TryDismissAnyPopup(); }
+		catch { /* fresh session / not on DTAC — nothing to dismiss */ }
+
 		_startHomePage = new StartHomePageObject(Driver);
 
 		// Idempotent reset to StartHome with no loader (mirrors
@@ -45,6 +50,24 @@ public class DTACPopupTests : BaseUITest
 		}
 		_startHomePage.ClearLoaderForTesting();
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
+	}
+
+	/// <summary>
+	/// Runs before BaseUITest's teardown (NUnit runs derived TearDown first).
+	/// The overlay is a full-screen modal scrim; a popup left open by a failed
+	/// assertion would block the flyout and wedge every subsequent test in
+	/// this shared session (and, since the app process persists across
+	/// fixtures, later fixtures too). Best-effort, never throws.
+	/// </summary>
+	[TearDown]
+	public void DismissPopupAfterTest()
+	{
+		// Wrap the whole thing: if the Appium session died during the test
+		// (e.g. a window-close cascade), even constructing the page object or
+		// touching Driver can throw — and a throwing TearDown is reported by
+		// NUnit as a failure, manufacturing one that wouldn't otherwise exist.
+		try { new DTACViewHostPageObject(Driver).TryDismissAnyPopup(); }
+		catch { /* driver/session dead — nothing to clean up */ }
 	}
 
 	private DTACViewHostPageObject OpenDTAC()

@@ -386,26 +386,41 @@ public class DTACViewHostPageObject : PageObject
 	// mirroring FindCustomControl's dual strategy.
 
 	public void OpenQuickSwitchPopupViaSeam()
-		=> FindByAutomationId(AutomationIds.DTAC.TestOpenQuickSwitchButton).Click();
+		=> WaitForElement(AutomationIds.DTAC.TestOpenQuickSwitchButton).Click();
 
 	public void OpenSelectMarkerPopupViaSeam()
-		=> FindByAutomationId(AutomationIds.DTAC.TestOpenMarkerPopupButton).Click();
+		=> WaitForElement(AutomationIds.DTAC.TestOpenMarkerPopupButton).Click();
 
 	public void DismissPopupViaSeam()
-		=> FindByAutomationId(AutomationIds.DTAC.TestDismissPopupButton).Click();
+		=> WaitForElement(AutomationIds.DTAC.TestDismissPopupButton).Click();
+
+	/// <summary>
+	/// Best-effort popup dismissal for fixture TearDown: the overlay is a
+	/// full-screen modal scrim, so a popup left open by a failed assertion
+	/// blocks the flyout/menu and wedges every later test in a shared session
+	/// (run 25983087525: one QuickSwitch failure cascaded into ~8 unrelated
+	/// failures). Swallows everything — never throws out of TearDown.
+	/// </summary>
+	public void TryDismissAnyPopup()
+	{
+		try { DismissPopupViaSeam(); } catch { /* not on DTAC / no popup */ }
+	}
 
 	/// <summary>
 	/// Taps SelectMarkerPopup's real "Close" button (the production dismiss
 	/// affordance — exercised in addition to the seam so the popup's own
 	/// IPagePopupHost.DismissAsync wiring is covered end to end).
+	///
+	/// Resolved by AutomationId on every platform: it is a plain MAUI Button,
+	/// which WinUI surfaces with a reachable AccessibilityId (same as
+	/// ConnectServer.CloseButton). A Windows visible-text fallback must NOT be
+	/// used here — "Close" also matches the WinUI window title-bar Close (X)
+	/// button, and clicking that closes the whole app (run 25983087525:
+	/// it killed the Appium session and cascaded NoSuchWindowException into
+	/// every later test).
 	/// </summary>
 	public void TapSelectMarkerPopupClose()
-	{
-		if (IsWindows)
-			WaitForElementByVisibleText(TimeSpan.FromSeconds(15), "Close").Click();
-		else
-			FindByAutomationId(AutomationIds.DTAC.SelectMarkerPopupCloseButton).Click();
-	}
+		=> WaitForElement(AutomationIds.DTAC.SelectMarkerPopupCloseButton).Click();
 
 	/// <summary>
 	/// Taps QuickSwitchPopup's "Work" tab — a plain TapGestureRecognizer on a
@@ -423,17 +438,28 @@ public class DTACViewHostPageObject : PageObject
 			FindByAutomationId(AutomationIds.DTAC.QuickSwitchPopupWorkTab).Click();
 	}
 
+	// Key off the WorkTab (a TabButtonSmall = Grid custom control), NOT the
+	// popup root ContentView: MAUI does not create a native view for a plain
+	// ContentView, so its AutomationId is absent from the Android tree
+	// (run 25983087525 — QuickSwitch "not shown" though it had rendered).
+	// Grid AutomationId resolves via By.Id on Android / AccessibilityId on
+	// iOS+macOS (cf. NextTrainButton); Windows surfaces it as a Pane, so the
+	// rendered tab-label text ("WorkGroup"/"Work") is the Windows fallback.
 	public bool IsQuickSwitchPopupShown(double timeoutSeconds = 5)
-		=> IsPopupPresent(AutomationIds.DTAC.QuickSwitchPopup, timeoutSeconds, "WorkGroup", "Work");
+		=> IsPopupPresent(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds, "WorkGroup", "Work");
 
 	public bool IsQuickSwitchPopupGone(double timeoutSeconds = 5)
-		=> IsPopupGone(AutomationIds.DTAC.QuickSwitchPopup, timeoutSeconds, "WorkGroup", "Work");
+		=> IsPopupGone(AutomationIds.DTAC.QuickSwitchPopupWorkTab, timeoutSeconds, "WorkGroup", "Work");
 
+	// Probe the Close *Button* (not the popup root ContentView, which WinUI
+	// surfaces as a non-control Pane) and pass NO Windows text candidate: a
+	// plain Button resolves by AccessibilityId on every platform, and "Close"
+	// as a Name probe collides with the WinUI title-bar Close button.
 	public bool IsSelectMarkerPopupShown(double timeoutSeconds = 5)
-		=> IsPopupPresent(AutomationIds.DTAC.SelectMarkerPopup, timeoutSeconds, "Close");
+		=> IsPopupPresent(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds);
 
 	public bool IsSelectMarkerPopupGone(double timeoutSeconds = 5)
-		=> IsPopupGone(AutomationIds.DTAC.SelectMarkerPopup, timeoutSeconds, "Close");
+		=> IsPopupGone(AutomationIds.DTAC.SelectMarkerPopupCloseButton, timeoutSeconds);
 
 	private bool IsPopupPresent(string automationId, double timeoutSeconds, params string[] windowsTextCandidates)
 	{
