@@ -45,29 +45,9 @@
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
 	</FlyoutItem>
 	<FlyoutItem
-		AutomationId="Shell.Flyout.ThirdPartyLicenses"
-		Title="Third Party Licenses">
-		<ShellContent ContentTemplate="{DataTemplate pages:ThirdPartyLicenses}"/>
-	</FlyoutItem>
-	<FlyoutItem
 		AutomationId="Shell.Flyout.Settings"
 		Title="Settings">
 		<ShellContent ContentTemplate="{DataTemplate pages:EasterEggPage}"/>
-	</FlyoutItem>
-	<FlyoutItem
-		AutomationId="Shell.Flyout.Firebase"
-		Title="Firebase Setting"
-		Route="{x:Static pages:FirebaseSettingPage.NameOfThisClass}">
-		<ShellContent ContentTemplate="{DataTemplate pages:FirebaseSettingPage}"/>
-	</FlyoutItem>
-	<FlyoutItem
-		AutomationId="Shell.Flyout.PrivacyPolicy"
-		Title="Privacy Policy">
-		<ShellContent>
-			<pages:ShowMarkdownPage
-				FileName="PrivacyPolicy_md"
-				Title="Privacy Policy"/>
-		</ShellContent>
 	</FlyoutItem>
 
 	<MenuItem
