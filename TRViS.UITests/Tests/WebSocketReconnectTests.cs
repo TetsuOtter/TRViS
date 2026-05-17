@@ -49,6 +49,11 @@ public class WebSocketReconnectTests : BaseUITest
 		_startHomePage.ClearLoaderForTesting();
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 
+		// #40: loader-status strings are now resx-resolved, so pin Japanese
+		// here — otherwise the "サーバー未接続" assertions below would depend on
+		// the CI device locale (run-ui-tests.sh does not set one).
+		_startHomePage.SetLanguageJapaneseForTesting();
+
 		Assert.That(_startHomePage.IsDisplayed(), Is.True,
 			"StartHomePage should be displayed after recovery.");
 	}

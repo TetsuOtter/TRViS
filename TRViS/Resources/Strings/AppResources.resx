@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Common_OK" xml:space="preserve"><value>OK</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Common_No" xml:space="preserve"><value>No</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common_Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="Common_Stop" xml:space="preserve"><value>Stop</value></data>
+  <data name="Common_Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Common_Success" xml:space="preserve"><value>Success!</value></data>
+  <data name="Shell_Home" xml:space="preserve"><value>Home</value></data>
+  <data name="Shell_ThirdPartyLicenses" xml:space="preserve"><value>Third Party Licenses</value></data>
+  <data name="Shell_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Shell_FirebaseSetting" xml:space="preserve"><value>Firebase Setting</value></data>
+  <data name="Shell_PrivacyPolicy" xml:space="preserve"><value>Privacy Policy</value></data>
+  <data name="Shell_PrivacyPolicyOnline" xml:space="preserve"><value>Privacy Policy (online)</value></data>
+  <data name="StartHome_PrivacyPolicy" xml:space="preserve"><value>Privacy Policy</value></data>
+  <data name="StartHome_ThirdPartyLicenses" xml:space="preserve"><value>Third Party Licenses</value></data>
+  <data name="StartHome_ConnectServer" xml:space="preserve"><value>Load from Server</value></data>
+  <data name="StartHome_SelectFile" xml:space="preserve"><value>Select File</value></data>
+  <data name="StartHome_PrivacyReconfirmTitle" xml:space="preserve"><value>Privacy policy consent required</value></data>
+  <data name="StartHome_PrivacyReconfirmBody" xml:space="preserve"><value>To use the app, please review and accept the privacy policy.</value></data>
+  <data name="StartHome_LoadDemo" xml:space="preserve"><value>Start with demo data</value></data>
+  <data name="StartHome_SampleLoadFailedFormat" xml:space="preserve"><value>Failed to load sample data: {0}</value></data>
+  <data name="Home_LoadedData" xml:space="preserve"><value>Loaded data</value></data>
+  <data name="Home_Reconnect" xml:space="preserve"><value>Reconnect</value></data>
+  <data name="Home_Reconnecting" xml:space="preserve"><value>Reconnecting...</value></data>
+  <data name="Home_WorkGroup" xml:space="preserve"><value>Work Group</value></data>
+  <data name="Home_Work" xml:space="preserve"><value>Work</value></data>
+  <data name="Home_Change" xml:space="preserve"><value>Change</value></data>
+  <data name="Home_Disconnect" xml:space="preserve"><value>Close</value></data>
+  <data name="Home_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Home_LoaderType_Demo" xml:space="preserve"><value>Demo data</value></data>
+  <data name="Home_LoaderType_Json" xml:space="preserve"><value>JSON file</value></data>
+  <data name="Home_LoaderType_Sqlite" xml:space="preserve"><value>SQLite file</value></data>
+  <data name="Home_LoaderType_ServerDisconnected" xml:space="preserve"><value>Server disconnected</value></data>
+  <data name="Home_LoaderType_ServerConnected" xml:space="preserve"><value>Connected to server</value></data>
+  <data name="Home_DiagramFormat" xml:space="preserve"><value>Diagram: {0}</value></data>
+  <data name="Home_WorkCountFormat" xml:space="preserve"><value>Works: {0}</value></data>
+  <data name="Home_AffectDateFormat" xml:space="preserve"><value>Date: {0}</value></data>
+  <data name="Home_TrainCountFormat" xml:space="preserve"><value>Trains: {0}</value></data>
+  <data name="Home_NotSelectedTitle" xml:space="preserve"><value>Nothing selected</value></data>
+  <data name="Home_NotSelectedBody" xml:space="preserve"><value>Select a Work Group and Work, then press "Open".</value></data>
+  <data name="Home_ConfirmTitle" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Home_ConfirmCloseBody" xml:space="preserve"><value>Close the current data?</value></data>
+  <data name="ConnectServer_Title" xml:space="preserve"><value>Load from Server</value></data>
+  <data name="ConnectServer_HistoryHint" xml:space="preserve"><value>Choose from history or enter a new URL.</value></data>
+  <data name="ConnectServer_BackToHistory" xml:space="preserve"><value>Back to history</value></data>
+  <data name="ConnectServer_UrlLabel" xml:space="preserve"><value>URL</value></data>
+  <data name="ConnectServer_UrlHint" xml:space="preserve"><value>Specify the URL of a timetable file (.json / .sqlite), or a realtime delivery server (ws:// / wss://).</value></data>
+  <data name="ConnectServer_SaveUrlLabel" xml:space="preserve"><value>Keep URL in history</value></data>
+  <data name="ConnectServer_SaveUrlHint" xml:space="preserve"><value>When off, this load is one-time only and not kept in history.</value></data>
+  <data name="ConnectServer_Connect" xml:space="preserve"><value>Load</value></data>
+  <data name="ConnectServer_NewConnection" xml:space="preserve"><value>New connection</value></data>
+  <data name="ConnectServer_AlertCannotConnectTitle" xml:space="preserve"><value>Could not connect</value></data>
+  <data name="ConnectServer_AlertEnterUrl" xml:space="preserve"><value>Please enter a URL.</value></data>
+  <data name="ConnectServer_AlertInvalidUrl" xml:space="preserve"><value>The URL format is invalid.</value></data>
+  <data name="ConnectServer_AlertLoadFailedFormat" xml:space="preserve"><value>Failed to load: {0}</value></data>
+  <data name="SelectFile_Title" xml:space="preserve"><value>Select File</value></data>
+  <data name="SelectFile_FileListHint" xml:space="preserve"><value>Choose a file in the app, or open from another location.</value></data>
+  <data name="SelectFile_EmptyMessage" xml:space="preserve"><value>No files in this folder</value></data>
+  <data name="SelectFile_EmptyDetail" xml:space="preserve"><value>Use the button below to open a file from another location, or open the storage location to place files.</value></data>
+  <data name="SelectFile_Browse" xml:space="preserve"><value>Open a file from another location</value></data>
+  <data name="SelectFile_OpenStorage" xml:space="preserve"><value>Open storage location</value></data>
+  <data name="SelectFile_UpFolder" xml:space="preserve"><value>Go up</value></data>
+  <data name="SelectFile_FolderEmpty" xml:space="preserve"><value>(empty)</value></data>
+  <data name="SelectFile_FolderCountFormat" xml:space="preserve"><value>{0} folders</value></data>
+  <data name="SelectFile_FileCountFormat" xml:space="preserve"><value>{0} files</value></data>
+  <data name="SelectFile_AlertCannotLoadTitle" xml:space="preserve"><value>Could not load</value></data>
+  <data name="SelectFile_AlertUnsupportedFormat" xml:space="preserve"><value>Unsupported file format.</value></data>
+  <data name="SelectFile_AlertLoadFailedFormat" xml:space="preserve"><value>Failed to load file: {0}</value></data>
+  <data name="SelectFile_AlertCannotOpenFileTitle" xml:space="preserve"><value>Could not open file</value></data>
+  <data name="SelectFile_AlertCannotOpenFolderTitle" xml:space="preserve"><value>Could not open folder</value></data>
+  <data name="Privacy_Title" xml:space="preserve"><value>Privacy Policy</value></data>
+  <data name="Privacy_LogCollectionTitle" xml:space="preserve"><value>About log collection</value></data>
+  <data name="Privacy_DescBody" xml:space="preserve"><value>To improve app quality, TRViS collects app crash and error information.
+It also collects some information based on the privacy policy to study app usage.
+This information is collected primarily using Firebase.
+If you refuse this data collection, you may not be able to use this app.</value></data>
+  <data name="Privacy_CrashRequiredNotice" xml:space="preserve"><value>Sending crash/error logs is required, but you can enable/disable the following features.</value></data>
+  <data name="Privacy_AllowAnalytics" xml:space="preserve"><value>Allow usage data collection</value></data>
+  <data name="Privacy_RestoreSaved" xml:space="preserve"><value>Restore saved values</value></data>
+  <data name="Privacy_AgreeAndSave" xml:space="preserve"><value>Agree and save</value></data>
+  <data name="Privacy_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Firebase_Title" xml:space="preserve"><value>Firebase Setting</value></data>
+  <data name="Firebase_AlertSavedBodyFormat" xml:space="preserve"><value>Successfully saved
+Your InstallId: {0}</value></data>
+  <data name="ThirdParty_Title" xml:space="preserve"><value>Third Party Licenses</value></data>
+  <data name="ThirdParty_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="ThirdParty_LicenseExpressionFormat" xml:space="preserve"><value>License Expression: {0}</value></data>
+  <data name="ThirdParty_OpenLicense" xml:space="preserve"><value>Open License</value></data>
+  <data name="ThirdParty_NoLicenseInfo" xml:space="preserve"><value>(No License Info)</value></data>
+  <data name="ThirdParty_AlertCannotLoadTitle" xml:space="preserve"><value>Cannot load License Info</value></data>
+  <data name="ThirdParty_AlertCannotLoadBodyFormat" xml:space="preserve"><value>Failed to load license info for {0}.
+(license: {1})
+{2}</value></data>
+  <data name="ThirdParty_AlertInvalidUrlTitle" xml:space="preserve"><value>Invalid URL</value></data>
+  <data name="ThirdParty_AlertInvalidUrlFormat" xml:space="preserve"><value>The URL is invalid: {0}</value></data>
+  <data name="ThirdParty_AlertCannotOpenUrlTitle" xml:space="preserve"><value>Cannot Open URL</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Settings_ReloadSaved" xml:space="preserve"><value>Reload Saved</value></data>
+  <data name="Settings_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Settings_LocationInterval" xml:space="preserve"><value>Location update interval</value></data>
+  <data name="Settings_TimeProgression" xml:space="preserve"><value>Time progression</value></data>
+  <data name="Settings_TimeProgression_1x" xml:space="preserve"><value>1x (real time)</value></data>
+  <data name="Settings_TimeProgression_30x" xml:space="preserve"><value>30x (30s per 1s)</value></data>
+  <data name="Settings_TimeProgression_60x" xml:space="preserve"><value>60x (60s per 1s)</value></data>
+  <data name="Settings_Advanced" xml:space="preserve"><value>Advanced settings</value></data>
+  <data name="Settings_ShowMapLandscape" xml:space="preserve"><value>Show map beside content in landscape</value></data>
+  <data name="Settings_KeepScreenOn" xml:space="preserve"><value>Keep screen on while running</value></data>
+  <data name="Settings_HorizontalTimetableButtonLabel" xml:space="preserve"><value>Horizontal timetable button label</value></data>
+  <data name="Settings_HTBL_Horizontal" xml:space="preserve"><value>Horizontal Timetable</value></data>
+  <data name="Settings_HTBL_Train" xml:space="preserve"><value>Train Timetable</value></data>
+  <data name="Settings_HTBL_ETrain" xml:space="preserve"><value>E-Train Timetable</value></data>
+  <data name="Settings_AppTheme" xml:space="preserve"><value>App theme</value></data>
+  <data name="Settings_Theme_System" xml:space="preserve"><value>Follow system</value></data>
+  <data name="Settings_Theme_Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Settings_Theme_Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Settings_PdfEngine" xml:space="preserve"><value>PDF render engine</value></data>
+  <data name="Settings_PdfEngineHint" xml:space="preserve"><value>If PDFs don't display correctly, switch to another engine.</value></data>
+  <data name="Settings_PdfEngineDisplayFormat" xml:space="preserve"><value>pdf.js {0} ({1})</value></data>
+  <data name="Settings_PdfRender_Svg" xml:space="preserve"><value>SVG</value></data>
+  <data name="Settings_PdfRender_Canvas" xml:space="preserve"><value>canvas</value></data>
+  <data name="Settings_PdfEngineCurrentFormat" xml:space="preserve"><value>Current render engine: {0}</value></data>
+  <data name="Settings_PdfEngineCurrentFallbackFormat" xml:space="preserve"><value>Current render engine: {0} (select from the list above to change)</value></data>
+  <data name="Settings_LogFilePath" xml:space="preserve"><value>Log File Path</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Settings_Language_System" xml:space="preserve"><value>Follow system</value></data>
+  <data name="Settings_Language_Japanese" xml:space="preserve"><value>日本語</value></data>
+  <data name="Settings_Language_English" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_AlertReloadFailedFormat" xml:space="preserve"><value>Failed to reload
+{0}</value></data>
+  <data name="Settings_AlertSavedSuccess" xml:space="preserve"><value>Successfully saved</value></data>
+  <data name="Settings_AlertSaveFailedFormat" xml:space="preserve"><value>Failed to save
+{0}</value></data>
+  <data name="Settings_AlertLoadSettingFailedTitle" xml:space="preserve"><value>Failed to load setting file</value></data>
+  <data name="Settings_AlertInvalidLocationIntervalTitle" xml:space="preserve"><value>Invalid LocationServiceInterval Value</value></data>
+  <data name="Settings_AlertInvalidLocationIntervalFormat" xml:space="preserve"><value>value({0}) must be same or more than {1}</value></data>
+  <data name="SettingFile_LoadFailedFormat" xml:space="preserve"><value>Failed to load setting file. {0}</value></data>
+  <data name="SettingFile_LoadFailedNull" xml:space="preserve"><value>Failed to load setting file. (result is null)</value></data>
+  <data name="SettingFile_EmptyJson" xml:space="preserve"><value>The JSON file string is empty</value></data>
+  <data name="ShowAlert_UnknownErrorFormat" xml:space="preserve"><value>An unknown error occurred. The app will exit.
+{0}</value></data>
+  <data name="AppLink_CannotOpenFileTitle" xml:space="preserve"><value>Cannot Open File</value></data>
+  <data name="AppLink_IdentifyFailedFormat" xml:space="preserve"><value>AppLinkInfo Identify Failed
+{0}</value></data>
+  <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>Open external file</value></data>
+  <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>Open file `{0}`?</value></data>
+  <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>LocalPath is invalid</value></data>
+  <data name="AppLink_TimeoutTitle" xml:space="preserve"><value>Could not connect (Timeout)</value></data>
+  <data name="AppLink_TimeoutBody" xml:space="preserve"><value>If the destination is a PC,
+check that it is on the same network,
+and that firewall exceptions are configured correctly for the current network.</value></data>
+  <data name="AppLink_OpenAppLinkFailedFormat" xml:space="preserve"><value>OpenAppLinkAsync Failed
+{0}</value></data>
+  <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>External Location Service</value></data>
+  <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>A source for location info is specified, but it is a different server from the timetable file.
+Use this server?
+Server: {0}</value></data>
+  <data name="AppLink_CannotSetExternalLocationTitle" xml:space="preserve"><value>Cannot Set External Location Service</value></data>
+  <data name="AppLink_SetNetworkSyncFailedFormat" xml:space="preserve"><value>SetNetworkSyncServiceAsync Failed
+{0}</value></data>
+  <data name="AppLink_FileLoadCompleteBody" xml:space="preserve"><value>File loaded successfully</value></data>
+  <data name="AppLink_WebSocketUrlMissing" xml:space="preserve"><value>WebSocket URL is not specified</value></data>
+  <data name="AppLink_WebSocketConnectedBody" xml:space="preserve"><value>WebSocket connection completed</value></data>
+  <data name="AppLink_CannotConnectWebSocketTitle" xml:space="preserve"><value>Cannot Connect WebSocket</value></data>
+  <data name="AppLink_WebSocketConnectFailedFormat" xml:space="preserve"><value>WebSocket connection failed
+{0}</value></data>
+  <data name="AppLink_LocalFileOutsideFolder" xml:space="preserve"><value>The specified file is outside the timetable folder.</value></data>
+  <data name="AppLink_FileNotFoundFormat" xml:space="preserve"><value>File not found: {0}</value></data>
+  <data name="AppLink_PathResolveFailedFormat" xml:space="preserve"><value>Failed to resolve file path: {0}</value></data>
+  <data name="AppLink_MaybeDifferentNetworkTitle" xml:space="preserve"><value>Maybe Different Network</value></data>
+  <data name="AppLink_MaybeDifferentNetworkBodyFormat" xml:space="preserve"><value>You may fail to connect because you are on a different network than the destination.
+Connect anyway?
+Destination:{0}
+{1}</value></data>
+  <data name="AppLink_ThisDeviceFormat" xml:space="preserve"><value>This device[{0}]:{1}</value></data>
+  <data name="AppLink_EmptyFileBody" xml:space="preserve"><value>The timetable file was found, but it has no content.</value></data>
+  <data name="AppLink_ContinueDownloadTitle" xml:space="preserve"><value>Continue to download?</value></data>
+  <data name="AppLink_UnknownSizeBody" xml:space="preserve"><value>The size of the file to download is unknown. Continue downloading?</value></data>
+  <data name="AppLink_FileSizeFormat" xml:space="preserve"><value>The file to download is {0} bytes. Download this file?</value></data>
+</root>
