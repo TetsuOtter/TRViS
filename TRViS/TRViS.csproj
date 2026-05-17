@@ -82,9 +82,6 @@
 			PrivateAssets="all"
 			ExcludeAssets="runtime" />
 		<PackageReference
-			Include="TR.Maui.AnchorPopover"
-			Version="1.0.0.2" />
-		<PackageReference
 			Include="NLog"
 			Version="6.0.3" />
 		<PackageReference

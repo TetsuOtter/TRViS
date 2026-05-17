@@ -5,7 +5,8 @@
 	xmlns:local="clr-namespace:TRViS.DTAC"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
 	x:Class="TRViS.DTAC.SelectMarkerPopup"
-	x:DataType="vm:DTACMarkerViewModel">
+	x:DataType="vm:DTACMarkerViewModel"
+	AutomationId="DTAC.SelectMarkerPopup">
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -16,6 +17,7 @@
 			Grid.Row="0"
 			Margin="0,8,8,0"
 			Text="Close"
+			AutomationId="DTAC.SelectMarkerPopup.CloseButton"
 			HorizontalOptions="End"
 			Clicked="OnCloseButtonClicked"/>
 		<HorizontalStackLayout
