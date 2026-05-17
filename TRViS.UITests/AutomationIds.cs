@@ -197,6 +197,30 @@ public static class AutomationIds
 		// Use string.Format: TimetableRowStationNamePattern.Replace("{0}", rowIndex.ToString())
 		public const string TimetableRowStationNamePattern = "TimetableRow.{0}.StationName";
 		public const string TimetableRowInfoRowPattern = "TimetableRow.{0}.InfoRow";
+
+		// In-page popup overlay (replaced TR.Maui.AnchorPopover, #273). The
+		// scrim spans the page and dismisses on tap-outside; the two popup
+		// roots are the QuickSwitch (WorkGroup/Work switcher, opened from the
+		// AppBar title) and SelectMarker (marker colour/text picker, opened
+		// from the timetable MarkerButton) ContentViews.
+		public const string PopupScrim = "DTAC.PopupScrim";
+		public const string QuickSwitchPopup = "DTAC.QuickSwitchPopup";
+		// QuickSwitch tab buttons (TabButtonSmall = plain TapGestureRecognizer,
+		// no CollectionView): tapping one is a robust "descendant input routes
+		// through the overlay's absorber Border" probe on every platform.
+		public const string QuickSwitchPopupWorkTab = "DTAC.QuickSwitchPopup.WorkTab";
+		public const string SelectMarkerPopup = "DTAC.SelectMarkerPopup";
+		public const string SelectMarkerPopupCloseButton = "DTAC.SelectMarkerPopup.CloseButton";
+
+		// UI_TEST-only seams (bottom-left strip, below the title/time seams).
+		// The real anchors are MAUI custom controls that WinUI surfaces as
+		// non-control Panes Appium can't reliably tap, and #266 established
+		// that real-gesture popover E2E is fragile cross-platform — these
+		// invoke the exact production show/dismiss path so the Windows
+		// ToPlatform-crash regression stays covered on every platform.
+		public const string TestOpenQuickSwitchButton = "DTAC.TestOpenQuickSwitchButton";
+		public const string TestOpenMarkerPopupButton = "DTAC.TestOpenMarkerPopupButton";
+		public const string TestDismissPopupButton = "DTAC.TestDismissPopupButton";
 	}
 
 	/// <summary>

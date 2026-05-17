@@ -372,4 +372,130 @@ public class DTACViewHostPageObject : PageObject
 		}
 		return false;
 	}
+
+	// ---------- In-page popups (replaced TR.Maui.AnchorPopover, #273) ----------
+	//
+	// Open/dismiss go through UI_TEST seams that run the exact production
+	// ShowQuickSwitchPopupAsync / ShowSelectMarkerPopupAsync / DismissAsync
+	// path — the real anchors (AppBar title Label, timetable MarkerButton
+	// Border) are MAUI custom controls WinUI exposes as non-control Panes
+	// Appium can't reliably tap, and #266 found real-gesture popover E2E
+	// fragile cross-platform. Presence is probed by the popup root's
+	// AutomationId on iOS/Android/macOS and by the rendered visible text on
+	// Windows (where ContentView AutomationId surfaces as a non-control Pane),
+	// mirroring FindCustomControl's dual strategy.
+
+	public void OpenQuickSwitchPopupViaSeam()
+		=> FindByAutomationId(AutomationIds.DTAC.TestOpenQuickSwitchButton).Click();
+
+	public void OpenSelectMarkerPopupViaSeam()
+		=> FindByAutomationId(AutomationIds.DTAC.TestOpenMarkerPopupButton).Click();
+
+	public void DismissPopupViaSeam()
+		=> FindByAutomationId(AutomationIds.DTAC.TestDismissPopupButton).Click();
+
+	/// <summary>
+	/// Taps SelectMarkerPopup's real "Close" button (the production dismiss
+	/// affordance — exercised in addition to the seam so the popup's own
+	/// IPagePopupHost.DismissAsync wiring is covered end to end).
+	/// </summary>
+	public void TapSelectMarkerPopupClose()
+	{
+		if (IsWindows)
+			WaitForElementByVisibleText(TimeSpan.FromSeconds(15), "Close").Click();
+		else
+			FindByAutomationId(AutomationIds.DTAC.SelectMarkerPopupCloseButton).Click();
+	}
+
+	/// <summary>
+	/// Taps QuickSwitchPopup's "Work" tab — a plain TapGestureRecognizer on a
+	/// TabButtonSmall (no CollectionView, so not subject to this codebase's
+	/// documented iOS CollectionView-row-tap flakiness). Doubles as the
+	/// regression probe for the overlay's absorber Border: if the absorber
+	/// swallowed descendant input the tap would do nothing; if it failed to
+	/// stop bubbling, the tap would reach the scrim and dismiss the popup.
+	/// </summary>
+	public void TapQuickSwitchWorkTab()
+	{
+		if (IsWindows)
+			WaitForElementByVisibleText(TimeSpan.FromSeconds(15), "Work").Click();
+		else
+			FindByAutomationId(AutomationIds.DTAC.QuickSwitchPopupWorkTab).Click();
+	}
+
+	public bool IsQuickSwitchPopupShown(double timeoutSeconds = 5)
+		=> IsPopupPresent(AutomationIds.DTAC.QuickSwitchPopup, timeoutSeconds, "WorkGroup", "Work");
+
+	public bool IsQuickSwitchPopupGone(double timeoutSeconds = 5)
+		=> IsPopupGone(AutomationIds.DTAC.QuickSwitchPopup, timeoutSeconds, "WorkGroup", "Work");
+
+	public bool IsSelectMarkerPopupShown(double timeoutSeconds = 5)
+		=> IsPopupPresent(AutomationIds.DTAC.SelectMarkerPopup, timeoutSeconds, "Close");
+
+	public bool IsSelectMarkerPopupGone(double timeoutSeconds = 5)
+		=> IsPopupGone(AutomationIds.DTAC.SelectMarkerPopup, timeoutSeconds, "Close");
+
+	private bool IsPopupPresent(string automationId, double timeoutSeconds, params string[] windowsTextCandidates)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				if (TryFindVisiblePopup(automationId, windowsTextCandidates))
+					return true;
+				Thread.Sleep(150);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	private bool IsPopupGone(string automationId, double timeoutSeconds, params string[] windowsTextCandidates)
+	{
+		var prevWait = TimeSpan.FromSeconds(10);
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		try
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			while (DateTime.UtcNow < deadline)
+			{
+				if (!TryFindVisiblePopup(automationId, windowsTextCandidates))
+					return true;
+				Thread.Sleep(150);
+			}
+			return false;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
+	private bool TryFindVisiblePopup(string automationId, string[] windowsTextCandidates)
+	{
+		if (IsWindows && windowsTextCandidates.Length > 0)
+		{
+			string predicate = string.Join(" or ",
+				windowsTextCandidates.Select(t => $"@Name='{t}'"));
+			try
+			{
+				var els = Driver.FindElements(By.XPath($"//*[{predicate}]"));
+				return els.Count > 0 && IsElementUserVisible((AppiumElement)els[0]);
+			}
+			catch { return false; }
+		}
+
+		try
+		{
+			var els = Driver.FindElements(AutomationIdLocator(automationId));
+			return els.Count > 0 && IsElementUserVisible((AppiumElement)els[0]);
+		}
+		catch { return false; }
+	}
 }
