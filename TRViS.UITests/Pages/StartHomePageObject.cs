@@ -345,6 +345,15 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void SimulateWebSocketDisconnectForTesting() => TestSimulateWebSocketDisconnectButton.Click();
 
+	public AppiumElement TestSimulateWebSocketConnectedButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam (#266) that builds a WebSocket-TYPED loader
+	/// carrying real sample data, commits the first WG/Work and navigates to
+	/// DTAC — landing with the AppBar status indicator in the Connected state.
+	/// </summary>
+	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
+
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
 	/// constant in StartHomePage.xaml.cs so tests can look up the rendered

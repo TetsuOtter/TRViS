@@ -11,6 +11,23 @@ using TRViS.Utils;
 
 namespace TRViS.ViewModels;
 
+/// <summary>
+/// WebSocket サーバー接続の表示用ステータス (#266)。AppBar のステータス表示
+/// (緑丸 / 赤丸 / ぐるぐる) を駆動する。WebSocket 以外 / 未ロード時は
+/// <see cref="None"/> で表示自体を隠す。
+/// </summary>
+public enum ServerConnectionStatus
+{
+	/// <summary>WebSocket ローダーではない (ファイル等) / 未ロード -> 非表示。</summary>
+	None,
+	/// <summary>接続中 / 自動再接続試行中 -> ぐるぐる表示。</summary>
+	Connecting,
+	/// <summary>接続済み -> 緑丸。</summary>
+	Connected,
+	/// <summary>接続断 (再接続待ち / 再接続失敗) -> 赤丸。</summary>
+	Disconnected,
+}
+
 public partial class AppViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
@@ -54,6 +71,43 @@ public partial class AppViewModel : ObservableObject
 	/// </summary>
 	[ObservableProperty]
 	public partial bool IsServerConnectionLost { get; set; }
+
+	/// <summary>
+	/// WebSocket が接続断後、自動再接続を試行中か (#266)。サービスの
+	/// <see cref="WebSocketNetworkSyncService"/> 内部再接続ループ
+	/// (Reconnecting/Reconnected) を <see cref="NetworkSyncConnectionLostWatcher"/>
+	/// 経由で反映する。AppBar のぐるぐる表示を駆動するためだけの一時状態。
+	/// </summary>
+	[ObservableProperty]
+	public partial bool IsServerReconnecting { get; set; }
+
+	/// <summary>
+	/// AppBar のステータス表示 (#266) を駆動する派生プロパティ。
+	/// <see cref="Loader"/> / <see cref="IsServerConnectionLost"/> /
+	/// <see cref="IsServerReconnecting"/> から算出され、それらが変化したときに
+	/// PropertyChanged が発火する (各 On*Changed フック参照)。
+	/// 冷間起動で Loader が null の間は再接続フラグに関わらず必ず
+	/// <see cref="ServerConnectionStatus.None"/>。
+	/// </summary>
+	public ServerConnectionStatus ServerConnectionStatus
+	{
+		get
+		{
+			if (Loader is not WebSocketNetworkSyncService)
+				return ServerConnectionStatus.None;
+			if (IsServerReconnecting)
+				return ServerConnectionStatus.Connecting;
+			if (IsServerConnectionLost)
+				return ServerConnectionStatus.Disconnected;
+			return ServerConnectionStatus.Connected;
+		}
+	}
+
+	partial void OnIsServerConnectionLostChanged(bool value)
+		=> OnPropertyChanged(nameof(ServerConnectionStatus));
+
+	partial void OnIsServerReconnectingChanged(bool value)
+		=> OnPropertyChanged(nameof(ServerConnectionStatus));
 
 	/// <summary>
 	/// Raised after a server-driven load (HTTP / WebSocket TRViS.LocalServers
@@ -227,8 +281,12 @@ public partial class AppViewModel : ObservableObject
 		if (value is not WebSocketNetworkSyncService)
 		{
 			IsServerConnectionLost = false;
+			IsServerReconnecting = false;
 			ClearWebSocketConnectionTracking();
 		}
+
+		// Loader 型が変わると ServerConnectionStatus の None 判定が変わる (#266)。
+		OnPropertyChanged(nameof(ServerConnectionStatus));
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)

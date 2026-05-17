@@ -61,6 +61,8 @@ internal class FakeNetworkSyncService : NetworkSyncServiceBase
 
 	public new void RaiseConnectionClosed() => base.RaiseConnectionClosed();
 	public new void RaiseConnectionFailed() => base.RaiseConnectionFailed();
+	public new void RaiseReconnecting() => base.RaiseReconnecting();
+	public new void RaiseReconnected() => base.RaiseReconnected();
 
 	public int RequestDiagramInfoCallCount { get; private set; }
 	public string? LastRequestedDiagramId { get; private set; }
@@ -105,6 +107,8 @@ internal class FakeWebSocketNetworkSyncService : WebSocketNetworkSyncService
 
 	public new void RaiseConnectionClosed() => base.RaiseConnectionClosed();
 	public new void RaiseConnectionFailed() => base.RaiseConnectionFailed();
+	public new void RaiseReconnecting() => base.RaiseReconnecting();
+	public new void RaiseReconnected() => base.RaiseReconnected();
 }
 
 // =========================================================
