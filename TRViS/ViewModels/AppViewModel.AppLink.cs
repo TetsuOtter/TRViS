@@ -224,24 +224,7 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Error(ex, "OpenAppLinkAsync Failed");
-			if (appLinkInfo.ResourceUri?.HostNameType == UriHostNameType.IPv4
-				&& ex is TaskCanceledException
-				&& ex.InnerException is TimeoutException)
-			{
-				logger.Error(ex, "Timeout Error");
-				await Util.DisplayAlertAsync(
-					"接続できませんでした (Timeout)",
-					"接続先がパソコンの場合は、\n"
-					+ "接続先が同じネットワークに属しているか、\n"
-					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
-					+ "を確認してください。",
-					"OK"
-				);
-			}
-			else
-			{
-				await Util.DisplayAlertAsync("Cannot Open File", "OpenAppLinkAsync Failed\n" + ex.Message, "OK");
-			}
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 
@@ -392,25 +375,7 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Error(ex, "HandleWebSocketAppLinkAsync Failed");
-
-			if (appLinkInfo.ResourceUri.HostNameType == UriHostNameType.IPv4
-				&& ex is TaskCanceledException
-				&& ex.InnerException is TimeoutException)
-			{
-				logger.Error(ex, "Timeout Error");
-				await Util.DisplayAlertAsync(
-					"接続できませんでした (Timeout)",
-					"接続先がパソコンの場合は、\n"
-					+ "接続先が同じネットワークに属しているか、\n"
-					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
-					+ "を確認してください。",
-					"OK"
-				);
-			}
-			else
-			{
-				await Util.DisplayAlertAsync("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
-			}
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 	}

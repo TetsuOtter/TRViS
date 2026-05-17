@@ -1142,6 +1142,14 @@ public partial class StartHomePage : ContentPage
 	// for the documented iPhone layout-row-growth reason). Margin y = 312 sits
 	// directly below the SelectFile seam (which occupies y=[288,312]), keeping
 	// the seam column contiguous in the top-left corner.
+	//
+	// SEAM-COLUMN CEILING: y=336 is the bottom of the usable column. A further
+	// standalone seam at y=[336,360] was attempted in PR #271 and its tap was
+	// silently swallowed on iOS/Mac (element findable but hit-testing did not
+	// dispatch Clicked — overlapped by Start-mode content at that offset),
+	// while a 13th TestSeamHost row regresses Android and risks the iPhone
+	// hang above. If another seam is needed, rework the column (e.g. a
+	// horizontal second column / off-corner host) rather than extending down.
 	private void AddTestSimulateWebSocketDisconnectSeam()
 	{
 		var seam = new Button
