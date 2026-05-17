@@ -1170,8 +1170,17 @@ public partial class StartHomePage : ContentPage
 	// commits the first WG/Work and navigates to DTAC. On DTAC the AppBar status
 	// indicator is shown; status is Connected (Loader is WS, not lost, not
 	// reconnecting). The DTAC-side seams then drive it to Disconnected /
-	// Reconnecting. Margin y = 336 continues the seam column below the WS
-	// disconnect seam (y=[312,336]).
+	// Reconnecting.
+	//
+	// Placed in a PARALLEL second column (Margin left = 30), NOT stacked below
+	// the WS-disconnect seam: continuing the single column past y=312 rendered
+	// at y≈414 on iPhone, which is below the visible cutoff (XCUITest reports
+	// visible="false" → Appium's tap silently no-ops → handler never runs →
+	// test timed out waiting for DTAC). iPad (taller) showed it, so only
+	// ui-test-ios (iphone) failed. Re-using the WS-disconnect seam's
+	// proven-visible y (=312) in a 24px-clear second column keeps it tappable
+	// on every device. The first column is 24px wide at x≈base; left margin 30
+	// clears it.
 	private void AddTestSimulateWebSocketConnectedSeam()
 	{
 		var seam = new Button
@@ -1181,7 +1190,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(0, 336, 0, 0),
+			Margin = new Thickness(30, 312, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
