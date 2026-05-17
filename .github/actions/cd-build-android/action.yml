@@ -1,0 +1,107 @@
+name: CD - Build Android
+description: Build and sign the Android AAB/APK and upload artifacts.
+
+inputs:
+  display_version:
+    required: true
+  build_number:
+    required: true
+  AAB_PATH:
+    required: true
+  APK_PATH:
+    required: true
+  CSPROJ_PATH:
+    required: true
+  OUTPUT_DIR:
+    required: true
+  SDK_VERSION:
+    required: true
+  TARGET_FRAMEWORK_ANDROID:
+    required: true
+  THIRD_PARTY_LICENSE_INFO_DIR:
+    required: true
+  THIRD_PARTY_LICENSE_LIST_NAME:
+    required: true
+  GITHUB_TOKEN:
+    required: true
+  FIREBASE_ANDROID_JSON:
+    required: true
+  ANDROID_SIGNING_KEY_STORE:
+    required: true
+  ANDROID_SIGNING_KEY_ALIAS:
+    required: true
+  ANDROID_SIGNING_KEY_PASS:
+    required: true
+  ANDROID_SIGNING_KEY_STORE_PASS:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v6
+
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ inputs.SDK_VERSION }}
+    - name: Install dotnet workloads
+      shell: bash
+      run: dotnet workload install maui-android
+
+    - name: Install dependencies
+      shell: bash
+      run: dotnet restore ${{ inputs.CSPROJ_PATH }}
+
+    - name: Dump third-party license info
+      uses: ./.github/actions/dump-third-party-licenses
+      with:
+        platform: android
+        license-info-dir: ${{ inputs.THIRD_PARTY_LICENSE_INFO_DIR }}
+        license-list-name: ${{ inputs.THIRD_PARTY_LICENSE_LIST_NAME }}
+        github-token: ${{ inputs.GITHUB_TOKEN }}
+
+    - name: Add Google-services.json
+      shell: bash
+      env:
+        FIREBASE_ANDROID_JSON: ${{ inputs.FIREBASE_ANDROID_JSON }}
+      run: |
+        echo "$FIREBASE_ANDROID_JSON" > TRViS/Google-services.json
+        ls -l TRViS/Google-services.json
+
+    # ref: https://github.com/actions/runner-images/issues/8952#issuecomment-1886084791
+    - name: Install Android SDK Platform Tools
+      shell: bash
+      run: >
+        ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
+        --sdk_root="$ANDROID_SDK_ROOT"
+        "platform-tools"
+    - name: Create Android Signing Key
+      shell: bash
+      run: echo "${{ inputs.ANDROID_SIGNING_KEY_STORE }}" | base64 --decode > '${{ github.workspace }}/keystore.jks'
+    - name: Build
+      shell: bash
+      run: >
+        dotnet publish ${{ inputs.CSPROJ_PATH }}
+        -f ${{ inputs.TARGET_FRAMEWORK_ANDROID }}
+        -c Release
+        -o "${{ inputs.OUTPUT_DIR }}"
+        /p:ApplicationDisplayVersion=${{ inputs.display_version }}
+        /p:ApplicationVersion=${{ inputs.build_number }}
+        /p:AndroidKeyStore=true
+        /p:AndroidSigningKeyAlias='${{ inputs.ANDROID_SIGNING_KEY_ALIAS }}'
+        /p:AndroidSigningKeyPass='${{ inputs.ANDROID_SIGNING_KEY_PASS }}'
+        /p:AndroidSigningKeyStore='${{ github.workspace }}/keystore.jks'
+        /p:AndroidSigningStorePass='${{ inputs.ANDROID_SIGNING_KEY_STORE_PASS }}'
+
+    - name: Upload AAB
+      uses: actions/upload-artifact@v7
+      with:
+        name: aab
+        path: ${{ inputs.AAB_PATH }}
+        retention-days: 3
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v7
+      with:
+        name: apk
+        path: ${{ inputs.APK_PATH }}
+        retention-days: 3

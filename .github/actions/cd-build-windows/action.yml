@@ -1,0 +1,150 @@
+name: CD - Build Windows
+description: Build Windows x64/x86 (framework-dependent and self-contained) and upload artifacts.
+
+inputs:
+  display_version:
+    required: true
+  build_number:
+    required: true
+  ASSET_NAME_WIN_X64:
+    required: true
+  ASSET_NAME_WIN_X86:
+    required: true
+  ASSET_NAME_WIN_X64_SELF_CONTAINED:
+    required: true
+  ASSET_NAME_WIN_X86_SELF_CONTAINED:
+    required: true
+  CSPROJ_PATH:
+    required: true
+  OUTPUT_DIR:
+    required: true
+  SDK_VERSION:
+    required: true
+  TARGET_FRAMEWORK_WIN:
+    required: true
+  TARGET_RUNTIME_WINX64:
+    required: true
+  TARGET_RUNTIME_WINX86:
+    required: true
+  THIRD_PARTY_LICENSE_INFO_DIR:
+    required: true
+  THIRD_PARTY_LICENSE_LIST_NAME:
+    required: true
+  GITHUB_TOKEN:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v6
+
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ inputs.SDK_VERSION }}
+    - name: Install dotnet workloads
+      shell: pwsh
+      run: dotnet workload install maui-windows
+
+    - name: Install dependencies
+      shell: pwsh
+      run: dotnet restore ${{ inputs.CSPROJ_PATH }}
+
+    - name: Dump third-party license info
+      uses: ./.github/actions/dump-third-party-licenses
+      with:
+        platform: windows
+        license-info-dir: ${{ inputs.THIRD_PARTY_LICENSE_INFO_DIR }}
+        license-list-name: ${{ inputs.THIRD_PARTY_LICENSE_LIST_NAME }}
+        github-token: ${{ inputs.GITHUB_TOKEN }}
+
+    - name: Build x64
+      shell: pwsh
+      run: >
+        dotnet publish ${{ inputs.CSPROJ_PATH }}
+        -f ${{ inputs.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ inputs.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:RuntimeIdentifierOverride=${{ inputs.TARGET_RUNTIME_WINX64 }}
+        /p:ApplicationDisplayVersion=${{ inputs.display_version }}
+        /p:ApplicationVersion=${{ inputs.build_number }}
+
+    - name: Upload x64
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X64 }}
+        path: ${{ inputs.OUTPUT_DIR }}
+        retention-days: 3
+
+    - name: Clear Output Directory
+      shell: pwsh
+      run: Remove-Item -Recurse -Force -Path ${{ inputs.OUTPUT_DIR }}
+
+    - name: Build x64 Self Contained
+      shell: pwsh
+      run: >
+        dotnet publish ${{ inputs.CSPROJ_PATH }}
+        -f ${{ inputs.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ inputs.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:WindowsAppSDKSelfContained=true
+        --self-contained
+        /p:RuntimeIdentifierOverride=${{ inputs.TARGET_RUNTIME_WINX64 }}
+        /p:ApplicationDisplayVersion=${{ inputs.display_version }}
+        /p:ApplicationVersion=${{ inputs.build_number }}
+
+    - name: Upload x64 Self Contained
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+        path: ${{ inputs.OUTPUT_DIR }}
+        retention-days: 3
+
+    - name: Clear Output Directory
+      shell: pwsh
+      run: Remove-Item -Recurse -Force -Path ${{ inputs.OUTPUT_DIR }}
+
+    - name: Build x86
+      shell: pwsh
+      run: >
+        dotnet publish ${{ inputs.CSPROJ_PATH }}
+        -f ${{ inputs.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ inputs.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:RuntimeIdentifierOverride=${{ inputs.TARGET_RUNTIME_WINX86 }}
+        /p:ApplicationDisplayVersion=${{ inputs.display_version }}
+        /p:ApplicationVersion=${{ inputs.build_number }}
+
+    - name: Upload x86
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X86 }}
+        path: ${{ inputs.OUTPUT_DIR }}
+        retention-days: 3
+
+    - name: Clear Output Directory
+      shell: pwsh
+      run: Remove-Item -Recurse -Force -Path ${{ inputs.OUTPUT_DIR }}
+
+    - name: Build x86 Self Contained
+      shell: pwsh
+      run: >
+        dotnet publish ${{ inputs.CSPROJ_PATH }}
+        -f ${{ inputs.TARGET_FRAMEWORK_WIN }}
+        -c Release
+        -o "${{ inputs.OUTPUT_DIR }}"
+        /p:WindowsPackageType=None
+        /p:WindowsAppSDKSelfContained=true
+        --self-contained
+        /p:RuntimeIdentifierOverride=${{ inputs.TARGET_RUNTIME_WINX86 }}
+        /p:ApplicationDisplayVersion=${{ inputs.display_version }}
+        /p:ApplicationVersion=${{ inputs.build_number }}
+
+    - name: Upload x86 Self Contained
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+        path: ${{ inputs.OUTPUT_DIR }}
+        retention-days: 3
