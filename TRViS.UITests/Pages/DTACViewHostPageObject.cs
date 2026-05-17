@@ -385,14 +385,37 @@ public class DTACViewHostPageObject : PageObject
 	// Windows (where ContentView AutomationId surfaces as a non-control Pane),
 	// mirroring FindCustomControl's dual strategy.
 
-	public void OpenQuickSwitchPopupViaSeam()
-		=> WaitForElement(AutomationIds.DTAC.TestOpenQuickSwitchButton).Click();
-
-	public void OpenSelectMarkerPopupViaSeam()
-		=> WaitForElement(AutomationIds.DTAC.TestOpenMarkerPopupButton).Click();
-
 	public void DismissPopupViaSeam()
 		=> WaitForElement(AutomationIds.DTAC.TestDismissPopupButton).Click();
+
+	// Appium↔MAUI Button click dispatch is intermittently dropped on Android
+	// (this codebase already works around the same for the SelectFile seam):
+	// a single seam click occasionally no-ops, so the overlay never opens —
+	// run 25984214790's diagnostic showed DTAC.PopupScrim=0, 不明なエラー=0
+	// (no crash, the open just didn't take), while the identical path passed
+	// on run 25983883205. Re-click + re-poll a few times. ShowOverlayPopupAsync
+	// is re-entrant, so an extra click while already shown is harmless. Returns
+	// true once the popup is detected, false if every attempt failed.
+	public bool OpenQuickSwitchPopupReliably(int attempts = 4, double perAttemptSeconds = 8)
+		=> RetrySeam(AutomationIds.DTAC.TestOpenQuickSwitchButton, IsQuickSwitchPopupShown, attempts, perAttemptSeconds);
+
+	public bool OpenSelectMarkerPopupReliably(int attempts = 4, double perAttemptSeconds = 8)
+		=> RetrySeam(AutomationIds.DTAC.TestOpenMarkerPopupButton, IsSelectMarkerPopupShown, attempts, perAttemptSeconds);
+
+	public bool DismissQuickSwitchReliably(int attempts = 4, double perAttemptSeconds = 6)
+		=> RetrySeam(AutomationIds.DTAC.TestDismissPopupButton, IsQuickSwitchPopupGone, attempts, perAttemptSeconds);
+
+	private bool RetrySeam(string seamAutomationId, Func<double, bool> condition, int attempts, double perAttemptSeconds)
+	{
+		for (int i = 0; i < attempts; i++)
+		{
+			try { WaitForElement(seamAutomationId).Click(); }
+			catch { /* seam not hit this attempt — re-poll then retry */ }
+			if (condition(perAttemptSeconds))
+				return true;
+		}
+		return false;
+	}
 
 	/// <summary>
 	/// Best-effort popup dismissal for fixture TearDown: the overlay is a
@@ -408,19 +431,25 @@ public class DTACViewHostPageObject : PageObject
 
 	/// <summary>
 	/// Taps SelectMarkerPopup's real "Close" button (the production dismiss
-	/// affordance — exercised in addition to the seam so the popup's own
-	/// IPagePopupHost.DismissAsync wiring is covered end to end).
-	///
-	/// Resolved by AutomationId on every platform: it is a plain MAUI Button,
-	/// which WinUI surfaces with a reachable AccessibilityId (same as
-	/// ConnectServer.CloseButton). A Windows visible-text fallback must NOT be
-	/// used here — "Close" also matches the WinUI window title-bar Close (X)
-	/// button, and clicking that closes the whole app (run 25983087525:
-	/// it killed the Appium session and cascaded NoSuchWindowException into
-	/// every later test).
+	/// path: OnCloseButtonClicked -> IPagePopupHost.DismissAsync) and confirms
+	/// the popup is gone, retrying for the same Android Appium click-drop reason
+	/// as the seams. The Close button is a plain MAUI Button resolved by
+	/// AutomationId on every platform (WinUI exposes a reachable
+	/// AccessibilityId, like ConnectServer.CloseButton); a "Close" visible-text
+	/// lookup must NOT be used — it matches the WinUI title-bar Close (X)
+	/// button, which closed the whole app in run 25983087525.
 	/// </summary>
-	public void TapSelectMarkerPopupClose()
-		=> WaitForElement(AutomationIds.DTAC.SelectMarkerPopupCloseButton).Click();
+	public bool DismissSelectMarkerViaCloseReliably(int attempts = 4, double perAttemptSeconds = 6)
+	{
+		for (int i = 0; i < attempts; i++)
+		{
+			try { WaitForElement(AutomationIds.DTAC.SelectMarkerPopupCloseButton).Click(); }
+			catch { /* button gone (already dismissed) or not hit — re-check */ }
+			if (IsSelectMarkerPopupGone(perAttemptSeconds))
+				return true;
+		}
+		return false;
+	}
 
 	/// <summary>
 	/// Taps QuickSwitchPopup's "Work" tab — a plain TapGestureRecognizer on a

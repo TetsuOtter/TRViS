@@ -102,8 +102,11 @@ public class DTACPopupTests : BaseUITest
 	{
 		var dtac = OpenDTAC();
 
-		dtac.OpenQuickSwitchPopupViaSeam();
-		AssertPopupShown(dtac.IsQuickSwitchPopupShown(), dtac, "QuickSwitchPopup",
+		// Retry the open seam: Android intermittently drops the Appium Button
+		// click so the overlay never opens (run 25984214790 diagnostic:
+		// PopupScrim=0, 不明なエラー=0 — no crash, the click just didn't take;
+		// the identical path passed on run 25983883205).
+		AssertPopupShown(dtac.OpenQuickSwitchPopupReliably(), dtac, "QuickSwitchPopup",
 			"QuickSwitchPopup must appear after the open seam fires. On Windows the "
 			+ "old AnchorPopover.ShowAsync threw MissingMethodException here and "
 			+ "crashed the app into the fatal error modal (#273).");
@@ -126,9 +129,9 @@ public class DTACPopupTests : BaseUITest
 
 		// Dismiss via the seam (DismissAsync) — tap-outside on the scrim isn't
 		// reliably reproducible cross-platform; the regression is the crash, not
-		// the gesture (#266 rationale).
-		dtac.DismissPopupViaSeam();
-		Assert.That(dtac.IsQuickSwitchPopupGone(), Is.True,
+		// the gesture (#266 rationale). Retried for the same Android click-drop
+		// reason as the open.
+		Assert.That(dtac.DismissQuickSwitchReliably(), Is.True,
 			"QuickSwitchPopup must be gone after DismissAsync.");
 		Assert.That(dtac.IsDisplayed(), Is.True,
 			"DTAC must remain displayed (no crash) after dismissing the popup.");
@@ -139,8 +142,8 @@ public class DTACPopupTests : BaseUITest
 	{
 		var dtac = OpenDTAC();
 
-		dtac.OpenSelectMarkerPopupViaSeam();
-		AssertPopupShown(dtac.IsSelectMarkerPopupShown(), dtac, "SelectMarkerPopup",
+		// Retry the open seam (same Android click-drop reason as QuickSwitch).
+		AssertPopupShown(dtac.OpenSelectMarkerPopupReliably(), dtac, "SelectMarkerPopup",
 			"SelectMarkerPopup must appear after the open seam fires. On Windows the "
 			+ "old AnchorPopover.ShowAsync threw MissingMethodException here and "
 			+ "crashed the app into the fatal error modal (#273).");
@@ -149,9 +152,8 @@ public class DTACPopupTests : BaseUITest
 
 		// Dismiss via the popup's own "Close" button — exercises
 		// SelectMarkerPopup.OnCloseButtonClicked -> IPagePopupHost.DismissAsync,
-		// the real production interaction.
-		dtac.TapSelectMarkerPopupClose();
-		Assert.That(dtac.IsSelectMarkerPopupGone(), Is.True,
+		// the real production interaction (retried for Android click-drop).
+		Assert.That(dtac.DismissSelectMarkerViaCloseReliably(), Is.True,
 			"SelectMarkerPopup must be gone after tapping its Close button.");
 		Assert.That(dtac.IsDisplayed(), Is.True,
 			"DTAC must remain displayed (no crash) after dismissing the popup.");
