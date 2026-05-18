@@ -14,7 +14,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
-	Color _ShellBackgroundColor = Colors.Black;
+	Color _ShellBackgroundColor = Color.FromRgb(0x55, 0x88, 0x33);
 	public Color ShellBackgroundColor
 	{
 		// コード生成するとCompiled Bindingが上手く働かないため、手書き。

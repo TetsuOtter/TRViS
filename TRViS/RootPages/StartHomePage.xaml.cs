@@ -1061,6 +1061,13 @@ public partial class StartHomePage : ContentPage
 		for (int i = 0; i < 12; i++)
 			host.RowDefinitions.Add(new RowDefinition { Height = 24 });
 		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
+		// Second 24px column for the screenshot-regression seams. A second
+		// COLUMN (not extra rows) keeps these buttons inside the proven-visible
+		// top-left y=[0,72] band — the documented seam-column ceiling (y=336)
+		// and the iPhone XAML-row-growth hang both only bite when the single
+		// column is extended DOWNWARD; widening it sideways into the still-empty
+		// top-left corner is safe on every device.
+		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
 		Grid.SetRow(host, 0);
 
 		// AutomationIds are part of the contract with TRViS.UITests/AutomationIds.cs.
@@ -1083,6 +1090,17 @@ public partial class StartHomePage : ContentPage
 		// share a single Appium session and need each test to start from a
 		// "no loader" state.
 		AddSeamButton(host, 11, "StartHome.TestClearLoaderButton", TestClearLoaderButton_Clicked);
+
+		// Screenshot-regression determinism seams, placed in the second 24px
+		// column (rows 0..2) so they never collide with the row-indexed seams
+		// above. TestFreezeClockButton pins AppTimeProvider to 09:41:00 (Apple
+		// marketing time) so the DTAC AppBar's live HH:mm:ss clock is
+		// pixel-stable; the two theme buttons force app-wide Light / Dark so a
+		// single Appium session can capture both palettes deterministically
+		// without depending on the simulator's system appearance.
+		AddSeamButton(host, 0, 1, "StartHome.TestFreezeClockButton", TestFreezeClockButton_Clicked);
+		AddSeamButton(host, 1, 1, "StartHome.TestForceLightThemeButton", TestForceLightThemeButton_Clicked);
+		AddSeamButton(host, 2, 1, "StartHome.TestForceDarkThemeButton", TestForceDarkThemeButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1356,6 +1374,9 @@ public partial class StartHomePage : ContentPage
 	}
 
 	static void AddSeamButton(Grid host, int row, string automationId, EventHandler clicked)
+		=> AddSeamButton(host, row, 0, automationId, clicked);
+
+	static void AddSeamButton(Grid host, int row, int column, string automationId, EventHandler clicked)
 	{
 		var button = new Button
 		{
@@ -1367,6 +1388,7 @@ public partial class StartHomePage : ContentPage
 		};
 		button.Clicked += clicked;
 		Grid.SetRow(button, row);
+		Grid.SetColumn(button, column);
 		host.Children.Add(button);
 	}
 
@@ -1644,6 +1666,31 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestClearLoaderButton failed");
 		}
+	}
+
+	void TestFreezeClockButton_Clicked(object? sender, EventArgs e)
+	{
+		// 09:41:00 = Apple's marketing time (9*3600 + 41*60 = 34860s since
+		// midnight). Pinning AppTimeProvider here makes the DTAC AppBar's live
+		// HH:mm:ss clock pixel-deterministic for screenshot baselines. The
+		// LocationService 100 ms poll converges the visible label within one
+		// tick because the frozen value differs from the last-raised real value.
+		logger.Info("TestFreezeClockButton clicked: freezing AppTimeProvider at 09:41:00");
+		AppTimeProvider.UiTestFrozenSeconds = 34860;
+	}
+
+	void TestForceLightThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestForceLightThemeButton clicked: forcing app-wide Light theme");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Light;
+	}
+
+	void TestForceDarkThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestForceDarkThemeButton clicked: forcing app-wide Dark theme");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Dark;
 	}
 
 	void TestOpenSelectFileDialogButton_Clicked(object? sender, EventArgs e)
