@@ -7,12 +7,17 @@ drift larger than the tolerance fails the build.
 ## Layout
 
 ```
-Screenshots/<deviceClass>/<theme>/<screen>.png
+Screenshots/<deviceClass>/<theme>/<lang>/<screen>.png
 ```
 
 * `deviceClass` — `iphone` (iPhone 16) · `ipad-mini-a17` (iPad mini A17 Pro)
   · `ipad-mini-5` (review-only, **not** part of the pixel gate).
 * `theme` — `light` · `dark`.
+* `lang` — `ja` · `en`. The app UI is multi-language (#40); every screen
+  is captured in both so a localization regression in either is gated.
+  Both `iphone` and `ipad-mini-a17` carry the full ja+en set, so the
+  pixel gate covers 2 devices × 2 themes × 2 langs × 10 screens = 80
+  baselines.
 * `screen` — `startHome-start`, `privacyPolicy`, `connectServer`,
   `selectFile`, `thirdPartyLicenses`, `startHome-home`, `dtac-timetable`,
   `dtac-hako`, `horizontalTimetable`, `settings`.
@@ -52,6 +57,14 @@ compile-time seams in the app plus a simulator override:
   09:41:00 so every time-of-day label is fixed.
 * **Theme** — `TestForceLight/DarkThemeButton` forces the requested
   light/dark theme regardless of the simulator's system setting.
+* **Language** — `TestSetLanguage{English,Japanese}Button` (the #40 seam,
+  reused — *not* a parallel one) pins the app-wide UI language through the
+  same ViewModel path the Settings picker uses, so every
+  `{loc:Translate}`-bound caption resolves to a fixed string instead of
+  following the CI device locale. The fixture also re-pins to Japanese
+  after each case (and best-effort in TearDown): it runs at `Order(3)`,
+  far ahead of the fixtures that assert hard-coded Japanese UI text, so an
+  `en` case must not leak into the shared session.
 * **Log file path** — the Settings (EasterEgg) page's *Log File Path* card
   normally prints an absolute path embedding the simulator's Device UUID
   *and* the app's per-install GUID, both of which differ on every runner.

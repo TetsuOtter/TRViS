@@ -6,9 +6,9 @@ namespace TRViS.UITests.Tests;
 /// <summary>
 /// Screenshot-regression gate + Apple-review capture pass.
 ///
-/// Walks every reachable screen of the app in Light then Dark and diffs
-/// each frame against a committed baseline
-/// (<c>TRViS.UITests/Screenshots/&lt;deviceClass&gt;/&lt;theme&gt;/&lt;screen&gt;.png</c>).
+/// Walks every reachable screen of the app in Light then Dark, in Japanese
+/// then English, and diffs each frame against a committed baseline
+/// (<c>TRViS.UITests/Screenshots/&lt;deviceClass&gt;/&lt;theme&gt;/&lt;lang&gt;/&lt;screen&gt;.png</c>).
 /// The same run also writes every frame as a test attachment so the images
 /// can be reviewed against Apple's HIG / App Review Guidelines straight
 /// from the CI artifacts.
@@ -20,6 +20,10 @@ namespace TRViS.UITests.Tests;
 ///    <c>...ForceDarkThemeButton</c> force the app-wide theme so a single
 ///    shared Appium session captures both palettes regardless of the
 ///    simulator's system appearance.
+///  * <c>StartHome.TestSetLanguageEnglishButton</c> /
+///    <c>...JapaneseButton</c> (the #40 seam, reused) pin the app-wide UI
+///    language so the <c>{loc:Translate}</c>-bound captions render a fixed
+///    string instead of resolving against the CI device locale.
 ///  * <c>run-ui-tests.sh</c> applies <c>xcrun simctl status_bar override</c>
 ///    (time 9:41, full battery, wifi) before the session so the iOS status
 ///    bar in the screenshot is constant.
@@ -92,54 +96,67 @@ public class ScreenshotRegressionTests : BaseUITest
 		_start.AcceptPrivacyPolicyIfNeeded();
 	}
 
-	[TestCase("light")]
-	[TestCase("dark")]
-	public void CaptureAndDiffAllScreens(string theme)
+	// Explicit theme×language combinatorics (not [Values] cross-product) so
+	// the case names — and the baseline directory each writes — are obvious
+	// from the source. All three seams are app-wide and idempotent in the
+	// shared session, so the cases are order-independent: each sets its own
+	// clock/language/theme at the top and does not depend on the prior case.
+	[TestCase("light", "ja")]
+	[TestCase("light", "en")]
+	[TestCase("dark", "ja")]
+	[TestCase("dark", "en")]
+	public void CaptureAndDiffAllScreens(string theme, string lang)
 	{
 		bool dark = theme == "dark";
 		var failures = new List<string>();
 
-		// Pin clock + force theme on StartHome before navigating anywhere;
-		// both are app-wide and persist across navigation for the rest of
-		// the walk.
+		// Pin clock + language + theme on StartHome before navigating
+		// anywhere; all three are app-wide and persist across navigation for
+		// the rest of the walk.
 		_start.FreezeClockForTesting();
+		if (lang == "en")
+			_start.SetLanguageEnglishForTesting();
+		else
+			_start.SetLanguageJapaneseForTesting();
 		_start.ForceThemeForTesting(dark);
-		// Theme flip repaints the whole visual tree — give it a beat.
-		Thread.Sleep(900);
+		// A language switch rebinds every {loc:Translate} caption and a theme
+		// flip repaints the whole visual tree — give both a generous beat
+		// before the first capture.
+		Thread.Sleep(1200);
 
 		// 1. StartHome — Start mode (no loader).
-		Capture("startHome-start", theme, failures);
+		Capture("startHome-start", theme, lang, failures);
 
 		// 2. Privacy-policy dialog (footer link → read-only dialog, since
 		//    AppLaunchTests already accepted the first-launch reconfirm).
 		_start.OpenPrivacyPolicyDialog();
 		Settle();
-		Capture("privacyPolicy", theme, failures);
+		Capture("privacyPolicy", theme, lang, failures);
 		_start.ClosePrivacyPolicyDialog();
 
 		// 3. Connect-to-server dialog.
 		var connect = _start.OpenConnectServerDialog();
 		Settle();
-		Capture("connectServer", theme, failures);
+		Capture("connectServer", theme, lang, failures);
 		connect.Close();
 
 		// 4. Select-file dialog.
 		var selectFile = _start.OpenSelectFileDialog();
 		Settle();
-		Capture("selectFile", theme, failures);
+		Capture("selectFile", theme, lang, failures);
 		selectFile.Close();
 
 		// 5. Third-party licenses (modal page).
 		var tpl = _start.OpenThirdPartyLicenses();
 		Settle();
-		Capture("thirdPartyLicenses", theme, failures);
+		Capture("thirdPartyLicenses", theme, lang, failures);
 		tpl.CloseModal();
 
 		// 6. StartHome — Home mode (sample data loaded, work-group list).
 		_start.LoadSample();
 		_start.WaitForElement(AutomationIds.StartHome.WorkGroupList);
 		Settle();
-		Capture("startHome-home", theme, failures);
+		Capture("startHome-home", theme, lang, failures);
 
 		// 7-9. DTAC. Use the horizontal-timetable seam so the same flow
 		//       also surfaces the 横型時刻表 button for the next screen; it
@@ -154,11 +171,11 @@ public class ScreenshotRegressionTests : BaseUITest
 		var dtac = _start.SeedHorizontalTimetableAndOpenForTesting();
 		dtac.SwitchToTimetableTab();
 		Settle();
-		Capture("dtac-timetable", theme, failures);
+		Capture("dtac-timetable", theme, lang, failures);
 
 		dtac.TabHako.Click();
 		Thread.Sleep(500);
-		Capture("dtac-hako", theme, failures);
+		Capture("dtac-hako", theme, lang, failures);
 
 		// 10. Horizontal (E-train) timetable page.
 		dtac.SwitchToTimetableTab();
@@ -169,7 +186,7 @@ public class ScreenshotRegressionTests : BaseUITest
 			ht.WaitForElement(AutomationIds.HorizontalTimetable.WebView, TimeSpan.FromSeconds(30));
 			// WebView first-paint is slower than a native page swap.
 			Thread.Sleep(1500);
-			Capture("horizontalTimetable", theme, failures);
+			Capture("horizontalTimetable", theme, lang, failures);
 			// HorizontalTimetable is a Shell-pushed page, not a flyout root:
 			// the Shell flyout is unreachable here, so NavigateToSettings'
 			// OpenFlyout would silently no-op (the iOS edge-drag does nothing)
@@ -203,14 +220,22 @@ public class ScreenshotRegressionTests : BaseUITest
 		//     flyout-aware (OpenFlyout's first probe is DTAC.MenuButton).
 		_shell.NavigateToSettings();
 		Settle();
-		Capture("settings", theme, failures);
+		Capture("settings", theme, lang, failures);
 
 		// Leave the app recoverable for the next test case's SetUp.
 		_shell.NavigateToHome();
 
+		// Happy-path language reset: this fixture runs at Order(3) — very
+		// early — so dozens of later fixtures in the assembly-shared iOS
+		// session would otherwise inherit English from an "en" case (some
+		// assert hard-coded Japanese captions). Pin back to the app default
+		// here on StartHome (seam reachable) for both update and diff modes;
+		// TearDown carries a best-effort net for the failure path.
+		_start.SetLanguageJapaneseForTesting();
+
 		if (_updateMode)
 		{
-			TestContext.Out.WriteLine($"[{theme}] baseline update complete.");
+			TestContext.Out.WriteLine($"[{theme}/{lang}] baseline update complete.");
 			return;
 		}
 
@@ -223,8 +248,29 @@ public class ScreenshotRegressionTests : BaseUITest
 		}
 
 		Assert.That(failures, Is.Empty,
-			$"[{_deviceClass}/{theme}] {failures.Count} screen(s) differ from baseline:\n  "
+			$"[{_deviceClass}/{theme}/{lang}] {failures.Count} screen(s) differ from baseline:\n  "
 			+ string.Join("\n  ", failures));
+	}
+
+	// Failure-path safety net for the Order(3) language leak described at the
+	// happy-path reset above: if a case throws after switching to English
+	// (before reaching the in-body reset), pin the language back to Japanese
+	// so a later fixture cannot inherit it. Best-effort and after
+	// base.TearDown() so the real failure's screenshot / page-source dump is
+	// captured first and a recovery-tap exception never masks the result.
+	public override void TearDown()
+	{
+		base.TearDown();
+
+		try
+		{
+			_start?.SetLanguageJapaneseForTesting();
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine(
+				$"[ScreenshotRegression] TearDown language reset skipped: {ex.Message}");
+		}
 	}
 
 	// Per-screen settle for native page/modal swaps. Animations (modal
@@ -232,14 +278,14 @@ public class ScreenshotRegressionTests : BaseUITest
 	// tolerance absorbs any residual jitter.
 	private static void Settle() => Thread.Sleep(700);
 
-	private void Capture(string screen, string theme, List<string> failures)
+	private void Capture(string screen, string theme, string lang, List<string> failures)
 	{
 		byte[] png = Driver.GetScreenshot().AsByteArray;
 
 		string baseline = Path.Combine(
-			ScreenshotsRoot(), _deviceClass, theme, screen + ".png");
+			ScreenshotsRoot(), _deviceClass, theme, lang, screen + ".png");
 		string artifactDir = TestContext.CurrentContext.WorkDirectory;
-		string artifactName = $"{_deviceClass}_{theme}_{screen}";
+		string artifactName = $"{_deviceClass}_{theme}_{lang}_{screen}";
 
 		// Always persist + attach the frame (pass or fail) so the
 		// Apple-guideline review has every screen from the CI artifacts.
