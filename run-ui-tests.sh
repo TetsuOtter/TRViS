@@ -48,11 +48,17 @@ if [[ "$PLATFORM" == "device" && -n "${2:-}" && "${2}" != --* ]]; then
   DEVICE_UDID_OVERRIDE="$2"
 fi
 
+# Optional VSTest filter expression passed straight to `dotnet test
+# --filter` (e.g. "FullyQualifiedName~ScreenshotRegressionTests" to run
+# only the screenshot-regression fixture for a baseline refresh).
+TEST_FILTER=""
+
 for arg in "$@"; do
   case "$arg" in
     --skip-build)   SKIP_BUILD=true ;;
     --skip-install) SKIP_INSTALL=true ;;
     --device-class=*) DEVICE_CLASS="${arg#*=}" ;;
+    --filter=*)     TEST_FILTER="${arg#*=}" ;;
   esac
 done
 
@@ -379,6 +385,31 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
     xcrun simctl list devices | grep -A2 -B2 "$DEVICE_ID" || true
     die "Simulator $DEVICE_ID failed to boot within 20 minutes (state: $SIM_STATE)"
   fi
+
+  # ── Freeze the iOS status bar for screenshot regression ──────────
+  # ScreenshotRegressionTests captures Driver.GetScreenshot(), which on
+  # iOS includes the device status bar. Without an override the clock /
+  # battery / signal pixels change every run and every baseline diff
+  # fails. Pin them to Apple's marketing values (time 9:41, full battery,
+  # full wifi). Applied once after boot and before the first Appium
+  # session — the override sticks until the simulator shuts down, so it
+  # does not need re-applying per test. Best-effort: a failure here only
+  # affects the screenshot fixture, not the functional suite.
+  log "Applying status-bar override (time 9:41, full battery/wifi)..."
+  # Plain "9:41" (Apple marketing time). An ISO string with a timezone
+  # offset is rejected by simctl on Xcode 26 ("Invalid, non-ISO
+  # date/time string"); the bare HH:MM form is what reliably sets the
+  # status-bar clock without also trying to set the device date.
+  xcrun simctl status_bar "$DEVICE_ID" override \
+    --time "9:41" \
+    --dataNetwork wifi \
+    --wifiMode active \
+    --wifiBars 3 \
+    --cellularMode active \
+    --cellularBars 4 \
+    --batteryState charged \
+    --batteryLevel 100 \
+    || log "WARN: status_bar override failed (screenshot baselines may be flaky)."
 fi
 
 # ── Pre-install iOS app on simulator ───────────────────────────
@@ -487,6 +518,25 @@ else
 fi
 
 # ── Start Appium server ─────────────────────────────────────────
+# A previous run that died uncleanly can leave an orphaned Appium holding
+# port 4723. The fresh `appium &` below would then fail with EADDRINUSE,
+# but the readiness probe would still pass (it talks to the zombie), and
+# the zombie gets SIGTERM'd mid-test → "session is either terminated or
+# not started" failures. Free the port before binding.
+APPIUM_PORT="${APPIUM_URL##*:}"
+STALE_APPIUM_PIDS="$(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null || true)"
+if [[ -n "$STALE_APPIUM_PIDS" ]]; then
+  log "Port $APPIUM_PORT busy (PIDs: $(echo "$STALE_APPIUM_PIDS" | tr '\n' ' ')) — killing stale Appium..."
+  # shellcheck disable=SC2086
+  kill $STALE_APPIUM_PIDS 2>/dev/null || true
+  for _ in {1..10}; do
+    lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN >/dev/null 2>&1 || break
+    sleep 1
+  done
+  # shellcheck disable=SC2046
+  kill -9 $(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null) 2>/dev/null || true
+fi
+
 log "Starting Appium server..."
 appium &
 APPIUM_PID=$!
@@ -521,10 +571,19 @@ DOTNET_TEST_ARGS=(
   "$UITESTS_CSPROJ_PATH"
   --configuration Debug
   --logger "trx;LogFileName=$LOG_FILE"
+)
+if [[ -n "$TEST_FILTER" ]]; then
+  log "Applying test filter: $TEST_FILTER"
+  DOTNET_TEST_ARGS+=(--filter "$TEST_FILTER")
+fi
+DOTNET_TEST_ARGS+=(
   --
   "TestRunParameters.Parameter(name=\"platform\",value=\"$PLATFORM_VALUE\")"
   "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")"
   "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"$APPIUM_URL\")"
+  # Selects the screenshot-regression baseline directory
+  # (TRViS.UITests/Screenshots/<deviceClass>/...) and the pixel-diff gate.
+  "TestRunParameters.Parameter(name=\"deviceClass\",value=\"$DEVICE_CLASS\")"
 )
 if [[ -n "${DEVICE_ID:-}" ]]; then
   DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")

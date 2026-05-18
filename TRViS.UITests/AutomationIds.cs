@@ -132,6 +132,16 @@ public static class AutomationIds
 		// tree). The seam handler routes to OnSelectFileClicked so the test
 		// still exercises Navigation.PushModalAsync(SelectFileDialog).
 		public const string TestOpenSelectFileDialogButton = "StartHome.TestOpenSelectFileDialogButton";
+
+		// Screenshot-regression determinism seams. TestFreezeClockButton pins
+		// AppTimeProvider at 09:41:00 (Apple marketing time) so the DTAC
+		// AppBar's live HH:mm:ss clock is pixel-stable across baseline
+		// captures. The two theme buttons force app-wide Light / Dark so a
+		// single shared Appium session can capture both palettes without
+		// depending on the simulator's system appearance.
+		public const string TestFreezeClockButton = "StartHome.TestFreezeClockButton";
+		public const string TestForceLightThemeButton = "StartHome.TestForceLightThemeButton";
+		public const string TestForceDarkThemeButton = "StartHome.TestForceDarkThemeButton";
 	}
 
 	public static class PrivacyDialog
