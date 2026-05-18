@@ -44,5 +44,18 @@
 	<string>Copyright (c) 2023 Tetsu Otter</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
+	<!-- Surfaces the per-app language entry (System Settings > General >
+	     Language & Region > Applications). The app localizes via .NET
+	     satellite assemblies, so declaring the localizations is the
+	     supported way to expose it. AppLanguage.System follows it. -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ja</string>
+	</array>
+	<key>CFBundleAllowMixedLocalizations</key>
+	<true/>
 </dict>
 </plist>

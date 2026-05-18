@@ -3,9 +3,10 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS"
+	xmlns:loc="clr-namespace:TRViS.Localization"
 	x:Class="TRViS.RootPages.ConnectServerDialog"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
-	Title="サーバーから読み込み">
+	Title="{loc:Translate ConnectServer_Title}">
 	<ContentPage.Resources>
 		<ResourceDictionary>
 			<Style x:Key="HistoryCard"
@@ -43,7 +44,7 @@
 				FontAttributes="Bold"
 				VerticalOptions="Center"
 				TextColor="{x:Static local:RootStyles.TableTextColor}"
-				Text="サーバーから読み込み"/>
+				Text="{loc:Translate ConnectServer_Title}"/>
 			<Button
 				x:Name="CloseButton"
 				AutomationId="ConnectServer.CloseButton"
@@ -70,7 +71,7 @@
 				Margin="8,4"
 				FontSize="14"
 				TextColor="{x:Static local:RootStyles.TableTextColor}"
-				Text="履歴から選択するか、新しいURLを入力してください。"/>
+				Text="{loc:Translate ConnectServer_HistoryHint}"/>
 			<ScrollView
 				AutomationId="ConnectServer.HistoryList"
 				Grid.Row="1"
@@ -108,7 +109,7 @@
 				x:Name="BackToHistoryButton"
 				AutomationId="ConnectServer.BackToHistoryButton"
 				Grid.Row="0"
-				Text="履歴に戻る"
+				Text="{loc:Translate ConnectServer_BackToHistory}"
 				ContentLayout="Left,4"
 				HorizontalOptions="Start"
 				BackgroundColor="Transparent"
@@ -128,7 +129,7 @@
 
 			<VerticalStackLayout Grid.Row="1" Spacing="4">
 				<Label
-					Text="URL"
+					Text="{loc:Translate ConnectServer_UrlLabel}"
 					FontAttributes="Bold"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"/>
 				<Entry
@@ -148,7 +149,7 @@
 					FontSize="12"
 					LineBreakMode="WordWrap"
 					TextColor="{x:Static local:RootStyles.TableDetailColor}"
-					Text="時刻表ファイル (.json / .sqlite) のURL、または&#xa;リアルタイム配信サーバー (ws:// / wss://) のURLを指定できます。"/>
+					Text="{loc:Translate ConnectServer_UrlHint}"/>
 			</VerticalStackLayout>
 
 			<!-- Save-connection toggle -->
@@ -158,13 +159,13 @@
 				ColumnSpacing="8">
 				<VerticalStackLayout Grid.Column="0">
 					<Label
-						Text="URLを履歴に残す"
+						Text="{loc:Translate ConnectServer_SaveUrlLabel}"
 						FontAttributes="Bold"
 						TextColor="{x:Static local:RootStyles.TableTextColor}"/>
 					<Label
 						FontSize="12"
 						TextColor="{x:Static local:RootStyles.TableDetailColor}"
-						Text="OFFにすると、今回限りの読み込みとして履歴には残しません。"/>
+						Text="{loc:Translate ConnectServer_SaveUrlHint}"/>
 				</VerticalStackLayout>
 				<Switch
 					x:Name="SaveConnectionSwitch"
@@ -179,7 +180,7 @@
 				x:Name="ConnectButton"
 				AutomationId="ConnectServer.ConnectButton"
 				Grid.Row="3"
-				Text="読み込む"
+				Text="{loc:Translate ConnectServer_Connect}"
 				HeightRequest="56"
 				CornerRadius="8"
 				FontAttributes="Bold"
@@ -202,7 +203,7 @@
 			x:Name="NewConnectionButton"
 			AutomationId="ConnectServer.NewConnectionButton"
 			Grid.Row="2"
-			Text="新規接続"
+			Text="{loc:Translate ConnectServer_NewConnection}"
 			ContentLayout="Left,6"
 			HeightRequest="48"
 			CornerRadius="8"

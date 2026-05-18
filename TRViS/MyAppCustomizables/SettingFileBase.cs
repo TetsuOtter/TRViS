@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using TRViS.Localization;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -72,6 +73,11 @@ public partial class SettingFileStructure
 	/// </summary>
 	public PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;
 
+	/// <summary>
+	/// UIの表示言語 (System の場合は端末の言語設定に従う)
+	/// </summary>
+	public AppLanguage AppLanguage { get; set; } = AppLanguage.System;
+
 	public override string ToString()
 	{
 		return
@@ -84,7 +90,8 @@ public partial class SettingFileStructure
 			+ $"KeepScreenOnWhenRunning: {KeepScreenOnWhenRunning},"
 			+ $"TimeProgressionRate: {TimeProgressionRate},"
 			+ $"HorizontalTimetableButtonLabel: {HorizontalTimetableButtonLabel},"
-			+ $"PdfJsRenderEngine: {PdfJsRenderEngine}"
+			+ $"PdfJsRenderEngine: {PdfJsRenderEngine},"
+			+ $"AppLanguage: {AppLanguage}"
 		;
 	}
 
@@ -104,6 +111,7 @@ public partial class SettingFileStructure
 			&& TimeProgressionRate.Equals(v.TimeProgressionRate)
 			&& HorizontalTimetableButtonLabel.Equals(v.HorizontalTimetableButtonLabel)
 			&& PdfJsRenderEngine.Equals(v.PdfJsRenderEngine)
+			&& AppLanguage.Equals(v.AppLanguage)
 		;
 	}
 
@@ -111,7 +119,7 @@ public partial class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, HorizontalTimetableButtonLabel, PdfJsRenderEngine));
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, HorizontalTimetableButtonLabel, PdfJsRenderEngine, AppLanguage));
 
 	#region Loaders
 
@@ -149,7 +157,7 @@ public partial class SettingFileStructure
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to load setting file.");
-			return (new(), "設定ファイルの読み込みに失敗しました。" + ex.Message);
+			return (new(), string.Format(AppResources.SettingFile_LoadFailedFormat, ex.Message));
 		}
 	}
 
@@ -166,13 +174,13 @@ public partial class SettingFileStructure
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to load setting file.");
-			return (new(), "設定ファイルの読み込みに失敗しました。" + ex.Message);
+			return (new(), string.Format(AppResources.SettingFile_LoadFailedFormat, ex.Message));
 		}
 
 		if (settingFileStructure is null)
 		{
 			logger.Warn("Failed to load setting file. (result is null)");
-			return (new(), "設定ファイルの読み込みに失敗しました。(結果がnullです)");
+			return (new(), AppResources.SettingFile_LoadFailedNull);
 		}
 
 		return (settingFileStructure, null);
@@ -185,7 +193,7 @@ public partial class SettingFileStructure
 		if (string.IsNullOrWhiteSpace(jsonString))
 		{
 			logger.Warn("Empty JSON string.");
-			return (new(), "JSONファイル文字列が空です");
+			return (new(), AppResources.SettingFile_EmptyJson);
 		}
 
 		try
@@ -197,13 +205,13 @@ public partial class SettingFileStructure
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to load setting file.");
-			return (new(), "設定ファイルの読み込みに失敗しました。" + ex.Message);
+			return (new(), string.Format(AppResources.SettingFile_LoadFailedFormat, ex.Message));
 		}
 
 		if (settingFileStructure is null)
 		{
 			logger.Warn("Failed to load setting file. (result is null)");
-			return (new(), "設定ファイルの読み込みに失敗しました。(結果がnullです)");
+			return (new(), AppResources.SettingFile_LoadFailedNull);
 		}
 
 		return (settingFileStructure, null);

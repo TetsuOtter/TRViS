@@ -110,6 +110,13 @@ public static class AutomationIds
 		// and flips IsServerConnectionLost=true, putting Home into the #261
 		// "サーバー未接続 + 再接続" state WITHOUT a real WebSocket server.
 		public const string TestSimulateWebSocketDisconnectButton = "StartHome.TestSimulateWebSocketDisconnectButton";
+		// Switches the UI language to English through the same ViewModel path
+		// the Settings language picker uses (#40). Lets the i18n E2E assert a
+		// {loc:Translate}-bound label flips without driving a native Picker.
+		public const string TestSetLanguageEnglishButton = "StartHome.TestSetLanguageEnglishButton";
+		// Pins the UI language to Japanese so fixtures asserting hard-coded
+		// Japanese strings stay deterministic regardless of CI device locale.
+		public const string TestSetLanguageJapaneseButton = "StartHome.TestSetLanguageJapaneseButton";
 		// Builds a WebSocket-TYPED loader carrying real sample data, commits the
 		// first WG/Work and navigates to DTAC. Lands on DTAC with the AppBar
 		// status indicator in the Connected state (#266) so the indicator's
