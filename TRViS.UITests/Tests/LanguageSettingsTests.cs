@@ -14,12 +14,31 @@ namespace TRViS.UITests.Tests;
 /// PropertyChanged("Item[]") → bound label refresh) without driving a
 /// platform-specific native Picker.
 ///
-/// Default per-test session isolation (no shared session): each test
-/// relaunches the app, and the language change is in-memory only (never
-/// Saved to the settings file), so it cannot leak into other fixtures.
+/// CI runs every fixture in one assembly-shared Appium session (iOS
+/// <c>noReset</c>; Android/Windows keep app data warm too), so this fixture
+/// is NOT isolated in practice. Two consequences are handled here:
+/// <list type="bullet">
+/// <item>The prior fixture (alphabetically <c>DTACTimetableTests</c>) leaves
+/// a loaded "Demo data" loader, putting StartHome in Home mode where the
+/// Start-mode <c>Title</c>/<c>ConnectServerButton</c> are absent — so SetUp
+/// clears the loader (mirroring <see cref="WebSocketReconnectTests"/>) to
+/// return to Start mode before asserting.</item>
+/// <item>The English switch mutates the process-wide UI language, but no
+/// TearDown restore is performed: an audit of every fixture that runs after
+/// this one in the shared session found none that asserts a localized
+/// Japanese caption (the only candidate, <see cref="WebSocketReconnectTests"/>,
+/// was made language-agnostic; <see cref="StationNameDisplayTests"/>'s
+/// Japanese literals are timetable data, not localized UI). Restoring via a
+/// language seam would also be Android-unreachable (see the [Platform]
+/// reason below), so a TearDown re-pin would regress nothing it could
+/// reliably fix.</item>
+/// </list>
+/// The language change is in-memory only (never Saved to the settings file),
+/// so it cannot leak into a *fresh* session.
 /// </summary>
 [TestFixture]
 [Infrastructure.RetryAllTests(2)] // see AppLaunchTests for rationale
+[Platform(Exclude = "Linux", Reason = "Android UIAutomator2 prunes invisible (transparent) Button seams that render outside the narrow x_dp∈[0,24] left strip of the accessibility tree, so the #40 language seams (StartHome.TestSetLanguageEnglishButton / TestSetLanguageJapaneseButton) are not findable on Android — empirically falsified across four placements (extra TestSeamHost rows, a standalone second-x-band Button, and a widened-host right-half child). The localization pipeline this fixture guards (resx → LocalizationResourceManager → {loc:Translate}-bound label refresh) is platform-agnostic and verified on iPhone, iPad, macOS and Windows. An Android-reachable seam mechanism is tracked in a follow-up issue. (The Android job is the only UI-test job whose NUnit host is Linux.)")]
 public class LanguageSettingsTests : BaseUITest
 {
 	private StartHomePageObject _startHomePage = null!;
@@ -44,6 +63,16 @@ public class LanguageSettingsTests : BaseUITest
 			new AppShellPage(Driver).NavigateToHome();
 			_startHomePage = new StartHomePageObject(Driver);
 		}
+
+		// Shared-session recovery (mirrors WebSocketReconnectTests.SetUp): the
+		// prior fixture may have left a loaded loader, which puts StartHome in
+		// Home mode where the Start-mode Title / ConnectServerButton this test
+		// relies on are absent (proven by the iPhone CI page-source:
+		// LoaderInfoTitle="Demo data", DisconnectButton present,
+		// ConnectServerButton missing). Clearing the loader returns the page to
+		// Start mode so both the line-55 IsDisplayed() assert and the test
+		// body's ConnectServerButton lookup resolve on every platform.
+		_startHomePage.ClearLoaderForTesting();
 
 		// On a fresh-install launch the PrivacyPolicyDialog modal is shown over
 		// StartHome and StartHome.Title is not in the accessibility tree until
