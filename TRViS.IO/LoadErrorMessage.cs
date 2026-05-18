@@ -6,122 +6,151 @@ using SQLite;
 namespace TRViS.IO;
 
 /// <summary>
-/// User-facing title + body for a timetable-load failure.
+/// Language-independent classification of a timetable-load failure.
+///
+/// The actual user-facing title/body strings are produced in the app
+/// (presentation) layer where the localization resources live —
+/// <see cref="LoadErrorMessage"/> deliberately stays free of any
+/// <c>AppResources</c> reference because <c>TRViS.IO</c> cannot reference
+/// the MAUI app project (the dependency goes the other way). See issue #40
+/// (i18n): the previous hardcoded-Japanese messages were not localizable.
 /// </summary>
-public readonly record struct LoadErrorInfo(string Title, string Body);
+public enum LoadErrorKind
+{
+	/// <summary>System.Text.Json could not parse the file.</summary>
+	JsonMalformed,
+
+	/// <summary>SQLite: non-DB / corrupt / empty / format.</summary>
+	SqliteCorrupt,
+
+	/// <summary>SQLite: cannot open.</summary>
+	SqliteCannotOpen,
+
+	/// <summary>SQLite: permission / access denied / read-only.</summary>
+	SqlitePermission,
+
+	/// <summary>SQLite: IO error.</summary>
+	SqliteIO,
+
+	/// <summary>SQLite: busy / locked (in use by another app).</summary>
+	SqliteBusy,
+
+	/// <summary>SQLite: any other result code.</summary>
+	SqliteOther,
+
+	/// <summary>Connection timed out.</summary>
+	Timeout,
+
+	/// <summary>File / directory not found.</summary>
+	FileNotFound,
+
+	/// <summary>File access denied.</summary>
+	Unauthorized,
+
+	/// <summary>File empty or deserialised to null.</summary>
+	EmptyOrNull,
+
+	/// <summary>HTTP request failed with a status code.</summary>
+	HttpWithStatus,
+
+	/// <summary>HTTP request failed without a status code.</summary>
+	HttpNoStatus,
+
+	/// <summary>Generic filesystem IO failure.</summary>
+	IOError,
+
+	/// <summary>Unrecognised exception — raw detail is the only signal.</summary>
+	Unknown,
+}
+
+/// <summary>
+/// Classified timetable-load failure. <see cref="Kind"/> selects the
+/// localized title/body; the nullable fields carry the parameters needed to
+/// fill the format strings for that kind.
+/// </summary>
+public readonly record struct LoadErrorInfo(
+	LoadErrorKind Kind,
+	long? JsonLine = null,
+	long? JsonColumn = null,
+	int? HttpStatusCode = null,
+	string? HttpStatusName = null,
+	string? RawDetail = null);
 
 /// <summary>
 /// Translates the raw library exceptions thrown while loading a timetable
 /// (System.Text.Json <see cref="JsonException"/>, sqlite-net
-/// <see cref="SQLiteException"/>, file IO, HTTP, timeout) into a short,
-/// actionable Japanese message. See issue #49: the raw
+/// <see cref="SQLiteException"/>, file IO, HTTP, timeout) into a
+/// language-independent <see cref="LoadErrorInfo"/>. See issue #49: the raw
 /// <c>ex.Message</c> from these libraries is unreadable for end users and
-/// too coarse to act on.
+/// too coarse to act on; issue #40: the message must be localizable, so the
+/// string production moved to the app layer.
 ///
 /// The full technical detail is intentionally NOT put in front of the user
 /// — callers already log it (logger.Error + Crashlytics). The raw message is
-/// only appended as a last resort when the exception type is unrecognised,
-/// where it is the only signal we have.
+/// only carried (<see cref="LoadErrorInfo.RawDetail"/>) as a last resort
+/// when the exception type is unrecognised, where it is the only signal we
+/// have.
 /// </summary>
 public static class LoadErrorMessage
 {
-	const string FileErrorTitle = "読み込めませんでした";
-	const string ConnectionErrorTitle = "接続できませんでした";
-	const string TimeoutErrorTitle = "接続できませんでした (Timeout)";
-
-	// Kept verbatim from the previous inline handling in
-	// AppViewModel.AppLink.cs so the established timeout guidance text is
-	// preserved (it is no longer gated on the host being an IPv4 literal —
-	// the advice applies to any connection timeout).
-	const string TimeoutBody =
-		"接続先がパソコンの場合は、\n"
-		+ "接続先が同じネットワークに属しているか、\n"
-		+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
-		+ "を確認してください。";
-
 	public static LoadErrorInfo Describe(Exception ex)
 		=> ex switch
 		{
-			JsonException je => new(
-				FileErrorTitle,
-				"ファイルのJSON形式が正しくありません。ファイルが壊れていないか、"
-					+ "TRViSに対応した時刻表ファイルかを確認してください。"
-					+ JsonPositionSuffix(je)),
+			JsonException je => je.LineNumber is long line
+				? new(LoadErrorKind.JsonMalformed,
+					JsonLine: line + 1,
+					JsonColumn: (je.BytePositionInLine ?? 0) + 1)
+				: new(LoadErrorKind.JsonMalformed),
 
-			SQLiteException se => new(FileErrorTitle, SqliteBody(se)),
+			SQLiteException se => new(SqliteKind(se)),
 
-			TimeoutException => new(TimeoutErrorTitle, TimeoutBody),
+			TimeoutException => new(LoadErrorKind.Timeout),
 			TaskCanceledException { InnerException: TimeoutException }
-				=> new(TimeoutErrorTitle, TimeoutBody),
+				=> new(LoadErrorKind.Timeout),
 
-			FileNotFoundException or DirectoryNotFoundException => new(
-				FileErrorTitle,
-				"ファイルが見つかりませんでした。ファイルが移動・削除されていないかを確認してください。"),
+			FileNotFoundException or DirectoryNotFoundException
+				=> new(LoadErrorKind.FileNotFound),
 
-			UnauthorizedAccessException => new(
-				FileErrorTitle,
-				"ファイルへのアクセスが拒否されました。ファイルのアクセス権を確認してください。"),
+			UnauthorizedAccessException => new(LoadErrorKind.Unauthorized),
 
-			HttpRequestException he => new(ConnectionErrorTitle, HttpBody(he)),
+			HttpRequestException he => he.StatusCode is { } code
+				? new(LoadErrorKind.HttpWithStatus,
+					HttpStatusCode: (int)code,
+					HttpStatusName: code.ToString())
+				: new(LoadErrorKind.HttpNoStatus),
 
 			// LoaderJson throws ArgumentNullException when the JSON
 			// deserialises to null (empty file, or the literal `null`).
-			ArgumentNullException => new(
-				FileErrorTitle,
-				"ファイルの内容が空か、正しい時刻表ファイルではありません。ファイルの内容を確認してください。"),
+			ArgumentNullException => new(LoadErrorKind.EmptyOrNull),
 
 			// FileNotFound / DirectoryNotFound (more specific) are handled
 			// above; this catches the remaining filesystem IO failures.
-			IOException => new(
-				FileErrorTitle,
-				"ファイルの読み込み中にエラーが発生しました。"
-					+ "ファイルやストレージに問題がないかを確認してください。"),
+			IOException => new(LoadErrorKind.IOError),
 
-			_ => new(
-				FileErrorTitle,
-				"ファイルの読み込みに失敗しました。\n\n詳細: " + ex.Message),
+			_ => new(LoadErrorKind.Unknown, RawDetail: ex.Message),
 		};
 
-	static string JsonPositionSuffix(JsonException je)
-		=> je.LineNumber is long line
-			? $"\n\n(エラー位置: {line + 1}行目, {(je.BytePositionInLine ?? 0) + 1}文字目)"
-			: "";
-
-	static string SqliteBody(SQLiteException se)
+	static LoadErrorKind SqliteKind(SQLiteException se)
 		=> se.Result switch
 		{
 			SQLite3.Result.NonDBFile
 				or SQLite3.Result.Corrupt
 				or SQLite3.Result.Empty
 				or SQLite3.Result.Format
-				=> "データベースファイルが壊れているか、TRViSに対応した形式ではありません。"
-					+ "正しい時刻表データベースファイルかを確認してください。",
+				=> LoadErrorKind.SqliteCorrupt,
 
-			SQLite3.Result.CannotOpen
-				=> "データベースファイルを開けませんでした。"
-					+ "ファイルが存在し、読み取り可能かを確認してください。",
+			SQLite3.Result.CannotOpen => LoadErrorKind.SqliteCannotOpen,
 
 			SQLite3.Result.Perm
 				or SQLite3.Result.AccessDenied
 				or SQLite3.Result.ReadOnly
-				=> "データベースファイルへのアクセスが拒否されました。"
-					+ "ファイルのアクセス権を確認してください。",
+				=> LoadErrorKind.SqlitePermission,
 
-			SQLite3.Result.IOError
-				=> "データベースファイルの読み込み中にエラーが発生しました。"
-					+ "ファイルやストレージに問題がないかを確認してください。",
+			SQLite3.Result.IOError => LoadErrorKind.SqliteIO,
 
 			SQLite3.Result.Busy or SQLite3.Result.Locked
-				=> "データベースファイルが他のアプリで使用中の可能性があります。"
-					+ "しばらく待ってから再度お試しください。",
+				=> LoadErrorKind.SqliteBusy,
 
-			_ => "データベースファイルの読み込みに失敗しました。"
-				+ "正しい時刻表データベースファイルかを確認してください。",
+			_ => LoadErrorKind.SqliteOther,
 		};
-
-	static string HttpBody(HttpRequestException he)
-		=> he.StatusCode is { } code
-			? $"サーバーからファイルを取得できませんでした。(サーバー応答コード: {(int)code} {code})"
-			: "サーバーからファイルを取得できませんでした。"
-				+ "ネットワーク接続と接続先URLを確認してください。";
 }

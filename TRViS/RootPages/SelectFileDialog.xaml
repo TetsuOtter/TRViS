@@ -3,9 +3,10 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS"
+	xmlns:loc="clr-namespace:TRViS.Localization"
 	x:Class="TRViS.RootPages.SelectFileDialog"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
-	Title="ファイルを選択">
+	Title="{loc:Translate SelectFile_Title}">
 	<ContentPage.Resources>
 		<ResourceDictionary>
 			<Style x:Key="FileCard"
@@ -45,7 +46,7 @@
 				FontAttributes="Bold"
 				VerticalOptions="Center"
 				TextColor="{x:Static local:RootStyles.TableTextColor}"
-				Text="ファイルを選択"/>
+				Text="{loc:Translate SelectFile_Title}"/>
 			<Button
 				AutomationId="SelectFile.CloseButton"
 				Grid.Column="1"
@@ -97,7 +98,7 @@
 				Margin="8,4"
 				FontSize="14"
 				TextColor="{x:Static local:RootStyles.TableTextColor}"
-				Text="アプリ内のファイルから選択するか、別の場所から開いてください。"/>
+				Text="{loc:Translate SelectFile_FileListHint}"/>
 			<ScrollView
 				AutomationId="SelectFile.FileList"
 				Grid.Row="1"
@@ -140,13 +141,13 @@
 					FontSize="16"
 					FontAttributes="Bold"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Text="このフォルダにファイルがありません"/>
+					Text="{loc:Translate SelectFile_EmptyMessage}"/>
 				<Label
 					HorizontalTextAlignment="Center"
 					FontSize="13"
 					LineBreakMode="WordWrap"
 					TextColor="{x:Static local:RootStyles.TableDetailColor}"
-					Text="下のボタンから他の場所のファイルを開くか、保存場所を開いてファイルを配置してください。"/>
+					Text="{loc:Translate SelectFile_EmptyDetail}"/>
 			</VerticalStackLayout>
 		</Grid>
 
@@ -155,7 +156,7 @@
 			x:Name="BrowseButton"
 			AutomationId="SelectFile.BrowseButton"
 			Grid.Row="3"
-			Text="他の場所からファイルを開く"
+			Text="{loc:Translate SelectFile_Browse}"
 			ContentLayout="Left,6"
 			HeightRequest="48"
 			CornerRadius="8"
@@ -177,7 +178,7 @@
 			x:Name="OpenStorageLocationButton"
 			AutomationId="SelectFile.OpenStorageLocationButton"
 			Grid.Row="4"
-			Text="保存場所を開く"
+			Text="{loc:Translate SelectFile_OpenStorage}"
 			ContentLayout="Left,4"
 			HeightRequest="36"
 			BackgroundColor="Transparent"
