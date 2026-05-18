@@ -295,6 +295,29 @@ public class StartHomePageObject : PageObject
 	}
 
 	/// <summary>
+	/// Taps the footer "Privacy Policy" link and waits for the privacy dialog
+	/// to surface. After privacy has already been accepted in the session
+	/// (the assembly-ordered AppLaunchTests fixture does this first) this
+	/// opens the read-only privacy dialog rather than the first-launch
+	/// reconfirm flow. Used by the screenshot-regression walk.
+	/// </summary>
+	public void OpenPrivacyPolicyDialog()
+	{
+		WaitForElement(AutomationIds.StartHome.PrivacyPolicyButton, TimeSpan.FromSeconds(30)).Click();
+		WaitForElement(AutomationIds.PrivacyDialog.Title, TimeSpan.FromSeconds(60));
+	}
+
+	/// <summary>
+	/// Dismisses the privacy dialog opened by <see cref="OpenPrivacyPolicyDialog"/>
+	/// and waits until the StartHome title is back on screen.
+	/// </summary>
+	public void ClosePrivacyPolicyDialog()
+	{
+		WaitForElement(AutomationIds.PrivacyDialog.CloseButton, TimeSpan.FromSeconds(30)).Click();
+		WaitForElement(AutomationIds.StartHome.Title, TimeSpan.FromSeconds(30));
+	}
+
+	/// <summary>
 	/// Taps the UI_TEST-only test-seed button so tests can populate URL history
 	/// without typing through Appium SendKeys (flaky on iOS XCUITest).
 	/// </summary>
@@ -336,6 +359,33 @@ public class StartHomePageObject : PageObject
 	/// from "no loader" regardless of where the previous test left things.
 	/// </summary>
 	public void ClearLoaderForTesting() => TestClearLoaderButton.Click();
+
+	public AppiumElement TestFreezeClockButton => FindByAutomationId(AutomationIds.StartHome.TestFreezeClockButton);
+	public AppiumElement TestForceLightThemeButton => FindByAutomationId(AutomationIds.StartHome.TestForceLightThemeButton);
+	public AppiumElement TestForceDarkThemeButton => FindByAutomationId(AutomationIds.StartHome.TestForceDarkThemeButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that pins AppTimeProvider at 09:41:00 (Apple
+	/// marketing time). Makes the DTAC AppBar's live HH:mm:ss clock
+	/// pixel-deterministic for screenshot-regression baselines. Tap this on
+	/// StartHome BEFORE navigating into DTAC; the LocationService 100 ms poll
+	/// converges the visible label within one tick.
+	/// </summary>
+	public void FreezeClockForTesting() => TestFreezeClockButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that forces the app-wide theme to Light /
+	/// Dark, so one shared Appium session can capture both palettes
+	/// deterministically without depending on the simulator's system
+	/// appearance.
+	/// </summary>
+	public void ForceThemeForTesting(bool dark)
+	{
+		if (dark)
+			TestForceDarkThemeButton.Click();
+		else
+			TestForceLightThemeButton.Click();
+	}
 
 	/// <summary>
 	/// Taps the UI_TEST-only seam that sets a non-connected
