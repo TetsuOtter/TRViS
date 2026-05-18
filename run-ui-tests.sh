@@ -424,6 +424,27 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "Pre-installing app on simulator $DEVICE_ID..."
   xcrun simctl install "$DEVICE_ID" "$APP_PATH"
   log "App pre-installed."
+
+  # noReset:true (above) keeps the app's *data container* across runs, so
+  # a MyAppCustomizables.json written by a prior run survives reinstall.
+  # EasterEggPageViewModel.InitAsync loads that persisted file (it only
+  # honours the compiled-in defaults when the file is *newly created*), so
+  # a stale TitleColor (e.g. black, from before the #558833 default) would
+  # be re-applied to the Shell AppBar and the screenshot baselines would
+  # never reflect the shipped default. NSUserDefaults is reset per-test by
+  # BaseUITest.ResetAppState, but this JSON settings file is not — delete
+  # it once here so every run starts from the app's compiled-in defaults.
+  APP_DATA_DIR=$(xcrun simctl get_app_container "$DEVICE_ID" dev.t0r.trvis data 2>/dev/null || true)
+  if [[ -n "$APP_DATA_DIR" && -d "$APP_DATA_DIR" ]]; then
+    REMOVED_SETTINGS=$(find "$APP_DATA_DIR" -name 'MyAppCustomizables.json' -print -delete 2>/dev/null || true)
+    if [[ -n "$REMOVED_SETTINGS" ]]; then
+      log "Removed stale settings file(s) so defaults apply: $REMOVED_SETTINGS"
+    else
+      log "No stale MyAppCustomizables.json found (clean install)."
+    fi
+  else
+    log "WARN: could not resolve app data container — settings file not reset."
+  fi
 fi
 
 # ── Pre-build WebDriverAgent for usePrebuiltWDA ─────────────────
