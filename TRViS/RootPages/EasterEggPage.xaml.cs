@@ -20,7 +20,18 @@ public partial class EasterEggPage : ContentPage
 		ViewModel = InstanceManager.EasterEggPageViewModel;
 		BindingContext = ViewModel;
 
+#if UI_TEST
+		// UI_TEST-only determinism seam. The real log directory is an absolute
+		// path that embeds the iOS simulator's Device UUID *and* the app's
+		// per-install GUID, both of which differ on every CI runner — rendering
+		// this label would make the Settings screenshot baseline impossible to
+		// pixel-gate. Substituting a fixed placeholder keeps the entire Settings
+		// screen deterministic (no screenshot mask needed). Production builds
+		// compile this out entirely and show the real path.
+		LogFilePathLabel.Text = "/UITEST/TRViS.InternalFiles/logs";
+#else
 		LogFilePathLabel.Text = DirectoryPathProvider.GeneralLogFileDirectory.FullName;
+#endif
 
 		// Initialize AppThemePicker selection based on ViewModel
 		UpdateAppThemePickerSelection();
