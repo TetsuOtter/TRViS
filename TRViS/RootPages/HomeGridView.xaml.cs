@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using TRViS.DTAC;
 using TRViS.IO;
 using TRViS.IO.Models;
+using TRViS.Localization;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
@@ -64,6 +65,16 @@ public partial class HomeGridView : Grid
 
 		WorkGroupListView.ItemsSource = _workGroupItems;
 		WorkListView.ItemsSource = _workItems;
+
+		// Code-set labels (loader type, diagram info, picker subtitles) don't
+		// re-evaluate on a language change, so rebuild them when culture changes.
+		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				UpdateLoaderInfoLabels();
+				RebuildWorkGroupItems();
+				SyncPendingFromCommitted();
+			});
 	}
 
 	// ----- Parent-driven lifecycle / hooks -----
@@ -157,7 +168,7 @@ public partial class HomeGridView : Grid
 		ILoader? loader = viewModel.Loader;
 		if (loader is null)
 		{
-			LoaderInfoTitleLabel.Text = "読み込み済みデータ";
+			LoaderInfoTitleLabel.Text = AppResources.Home_LoadedData;
 			LoaderInfoDetailLabel.Text = "";
 			LoaderInfoGlyphLabel.Text = MaterialIcons.Description;
 			ReconnectButton.IsVisible = false;
@@ -174,11 +185,11 @@ public partial class HomeGridView : Grid
 		// (file name, URL) set atomically with the loader via AppViewModel.SetLoader.
 		(string title, string glyph) = loader switch
 		{
-			SampleDataLoader => ("デモデータ", MaterialIcons.Science),
-			LoaderJson => ("JSON ファイル", MaterialIcons.Description),
-			LoaderSQL => ("SQLite ファイル", MaterialIcons.Storage),
-			WebSocketNetworkSyncService when wsConnectionLost => ("サーバー未接続", MaterialIcons.WifiOff),
-			WebSocketNetworkSyncService => ("サーバー接続中", MaterialIcons.Wifi),
+			SampleDataLoader => (AppResources.Home_LoaderType_Demo, MaterialIcons.Science),
+			LoaderJson => (AppResources.Home_LoaderType_Json, MaterialIcons.Description),
+			LoaderSQL => (AppResources.Home_LoaderType_Sqlite, MaterialIcons.Storage),
+			WebSocketNetworkSyncService when wsConnectionLost => (AppResources.Home_LoaderType_ServerDisconnected, MaterialIcons.WifiOff),
+			WebSocketNetworkSyncService => (AppResources.Home_LoaderType_ServerConnected, MaterialIcons.Wifi),
 			_ => (loader.GetType().Name, MaterialIcons.Description),
 		};
 		LoaderInfoTitleLabel.Text = title;
@@ -198,7 +209,7 @@ public partial class HomeGridView : Grid
 		string? name = info?.Name;
 		bool hasName = !string.IsNullOrWhiteSpace(name);
 		DiagramInfoNameLabel.IsVisible = hasName;
-		DiagramInfoNameLabel.Text = hasName ? $"ダイヤ: {name}" : string.Empty;
+		DiagramInfoNameLabel.Text = hasName ? string.Format(AppResources.Home_DiagramFormat, name) : string.Empty;
 
 		string? description = info?.Description;
 		bool hasDescription = !string.IsNullOrWhiteSpace(description);
@@ -348,7 +359,7 @@ public partial class HomeGridView : Grid
 				foreach (var wg in groups)
 				{
 					int workCount = GetWorkCountCached(loader, wg.Id);
-					string subtitle = $"Work 数: {workCount}";
+					string subtitle = string.Format(AppResources.Home_WorkCountFormat, workCount);
 					_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
 				}
 			}
@@ -400,8 +411,8 @@ public partial class HomeGridView : Grid
 
 				List<string> parts = new(2);
 				if (w.AffectDate is { } d)
-					parts.Add($"施行日: {d:yyyy/MM/dd}");
-				parts.Add($"列車数: {trainCount}");
+					parts.Add(string.Format(AppResources.Home_AffectDateFormat, d.ToString("yyyy/MM/dd")));
+				parts.Add(string.Format(AppResources.Home_TrainCountFormat, trainCount));
 				_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
 			}
 		}
@@ -535,7 +546,7 @@ public partial class HomeGridView : Grid
 		if (pendingWG is null || pendingW is null)
 		{
 			logger.Info("Open ignored: pending selection incomplete (WG={0}, W={1})", pendingWG, pendingW);
-			await Util.DisplayAlertAsync("選択されていません", "Work Group と Work を選択してから「開く」を押してください。", "OK");
+			await Util.DisplayAlertAsync(AppResources.Home_NotSelectedTitle, AppResources.Home_NotSelectedBody, AppResources.Common_OK);
 			return;
 		}
 
@@ -572,7 +583,7 @@ public partial class HomeGridView : Grid
 		if (viewModel.Loader is null)
 			return;
 
-		bool confirm = await Util.DisplayAlertAsync("確認", "現在のデータを閉じますか？", "閉じる", "キャンセル");
+		bool confirm = await Util.DisplayAlertAsync(AppResources.Home_ConfirmTitle, AppResources.Home_ConfirmCloseBody, AppResources.Common_Close, AppResources.Common_Cancel);
 		if (!confirm)
 			return;
 
@@ -596,7 +607,7 @@ public partial class HomeGridView : Grid
 			return;
 
 		ReconnectButton.IsEnabled = false;
-		ReconnectButton.Text = "再接続中...";
+		ReconnectButton.Text = AppResources.Home_Reconnecting;
 		try
 		{
 			// HandleWebSocketAppLinkAsync (via ReconnectWebSocketAsync) owns user
@@ -613,7 +624,7 @@ public partial class HomeGridView : Grid
 		}
 		finally
 		{
-			ReconnectButton.Text = "再接続";
+			ReconnectButton.Text = AppResources.Home_Reconnect;
 			ReconnectButton.IsEnabled = true;
 		}
 	}

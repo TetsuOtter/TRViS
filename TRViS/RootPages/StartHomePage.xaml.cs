@@ -223,6 +223,8 @@ public partial class StartHomePage : ContentPage
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
 		AddTestSimulateWebSocketDisconnectSeam();
+		AddTestSetLanguageEnglishSeam();
+		AddTestSetLanguageJapaneseSeam();
 		AddTestSimulateWebSocketConnectedSeam();
 #endif
 
@@ -1138,6 +1140,12 @@ public partial class StartHomePage : ContentPage
 	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton.
 	private const string AutomationIdValueForTestSimulateWsDisconnect = "StartHome.TestSimulateWebSocketDisconnectButton";
 
+	// Mirrors AutomationIds.StartHome.TestSetLanguageEnglishButton.
+	private const string AutomationIdValueForTestSetLanguageEnglish = "StartHome.TestSetLanguageEnglishButton";
+
+	// Mirrors AutomationIds.StartHome.TestSetLanguageJapaneseButton.
+	private const string AutomationIdValueForTestSetLanguageJapanese = "StartHome.TestSetLanguageJapaneseButton";
+
 	// UI_TEST-only seam: same standalone-code-behind pattern as
 	// AddTestOpenSelectFileDialogSeam (kept out of TestSeamHost's 12-row Grid
 	// for the documented iPhone layout-row-growth reason). Margin y = 312 sits
@@ -1231,6 +1239,81 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSimulateWebSocketDisconnectButton failed");
+		}
+	}
+
+	// UI_TEST-only seam: same standalone pattern as AddTestSimulateWebSocketDisconnectSeam.
+	// Margin y = 336 sits directly below the WS-disconnect seam (y=[312,336]).
+	// Sets the UI language to English through the same ViewModel path the
+	// Settings picker uses, so the E2E can assert a {loc:Translate}-bound label
+	// (StartHome.ConnectServerButton) flips without driving a native Picker.
+	private void AddTestSetLanguageEnglishSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSetLanguageEnglish,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 336, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSetLanguageEnglishButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	void TestSetLanguageEnglishButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSetLanguageEnglishButton clicked: switching UI language to English");
+		try
+		{
+			InstanceManager.EasterEggPageViewModel.SelectedAppLanguage
+				= TRViS.MyAppCustomizables.AppLanguage.English;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSetLanguageEnglishButton failed");
+		}
+	}
+
+	// Pins the UI language to Japanese so fixtures that assert hard-coded
+	// Japanese strings (e.g. WebSocketReconnectTests' "サーバー未接続") stay
+	// deterministic regardless of the CI device locale — those strings are now
+	// resolved from resx and would otherwise depend on CurrentUICulture.
+	private void AddTestSetLanguageJapaneseSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSetLanguageJapanese,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 360, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSetLanguageJapaneseButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	void TestSetLanguageJapaneseButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSetLanguageJapaneseButton clicked: switching UI language to Japanese");
+		try
+		{
+			InstanceManager.EasterEggPageViewModel.SelectedAppLanguage
+				= TRViS.MyAppCustomizables.AppLanguage.Japanese;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSetLanguageJapaneseButton failed");
 		}
 	}
 

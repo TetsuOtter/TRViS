@@ -5,6 +5,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS"
 	xmlns:utils="clr-namespace:TRViS.Utils"
+	xmlns:loc="clr-namespace:TRViS.Localization"
 	xmlns:pages="clr-namespace:TRViS.RootPages"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
 	FlyoutBackgroundColor="{AppThemeBinding Light=#EEE, Dark=#111}">
@@ -33,6 +34,7 @@
 	</Shell.FlyoutFooter>
 
 	<FlyoutItem
+		x:Name="FlyoutStartHome"
 		AutomationId="Shell.Flyout.StartHome"
 		Title="Home"
 		Route="{x:Static pages:StartHomePage.NameOfThisClass}">
@@ -45,12 +47,14 @@
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
 	</FlyoutItem>
 	<FlyoutItem
+		x:Name="FlyoutSettings"
 		AutomationId="Shell.Flyout.Settings"
 		Title="Settings">
 		<ShellContent ContentTemplate="{DataTemplate pages:EasterEggPage}"/>
 	</FlyoutItem>
 
 	<MenuItem
+		x:Name="MenuPrivacyPolicyOnline"
 		Text="Privacy Policy (online)"
 		Command="{x:Static utils:Util.OpenUrlCommand}"
 		CommandParameter="https://github.com/TetsuOtter/TRViS/blob/main/docs/md/PrivacyPolicy.md"/>

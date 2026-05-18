@@ -4,6 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
 	xmlns:rootpages="clr-namespace:TRViS.RootPages"
+	xmlns:loc="clr-namespace:TRViS.Localization"
 	xmlns:local="clr-namespace:TRViS"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
 	x:DataType="viewmodels:AppViewModel"
@@ -106,7 +107,7 @@
 			Spacing="4">
 			<Button
 				AutomationId="StartHome.PrivacyPolicyButton"
-				Text="プライバシーポリシー"
+				Text="{loc:Translate StartHome_PrivacyPolicy}"
 				Style="{StaticResource LinkButton}"
 				Clicked="OnPrivacyPolicyClicked"/>
 			<Label
@@ -115,7 +116,7 @@
 				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 			<Button
 				AutomationId="StartHome.ThirdPartyLicensesButton"
-				Text="Third Party Licenses"
+				Text="{loc:Translate StartHome_ThirdPartyLicenses}"
 				Style="{StaticResource LinkButton}"
 				Clicked="OnThirdPartyLicensesClicked"/>
 		</HorizontalStackLayout>

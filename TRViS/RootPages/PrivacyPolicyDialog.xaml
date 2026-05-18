@@ -5,10 +5,11 @@
 	xmlns:ctrls="clr-namespace:TRViS.Controls"
 	xmlns:vm="clr-namespace:TRViS.ViewModels"
 	xmlns:local="clr-namespace:TRViS"
+	xmlns:loc="clr-namespace:TRViS.Localization"
 	x:Class="TRViS.RootPages.PrivacyPolicyDialog"
 	x:DataType="vm:FirebaseSettingViewModel"
 	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
-	Title="プライバシーポリシー">
+	Title="{loc:Translate Privacy_Title}">
 	<!-- RowDefinitions / ColumnDefinitions and per-child Grid placement are
 	     applied from code-behind in ApplyOrientationLayout. The vertical
 	     (portrait/tablet) layout uses 4 rows × 1 column; the landscape-phone
@@ -25,7 +26,7 @@
 				FontAttributes="Bold"
 				VerticalOptions="Center"
 				TextColor="{x:Static local:RootStyles.TableTextColor}"
-				Text="ログ収集のお知らせ"/>
+				Text="{loc:Translate Privacy_LogCollectionTitle}"/>
 			<Button
 				AutomationId="PrivacyDialog.CloseButton"
 				Grid.Column="1"
@@ -43,12 +44,8 @@
 		<Label
 			x:Name="DescLabel"
 			Margin="4"
-			TextColor="{x:Static local:RootStyles.TableTextColor}">
-			TRViSでは、アプリの品質向上のため、アプリのクラッシュやエラー情報を収集します。
-また、アプリの使用状況を調査するため、プライバシーポリシーに基づき、一部の情報を収集します。
-これらの情報は、主にFirebaseを用いて収集します。
-これらの情報収集を拒否される場合、本アプリを使用できない場合があります。
-		</Label>
+			TextColor="{x:Static local:RootStyles.TableTextColor}"
+			Text="{loc:Translate Privacy_DescBody}"/>
 
 		<Border
 			x:Name="MarkdownBorder"
@@ -98,14 +95,14 @@
 					Grid.ColumnSpan="2"
 					VerticalOptions="Center"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Text="クラッシュ/エラーログの送信は必須ですが、&#xa;以下の機能については有効/無効を選択できます。"/>
+					Text="{loc:Translate Privacy_CrashRequiredNotice}"/>
 
 				<Label
 					Grid.Row="1"
 					Grid.Column="0"
 					VerticalOptions="Center"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Text="使用状況の収集を許可する"/>
+					Text="{loc:Translate Privacy_AllowAnalytics}"/>
 				<Switch
 					AutomationId="PrivacyDialog.AnalyticsSwitch"
 					Grid.Row="1"
@@ -126,7 +123,7 @@
 						Padding="16"
 						HorizontalOptions="Fill"
 						Clicked="OnResetButtonClicked"
-						Text="保存値を復元"/>
+						Text="{loc:Translate Privacy_RestoreSaved}"/>
 					<Button
 						AutomationId="PrivacyDialog.SaveButton"
 						Grid.Column="1"
@@ -134,7 +131,7 @@
 						HorizontalOptions="Fill"
 						FontAttributes="Bold"
 						Clicked="OnSaveButtonClicked"
-						Text="同意して保存"/>
+						Text="{loc:Translate Privacy_AgreeAndSave}"/>
 				</Grid>
 			</Grid>
 		</Border>

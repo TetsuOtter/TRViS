@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS"
+	xmlns:loc="clr-namespace:TRViS.Localization"
 	xmlns:rootpages="clr-namespace:TRViS.RootPages"
 	x:Class="TRViS.RootPages.StartGridView"
 	ColumnDefinitions="3*,4*"
@@ -44,14 +45,14 @@
 					x:Name="ConnectServerButton"
 					x:FieldModifier="public"
 					AutomationId="StartHome.ConnectServerButton"
-					Text="サーバーから読み込み"
+					Text="{loc:Translate StartHome_ConnectServer}"
 					Style="{StaticResource PrimaryActionButton}"
 					Clicked="OnConnectServerClicked"/>
 				<Button
 					x:Name="SelectFileButton"
 					x:FieldModifier="public"
 					AutomationId="StartHome.SelectFileButton"
-					Text="ファイルを選択"
+					Text="{loc:Translate StartHome_SelectFile}"
 					Style="{StaticResource PrimaryActionButton}"
 					Clicked="OnSelectFileClicked"/>
 			</FlexLayout>
@@ -92,14 +93,14 @@
 						Grid.Column="1"
 						Grid.Row="0"
 						AutomationId="StartHome.PrivacyReconfirmText"
-						Text="プライバシーポリシーへの同意が必要です"
+						Text="{loc:Translate StartHome_PrivacyReconfirmTitle}"
 						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
 						FontSize="18"
 						FontAttributes="Bold"/>
 					<Label
 						Grid.Column="1"
 						Grid.Row="1"
-						Text="アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。"
+						Text="{loc:Translate StartHome_PrivacyReconfirmBody}"
 						TextColor="{AppThemeBinding Light=#5A3500, Dark=#FFE99B}"
 						FontSize="13"
 						LineBreakMode="WordWrap"/>
@@ -120,7 +121,7 @@
 			x:FieldModifier="public"
 			Grid.Row="1"
 			AutomationId="StartHome.LoadDemoButton"
-			Text="デモデータで開始"
+			Text="{loc:Translate StartHome_LoadDemo}"
 			Style="{StaticResource SecondaryActionButton}"
 			Clicked="OnLoadDemoClicked"/>
 
