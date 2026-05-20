@@ -1,0 +1,15 @@
+# Generated Xcode project — do not commit; regenerated via `xcodegen generate`
+*.xcodeproj/
+*.xcworkspace/
+
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Build artifacts
+build/
+DerivedData/
+
+# macOS
+.DS_Store
