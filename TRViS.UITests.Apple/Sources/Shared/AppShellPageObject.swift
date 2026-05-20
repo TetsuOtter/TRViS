@@ -106,8 +106,15 @@ class AppShellPageObject {
     /// Uses the flyout drag on iOS (Apple platforms don't have Android's
     /// orientation-lock / DrawerLayout reliability issues that motivated the
     /// seam-first approach in the C# Appium driver).  After tapping the
-    /// flyout Home item, waits up to 60 s for StartHome.Title to appear so
-    /// the caller can safely probe Start-mode elements.
+    /// flyout Home item, waits for the seam button (`testClearLoaderButton`)
+    /// to confirm StartHome is accessible.
+    ///
+    /// `StartHome.Title` (the Shell navigation-bar Label) is intentionally NOT
+    /// used as the sentinel: on iOS 26 simulators it fails to surface in the
+    /// accessibility tree for 60+ s after flyout navigation, causing each call
+    /// to exhaust its full timeout.  The seam Buttons (added to RootGrid at
+    /// page-construction time) appear on the first type check (`.button`) and
+    /// are a reliable page-presence indicator.
     func navigateToHome() -> StartHomePageObject {
         openFlyout()
         guard let item = waitForFlyoutItem(
@@ -117,10 +124,7 @@ class AppShellPageObject {
             return StartHomePageObject(app: app, base: base)
         }
         item.tap()
-        // Wait for StartHome page to become accessible. Use a 60 s budget to
-        // absorb navigation animation + accessibility-tree repopulation latency
-        // on iOS simulators (observed: ~10–20 s after GoToAsync completes).
-        _ = base.waitForElement(id: AutomationIds.StartHome.title, timeout: 60)
+        _ = base.waitForElement(id: AutomationIds.StartHome.testClearLoaderButton, timeout: 30)
         return StartHomePageObject(app: app, base: base)
     }
 }

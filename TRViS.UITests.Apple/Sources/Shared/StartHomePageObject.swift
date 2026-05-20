@@ -19,14 +19,16 @@ class StartHomePageObject {
 
     // MARK: — Core state predicates
 
-    /// True when the StartHome page is displayed (title element is visible).
-    /// Uses a 60 s timeout to match the C# implementation, which accounts for
-    /// slow post-FirebaseSettings navigation on iOS macos-26 simulators.
+    /// True when the StartHome page is displayed.
+    ///
+    /// Uses `testClearLoaderButton` (a `.button` element always present in the
+    /// UI_TEST seam host) as the sentinel rather than `StartHome.Title`.
+    /// On iOS 26 simulators, the Shell navigation-bar title Label is not exposed
+    /// in the accessibility tree for 60+ s after flyout navigation, whereas the
+    /// seam Buttons (added to RootGrid at construction time) surface on the first
+    /// type check (`.button`). Uses a 60 s timeout to match the C# implementation.
     func isDisplayed(timeout: TimeInterval = 60) -> Bool {
-        guard let el = base.waitForElement(id: AutomationIds.StartHome.title, timeout: timeout) else {
-            return false
-        }
-        return el.exists
+        return base.waitForElement(id: AutomationIds.StartHome.testClearLoaderButton, timeout: timeout) != nil
     }
 
     /// True when the privacy-policy reconfirm banner is visible.
@@ -93,7 +95,7 @@ class StartHomePageObject {
         }
 
         // Wait for the dialog to dismiss back to the Start page.
-        _ = base.waitForElement(id: AutomationIds.StartHome.title, timeout: 30)
+        _ = base.waitForElement(id: AutomationIds.StartHome.testClearLoaderButton, timeout: 15)
         Thread.sleep(forTimeInterval: 0.3)
     }
 
@@ -283,7 +285,7 @@ class StartHomePageObject {
     }
 
     /// Closes the Privacy Policy dialog by tapping its CloseButton.
-    /// Waits for StartHome.Title to confirm the page is visible again.
+    /// Waits for the seam button to confirm StartHome is visible again.
     func closePrivacyPolicyDialog() {
         guard let btn = base.waitForElement(
             id: AutomationIds.PrivacyDialog.closeButton, timeout: 15
@@ -292,7 +294,7 @@ class StartHomePageObject {
             return
         }
         btn.tap()
-        _ = base.waitForElement(id: AutomationIds.StartHome.title, timeout: 15)
+        _ = base.waitForElement(id: AutomationIds.StartHome.testClearLoaderButton, timeout: 10)
     }
 
     // MARK: — ConnectServerButton caption (LanguageSettings test)
