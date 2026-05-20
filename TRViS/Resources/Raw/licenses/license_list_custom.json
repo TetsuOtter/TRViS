@@ -34,5 +34,14 @@
     "author": "Mozilla Foundation",
     "projectUrl": "https://github.com/mozilla/pdf.js",
     "copyrightText": null
+  },
+  {
+    "id": "Noto Sans JP",
+    "resolvedVersion": "2.004",
+    "licenseDataType": "expression",
+    "license": "OFL-1.1",
+    "author": "Google / Adobe",
+    "projectUrl": "https://fonts.google.com/noto/specimen/Noto+Sans+JP",
+    "copyrightText": "Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'"
   }
 ]

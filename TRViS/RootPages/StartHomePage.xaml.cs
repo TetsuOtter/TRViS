@@ -1061,6 +1061,13 @@ public partial class StartHomePage : ContentPage
 		for (int i = 0; i < 12; i++)
 			host.RowDefinitions.Add(new RowDefinition { Height = 24 });
 		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
+		// Second 24px column for the screenshot-regression seams. A second
+		// COLUMN (not extra rows) keeps these buttons inside the proven-visible
+		// top-left y=[0,72] band — the documented seam-column ceiling (y=336)
+		// and the iPhone XAML-row-growth hang both only bite when the single
+		// column is extended DOWNWARD; widening it sideways into the still-empty
+		// top-left corner is safe on every device.
+		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
 		Grid.SetRow(host, 0);
 
 		// AutomationIds are part of the contract with TRViS.UITests/AutomationIds.cs.
@@ -1083,6 +1090,25 @@ public partial class StartHomePage : ContentPage
 		// share a single Appium session and need each test to start from a
 		// "no loader" state.
 		AddSeamButton(host, 11, "StartHome.TestClearLoaderButton", TestClearLoaderButton_Clicked);
+
+		// Screenshot-regression determinism seams, placed in the second 24px
+		// column (rows 0..2) so they never collide with the row-indexed seams
+		// above. TestFreezeClockButton pins AppTimeProvider to 09:41:00 (Apple
+		// marketing time) so the DTAC AppBar's live HH:mm:ss clock is
+		// pixel-stable; the two theme buttons force app-wide Light / Dark so a
+		// single Appium session can capture both palettes deterministically
+		// without depending on the simulator's system appearance.
+		AddSeamButton(host, 0, 1, "StartHome.TestFreezeClockButton", TestFreezeClockButton_Clicked);
+		AddSeamButton(host, 1, 1, "StartHome.TestForceLightThemeButton", TestForceLightThemeButton_Clicked);
+		AddSeamButton(host, 2, 1, "StartHome.TestForceDarkThemeButton", TestForceDarkThemeButton_Clicked);
+		// Rows 3..4 of the same second column: inverses of the freeze/force
+		// seams above. The screenshot fixture runs at Order(3); without these
+		// the frozen clock and forced theme leak into the dozens of later
+		// fixtures sharing the assembly-wide iOS session. Rows 3..4 stay well
+		// inside the y=336 seam-column ceiling (column 0 already proves rows
+		// 0..11 tappable).
+		AddSeamButton(host, 3, 1, "StartHome.TestUnfreezeClockButton", TestUnfreezeClockButton_Clicked);
+		AddSeamButton(host, 4, 1, "StartHome.TestResetThemeButton", TestResetThemeButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1242,11 +1268,23 @@ public partial class StartHomePage : ContentPage
 		}
 	}
 
-	// UI_TEST-only seam: same standalone pattern as AddTestSimulateWebSocketDisconnectSeam.
-	// Margin y = 336 sits directly below the WS-disconnect seam (y=[312,336]).
-	// Sets the UI language to English through the same ViewModel path the
-	// Settings picker uses, so the E2E can assert a {loc:Translate}-bound label
-	// (StartHome.ConnectServerButton) flips without driving a native Picker.
+	// UI_TEST-only seam. Sets the UI language to English through the same
+	// ViewModel path the Settings picker uses, so the E2E can assert a
+	// {loc:Translate}-bound label (StartHome.ConnectServerButton) flips
+	// without driving a native Picker.
+	//
+	// PARALLEL-COLUMN PLACEMENT (not the single y-stacked column): the
+	// previous y=336 stacking rendered at screen y≈414 on the shorter iPhone
+	// viewport, where XCUITest reports visible="false", so Appium's .Click()
+	// silently no-ops and the handler never fires. Proven by the failing-run
+	// LanguageSettingsTests.SwitchToEnglish iPhone page-source (this seam at
+	// y=414 visible="false"; ConnectServerButton stayed "サーバーから読み込み"
+	// with no exception) — iPad's taller screen hid the bug, which is why
+	// only the iphone job failed. Reuses y=288, already proven visible on
+	// iPhone in this very page-source (SelectFile seam at screen y=366
+	// visible="true"), in the second clear seam column (left=30, the same
+	// proven-visible band the WS-Connected seam uses) — exactly the "rework
+	// the column rather than extending down" guidance above.
 	private void AddTestSetLanguageEnglishSeam()
 	{
 		var seam = new Button
@@ -1256,7 +1294,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(0, 336, 0, 0),
+			Margin = new Thickness(30, 288, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
@@ -1283,7 +1321,17 @@ public partial class StartHomePage : ContentPage
 	// Pins the UI language to Japanese so fixtures that assert hard-coded
 	// Japanese strings (e.g. WebSocketReconnectTests' "サーバー未接続") stay
 	// deterministic regardless of the CI device locale — those strings are now
-	// resolved from resx and would otherwise depend on CurrentUICulture.
+	// resolved from resx and would otherwise depend on CurrentUICulture. Also
+	// driven by ScreenshotRegressionTests on iPhone (the */ja cases), so it
+	// must be tappable there too.
+	//
+	// Same off-screen-iPhone defect/fix as AddTestSetLanguageEnglishSeam: the
+	// old y=360 single-column slot rendered at screen y≈438 (visible="false")
+	// on iPhone, no-opping the tap. Placed in a third clear seam column
+	// (left=60) at the proven-visible y=288 row. left=60 keeps the 24px-wide
+	// seam's center (screen x≈131) left of the AppHeader (screen x≈136), and
+	// the seam is added to RootGrid after InitializeComponent so it draws
+	// above the header regardless.
 	private void AddTestSetLanguageJapaneseSeam()
 	{
 		var seam = new Button
@@ -1293,7 +1341,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(0, 360, 0, 0),
+			Margin = new Thickness(60, 288, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
@@ -1356,6 +1404,9 @@ public partial class StartHomePage : ContentPage
 	}
 
 	static void AddSeamButton(Grid host, int row, string automationId, EventHandler clicked)
+		=> AddSeamButton(host, row, 0, automationId, clicked);
+
+	static void AddSeamButton(Grid host, int row, int column, string automationId, EventHandler clicked)
 	{
 		var button = new Button
 		{
@@ -1367,6 +1418,7 @@ public partial class StartHomePage : ContentPage
 		};
 		button.Clicked += clicked;
 		Grid.SetRow(button, row);
+		Grid.SetColumn(button, column);
 		host.Children.Add(button);
 	}
 
@@ -1644,6 +1696,50 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestClearLoaderButton failed");
 		}
+	}
+
+	void TestFreezeClockButton_Clicked(object? sender, EventArgs e)
+	{
+		// 09:41:00 = Apple's marketing time (9*3600 + 41*60 = 34860s since
+		// midnight). Pinning AppTimeProvider here makes the DTAC AppBar's live
+		// HH:mm:ss clock pixel-deterministic for screenshot baselines. The
+		// LocationService 100 ms poll converges the visible label within one
+		// tick because the frozen value differs from the last-raised real value.
+		logger.Info("TestFreezeClockButton clicked: freezing AppTimeProvider at 09:41:00");
+		AppTimeProvider.UiTestFrozenSeconds = 34860;
+	}
+
+	void TestForceLightThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestForceLightThemeButton clicked: forcing app-wide Light theme");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Light;
+	}
+
+	void TestForceDarkThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestForceDarkThemeButton clicked: forcing app-wide Dark theme");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Dark;
+	}
+
+	void TestUnfreezeClockButton_Clicked(object? sender, EventArgs e)
+	{
+		// Exact inverse of TestFreezeClockButton: null = AppTimeProvider
+		// follows the real clock again. Prevents 09:41:00 leaking into the
+		// later fixtures that share this assembly-wide iOS session.
+		logger.Info("TestUnfreezeClockButton clicked: unfreezing AppTimeProvider");
+		AppTimeProvider.UiTestFrozenSeconds = null;
+	}
+
+	void TestResetThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		// Exact inverse of the two force-theme seams (which set only
+		// UserAppTheme). Unspecified = follow the OS appearance again, so a
+		// forced Light/Dark palette does not leak into later fixtures.
+		logger.Info("TestResetThemeButton clicked: resetting app-wide theme to Unspecified");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Unspecified;
 	}
 
 	void TestOpenSelectFileDialogButton_Clicked(object? sender, EventArgs e)
