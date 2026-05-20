@@ -90,11 +90,12 @@ public static class ScreenshotComparer
 		baseline.CopyPixelDataTo(b);
 		actual.CopyPixelDataTo(a);
 
-		var diff = new Rgba32[n];
-		long considered = 0, differing = 0;
+		// Pass 1: only count differing pixels. The diff PNG (w*h*4 bytes) is
+		// allocated and filled lazily on the failure path so that the common
+		// pass case — 80 captures per run — avoids that extra buffer.
+		long differing = 0;
 		for (long i = 0; i < n; i++)
 		{
-			considered++;
 			var bp = b[i];
 			var ap = a[i];
 			int max = Math.Max(
@@ -102,36 +103,47 @@ public static class ScreenshotComparer
 				Math.Max(Math.Abs(bp.B - ap.B), Math.Abs(bp.A - ap.A)));
 
 			if (max > channelTolerance)
-			{
 				differing++;
-				diff[i] = new Rgba32(255, 0, 0, 255); // changed → red
-			}
-			else
-			{
-				// Dim the unchanged baseline so the red diff pops.
-				diff[i] = new Rgba32((byte)(bp.R / 3), (byte)(bp.G / 3), (byte)(bp.B / 3), 255);
-			}
 		}
 
-		double fraction = considered == 0 ? 0 : (double)differing / considered;
+		double fraction = n == 0 ? 0 : (double)differing / n;
 		if (fraction > maxDiffFraction)
 		{
 			WriteArtifact(artifactDir, artifactName + ".actual.png", actualPng);
-			using (var diffImg = Image.LoadPixelData<Rgba32>(diff, w, h))
-			using (var ms = new MemoryStream())
-			{
-				diffImg.SaveAsPng(ms);
-				WriteArtifact(artifactDir, artifactName + ".diff.png", ms.ToArray());
-			}
+			WriteArtifact(artifactDir, artifactName + ".diff.png", BuildDiffPng(b, a, w, h, channelTolerance));
 			return new Result(false,
-				$"{artifactName}: {differing}/{considered} px differ " +
+				$"{artifactName}: {differing}/{n} px differ " +
 				$"({fraction:P3} > {maxDiffFraction:P3} budget, channel delta > {channelTolerance}). " +
 				$"Wrote {artifactName}.actual.png + {artifactName}.diff.png.");
 		}
 
 		return new Result(true,
-			$"{artifactName}: OK — {differing}/{considered} px differ " +
+			$"{artifactName}: OK — {differing}/{n} px differ " +
 			$"({fraction:P3} <= {maxDiffFraction:P3}).");
+	}
+
+	private static byte[] BuildDiffPng(Rgba32[] b, Rgba32[] a, int w, int h, int channelTolerance)
+	{
+		long n = (long)w * h;
+		var diff = new Rgba32[n];
+		for (long i = 0; i < n; i++)
+		{
+			var bp = b[i];
+			var ap = a[i];
+			int max = Math.Max(
+				Math.Max(Math.Abs(bp.R - ap.R), Math.Abs(bp.G - ap.G)),
+				Math.Max(Math.Abs(bp.B - ap.B), Math.Abs(bp.A - ap.A)));
+
+			diff[i] = max > channelTolerance
+				? new Rgba32(255, 0, 0, 255) // changed → red
+				// Dim the unchanged baseline so the red diff pops.
+				: new Rgba32((byte)(bp.R / 3), (byte)(bp.G / 3), (byte)(bp.B / 3), 255);
+		}
+
+		using var diffImg = Image.LoadPixelData<Rgba32>(diff, w, h);
+		using var ms = new MemoryStream();
+		diffImg.SaveAsPng(ms);
+		return ms.ToArray();
 	}
 
 	private static void WriteArtifact(string dir, string name, byte[] bytes)

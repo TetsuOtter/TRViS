@@ -17,8 +17,10 @@ public partial class SimpleMarkdownLabel : Label
 	const double HEADER_LINE_HEIGHT = 1.25;
 	const int MAX_HEADER_LEVEL = 3;
 
-	// Resource key (defined in App.xaml as "NotoSansJPRegular") for the
-	// bundled Noto Sans JP alias registered in MauiProgram.ConfigureFonts.
+	// Resource key whose value ("NotoSansJPRegular") is the bundled Noto
+	// Sans JP alias registered in MauiProgram.ConfigureFonts. The resource
+	// itself is injected by App.xaml.cs (XamlC can't materialize
+	// <sys:String> in App.xaml — XC0004 on System.String).
 	// The implicit <Style TargetType="Label"> in Styles.xaml has no
 	// ApplyToDerivedTypes, so this Label subclass — and the Spans it builds
 	// — never inherit {DynamicResource DefaultFontFamily}. Without an

@@ -567,19 +567,42 @@ fi
 # port 4723. The fresh `appium &` below would then fail with EADDRINUSE,
 # but the readiness probe would still pass (it talks to the zombie), and
 # the zombie gets SIGTERM'd mid-test → "session is either terminated or
-# not started" failures. Free the port before binding.
+# not started" failures. Free the port before binding — but only if the
+# holder is actually Appium. On a dev machine port 4723 could be held by
+# something unrelated (a forwarded SSH tunnel, another tool the developer
+# is running). Filter by the process's command line so we don't blindly
+# SIGKILL strangers.
 APPIUM_PORT="${APPIUM_URL##*:}"
-STALE_APPIUM_PIDS="$(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null || true)"
+appium_pids_on_port() {
+  local pid pids=""
+  for pid in $(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null); do
+    # `ps -o command=` prints the full argv. Appium is `node .../appium ...`,
+    # so the literal substring "appium" appears in the command line.
+    if ps -p "$pid" -o command= 2>/dev/null | grep -q '[a]ppium'; then
+      pids="$pids $pid"
+    fi
+  done
+  echo "$pids" | xargs
+}
+STALE_APPIUM_PIDS="$(appium_pids_on_port)"
+OTHER_PIDS_ON_PORT="$(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null | tr '\n' ' ' | xargs)"
 if [[ -n "$STALE_APPIUM_PIDS" ]]; then
-  log "Port $APPIUM_PORT busy (PIDs: $(echo "$STALE_APPIUM_PIDS" | tr '\n' ' ')) — killing stale Appium..."
+  log "Port $APPIUM_PORT busy with Appium (PIDs: $STALE_APPIUM_PIDS) — killing stale Appium..."
   # shellcheck disable=SC2086
   kill $STALE_APPIUM_PIDS 2>/dev/null || true
   for _ in {1..10}; do
-    lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN >/dev/null 2>&1 || break
+    [[ -z "$(appium_pids_on_port)" ]] && break
     sleep 1
   done
-  # shellcheck disable=SC2046
-  kill -9 $(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null) 2>/dev/null || true
+  STALE_APPIUM_PIDS="$(appium_pids_on_port)"
+  if [[ -n "$STALE_APPIUM_PIDS" ]]; then
+    # shellcheck disable=SC2086
+    kill -9 $STALE_APPIUM_PIDS 2>/dev/null || true
+  fi
+elif [[ -n "$OTHER_PIDS_ON_PORT" ]]; then
+  err "Port $APPIUM_PORT is held by a non-Appium process (PIDs: $OTHER_PIDS_ON_PORT). " \
+      "Free it manually or set APPIUM_URL to a different port."
+  exit 1
 fi
 
 log "Starting Appium server..."
