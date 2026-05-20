@@ -59,9 +59,15 @@ public static class MauiProgram
 #endif
 			.ConfigureFonts(static fonts =>
 			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+				// 全UIの既定フォントは同梱の Noto Sans JP に統一する。
+				// Noto Sans JP はラテン文字も内包するため英語/中立カルチャも
+				// これで描画でき、OS の Hiragino フォールバック (CI とローカルで
+				// バージョン差異が出る) を排除して描画を決定的にする。
+				// 明示的に FontFamily を指定した箇所 (DTAC 系の Hiragino 等) と
+				// アイコン用 MaterialIcons は対象外。
 				fonts.AddFont("MaterialIcons-Regular.ttf", "MaterialIconsRegular");
+				fonts.AddFont("NotoSansJP-Regular.ttf", "NotoSansJPRegular");
+				fonts.AddFont("NotoSansJP-Bold.ttf", "NotoSansJPBold");
 			})
 			.ConfigureFirebase();
 

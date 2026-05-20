@@ -48,11 +48,17 @@ if [[ "$PLATFORM" == "device" && -n "${2:-}" && "${2}" != --* ]]; then
   DEVICE_UDID_OVERRIDE="$2"
 fi
 
+# Optional VSTest filter expression passed straight to `dotnet test
+# --filter` (e.g. "FullyQualifiedName~ScreenshotRegressionTests" to run
+# only the screenshot-regression fixture for a baseline refresh).
+TEST_FILTER=""
+
 for arg in "$@"; do
   case "$arg" in
     --skip-build)   SKIP_BUILD=true ;;
     --skip-install) SKIP_INSTALL=true ;;
     --device-class=*) DEVICE_CLASS="${arg#*=}" ;;
+    --filter=*)     TEST_FILTER="${arg#*=}" ;;
   esac
 done
 
@@ -211,11 +217,35 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
 
   if [[ -z "$DEVICE_ID" || "$DEVICE_ID" == "null" ]]; then
     log "No existing simulator for '$SIM_DEVICE_NAME' — creating '$SIM_REUSE_NAME'."
-    # Pick the highest available iOS runtime first (works for iPhone 16, iPad mini 6, iPad mini A17).
-    SIM_RUNTIME=$(xcrun simctl list runtimes --json \
-      | jq -r '[.runtimes[] | select(.platform == "iOS" or (.identifier | contains("iOS")))] | sort_by(.version) | reverse | .[0].identifier')
-    if [[ -z "$SIM_RUNTIME" || "$SIM_RUNTIME" == "null" ]]; then
-      die "No iOS runtime available to create simulator '$SIM_DEVICE_NAME'."
+    # Runtime selection for the create path. ScreenshotRegressionTests
+    # baselines are pixel-sensitive to the simulator runtime's text rendering,
+    # so when IOS_SIM_RUNTIME_VERSION is set (CI pins it to the Xcode
+    # toolchain's iOS runtime — see .github/workflows/ui-test.yml) pin the
+    # create to that version for the gated classes instead of "whatever is
+    # highest on the runner". ipad-mini-5 is intentionally excluded: it caps
+    # at iPadOS 17 and uses its own separate runtime, so it always takes the
+    # highest-available branch below. If the pinned runtime is genuinely
+    # absent, die loudly rather than silently drifting onto another runtime
+    # and producing un-reviewable baseline diffs.
+    if [[ -n "${IOS_SIM_RUNTIME_VERSION:-}" \
+          && ( "$DEVICE_CLASS" == "iphone" || "$DEVICE_CLASS" == "ipad-mini-a17" ) ]]; then
+      log "Pinning iOS runtime to version '$IOS_SIM_RUNTIME_VERSION' (class: $DEVICE_CLASS)."
+      SIM_RUNTIME=$(xcrun simctl list runtimes --json \
+        | jq -r --arg v "$IOS_SIM_RUNTIME_VERSION" \
+            '[.runtimes[] | select((.platform == "iOS" or (.identifier | contains("iOS"))) and (.version | startswith($v)))] | sort_by(.version) | reverse | .[0].identifier')
+      if [[ -z "$SIM_RUNTIME" || "$SIM_RUNTIME" == "null" ]]; then
+        log "Available iOS runtimes:"
+        xcrun simctl list runtimes | grep -i ios || log "(none)"
+        die "Pinned iOS runtime version '$IOS_SIM_RUNTIME_VERSION' not found. Refusing to fall back to another runtime — screenshot baselines are runtime-sensitive. Check XCODE_VERSION / IOS_SIM_RUNTIME_VERSION in .github/workflows/ui-test.yml."
+      fi
+    else
+      # Pick the highest available iOS runtime (iPhone 16, iPad mini A17, and
+      # the iPadOS-17-capped iPad mini 5 default-name reuse path).
+      SIM_RUNTIME=$(xcrun simctl list runtimes --json \
+        | jq -r '[.runtimes[] | select(.platform == "iOS" or (.identifier | contains("iOS")))] | sort_by(.version) | reverse | .[0].identifier')
+      if [[ -z "$SIM_RUNTIME" || "$SIM_RUNTIME" == "null" ]]; then
+        die "No iOS runtime available to create simulator '$SIM_DEVICE_NAME'."
+      fi
     fi
     log "Creating simulator '$SIM_REUSE_NAME' on runtime '$SIM_RUNTIME'..."
     if ! DEVICE_ID=$(xcrun simctl create "$SIM_REUSE_NAME" "$SIM_DEVICE_TYPE" "$SIM_RUNTIME" 2>&1); then
@@ -379,6 +409,31 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
     xcrun simctl list devices | grep -A2 -B2 "$DEVICE_ID" || true
     die "Simulator $DEVICE_ID failed to boot within 20 minutes (state: $SIM_STATE)"
   fi
+
+  # ── Freeze the iOS status bar for screenshot regression ──────────
+  # ScreenshotRegressionTests captures Driver.GetScreenshot(), which on
+  # iOS includes the device status bar. Without an override the clock /
+  # battery / signal pixels change every run and every baseline diff
+  # fails. Pin them to Apple's marketing values (time 9:41, full battery,
+  # full wifi). Applied once after boot and before the first Appium
+  # session — the override sticks until the simulator shuts down, so it
+  # does not need re-applying per test. Best-effort: a failure here only
+  # affects the screenshot fixture, not the functional suite.
+  log "Applying status-bar override (time 9:41, full battery/wifi)..."
+  # Plain "9:41" (Apple marketing time). An ISO string with a timezone
+  # offset is rejected by simctl on Xcode 26 ("Invalid, non-ISO
+  # date/time string"); the bare HH:MM form is what reliably sets the
+  # status-bar clock without also trying to set the device date.
+  xcrun simctl status_bar "$DEVICE_ID" override \
+    --time "9:41" \
+    --dataNetwork wifi \
+    --wifiMode active \
+    --wifiBars 3 \
+    --cellularMode active \
+    --cellularBars 4 \
+    --batteryState charged \
+    --batteryLevel 100 \
+    || log "WARN: status_bar override failed (screenshot baselines may be flaky)."
 fi
 
 # ── Pre-install iOS app on simulator ───────────────────────────
@@ -393,6 +448,27 @@ if [[ "$IS_SIMULATOR" == true && "$PLATFORM_VALUE" == "ios" ]]; then
   log "Pre-installing app on simulator $DEVICE_ID..."
   xcrun simctl install "$DEVICE_ID" "$APP_PATH"
   log "App pre-installed."
+
+  # noReset:true (above) keeps the app's *data container* across runs, so
+  # a MyAppCustomizables.json written by a prior run survives reinstall.
+  # EasterEggPageViewModel.InitAsync loads that persisted file (it only
+  # honours the compiled-in defaults when the file is *newly created*), so
+  # a stale TitleColor (e.g. black, from before the #558833 default) would
+  # be re-applied to the Shell AppBar and the screenshot baselines would
+  # never reflect the shipped default. NSUserDefaults is reset per-test by
+  # BaseUITest.ResetAppState, but this JSON settings file is not — delete
+  # it once here so every run starts from the app's compiled-in defaults.
+  APP_DATA_DIR=$(xcrun simctl get_app_container "$DEVICE_ID" dev.t0r.trvis data 2>/dev/null || true)
+  if [[ -n "$APP_DATA_DIR" && -d "$APP_DATA_DIR" ]]; then
+    REMOVED_SETTINGS=$(find "$APP_DATA_DIR" -name 'MyAppCustomizables.json' -print -delete 2>/dev/null || true)
+    if [[ -n "$REMOVED_SETTINGS" ]]; then
+      log "Removed stale settings file(s) so defaults apply: $REMOVED_SETTINGS"
+    else
+      log "No stale MyAppCustomizables.json found (clean install)."
+    fi
+  else
+    log "WARN: could not resolve app data container — settings file not reset."
+  fi
 fi
 
 # ── Pre-build WebDriverAgent for usePrebuiltWDA ─────────────────
@@ -487,6 +563,48 @@ else
 fi
 
 # ── Start Appium server ─────────────────────────────────────────
+# A previous run that died uncleanly can leave an orphaned Appium holding
+# port 4723. The fresh `appium &` below would then fail with EADDRINUSE,
+# but the readiness probe would still pass (it talks to the zombie), and
+# the zombie gets SIGTERM'd mid-test → "session is either terminated or
+# not started" failures. Free the port before binding — but only if the
+# holder is actually Appium. On a dev machine port 4723 could be held by
+# something unrelated (a forwarded SSH tunnel, another tool the developer
+# is running). Filter by the process's command line so we don't blindly
+# SIGKILL strangers.
+APPIUM_PORT="${APPIUM_URL##*:}"
+appium_pids_on_port() {
+  local pid pids=""
+  for pid in $(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null); do
+    # `ps -o command=` prints the full argv. Appium is `node .../appium ...`,
+    # so the literal substring "appium" appears in the command line.
+    if ps -p "$pid" -o command= 2>/dev/null | grep -q '[a]ppium'; then
+      pids="$pids $pid"
+    fi
+  done
+  echo "$pids" | xargs
+}
+STALE_APPIUM_PIDS="$(appium_pids_on_port)"
+OTHER_PIDS_ON_PORT="$(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null | tr '\n' ' ' | xargs)"
+if [[ -n "$STALE_APPIUM_PIDS" ]]; then
+  log "Port $APPIUM_PORT busy with Appium (PIDs: $STALE_APPIUM_PIDS) — killing stale Appium..."
+  # shellcheck disable=SC2086
+  kill $STALE_APPIUM_PIDS 2>/dev/null || true
+  for _ in {1..10}; do
+    [[ -z "$(appium_pids_on_port)" ]] && break
+    sleep 1
+  done
+  STALE_APPIUM_PIDS="$(appium_pids_on_port)"
+  if [[ -n "$STALE_APPIUM_PIDS" ]]; then
+    # shellcheck disable=SC2086
+    kill -9 $STALE_APPIUM_PIDS 2>/dev/null || true
+  fi
+elif [[ -n "$OTHER_PIDS_ON_PORT" ]]; then
+  err "Port $APPIUM_PORT is held by a non-Appium process (PIDs: $OTHER_PIDS_ON_PORT). " \
+      "Free it manually or set APPIUM_URL to a different port."
+  exit 1
+fi
+
 log "Starting Appium server..."
 appium &
 APPIUM_PID=$!
@@ -521,10 +639,19 @@ DOTNET_TEST_ARGS=(
   "$UITESTS_CSPROJ_PATH"
   --configuration Debug
   --logger "trx;LogFileName=$LOG_FILE"
+)
+if [[ -n "$TEST_FILTER" ]]; then
+  log "Applying test filter: $TEST_FILTER"
+  DOTNET_TEST_ARGS+=(--filter "$TEST_FILTER")
+fi
+DOTNET_TEST_ARGS+=(
   --
   "TestRunParameters.Parameter(name=\"platform\",value=\"$PLATFORM_VALUE\")"
   "TestRunParameters.Parameter(name=\"appPath\",value=\"$APP_PATH\")"
   "TestRunParameters.Parameter(name=\"appiumUrl\",value=\"$APPIUM_URL\")"
+  # Selects the screenshot-regression baseline directory
+  # (TRViS.UITests/Screenshots/<deviceClass>/...) and the pixel-diff gate.
+  "TestRunParameters.Parameter(name=\"deviceClass\",value=\"$DEVICE_CLASS\")"
 )
 if [[ -n "${DEVICE_ID:-}" ]]; then
   DOTNET_TEST_ARGS+=("TestRunParameters.Parameter(name=\"deviceUdid\",value=\"$DEVICE_ID\")")

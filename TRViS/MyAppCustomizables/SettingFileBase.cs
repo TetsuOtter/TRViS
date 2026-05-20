@@ -20,9 +20,9 @@ public partial class SettingFileStructure
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	/// <summary>
-	/// タイトルバーの背景色
+	/// タイトルバーの背景色 (既定: #558833)
 	/// </summary>
-	public ColorSetting TitleColor { get; set; } = new();
+	public ColorSetting TitleColor { get; set; } = new(0x55, 0x88, 0x33);
 
 	/// <summary>
 	/// マーカーの色一覧

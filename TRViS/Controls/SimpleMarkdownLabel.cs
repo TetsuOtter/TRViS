@@ -17,12 +17,34 @@ public partial class SimpleMarkdownLabel : Label
 	const double HEADER_LINE_HEIGHT = 1.25;
 	const int MAX_HEADER_LEVEL = 3;
 
+	// Resource key whose value ("NotoSansJPRegular") is the bundled Noto
+	// Sans JP alias registered in MauiProgram.ConfigureFonts. The resource
+	// itself is injected by App.xaml.cs (XamlC can't materialize
+	// <sys:String> in App.xaml — XC0004 on System.String).
+	// The implicit <Style TargetType="Label"> in Styles.xaml has no
+	// ApplyToDerivedTypes, so this Label subclass — and the Spans it builds
+	// — never inherit {DynamicResource DefaultFontFamily}. Without an
+	// explicit FontFamily the privacy-policy Markdown falls back to the iOS
+	// system CJK font (PingFang SC — Simplified-Chinese glyph shapes) for
+	// BOTH Japanese and English captures, which is the screenshot diff.
+	const string DefaultFontFamilyResourceKey = "DefaultFontFamily";
+
 	public SimpleMarkdownLabel()
 	{
 		logger.Trace("Creating...");
 		LineHeight = 1.1;
 		LineBreakMode = LineBreakMode.WordWrap;
+		this.SetDynamicResource(Label.FontFamilyProperty, DefaultFontFamilyResourceKey);
 		logger.Trace("Created.");
+	}
+
+	// Belt-and-suspenders: a Span does not reliably inherit FontFamily from
+	// its parent Label across MAUI versions, so pin it on every generated
+	// Span too (see DefaultFontFamilyResourceKey rationale above).
+	static Span WithDefaultFont(Span span)
+	{
+		span.SetDynamicResource(Span.FontFamilyProperty, DefaultFontFamilyResourceKey);
+		return span;
 	}
 
 	partial void OnMarkdownFileContentChanged(string? newValue)
@@ -81,7 +103,7 @@ public partial class SimpleMarkdownLabel : Label
 			static Span FlushToSpan(StringBuilder sb)
 			{
 				if (sb.Length == 0)
-					return new Span();
+					return WithDefaultFont(new Span());
 
 				logger.Trace(">> 0 < sb.Length");
 				Span span = new()
@@ -89,7 +111,7 @@ public partial class SimpleMarkdownLabel : Label
 					Text = sb.ToString(),
 				};
 				sb.Clear();
-				return span;
+				return WithDefaultFont(span);
 			}
 
 			StringBuilder sb = new();
@@ -123,12 +145,12 @@ public partial class SimpleMarkdownLabel : Label
 					}
 					logger.Trace("> headerLevel: '{0}'", headerLevel);
 
-					spanList.Add(new Span
+					spanList.Add(WithDefaultFont(new Span
 					{
 						Text = inputTextLine[headerLevel..].Trim(),
 						FontSize = H0_FONT_SIZE - headerLevel * HEADER_FONT_SIZE_STEP,
 						LineHeight = HEADER_LINE_HEIGHT,
-					});
+					}));
 				}
 				else if (isUrlLine)
 				{
@@ -148,7 +170,7 @@ public partial class SimpleMarkdownLabel : Label
 						},
 					};
 					linkSpan.SetAppThemeColor(Span.TextColorProperty, Colors.Blue, Colors.Aqua);
-					spanList.Add(linkSpan);
+					spanList.Add(WithDefaultFont(linkSpan));
 				}
 				else
 				{

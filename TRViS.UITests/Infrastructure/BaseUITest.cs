@@ -773,14 +773,31 @@ public abstract class BaseUITest
 		_driver = null;
 	}
 
+	// Parameterized test FullName (e.g. CaptureAndDiffAllScreens("light","en"))
+	// contains characters GitHub Actions artifact upload rejects (" : < > | * ?
+	// CR LF). Allowlist to [A-Za-z0-9._-]; everything else -> '_'. Replacing
+	// only space and slash (the old behaviour) left the double-quote and broke
+	// the "Upload test results" step on PR #281.
+	static string SanitizeForFileName(string name)
+	{
+		var chars = name.ToCharArray();
+		for (int i = 0; i < chars.Length; i++)
+		{
+			char c = chars[i];
+			bool ok = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+				|| (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
+			if (!ok)
+				chars[i] = '_';
+		}
+		return new string(chars);
+	}
+
 	protected void TakeScreenshot()
 	{
 		try
 		{
 			var screenshot = Driver.GetScreenshot();
-			var testName = TestContext.CurrentContext.Test.FullName
-				.Replace(' ', '_')
-				.Replace('/', '_');
+			var testName = SanitizeForFileName(TestContext.CurrentContext.Test.FullName);
 			var path = Path.Combine(
 				TestContext.CurrentContext.WorkDirectory,
 				$"{testName}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
@@ -798,9 +815,7 @@ public abstract class BaseUITest
 		try
 		{
 			string source = Driver.PageSource;
-			var testName = TestContext.CurrentContext.Test.FullName
-				.Replace(' ', '_')
-				.Replace('/', '_');
+			var testName = SanitizeForFileName(TestContext.CurrentContext.Test.FullName);
 			var path = Path.Combine(
 				TestContext.CurrentContext.WorkDirectory,
 				$"{testName}_{DateTime.Now:yyyyMMdd_HHmmss}.pagesource.xml");

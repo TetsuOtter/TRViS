@@ -12,6 +12,18 @@ public class AppTimeProvider : ITimeProvider
 
 	private TimeProgressionRate _progressionRate = TimeProgressionRate.Normal;
 
+#if UI_TEST
+	/// <summary>
+	/// UI_TEST-only clock-freeze seam. When non-null, <see cref="GetCurrentTimeSeconds"/>
+	/// returns this fixed "seconds since 00:00" value instead of the real wall
+	/// clock, making DTAC time-table screenshot baselines deterministic. Set/cleared
+	/// via the <c>StartHome.TestFreezeClockButton</c> seam. Static so the seam can
+	/// reach it without holding the singleton instance. Production builds compile
+	/// this out entirely.
+	/// </summary>
+	public static int? UiTestFrozenSeconds { get; set; }
+#endif
+
 	/// <summary>
 	/// 時間の進み方の倍率
 	/// </summary>
@@ -40,6 +52,18 @@ public class AppTimeProvider : ITimeProvider
 	/// <returns>0時0分からの経過秒数</returns>
 	public int GetCurrentTimeSeconds()
 	{
+#if UI_TEST
+		// UI_TEST-only clock-freeze seam. When set (via the
+		// StartHome.TestFreezeClockButton seam) the DTAC AppBar's live HH:mm:ss
+		// clock pins to a fixed value so screenshot-regression baselines of the
+		// time-table are pixel-deterministic. The LocationService 100 ms poll
+		// loop converges the label to this value within one tick because the
+		// frozen value differs from the last-raised real value. Compiled out of
+		// production builds entirely.
+		if (UiTestFrozenSeconds is int frozen)
+			return frozen;
+#endif
+
 		DateTime now = DateTime.Now;
 		
 		switch (ProgressionRate)
