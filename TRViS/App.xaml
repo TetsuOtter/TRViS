@@ -2,6 +2,7 @@
 <Application
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:sys="clr-namespace:System;assembly=System.Runtime"
 	xmlns:local="clr-namespace:TRViS"
 	x:Class="TRViS.App">
 	<Application.Resources>
@@ -10,6 +11,17 @@
 				<ResourceDictionary Source="Resources/Styles/Colors.xaml" />
 				<ResourceDictionary Source="Resources/Styles/Styles.xaml" />
 			</ResourceDictionary.MergedDictionaries>
+
+			<!--
+				アプリ全体の既定フォント。Styles.xaml の各暗黙スタイルが
+				FontFamily を {DynamicResource DefaultFontFamily} で参照する。
+				同梱の Noto Sans JP はラテン文字も内包するため、日本語・
+				英語・中立カルチャを問わず単一フォントで描画でき、OS の
+				Hiragino フォールバック (環境間のバージョン差異で描画が
+				ぶれる) を排除して決定的にする。明示的に FontFamily を
+				指定している箇所 (DTAC 系の Hiragino 等) には影響しない。
+			-->
+			<sys:String x:Key="DefaultFontFamily">NotoSansJPRegular</sys:String>
 		</ResourceDictionary>
 	</Application.Resources>
 </Application>
