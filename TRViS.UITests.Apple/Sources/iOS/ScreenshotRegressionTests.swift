@@ -69,6 +69,22 @@ class ScreenshotRegressionTests: BaseUITestCase {
 
         var allFailures: [String] = []
 
+        // Pre-warm: navigate to the Settings page once in light theme before
+        // the combo loop so the circular nav icon is rendered and cached before
+        // the first productive capture (light/ja). The icon's anti-aliasing is
+        // non-deterministic on the very first Core Animation layer creation in a
+        // session; all subsequent renders use the cached layer and are stable.
+        // Without this, light/ja is always the first settings render and drifts ±1
+        // per-channel from the baseline on every run.
+        start.forceThemeForTesting(dark: false)
+        Thread.sleep(forTimeInterval: 0.5)
+        _ = shell.navigateToSettings()
+        settle()
+        _ = shell.navigateToHome()
+        start.clearLoaderForTesting()
+        start.resetThemeForTesting()
+        Thread.sleep(forTimeInterval: 0.3)
+
         for combo in combos {
             let (theme, lang) = (combo.theme, combo.lang)
             let dark = (theme == "dark")
