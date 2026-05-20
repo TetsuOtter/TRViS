@@ -1065,10 +1065,16 @@ jobs:
       - name: Apply status-bar override (screenshot determinism)
         run: |
           # Pin the iOS status bar to a deterministic appearance so captured
-          # screenshots are pixel-stable across runs (ISO date fixes both date
-          # and time; cellular active mirrors real-device appearance).
+          # screenshots are pixel-stable across runs.
+          # Xcode 26 simctl requires milliseconds + timezone offset in --time;
+          # bare ISO strings (no .000 / no tz) are rejected with EINVAL.
+          # Express 09:41 in the host's local UTC offset so simctl always
+          # displays "9:41" regardless of runner timezone.
+          DISPLAY_TIME=$(date -j -f "%Y-%m-%dT%H:%M:%S" "2026-01-01T09:41:00" \
+            "+%Y-%m-%dT%H:%M:%S.000%z" \
+            | sed 's/\([+-][0-9][0-9]\)\([0-9][0-9]\)$/\1:\2/')
           xcrun simctl status_bar "$SIM_UDID" override \
-            --time "2026-01-01T09:41:00" \
+            --time "$DISPLAY_TIME" \
             --dataNetwork wifi \
             --wifiMode active \
             --wifiBars 3 \
