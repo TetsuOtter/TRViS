@@ -230,7 +230,9 @@ class ScreenshotRegressionTests: BaseUITestCase {
     /// so the full walk completes and produces a complete diff report.
     private func capture(screen: String, theme: String, lang: String, failures: inout [String]) {
         let shot    = XCUIScreen.main.screenshot()
-        let pngData = shot.pngRepresentation
+        let pngData = ScreenshotBaselineHelper.maskNonDeterministicRegions(
+            shot.pngRepresentation
+        )
 
         // Always attach for CI artifact inspection / Apple review deliverable
         let attachment = XCTAttachment(data: pngData, uniformTypeIdentifier: "public.png")
