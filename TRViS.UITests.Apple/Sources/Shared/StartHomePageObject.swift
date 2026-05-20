@@ -17,7 +17,7 @@ class StartHomePageObject {
         self.base = base
     }
 
-    // MARK: — Core state predicates (ported from C# StartHomePageObject)
+    // MARK: — Core state predicates
 
     /// True when the StartHome page is displayed (title element is visible).
     /// Uses a 60 s timeout to match the C# implementation, which accounts for
@@ -58,7 +58,7 @@ class StartHomePageObject {
         return false
     }
 
-    // MARK: — Privacy acceptance (ported from C# AcceptPrivacyPolicyIfNeeded)
+    // MARK: — Privacy acceptance
 
     /// Opens the privacy dialog and taps Save so feature buttons become enabled.
     /// Fast-paths (no-ops) when the privacy reconfirm banner is not on screen,
@@ -97,7 +97,7 @@ class StartHomePageObject {
         Thread.sleep(forTimeInterval: 0.3)
     }
 
-    // MARK: — Sample data loading (ported from C# LoadSample)
+    // MARK: — Sample data loading
 
     /// Taps the Load Demo button. After load, the page transitions to Home mode
     /// and the WorkGroup list becomes visible.
@@ -118,7 +118,7 @@ class StartHomePageObject {
         return base.waitForElement(id: AutomationIds.StartHome.workGroupList, timeout: timeout)
     }
 
-    // MARK: — WorkGroupChip visibility (ported from C# IsWorkGroupChipVisible)
+    // MARK: — WorkGroupChip visibility
 
     /// Returns true when the WorkGroupChip is on screen (tentative WG selected).
     /// Polls briefly (1 s) so the caller's assertion is not a race on layout.
@@ -136,7 +136,7 @@ class StartHomePageObject {
         return false
     }
 
-    // MARK: — Third Party Licenses (ported from C# OpenThirdPartyLicenses)
+    // MARK: — Third Party Licenses
 
     /// Taps the footer "Third Party Licenses" link and returns the page object.
     func openThirdPartyLicenses() -> ThirdPartyLicensesPageObject {
@@ -150,7 +150,7 @@ class StartHomePageObject {
         return ThirdPartyLicensesPageObject(app: app, base: base)
     }
 
-    // MARK: — WorkGroupList visibility (ported from C# IsWorkGroupListVisible)
+    // MARK: — WorkGroupList visibility
 
     /// Polls up to `timeout` for the WorkGroupList to become visible (Home mode).
     /// Returns true once visible; false on timeout.
@@ -237,7 +237,7 @@ class StartHomePageObject {
         base.tapSeam(id: AutomationIds.StartHome.testSetLanguageJapaneseButton)
     }
 
-    // MARK: — Clock freeze seams (ScreenshotRegressionTests Phase 3)
+    // MARK: — Clock freeze seams (used by ScreenshotRegressionTests)
 
     /// Pins AppTimeProvider at 09:41:00 so the DTAC live clock is pixel-stable.
     /// Must be called after sample data is loaded (seam button is only wired up
@@ -251,7 +251,7 @@ class StartHomePageObject {
         base.tapSeam(id: AutomationIds.StartHome.testUnfreezeClockButton)
     }
 
-    // MARK: — Theme force seams (ScreenshotRegressionTests Phase 3)
+    // MARK: — Theme force seams (used by ScreenshotRegressionTests)
 
     /// Forces the app-wide theme to Light or Dark for deterministic cross-palette
     /// screenshots. Taps the appropriate seam button based on `dark`.
@@ -267,7 +267,7 @@ class StartHomePageObject {
         base.tapSeam(id: AutomationIds.StartHome.testResetThemeButton)
     }
 
-    // MARK: — Privacy Policy dialog (ScreenshotRegressionTests Phase 3)
+    // MARK: — Privacy Policy dialog (used by ScreenshotRegressionTests)
 
     /// Taps the footer "Privacy Policy" link and waits for the dialog to appear.
     func openPrivacyPolicyDialog() {
@@ -312,7 +312,7 @@ class StartHomePageObject {
         return btn.value as? String ?? ""
     }
 
-    // MARK: — Test seam buttons (ported from C# ClearLoaderForTesting / AutoOpenForTesting)
+    // MARK: — Test seam buttons
 
     /// Taps the UI_TEST seam that clears the loader (returns to Start mode).
     func clearLoaderForTesting() {

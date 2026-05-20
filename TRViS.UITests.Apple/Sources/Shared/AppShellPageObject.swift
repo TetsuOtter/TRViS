@@ -73,7 +73,7 @@ class AppShellPageObject {
         return nil
     }
 
-    // MARK: — Navigation (ported from C# AppShellPage)
+    // MARK: — Navigation
 
     /// Navigates to the DTAC view via the Shell flyout.
     func navigateToDTAC() -> DTACViewHostPageObject {

@@ -742,7 +742,7 @@ jobs:
             **/TestResults/**/*.xml
 
   # ─────────────────────────────────────────────
-  # Apple XCUITest (Phase 1: AppLaunchTests)
+  # Apple XCUITest
   #
   # iOS Simulator: drives a pre-installed MAUI debug build with Swift
   # XCUITest via xcodegen-generated project (TRViS.UITests.Apple/ios/).
@@ -960,7 +960,7 @@ jobs:
           if-no-files-found: ignore
 
   # ─────────────────────────────────────────────
-  # Apple XCUITest — Screenshot Regression (Phase 3)
+  # Apple XCUITest — Screenshot Regression
   #
   # Captures every reachable screen in (light, dark) × (ja, en) and diffs
   # each frame against a committed baseline. iOS only (no Catalyst port).

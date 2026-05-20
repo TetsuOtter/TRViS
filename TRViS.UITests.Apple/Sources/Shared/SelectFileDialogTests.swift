@@ -1,9 +1,9 @@
 // SelectFileDialogTests.swift
-// XCUITest port of TRViS.UITests/Tests/SelectFileDialogTests.cs (10 tests).
+// Mirrors TRViS.UITests/Tests/SelectFileDialogTests.cs (10 tests).
 //
 // C# uses ShareSessionAcrossTestsInFixture=true with shared-session recovery
 // (close stray dialog, navigate home, clear loader, clear sample files).
-// This port uses per-test cold launch — all recovery blocks are dropped.
+// This class uses per-test cold launch — all recovery blocks are dropped.
 //
 // SetUp calls clearSampleFilesForTesting() before every test to wipe
 // TimetableFileDirectory + clear the FilePicker override static, matching the

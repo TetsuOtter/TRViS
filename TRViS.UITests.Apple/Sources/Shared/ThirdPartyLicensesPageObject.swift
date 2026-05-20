@@ -15,7 +15,7 @@ class ThirdPartyLicensesPageObject {
         self.base = base
     }
 
-    // MARK: — Display check (ported from C# IsDisplayed)
+    // MARK: — Display check
 
     /// True when the Third Party Licenses page is visible (LicenseList is present).
     func isDisplayed(timeout: TimeInterval = 30) -> Bool {
@@ -27,7 +27,7 @@ class ThirdPartyLicensesPageObject {
         return el.exists
     }
 
-    // MARK: — Modal close (ported from C# CloseModal)
+    // MARK: — Modal close
 
     /// Taps the modal close (X) icon and waits until the license list is gone,
     /// returning to StartHomePage.

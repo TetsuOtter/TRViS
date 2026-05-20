@@ -1,11 +1,11 @@
 // DTACTimetableTests.swift
-// XCUITest port of TRViS.UITests/Tests/DTACTimetableTests.cs (Phase 2C).
+// Mirrors TRViS.UITests/Tests/DTACTimetableTests.cs.
 //
 // Covers: demo-data happy path (load → open → timetable tab → StartEndRun →
 // OpenClose), NextTrainButton present when NextTrainId set, GPS deeplink
 // survives the timetable render.
 //
-// NOT ported: NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId — the
+// Not covered: NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId — the
 // C# source contains an explicit Assert.Ignore for iOS/Mac (lines 187-202 of
 // DTACTimetableTests.cs): "Apple's accessibility tree surfaces unparented
 // elements with AutomationId as visible on some OS versions — we cannot
@@ -54,7 +54,7 @@ final class DTACTimetableTests: BaseUITestCase {
     func testDemoData_LoadOpenAndExerciseTimetable_HappyPath() throws {
         XCTAssertTrue(startHome.isDisplayed(), "StartHome should be displayed at fixture entry.")
 
-        // Phase 1: LoadSample populates WorkGroup list.
+        // Step 1: LoadSample populates WorkGroup list.
         startHome.loadSample()
         guard let _ = startHome.waitForWorkGroupList(timeout: 30) else {
             XCTFail("WorkGroupList should appear after LoadSample.")
@@ -66,14 +66,14 @@ final class DTACTimetableTests: BaseUITestCase {
             "LoadSample should produce at least 2 work-group rows."
         )
 
-        // Phase 2: AutoOpenForTesting commits selection + navigates to DTAC.
+        // Step 2: AutoOpenForTesting commits selection + navigates to DTAC.
         let dtac = startHome.autoOpenForTesting()
         XCTAssertTrue(
             dtac.isDisplayed(),
             "DTAC view should be displayed after AutoOpenForTesting."
         )
 
-        // Phase 3: Switch to timetable tab.
+        // Step 3: Switch to timetable tab.
         dtac.switchToTimetableTab()
         guard let scrollView = dtac.timetableScrollView() else {
             XCTFail("TimetableScrollView should be visible after switching to the 時刻表 tab.")
@@ -85,7 +85,7 @@ final class DTACTimetableTests: BaseUITestCase {
             "(also the GPS auto-scroll target)."
         )
 
-        // Phase 4: 運行開始 toggle round-trip.
+        // Step 4: 運行開始 toggle round-trip.
         guard let startEndBtn = dtac.startEndRunButton() else {
             XCTFail("StartEndRunButton should be visible in the timetable tab.")
             return
@@ -116,7 +116,7 @@ final class DTACTimetableTests: BaseUITestCase {
             "StartEndRunButton should still be visible after toggling 運行開始 off (repeated taps OK)."
         )
 
-        // Phase 5: OpenClose toggle round-trip.
+        // Step 5: OpenClose toggle round-trip.
         guard let openCloseBtn = dtac.openCloseButton() else {
             XCTFail("OpenCloseButton should be visible in the timetable tab.")
             return

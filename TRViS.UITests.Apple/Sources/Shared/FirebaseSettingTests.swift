@@ -1,7 +1,7 @@
 // FirebaseSettingTests.swift
-// XCUITest port of TRViS.UITests/Tests/FirebaseSettingTests.cs (1 test).
+// Mirrors TRViS.UITests/Tests/FirebaseSettingTests.cs (1 test).
 //
-// PORT NOTE — ordering / banner-visibility constraint:
+// NOTE — ordering / banner-visibility constraint:
 //   The C# fixture is tagged [Order(2)] and relies on a globally-shared Appium session
 //   that starts from a clean-install state. The test asserts the privacy-reconfirm
 //   banner is VISIBLE before acceptance, which requires no prior test to have
@@ -22,10 +22,10 @@
 //
 //   Since no privacy-reset seam exists (constraint: no changes to TRViS/ or
 //   TRViS.UITests/) and XCTest class ordering is not guaranteed stable,
-//   this test is SKIPPED in the XCUITest port. The C# NUnit test continues to
+//   this test is SKIPPED in this XCUITest suite. The C# NUnit test continues to
 //   cover the banner-visible-before-acceptance path in the Appium suite.
 //
-// All iOS/Apple-relevant content from the C# file has been ported to
+// All iOS/Apple-relevant content is covered by
 // AppLaunchTests.swift (app_Launches_Into_StartHome_With_Privacy_Banner) and
 // the acceptPrivacyPolicyIfNeeded() path shared across all setUp methods, so
 // the production regression surface is preserved.
@@ -35,7 +35,7 @@ import XCTest
 final class FirebaseSettingTests: BaseUITestCase {
 
     // testPrivacyDialog_AcceptsAndDismissesReconfirmBanner is intentionally not
-    // ported — see the PORT NOTE in the file header above.
+    // skipped — see the NOTE in the file header above.
     //
     // XCTest requires at least one test method in a test class, so we add a
     // placeholder that always passes and documents the skip rationale.

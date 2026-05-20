@@ -20,7 +20,7 @@ class HorizontalTimetablePageObject {
         self.base = base
     }
 
-    // MARK: — Display check (ported from C# IsDisplayed)
+    // MARK: — Display check
 
     /// True when the HorizontalTimetable page's WebView wrapper Grid is in the
     /// accessibility tree and has a non-zero frame (i.e., it is laid out).
@@ -33,7 +33,7 @@ class HorizontalTimetablePageObject {
         return el.exists && el.frame.size.width > 0 && el.frame.size.height > 0
     }
 
-    // MARK: — Navigation (ported from C# TapBack)
+    // MARK: — Navigation
 
     /// Taps the AppBar back button to pop back to DTAC.
     /// HorizontalTimetable is a Shell.GoToAsync pushed page (not a flyout root),

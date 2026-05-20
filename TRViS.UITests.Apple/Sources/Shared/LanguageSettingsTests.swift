@@ -1,11 +1,11 @@
 // LanguageSettingsTests.swift
-// XCUITest port of TRViS.UITests/Tests/LanguageSettingsTests.cs (1 test).
+// Mirrors TRViS.UITests/Tests/LanguageSettingsTests.cs (1 test).
 //
 // C# excludes Linux (Android UIAutomator2 seam visibility issue).
 // iOS is not excluded — this test is fully supported here.
 //
 // C# uses a shared session with SetUp recovery (close stray dialog, navigate home,
-// clear loader, accept privacy). This port uses per-test cold launch, so all
+// clear loader, accept privacy). This class uses per-test cold launch, so all
 // recovery is unnecessary.
 
 import XCTest

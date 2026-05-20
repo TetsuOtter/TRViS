@@ -1,5 +1,5 @@
 // AppLaunchTests.swift
-// XCUITest port of TRViS.UITests/Tests/AppLaunchTests.cs.
+// Mirrors TRViS.UITests/Tests/AppLaunchTests.cs.
 //
 // Covers both iOS simulator and Mac Catalyst targets from a single source file.
 // The runner script (run-ui-tests-apple.sh) ensures a clean-install state before

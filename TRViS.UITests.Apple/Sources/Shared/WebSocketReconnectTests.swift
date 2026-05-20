@@ -1,5 +1,5 @@
 // WebSocketReconnectTests.swift
-// XCUITest port of TRViS.UITests/Tests/WebSocketReconnectTests.cs (Phase 2D).
+// Mirrors TRViS.UITests/Tests/WebSocketReconnectTests.cs.
 //
 // E2E for #261: when a WebSocket loader's connection drops, Home must stop
 // showing the "server connected" loader-status title and instead show a

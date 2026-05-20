@@ -14,7 +14,7 @@ class EasterEggPageObject {
         self.base = base
     }
 
-    // MARK: — Display check (ported from C# IsDisplayed)
+    // MARK: — Display check
 
     /// True when the Settings/EasterEgg page is visible (ReloadSavedButton is present).
     func isDisplayed(timeout: TimeInterval = 30) -> Bool {

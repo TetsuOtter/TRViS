@@ -2,7 +2,7 @@
 // XCUITest equivalents of TRViS.UITests/AutomationIds.cs
 // Mirrors the C# naming hierarchy using Swift enums with static string constants.
 // Only the identifiers needed for AppLaunchTests (and the shared base) are included here;
-// add more as additional tests are ported.
+// add more as new tests require them.
 
 enum AutomationIds {
 
@@ -45,7 +45,7 @@ enum AutomationIds {
         static let testSetLanguageEnglishButton  = "StartHome.TestSetLanguageEnglishButton"
         static let testSetLanguageJapaneseButton = "StartHome.TestSetLanguageJapaneseButton"
 
-        // Screenshot-regression determinism seams (Phase 3)
+        // Test seams used by ScreenshotRegressionTests for pixel-stable captures
         // Pins AppTimeProvider at 09:41:00 so the DTAC live clock is pixel-stable.
         static let testFreezeClockButton   = "StartHome.TestFreezeClockButton"
         static let testUnfreezeClockButton = "StartHome.TestUnfreezeClockButton"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ================================================================
-# TRViS XCUITest Local Runner  (Phase 1 — AppLaunchTests)
+# TRViS XCUITest Local Runner
 #
 # Usage: ./run-ui-tests-apple.sh [platform] [options]
 #   platform: ios       – iOS Simulator XCUITest (default)

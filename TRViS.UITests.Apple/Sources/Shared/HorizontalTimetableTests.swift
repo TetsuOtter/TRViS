@@ -1,5 +1,5 @@
 // HorizontalTimetableTests.swift
-// XCUITest port of TRViS.UITests/Tests/HorizontalTimetableTests.cs (Phase 2C).
+// Mirrors TRViS.UITests/Tests/HorizontalTimetableTests.cs.
 //
 // Covers: seeding a Work with HasETrainTimetable=true → DTAC → 時刻表 tab →
 // HorizontalTimetableButton visible → tap → page displayed → back to DTAC.

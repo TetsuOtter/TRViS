@@ -1,5 +1,5 @@
 // StartHomeTests.swift
-// XCUITest port of TRViS.UITests/Tests/StartHomeTests.cs (2 tests).
+// Mirrors TRViS.UITests/Tests/StartHomeTests.cs (2 tests).
 //
 // Each test uses a fresh per-test app launch (BaseUITestCase.setUp).
 // The C# fixture's shared-session recovery blocks (dialog close, loader clear,

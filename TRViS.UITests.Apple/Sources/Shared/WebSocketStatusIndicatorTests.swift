@@ -1,5 +1,5 @@
 // WebSocketStatusIndicatorTests.swift
-// XCUITest port of TRViS.UITests/Tests/WebSocketStatusIndicatorTests.cs (Phase 2D).
+// Mirrors TRViS.UITests/Tests/WebSocketStatusIndicatorTests.cs.
 //
 // E2E for #266: the shared AppBar shows a WebSocket connection-status indicator
 // (green dot = connected, red dot = disconnected, spinner = connecting/reconnecting,

@@ -1,5 +1,5 @@
 // StationNameDisplayTests.swift
-// XCUITest port of TRViS.UITests/Tests/StationNameDisplayTests.cs (Phase 2C).
+// Mirrors TRViS.UITests/Tests/StationNameDisplayTests.cs.
 //
 // Regression for "1–4 character station names no longer fully display".
 // Scans every timetable row's StationName label, strips the spacing characters

@@ -1,9 +1,9 @@
 // ConnectServerDialogTests.swift
-// XCUITest port of TRViS.UITests/Tests/ConnectServerDialogTests.cs (2 tests).
+// Mirrors TRViS.UITests/Tests/ConnectServerDialogTests.cs (2 tests).
 //
 // C# has ShareSessionAcrossTestsInFixture=true (shared Appium session) plus
 // SetUp recovery blocks (close stray dialog, clear loader, accept privacy).
-// This port uses per-test cold launch (BaseUITestCase.setUpWithError), which
+// This class uses per-test cold launch (BaseUITestCase.setUpWithError), which
 // makes all session-recovery logic unnecessary.
 //
 // The C# Platform(Exclude="Win") test is included — we're on iOS only here

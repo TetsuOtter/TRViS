@@ -1,5 +1,5 @@
 // IsInfoRowTransitionTests.swift
-// XCUITest port of TRViS.UITests/Tests/IsInfoRowTransitionTests.cs (Phase 2C).
+// Mirrors TRViS.UITests/Tests/IsInfoRowTransitionTests.cs.
 //
 // Regression for "non-InfoRow components (station name, drive time, etc.)
 // remain visible after a WebSocket soft-update changes IsInfoRow from false

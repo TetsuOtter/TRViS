@@ -1,7 +1,5 @@
 // DTACViewHostPageObject.swift
 // Page object for the DTAC ViewHost page.
-// Ports IsDisplayed(), ReadTitleViaSeam(), ReadTimeViaSeam() from Phase 2A,
-// plus the full timetable tab / button surface from Phase 2C.
 
 import XCTest
 
@@ -15,7 +13,7 @@ class DTACViewHostPageObject {
         self.base = base
     }
 
-    // MARK: — Display check (ported from C# IsDisplayed)
+    // MARK: — Display check
 
     /// True when the DTAC page is visible (MenuButton is present).
     /// Uses a 30 s timeout to absorb navigation + initial layout latency.
@@ -28,7 +26,7 @@ class DTACViewHostPageObject {
         return el.exists
     }
 
-    // MARK: — Seam readers (ported from C# ReadTitleViaSeam / ReadTimeViaSeam)
+    // MARK: — Seam readers
 
     /// Reads the UI_TEST mirror Label that reflects AppBar's current title text.
     /// Re-queries the element each call so the value is not stale.
@@ -56,7 +54,7 @@ class DTACViewHostPageObject {
         return stripSeamPrefix(raw, prefix: AutomationIds.DTAC.testSeamTimePrefix)
     }
 
-    // MARK: — Timetable tab navigation (Phase 2C)
+    // MARK: — Timetable tab navigation
 
     /// Taps the 時刻表 tab and waits for TimetableScrollView to appear.
     /// Mirrors C# SwitchToTimetableTab() — 60 s timeout for iPad layout latency.
@@ -145,7 +143,7 @@ class DTACViewHostPageObject {
         return self
     }
 
-    // MARK: — NextTrainButton (Phase 2C)
+    // MARK: — NextTrainButton
 
     /// Returns true when the NextTrainButton is both present AND has a non-zero
     /// frame (i.e., it is genuinely laid out for the user to see).
@@ -180,7 +178,7 @@ class DTACViewHostPageObject {
         return false
     }
 
-    // MARK: — HorizontalTimetableButton (Phase 2C)
+    // MARK: — HorizontalTimetableButton
 
     /// Polls briefly for the HorizontalTimetableButton. Returns true only when
     /// the element exists and has a non-zero frame within the timeout.
@@ -260,7 +258,7 @@ class DTACViewHostPageObject {
         base.tapSeam(id: AutomationIds.DTAC.testWsReconnectingButton)
     }
 
-    // MARK: — IsInfoRow seam (Phase 2C)
+    // MARK: — IsInfoRow seam
 
     /// Taps the UI_TEST seam that flips row 0's IsInfoRow from false to true.
     @discardableResult
@@ -269,7 +267,7 @@ class DTACViewHostPageObject {
         return self
     }
 
-    // MARK: — Timetable row element lookup (Phase 2C)
+    // MARK: — Timetable row element lookup
 
     /// Returns true when the element for `automationId` exists and has a
     /// non-zero frame within `timeoutSeconds`.
@@ -295,7 +293,7 @@ class DTACViewHostPageObject {
         return false
     }
 
-    // MARK: — Station name scanning (Phase 2C, StationNameDisplayTests)
+    // MARK: — Station name scanning (StationNameDisplayTests)
 
     /// Reads the stripped text of the StationName label at `rowIndex`, or nil
     /// when the element is absent or has empty text.

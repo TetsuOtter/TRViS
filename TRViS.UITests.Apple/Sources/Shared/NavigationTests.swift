@@ -1,5 +1,5 @@
 // NavigationTests.swift
-// XCUITest port of TRViS.UITests/Tests/NavigationTests.cs (5 tests).
+// Mirrors TRViS.UITests/Tests/NavigationTests.cs (5 tests).
 //
 // Each test uses a fresh per-test app launch (BaseUITestCase.setUp) and
 // accepts the privacy policy if needed at the start of every test.
