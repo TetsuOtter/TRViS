@@ -150,6 +150,105 @@ class StartHomePageObject {
         return ThirdPartyLicensesPageObject(app: app, base: base)
     }
 
+    // MARK: — WorkGroupList visibility (ported from C# IsWorkGroupListVisible)
+
+    /// Polls up to `timeout` for the WorkGroupList to become visible (Home mode).
+    /// Returns true once visible; false on timeout.
+    func isWorkGroupListVisible(timeout: TimeInterval = 10) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let el = app.descendants(matching: .any)
+                .matching(identifier: AutomationIds.StartHome.workGroupList)
+                .firstMatch
+            if el.exists { return true }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return false
+    }
+
+    // MARK: — ConnectServer/SelectFile dialog openers
+
+    /// Taps ConnectServerButton and returns the dialog page object.
+    func openConnectServerDialog() -> ConnectServerDialogPageObject {
+        guard let btn = base.waitForElement(
+            id: AutomationIds.StartHome.connectServerButton, timeout: 30
+        ) else {
+            XCTFail("ConnectServerButton not found")
+            return ConnectServerDialogPageObject(app: app, base: base)
+        }
+        btn.tap()
+        return ConnectServerDialogPageObject(app: app, base: base)
+    }
+
+    /// Taps the TestOpenSelectFileDialog seam button and returns the dialog page object.
+    /// Uses the seam button (not the styled SelectFileButton) to avoid dispatch issues.
+    func openSelectFileDialog() -> SelectFileDialogPageObject {
+        base.tapSeam(id: AutomationIds.StartHome.testOpenSelectFileDialogButton)
+        return SelectFileDialogPageObject(app: app, base: base)
+    }
+
+    // MARK: — ConnectServer URL-history seams
+
+    /// Seeds two URLs into the in-memory + persisted URL history.
+    func seedUrlHistoryForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSeedButton)
+    }
+
+    /// Clears URL history both in-memory and on disk.
+    func clearUrlHistoryForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testClearHistoryButton)
+    }
+
+    // MARK: — SQLite / sample-file seams (SelectFile tests)
+
+    /// Seeds a minimal SQLite fixture into TimetableFileDirectory.
+    func seedSqliteForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSeedSqliteButton)
+    }
+
+    /// Seeds a root JSON + sub-folder fixture into TimetableFileDirectory.
+    func seedSampleFilesForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSeedSampleFilesButton)
+    }
+
+    /// Wipes TimetableFileDirectory and clears any FilePicker override.
+    /// Waits 500 ms after the tap to let the mode-switch animation settle.
+    func clearSampleFilesForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testClearSampleFilesButton)
+        Thread.sleep(forTimeInterval: 0.5)
+    }
+
+    /// Writes a JSON fixture into CacheDirectory and installs a FilePicker
+    /// override that returns its path, so the Browse fallback test can run
+    /// without driving the OS picker UI.
+    func setupBrowseFallbackForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSetupBrowseFallbackButton)
+    }
+
+    // MARK: — Language seams (LanguageSettings test)
+
+    /// Switches the UI language to English through the ViewModel path.
+    func setLanguageEnglishForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSetLanguageEnglishButton)
+    }
+
+    // MARK: — ConnectServerButton caption (LanguageSettings test)
+
+    /// Returns the current label of the ConnectServerButton. Used by
+    /// LanguageSettingsTests to verify the {loc:Translate}-bound caption flips
+    /// to English after setLanguageEnglishForTesting().
+    ///
+    /// MAUI Button captions surface as `.label` on XCUITest. Falls back to
+    /// `.value` if `.label` is empty (driver quirk on some Xcode versions).
+    func connectServerButtonText() -> String {
+        guard let btn = base.waitForElement(
+            id: AutomationIds.StartHome.connectServerButton, timeout: 30
+        ) else { return "" }
+        let label = btn.label
+        if !label.isEmpty { return label }
+        return btn.value as? String ?? ""
+    }
+
     // MARK: — Test seam buttons (ported from C# ClearLoaderForTesting / AutoOpenForTesting)
 
     /// Taps the UI_TEST seam that clears the loader (returns to Start mode).
@@ -162,4 +261,20 @@ class StartHomePageObject {
         base.tapSeam(id: AutomationIds.StartHome.testAutoOpenButton)
         return DTACViewHostPageObject(app: app, base: base)
     }
+
+    // MARK: — Constants (mirror C# StartHomePageObject literals)
+
+    /// URLs seeded by seedUrlHistoryForTesting().
+    static let seededHistoryUrls: [String] = [
+        "https://example.com/timetable-a.json",
+        "https://example.com/timetable-b.json",
+    ]
+
+    /// Filename written by seedSqliteForTesting().
+    static let uiTestSqliteFixtureFileName = "uitest_seed.sqlite"
+
+    /// Fixture file names written by seedSampleFilesForTesting().
+    static let seededRootFileName   = "ui-test-root.json"
+    static let seededSubFolderName  = "ui-test-folder"
+    static let seededNestedFileName = "ui-test-nested.json"
 }
