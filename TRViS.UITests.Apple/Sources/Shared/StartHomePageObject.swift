@@ -305,6 +305,65 @@ class StartHomePageObject {
         return DTACViewHostPageObject(app: app, base: base)
     }
 
+    // MARK: — WebSocket seams (WebSocketReconnectTests / WebSocketStatusIndicatorTests)
+
+    /// Taps the UI_TEST seam that sets a non-connected WebSocketNetworkSyncService
+    /// loader and flips IsServerConnectionLost=true, putting Home into the #261
+    /// "サーバー未接続 + 再接続" state without a real WebSocket server.
+    func simulateWebSocketDisconnectForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSimulateWebSocketDisconnectButton)
+    }
+
+    /// Taps the UI_TEST seam (#266) that builds a WebSocket-TYPED loader carrying
+    /// real sample data, commits the first WG/Work and navigates to DTAC — landing
+    /// with the AppBar status indicator in the Connected state.
+    /// Returns the DTAC page object.
+    func simulateWebSocketConnectedForTesting() -> DTACViewHostPageObject {
+        base.tapSeam(id: AutomationIds.StartHome.testSimulateWebSocketConnectedButton)
+        return DTACViewHostPageObject(app: app, base: base)
+    }
+
+    /// Returns true when the #261 reconnect button is visible (disconnected state).
+    func isReconnectButtonVisible(timeout: TimeInterval = 8) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let el = app.descendants(matching: .any)
+                .matching(identifier: AutomationIds.StartHome.reconnectButton)
+                .firstMatch
+            if el.exists && el.frame.size.width > 0 && el.frame.size.height > 0 {
+                return true
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return false
+    }
+
+    /// The ReconnectButton element (waits up to 10 s).
+    var reconnectButton: XCUIElement? {
+        return base.waitForElement(id: AutomationIds.StartHome.reconnectButton, timeout: 10)
+    }
+
+    /// The DisconnectButton element.
+    var disconnectButton: XCUIElement? {
+        return base.waitForElement(id: AutomationIds.StartHome.disconnectButton, timeout: 10)
+    }
+
+    /// The OpenButton element.
+    var openButton: XCUIElement? {
+        return base.waitForElement(id: AutomationIds.StartHome.openButton, timeout: 10)
+    }
+
+    /// Reads the LoaderInfoTitle text. MAUI Labels surface as AXValue; tries both
+    /// `label` (AXLabel) and `value` (AXValue) so the read is robust.
+    func loaderInfoTitleText(timeout: TimeInterval = 10) -> String {
+        guard let el = base.waitForElement(
+            id: AutomationIds.StartHome.loaderInfoTitle, timeout: timeout
+        ) else { return "" }
+        let label = el.label
+        if !label.isEmpty { return label }
+        return el.value as? String ?? ""
+    }
+
     // MARK: — HorizontalTimetable seed seam (HorizontalTimetableTests)
 
     /// Seeds a Work with HasETrainTimetable=true and a 1×1 PNG payload,

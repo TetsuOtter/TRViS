@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1278DCB8985B63EC9394D13E /* SelectFileDialogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6E3A72FEC8CF2A8CFF3467 /* SelectFileDialogTests.swift */; };
 		1997D62C5926DFA2FB756262 /* ConnectServerDialogPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E71A3915276F415496218C9 /* ConnectServerDialogPageObject.swift */; };
+		2545F7EF106164F77E19C007 /* WebSocketStatusIndicatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4BB4ACE817F183AD1C9B119 /* WebSocketStatusIndicatorTests.swift */; };
 		30F3D2BA6DB2AAEDDDB6D4C5 /* HorizontalTimetableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC03F3A8C79F0F5DEA2C55F9 /* HorizontalTimetableTests.swift */; };
 		4281263D49A0E109BF62F29F /* HorizontalTimetablePageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73381BBA3D94F93DA43ADADB /* HorizontalTimetablePageObject.swift */; };
 		497DEC3593DD01F42118959D /* IsInfoRowTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 598CB9C0B28E53420D3F2E84 /* IsInfoRowTransitionTests.swift */; };
@@ -19,6 +20,7 @@
 		6C651EE2B3A1AE3E82CE3751 /* LanguageSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9DF91A2914CF85A527397A /* LanguageSettingsTests.swift */; };
 		732DC20CB9545370086FFAA6 /* ConnectServerDialogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471FAC0240CAA63D4B7A018E /* ConnectServerDialogTests.swift */; };
 		790FD85C3CE289298DBA0BCD /* AutomationIds.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD88F50355D9889413FE6E4F /* AutomationIds.swift */; };
+		89C9B2F8BF100AEE1E08B84F /* WebSocketReconnectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D66A77DEF4990DC329BF9D2D /* WebSocketReconnectTests.swift */; };
 		9148FB126426333AFBCB8FF8 /* DTACTimetableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4852A4A88DE6D417499F64 /* DTACTimetableTests.swift */; };
 		ADDBF798F71DB959D67F49C7 /* StartHomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4299654CEFC40C090C339E45 /* StartHomeTests.swift */; };
 		B86B4BA08341FAE103D240CE /* StationNameDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDB5293CED34B71B104A977 /* StationNameDisplayTests.swift */; };
@@ -59,9 +61,11 @@
 		C6BF8BE2E4DDD151BEE693E6 /* StartHomePageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartHomePageObject.swift; sourceTree = "<group>"; };
 		CAC0964AD3300672D676CC0A /* AppLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLaunchTests.swift; sourceTree = "<group>"; };
 		CF9DF91A2914CF85A527397A /* LanguageSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSettingsTests.swift; sourceTree = "<group>"; };
+		D66A77DEF4990DC329BF9D2D /* WebSocketReconnectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketReconnectTests.swift; sourceTree = "<group>"; };
 		EAFBA501DC9597710776E344 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		EC03F3A8C79F0F5DEA2C55F9 /* HorizontalTimetableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalTimetableTests.swift; sourceTree = "<group>"; };
 		EFC9281F2E7837252B6FB84E /* AppShellPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellPageObject.swift; sourceTree = "<group>"; };
+		F4BB4ACE817F183AD1C9B119 /* WebSocketStatusIndicatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketStatusIndicatorTests.swift; sourceTree = "<group>"; };
 		FA6E3A72FEC8CF2A8CFF3467 /* SelectFileDialogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectFileDialogTests.swift; sourceTree = "<group>"; };
 		FCBC1849E2F118706D1FBF32 /* SelectFileDialogPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectFileDialogPageObject.swift; sourceTree = "<group>"; };
 		FCDB5293CED34B71B104A977 /* StationNameDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationNameDisplayTests.swift; sourceTree = "<group>"; };
@@ -129,6 +133,8 @@
 				4299654CEFC40C090C339E45 /* StartHomeTests.swift */,
 				FCDB5293CED34B71B104A977 /* StationNameDisplayTests.swift */,
 				6E614410D52ADDB2385831B6 /* ThirdPartyLicensesPageObject.swift */,
+				D66A77DEF4990DC329BF9D2D /* WebSocketReconnectTests.swift */,
+				F4BB4ACE817F183AD1C9B119 /* WebSocketStatusIndicatorTests.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -254,6 +260,8 @@
 				ADDBF798F71DB959D67F49C7 /* StartHomeTests.swift in Sources */,
 				B86B4BA08341FAE103D240CE /* StationNameDisplayTests.swift in Sources */,
 				E691C61E27A7BA2D7BE7F762 /* ThirdPartyLicensesPageObject.swift in Sources */,
+				89C9B2F8BF100AEE1E08B84F /* WebSocketReconnectTests.swift in Sources */,
+				2545F7EF106164F77E19C007 /* WebSocketStatusIndicatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

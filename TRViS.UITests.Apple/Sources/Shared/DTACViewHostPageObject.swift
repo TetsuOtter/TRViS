@@ -213,6 +213,53 @@ class DTACViewHostPageObject {
         return self
     }
 
+    // MARK: — AppBar WebSocket status indicator (#266)
+
+    /// Reads the UI_TEST mirror Label that reflects AppViewModel.ServerConnectionStatus.
+    /// Strips the sentinel prefix ("S:") before returning.
+    /// Returns "" when the element is not found within 10 s.
+    func readConnectionStatusViaSeam() -> String {
+        guard let el = base.waitForElement(
+            id: AutomationIds.AppBar.connectionStatus, timeout: 10
+        ) else { return "" }
+        // MAUI Labels surface as AXValue; try label (AXLabel) then value (AXValue).
+        let raw: String
+        let labelText = el.label
+        if !labelText.isEmpty {
+            raw = labelText
+        } else {
+            raw = el.value as? String ?? ""
+        }
+        return stripSeamPrefix(raw, prefix: AutomationIds.AppBar.connectionStatusPrefix)
+    }
+
+    /// Polls the connection-status mirror until it equals `expected` or times out.
+    /// Returns true when the expected value is reached; false on timeout.
+    func waitForConnectionStatus(_ expected: String, timeout: TimeInterval = 8) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let current = readConnectionStatusViaSeam()
+            if current == expected { return true }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return false
+    }
+
+    /// Taps the DTAC-side seam that sets IsServerReconnecting=false, IsServerConnectionLost=false.
+    func tapWsConnectedSeam() {
+        base.tapSeam(id: AutomationIds.DTAC.testWsConnectedButton)
+    }
+
+    /// Taps the DTAC-side seam that sets IsServerConnectionLost=true.
+    func tapWsDisconnectedSeam() {
+        base.tapSeam(id: AutomationIds.DTAC.testWsDisconnectedButton)
+    }
+
+    /// Taps the DTAC-side seam that sets IsServerReconnecting=true.
+    func tapWsReconnectingSeam() {
+        base.tapSeam(id: AutomationIds.DTAC.testWsReconnectingButton)
+    }
+
     // MARK: — IsInfoRow seam (Phase 2C)
 
     /// Taps the UI_TEST seam that flips row 0's IsInfoRow from false to true.

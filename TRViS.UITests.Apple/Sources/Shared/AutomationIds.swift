@@ -57,6 +57,17 @@ enum AutomationIds {
         // URL-history seams (ConnectServer tests)
         static let testClearHistoryButton = "StartHome.TestClearHistoryButton"
 
+        // Home mode — loader/connection status (#261)
+        static let loaderInfoTitle   = "StartHome.LoaderInfoTitle"
+        static let openButton        = "StartHome.OpenButton"
+        static let disconnectButton  = "StartHome.DisconnectButton"
+        // Visible only while a WebSocket loader's connection is lost.
+        static let reconnectButton   = "StartHome.ReconnectButton"
+
+        // WebSocket seam buttons (WebSocketReconnectTests / WebSocketStatusIndicatorTests)
+        static let testSimulateWebSocketDisconnectButton  = "StartHome.TestSimulateWebSocketDisconnectButton"
+        static let testSimulateWebSocketConnectedButton   = "StartHome.TestSimulateWebSocketConnectedButton"
+
         // SQLite / sample-file seams (SelectFile tests)
         static let testSeedSqliteButton         = "StartHome.TestSeedSqliteButton"
         static let testSeedSampleFilesButton    = "StartHome.TestSeedSampleFilesButton"
@@ -94,6 +105,12 @@ enum AutomationIds {
 
         // UI_TEST-only seam buttons
         static let testNavigateHomeButton = "DTAC.TestNavigateHomeButton"
+
+        // UI_TEST-only seams (#266): mutate AppViewModel's WebSocket connection flags
+        // so the AppBar status indicator can be driven through states on DTAC.
+        static let testWsConnectedButton    = "DTAC.TestWsConnectedButton"
+        static let testWsDisconnectedButton = "DTAC.TestWsDisconnectedButton"
+        static let testWsReconnectingButton = "DTAC.TestWsReconnectingButton"
         static let testSeedIsInfoRowTransitionButton = "DTAC.TestSeedIsInfoRowTransitionButton"
 
         // UI_TEST-only state mirrors
@@ -164,6 +181,14 @@ enum AutomationIds {
         // Always-visible footer actions.
         static let browseButton              = "SelectFile.BrowseButton"
         static let openStorageLocationButton = "SelectFile.OpenStorageLocationButton"
+    }
+
+    /// Shared title bar (TRViS.DTAC.AppBar), shown on the DTAC ViewHost.
+    enum AppBar {
+        // UI_TEST-only invisible mirror Label reflecting AppViewModel.ServerConnectionStatus (#266).
+        // Sentinel-prefixed so it is always non-empty / findable. Strip the prefix before asserting.
+        static let connectionStatus       = "AppBar.ConnectionStatus"
+        static let connectionStatusPrefix = "S:"
     }
 
     enum Settings {

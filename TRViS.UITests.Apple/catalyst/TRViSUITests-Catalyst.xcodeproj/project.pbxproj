@@ -26,8 +26,10 @@
 		8B41D09AAD827C2EB88F9B8C /* NavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA691E8A33D0C1D1964D4511 /* NavigationTests.swift */; };
 		9AE401ABDD82C2C845BCB9FE /* IsInfoRowTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46CEAE4AF5BD2FFCD73493F8 /* IsInfoRowTransitionTests.swift */; };
 		C0BC178512418229CFF84B4A /* DTACViewHostPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A1885AE0F504E95498FA5A /* DTACViewHostPageObject.swift */; };
+		D9DDFB841016DBB4FCA47752 /* WebSocketStatusIndicatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C6B7738849E3FDBFDCA254 /* WebSocketStatusIndicatorTests.swift */; };
 		EF80CD450C9D0DB621A8F30A /* SelectFileDialogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4D4A470DFA6F550EA47AD5 /* SelectFileDialogTests.swift */; };
 		EF90595FF64DE22B6C4C0EB9 /* AutomationIds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59EC0A0017E322C36451AB44 /* AutomationIds.swift */; };
+		F9813E728CE367F8CA5E6BEB /* WebSocketReconnectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7676DA9C1E783812E365C6 /* WebSocketReconnectTests.swift */; };
 		FD94CF38D1ADE54FFDA2941A /* AppLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B208061FB6EB4D1978568CB /* AppLaunchTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -53,11 +55,13 @@
 		59EC0A0017E322C36451AB44 /* AutomationIds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationIds.swift; sourceTree = "<group>"; };
 		5B208061FB6EB4D1978568CB /* AppLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLaunchTests.swift; sourceTree = "<group>"; };
 		5FF8D4A75E798FF9ED690364 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		72C6B7738849E3FDBFDCA254 /* WebSocketStatusIndicatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketStatusIndicatorTests.swift; sourceTree = "<group>"; };
 		77F6BA1FC7FCD9239FC3AFD6 /* StartHomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartHomeTests.swift; sourceTree = "<group>"; };
 		7F4D4A470DFA6F550EA47AD5 /* SelectFileDialogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectFileDialogTests.swift; sourceTree = "<group>"; };
 		84A75885870BA7DBF9673892 /* BaseUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseUITestCase.swift; sourceTree = "<group>"; };
 		85E4A9EEC40E518A0510D97A /* StationNameDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationNameDisplayTests.swift; sourceTree = "<group>"; };
 		9B649E7CB3F1942DA54AD0D8 /* FirebaseSettingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSettingTests.swift; sourceTree = "<group>"; };
+		9F7676DA9C1E783812E365C6 /* WebSocketReconnectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketReconnectTests.swift; sourceTree = "<group>"; };
 		A9A4E52E10964E648C34ECCA /* ConnectServerDialogPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectServerDialogPageObject.swift; sourceTree = "<group>"; };
 		BA691E8A33D0C1D1964D4511 /* NavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTests.swift; sourceTree = "<group>"; };
 		C3D925756C297D604F979A26 /* HorizontalTimetableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalTimetableTests.swift; sourceTree = "<group>"; };
@@ -112,6 +116,8 @@
 				77F6BA1FC7FCD9239FC3AFD6 /* StartHomeTests.swift */,
 				85E4A9EEC40E518A0510D97A /* StationNameDisplayTests.swift */,
 				5677A83B1D3539CF263B6800 /* ThirdPartyLicensesPageObject.swift */,
+				9F7676DA9C1E783812E365C6 /* WebSocketReconnectTests.swift */,
+				72C6B7738849E3FDBFDCA254 /* WebSocketStatusIndicatorTests.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -246,6 +252,8 @@
 				60FDA3C333B3F7E39816714D /* StartHomeTests.swift in Sources */,
 				896934B443107F095E17C1AC /* StationNameDisplayTests.swift in Sources */,
 				36A3E0CCC0903E588DAE5C68 /* ThirdPartyLicensesPageObject.swift in Sources */,
+				F9813E728CE367F8CA5E6BEB /* WebSocketReconnectTests.swift in Sources */,
+				D9DDFB841016DBB4FCA47752 /* WebSocketStatusIndicatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
