@@ -8,12 +8,40 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      regenerate_screenshots:
+        description: "Regenerate ScreenshotRegressionTests baselines on the pinned iOS runtime and upload them as an artifact (does NOT commit; download, review the diff, and commit manually)."
+        type: boolean
+        default: false
 
 env:
   # .NET / tooling versions
   SDK_VERSION: "10.0.x"
   NODE_VERSION: "24"
-  XCODE_VERSION: "26.4"
+  # Xcode 26.5 is still beta / unavailable on the macos-26 runner image, so
+  # the workload (not the toolchain) is what gets pinned: /global.json fixes
+  # the workload set to 10.0.204.1 (Microsoft.iOS 26.4.10259), which this
+  # Xcode 26.4.1 satisfies. 10.0.204.1 is the .NET 10.0.2xx-band workload set
+  # that resolves the IDENTICAL iOS 26.4.10259 / MAUI 10.0.20 components as the
+  # earlier 10.0.108.1 label, but — unlike 10.0.108.1 — is actually published
+  # and `dotnet workload restore`-installable on current SDK / runner tooling
+  # (10.0.108.1 could not be installed locally nor restored on the runner, only
+  # the resolved component versions are what affect the build & screenshots, and
+  # those are unchanged). Bumping Xcode to 26.5 to chase the unpinned workload's
+  # 26.5.x manifest is not viable until the runner ships a stable Xcode 26.5.
+  XCODE_VERSION: "26.4.1"
+  # iOS simulator runtime version, pinned to match the Xcode pin above.
+  # Xcode 26.4.1's `xcodebuild -downloadPlatform iOS` fetches the iOS 26.4
+  # simulator runtime. ScreenshotRegressionTests baselines are pixel-sensitive
+  # to the runtime's text rendering (anti-aliasing/glyph metrics differ between
+  # iOS runtime versions — the 26.x drift that motivated this gate), so the
+  # runtime must be pinned, not "whatever is highest on the runner image".
+  # run-ui-tests.sh reads this for the iphone / ipad-mini-a17 simulator-create
+  # path only; ipad-mini-5 is intentionally excluded (it caps at iPadOS 17 and
+  # uses its own separate runtime). On a version bump, change this together
+  # with XCODE_VERSION and regenerate the baselines (workflow_dispatch →
+  # regenerate_screenshots).
+  IOS_SIM_RUNTIME_VERSION: "26.4"
 
   # Project paths
   CSPROJ_PATH: ./TRViS/TRViS.csproj
@@ -575,7 +603,17 @@ jobs:
   # Each entry downloads the .app produced by `build-ios` instead of
   # rebuilding it; the iOS/MacCatalyst MAUI workloads are not installed
   # here because TRViS.UITests.csproj targets plain net10.0 with no
-  # ProjectReferences and `dotnet test` does not need them.
+  # ProjectReferences and `dotnet test` does not need them. /global.json
+  # pins sdk.workloadVersion repo-wide and the SDK's workload resolver
+  # enforces that pin on the `dotnet test` run-ui-tests.sh runs — even for a
+  # net10.0 project with no workloads — so without a workaround it aborts
+  # with "Workload version <x>, which was specified in .../global.json, was
+  # not found". Restoring the workload set just to satisfy the pin would be
+  # wasted CI time when no workload is actually needed; instead the
+  # MSBuildEnableWorkloadResolver=false job env (below) disables the
+  # resolver — the very mechanism that enforces the pin — which is harmless
+  # for a project that imports no workloads. global.json itself stays
+  # unchanged, so the other (real) MAUI jobs remain pinned.
   # ─────────────────────────────────────────────
   ui-test-ios:
     runs-on: macos-26
@@ -586,6 +624,15 @@ jobs:
     # dotnet test timeout for Appium boot + cleanup steps.
     timeout-minutes: 50
     needs: build-ios
+    # Disable the SDK workload resolver for this job only. /global.json pins
+    # sdk.workloadVersion repo-wide and the resolver enforces that pin on the
+    # `dotnet test` run-ui-tests.sh runs; TRViS.UITests is plain net10.0 with
+    # no workloads, so resolving (or restoring) workloads here is pointless —
+    # turning the resolver off skips the pin check entirely. Quoted so the
+    # value is unambiguously the string "false", not a YAML boolean. Only
+    # this job sets it; the real MAUI jobs leave global.json fully enforced.
+    env:
+      MSBuildEnableWorkloadResolver: "false"
     # Both iPad mini matrix entries are permitted to fail without failing the
     # whole job — see the matrix below. The expression resolves to false for
     # the iphone entry, making this a no-op there.
@@ -711,7 +758,38 @@ jobs:
           ls -la "$DEST"
 
       - name: Run iOS UI Tests (${{ matrix.device-class }})
-        run: ./run-ui-tests.sh ios --skip-build --skip-install --device-class=${{ matrix.device-class }}
+        # In regen mode (workflow_dispatch → regenerate_screenshots) set
+        # SCREENSHOT_UPDATE=1 so ScreenshotRegressionTests overwrites the
+        # committed baselines instead of diffing, and narrow the run to just
+        # that fixture (the other UI tests are irrelevant to a baseline regen
+        # and only add flake/time). The runtime is pinned via the job's
+        # IOS_SIM_RUNTIME_VERSION env, so these baselines are captured on the
+        # same iOS runtime the gate later diffs against. Empty string ≠ "1",
+        # so the normal push/PR path is unaffected (script reads
+        # SCREENSHOT_UPDATE == "1").
+        env:
+          SCREENSHOT_UPDATE: ${{ (github.event_name == 'workflow_dispatch' && inputs.regenerate_screenshots) && '1' || '' }}
+        run: |
+          if [[ "${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_screenshots }}" == "true" ]]; then
+            ./run-ui-tests.sh ios --skip-build --skip-install \
+              --device-class=${{ matrix.device-class }} \
+              --filter="FullyQualifiedName~ScreenshotRegressionTests"
+          else
+            ./run-ui-tests.sh ios --skip-build --skip-install \
+              --device-class=${{ matrix.device-class }}
+          fi
+
+      - name: Upload regenerated screenshot baselines (${{ matrix.device-class }})
+        # Only in regen mode. always() so a continue-on-error iPad leg that
+        # produced partial baselines still surfaces them for review. The
+        # committed tree is NOT modified by CI — the operator downloads this
+        # artifact, reviews the pixel diff, and commits deliberately.
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.regenerate_screenshots }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: regenerated-screenshots-${{ matrix.device-class }}
+          path: TRViS.UITests/Screenshots/**
+          if-no-files-found: warn
 
       - name: Upload test results
         if: always()
@@ -732,16 +810,17 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-macos:
     runs-on: macos-26
-    # Bumped from 20 to 30 minutes after run 25665479712 was cancelled at
-    # exactly the 20-min cap with the test suite still executing. The
-    # macos-26 runner image and Xcode 26 produce variable per-test latency
-    # — historical baseline is ~14 min, but slow runs creep past 18 min
-    # without any test logic regression. 30 minutes leaves comfortable
-    # headroom while still bounding the worst-case far below the per-job
-    # cancellation timeout of the workflow as a whole. There's no
-    # workflow-level retry on macOS (unlike Android), so a single
-    # timeout-driven cancellation costs the entire job.
-    timeout-minutes: 30
+    # Bumped 20 → 30 → 45 minutes. The macos-26 runner image and Xcode 26
+    # produce highly variable per-test latency: run 25665479712 was
+    # cancelled at the 20-min cap, then a later run hit the 30-min cap at
+    # 30m48s while the suite was still executing (a successful run on the
+    # same config measured 27m05s — i.e. the spread brushes right up
+    # against 30 with no test-logic regression). 45 minutes leaves
+    # comfortable headroom for the slow tail while still bounding the
+    # worst case well below the workflow-level cancellation timeout.
+    # There's no workflow-level retry on macOS (unlike Android), so a
+    # single timeout-driven cancellation costs the entire job.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
