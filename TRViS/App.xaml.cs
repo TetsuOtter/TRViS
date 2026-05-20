@@ -18,6 +18,11 @@ public partial class App : Application
 		try
 		{
 			InitializeComponent();
+			// XamlC は System.String を既定コンストラクタで生成できないため
+			// (XC0004)、App.xaml に <sys:String> を置けない。Styles.xaml の
+			// 各暗黙スタイルは {DynamicResource DefaultFontFamily} で参照する
+			// ので、ここで Resources へ後挿ししても解決される。
+			Resources["DefaultFontFamily"] = "NotoSansJPRegular";
 		}
 		catch (Exception ex)
 		{
