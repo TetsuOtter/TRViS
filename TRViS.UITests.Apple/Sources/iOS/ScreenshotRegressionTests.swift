@@ -200,8 +200,10 @@ class ScreenshotRegressionTests: BaseUITestCase {
             dtac.tapHorizontalTimetableButton()
             let ht = HorizontalTimetablePageObject(app: app, base: self)
             _ = waitForElement(id: AutomationIds.HorizontalTimetable.webView, timeout: 30)
-            // WebView first-paint is slower than a native page swap
-            Thread.sleep(forTimeInterval: 1.5)
+            // WebView first-paint is slower than a native page swap; the dark-theme
+            // first render in a session can take >1.5 s on loaded CI runners — use
+            // a generous fixed wait to prevent blank-screen captures.
+            Thread.sleep(forTimeInterval: 3.5)
             capture(screen: "horizontalTimetable", theme: theme, lang: lang, failures: &failures)
             // Pop back to DTAC — HT is a Shell-pushed page, flyout unreachable from here
             _ = ht.tapBack()
