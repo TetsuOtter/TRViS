@@ -1268,11 +1268,23 @@ public partial class StartHomePage : ContentPage
 		}
 	}
 
-	// UI_TEST-only seam: same standalone pattern as AddTestSimulateWebSocketDisconnectSeam.
-	// Margin y = 336 sits directly below the WS-disconnect seam (y=[312,336]).
-	// Sets the UI language to English through the same ViewModel path the
-	// Settings picker uses, so the E2E can assert a {loc:Translate}-bound label
-	// (StartHome.ConnectServerButton) flips without driving a native Picker.
+	// UI_TEST-only seam. Sets the UI language to English through the same
+	// ViewModel path the Settings picker uses, so the E2E can assert a
+	// {loc:Translate}-bound label (StartHome.ConnectServerButton) flips
+	// without driving a native Picker.
+	//
+	// PARALLEL-COLUMN PLACEMENT (not the single y-stacked column): the
+	// previous y=336 stacking rendered at screen y≈414 on the shorter iPhone
+	// viewport, where XCUITest reports visible="false", so Appium's .Click()
+	// silently no-ops and the handler never fires. Proven by the failing-run
+	// LanguageSettingsTests.SwitchToEnglish iPhone page-source (this seam at
+	// y=414 visible="false"; ConnectServerButton stayed "サーバーから読み込み"
+	// with no exception) — iPad's taller screen hid the bug, which is why
+	// only the iphone job failed. Reuses y=288, already proven visible on
+	// iPhone in this very page-source (SelectFile seam at screen y=366
+	// visible="true"), in the second clear seam column (left=30, the same
+	// proven-visible band the WS-Connected seam uses) — exactly the "rework
+	// the column rather than extending down" guidance above.
 	private void AddTestSetLanguageEnglishSeam()
 	{
 		var seam = new Button
@@ -1282,7 +1294,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(0, 336, 0, 0),
+			Margin = new Thickness(30, 288, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
@@ -1309,7 +1321,17 @@ public partial class StartHomePage : ContentPage
 	// Pins the UI language to Japanese so fixtures that assert hard-coded
 	// Japanese strings (e.g. WebSocketReconnectTests' "サーバー未接続") stay
 	// deterministic regardless of the CI device locale — those strings are now
-	// resolved from resx and would otherwise depend on CurrentUICulture.
+	// resolved from resx and would otherwise depend on CurrentUICulture. Also
+	// driven by ScreenshotRegressionTests on iPhone (the */ja cases), so it
+	// must be tappable there too.
+	//
+	// Same off-screen-iPhone defect/fix as AddTestSetLanguageEnglishSeam: the
+	// old y=360 single-column slot rendered at screen y≈438 (visible="false")
+	// on iPhone, no-opping the tap. Placed in a third clear seam column
+	// (left=60) at the proven-visible y=288 row. left=60 keeps the 24px-wide
+	// seam's center (screen x≈131) left of the AppHeader (screen x≈136), and
+	// the seam is added to RootGrid after InitializeComponent so it draws
+	// above the header regardless.
 	private void AddTestSetLanguageJapaneseSeam()
 	{
 		var seam = new Button
@@ -1319,7 +1341,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(0, 360, 0, 0),
+			Margin = new Thickness(60, 288, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
