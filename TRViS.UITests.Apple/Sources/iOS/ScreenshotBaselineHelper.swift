@@ -1,0 +1,101 @@
+// ScreenshotBaselineHelper.swift
+// Manages baseline PNG files for XCUITest screenshot regression.
+// Ports TRViS.UITests/Infrastructure/ScreenshotComparer.cs update-mode semantics
+// and the baseline-path convention from ScreenshotRegressionTests.cs.
+//
+// Baseline directory layout mirrors C# project:
+//   <baselineRoot>/<deviceClass>/<theme>/<lang>/<screen>.png
+//
+// Configuration is injected via simulator launchd env vars:
+//   xcrun simctl spawn <UDID> launchctl setenv TRVIS_SCREENSHOT_BASELINE_DIR <abs path>
+//   xcrun simctl spawn <UDID> launchctl setenv TRVIS_SCREENSHOT_DEVICE_CLASS <iphone|ipad-mini-a17>
+//   xcrun simctl spawn <UDID> launchctl setenv TRVIS_SCREENSHOT_UPDATE       <0|1>
+//
+// iOS only — do NOT compile under macCatalyst.
+
+#if !targetEnvironment(macCatalyst)
+import XCTest
+import UIKit
+
+class ScreenshotBaselineHelper {
+
+    // MARK: — Configuration (from env vars)
+    //
+    // xcodebuild's `KEY=VAL` arguments only set build settings; they do NOT
+    // propagate as environment variables to the test-runner process. The
+    // runner script (run-ui-tests-apple.sh) instead uses
+    //
+    //   xcrun simctl spawn <UDID> launchctl setenv TRVIS_SCREENSHOT_<KEY> <VAL>
+    //
+    // before invoking `xcodebuild test`. launchd inherits the variables and
+    // every child process (including the XCUITest runner) sees them via
+    // ProcessInfo.processInfo.environment.
+
+    private static func env(_ key: String) -> String? {
+        ProcessInfo.processInfo.environment["TRVIS_SCREENSHOT_\(key)"]
+    }
+
+    /// Absolute path to TRViS.UITests.Apple/Screenshots injected by the runner.
+    static var baselineRoot: String {
+        Self.env("BASELINE_DIR") ?? ""
+    }
+
+    /// Device class string: "iphone" or "ipad-mini-a17".
+    static var deviceClass: String {
+        Self.env("DEVICE_CLASS") ?? "iphone"
+    }
+
+    /// When true, overwrite the baseline instead of diffing against it.
+    static var updateMode: Bool {
+        let v = Self.env("UPDATE") ?? "0"
+        return v == "1" || v.lowercased() == "true"
+    }
+
+    // MARK: — Path helpers
+
+    /// Returns the baseline URL for a given (theme, language, screen) triple.
+    static func baselineURL(theme: String, lang: String, screen: String) -> URL {
+        URL(fileURLWithPath: baselineRoot)
+            .appendingPathComponent(deviceClass)
+            .appendingPathComponent(theme)
+            .appendingPathComponent(lang)
+            .appendingPathComponent("\(screen).png")
+    }
+
+    // NOTE: capture+attach+compare is implemented inline in
+    // ScreenshotRegressionTests.capture(...) so that a list of all failing
+    // screens can be accumulated and reported together rather than failing
+    // on the first mismatch.
+
+    // MARK: — Non-deterministic region masking
+
+    /// Paints a black rectangle over the status-bar date area so it does not
+    /// cause pixel-diff noise from run to run.
+    ///
+    /// iPad Mini A17 (and likely all iPads) shows the calendar date to the right
+    /// of the time in the status bar ("9:41  Thu May 21").  Unlike the time,
+    /// the date cannot be overridden by `xcrun simctl status_bar override`, so
+    /// it changes daily and must be masked out of both the baseline and the
+    /// live capture before any comparison.
+    static func maskNonDeterministicRegions(_ data: Data) -> Data {
+        guard deviceClass == "ipad-mini-a17" else { return data }
+        guard let image = UIImage(data: data),
+              let cg = image.cgImage else { return data }
+        let pw = cg.width
+        let ph = cg.height
+        guard pw > 0, ph > 0 else { return data }
+
+        // Render at 1:1 pixel mapping so CGRect uses raw pixel coordinates.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0
+        let size = CGSize(width: CGFloat(pw), height: CGFloat(ph))
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let masked = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+            UIColor.black.setFill()
+            UIRectFill(CGRect(x: 100, y: 15, width: 190, height: 35))
+        }
+        return masked.pngData() ?? data
+    }
+}
+#endif
