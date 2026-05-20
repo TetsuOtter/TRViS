@@ -1,6 +1,4 @@
 using OpenQA.Selenium;
-using OpenQA.Selenium.Appium.iOS;
-using OpenQA.Selenium.Appium.Mac;
 using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
