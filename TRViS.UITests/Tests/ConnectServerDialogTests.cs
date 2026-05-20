@@ -43,6 +43,23 @@ public class ConnectServerDialogTests : BaseUITest
 			Thread.Sleep(300);
 		}
 
+		// Shared-session recovery (mirrors LanguageSettingsTests.SetUp): an
+		// earlier fixture — notably ScreenshotRegressionTests at Order(3),
+		// which calls LoadSample() — may have left a loaded loader, putting
+		// StartHome in Home mode where the Start-mode Title / ConnectServerButton
+		// this fixture relies on are absent from the iOS accessibility tree.
+		// StartHomePageObject.Title has a 60 s WaitForElement, so without this
+		// the first test's IsDisplayed() Assume blocks for a full minute and
+		// then fails (WebDriverTimeoutException is not caught by IsDisplayed()).
+		// ScreenshotRegressionTests now clears the loader at its own leak
+		// source; this is the defensive net for the failure path.
+		if (!_startHomePage.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3))
+		{
+			new AppShellPage(Driver).NavigateToHome();
+			_startHomePage = new StartHomePageObject(Driver);
+		}
+		_startHomePage.ClearLoaderForTesting();
+
 		_startHomePage.AcceptPrivacyPolicyIfNeeded();
 	}
 

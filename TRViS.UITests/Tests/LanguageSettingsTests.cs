@@ -95,11 +95,19 @@ public class LanguageSettingsTests : BaseUITest
 	{
 		_startHomePage.SetLanguageEnglishForTesting();
 
-		// Give the PropertyChanged("Item[]") refresh a beat to propagate to
-		// the bound Button before reading its caption.
-		Thread.Sleep(500);
-
+		// Poll for the PropertyChanged("Item[]") refresh to propagate to the
+		// bound Button instead of a fixed sleep: the refresh latency varies
+		// with simulator load (a fixed 500 ms was observed flaking on the
+		// busier iPhone CI runner). Read the caption every 100 ms for up to
+		// 5 s and stop as soon as it flips to English; the assertions below
+		// still give a precise failure message if it never does.
 		string connectText = _startHomePage.ConnectServerButton.Text;
+		var deadline = DateTime.UtcNow.AddSeconds(5);
+		while (!connectText.Contains("Load from Server") && DateTime.UtcNow < deadline)
+		{
+			Thread.Sleep(100);
+			connectText = _startHomePage.ConnectServerButton.Text;
+		}
 		Assert.That(connectText, Does.Contain("Load from Server"),
 			"After switching the UI language to English, the "
 			+ "{loc:Translate}-bound Connect-to-Server button must show the "
