@@ -1246,3 +1246,191 @@ jobs:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
           if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────
+  # Apple XCUITest — Screenshot Regression (Phase 3)
+  #
+  # Captures every reachable screen in (light, dark) × (ja, en) and diffs
+  # each frame against a committed baseline. iOS only (no Catalyst port).
+  #
+  # Device-class matrix: iPhone 16 + iPad mini A17 Pro. Both device classes
+  # gate the build (pixel diff failure → workflow failure). The iPad mini A17
+  # entry is marked continue-on-error to match the same instability pattern
+  # documented for ui-test-ios; a passing iPhone run suffices for the gate.
+  #
+  # Regen mode (workflow_dispatch → regenerate_screenshots): sets
+  # TEST_RUNNER_SCREENSHOT_UPDATE=1 so ScreenshotBaselineHelper overwrites
+  # baselines instead of diffing. The operator downloads the artifact,
+  # reviews the pixel diff, and commits deliberately.
+  #
+  # Depends on build-ios to avoid a double MAUI rebuild.
+  # ─────────────────────────────────────────────
+  ui-test-apple-screenshot:
+    runs-on: macos-26
+    # 4 combos × ~90 s each + simulator boot + install + xcodegen overhead.
+    # The iPad mini A17 is a second sequential pass (SKIP_BUILD=true reuses
+    # the simulator binary but boots a new device). 60 min gives comfortable
+    # headroom for both device classes.
+    timeout-minutes: 60
+    needs: build-ios
+    env:
+      MSBuildEnableWorkloadResolver: "false"
+    continue-on-error: ${{ matrix.continue-on-error == true }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device-class: iphone
+          - device-class: ipad-mini-a17
+            continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Download iOS simulator runtime (if needed)
+        run: |
+          if xcrun simctl list runtimes | grep -qi ios; then
+            echo "iOS simulator runtime already available."
+          else
+            echo "No iOS simulator runtime found. Downloading..."
+            xcodebuild -downloadPlatform iOS
+            echo "Download complete."
+          fi
+          xcrun simctl list runtimes
+
+      - name: Download iOS app artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ios-sim-app
+
+      - name: Extract iOS app to build output path
+        run: |
+          set -euo pipefail
+          DEST="TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+          mkdir -p "$DEST"
+          tar -xzf trvis-ios-sim-app.tar.gz -C "$DEST"
+          ls -la "$DEST"
+
+      - name: Create simulator (${{ matrix.device-class }})
+        id: create-sim
+        run: |
+          set -euo pipefail
+          case "${{ matrix.device-class }}" in
+            iphone)
+              DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
+              SIM_NAME="xcuitest-screenshot-iphone16"
+              ;;
+            ipad-mini-a17)
+              DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro"
+              SIM_NAME="xcuitest-screenshot-ipad-mini-a17"
+              ;;
+          esac
+          RUNTIME=$(xcrun simctl list runtimes \
+            | grep -E '^\s*iOS ' \
+            | grep -v 'unavailable' \
+            | tail -1 \
+            | sed 's/.*(\(com\.apple\.CoreSimulator\.SimRuntime\.iOS[^)]*\)).*/\1/')
+          echo "Runtime: $RUNTIME"
+          SIM_UDID=$(xcrun simctl create "$SIM_NAME" "$DEVICE_TYPE" "$RUNTIME")
+          echo "SIM_UDID=$SIM_UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIM_UDID"
+          echo "Booted simulator: $SIM_UDID"
+
+      - name: Apply status-bar override (screenshot determinism)
+        run: |
+          # Pin the iOS status bar to a deterministic appearance so captured
+          # screenshots are pixel-stable across runs (ISO date fixes both date
+          # and time; cellular active mirrors real-device appearance).
+          xcrun simctl status_bar "$SIM_UDID" override \
+            --time "2026-01-01T09:41:00" \
+            --dataNetwork wifi \
+            --wifiMode active \
+            --wifiBars 3 \
+            --cellularMode active \
+            --cellularBars 4 \
+            --operatorName "Carrier" \
+            --batteryState charged \
+            --batteryLevel 100
+
+      - name: Ad-hoc re-sign and install app into simulator
+        run: |
+          set -euo pipefail
+          APP_DIR=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }} \
+            -maxdepth 1 -name "*.app" -type d | head -1)
+          [ -n "$APP_DIR" ] || { echo "ERROR: .app not found"; exit 1; }
+          echo "App: $APP_DIR"
+          find "$APP_DIR" -type f \( -name "*.dylib" -o -name "*.so" \) \
+            -exec codesign --force --sign "-" {} \;
+          codesign --force --sign "-" "$APP_DIR"
+          xcrun simctl uninstall "$SIM_UDID" "${{ env.APP_PACKAGE }}" 2>/dev/null || true
+          xcrun simctl install "$SIM_UDID" "$APP_DIR"
+
+      - name: Generate Xcode project (iOS)
+        working-directory: TRViS.UITests.Apple/ios
+        run: xcodegen generate --quiet
+
+      - name: Run screenshot regression tests (${{ matrix.device-class }})
+        env:
+          SCREENSHOT_UPDATE: ${{ (github.event_name == 'workflow_dispatch' && inputs.regenerate_screenshots) && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          BASELINE_DIR="$(pwd)/TRViS.UITests.Apple/Screenshots"
+
+          # Inject screenshot config into the simulator's launchd so the
+          # XCUITest runner picks it up via ProcessInfo.environment.
+          # xcodebuild KEY=VAL sets build settings, NOT runner env vars.
+          xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_UPDATE       "$SCREENSHOT_UPDATE"
+          xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_DEVICE_CLASS "${{ matrix.device-class }}"
+          xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_BASELINE_DIR "$BASELINE_DIR"
+
+          xcodebuild test \
+            -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
+            -scheme TRViSUITests_iOS \
+            -destination "id=$SIM_UDID" \
+            -only-testing TRViSUITests_iOS/ScreenshotRegressionTests \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee /tmp/xcuitest-screenshot-${{ matrix.device-class }}.log
+
+      - name: Upload regenerated screenshot baselines (${{ matrix.device-class }})
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.regenerate_screenshots }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: regenerated-xcuitest-screenshots-${{ matrix.device-class }}
+          path: TRViS.UITests.Apple/Screenshots/**
+          if-no-files-found: warn
+
+      - name: Upload screenshot diff artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshot-diff-${{ matrix.device-class }}
+          path: |
+            TRViS.UITests.Apple/Screenshots/**/*.actual.png
+            TRViS.UITests.Apple/Screenshots/**/*.diff.png
+          if-no-files-found: ignore
+
+      - name: Upload XCUITest results and captured frames
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apple-screenshot-xcuitest-results-${{ matrix.device-class }}
+          path: |
+            /tmp/xcuitest-screenshot-${{ matrix.device-class }}.log
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+          if-no-files-found: ignore

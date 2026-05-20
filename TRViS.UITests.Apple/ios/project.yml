@@ -34,6 +34,7 @@ targets:
     platform: iOS
     sources:
       - path: ../Sources/Shared
+      - path: ../Sources/iOS
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.t0r.trvis.apple.uitests.ios

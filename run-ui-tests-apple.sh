@@ -47,12 +47,18 @@ PLATFORM="${1:-ios}"
 SKIP_BUILD=false
 SKIP_INSTALL=false
 SIM_UDID_OVERRIDE=""
+UPDATE_SCREENSHOTS=false
+SCREENSHOT_MATRIX=false
+DEVICE_CLASS="iphone"
 
 for arg in "$@"; do
   case "$arg" in
-    --skip-build)     SKIP_BUILD=true ;;
-    --skip-install)   SKIP_INSTALL=true ;;
-    --sim-udid=*)     SIM_UDID_OVERRIDE="${arg#*=}" ;;
+    --skip-build)          SKIP_BUILD=true ;;
+    --skip-install)        SKIP_INSTALL=true ;;
+    --sim-udid=*)          SIM_UDID_OVERRIDE="${arg#*=}" ;;
+    --update-screenshots)  UPDATE_SCREENSHOTS=true ;;
+    --screenshot-matrix)   SCREENSHOT_MATRIX=true ;;
+    --device-class=*)      DEVICE_CLASS="${arg#*=}" ;;
   esac
 done
 
@@ -126,8 +132,101 @@ generate_xcodeproj() {
 # ================================================================
 # iOS section
 # ================================================================
-run_ios() {
-  log "=== iOS XCUITest ==="
+
+# Paths for screenshot baselines (relative to repo root)
+SCREENSHOTS_DIR="$SCRIPT_DIR/TRViS.UITests.Apple/Screenshots"
+
+# Boot and configure a simulator, returning its UDID in SIM_UDID.
+# Args: $1 = device-class ("iphone" or "ipad-mini-a17")
+select_or_create_simulator() {
+  local dc="$1"
+  local sim_name device_type booted_filter
+
+  case "$dc" in
+    iphone)
+      sim_name="xcuitest-iphone16"
+      device_type="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
+      booted_filter="iPhone"
+      ;;
+    ipad-mini-a17)
+      sim_name="xcuitest-ipad-mini-a17"
+      device_type="com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro"
+      booted_filter="iPad mini"
+      ;;
+    *)
+      die "Unknown device class '$dc' (allowed: iphone, ipad-mini-a17)"
+      ;;
+  esac
+
+  if [[ -n "$SIM_UDID_OVERRIDE" ]]; then
+    SIM_UDID="$SIM_UDID_OVERRIDE"
+    log "Using specified simulator UDID: $SIM_UDID"
+    return
+  fi
+
+  # Try to find a booted simulator with the expected name first,
+  # then fall back to any booted sim matching the device class filter.
+  SIM_UDID=$(xcrun simctl list devices booted -j 2>/dev/null \
+    | python3 -c "
+import json,sys
+dc='$dc'
+sim_name='$sim_name'
+booted_filter='$booted_filter'
+d=json.load(sys.stdin)
+# 1. Named sim
+for rt,devs in d.get('devices',{}).items():
+  for dev in devs:
+    if dev.get('state')=='Booted' and dev.get('name','')==sim_name:
+      print(dev['udid']); sys.exit(0)
+# 2. Fallback: any booted sim matching filter
+for rt,devs in d.get('devices',{}).items():
+  for dev in devs:
+    if dev.get('state')=='Booted' and booted_filter in dev.get('name',''):
+      print(dev['udid']); sys.exit(0)
+" 2>/dev/null || true)
+
+  if [[ -z "$SIM_UDID" ]]; then
+    log "No booted $dc simulator found; creating '$sim_name'"
+    RUNTIME=$(xcrun simctl list runtimes -j \
+      | python3 -c "
+import json,sys
+rts=[r for r in json.load(sys.stdin).get('runtimes',[]) if 'iOS' in r.get('name','') and r.get('isAvailable',False)]
+rts.sort(key=lambda r: r.get('version',''))
+print(rts[-1]['identifier']) if rts else sys.exit(1)
+")
+    SIM_UDID=$(xcrun simctl create "$sim_name" "$device_type" "$RUNTIME")
+    xcrun simctl boot "$SIM_UDID"
+    log "Created and booted $dc simulator: $SIM_UDID"
+  fi
+}
+
+# Apply a deterministic status-bar appearance for screenshot captures.
+# Must be called after the simulator is booted.
+apply_status_bar_override() {
+  local udid="$1"
+  # Express "9:41 on 2026-01-01" in the host's local UTC offset so that
+  # simctl (which converts the timestamp using the host timezone) always
+  # displays "9:41" regardless of where CI or the developer's machine runs.
+  local display_time
+  display_time=$(date -j -f "%Y-%m-%dT%H:%M:%S" "2026-01-01T09:41:00" \
+    "+%Y-%m-%dT%H:%M:%S.000%z" | sed 's/\([+-][0-9][0-9]\)\([0-9][0-9]\)$/\1:\2/')
+  log "Applying simctl status_bar override for $udid (--time $display_time) …"
+  xcrun simctl status_bar "$udid" override \
+    --time "$display_time" \
+    --dataNetwork wifi \
+    --wifiMode active \
+    --wifiBars 3 \
+    --cellularMode active \
+    --cellularBars 4 \
+    --operatorName "Carrier" \
+    --batteryState charged \
+    --batteryLevel 100 \
+    || log "WARNING: status_bar override failed (simulator may not be booted yet — continuing)"
+}
+
+run_ios_for_device_class() {
+  local dc="$1"
+  log "=== iOS XCUITest [device-class: $dc] ==="
 
   # ── 1. Build MAUI iOS Simulator app ──────────────────────────
   if [[ "$SKIP_BUILD" == true ]]; then
@@ -153,55 +252,22 @@ run_ios() {
   log "App: $APP_PATH"
 
   # ── 3. Select / boot simulator ───────────────────────────────
-  if [[ -n "$SIM_UDID_OVERRIDE" ]]; then
-    SIM_UDID="$SIM_UDID_OVERRIDE"
-    log "Using specified simulator UDID: $SIM_UDID"
-  else
-    # Try to find a booted simulator named 'xcuitest-poc-iPhone16';
-    # fall back to any booted iPhone simulator.
-    SIM_UDID=$(xcrun simctl list devices booted -j 2>/dev/null \
-      | python3 -c "
-import json,sys
-d=json.load(sys.stdin)
-for rt,devs in d.get('devices',{}).items():
-  for dev in devs:
-    if dev.get('state')=='Booted' and 'xcuitest-poc-iPhone16' in dev.get('name',''):
-      print(dev['udid']); sys.exit(0)
-# fallback: any booted iPhone
-for rt,devs in d.get('devices',{}).items():
-  for dev in devs:
-    if dev.get('state')=='Booted' and 'iPhone' in dev.get('name',''):
-      print(dev['udid']); sys.exit(0)
-" 2>/dev/null || true)
-
-    if [[ -z "$SIM_UDID" ]]; then
-      log "No booted iPhone simulator found; creating and booting xcuitest-poc-iPhone16"
-      # Use the latest available iOS runtime
-      RUNTIME=$(xcrun simctl list runtimes -j \
-        | python3 -c "
-import json,sys
-rts=[r for r in json.load(sys.stdin).get('runtimes',[]) if 'iOS' in r.get('name','') and r.get('isAvailable',False)]
-rts.sort(key=lambda r: r.get('version',''))
-print(rts[-1]['identifier']) if rts else sys.exit(1)
-")
-      SIM_UDID=$(xcrun simctl create "xcuitest-poc-iPhone16" \
-        "com.apple.CoreSimulator.SimDeviceType.iPhone-16" \
-        "$RUNTIME")
-      xcrun simctl boot "$SIM_UDID"
-      log "Created and booted simulator: $SIM_UDID"
-    fi
-  fi
-
+  select_or_create_simulator "$dc"
   log "Simulator UDID: $SIM_UDID"
 
-  # ── 4. Ad-hoc re-sign all executables in the bundle ──────────
+  # ── 4. Status-bar override (screenshot determinism) ──────────
+  if [[ "$UPDATE_SCREENSHOTS" == true || "$SCREENSHOT_MATRIX" == true ]]; then
+    apply_status_bar_override "$SIM_UDID"
+  fi
+
+  # ── 5. Ad-hoc re-sign all executables in the bundle ──────────
   # iOS 26 simulators enforce code signing on every dylib/executable.
   log "Ad-hoc re-signing .app bundle …"
   find "$APP_PATH" -type f \( -name "*.dylib" -o -name "*.so" \) \
     -exec codesign --force --sign "-" {} \;
   codesign --force --sign "-" "$APP_PATH"
 
-  # ── 5. Uninstall then install into simulator ─────────────────
+  # ── 6. Uninstall then install into simulator ─────────────────
   # Uninstall first to wipe NSUserDefaults / the app data container.
   # AppLaunchTests.testApp_Launches_Into_StartHome_With_Privacy_Banner
   # asserts the privacy banner is visible, which requires a clean-install
@@ -216,26 +282,72 @@ print(rts[-1]['identifier']) if rts else sys.exit(1)
     xcrun simctl install "$SIM_UDID" "$APP_PATH"
   fi
 
-  # ── 6. Generate Xcode project ────────────────────────────────
+  # ── 7. Generate Xcode project ────────────────────────────────
   generate_xcodeproj "$IOS_PROJ_DIR"
 
-  # ── 7. Run XCUITest ─────────────────────────────────────────
-  log "Running XCUITest on simulator $SIM_UDID …"
+  # ── 8. Inject screenshot config into simulator launchd ───────
+  # xcodebuild `KEY=VAL` arguments set build settings, NOT runner env vars.
+  # The reliable way to expose env vars to the test runner is to set them on
+  # launchd inside the simulator; every child process (including xctest)
+  # inherits them via ProcessInfo.processInfo.environment.
+  local UPDATE_FLAG="0"
+  if [[ "$UPDATE_SCREENSHOTS" == true ]]; then
+    UPDATE_FLAG="1"
+  fi
+  if [[ "$UPDATE_SCREENSHOTS" == true || "$SCREENSHOT_MATRIX" == true ]]; then
+    log "Injecting screenshot config into simulator launchd …"
+    xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_UPDATE       "$UPDATE_FLAG"
+    xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_DEVICE_CLASS "$dc"
+    xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_BASELINE_DIR "$SCREENSHOTS_DIR"
+  else
+    # Clear any stale screenshot env from prior runs so unrelated jobs don't
+    # accidentally enter screenshot mode.
+    xcrun simctl spawn "$SIM_UDID" launchctl unsetenv TRVIS_SCREENSHOT_UPDATE       2>/dev/null || true
+    xcrun simctl spawn "$SIM_UDID" launchctl unsetenv TRVIS_SCREENSHOT_DEVICE_CLASS 2>/dev/null || true
+    xcrun simctl spawn "$SIM_UDID" launchctl unsetenv TRVIS_SCREENSHOT_BASELINE_DIR 2>/dev/null || true
+  fi
+
+  # ── 9. Run XCUITest ─────────────────────────────────────────
+  local LOG_FILE="/tmp/xcuitest-ios-${dc}.log"
+  # When updating or running the screenshot matrix, scope to only the
+  # ScreenshotRegressionTests class so the full functional suite is not
+  # re-run for every device class.
+  local ONLY_TESTING_ARGS=()
+  if [[ "$UPDATE_SCREENSHOTS" == true || "$SCREENSHOT_MATRIX" == true ]]; then
+    ONLY_TESTING_ARGS=(-only-testing:TRViSUITests_iOS/ScreenshotRegressionTests)
+  fi
+  log "Running XCUITest on simulator $SIM_UDID (device-class=$dc) …"
   xcodebuild test \
     -project "$IOS_PROJ_DIR/TRViSUITests-iOS.xcodeproj" \
     -scheme TRViSUITests_iOS \
     -destination "id=$SIM_UDID" \
+    ${ONLY_TESTING_ARGS[@]+"${ONLY_TESTING_ARGS[@]}"} \
     CODE_SIGN_IDENTITY="-" \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGNING_ALLOWED=NO \
-    | tee /tmp/xcuitest-ios.log
+    | tee "$LOG_FILE"
 
   local exit_code=${PIPESTATUS[0]}
   if [[ $exit_code -eq 0 ]]; then
-    log "iOS XCUITest PASSED"
+    log "iOS XCUITest PASSED [device-class: $dc]"
   else
-    err "iOS XCUITest FAILED (exit $exit_code); see /tmp/xcuitest-ios.log"
+    err "iOS XCUITest FAILED (exit $exit_code) [device-class: $dc]; see $LOG_FILE"
     return $exit_code
+  fi
+}
+
+run_ios() {
+  if [[ "$SCREENSHOT_MATRIX" == true ]]; then
+    # Run both device classes in sequence
+    local matrix_exit=0
+    for dc in iphone ipad-mini-a17; do
+      run_ios_for_device_class "$dc" || matrix_exit=$?
+      # Re-enable --skip-build for the second device class (binary is the same)
+      SKIP_BUILD=true
+    done
+    return $matrix_exit
+  else
+    run_ios_for_device_class "$DEVICE_CLASS"
   fi
 }
 

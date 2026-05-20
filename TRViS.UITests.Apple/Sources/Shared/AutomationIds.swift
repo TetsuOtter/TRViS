@@ -45,6 +45,16 @@ enum AutomationIds {
         static let testSetLanguageEnglishButton  = "StartHome.TestSetLanguageEnglishButton"
         static let testSetLanguageJapaneseButton = "StartHome.TestSetLanguageJapaneseButton"
 
+        // Screenshot-regression determinism seams (Phase 3)
+        // Pins AppTimeProvider at 09:41:00 so the DTAC live clock is pixel-stable.
+        static let testFreezeClockButton   = "StartHome.TestFreezeClockButton"
+        static let testUnfreezeClockButton = "StartHome.TestUnfreezeClockButton"
+        // Force app-wide Light / Dark theme for deterministic cross-palette captures.
+        static let testForceLightThemeButton = "StartHome.TestForceLightThemeButton"
+        static let testForceDarkThemeButton  = "StartHome.TestForceDarkThemeButton"
+        // Reset theme to Unspecified (follow OS) after the screenshot walk.
+        static let testResetThemeButton = "StartHome.TestResetThemeButton"
+
         // GPS seed seam (DTACTimetableTests)
         static let testSeedGpsButton    = "StartHome.TestSeedGpsButton"
 

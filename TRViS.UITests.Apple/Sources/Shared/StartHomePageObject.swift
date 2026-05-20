@@ -225,11 +225,74 @@ class StartHomePageObject {
         base.tapSeam(id: AutomationIds.StartHome.testSetupBrowseFallbackButton)
     }
 
-    // MARK: — Language seams (LanguageSettings test)
+    // MARK: — Language seams (LanguageSettings test / ScreenshotRegressionTests)
 
     /// Switches the UI language to English through the ViewModel path.
     func setLanguageEnglishForTesting() {
         base.tapSeam(id: AutomationIds.StartHome.testSetLanguageEnglishButton)
+    }
+
+    /// Switches the UI language to Japanese through the ViewModel path.
+    func setLanguageJapaneseForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSetLanguageJapaneseButton)
+    }
+
+    // MARK: — Clock freeze seams (ScreenshotRegressionTests Phase 3)
+
+    /// Pins AppTimeProvider at 09:41:00 so the DTAC live clock is pixel-stable.
+    /// Must be called after sample data is loaded (seam button is only wired up
+    /// once a Work is committed and the DTAC view model exists).
+    func freezeClockForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testFreezeClockButton)
+    }
+
+    /// Releases the clock pin — restores live time.
+    func unfreezeClockForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testUnfreezeClockButton)
+    }
+
+    // MARK: — Theme force seams (ScreenshotRegressionTests Phase 3)
+
+    /// Forces the app-wide theme to Light or Dark for deterministic cross-palette
+    /// screenshots. Taps the appropriate seam button based on `dark`.
+    func forceThemeForTesting(dark: Bool) {
+        let id = dark
+            ? AutomationIds.StartHome.testForceDarkThemeButton
+            : AutomationIds.StartHome.testForceLightThemeButton
+        base.tapSeam(id: id)
+    }
+
+    /// Resets the app-wide theme to Unspecified (follow OS) after the screenshot walk.
+    func resetThemeForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testResetThemeButton)
+    }
+
+    // MARK: — Privacy Policy dialog (ScreenshotRegressionTests Phase 3)
+
+    /// Taps the footer "Privacy Policy" link and waits for the dialog to appear.
+    func openPrivacyPolicyDialog() {
+        guard let btn = base.waitForElement(
+            id: AutomationIds.StartHome.privacyPolicyButton, timeout: 30
+        ) else {
+            XCTFail("PrivacyPolicyButton not found")
+            return
+        }
+        btn.tap()
+        // Wait for dialog title to confirm it has appeared.
+        _ = base.waitForElement(id: AutomationIds.PrivacyDialog.title, timeout: 15)
+    }
+
+    /// Closes the Privacy Policy dialog by tapping its CloseButton.
+    /// Waits for StartHome.Title to confirm the page is visible again.
+    func closePrivacyPolicyDialog() {
+        guard let btn = base.waitForElement(
+            id: AutomationIds.PrivacyDialog.closeButton, timeout: 15
+        ) else {
+            XCTFail("PrivacyDialog.CloseButton not found")
+            return
+        }
+        btn.tap()
+        _ = base.waitForElement(id: AutomationIds.StartHome.title, timeout: 15)
     }
 
     // MARK: — ConnectServerButton caption (LanguageSettings test)
