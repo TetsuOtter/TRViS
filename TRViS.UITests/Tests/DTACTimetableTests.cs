@@ -1,6 +1,4 @@
 using OpenQA.Selenium;
-using OpenQA.Selenium.Appium.iOS;
-using OpenQA.Selenium.Appium.Mac;
 using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
@@ -187,13 +185,6 @@ public class DTACTimetableTests : BaseUITest
 	[Test]
 	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
 	{
-		if (Driver is MacDriver || Driver is IOSDriver)
-			Assert.Ignore(
-				"Apple's accessibility tree (XCUITest / mac2) surfaces unparented " +
-				"elements with AutomationId as visible on some OS versions — we " +
-				"cannot reliably distinguish \"hidden\" from \"displayed\" via Appium " +
-				"here. Coverage on Android and Windows is sufficient for this assertion.");
-
 		var dtac = LoadSampleAndOpenDTAC();
 		dtac.SwitchToTimetableTab();
 
