@@ -45,6 +45,15 @@ enum AutomationIds {
         static let testSetLanguageEnglishButton  = "StartHome.TestSetLanguageEnglishButton"
         static let testSetLanguageJapaneseButton = "StartHome.TestSetLanguageJapaneseButton"
 
+        // GPS seed seam (DTACTimetableTests)
+        static let testSeedGpsButton    = "StartHome.TestSeedGpsButton"
+
+        // NextTrain seed seam (DTACTimetableTests)
+        static let testSeedNextTrainSelectionButton = "StartHome.TestSeedNextTrainSelectionButton"
+
+        // HorizontalTimetable seed seam (HorizontalTimetableTests)
+        static let testSeedHorizontalTimetableButton = "StartHome.TestSeedHorizontalTimetableButton"
+
         // URL-history seams (ConnectServer tests)
         static let testClearHistoryButton = "StartHome.TestClearHistoryButton"
 
@@ -69,11 +78,40 @@ enum AutomationIds {
 
     enum DTAC {
         static let menuButton             = "DTAC.MenuButton"
+        static let timeLabel              = "DTAC.TimeLabel"
+        static let titleLabel             = "DTAC.TitleLabel"
+        static let tabHako                = "DTAC.TabHako"
+        static let tabTimetable           = "DTAC.TabTimetable"
+        static let tabWorkAffix           = "DTAC.TabWorkAffix"
+
+        static let startEndRunButton      = "DTAC.StartEndRunButton"
+        static let locationServiceButton  = "DTAC.LocationServiceButton"
+        static let openCloseButton        = "DTAC.OpenCloseButton"
+        static let timetableScrollView    = "DTAC.TimetableScrollView"
+        static let verticalTimetableView  = "DTAC.VerticalTimetableView"
+        static let nextTrainButton        = "DTAC.NextTrainButton"
+        static let horizontalTimetableButton = "DTAC.HorizontalTimetableButton"
+
+        // UI_TEST-only seam buttons
         static let testNavigateHomeButton = "DTAC.TestNavigateHomeButton"
+        static let testSeedIsInfoRowTransitionButton = "DTAC.TestSeedIsInfoRowTransitionButton"
+
+        // UI_TEST-only state mirrors
         static let testTitleSeam          = "DTAC.TestTitleSeam"
         static let testTimeSeam           = "DTAC.TestTimeSeam"
         static let testSeamTitlePrefix    = "T:"
         static let testSeamTimePrefix     = "C:"
+
+        // AutomationId patterns for timetable row components (UI_TEST builds only).
+        // Use String(format:) to substitute the row index.
+        static let timetableRowStationNamePattern = "TimetableRow.%d.StationName"
+        static let timetableRowInfoRowPattern     = "TimetableRow.%d.InfoRow"
+    }
+
+    /// Horizontal timetable page (PNG/JPG/PDF/URI displayed in a WebView).
+    enum HorizontalTimetable {
+        static let webView    = "HorizontalTimetable.WebView"
+        static let backButton = "HorizontalTimetable.BackButton"
     }
 
     enum ThirdParty {

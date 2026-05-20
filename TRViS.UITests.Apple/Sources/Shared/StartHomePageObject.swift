@@ -262,6 +262,58 @@ class StartHomePageObject {
         return DTACViewHostPageObject(app: app, base: base)
     }
 
+    // MARK: — WorkGroup count (DTACTimetableTests)
+
+    /// Counts the number of child elements (WorkGroup rows) in the WorkGroupList.
+    /// Mirrors C# CountWorkGroups() — returns descendants count as a proxy for
+    /// row count; the exact number may exceed the work-group count on some
+    /// platforms due to cell wrappers, so callers use >=2.
+    func countWorkGroups() -> Int {
+        guard let list = base.waitForElement(
+            id: AutomationIds.StartHome.workGroupList, timeout: 10
+        ) else {
+            return 0
+        }
+        // Count direct cell/button children that have a non-empty label.
+        // This mirrors the C# IReadOnlyList<IWebElement> approach: we care
+        // that at least N meaningful rows are present, not internal wrappers.
+        let descendants = list.descendants(matching: .any)
+        var count = 0
+        for i in 0..<descendants.count {
+            let el = descendants.element(boundBy: i)
+            if el.exists && !el.label.isEmpty {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    // MARK: — GPS seed seam (DTACTimetableTests)
+
+    /// Taps the UI_TEST seam that injects a fixture GPS coordinate into the
+    /// LocationService. No real CoreLocation involved.
+    func seedGpsLocationForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testSeedGpsButton)
+    }
+
+    // MARK: — NextTrain seed seam (DTACTimetableTests)
+
+    /// Seeds a train selection with NextTrainId set (linear-train-1) and
+    /// navigates to DTAC. Returns the DTAC page object.
+    func seedTrainSelectionWithNextTrain() -> DTACViewHostPageObject {
+        base.tapSeam(id: AutomationIds.StartHome.testSeedNextTrainSelectionButton)
+        return DTACViewHostPageObject(app: app, base: base)
+    }
+
+    // MARK: — HorizontalTimetable seed seam (HorizontalTimetableTests)
+
+    /// Seeds a Work with HasETrainTimetable=true and a 1×1 PNG payload,
+    /// then commits and navigates to DTAC. Returns the DTAC page object.
+    func seedHorizontalTimetableAndOpenForTesting() -> DTACViewHostPageObject {
+        base.tapSeam(id: AutomationIds.StartHome.testSeedHorizontalTimetableButton)
+        return DTACViewHostPageObject(app: app, base: base)
+    }
+
     // MARK: — Constants (mirror C# StartHomePageObject literals)
 
     /// URLs seeded by seedUrlHistoryForTesting().

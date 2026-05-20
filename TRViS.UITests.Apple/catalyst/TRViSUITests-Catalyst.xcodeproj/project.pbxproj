@@ -10,8 +10,11 @@
 		09583D02EE5B89D40F37EE19 /* ConnectServerDialogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F04605E8E12138562B61DD6 /* ConnectServerDialogTests.swift */; };
 		11A65D6EB829DAE794F0AA4C /* ConnectServerDialogPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A4E52E10964E648C34ECCA /* ConnectServerDialogPageObject.swift */; };
 		192E7E83D41EAFD4C0F25273 /* SelectFileDialogPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D9E4ECA6900F90821A7F32 /* SelectFileDialogPageObject.swift */; };
+		1B0A69C507A7CCCECDD3F644 /* HorizontalTimetableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D925756C297D604F979A26 /* HorizontalTimetableTests.swift */; };
+		1BE5DBC31DCD97C70B8EA416 /* DTACTimetableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F02BBA03F9646C325EC6BD /* DTACTimetableTests.swift */; };
 		1FE57C78952CD62E6C4DE588 /* BaseUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A75885870BA7DBF9673892 /* BaseUITestCase.swift */; };
 		2DC7B816A6D2E021DD512534 /* FirebaseSettingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B649E7CB3F1942DA54AD0D8 /* FirebaseSettingTests.swift */; };
+		2E32B3724778B649C2FA46B3 /* HorizontalTimetablePageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BE776C4A8B540313EFDD54 /* HorizontalTimetablePageObject.swift */; };
 		36A3E0CCC0903E588DAE5C68 /* ThirdPartyLicensesPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5677A83B1D3539CF263B6800 /* ThirdPartyLicensesPageObject.swift */; };
 		5D150D02D6271DCBD94E14CA /* EasterEggPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB52FC1865C06BAD94CE6A13 /* EasterEggPageObject.swift */; };
 		60FDA3C333B3F7E39816714D /* StartHomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F6BA1FC7FCD9239FC3AFD6 /* StartHomeTests.swift */; };
@@ -19,7 +22,9 @@
 		792B324A70F9EC5B2809B9FE /* StartHomePageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCAE0472487856401F315CC7 /* StartHomePageObject.swift */; };
 		7C4E12025DA05683D17D6FB4 /* LanguageSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2712D3B5E87D40234101BF81 /* LanguageSettingsTests.swift */; };
 		82715F803D788CE8B42F61E6 /* AppShellPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34A5F976EAAB4546D98CE7BA /* AppShellPageObject.swift */; };
+		896934B443107F095E17C1AC /* StationNameDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E4A9EEC40E518A0510D97A /* StationNameDisplayTests.swift */; };
 		8B41D09AAD827C2EB88F9B8C /* NavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA691E8A33D0C1D1964D4511 /* NavigationTests.swift */; };
+		9AE401ABDD82C2C845BCB9FE /* IsInfoRowTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46CEAE4AF5BD2FFCD73493F8 /* IsInfoRowTransitionTests.swift */; };
 		C0BC178512418229CFF84B4A /* DTACViewHostPageObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A1885AE0F504E95498FA5A /* DTACViewHostPageObject.swift */; };
 		EF80CD450C9D0DB621A8F30A /* SelectFileDialogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4D4A470DFA6F550EA47AD5 /* SelectFileDialogTests.swift */; };
 		EF90595FF64DE22B6C4C0EB9 /* AutomationIds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59EC0A0017E322C36451AB44 /* AutomationIds.swift */; };
@@ -42,6 +47,7 @@
 		356834F6E13FB283DDB7FBE6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		36D9E4ECA6900F90821A7F32 /* SelectFileDialogPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectFileDialogPageObject.swift; sourceTree = "<group>"; };
 		3F04605E8E12138562B61DD6 /* ConnectServerDialogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectServerDialogTests.swift; sourceTree = "<group>"; };
+		46CEAE4AF5BD2FFCD73493F8 /* IsInfoRowTransitionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsInfoRowTransitionTests.swift; sourceTree = "<group>"; };
 		4DDCFD904D1804BC91274FE7 /* TRViSUITests_Catalyst.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TRViSUITests_Catalyst.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5677A83B1D3539CF263B6800 /* ThirdPartyLicensesPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThirdPartyLicensesPageObject.swift; sourceTree = "<group>"; };
 		59EC0A0017E322C36451AB44 /* AutomationIds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationIds.swift; sourceTree = "<group>"; };
@@ -50,12 +56,16 @@
 		77F6BA1FC7FCD9239FC3AFD6 /* StartHomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartHomeTests.swift; sourceTree = "<group>"; };
 		7F4D4A470DFA6F550EA47AD5 /* SelectFileDialogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectFileDialogTests.swift; sourceTree = "<group>"; };
 		84A75885870BA7DBF9673892 /* BaseUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseUITestCase.swift; sourceTree = "<group>"; };
+		85E4A9EEC40E518A0510D97A /* StationNameDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationNameDisplayTests.swift; sourceTree = "<group>"; };
 		9B649E7CB3F1942DA54AD0D8 /* FirebaseSettingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSettingTests.swift; sourceTree = "<group>"; };
 		A9A4E52E10964E648C34ECCA /* ConnectServerDialogPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectServerDialogPageObject.swift; sourceTree = "<group>"; };
 		BA691E8A33D0C1D1964D4511 /* NavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTests.swift; sourceTree = "<group>"; };
+		C3D925756C297D604F979A26 /* HorizontalTimetableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalTimetableTests.swift; sourceTree = "<group>"; };
+		C3F02BBA03F9646C325EC6BD /* DTACTimetableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTACTimetableTests.swift; sourceTree = "<group>"; };
 		D9A1885AE0F504E95498FA5A /* DTACViewHostPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTACViewHostPageObject.swift; sourceTree = "<group>"; };
 		DB52FC1865C06BAD94CE6A13 /* EasterEggPageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasterEggPageObject.swift; sourceTree = "<group>"; };
 		DCAE0472487856401F315CC7 /* StartHomePageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartHomePageObject.swift; sourceTree = "<group>"; };
+		E1BE776C4A8B540313EFDD54 /* HorizontalTimetablePageObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalTimetablePageObject.swift; sourceTree = "<group>"; };
 		EC51F224D1BA82CF8B2CFA38 /* TRViSUITests_CatalystHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TRViSUITests_CatalystHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -87,15 +97,20 @@
 				84A75885870BA7DBF9673892 /* BaseUITestCase.swift */,
 				A9A4E52E10964E648C34ECCA /* ConnectServerDialogPageObject.swift */,
 				3F04605E8E12138562B61DD6 /* ConnectServerDialogTests.swift */,
+				C3F02BBA03F9646C325EC6BD /* DTACTimetableTests.swift */,
 				D9A1885AE0F504E95498FA5A /* DTACViewHostPageObject.swift */,
 				DB52FC1865C06BAD94CE6A13 /* EasterEggPageObject.swift */,
 				9B649E7CB3F1942DA54AD0D8 /* FirebaseSettingTests.swift */,
+				E1BE776C4A8B540313EFDD54 /* HorizontalTimetablePageObject.swift */,
+				C3D925756C297D604F979A26 /* HorizontalTimetableTests.swift */,
+				46CEAE4AF5BD2FFCD73493F8 /* IsInfoRowTransitionTests.swift */,
 				2712D3B5E87D40234101BF81 /* LanguageSettingsTests.swift */,
 				BA691E8A33D0C1D1964D4511 /* NavigationTests.swift */,
 				36D9E4ECA6900F90821A7F32 /* SelectFileDialogPageObject.swift */,
 				7F4D4A470DFA6F550EA47AD5 /* SelectFileDialogTests.swift */,
 				DCAE0472487856401F315CC7 /* StartHomePageObject.swift */,
 				77F6BA1FC7FCD9239FC3AFD6 /* StartHomeTests.swift */,
+				85E4A9EEC40E518A0510D97A /* StationNameDisplayTests.swift */,
 				5677A83B1D3539CF263B6800 /* ThirdPartyLicensesPageObject.swift */,
 			);
 			path = Shared;
@@ -216,15 +231,20 @@
 				1FE57C78952CD62E6C4DE588 /* BaseUITestCase.swift in Sources */,
 				11A65D6EB829DAE794F0AA4C /* ConnectServerDialogPageObject.swift in Sources */,
 				09583D02EE5B89D40F37EE19 /* ConnectServerDialogTests.swift in Sources */,
+				1BE5DBC31DCD97C70B8EA416 /* DTACTimetableTests.swift in Sources */,
 				C0BC178512418229CFF84B4A /* DTACViewHostPageObject.swift in Sources */,
 				5D150D02D6271DCBD94E14CA /* EasterEggPageObject.swift in Sources */,
 				2DC7B816A6D2E021DD512534 /* FirebaseSettingTests.swift in Sources */,
+				2E32B3724778B649C2FA46B3 /* HorizontalTimetablePageObject.swift in Sources */,
+				1B0A69C507A7CCCECDD3F644 /* HorizontalTimetableTests.swift in Sources */,
+				9AE401ABDD82C2C845BCB9FE /* IsInfoRowTransitionTests.swift in Sources */,
 				7C4E12025DA05683D17D6FB4 /* LanguageSettingsTests.swift in Sources */,
 				8B41D09AAD827C2EB88F9B8C /* NavigationTests.swift in Sources */,
 				192E7E83D41EAFD4C0F25273 /* SelectFileDialogPageObject.swift in Sources */,
 				EF80CD450C9D0DB621A8F30A /* SelectFileDialogTests.swift in Sources */,
 				792B324A70F9EC5B2809B9FE /* StartHomePageObject.swift in Sources */,
 				60FDA3C333B3F7E39816714D /* StartHomeTests.swift in Sources */,
+				896934B443107F095E17C1AC /* StationNameDisplayTests.swift in Sources */,
 				36A3E0CCC0903E588DAE5C68 /* ThirdPartyLicensesPageObject.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
