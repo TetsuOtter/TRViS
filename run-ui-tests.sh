@@ -573,19 +573,27 @@ fi
 # is running). Filter by the process's command line so we don't blindly
 # SIGKILL strangers.
 APPIUM_PORT="${APPIUM_URL##*:}"
+# Helpers split into two so each `lsof` failure (exit 1 means "no match" on
+# macOS) can be swallowed with `|| true` BEFORE the result hits a pipeline
+# under `set -o pipefail` (which would otherwise abort the whole script when
+# nothing is listening — the common, healthy case in CI).
+pids_on_port() {
+  lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null || true
+}
 appium_pids_on_port() {
   local pid pids=""
-  for pid in $(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null); do
+  for pid in $(pids_on_port); do
     # `ps -o command=` prints the full argv. Appium is `node .../appium ...`,
     # so the literal substring "appium" appears in the command line.
     if ps -p "$pid" -o command= 2>/dev/null | grep -q '[a]ppium'; then
       pids="$pids $pid"
     fi
   done
-  echo "$pids" | xargs
+  # shellcheck disable=SC2086  # word-splitting is the desired effect here
+  echo $pids
 }
 STALE_APPIUM_PIDS="$(appium_pids_on_port)"
-OTHER_PIDS_ON_PORT="$(lsof -nP -tiTCP:"$APPIUM_PORT" -sTCP:LISTEN 2>/dev/null | tr '\n' ' ' | xargs)"
+OTHER_PIDS_ON_PORT="$(pids_on_port | tr '\n' ' ')"
 if [[ -n "$STALE_APPIUM_PIDS" ]]; then
   log "Port $APPIUM_PORT busy with Appium (PIDs: $STALE_APPIUM_PIDS) — killing stale Appium..."
   # shellcheck disable=SC2086
@@ -599,7 +607,7 @@ if [[ -n "$STALE_APPIUM_PIDS" ]]; then
     # shellcheck disable=SC2086
     kill -9 $STALE_APPIUM_PIDS 2>/dev/null || true
   fi
-elif [[ -n "$OTHER_PIDS_ON_PORT" ]]; then
+elif [[ -n "${OTHER_PIDS_ON_PORT// /}" ]]; then
   err "Port $APPIUM_PORT is held by a non-Appium process (PIDs: $OTHER_PIDS_ON_PORT). " \
       "Free it manually or set APPIUM_URL to a different port."
   exit 1
