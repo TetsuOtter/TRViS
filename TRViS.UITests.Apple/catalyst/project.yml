@@ -1,0 +1,55 @@
+name: TRViSUITests-Catalyst
+options:
+  bundleIdPrefix: dev.t0r.trvis.apple
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "NO"
+    DEVELOPMENT_TEAM: ""
+    SWIFT_VERSION: "5.0"
+
+targets:
+  TRViSUITests_CatalystHost:
+    type: application
+    platform: macOS
+    sources:
+      - path: CatalystHost
+    info:
+      path: CatalystHost/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.t0r.trvis.apple.catalysthost
+        INFOPLIST_FILE: CatalystHost/Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+  TRViSUITests_Catalyst:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: ../Sources/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.t0r.trvis.apple.uitests.catalyst
+        TEST_TARGET_NAME: TRViSUITests_CatalystHost
+        GENERATE_INFOPLIST_FILE: "YES"
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+    dependencies:
+      - target: TRViSUITests_CatalystHost
+
+schemes:
+  TRViSUITests_Catalyst:
+    build:
+      targets:
+        TRViSUITests_CatalystHost: all
+        TRViSUITests_Catalyst: [test]
+    test:
+      targets:
+        - TRViSUITests_Catalyst
+      gatherCoverageData: false

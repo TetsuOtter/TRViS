@@ -1,0 +1,54 @@
+name: TRViSUITests-iOS
+options:
+  bundleIdPrefix: dev.t0r.trvis.apple
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "NO"
+    DEVELOPMENT_TEAM: ""
+    SWIFT_VERSION: "5.0"
+
+targets:
+  TRViSUITests_iOSHost:
+    type: application
+    platform: iOS
+    sources:
+      - path: iOSHost
+    info:
+      path: iOSHost/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.t0r.trvis.apple.ioshost
+        INFOPLIST_FILE: iOSHost/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: "NO"
+
+  TRViSUITests_iOS:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ../Sources/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.t0r.trvis.apple.uitests.ios
+        TEST_TARGET_NAME: TRViSUITests_iOSHost
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: TRViSUITests_iOSHost
+
+schemes:
+  TRViSUITests_iOS:
+    build:
+      targets:
+        TRViSUITests_iOSHost: all
+        TRViSUITests_iOS: [test]
+    test:
+      targets:
+        - TRViSUITests_iOS
+      gatherCoverageData: false
