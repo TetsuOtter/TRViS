@@ -23,6 +23,7 @@ class BaseUITestCase: XCTestCase {
     let launchTimeout: TimeInterval = 90
 
     override func setUpWithError() throws {
+        try super.setUpWithError()
         continueAfterFailure = false
         app = XCUIApplication(bundleIdentifier: "dev.t0r.trvis")
         app.launch()
@@ -30,6 +31,7 @@ class BaseUITestCase: XCTestCase {
 
     override func tearDownWithError() throws {
         app.terminate()
+        try super.tearDownWithError()
     }
 
     // MARK: — Element helpers

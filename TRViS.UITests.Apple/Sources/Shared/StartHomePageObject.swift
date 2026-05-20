@@ -242,8 +242,8 @@ class StartHomePageObject {
     // MARK: — Clock freeze seams (used by ScreenshotRegressionTests)
 
     /// Pins AppTimeProvider at 09:41:00 so the DTAC live clock is pixel-stable.
-    /// Must be called after sample data is loaded (seam button is only wired up
-    /// once a Work is committed and the DTAC view model exists).
+    /// The seam button is wired up during StartHome construction, so this can be
+    /// called at any point after the StartHome page is loaded.
     func freezeClockForTesting() {
         base.tapSeam(id: AutomationIds.StartHome.testFreezeClockButton)
     }

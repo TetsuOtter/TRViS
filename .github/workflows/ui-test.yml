@@ -831,13 +831,13 @@ jobs:
           set -euo pipefail
           # Use the first available iOS runtime on the runner.
           # xcrun simctl list runtimes outputs lines like:
-          #   iOS 26.4 (26.4) - com.apple.CoreSimulator.SimRuntime.iOS-26-4
+          #   iOS 26.4 (26.4.1 - 23E254a) - com.apple.CoreSimulator.SimRuntime.iOS-26-4
           # Pick the last (highest) iOS runtime identifier.
           RUNTIME=$(xcrun simctl list runtimes \
             | grep -E '^\s*iOS ' \
             | grep -v 'unavailable' \
             | tail -1 \
-            | sed 's/.*(\(com\.apple\.CoreSimulator\.SimRuntime\.iOS[^)]*\)).*/\1/')
+            | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+')
           echo "Runtime: $RUNTIME"
           SIM_UDID=$(xcrun simctl create "xcuitest-ci-iPhone16" \
             "com.apple.CoreSimulator.SimDeviceType.iPhone-16" \
@@ -1055,7 +1055,7 @@ jobs:
             | grep -E '^\s*iOS ' \
             | grep -v 'unavailable' \
             | tail -1 \
-            | sed 's/.*(\(com\.apple\.CoreSimulator\.SimRuntime\.iOS[^)]*\)).*/\1/')
+            | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+')
           echo "Runtime: $RUNTIME"
           SIM_UDID=$(xcrun simctl create "$SIM_NAME" "$DEVICE_TYPE" "$RUNTIME")
           echo "SIM_UDID=$SIM_UDID" >> "$GITHUB_ENV"

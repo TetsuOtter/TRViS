@@ -16,9 +16,9 @@
 #
 # What it does:
 #   1. Calls run-ui-tests-apple.sh ios --screenshot-matrix --update-screenshots
-#      which sets TEST_RUNNER_SCREENSHOT_UPDATE=1 in the xcodebuild invocation,
-#      causing ScreenshotBaselineHelper to overwrite baseline PNGs instead of
-#      diffing against them.
+#      which injects TRVIS_SCREENSHOT_UPDATE=1 (and related TRVIS_SCREENSHOT_*)
+#      into the simulator via launchctl, causing ScreenshotComparer to overwrite
+#      baseline PNGs instead of diffing against them.
 #   2. Each captured frame is written to:
 #        TRViS.UITests.Apple/Screenshots/<deviceClass>/<theme>/<lang>/<screen>.png
 #   3. Prints a summary of newly/updated files at the end.

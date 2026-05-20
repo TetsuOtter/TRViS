@@ -77,48 +77,51 @@ class ScreenshotComparer {
             )
         }
 
-        // --- Pixel diff ---
+        // --- Pixel diff: count-only pass (no allocation on the pass path) ---
         let total     = w * h
         var diffCount = 0
-        // Build diff image buffer (red = changed pixel, dimmed = unchanged)
-        var diffPixels = [UInt8](repeating: 255, count: total * 4)
-
         for i in 0..<total {
             let base4 = i * 4
-            let aR = Int(actualPixels[base4 + 0])
-            let aG = Int(actualPixels[base4 + 1])
-            let aB = Int(actualPixels[base4 + 2])
-            let aA = Int(actualPixels[base4 + 3])
-            let bR = Int(baselinePixels[base4 + 0])
-            let bG = Int(baselinePixels[base4 + 1])
-            let bB = Int(baselinePixels[base4 + 2])
-            let bA = Int(baselinePixels[base4 + 3])
-
             let delta = max(
-                abs(aR - bR), abs(aG - bG),
-                abs(aB - bB), abs(aA - bA)
+                abs(Int(actualPixels[base4 + 0]) - Int(baselinePixels[base4 + 0])),
+                abs(Int(actualPixels[base4 + 1]) - Int(baselinePixels[base4 + 1])),
+                abs(Int(actualPixels[base4 + 2]) - Int(baselinePixels[base4 + 2])),
+                abs(Int(actualPixels[base4 + 3]) - Int(baselinePixels[base4 + 3]))
             )
-
-            if delta > channelTolerance {
-                diffCount += 1
-                // Bright red pixel in diff image
-                diffPixels[base4 + 0] = 255
-                diffPixels[base4 + 1] = 0
-                diffPixels[base4 + 2] = 0
-                diffPixels[base4 + 3] = 255
-            } else {
-                // Dimmed baseline pixel (50% brightness)
-                diffPixels[base4 + 0] = UInt8(bR / 2)
-                diffPixels[base4 + 1] = UInt8(bG / 2)
-                diffPixels[base4 + 2] = UInt8(bB / 2)
-                diffPixels[base4 + 3] = 255
-            }
+            if delta > channelTolerance { diffCount += 1 }
         }
 
         let diffFraction = Double(diffCount) / Double(total)
         let passed = diffFraction <= maxDiffFraction
 
         if !passed {
+            // Build diff image only on failure (red = changed, 33%-dimmed = unchanged)
+            var diffPixels = [UInt8](repeating: 255, count: total * 4)
+            for i in 0..<total {
+                let base4 = i * 4
+                let aR = Int(actualPixels[base4 + 0])
+                let aG = Int(actualPixels[base4 + 1])
+                let aB = Int(actualPixels[base4 + 2])
+                let aA = Int(actualPixels[base4 + 3])
+                let bR = Int(baselinePixels[base4 + 0])
+                let bG = Int(baselinePixels[base4 + 1])
+                let bB = Int(baselinePixels[base4 + 2])
+                let bA = Int(baselinePixels[base4 + 3])
+                let delta = max(abs(aR - bR), abs(aG - bG), abs(aB - bB), abs(aA - bA))
+                if delta > channelTolerance {
+                    diffPixels[base4 + 0] = 255
+                    diffPixels[base4 + 1] = 0
+                    diffPixels[base4 + 2] = 0
+                    diffPixels[base4 + 3] = 255
+                } else {
+                    // Dimmed baseline pixel (33% brightness, matching C# port)
+                    diffPixels[base4 + 0] = UInt8(bR / 3)
+                    diffPixels[base4 + 1] = UInt8(bG / 3)
+                    diffPixels[base4 + 2] = UInt8(bB / 3)
+                    diffPixels[base4 + 3] = 255
+                }
+            }
+
             // Write actual + diff artifacts alongside baseline so CI can upload them
             let dir = baselinePath.deletingLastPathComponent()
             let stem = baselinePath.deletingPathExtension().lastPathComponent

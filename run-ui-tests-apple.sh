@@ -12,7 +12,7 @@
 #     --skip-install        Skip xcrun simctl install (iOS only)
 #     --sim-udid=<UDID>     Use a specific simulator UDID (iOS only);
 #                           defaults to a booted sim named
-#                           'xcuitest-poc-iPhone16'
+#                           'xcuitest-iphone16' or 'xcuitest-ipad-mini-a17'
 #
 # Prerequisites (macOS):
 #   brew install xcodegen
@@ -86,6 +86,7 @@ check_prereqs() {
   command -v xcodegen  >/dev/null 2>&1 || missing+=("xcodegen  (brew install xcodegen)")
   command -v xcodebuild >/dev/null 2>&1 || missing+=("xcodebuild  (install Xcode via App Store or xcode-select)")
   command -v xcrun     >/dev/null 2>&1 || missing+=("xcrun  (install Xcode Command Line Tools)")
+  command -v python3   >/dev/null 2>&1 || missing+=("python3  (brew install python3)")
   if [[ ${#missing[@]} -gt 0 ]]; then
     err "Missing prerequisites:"
     for m in "${missing[@]}"; do err "  - $m"; done
@@ -164,29 +165,44 @@ select_or_create_simulator() {
     return
   fi
 
-  # Try to find a booted simulator with the expected name first,
-  # then fall back to any booted sim matching the device class filter.
-  SIM_UDID=$(xcrun simctl list devices booted -j 2>/dev/null \
+  # Search all available simulators: prefer the named sim, then any matching
+  # the device-class filter.  Boot it if it exists but is shut down; only
+  # create a new device when none is found (avoids accumulating duplicates).
+  SIM_UDID=$(xcrun simctl list devices -j 2>/dev/null \
     | python3 -c "
 import json,sys
 dc='$dc'
 sim_name='$sim_name'
 booted_filter='$booted_filter'
 d=json.load(sys.stdin)
-# 1. Named sim
+# 1. Named sim (any state)
 for rt,devs in d.get('devices',{}).items():
   for dev in devs:
-    if dev.get('state')=='Booted' and dev.get('name','')==sim_name:
-      print(dev['udid']); sys.exit(0)
-# 2. Fallback: any booted sim matching filter
+    if dev.get('isAvailable',False) and dev.get('name','')==sim_name:
+      print(dev['udid'],dev.get('state','')); sys.exit(0)
+# 2. Fallback: any available sim matching filter (prefer Booted)
+candidates=[]
 for rt,devs in d.get('devices',{}).items():
   for dev in devs:
-    if dev.get('state')=='Booted' and booted_filter in dev.get('name',''):
-      print(dev['udid']); sys.exit(0)
+    if dev.get('isAvailable',False) and booted_filter in dev.get('name',''):
+      candidates.append((dev['udid'],dev.get('state','')))
+if candidates:
+  candidates.sort(key=lambda x: (0 if x[1]=='Booted' else 1))
+  print(*candidates[0]); sys.exit(0)
 " 2>/dev/null || true)
 
-  if [[ -z "$SIM_UDID" ]]; then
-    log "No booted $dc simulator found; creating '$sim_name'"
+  if [[ -n "$SIM_UDID" ]]; then
+    local udid state
+    read -r udid state <<< "$SIM_UDID"
+    SIM_UDID="$udid"
+    if [[ "$state" != "Booted" ]]; then
+      log "Booting existing $dc simulator: $SIM_UDID"
+      xcrun simctl boot "$SIM_UDID"
+    else
+      log "Using already-booted $dc simulator: $SIM_UDID"
+    fi
+  else
+    log "No $dc simulator found; creating '$sim_name'"
     RUNTIME=$(xcrun simctl list runtimes -j \
       | python3 -c "
 import json,sys
