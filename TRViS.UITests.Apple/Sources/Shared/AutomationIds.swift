@@ -108,6 +108,10 @@ enum AutomationIds {
         static let startEndRunButton      = "DTAC.StartEndRunButton"
         static let locationServiceButton  = "DTAC.LocationServiceButton"
         static let openCloseButton        = "DTAC.OpenCloseButton"
+        // Per-train ハコ row button id (UI_TEST builds only). Append the TrainNumber.
+        static let hakoRowPrefix          = "DTAC.HakoRow."
+        // Remarks panel toggle (UI_TEST builds only). openCloseButton is the PageHeader toggle.
+        static let remarksOpenCloseButton = "DTAC.RemarksOpenCloseButton"
         static let timetableScrollView    = "DTAC.TimetableScrollView"
         static let verticalTimetableView  = "DTAC.VerticalTimetableView"
         static let nextTrainButton        = "DTAC.NextTrainButton"
