@@ -6,8 +6,8 @@
 //   channelTolerance  = 16  — per-channel delta threshold (max of R,G,B,A deltas)
 //   maxDiffFraction   = 0.005 — at most 0.5 % of pixels may differ
 //
-// On failure the method writes <name>.actual.png and <name>.diff.png alongside
-// the baseline so failures can be inspected in CI artifacts.
+// The method always writes <name>.actual.png and <name>.diff.png alongside
+// the baseline so every frame can be inspected in CI artifacts.
 //
 // iOS only — do NOT compile under macCatalyst.
 
@@ -19,6 +19,7 @@ struct ScreenshotCompareResult {
     let passed: Bool
     let diffFraction: Double
     let message: String
+    let diffData: Data?
 }
 
 class ScreenshotComparer {
@@ -45,7 +46,8 @@ class ScreenshotComparer {
               let actualCG    = actualImage.cgImage else {
             return ScreenshotCompareResult(
                 passed: false, diffFraction: 1.0,
-                message: "[\(name)] Could not decode actual screenshot PNG"
+                message: "[\(name)] Could not decode actual screenshot PNG",
+                diffData: nil
             )
         }
 
@@ -54,7 +56,8 @@ class ScreenshotComparer {
               let baselineCG    = baselineImage.cgImage else {
             return ScreenshotCompareResult(
                 passed: false, diffFraction: 1.0,
-                message: "[\(name)] Could not load baseline at \(baselinePath.path)"
+                message: "[\(name)] Could not load baseline at \(baselinePath.path)",
+                diffData: nil
             )
         }
 
@@ -64,7 +67,8 @@ class ScreenshotComparer {
         guard baselineCG.width == w, baselineCG.height == h else {
             return ScreenshotCompareResult(
                 passed: false, diffFraction: 1.0,
-                message: "[\(name)] Size mismatch: actual \(w)×\(h) vs baseline \(baselineCG.width)×\(baselineCG.height)"
+                message: "[\(name)] Size mismatch: actual \(w)×\(h) vs baseline \(baselineCG.width)×\(baselineCG.height)",
+                diffData: nil
             )
         }
 
@@ -73,7 +77,8 @@ class ScreenshotComparer {
               let baselinePixels = rgbaPixels(cgImage: baselineCG, width: w, height: h) else {
             return ScreenshotCompareResult(
                 passed: false, diffFraction: 1.0,
-                message: "[\(name)] Could not extract pixel data"
+                message: "[\(name)] Could not extract pixel data",
+                diffData: nil
             )
         }
 
@@ -94,45 +99,44 @@ class ScreenshotComparer {
         let diffFraction = Double(diffCount) / Double(total)
         let passed = diffFraction <= maxDiffFraction
 
-        if !passed {
-            // Build diff image only on failure (red = changed, 33%-dimmed = unchanged)
-            var diffPixels = [UInt8](repeating: 255, count: total * 4)
-            for i in 0..<total {
-                let base4 = i * 4
-                let aR = Int(actualPixels[base4 + 0])
-                let aG = Int(actualPixels[base4 + 1])
-                let aB = Int(actualPixels[base4 + 2])
-                let aA = Int(actualPixels[base4 + 3])
-                let bR = Int(baselinePixels[base4 + 0])
-                let bG = Int(baselinePixels[base4 + 1])
-                let bB = Int(baselinePixels[base4 + 2])
-                let bA = Int(baselinePixels[base4 + 3])
-                let delta = max(abs(aR - bR), abs(aG - bG), abs(aB - bB), abs(aA - bA))
-                if delta > channelTolerance {
-                    diffPixels[base4 + 0] = 255
-                    diffPixels[base4 + 1] = 0
-                    diffPixels[base4 + 2] = 0
-                    diffPixels[base4 + 3] = 255
-                } else {
-                    // Dimmed baseline pixel (33% brightness, matching C# port)
-                    diffPixels[base4 + 0] = UInt8(bR / 3)
-                    diffPixels[base4 + 1] = UInt8(bG / 3)
-                    diffPixels[base4 + 2] = UInt8(bB / 3)
-                    diffPixels[base4 + 3] = 255
-                }
+        // Build diff image for all comparisons (red = changed, 33%-dimmed = unchanged)
+        var diffPixels = [UInt8](repeating: 255, count: total * 4)
+        for i in 0..<total {
+            let base4 = i * 4
+            let aR = Int(actualPixels[base4 + 0])
+            let aG = Int(actualPixels[base4 + 1])
+            let aB = Int(actualPixels[base4 + 2])
+            let aA = Int(actualPixels[base4 + 3])
+            let bR = Int(baselinePixels[base4 + 0])
+            let bG = Int(baselinePixels[base4 + 1])
+            let bB = Int(baselinePixels[base4 + 2])
+            let bA = Int(baselinePixels[base4 + 3])
+            let delta = max(abs(aR - bR), abs(aG - bG), abs(aB - bB), abs(aA - bA))
+            if delta > channelTolerance {
+                diffPixels[base4 + 0] = 255
+                diffPixels[base4 + 1] = 0
+                diffPixels[base4 + 2] = 0
+                diffPixels[base4 + 3] = 255
+            } else {
+                // Dimmed baseline pixel (33% brightness, matching C# port)
+                diffPixels[base4 + 0] = UInt8(bR / 3)
+                diffPixels[base4 + 1] = UInt8(bG / 3)
+                diffPixels[base4 + 2] = UInt8(bB / 3)
+                diffPixels[base4 + 3] = 255
             }
+        }
 
-            // Write actual + diff artifacts alongside baseline so CI can upload them
-            let dir = baselinePath.deletingLastPathComponent()
-            let stem = baselinePath.deletingPathExtension().lastPathComponent
+        // Write actual + diff artifacts alongside baseline so CI can upload them
+        let dir = baselinePath.deletingLastPathComponent()
+        let stem = baselinePath.deletingPathExtension().lastPathComponent
 
-            let actualPath = dir.appendingPathComponent("\(stem).actual.png")
-            let diffPath   = dir.appendingPathComponent("\(stem).diff.png")
+        let actualPath = dir.appendingPathComponent("\(stem).actual.png")
+        let diffPath   = dir.appendingPathComponent("\(stem).diff.png")
 
-            try? actual.write(to: actualPath)
-            if let diffImage = makePNG(pixels: diffPixels, width: w, height: h) {
-                try? diffImage.write(to: diffPath)
-            }
+        try? actual.write(to: actualPath)
+        let diffImageData = makePNG(pixels: diffPixels, width: w, height: h)
+        if let data = diffImageData {
+            try? data.write(to: diffPath)
         }
 
         let pct = String(format: "%.4f%%", diffFraction * 100)
@@ -140,7 +144,7 @@ class ScreenshotComparer {
             ? "[\(name)] PASS — diff \(pct) (\(diffCount)/\(total) px)"
             : "[\(name)] FAIL — diff \(pct) (\(diffCount)/\(total) px) exceeds \(maxDiffFraction * 100)%"
 
-        return ScreenshotCompareResult(passed: passed, diffFraction: diffFraction, message: msg)
+        return ScreenshotCompareResult(passed: passed, diffFraction: diffFraction, message: msg, diffData: diffImageData)
     }
 
     // MARK: — Private helpers

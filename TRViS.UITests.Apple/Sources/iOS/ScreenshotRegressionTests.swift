@@ -289,6 +289,14 @@ class ScreenshotRegressionTests: BaseUITestCase {
 
         let result = ScreenshotComparer.compare(actual: pngData, baselinePath: url, name: screen)
         print(result.message)
+        if let diffData = result.diffData {
+            let diffAttachment = XCTAttachment(data: diffData, uniformTypeIdentifier: "public.png")
+            diffAttachment.name = "\(screen)-\(theme)-\(lang)-diff"
+            diffAttachment.lifetime = .keepAlways
+            XCTContext.runActivity(named: "Diff: \(screen) [\(theme)/\(lang)]") { activity in
+                activity.add(diffAttachment)
+            }
+        }
         if !result.passed {
             failures.append(result.message)
         }
