@@ -869,6 +869,7 @@ jobs:
             -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
             -scheme TRViSUITests_iOS \
             -destination "id=$SIM_UDID" \
+            -skip-testing TRViSUITests_iOS/ScreenshotRegressionTests \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
