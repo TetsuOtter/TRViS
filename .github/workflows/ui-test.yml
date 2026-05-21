@@ -1089,6 +1089,11 @@ jobs:
         run: |
           # Pin the iOS status bar to a deterministic appearance so captured
           # screenshots are pixel-stable across runs.
+          # Force 24-hour time so the pinned clock renders "9:41" rather than
+          # "9:41 AM" on GitHub-hosted runners whose default locale is en_US
+          # (12-hour).  The preference must be set before status_bar override
+          # so SpringBoard picks up the new format when it re-renders.
+          xcrun simctl spawn "$SIM_UDID" defaults write NSGlobalDomain AppleICUForce24HourTime -bool YES
           # Xcode 26 simctl requires milliseconds + timezone offset in --time;
           # bare ISO strings (no .000 / no tz) are rejected with EINVAL.
           # Express 09:41 in the host's local UTC offset so simctl always
