@@ -296,6 +296,15 @@ run_ios_for_device_class() {
     xcrun simctl uninstall "$SIM_UDID" "$APP_BUNDLE_ID" 2>/dev/null || true
     log "Installing app into simulator $SIM_UDID …"
     xcrun simctl install "$SIM_UDID" "$APP_PATH"
+    # Pre-warm: force SpringBoard/FrontBoard to complete app registration before
+    # xcodebuild test tries to launch via XCUIApplication.  Without this, the
+    # uninstall→install cycle can leave FrontBoard in an intermediate state where
+    # it returns "Application unknown to FrontBoard" to the test runner even
+    # though `simctl listapps` already shows the app.  A simctl launch/terminate
+    # flushes that registration synchronously.
+    log "Pre-warming $APP_BUNDLE_ID in FrontBoard …"
+    xcrun simctl launch "$SIM_UDID" "$APP_BUNDLE_ID" >/dev/null 2>&1 || log "Warning: pre-warm launch returned non-zero (continuing)"
+    xcrun simctl terminate "$SIM_UDID" "$APP_BUNDLE_ID" 2>/dev/null || true
   fi
 
   # ── 7. Generate Xcode project ────────────────────────────────
