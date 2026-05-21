@@ -780,7 +780,7 @@ jobs:
 
       - name: Download iOS simulator runtime (if needed)
         run: |
-          if xcrun simctl list runtimes | grep -qi ios; then
+          if xcrun simctl list runtimes | grep -E '^\s*iOS ' | grep -qv 'unavailable'; then
             echo "iOS simulator runtime already available."
           else
             echo "No iOS simulator runtime found. Downloading..."
@@ -1038,7 +1038,7 @@ jobs:
 
       - name: Download iOS simulator runtime (if needed)
         run: |
-          if xcrun simctl list runtimes | grep -qi ios; then
+          if xcrun simctl list runtimes | grep -E '^\s*iOS ' | grep -qv 'unavailable'; then
             echo "iOS simulator runtime already available."
           else
             echo "No iOS simulator runtime found. Downloading..."
