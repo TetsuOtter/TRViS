@@ -151,7 +151,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
 
         // 2. Privacy-policy dialog (footer link → read-only; already accepted at launch)
         start.openPrivacyPolicyDialog()
-        settle()
+        settleUntilVisuallyStable()
         capture(screen: "privacyPolicy", theme: theme, lang: lang, failures: &failures)
         start.closePrivacyPolicyDialog()
 
