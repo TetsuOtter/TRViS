@@ -69,16 +69,18 @@ class ScreenshotBaselineHelper {
 
     // MARK: — Non-deterministic region masking
 
-    /// Paints a black rectangle over the status-bar date area so it does not
-    /// cause pixel-diff noise from run to run.
+    /// Paints a black rectangle over the status-bar date/time area so it does
+    /// not cause pixel-diff noise from run to run.
     ///
-    /// iPad Mini A17 (and likely all iPads) shows the calendar date to the right
-    /// of the time in the status bar ("9:41  Thu May 21").  Unlike the time,
-    /// the date cannot be overridden by `xcrun simctl status_bar override`, so
-    /// it changes daily and must be masked out of both the baseline and the
-    /// live capture before any comparison.
+    /// ipad-mini-a17 (2x, 1488×2266 px):
+    ///   The calendar date to the right of the pinned time ("9:41  Thu May 21")
+    ///   changes daily and cannot be overridden by `simctl status_bar override`.
+    ///   Mask: x=20, y=15, w=270, h=35 (raw pixels — covers time + date).
+    ///
+    /// iphone — iPhone 16 (3x, 1178×2556 px):
+    ///   The pinned time "9:41" sits in the Dynamic Island status bar (top-left).
+    ///   Mask: x=30, y=40, w=260, h=100 (raw pixels ≈ 87×33 pt).
     static func maskNonDeterministicRegions(_ data: Data) -> Data {
-        guard deviceClass == "ipad-mini-a17" else { return data }
         guard let image = UIImage(data: data),
               let cg = image.cgImage else { return data }
         let pw = cg.width
@@ -93,7 +95,12 @@ class ScreenshotBaselineHelper {
         let masked = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: size))
             UIColor.black.setFill()
-            UIRectFill(CGRect(x: 100, y: 15, width: 190, height: 35))
+            switch deviceClass {
+            case "ipad-mini-a17":
+                UIRectFill(CGRect(x: 20, y: 15, width: 270, height: 35))
+            default: // iphone
+                UIRectFill(CGRect(x: 140, y: 40, width: 150, height: 100))
+            }
         }
         return masked.pngData() ?? data
     }
