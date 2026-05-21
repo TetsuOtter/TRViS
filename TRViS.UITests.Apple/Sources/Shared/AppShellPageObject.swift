@@ -55,8 +55,16 @@ class AppShellPageObject {
     /// Waits up to 30 s for a flyout item identified by AutomationId to appear.
     /// Falls back to a label-text search so the Shell flyout items are found
     /// regardless of the exact XCUIElementType MAUI maps them to.
+    ///
+    /// Every 5 s, if no flyout item from the known set is visible, the flyout
+    /// drag is retried.  This recovers from the gesture being swallowed by a
+    /// competing gesture recogniser on the underlying page (observed on iPad in
+    /// dark/ja after Settings navigation).
     private func waitForFlyoutItem(id: String, label: String, timeout: TimeInterval = 30) -> XCUIElement? {
         let deadline = Date().addingTimeInterval(timeout)
+        let retryInterval: TimeInterval = 5.0
+        var lastDragAt = Date()
+
         while Date() < deadline {
             // Primary: AccessibilityIdentifier lookup
             if let el = base.waitForElement(id: id, timeout: 0.5) {
@@ -68,9 +76,42 @@ class AppShellPageObject {
             )).firstMatch
             if byLabel.exists { return byLabel }
 
+            // Retry the flyout drag every 5 s if the flyout is not open.
+            // Guard: if any known flyout item is already visible, the flyout IS
+            // open — don't re-drag (that would close it).
+            if Date().timeIntervalSince(lastDragAt) >= retryInterval {
+                let knownFlyoutIds = [
+                    AutomationIds.Shell.Flyout.startHome,
+                    AutomationIds.Shell.Flyout.settings,
+                    AutomationIds.Shell.Flyout.dtac,
+                ]
+                let flyoutIsOpen = knownFlyoutIds.contains(where: { fid in
+                    app.descendants(matching: .any)
+                        .matching(identifier: fid).firstMatch.exists
+                })
+                if !flyoutIsOpen {
+                    openFlyout()
+                    lastDragAt = Date()
+                }
+            }
+
             Thread.sleep(forTimeInterval: 0.3)
         }
         return nil
+    }
+
+    // MARK: — Diagnostics
+
+    /// Attaches a full-screen screenshot to the current XCTest activity for
+    /// post-mortem inspection when a flyout item is not found after the timeout.
+    private func attachDiagnosticScreenshot(name: String) {
+        let shot = XCUIScreen.main.screenshot()
+        let attachment = XCTAttachment(screenshot: shot)
+        attachment.name = "DIAGNOSTIC-\(name)"
+        attachment.lifetime = .keepAlways
+        XCTContext.runActivity(named: "Diagnostic screenshot: \(name)") { activity in
+            activity.add(attachment)
+        }
     }
 
     // MARK: — Navigation
@@ -81,6 +122,7 @@ class AppShellPageObject {
         guard let item = waitForFlyoutItem(
             id: AutomationIds.Shell.Flyout.dtac, label: "D-TAC"
         ) else {
+            attachDiagnosticScreenshot(name: "navigateToDTAC-flyout-not-found")
             XCTFail("Flyout item 'D-TAC' (\(AutomationIds.Shell.Flyout.dtac)) not found")
             return DTACViewHostPageObject(app: app, base: base)
         }
@@ -94,6 +136,7 @@ class AppShellPageObject {
         guard let item = waitForFlyoutItem(
             id: AutomationIds.Shell.Flyout.settings, label: "Settings"
         ) else {
+            attachDiagnosticScreenshot(name: "navigateToSettings-flyout-not-found")
             XCTFail("Flyout item 'Settings' (\(AutomationIds.Shell.Flyout.settings)) not found")
             return EasterEggPageObject(app: app, base: base)
         }
@@ -120,6 +163,7 @@ class AppShellPageObject {
         guard let item = waitForFlyoutItem(
             id: AutomationIds.Shell.Flyout.startHome, label: "Home"
         ) else {
+            attachDiagnosticScreenshot(name: "navigateToHome-flyout-not-found")
             XCTFail("Flyout item 'Home' (\(AutomationIds.Shell.Flyout.startHome)) not found")
             return StartHomePageObject(app: app, base: base)
         }
