@@ -207,6 +207,10 @@ class ScreenshotRegressionTests: BaseUITestCase {
             capture(screen: "horizontalTimetable", theme: theme, lang: lang, failures: &failures)
             // Pop back to DTAC — HT is a Shell-pushed page, flyout unreachable from here
             _ = ht.tapBack()
+            // Wait for DTAC to be fully visible after WebView teardown before
+            // searching for the Hako tab — ensures the orientation-reset tap
+            // fires after the portrait transition is complete.
+            _ = waitForElement(id: AutomationIds.DTAC.menuButton, timeout: 20)
             settle()
         } else {
             print("[ScreenshotRegression] horizontalTimetable: 横型時刻表 button not visible — screen skipped.")
@@ -220,7 +224,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
         if let hakoTab = waitForElement(id: AutomationIds.DTAC.tabHako, timeout: 15) {
             hakoTab.tap()
         }
-        Thread.sleep(forTimeInterval: 0.9)
+        Thread.sleep(forTimeInterval: 2.0)
 
         // 11. Settings page (reached from DTAC via flyout)
         _ = shell.navigateToSettings()
