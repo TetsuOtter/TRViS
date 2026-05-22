@@ -17,8 +17,6 @@ public partial class OpenCloseButton : Button
 	{
 		logger.Trace("Creating...");
 
-		AutomationId = "DTAC.OpenCloseButton";
-
 		Text = IsOpen ? TextWhenOpen : TextWhenClosed;
 		CornerRadius = 4;
 		Padding = 0;

@@ -170,6 +170,12 @@ public static class AutomationIds
 		public const string StartEndRunButton = "DTAC.StartEndRunButton";
 		public const string LocationServiceButton = "DTAC.LocationServiceButton";
 		public const string OpenCloseButton = "DTAC.OpenCloseButton";
+
+		// Per-train ハコ row button id (UI_TEST builds only). Append the TrainNumber.
+		public const string HakoRowPrefix = "DTAC.HakoRow.";
+		// Remarks panel toggle button (UI_TEST builds only), distinct from OpenCloseButton
+		// which is the PageHeader's TrainInfo/BeforeDeparture toggle.
+		public const string RemarksOpenCloseButton = "DTAC.RemarksOpenCloseButton";
 		public const string TimetableScrollView = "DTAC.TimetableScrollView";
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
 		public const string NextTrainButton = "DTAC.NextTrainButton";
