@@ -350,8 +350,20 @@ jobs:
             # reproduce real bugs at extra CI cost.
             DEVICE_STATE=$(timeout 10 $ANDROID_SDK_ROOT/platform-tools/adb get-state 2>/dev/null || echo "missing")
             if [ "$DEVICE_STATE" = "device" ]; then
-              echo "Tests failed but emulator is alive (state=device) — not retrying"
-              break
+              # Even when the emulator is alive, UIA2 instrumentation can
+              # crash hard enough that every subsequent command returns
+              # "instrumentation process is not running".  This is
+              # infrastructure death, not a test assertion failure — fall
+              # through to the full emulator restart so attempt 2 starts
+              # clean.  Otherwise (no UIA2 signature) it's a genuine
+              # test failure; don't burn another emulator boot on it.
+              TRX_FILE=$(find . -name "android-results-attempt-${ATTEMPT}.trx" 2>/dev/null | head -1)
+              if [ -n "$TRX_FILE" ] && grep -qF "instrumentation process is not running" "$TRX_FILE"; then
+                echo "UIA2 instrumentation crash detected in TRX — restarting emulator for attempt $((ATTEMPT + 1))"
+              else
+                echo "Tests failed but emulator is alive (state=device) — not retrying"
+                break
+              fi
             fi
             echo "Emulator state '$DEVICE_STATE' — restarting for attempt $((ATTEMPT + 1))"
             kill "$APPIUM_PID" 2>/dev/null || true
@@ -742,48 +754,33 @@ jobs:
             **/TestResults/**/*.xml
 
   # ─────────────────────────────────────────────
-  # Apple XCUITest
+  # Apple XCUITest — iOS Simulator (functional)
   #
-  # iOS Simulator: drives a pre-installed MAUI debug build with Swift
-  # XCUITest via xcodegen-generated project (TRViS.UITests.Apple/ios/).
+  # Reuses the .app from build-ios (same artifact as the VRT job) and
+  # drives it with Swift XCUITest via a xcodegen-generated project.
   # No Appium; no WDA; tests run natively via xctest protocol.
-  #
-  # Mac Catalyst: same approach using TRViS.UITests.Apple/catalyst/.
-  # The Catalyst step is marked continue-on-error because CI runners
-  # should be clean, but if /Applications/TRViS.app (App Store build) is
-  # present the LaunchServices bundle-ID resolution picks the wrong binary
-  # and the runner hangs.  On a fresh macos-26 runner this should pass.
+  # Runs in parallel with ui-test-apple-screenshot after build-ios.
   # ─────────────────────────────────────────────
-  ui-test-apple-xcuitest:
+  ui-test-apple-xcuitest-ios:
     runs-on: macos-26
     timeout-minutes: 20
+    needs: build-ios
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ env.SDK_VERSION }}
 
       - name: Setup Xcode version
         uses: maxim-lobanov/setup-xcode@v1.7.0
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
-      - name: Install dotnet workloads
-        # TRViS.csproj lists android/ios/maccatalyst TFMs, so the implicit
-        # workload-check pre-pass fires for each even when -f restricts the
-        # actual build.  `dotnet workload restore` satisfies the check.
-        run: dotnet workload restore
-
       - name: Install xcodegen
         run: brew install xcodegen
 
       - name: Download iOS simulator runtime (if needed)
         run: |
-          if xcrun simctl list runtimes | grep -qi ios; then
+          if xcrun simctl list runtimes | grep -E '^\s*iOS ' | grep -qv 'unavailable'; then
             echo "iOS simulator runtime already available."
           else
             echo "No iOS simulator runtime found. Downloading..."
@@ -791,40 +788,18 @@ jobs:
           fi
           xcrun simctl list runtimes
 
-      - name: Create placeholder GoogleService-Info.plist
-        run: |
-          cat > TRViS/GoogleService-Info.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CLIENT_ID</key>      <string>000000000000-placeholder.apps.googleusercontent.com</string>
-            <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-placeholder</string>
-            <key>API_KEY</key>        <string>placeholder_api_key</string>
-            <key>GCM_SENDER_ID</key> <string>000000000000</string>
-            <key>PLIST_VERSION</key> <string>1</string>
-            <key>BUNDLE_ID</key>     <string>${{ env.APP_PACKAGE }}</string>
-            <key>PROJECT_ID</key>    <string>placeholder-project-id</string>
-            <key>STORAGE_BUCKET</key><string>placeholder-project-id.appspot.com</string>
-            <key>IS_ADS_ENABLED</key>    <false/>
-            <key>IS_ANALYTICS_ENABLED</key><false/>
-            <key>IS_GCM_ENABLED</key>   <true/>
-            <key>IS_SIGNIN_ENABLED</key><true/>
-            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000</string>
-          </dict>
-          </plist>
-          EOF
+      - name: Download iOS app artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ios-sim-app
 
-      # ── iOS Simulator ──────────────────────────────────────────
-      - name: Build MAUI app (iOS Simulator)
-        run: >
-          dotnet build ${{ env.CSPROJ_PATH }}
-          -f ${{ env.TARGET_FRAMEWORK_IOS }}
-          -r ${{ env.TARGET_RUNTIME_IOS_SIM }}
-          -c Debug
-          /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
-          /p:_RequireCodeSigning=false
-          /p:CodesignKey="-"
+      - name: Extract iOS app to build output path
+        run: |
+          set -euo pipefail
+          DEST="TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_IOS }}/${{ env.TARGET_RUNTIME_IOS_SIM }}"
+          mkdir -p "$DEST"
+          tar -xzf trvis-ios-sim-app.tar.gz -C "$DEST"
+          ls -la "$DEST"
 
       - name: Create and boot iOS simulator
         run: |
@@ -874,12 +849,80 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      # ── Mac Catalyst ───────────────────────────────────────────
-      # On a clean CI runner (no /Applications/TRViS.app) this should
-      # pass.  continue-on-error guards against any residual LS issue.
+      - name: Upload XCUITest logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apple-xcuitest-results-ios
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────
+  # Apple XCUITest — Mac Catalyst
+  #
+  # Builds the Catalyst target and drives it with Swift XCUITest.
+  # CI runners are clean, but if /Applications/TRViS.app (App Store build)
+  # is present the LaunchServices bundle-ID resolution picks the wrong
+  # binary and the runner hangs.  On a fresh macos-26 runner this passes.
+  #
+  # Note: the XCTRunner template ships with Apple's "Software Signing"
+  # cert; once Xcode injects the Catalyst test bundle the seal breaks and
+  # Gatekeeper rejects the runner with "TRViSUITests_Catalyst-Runner.app
+  # is damaged". Ad-hoc re-signing between build and test silences this.
+  # ─────────────────────────────────────────────
+  ui-test-apple-xcuitest-catalyst:
+    runs-on: macos-26
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.SDK_VERSION }}
+
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install dotnet workloads
+        # TRViS.csproj lists android/ios/maccatalyst TFMs, so the implicit
+        # workload-check pre-pass fires for each even when -f restricts the
+        # actual build.  `dotnet workload restore` satisfies the check.
+        run: dotnet workload restore
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Create placeholder GoogleService-Info.plist
+        run: |
+          cat > TRViS/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>      <string>000000000000-placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-placeholder</string>
+            <key>API_KEY</key>        <string>placeholder_api_key</string>
+            <key>GCM_SENDER_ID</key> <string>000000000000</string>
+            <key>PLIST_VERSION</key> <string>1</string>
+            <key>BUNDLE_ID</key>     <string>${{ env.APP_PACKAGE }}</string>
+            <key>PROJECT_ID</key>    <string>placeholder-project-id</string>
+            <key>STORAGE_BUCKET</key><string>placeholder-project-id.appspot.com</string>
+            <key>IS_ADS_ENABLED</key>    <false/>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+            <key>IS_GCM_ENABLED</key>   <true/>
+            <key>IS_SIGNIN_ENABLED</key><true/>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+
       - name: Build MAUI app (Mac Catalyst)
-        continue-on-error: true
-        id: build-catalyst
         run: >
           dotnet build ${{ env.CSPROJ_PATH }}
           -f ${{ env.TARGET_FRAMEWORK_MAC }}
@@ -891,9 +934,6 @@ jobs:
         # /Applications/TRViS.app on this runner, LS will resolve
         # dev.t0r.trvis to the wrong binary and the runner will hang.
         # CI runners are fresh, so /Applications/TRViS.app should not exist.
-        if: steps.build-catalyst.outcome == 'success'
-        continue-on-error: true
-        id: register-catalyst
         run: |
           set -euo pipefail
           APP_DIR=$(find TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_MAC }} \
@@ -908,24 +948,10 @@ jobs:
             -f -R -trusted ~/Applications/TRViS.app
 
       - name: Generate Xcode project (Catalyst)
-        if: steps.register-catalyst.outcome == 'success'
-        continue-on-error: true
-        id: gen-catalyst
         working-directory: TRViS.UITests.Apple/catalyst
         run: xcodegen generate --quiet
 
       - name: Run XCUITest (Mac Catalyst)
-        # continue-on-error: if LS resolution picks the wrong binary on this
-        # particular runner, the test hangs and we don't want to block the job.
-        # On a clean runner without App Store TRViS this should succeed.
-        #
-        # Split build / re-sign / test: the XCTRunner template ships with
-        # Apple's "Software Signing" cert; once Xcode injects the Catalyst
-        # test bundle the seal breaks and Gatekeeper rejects the runner with
-        # "TRViSUITests_Catalyst-Runner.app is damaged". Ad-hoc re-signing
-        # between build and test silences the dialog.
-        if: steps.gen-catalyst.outcome == 'success'
-        continue-on-error: true
         run: |
           echo "NOTE: If runner has /Applications/TRViS.app this will hang ~332s."
           DERIVED="TRViS.UITests.Apple/catalyst/build"
@@ -955,7 +981,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: apple-xcuitest-results
+          name: apple-xcuitest-results-catalyst
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
           if-no-files-found: ignore
@@ -967,9 +993,7 @@ jobs:
   # each frame against a committed baseline. iOS only (no Catalyst port).
   #
   # Device-class matrix: iPhone 16 + iPad mini A17 Pro. Both device classes
-  # gate the build (pixel diff failure → workflow failure). The iPad mini A17
-  # entry is marked continue-on-error to match the same instability pattern
-  # documented for ui-test-ios; a passing iPhone run suffices for the gate.
+  # gate the build (pixel diff failure → workflow failure).
   #
   # Regen mode (workflow_dispatch → regenerate_screenshots): sets
   # TEST_RUNNER_SCREENSHOT_UPDATE=1 so ScreenshotBaselineHelper overwrites
@@ -988,14 +1012,12 @@ jobs:
     needs: build-ios
     env:
       MSBuildEnableWorkloadResolver: "false"
-    continue-on-error: ${{ matrix.continue-on-error == true }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - device-class: iphone
           - device-class: ipad-mini-a17
-            continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -1016,7 +1038,7 @@ jobs:
 
       - name: Download iOS simulator runtime (if needed)
         run: |
-          if xcrun simctl list runtimes | grep -qi ios; then
+          if xcrun simctl list runtimes | grep -E '^\s*iOS ' | grep -qv 'unavailable'; then
             echo "iOS simulator runtime already available."
           else
             echo "No iOS simulator runtime found. Downloading..."
@@ -1067,6 +1089,11 @@ jobs:
         run: |
           # Pin the iOS status bar to a deterministic appearance so captured
           # screenshots are pixel-stable across runs.
+          # Force 24-hour time so the pinned clock renders "9:41" rather than
+          # "9:41 AM" on GitHub-hosted runners whose default locale is en_US
+          # (12-hour).  The preference must be set before status_bar override
+          # so SpringBoard picks up the new format when it re-renders.
+          xcrun simctl spawn "$SIM_UDID" defaults write NSGlobalDomain AppleICUForce24HourTime -bool YES
           # Xcode 26 simctl requires milliseconds + timezone offset in --time;
           # bare ISO strings (no .000 / no tz) are rejected with EINVAL.
           # Express 09:41 in the host's local UTC offset so simctl always

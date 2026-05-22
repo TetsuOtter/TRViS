@@ -194,6 +194,50 @@ class ScreenshotRegressionTests: BaseUITestCase {
         Thread.sleep(forTimeInterval: 0.5)
         capture(screen: "dtac-hako", theme: theme, lang: lang, failures: &failures)
 
+        // BBCode / Hiragino font rendering check: 試単9091 selection steps.
+        //
+        // 試単9091 has BBCode remarks and a TrainInfo/BeforeDeparture payload that
+        // exercises the HtmlAutoDetectLabel rendering pipeline. These captures gate
+        // that the Remarks text and timetable 記事 column render correctly.
+        //
+        // Note: Remarks is closed before switching to 時刻表 (step 3 below) so that
+        // dtac-timetable-shiken9091 shows a clean timetable view. The Remarks panel
+        // is then re-opened explicitly for dtac-timetable-shiken9091-remarks (step 4).
+
+        // Step 1: Select 試単9091 in the ハコ tab
+        dtac.selectHakoTrain(trainNumber: "試単9091")
+        Thread.sleep(forTimeInterval: 0.5)
+        capture(screen: "dtac-hako-shiken9091", theme: theme, lang: lang, failures: &failures)
+
+        // Step 2: Open the Remarks panel
+        dtac.tapRemarksOpenClose()
+        Thread.sleep(forTimeInterval: 0.5)
+        capture(screen: "dtac-hako-shiken9091-remarks", theme: theme, lang: lang, failures: &failures)
+
+        // Close Remarks before switching to 時刻表 so step 3 is unobscured
+        dtac.tapRemarksOpenClose()
+        Thread.sleep(forTimeInterval: 0.3)
+
+        // Step 3: Switch to 時刻表 tab (試単9091 data, Remarks closed)
+        dtac.switchToTimetableTab()
+        settle()
+        capture(screen: "dtac-timetable-shiken9091", theme: theme, lang: lang, failures: &failures)
+
+        // Step 4: Open the Remarks panel in 時刻表 tab
+        dtac.tapRemarksOpenClose()
+        Thread.sleep(forTimeInterval: 0.5)
+        capture(screen: "dtac-timetable-shiken9091-remarks", theme: theme, lang: lang, failures: &failures)
+
+        // Step 5: Open the TrainInfo/BeforeDeparture area (PageHeader toggle)
+        dtac.tapOpenClose()
+        Thread.sleep(forTimeInterval: 0.5)
+        capture(screen: "dtac-timetable-shiken9091-open", theme: theme, lang: lang, failures: &failures)
+
+        // Reset state: close TrainInfo and Remarks before continuing
+        dtac.tapOpenClose()
+        dtac.tapRemarksOpenClose()
+        Thread.sleep(forTimeInterval: 0.3)
+
         // 10. Horizontal timetable (conditional on button visibility)
         dtac.switchToTimetableTab()
         if dtac.isHorizontalTimetableButtonVisible(timeout: 5) {

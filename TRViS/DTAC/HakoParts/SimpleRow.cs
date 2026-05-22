@@ -192,6 +192,11 @@ public partial class SimpleRow
 		SelectTrainButton.IsChecked = InstanceManager.AppViewModel.SelectedTrainData?.Id == TrainData.Id;
 		SetTrainNumberButtonState();
 
+#if UI_TEST
+		if (TrainData.TrainNumber is not null)
+			SelectTrainButton.AutomationId = $"DTAC.HakoRow.{TrainData.TrainNumber}";
+#endif
+
 		logger.Debug("Created");
 	}
 

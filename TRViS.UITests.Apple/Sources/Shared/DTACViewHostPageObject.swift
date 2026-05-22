@@ -143,6 +143,35 @@ class DTACViewHostPageObject {
         return self
     }
 
+    // MARK: — HakoRow train selection
+
+    /// Taps the ハコ row button for the given train number.
+    /// The button AutomationId is "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)"
+    /// (set only in UI_TEST builds via #if UI_TEST in SimpleRow.cs).
+    @discardableResult
+    func selectHakoTrain(trainNumber: String) -> DTACViewHostPageObject {
+        let id = "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)"
+        guard let btn = firstDescendant(id: id, timeout: 15) else {
+            XCTFail("HakoRow not found: \(trainNumber)")
+            return self
+        }
+        btn.tap()
+        return self
+    }
+
+    /// Taps the Remarks panel open/close button (DTAC.RemarksOpenCloseButton).
+    /// This is distinct from tapOpenClose() which targets the PageHeader's
+    /// TrainInfo/BeforeDeparture toggle (DTAC.OpenCloseButton).
+    @discardableResult
+    func tapRemarksOpenClose() -> DTACViewHostPageObject {
+        guard let btn = firstDescendant(id: AutomationIds.DTAC.remarksOpenCloseButton, timeout: 10) else {
+            XCTFail("RemarksOpenCloseButton not found")
+            return self
+        }
+        btn.tap()
+        return self
+    }
+
     // MARK: — NextTrainButton
 
     /// Returns true when the NextTrainButton is both present AND has a non-zero

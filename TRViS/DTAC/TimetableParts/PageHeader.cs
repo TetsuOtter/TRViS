@@ -183,6 +183,7 @@ public partial class PageHeader : Grid
 			LocationServiceButtonTappedCallback?.Invoke();
 		};
 
+		OpenCloseButton.AutomationId = "DTAC.OpenCloseButton";
 		OpenCloseButton.TextWhenOpen = "\xe5ce";
 		OpenCloseButton.TextWhenClosed = "\xe5cf";
 		OpenCloseButton.IsOpenChanged += OpenCloseButton_IsOpenChanged;
