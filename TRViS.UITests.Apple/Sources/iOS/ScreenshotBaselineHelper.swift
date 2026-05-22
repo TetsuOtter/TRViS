@@ -72,19 +72,29 @@ class ScreenshotBaselineHelper {
     /// Paints a black rectangle over the status-bar date/time area so it does
     /// not cause pixel-diff noise from run to run.
     ///
-    /// ipad-mini-a17 (2x, 1488×2266 px):
+    /// ipad-mini-a17 (2x, portrait 1488×2266 px):
     ///   The calendar date to the right of the pinned time ("9:41  Thu May 21")
     ///   changes daily and cannot be overridden by `simctl status_bar override`.
-    ///   Mask: x=20, y=15, w=270, h=35 (raw pixels — covers time + date).
+    ///   Mask: x=20, y=15, w=270, h=35 (logical pixels — covers time + date).
     ///
-    /// iphone — iPhone 16 (3x, 1178×2556 px):
-    ///   The pinned time "9:41" sits in the Dynamic Island status bar (top-left).
-    ///   Mask: x=30, y=40, w=260, h=100 (raw pixels ≈ 87×33 pt).
+    /// iphone — iPhone 16 (3x, portrait 1178×2556 px / landscape 2556×1178 px):
+    ///   The pinned time "9:41" sits in the Dynamic Island / status bar (top-left).
+    ///   Mask: x=140, y=40, w=150, h=100 (logical pixels, portrait and landscape).
+    ///
+    /// Orientation note: XCUIScreen landscape screenshots carry an Exif
+    /// imageOrientation tag (e.g. .left for iPhone).  UIImage.size already
+    /// accounts for that tag (returns logical landscape dimensions); cgImage
+    /// does not (returns raw portrait pixels).  Using UIImage.size ensures the
+    /// renderer canvas matches the logical display dimensions so the image is
+    /// drawn without stretching, and mask coordinates stay in the same
+    /// status-bar-relative position regardless of orientation.
     static func maskNonDeterministicRegions(_ data: Data) -> Data {
-        guard let image = UIImage(data: data),
-              let cg = image.cgImage else { return data }
-        let pw = cg.width
-        let ph = cg.height
+        guard let image = UIImage(data: data) else { return data }
+        // Use UIImage.size (logical, orientation-aware) — NOT cgImage dimensions
+        // (raw pixels, orientation-unaware).  For landscape iPhone screenshots the
+        // two differ: cgImage is portrait-sized, image.size is landscape-sized.
+        let pw = Int(image.size.width)
+        let ph = Int(image.size.height)
         guard pw > 0, ph > 0 else { return data }
 
         // Render at 1:1 pixel mapping so CGRect uses raw pixel coordinates.
@@ -99,7 +109,9 @@ class ScreenshotBaselineHelper {
             case "ipad-mini-a17":
                 UIRectFill(CGRect(x: 20, y: 15, width: 270, height: 35))
             default: // iphone
-                UIRectFill(CGRect(x: 140, y: 40, width: 150, height: 100))
+                if pw < ph { // portrait
+                    UIRectFill(CGRect(x: 140, y: 40, width: 150, height: 100))
+                }
             }
         }
         return masked.pngData() ?? data
