@@ -380,4 +380,19 @@ public class AppShellPage : PageObject
 		return new EasterEggPageObject(Driver);
 	}
 
+	/// <summary>
+	/// Navigates to the V1 (Modern Classic) Original Timetable page via the
+	/// Shell flyout. Used by OriginalTimetableV1Tests to reach the page after
+	/// committing a Work/Train selection on StartHome / DTAC.
+	///
+	/// Windows is not exercised in this fixture (V1 layout is tablet-only;
+	/// FlyoutItemOrder doesn't list the V1 entry).
+	/// </summary>
+	public OriginalTimetableV1PageObject NavigateToOriginalTimetableV1()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV1, "ダイヤ表 (V1)").Click();
+		return new OriginalTimetableV1PageObject(Driver);
+	}
+
 }

@@ -62,7 +62,84 @@ public partial class OriginalTimetableV1Page : ContentPage
 
 		InitializeComponent();
 		BindingContext = _vm;
+
+#if UI_TEST
+		AddTestSeamButtons();
+#endif
 	}
+
+#if UI_TEST
+	// UI_TEST-only seams: SwipeView's SwipeItem doesn't reliably surface as a
+	// tappable Button in XCUITest's accessibility tree (it derives from MenuItem),
+	// so each test that exercises the marker-cycle path through the SwipeView's
+	// Command binding gets a parallel invocation path that drives the exact same
+	// _vm.CycleMarker/ClearMarker handlers used by the SwipeItem. The test thus
+	// covers the View→VM wiring without depending on simulated swipe gesture
+	// reliability across platforms / OS versions.
+	const string AutomationIdValueForTestCycleMarkerRow0 = "OriginalTimetable.V1.Test.CycleMarkerRow0";
+	const string AutomationIdValueForTestClearMarkerRow0 = "OriginalTimetable.V1.Test.ClearMarkerRow0";
+
+	void AddTestSeamButtons()
+	{
+		// Invisible 24×24 buttons placed at the bottom-right corner of RootGrid
+		// (above the visual tree but transparent). Tests find them by AutomationId
+		// and tap them to invoke the same OnCycleMarker / OnClearMarker handlers
+		// the SwipeView's Command binding points at.
+		var cycle = new Button
+		{
+			AutomationId = AutomationIdValueForTestCycleMarkerRow0,
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+			Margin = new Thickness(0, 0, 0, 0),
+		};
+		cycle.Clicked += (_, _) => CycleMarkerOnRow0ForTesting();
+		RootGrid.Children.Add(cycle);
+
+		var clear = new Button
+		{
+			AutomationId = AutomationIdValueForTestClearMarkerRow0,
+			HorizontalOptions = LayoutOptions.End,
+			VerticalOptions = LayoutOptions.End,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+			Margin = new Thickness(0, 0, 28, 0),
+		};
+		clear.Clicked += (_, _) => ClearMarkerOnRow0ForTesting();
+		RootGrid.Children.Add(clear);
+	}
+
+	void CycleMarkerOnRow0ForTesting()
+	{
+		var firstNormal = FindFirstNormalRowId();
+		if (firstNormal is not null)
+			OnCycleMarker(firstNormal);
+	}
+
+	void ClearMarkerOnRow0ForTesting()
+	{
+		var firstNormal = FindFirstNormalRowId();
+		if (firstNormal is not null)
+			OnClearMarker(firstNormal);
+	}
+
+	string? FindFirstNormalRowId()
+	{
+		foreach (var i in Items)
+		{
+			if (!i.IsSectionBreakRow)
+				return i.Id;
+		}
+		return null;
+	}
+#endif
 
 	protected override void OnAppearing()
 	{
@@ -304,6 +381,16 @@ public class V1RowItem
 	public bool HasTrackName => !string.IsNullOrEmpty(TrackName);
 	public bool HasRunText => !string.IsNullOrEmpty(RunText);
 	public bool HasLimitText => !string.IsNullOrEmpty(LimitText);
+
+	// AutomationId helpers — generated from Id so each row has stable, distinct
+	// accessibility identifiers for E2E tests. The SwipeView, each SwipeItem,
+	// and the marker badge Border are all addressable by row.
+	const string AutomationIdPrefix = "OriginalTimetable.V1.Row.";
+	public string RowAutomationId => $"{AutomationIdPrefix}{Id}";
+	public string MarkerAutomationId => $"{AutomationIdPrefix}{Id}.Marker";
+	public string MemoAutomationId => $"{AutomationIdPrefix}{Id}.Memo";
+	public string ClearAutomationId => $"{AutomationIdPrefix}{Id}.Clear";
+	public string MarkerBadgeAutomationId => $"{AutomationIdPrefix}{Id}.MarkerBadge";
 
 	public static V1RowItem SectionBreak(string id, string label) => new()
 	{

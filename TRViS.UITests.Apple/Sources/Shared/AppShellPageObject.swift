@@ -171,4 +171,22 @@ class AppShellPageObject {
         _ = base.waitForElement(id: AutomationIds.StartHome.testClearLoaderButton, timeout: 30)
         return StartHomePageObject(app: app, base: base)
     }
+
+    /// Navigates to the V1 (Modern Classic) Original Timetable page via the
+    /// Shell flyout. Used by OriginalTimetableV1Tests and the V1 screenshot
+    /// regression test on iPad mini A17 (744pt portrait — exceeds the 600pt
+    /// tablet breakpoint so V1 renders its CollectionView layout).
+    func navigateToOriginalTimetableV1() -> OriginalTimetableV1PageObject {
+        openFlyout()
+        guard let item = waitForFlyoutItem(
+            id: AutomationIds.Shell.Flyout.originalTimetableV1,
+            label: "ダイヤ表 (V1)"
+        ) else {
+            attachDiagnosticScreenshot(name: "navigateToV1-flyout-not-found")
+            XCTFail("Flyout item 'ダイヤ表 (V1)' (\(AutomationIds.Shell.Flyout.originalTimetableV1)) not found")
+            return OriginalTimetableV1PageObject(app: app, base: base)
+        }
+        item.tap()
+        return OriginalTimetableV1PageObject(app: app, base: base)
+    }
 }

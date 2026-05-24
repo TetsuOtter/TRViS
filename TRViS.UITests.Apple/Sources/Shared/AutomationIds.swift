@@ -13,6 +13,10 @@ enum AutomationIds {
             static let startHome = "Shell.Flyout.StartHome"
             static let dtac     = "Shell.Flyout.DTAC"
             static let settings = "Shell.Flyout.Settings"
+            static let originalTimetableV1 = "Shell.Flyout.OriginalTimetableV1"
+            static let originalTimetableV2 = "Shell.Flyout.OriginalTimetableV2"
+            static let originalTimetableV4 = "Shell.Flyout.OriginalTimetableV4"
+            static let originalTimetableV6 = "Shell.Flyout.OriginalTimetableV6"
         }
     }
 
@@ -207,5 +211,43 @@ enum AutomationIds {
 
     enum Settings {
         static let reloadSavedButton = "Settings.ReloadSavedButton"
+    }
+
+    /// Independent timetable display pages (V1/V2/V4/V6).
+    /// V1 = "Modern Classic" — CollectionView-based row list with sticky train
+    /// header, marker badges, memo dots, note toggles. Phase 1 covers tablet
+    /// layout (width >= 600pt); compact placeholder shows on narrower viewports.
+    enum OriginalTimetable {
+        enum V1 {
+            static let root               = "OriginalTimetable.V1.Root"
+            static let tabletGrid         = "OriginalTimetable.V1.TabletGrid"
+            static let compactPlaceholder = "OriginalTimetable.V1.CompactPlaceholder"
+
+            static let header             = "OriginalTimetable.V1.Header"
+            static let headerTypeChip     = "OriginalTimetable.V1.Header.TypeChip"
+            static let headerTrainNumber  = "OriginalTimetable.V1.Header.TrainNumber"
+            static let headerDestination  = "OriginalTimetable.V1.Header.Destination"
+            static let headerCarCount     = "OriginalTimetable.V1.Header.CarCount"
+            static let headerMaxSpeed     = "OriginalTimetable.V1.Header.MaxSpeed"
+
+            static let emptyState         = "OriginalTimetable.V1.EmptyState"
+            static let rowsList           = "OriginalTimetable.V1.RowsList"
+
+            // Per-row id patterns; append the row's TimetableRow.Id.
+            static let rowPrefix = "OriginalTimetable.V1.Row."
+            static func row(_ rowId: String) -> String           { rowPrefix + rowId }
+            static func marker(_ rowId: String) -> String        { rowPrefix + rowId + ".Marker" }
+            static func memo(_ rowId: String) -> String          { rowPrefix + rowId + ".Memo" }
+            static func clear(_ rowId: String) -> String         { rowPrefix + rowId + ".Clear" }
+            static func markerBadge(_ rowId: String) -> String   { rowPrefix + rowId + ".MarkerBadge" }
+
+            // UI_TEST-only seam: invokes OnCycleMarker / OnClearMarker on the
+            // first normal (non-section-break) row through the same handlers
+            // the SwipeView Command bindings wire to. Lets us cover the
+            // View→VM marker pipeline without depending on simulated swipe
+            // gestures reaching the SwipeItem on every platform / OS version.
+            static let testCycleMarkerRow0Button = "OriginalTimetable.V1.Test.CycleMarkerRow0"
+            static let testClearMarkerRow0Button = "OriginalTimetable.V1.Test.ClearMarkerRow0"
+        }
     }
 }

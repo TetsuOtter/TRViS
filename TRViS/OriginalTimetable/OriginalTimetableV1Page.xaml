@@ -8,17 +8,19 @@
 	Title="ダイヤ表 (V1)"
 	SizeChanged="OnRootSizeChanged"
 	BackgroundColor="{AppThemeBinding Light={StaticResource OT_Bg_Light}, Dark={StaticResource OT_Bg_Dark}}">
-	<Grid x:Name="RootGrid">
+	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V1.Root">
 
 		<!-- Tablet layout (>= 600pt) -->
 		<Grid
 			x:Name="TabletGrid"
+			AutomationId="OriginalTimetable.V1.TabletGrid"
 			RowDefinitions="Auto,*"
 			IsVisible="False">
 
 			<!-- Sticky train-info header -->
 			<Border
 				Grid.Row="0"
+				AutomationId="OriginalTimetable.V1.Header"
 				Background="{StaticResource OT_Bg}"
 				Stroke="{StaticResource OT_Rule}"
 				StrokeThickness="0,0,0,1"
@@ -27,6 +29,7 @@
 				<Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12">
 					<Border
 						Grid.Column="0"
+						AutomationId="OriginalTimetable.V1.Header.TypeChip"
 						Background="{StaticResource OT_Accent}"
 						Padding="6,2"
 						StrokeThickness="0"
@@ -41,6 +44,7 @@
 					</Border>
 					<Label
 						Grid.Column="1"
+						AutomationId="OriginalTimetable.V1.Header.TrainNumber"
 						Text="{Binding HeaderTrainNumberText, Source={x:Reference Self}}"
 						FontSize="20"
 						FontAttributes="Bold"
@@ -49,6 +53,7 @@
 						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
 					<Label
 						Grid.Column="2"
+						AutomationId="OriginalTimetable.V1.Header.Destination"
 						Text="{Binding HeaderDestinationText, Source={x:Reference Self}}"
 						FontSize="14"
 						VerticalOptions="Center"
@@ -56,11 +61,13 @@
 						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
 					<VerticalStackLayout Grid.Column="3" VerticalOptions="Center" HorizontalOptions="End">
 						<Label
+							AutomationId="OriginalTimetable.V1.Header.CarCount"
 							Text="{Binding HeaderCarCountText, Source={x:Reference Self}}"
 							FontSize="12"
 							HorizontalOptions="End"
 							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
 						<Label
+							AutomationId="OriginalTimetable.V1.Header.MaxSpeed"
 							Text="{Binding HeaderMaxSpeedText, Source={x:Reference Self}}"
 							FontSize="12"
 							HorizontalOptions="End"
@@ -72,6 +79,7 @@
 			<!-- Empty-state when ActiveTrain is null -->
 			<Label
 				Grid.Row="1"
+				AutomationId="OriginalTimetable.V1.EmptyState"
 				IsVisible="{Binding HasNoActiveTrain, Source={x:Reference Self}}"
 				Text="列車を選択してください"
 				FontSize="16"
@@ -82,25 +90,29 @@
 			<!-- Row list -->
 			<CollectionView
 				Grid.Row="1"
+				AutomationId="OriginalTimetable.V1.RowsList"
 				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}"
 				ItemsSource="{Binding Items, Source={x:Reference Self}}"
 				SelectionMode="None">
 				<CollectionView.ItemTemplate>
 					<DataTemplate x:DataType="local:V1RowItem">
-						<SwipeView>
+						<SwipeView AutomationId="{Binding RowAutomationId}">
 							<SwipeView.RightItems>
 								<SwipeItems Mode="Reveal">
 									<SwipeItem
+										AutomationId="{Binding MarkerAutomationId}"
 										Text="マーカー"
 										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
 										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
 										CommandParameter="{Binding Id}"/>
 									<SwipeItem
+										AutomationId="{Binding MemoAutomationId}"
 										Text="メモ"
 										BackgroundColor="{StaticResource OT_MarkerCautionBg}"
 										Command="{Binding OpenMemoCommand, Source={x:Reference Self}}"
 										CommandParameter="{Binding Id}"/>
 									<SwipeItem
+										AutomationId="{Binding ClearAutomationId}"
 										Text="クリア"
 										BackgroundColor="{AppThemeBinding Light={StaticResource OT_AccentSoft_Light}, Dark={StaticResource OT_AccentSoft_Dark}}"
 										Command="{Binding ClearMarkerCommand, Source={x:Reference Self}}"
@@ -175,6 +187,7 @@
 											</Label>
 											<!-- Marker badge -->
 											<Border
+												AutomationId="{Binding MarkerBadgeAutomationId}"
 												IsVisible="{Binding HasMarker}"
 												Padding="6,1"
 												StrokeThickness="0"
@@ -290,6 +303,7 @@
 		<!-- Compact placeholder (< 600pt) -->
 		<Label
 			x:Name="CompactPlaceholder"
+			AutomationId="OriginalTimetable.V1.CompactPlaceholder"
 			IsVisible="False"
 			Text="V1 Compact レイアウトは次タスクで実装予定"
 			FontSize="14"

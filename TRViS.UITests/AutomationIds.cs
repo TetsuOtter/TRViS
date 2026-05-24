@@ -14,6 +14,10 @@ public static class AutomationIds
 			public const string StartHome = "Shell.Flyout.StartHome";
 			public const string DTAC = "Shell.Flyout.DTAC";
 			public const string Settings = "Shell.Flyout.Settings";
+			public const string OriginalTimetableV1 = "Shell.Flyout.OriginalTimetableV1";
+			public const string OriginalTimetableV2 = "Shell.Flyout.OriginalTimetableV2";
+			public const string OriginalTimetableV4 = "Shell.Flyout.OriginalTimetableV4";
+			public const string OriginalTimetableV6 = "Shell.Flyout.OriginalTimetableV6";
 		}
 	}
 
@@ -327,6 +331,51 @@ public static class AutomationIds
 	{
 		public const string ReloadSavedButton = "Settings.ReloadSavedButton";
 		public const string SaveButton = "Settings.SaveButton";
+	}
+
+	/// <summary>
+	/// Independent timetable display pages (V1/V2/V4/V6). V1 = "Modern Classic" —
+	/// CollectionView-based row list, sticky train-info header, marker badges,
+	/// memo dots, note toggles. Phase 1 implementation covers tablet layout
+	/// (width &gt;= 600pt); the compact placeholder shows on narrower viewports.
+	/// </summary>
+	public static class OriginalTimetable
+	{
+		public static class V1
+		{
+			public const string Root = "OriginalTimetable.V1.Root";
+			public const string TabletGrid = "OriginalTimetable.V1.TabletGrid";
+			public const string CompactPlaceholder = "OriginalTimetable.V1.CompactPlaceholder";
+
+			public const string Header = "OriginalTimetable.V1.Header";
+			public const string HeaderTypeChip = "OriginalTimetable.V1.Header.TypeChip";
+			public const string HeaderTrainNumber = "OriginalTimetable.V1.Header.TrainNumber";
+			public const string HeaderDestination = "OriginalTimetable.V1.Header.Destination";
+			public const string HeaderCarCount = "OriginalTimetable.V1.Header.CarCount";
+			public const string HeaderMaxSpeed = "OriginalTimetable.V1.Header.MaxSpeed";
+
+			public const string EmptyState = "OriginalTimetable.V1.EmptyState";
+			public const string RowsList = "OriginalTimetable.V1.RowsList";
+
+			// Per-row id patterns; append the row's TimetableRow.Id (or
+			// "sb:{rowId}" for section-break placeholder rows). Built from
+			// V1RowItem.RowAutomationId / MarkerAutomationId / etc.
+			public const string RowPrefix = "OriginalTimetable.V1.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MemoFor(string rowId) => RowPrefix + rowId + ".Memo";
+			public static string ClearFor(string rowId) => RowPrefix + rowId + ".Clear";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+
+			// UI_TEST-only seam: SwipeView's SwipeItem doesn't reliably surface
+			// as a tappable Button in XCUITest's accessibility tree (it derives
+			// from MenuItem). These two seam buttons drive the exact same
+			// OnCycleMarker / OnClearMarker handlers wired to the SwipeItem
+			// Commands, but via a regular Button that's findable on every
+			// platform. They target the first normal (non-section-break) row.
+			public const string TestCycleMarkerRow0Button = "OriginalTimetable.V1.Test.CycleMarkerRow0";
+			public const string TestClearMarkerRow0Button = "OriginalTimetable.V1.Test.ClearMarkerRow0";
+		}
 	}
 
 	public static class ThirdParty

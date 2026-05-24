@@ -339,7 +339,10 @@ run_ios_for_device_class() {
   # re-run for every device class.
   local ONLY_TESTING_ARGS=()
   if [[ "$UPDATE_SCREENSHOTS" == true || "$SCREENSHOT_MATRIX" == true ]]; then
-    ONLY_TESTING_ARGS=(-only-testing:TRViSUITests_iOS/ScreenshotRegressionTests)
+    ONLY_TESTING_ARGS=(
+      -only-testing:TRViSUITests_iOS/ScreenshotRegressionTests
+      -only-testing:TRViSUITests_iOS/OriginalTimetableV1ScreenshotTests
+    )
   fi
   log "Running XCUITest on simulator $SIM_UDID (device-class=$dc) …"
   xcodebuild test \
