@@ -12,20 +12,33 @@ using TRViS.ViewModels;
 
 namespace TRViS.OriginalTimetable;
 
-// V6 Bold Editorial — 独自時刻表ページ骨格 (Phase 1: tablet ≥600pt + compact <600pt).
+// V6 Bold Editorial — 独自時刻表ページ骨格 (Phase 1 + Phase 2 + Phase 3).
 //
-// 構造は V1 と同じ CollectionView + DataTemplate + SwipeView (iPad ApplyStyleSheets
-// NRE 回避のため imperative tree mutation はしない)。違いは画面分割で、
+// Phase 1 (commit 3a3305e): tablet+compact split, 5 sections — Masthead /
+// Train stripe / Past chips / Current big block / Upcoming list.
 //
-//   - Masthead (depot / route / date)
-//   - Train stripe (full-bleed accent: 列車番号 / CARS / MAX / DEST)
-//   - Past chips (現在駅より前の駅を横スクロール chip 表示)
-//   - Current big block (現在駅を巨大表示 + 着/発/番線; SwipeView でマーカー/メモ/クリア)
-//   - Upcoming list (V1 と同じ CollectionView; two-digit counter + double-rule
-//     section break + SwipeItem)
+// Phase 2 (this commit):
+//   - MarkerPopover anchored to badge (current big block + each upcoming row)
+//     + SwipeItem「マーカー」 also goes through OpenMarkerPopoverFromSwipe
+//     (was Phase 1).
+//   - MemoSheet bottom-sheet overlay (sibling of TabletGrid/CompactGrid).
+//   - Inline NoteFold inside each upcoming row + always-visible NoteBody
+//     in the current big block (read-only Remarks display).
+//   - Past chip Tapped → vm.SetCurIdx(train.Id, origIndex): jump to that
+//     station (past chips become navigation, not just history).
 //
-// CurIdx が変わると past/current/upcoming の split がシフトするため、V1 の
-// UpdateCurrentInPlace と違い CurIdxVersion 変化時は丸ごと RebuildItems する。
+// Phase 3 (this commit):
+//   - Tweaks panel (gear icon in train stripe → overlay) with ShowPasses
+//     Switch + Density tri-state (狭/標準/広).
+//   - Density-driven scaling applied to all 5 sections (Masthead route +
+//     Train stripe number + Past chip font + Current big block station/time
+//     + Upcoming row station/time/padding) so density visibly reflows
+//     without an Items.Clear+Add for marker/memo/note/density paths.
+//
+// V6 CurIdxVersion strategy: past/current/upcoming split shifts whenever
+// CurIdx changes, so we do full RebuildItems (unlike V1/V2/V4 which can
+// in-place update). Scroll resets to top — acceptable for V6 because the
+// current station is shown in the big block at the top of the page.
 public partial class OriginalTimetableV6Page : ContentPage
 {
 	public static readonly string NameOfThisClass = nameof(OriginalTimetableV6Page);
@@ -58,18 +71,49 @@ public partial class OriginalTimetableV6Page : ContentPage
 	public bool HasCurrentStation { get; private set; }
 	public bool HasCurrentStationTrack => !string.IsNullOrEmpty(CurrentStationTrack);
 
-	// Page-level row-id of the current station, used as CommandParameter for the
-	// big-block SwipeItems (the current row isn't in Items, so V1's per-item Id
-	// binding can't reach it).
+	// Current big block — marker (Phase 2). Tap badge → OpenMarkerPopover
+	// anchored at the badge.
+	public bool HasCurrentMarker { get; private set; }
+	public bool IsCurrentMarkerFlag { get; private set; }
+	public bool IsCurrentMarkerCaution { get; private set; }
+	public bool IsCurrentMarkerStar { get; private set; }
+	public string CurrentMarkerText { get; private set; } = string.Empty;
+
+	// Current big block — note (Phase 2). Always visible read-only when
+	// current station has Remarks; not toggle-able (the upcoming-list note
+	// fold is for navigation, this is just the live "you are here" remarks).
+	public bool HasCurrentNote { get; private set; }
+	public string CurrentNoteText { get; private set; } = string.Empty;
+
+	// Page-level row-id of the current station, used as CommandParameter for
+	// the big-block SwipeItems (the current row isn't in Items, so V1's
+	// per-item Id binding can't reach it).
 	public string CurrentRowId { get; private set; } = string.Empty;
 
 	public bool HasActiveTrain { get; private set; }
 	public bool HasNoActiveTrain => !HasActiveTrain;
 	public bool HasNoPastChips => PastChips.Count == 0;
 
+	// Phase 3 — page-level density-scaled font sizes (tablet/compact pairs).
+	// Bound from XAML via {Binding ... Source={x:Reference Self}}.
+	public double TabletRouteFontSize { get; private set; } = 22;
+	public double CompactRouteFontSize { get; private set; } = 17;
+	public double TabletTrainNumberFontSize { get; private set; } = 28;
+	public double CompactTrainNumberFontSize { get; private set; } = 22;
+	public double TabletCurrentStationFontSize { get; private set; } = 48;
+	public double CompactCurrentStationFontSize { get; private set; } = 34;
+	public double TabletCurrentTimeFontSize { get; private set; } = 28;
+	public double CompactCurrentTimeFontSize { get; private set; } = 22;
+	public double TabletPastChipFontSize { get; private set; } = 11;
+	public double CompactPastChipFontSize { get; private set; } = 10;
+
 	public ICommand ClearMarkerCommand { get; }
 	public ICommand OpenMemoCommand { get; }
+	public ICommand ToggleNoteCommand { get; }
 	public ICommand OpenMarkerPopoverFromSwipeCommand { get; }
+
+	// MemoSheet edit state (Phase 2).
+	string? _memoRowId;
 
 	public OriginalTimetableV6Page()
 	{
@@ -77,6 +121,7 @@ public partial class OriginalTimetableV6Page : ContentPage
 
 		ClearMarkerCommand = new Command<string>(OnClearMarker);
 		OpenMemoCommand = new Command<string>(OnOpenMemo);
+		ToggleNoteCommand = new Command<string>(OnToggleNote);
 		OpenMarkerPopoverFromSwipeCommand = new Command<string>(OnOpenMarkerPopoverFromSwipe);
 
 		InitializeComponent();
@@ -90,6 +135,7 @@ public partial class OriginalTimetableV6Page : ContentPage
 		_vm.PropertyChanged += OnVmPropertyChanged;
 		ApplyLayoutForWidth(Width);
 		RebuildItems();
+		UpdateDensityHighlight();
 	}
 
 	protected override void OnDisappearing()
@@ -107,18 +153,26 @@ public partial class OriginalTimetableV6Page : ContentPage
 			case nameof(OriginalTimetableViewModel.ShowPasses):
 			// V6 specific: CurIdx 変化で past/current/upcoming の境界が動くため
 			// 部分更新 (V1 の UpdateCurrentInPlace) では足りず、丸ごと再構築する。
+			// upcoming list の scroll は top に戻る — V6 は current 駅を上部 big
+			// block に常に表示しているので OK。
 			case nameof(OriginalTimetableViewModel.CurIdxVersion):
 				RebuildItems();
+				AutoFollowScroll();
 				break;
 			// 以下は upcoming 行の中だけで完結するので in-place で OK。
 			case nameof(OriginalTimetableViewModel.MarkersVersion):
 				UpdateMarkersInPlace();
+				RecomputeCurrentMarker();
 				break;
 			case nameof(OriginalTimetableViewModel.MemosVersion):
 				UpdateMemosInPlace();
 				break;
 			case nameof(OriginalTimetableViewModel.NoteOpenVersion):
 				UpdateNoteOpenInPlace();
+				break;
+			case nameof(OriginalTimetableViewModel.Density):
+				UpdateDensityInPlace();
+				UpdateDensityHighlight();
 				break;
 		}
 	}
@@ -160,6 +214,94 @@ public partial class OriginalTimetableV6Page : ContentPage
 			if (item.IsSectionBreakRow)
 				continue;
 			item.IsNoteOpen = item.HasNote && _vm.IsNoteOpen(train.Id, item.Id);
+		}
+	}
+
+	// Phase 3 — Density in-place. Row metrics on every Items entry + page
+	// fonts via ApplyPageDensityScale. Does NOT mutate Items so scroll
+	// position is preserved.
+	void UpdateDensityInPlace()
+	{
+		var d = _vm.Density;
+		ApplyPageDensityScale(d);
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			ApplyDensityScaledMetrics(item, d);
+		}
+	}
+
+	static double DensityScale(Density d) => d switch
+	{
+		Density.Compact => 0.82,
+		Density.Spacious => 1.12,
+		_ => 1.0,
+	};
+
+	void ApplyPageDensityScale(Density density)
+	{
+		double s = DensityScale(density);
+		double R(double v) => Math.Round(v * s, 1);
+		TabletRouteFontSize = R(22);
+		CompactRouteFontSize = R(17);
+		TabletTrainNumberFontSize = R(28);
+		CompactTrainNumberFontSize = R(22);
+		TabletCurrentStationFontSize = R(48);
+		CompactCurrentStationFontSize = R(34);
+		TabletCurrentTimeFontSize = R(28);
+		CompactCurrentTimeFontSize = R(22);
+		TabletPastChipFontSize = R(11);
+		CompactPastChipFontSize = R(10);
+		OnPropertyChanged(nameof(TabletRouteFontSize));
+		OnPropertyChanged(nameof(CompactRouteFontSize));
+		OnPropertyChanged(nameof(TabletTrainNumberFontSize));
+		OnPropertyChanged(nameof(CompactTrainNumberFontSize));
+		OnPropertyChanged(nameof(TabletCurrentStationFontSize));
+		OnPropertyChanged(nameof(CompactCurrentStationFontSize));
+		OnPropertyChanged(nameof(TabletCurrentTimeFontSize));
+		OnPropertyChanged(nameof(CompactCurrentTimeFontSize));
+		OnPropertyChanged(nameof(TabletPastChipFontSize));
+		OnPropertyChanged(nameof(CompactPastChipFontSize));
+	}
+
+	static void ApplyDensityScaledMetrics(V6RowItem item, Density density)
+	{
+		double s = DensityScale(density);
+		double R(double v) => Math.Round(v * s, 1);
+		// Tablet base 22/18 + Compact base 16/14.
+		item.TabletStationFontSize = R(22);
+		item.TabletTimeFontSize = R(18);
+		item.CompactStationFontSize = R(16);
+		item.CompactTimeFontSize = R(14);
+		item.TabletRowPadding = density switch
+		{
+			Density.Compact => new Thickness(16, 6),
+			Density.Spacious => new Thickness(16, 14),
+			_ => new Thickness(16, 10),
+		};
+		item.CompactRowPadding = density switch
+		{
+			Density.Compact => new Thickness(12, 5),
+			Density.Spacious => new Thickness(12, 11),
+			_ => new Thickness(12, 8),
+		};
+	}
+
+	// V6 upcoming list does not need to scroll-follow the current station
+	// (current is rendered in its own big block above). But CurIdxVersion
+	// rebuilds Items (boundary shifts), so we proactively reset to top to
+	// avoid the CollectionView retaining a stale offset into the new list.
+	void AutoFollowScroll()
+	{
+		try
+		{
+			var cv = TabletGrid.IsVisible ? TabletUpcomingList : CompactUpcomingList;
+			cv.ScrollTo(index: 0, position: ScrollToPosition.Start, animate: false);
+		}
+		catch
+		{
+			// Swallow — CollectionView.ScrollTo can throw on certain platforms.
 		}
 	}
 
@@ -205,6 +347,15 @@ public partial class OriginalTimetableV6Page : ContentPage
 		CurrentStationTrack = string.Empty;
 		CurrentRowId = string.Empty;
 		HasCurrentStation = false;
+		HasCurrentMarker = false;
+		IsCurrentMarkerFlag = false;
+		IsCurrentMarkerCaution = false;
+		IsCurrentMarkerStar = false;
+		CurrentMarkerText = string.Empty;
+		HasCurrentNote = false;
+		CurrentNoteText = string.Empty;
+
+		ApplyPageDensityScale(_vm.Density);
 
 		if (train is null || train.Rows is null || train.Rows.Length == 0)
 		{
@@ -217,6 +368,7 @@ public partial class OriginalTimetableV6Page : ContentPage
 		curOrigIdx = Math.Clamp(curOrigIdx, 0, train.Rows.Length - 1);
 
 		bool showPasses = _vm.ShowPasses;
+		var density = _vm.Density;
 
 		// Past chips — 全駅 (showPasses 関係なし; 過去 chip は履歴扱い).
 		// Info rows と pass-only に該当する駅も chip としては出して良いが、
@@ -229,6 +381,7 @@ public partial class OriginalTimetableV6Page : ContentPage
 			PastChips.Add(new V6PastChipItem
 			{
 				Id = r.Id,
+				OrigIndex = i,
 				StationName = r.StationName ?? string.Empty,
 			});
 		}
@@ -243,6 +396,9 @@ public partial class OriginalTimetableV6Page : ContentPage
 			CurrentStationTrack = cur.TrackName ?? string.Empty;
 			CurrentRowId = cur.Id;
 			HasCurrentStation = true;
+			CurrentNoteText = cur.Remarks ?? string.Empty;
+			HasCurrentNote = !string.IsNullOrWhiteSpace(CurrentNoteText);
+			RecomputeCurrentMarkerInternal(train.Id, cur.Id);
 		}
 
 		// Upcoming — currentIdx より後の駅。Section break は upcoming の中だけで
@@ -294,12 +450,49 @@ public partial class OriginalTimetableV6Page : ContentPage
 				SectionBreakLabel = string.Empty,
 			};
 			ApplyDerivedStyling(item);
+			ApplyDensityScaledMetrics(item, density);
 			Items.Add(item);
 
 			prev = row;
 		}
 
 		RaiseAllChanged();
+	}
+
+	void RecomputeCurrentMarker()
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || string.IsNullOrEmpty(CurrentRowId))
+		{
+			HasCurrentMarker = false;
+			IsCurrentMarkerFlag = IsCurrentMarkerCaution = IsCurrentMarkerStar = false;
+			CurrentMarkerText = string.Empty;
+		}
+		else
+		{
+			RecomputeCurrentMarkerInternal(train.Id, CurrentRowId);
+		}
+		OnPropertyChanged(nameof(HasCurrentMarker));
+		OnPropertyChanged(nameof(IsCurrentMarkerFlag));
+		OnPropertyChanged(nameof(IsCurrentMarkerCaution));
+		OnPropertyChanged(nameof(IsCurrentMarkerStar));
+		OnPropertyChanged(nameof(CurrentMarkerText));
+	}
+
+	void RecomputeCurrentMarkerInternal(string trainId, string rowId)
+	{
+		var marker = _vm.GetMarker(trainId, rowId);
+		HasCurrentMarker = marker != MarkerKind.None;
+		IsCurrentMarkerFlag = marker == MarkerKind.Flag;
+		IsCurrentMarkerCaution = marker == MarkerKind.Caution;
+		IsCurrentMarkerStar = marker == MarkerKind.Star;
+		CurrentMarkerText = marker switch
+		{
+			MarkerKind.Flag => "◆",
+			MarkerKind.Caution => "!",
+			MarkerKind.Star => "★",
+			_ => string.Empty,
+		};
 	}
 
 	void RaiseAllChanged()
@@ -321,6 +514,13 @@ public partial class OriginalTimetableV6Page : ContentPage
 		OnPropertyChanged(nameof(HasCurrentStationTrack));
 		OnPropertyChanged(nameof(CurrentRowId));
 		OnPropertyChanged(nameof(HasNoPastChips));
+		OnPropertyChanged(nameof(HasCurrentMarker));
+		OnPropertyChanged(nameof(IsCurrentMarkerFlag));
+		OnPropertyChanged(nameof(IsCurrentMarkerCaution));
+		OnPropertyChanged(nameof(IsCurrentMarkerStar));
+		OnPropertyChanged(nameof(CurrentMarkerText));
+		OnPropertyChanged(nameof(HasCurrentNote));
+		OnPropertyChanged(nameof(CurrentNoteText));
 	}
 
 	static string FormatHhMm(TimeData? t)
@@ -369,9 +569,17 @@ public partial class OriginalTimetableV6Page : ContentPage
 
 	void OnOpenMemo(string? rowId)
 	{
-		// Phase 1: memo sheet overlay is V1-only. Stub: do nothing.
-		// Phase 2 will reuse the same overlay-toggle pattern as V1.
-		_ = rowId;
+		if (string.IsNullOrEmpty(rowId))
+			return;
+		OpenMemoSheet(rowId);
+	}
+
+	void OnToggleNote(string? rowId)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || string.IsNullOrEmpty(rowId))
+			return;
+		_vm.ToggleNote(train.Id, rowId);
 	}
 
 	void OnOpenMarkerPopoverFromSwipe(string? rowId)
@@ -388,6 +596,29 @@ public partial class OriginalTimetableV6Page : ContentPage
 		if (border.BindingContext is not V6RowItem item)
 			return;
 		OpenMarkerPopover(border, item.Id);
+	}
+
+	void OnCurrentMarkerBadgeTapped(object? sender, TappedEventArgs e)
+	{
+		if (string.IsNullOrEmpty(CurrentRowId))
+			return;
+		var anchor = sender as View ?? RootGrid;
+		OpenMarkerPopover(anchor, CurrentRowId);
+	}
+
+	// Past chip → jump to that station. Past chips carry origIndex so this
+	// is just a SetCurIdx call; CurIdxVersion bumps and RebuildItems shifts
+	// the split.
+	void OnPastChipTapped(object? sender, TappedEventArgs e)
+	{
+		if (sender is not Border border)
+			return;
+		if (border.BindingContext is not V6PastChipItem chip)
+			return;
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		_vm.SetCurIdx(train.Id, chip.OrigIndex);
 	}
 
 	async void OpenMarkerPopover(View anchor, string rowId)
@@ -419,22 +650,128 @@ public partial class OriginalTimetableV6Page : ContentPage
 			// Popover failures shouldn't crash the page.
 		}
 	}
+
+	// MemoSheet wiring (Phase 2) ------------------------------------------
+
+	void OpenMemoSheet(string rowId)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		_memoRowId = rowId;
+		MemoEditor.Text = _vm.GetMemo(train.Id, rowId);
+		MemoSheetOverlay.IsVisible = true;
+	}
+
+	void CloseMemoSheet()
+	{
+		MemoSheetOverlay.IsVisible = false;
+		_memoRowId = null;
+	}
+
+	void OnMemoSaveClicked(object? sender, EventArgs e)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || _memoRowId is null)
+		{
+			CloseMemoSheet();
+			return;
+		}
+		_vm.SetMemo(train.Id, _memoRowId, MemoEditor.Text);
+		CloseMemoSheet();
+	}
+
+	void OnMemoDeleteClicked(object? sender, EventArgs e)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || _memoRowId is null)
+		{
+			CloseMemoSheet();
+			return;
+		}
+		_vm.SetMemo(train.Id, _memoRowId, null);
+		CloseMemoSheet();
+	}
+
+	void OnMemoCancelClicked(object? sender, EventArgs e) => CloseMemoSheet();
+
+	void OnMemoSheetScrimTapped(object? sender, TappedEventArgs e) => CloseMemoSheet();
+
+	void OnMemoSheetBodyTapped(object? sender, TappedEventArgs e)
+	{
+		// Intentionally empty — handler presence stops the gesture bubbling.
+	}
+
+	// Tweaks panel wiring (Phase 3) ---------------------------------------
+
+	void OnTweaksButtonTapped(object? sender, TappedEventArgs e)
+	{
+		TweaksOverlay.IsVisible = true;
+		UpdateDensityHighlight();
+	}
+
+	void OnTweaksScrimTapped(object? sender, TappedEventArgs e)
+		=> TweaksOverlay.IsVisible = false;
+
+	void OnTweaksBodyTapped(object? sender, TappedEventArgs e)
+	{
+		// Intentionally empty — handler presence stops the gesture bubbling.
+	}
+
+	void OnDensityCompactTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Compact;
+	}
+
+	void OnDensityComfortableTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Comfortable;
+	}
+
+	void OnDensitySpaciousTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Spacious;
+	}
+
+	void UpdateDensityHighlight()
+	{
+		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
+		var soft = (Brush?)Application.Current?.Resources["OT_BgSoft"];
+
+		var d = _vm.Density;
+		DensityCompact.Background = d == Density.Compact ? accent : soft;
+		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
+		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
+
+		var accentFg = Application.Current?.Resources["OT_AccentFg_Light"] as Color;
+		var fg = Application.Current?.Resources["OT_Fg_Light"] as Color;
+		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
+		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
+		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
+	}
 }
 
-// Past chip view-model. Read-only after add (PastChips is rebuilt wholesale in
-// RebuildItems), so no INPC needed.
+// Past chip view-model. Tap-to-jump uses OrigIndex (Phase 2). PastChips is
+// rebuilt wholesale in RebuildItems, so no INPC needed.
 public class V6PastChipItem
 {
 	public string Id { get; set; } = string.Empty;
+	public int OrigIndex { get; set; } = -1;
 	public string StationName { get; set; } = string.Empty;
 
 	public string ChipAutomationId => $"OriginalTimetable.V6.PastChip.{Id}";
 }
 
-// Upcoming-list row view-model. Mirrors V1RowItem's ObservableObject pattern so
-// MarkersVersion / MemosVersion / NoteOpenVersion can mutate visible props in
-// place without touching Items (preserves CollectionView scroll position). New
-// V6-only props: CounterText (two-digit upcoming sequence number).
+// Upcoming-list row view-model. Mirrors V1RowItem's ObservableObject pattern
+// so MarkersVersion / MemosVersion / NoteOpenVersion / Density can mutate
+// visible props in place without touching Items (preserves CollectionView
+// scroll position).
+//
+// Phase 2/3 additions:
+//   - IsNoteOpen / NoteText / HasNote already in Phase 1 — wired through to
+//     XAML NoteFold this commit.
+//   - Tablet/Compact * Station/TimeFontSize + RowPadding [ObservableProperty]
+//     so density reflows without Items.Clear.
 public partial class V6RowItem : ObservableObject
 {
 	public string Id { get; set; } = string.Empty;
@@ -475,6 +812,20 @@ public partial class V6RowItem : ObservableObject
 	[ObservableProperty]
 	public partial string MarkerText { get; set; } = string.Empty;
 
+	// Density-scaled row metrics (Phase 3).
+	[ObservableProperty]
+	public partial double TabletStationFontSize { get; set; } = 22;
+	[ObservableProperty]
+	public partial double TabletTimeFontSize { get; set; } = 18;
+	[ObservableProperty]
+	public partial double CompactStationFontSize { get; set; } = 16;
+	[ObservableProperty]
+	public partial double CompactTimeFontSize { get; set; } = 14;
+	[ObservableProperty]
+	public partial Thickness TabletRowPadding { get; set; } = new Thickness(16, 10);
+	[ObservableProperty]
+	public partial Thickness CompactRowPadding { get; set; } = new Thickness(12, 8);
+
 	public bool IsNormalRow => !IsSectionBreakRow;
 	public bool HasTrackName => !string.IsNullOrEmpty(TrackName);
 
@@ -484,6 +835,7 @@ public partial class V6RowItem : ObservableObject
 	public string MemoAutomationId => $"{AutomationIdPrefix}{Id}.Memo";
 	public string ClearAutomationId => $"{AutomationIdPrefix}{Id}.Clear";
 	public string MarkerBadgeAutomationId => $"{AutomationIdPrefix}{Id}.MarkerBadge";
+	public string NoteBodyAutomationId => $"{AutomationIdPrefix}{Id}.NoteBody";
 
 	public static V6RowItem SectionBreak(string id, string label) => new()
 	{
