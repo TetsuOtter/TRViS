@@ -77,26 +77,6 @@ internal static class MaterialIcons
 	/// <summary>language — globe / web URL (https / http history glyph).</summary>
 	public const string Language = "\uE894";
 
-	// Independent / markers / notes \u2014 codepoints scattered across blocks,
-	// kept together for OT_ usage convenience.
-	/// <summary>warning \u2014 caution marker / note prefix.</summary>
-	public const string Warning = "\uE002";
-
-	/// <summary>flag \u2014 flag marker badge.</summary>
-	public const string Flag = "\uE153";
-
-	/// <summary>expand_more \u2014 collapsed disclosure (down chevron).</summary>
-	public const string ExpandMore = "\uE5CF";
-
-	/// <summary>edit_note \u2014 memo / note edit pencil.</summary>
-	public const string EditNote = "\uE745";
-
-	/// <summary>star \u2014 star marker badge (filled).</summary>
-	public const string Star = "\uE838";
-
-	/// <summary>delete \u2014 clear / remove action.</summary>
-	public const string Delete = "\uE872";
-
 	// EAxx
 	/// <summary>science — flask, used for the demo/sample data tile.</summary>
 	public const string Science = "\uEA4B";
