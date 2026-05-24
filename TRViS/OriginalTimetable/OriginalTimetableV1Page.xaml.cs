@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 using TR.Maui.AnchorPopover;
 
 using TRViS.IO.Models;
@@ -170,16 +172,155 @@ public partial class OriginalTimetableV1Page : ContentPage
 		switch (e.PropertyName)
 		{
 			case nameof(OriginalTimetableViewModel.ActiveTrain):
-			case nameof(OriginalTimetableViewModel.MarkersVersion):
-			case nameof(OriginalTimetableViewModel.MemosVersion):
-			case nameof(OriginalTimetableViewModel.NoteOpenVersion):
-			case nameof(OriginalTimetableViewModel.CurIdxVersion):
 			// Phase 3 — ShowPasses tweak toggles whether IsPass rows survive
-			// RebuildItems' filter. Rebuild so the toggle is live without an
-			// extra ItemsSource swap or per-row IsVisible binding.
+			// RebuildItems' filter. The visible row set changes, so we have
+			// to rebuild (scroll reset is acceptable here).
 			case nameof(OriginalTimetableViewModel.ShowPasses):
 				RebuildItems();
 				break;
+			// Partial in-place updates — V1RowItem is an ObservableObject so
+			// mutating its props refreshes the bound visuals without ever
+			// touching Items, which preserves CollectionView scroll position.
+			case nameof(OriginalTimetableViewModel.MarkersVersion):
+				UpdateMarkersInPlace();
+				break;
+			case nameof(OriginalTimetableViewModel.MemosVersion):
+				UpdateMemosInPlace();
+				break;
+			case nameof(OriginalTimetableViewModel.NoteOpenVersion):
+				UpdateNoteOpenInPlace();
+				break;
+			case nameof(OriginalTimetableViewModel.CurIdxVersion):
+				UpdateCurrentInPlace();
+				AutoFollowScroll();
+				break;
+			case nameof(OriginalTimetableViewModel.Density):
+				UpdateDensityInPlace();
+				break;
+		}
+	}
+
+	void UpdateMarkersInPlace()
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			var marker = _vm.GetMarker(train.Id, item.Id);
+			item.Marker = marker;
+			ApplyDerivedStyling(item);
+		}
+	}
+
+	void UpdateMemosInPlace()
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			item.HasMemo = !string.IsNullOrWhiteSpace(_vm.GetMemo(train.Id, item.Id));
+		}
+	}
+
+	void UpdateNoteOpenInPlace()
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			item.IsNoteOpen = item.HasNote && _vm.IsNoteOpen(train.Id, item.Id);
+		}
+	}
+
+	void UpdateCurrentInPlace()
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			item.IsCurrent = item.OrigIndex == curOrigIdx;
+		}
+	}
+
+	void UpdateDensityInPlace()
+	{
+		var (tabletPad, compactPad, tabletStation, compactStation) = DensityMetrics(_vm.Density);
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			item.TabletRowPadding = tabletPad;
+			item.CompactRowPadding = compactPad;
+			item.TabletStationFontSize = tabletStation;
+			item.CompactStationFontSize = compactStation;
+		}
+	}
+
+	// state.jsx densityScale: compact=0.82, comfortable=1.0, spacious=1.12.
+	// Approach (c): scale row padding (vertical breathing room) and the
+	// station-name font size only; smaller numeric columns stay fixed so the
+	// time grid keeps a stable rhythm. Padding base values mirror the original
+	// XAML literals (Tablet 12,8 / Compact 10,7).
+	static (Thickness tabletPad, Thickness compactPad, double tabletStation, double compactStation)
+		DensityMetrics(Density d)
+	{
+		double scale = d switch
+		{
+			Density.Compact => 0.82,
+			Density.Spacious => 1.12,
+			_ => 1.0,
+		};
+		var tabletPad = new Thickness(12, Math.Round(8 * scale));
+		var compactPad = new Thickness(10, Math.Round(7 * scale));
+		double tabletStation = Math.Round(18 * scale, 1);
+		double compactStation = Math.Round(14 * scale, 1);
+		return (tabletPad, compactPad, tabletStation, compactStation);
+	}
+
+	// Auto-follow: when Follow=true, scroll the visible CollectionView to the
+	// current-station row (center). Called after the CurIdxVersion in-place
+	// pass has flipped IsCurrent on each row.
+	void AutoFollowScroll()
+	{
+		if (!_vm.Follow)
+			return;
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
+		V1RowItem? curItem = null;
+		foreach (var i in Items)
+		{
+			if (!i.IsSectionBreakRow && i.OrigIndex == curOrigIdx)
+			{
+				curItem = i;
+				break;
+			}
+		}
+		if (curItem is null)
+			return;
+		var cv = TabletGrid.IsVisible ? TabletRowsList : CompactRowsList;
+		try
+		{
+			cv.ScrollTo(curItem, position: ScrollToPosition.Center, animate: true);
+		}
+		catch
+		{
+			// CollectionView.ScrollTo can throw on certain platforms when the
+			// list hasn't measured yet — swallow rather than crash auto-follow.
 		}
 	}
 
@@ -244,6 +385,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 		}
 
 		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
+		var (tabletPad, compactPad, tabletStation, compactStation) = DensityMetrics(_vm.Density);
 
 		int visibleSeq = 0;
 		TimetableRow? prev = null;
@@ -271,6 +413,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 			var item = new V1RowItem
 			{
 				Id = row.Id,
+				OrigIndex = origIdx,
 				StationName = row.StationName ?? string.Empty,
 				KanaName = string.Empty,
 				RunText = FormatRunMinutes(row.DriveTimeMM, row.DriveTimeSS),
@@ -288,6 +431,10 @@ public partial class OriginalTimetableV1Page : ContentPage
 				HasMemo = hasMemo,
 				IsSectionBreakRow = false,
 				SectionBreakLabel = string.Empty,
+				TabletRowPadding = tabletPad,
+				CompactRowPadding = compactPad,
+				TabletStationFontSize = tabletStation,
+				CompactStationFontSize = compactStation,
 			};
 			ApplyDerivedStyling(item);
 			Items.Add(item);
@@ -513,8 +660,10 @@ public partial class OriginalTimetableV1Page : ContentPage
 	}
 
 	// Highlights the selected Density button with OT_Accent; unselected stay
-	// on OT_BgSoft. Phase 3 is UI-only — the list rows do NOT yet observe
-	// vm.Density (per spec, list-side density reflow lands in a later task).
+	// on OT_BgSoft. The list rows now observe vm.Density via
+	// OnVmPropertyChanged → UpdateDensityInPlace, which mutates each row's
+	// TabletRowPadding / CompactRowPadding / *StationFontSize props so the
+	// CollectionView reflows without an Items.Clear+Add (scroll preserved).
 	void UpdateDensityHighlight()
 	{
 		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
@@ -534,13 +683,18 @@ public partial class OriginalTimetableV1Page : ContentPage
 	}
 }
 
-// Row VM consumed by the CollectionView's DataTemplate. Plain class with
-// init-style autoprops; markers/current/striping are mutated *via full
-// rebuild* on every VM version bump, not via INPC — Phase 1 keeps things
-// simple per the spec (Items.Clear + Items.Add).
-public class V1RowItem
+// Row VM consumed by the CollectionView's DataTemplate. ObservableObject so
+// MarkersVersion / MemosVersion / NoteOpenVersion / CurIdxVersion / Density
+// changes can mutate visible props in place (preserving CollectionView
+// scroll position — Items is never Cleared for those updates). Identity
+// props (Id, OrigIndex, station/time text) stay plain — those only ever
+// change during full RebuildItems().
+public partial class V1RowItem : ObservableObject
 {
 	public string Id { get; set; } = string.Empty;
+	// Index in ActiveTrain.Rows (the unfiltered list). -1 for section breaks.
+	// Used by AutoFollowScroll to locate the current-station item.
+	public int OrigIndex { get; set; } = -1;
 	public string StationName { get; set; } = string.Empty;
 	public string KanaName { get; set; } = string.Empty;
 	public string RunText { get; set; } = string.Empty;
@@ -549,7 +703,11 @@ public class V1RowItem
 	public string TrackName { get; set; } = string.Empty;
 	public string LimitText { get; set; } = string.Empty;
 	public bool IsPass { get; set; }
-	public bool IsCurrent { get; set; }
+
+	// Mutated in-place by Update*InPlace; must raise INPC so DataTriggers re-fire.
+	[ObservableProperty]
+	public partial bool IsCurrent { get; set; }
+
 	public bool IsAlternateRow { get; set; }
 	public bool HasNote { get; set; }
 	// Inline note body fields (Phase 2). NoteText is row.Remarks verbatim
@@ -557,19 +715,42 @@ public class V1RowItem
 	// is sourced from OriginalTimetableViewModel.IsNoteOpen and drives the
 	// inline Border's IsVisible inside the row template.
 	public string NoteText { get; set; } = string.Empty;
-	public bool IsNoteOpen { get; set; }
-	public MarkerKind Marker { get; set; } = MarkerKind.None;
-	public bool HasMemo { get; set; }
+
+	[ObservableProperty]
+	public partial bool IsNoteOpen { get; set; }
+
+	[ObservableProperty]
+	public partial MarkerKind Marker { get; set; } = MarkerKind.None;
+
+	[ObservableProperty]
+	public partial bool HasMemo { get; set; }
+
 	public bool IsSectionBreakRow { get; set; }
 	public string SectionBreakLabel { get; set; } = string.Empty;
 
 	// Derived (filled by ApplyDerivedStyling). Bools drive DataTriggers in XAML
 	// so per-row Brush selection stays AppTheme-aware via StaticResource lookups.
-	public bool HasMarker { get; set; }
-	public bool IsMarkerFlag { get; set; }
-	public bool IsMarkerCaution { get; set; }
-	public bool IsMarkerStar { get; set; }
-	public string MarkerText { get; set; } = string.Empty;
+	[ObservableProperty]
+	public partial bool HasMarker { get; set; }
+	[ObservableProperty]
+	public partial bool IsMarkerFlag { get; set; }
+	[ObservableProperty]
+	public partial bool IsMarkerCaution { get; set; }
+	[ObservableProperty]
+	public partial bool IsMarkerStar { get; set; }
+	[ObservableProperty]
+	public partial string MarkerText { get; set; } = string.Empty;
+
+	// Density-driven row metrics. Tablet and Compact share the same Items
+	// collection, so we keep both. Updated in-place by UpdateDensityInPlace.
+	[ObservableProperty]
+	public partial Thickness TabletRowPadding { get; set; } = new Thickness(12, 8);
+	[ObservableProperty]
+	public partial Thickness CompactRowPadding { get; set; } = new Thickness(10, 7);
+	[ObservableProperty]
+	public partial double TabletStationFontSize { get; set; } = 18;
+	[ObservableProperty]
+	public partial double CompactStationFontSize { get; set; } = 14;
 
 	public bool IsNormalRow => !IsSectionBreakRow;
 	public bool HasTrackName => !string.IsNullOrEmpty(TrackName);

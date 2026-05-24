@@ -107,6 +107,7 @@
 
 			<!-- Row list -->
 			<CollectionView
+				x:Name="TabletRowsList"
 				Grid.Row="1"
 				AutomationId="OriginalTimetable.V1.RowsList"
 				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}"
@@ -171,7 +172,7 @@
 									</Border.Triggers>
 									<Grid
 										ColumnDefinitions="40,*,80,80,48,40"
-										Padding="12,8"
+										Padding="{Binding TabletRowPadding}"
 										ColumnSpacing="4"
 										RowSpacing="0">
 										<Label
@@ -193,7 +194,7 @@
 												VerticalOptions="Center"/>
 											<Label
 												Text="{Binding StationName}"
-												FontSize="18"
+												FontSize="{Binding TabletStationFontSize}"
 												FontAttributes="Bold"
 												VerticalOptions="Center"
 												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
@@ -418,6 +419,7 @@
 
 			<!-- Row list -->
 			<CollectionView
+				x:Name="CompactRowsList"
 				Grid.Row="1"
 				AutomationId="OriginalTimetable.V1.Compact.RowsList"
 				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}"
@@ -482,7 +484,7 @@
 									</Border.Triggers>
 									<Grid
 										ColumnDefinitions="*,70,70,44"
-										Padding="10,7"
+										Padding="{Binding CompactRowPadding}"
 										ColumnSpacing="4"
 										RowSpacing="0">
 										<HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
@@ -494,7 +496,7 @@
 												VerticalOptions="Center"/>
 											<Label
 												Text="{Binding StationName}"
-												FontSize="14"
+												FontSize="{Binding CompactStationFontSize}"
 												FontAttributes="Bold"
 												VerticalOptions="Center"
 												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
