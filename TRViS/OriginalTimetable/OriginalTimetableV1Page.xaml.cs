@@ -174,6 +174,10 @@ public partial class OriginalTimetableV1Page : ContentPage
 			case nameof(OriginalTimetableViewModel.MemosVersion):
 			case nameof(OriginalTimetableViewModel.NoteOpenVersion):
 			case nameof(OriginalTimetableViewModel.CurIdxVersion):
+			// Phase 3 — ShowPasses tweak toggles whether IsPass rows survive
+			// RebuildItems' filter. Rebuild so the toggle is live without an
+			// extra ItemsSource swap or per-row IsVisible binding.
+			case nameof(OriginalTimetableViewModel.ShowPasses):
 				RebuildItems();
 				break;
 		}
@@ -193,9 +197,11 @@ public partial class OriginalTimetableV1Page : ContentPage
 
 		// Both child Grids are declared in XAML — only flip IsVisible here to
 		// keep imperative tree manipulation minimal (avoids the ApplyStyleSheets
-		// NRE path that bit the previous V1 implementation).
+		// NRE path that bit the previous V1 implementation). Phase 3 promoted
+		// the former CompactPlaceholder Label into a real CompactGrid that
+		// mirrors the tablet layout's row template at a 4-column scale.
 		TabletGrid.IsVisible = isTablet;
-		CompactPlaceholder.IsVisible = !isTablet;
+		CompactGrid.IsVisible = !isTablet;
 	}
 
 	void RebuildItems()
@@ -221,14 +227,18 @@ public partial class OriginalTimetableV1Page : ContentPage
 		if (train is null || train.Rows is null || train.Rows.Length == 0)
 			return;
 
-		// Phase 1: skip info rows; keep pass rows (ShowPasses tweak comes in
-		// Phase 3). Track the *visible* index for striping; CurIdx semantics
-		// stay tied to the underlying ActiveTrain.Rows index (matches VM.Advance).
+		// Phase 1: skip info rows. Phase 3: also skip IsPass rows when the
+		// tweaks-panel ShowPasses toggle is off. Track the *visible* index
+		// for striping; CurIdx semantics stay tied to the underlying
+		// ActiveTrain.Rows index (matches VM.Advance).
+		bool showPasses = _vm.ShowPasses;
 		var visibleRows = new List<(int origIdx, TimetableRow row)>(train.Rows.Length);
 		for (int i = 0; i < train.Rows.Length; i++)
 		{
 			var r = train.Rows[i];
 			if (r.IsInfoRow)
+				continue;
+			if (!showPasses && r.IsPass)
 				continue;
 			visibleRows.Add((i, r));
 		}
@@ -464,6 +474,63 @@ public partial class OriginalTimetableV1Page : ContentPage
 	void OnMemoSheetBodyTapped(object? sender, TappedEventArgs e)
 	{
 		// Intentionally empty — handler presence stops the gesture bubbling.
+	}
+
+	// Tweaks panel wiring (Phase 3) ---------------------------------------
+
+	void OnTweaksButtonTapped(object? sender, TappedEventArgs e)
+	{
+		TweaksOverlay.IsVisible = true;
+		UpdateDensityHighlight();
+	}
+
+	void OnTweaksScrimTapped(object? sender, TappedEventArgs e)
+		=> TweaksOverlay.IsVisible = false;
+
+	// Same swallow-the-tap pattern as the memo sheet — keeps the scrim's
+	// TapGestureRecognizer from dismissing when the user taps the panel body.
+	void OnTweaksBodyTapped(object? sender, TappedEventArgs e)
+	{
+		// Intentionally empty — handler presence stops the gesture bubbling.
+	}
+
+	void OnDensityCompactTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Compact;
+		UpdateDensityHighlight();
+	}
+
+	void OnDensityComfortableTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Comfortable;
+		UpdateDensityHighlight();
+	}
+
+	void OnDensitySpaciousTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Spacious;
+		UpdateDensityHighlight();
+	}
+
+	// Highlights the selected Density button with OT_Accent; unselected stay
+	// on OT_BgSoft. Phase 3 is UI-only — the list rows do NOT yet observe
+	// vm.Density (per spec, list-side density reflow lands in a later task).
+	void UpdateDensityHighlight()
+	{
+		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
+		var soft = (Brush?)Application.Current?.Resources["OT_BgSoft"];
+
+		var d = _vm.Density;
+		DensityCompact.Background = d == Density.Compact ? accent : soft;
+		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
+		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
+
+		// Use the accent foreground color on the selected label for contrast.
+		var accentFg = Application.Current?.Resources["OT_AccentFg_Light"] as Color;
+		var fg = Application.Current?.Resources["OT_Fg_Light"] as Color;
+		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
+		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
+		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
 	}
 }
 

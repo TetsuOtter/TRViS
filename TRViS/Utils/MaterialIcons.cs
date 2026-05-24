@@ -77,6 +77,9 @@ internal static class MaterialIcons
 	/// <summary>language — globe / web URL (https / http history glyph).</summary>
 	public const string Language = "\uE894";
 
+	/// <summary>settings \u2014 gear (OriginalTimetable V1 tweaks panel toggle).</summary>
+	public const string Settings = "\uE8B8";
+
 	// EAxx
 	/// <summary>science — flask, used for the demo/sample data tile.</summary>
 	public const string Science = "\uEA4B";

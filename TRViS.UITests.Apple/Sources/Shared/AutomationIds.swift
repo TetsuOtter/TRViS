@@ -221,7 +221,14 @@ enum AutomationIds {
         enum V1 {
             static let root               = "OriginalTimetable.V1.Root"
             static let tabletGrid         = "OriginalTimetable.V1.TabletGrid"
+            // Phase 3 replaced the static <600pt placeholder with a real
+            // CollectionView-backed compact layout. The constant stays so
+            // pre-Phase 3 screenshots / comments still resolve; new code
+            // should target `compactRoot` and the per-row helpers below.
             static let compactPlaceholder = "OriginalTimetable.V1.CompactPlaceholder"
+            static let compactRoot        = "OriginalTimetable.V1.Compact.Root"
+            static let compactHeader      = "OriginalTimetable.V1.Compact.Header"
+            static let compactRowsList    = "OriginalTimetable.V1.Compact.RowsList"
 
             static let header             = "OriginalTimetable.V1.Header"
             static let headerTypeChip     = "OriginalTimetable.V1.Header.TypeChip"
@@ -261,6 +268,22 @@ enum AutomationIds {
                 static let save   = "OriginalTimetable.V1.MemoSheet.Save"
                 static let delete = "OriginalTimetable.V1.MemoSheet.Delete"
                 static let cancel = "OriginalTimetable.V1.MemoSheet.Cancel"
+            }
+
+            // Phase 3 — tweaks panel (gear button in header, overlay shown
+            // on tap). Density tri-state segmented buttons set vm.Density;
+            // ShowPasses toggle is two-way bound to vm.ShowPasses.
+            static let tweaksButton = "OriginalTimetable.V1.TweaksButton"
+            enum Tweaks {
+                static let overlay     = "OriginalTimetable.V1.Tweaks.Overlay"
+                static let scrim       = "OriginalTimetable.V1.Tweaks.Scrim"
+                static let title       = "OriginalTimetable.V1.Tweaks.Title"
+                static let showPasses  = "OriginalTimetable.V1.Tweaks.ShowPasses"
+                enum Density {
+                    static let compact     = "OriginalTimetable.V1.Tweaks.Density.Compact"
+                    static let comfortable = "OriginalTimetable.V1.Tweaks.Density.Comfortable"
+                    static let spacious    = "OriginalTimetable.V1.Tweaks.Density.Spacious"
+                }
             }
 
             // UI_TEST-only seam: invokes OnCycleMarker / OnClearMarker on the
