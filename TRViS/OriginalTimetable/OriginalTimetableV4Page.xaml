@@ -2,16 +2,754 @@
 <ContentPage
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:local="clr-namespace:TRViS.OriginalTimetable"
 	x:Class="TRViS.OriginalTimetable.OriginalTimetableV4Page"
-	x:DataType="viewmodels:OriginalTimetableViewModel"
+	x:Name="Self"
 	Title="ダイヤ表 (V4)"
+	SizeChanged="OnRootSizeChanged"
 	BackgroundColor="{AppThemeBinding Light={StaticResource OT_Bg_Light}, Dark={StaticResource OT_Bg_Dark}}">
-	<Grid Padding="16">
-		<Label
-			HorizontalOptions="Center"
-			VerticalOptions="Center"
-			TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
-			Text="{Binding ActiveTrain.TrainNumber, StringFormat='V4 Next Big - {0}'}"/>
+	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V4.Root">
+
+		<!-- Tablet layout (>= 600pt) -->
+		<Grid
+			x:Name="TabletGrid"
+			AutomationId="OriginalTimetable.V4.TabletGrid"
+			RowDefinitions="Auto,Auto,*"
+			IsVisible="False">
+
+			<!-- Train stripe -->
+			<Border
+				Grid.Row="0"
+				AutomationId="OriginalTimetable.V4.TrainStripe"
+				Background="{StaticResource OT_BgSoft}"
+				StrokeThickness="0,0,0,1"
+				Stroke="{StaticResource OT_Rule}"
+				StrokeShape="Rectangle"
+				Padding="16,10">
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+					<Border
+						Grid.Column="0"
+						AutomationId="OriginalTimetable.V4.TrainStripe.TypeChip"
+						Background="{StaticResource OT_Accent}"
+						Padding="10,4"
+						StrokeThickness="0"
+						StrokeShape="RoundRectangle 4"
+						IsVisible="{Binding HasHeaderType, Source={x:Reference Self}}"
+						VerticalOptions="Center">
+						<Label
+							Text="{Binding HeaderTypeText, Source={x:Reference Self}}"
+							FontSize="17"
+							FontAttributes="Bold"
+							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+					</Border>
+					<Label
+						Grid.Column="1"
+						AutomationId="OriginalTimetable.V4.TrainStripe.TrainNumber"
+						Text="{Binding HeaderTrainNumberText, Source={x:Reference Self}}"
+						FontSize="28"
+						FontAttributes="Bold"
+						FontFamily="Menlo"
+						VerticalOptions="Center"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+					<Label
+						Grid.Column="2"
+						Text="{Binding HeaderDestinationText, Source={x:Reference Self}}"
+						FontSize="14"
+						VerticalOptions="Center"
+						LineBreakMode="TailTruncation"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					<Label
+						Grid.Column="3"
+						Text="{Binding HeaderCarsAndSpeedText, Source={x:Reference Self}}"
+						FontSize="14"
+						HorizontalOptions="End"
+						VerticalOptions="Center"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+				</Grid>
+			</Border>
+
+			<!-- Hero block (next station, big) -->
+			<Border
+				Grid.Row="1"
+				AutomationId="OriginalTimetable.V4.Hero"
+				Background="{StaticResource OT_AccentSoft}"
+				StrokeThickness="0,0,0,2"
+				Stroke="{StaticResource OT_Accent}"
+				StrokeShape="Rectangle"
+				Padding="18,16,18,18"
+				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}">
+				<Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+					<VerticalStackLayout Grid.Column="0" Spacing="0">
+						<Label
+							Text="次駅 NEXT"
+							FontSize="13"
+							FontAttributes="Bold"
+							CharacterSpacing="1.6"
+							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+						<Label
+							AutomationId="OriginalTimetable.V4.HeroStation"
+							Text="{Binding NextStationName, Source={x:Reference Self}}"
+							FontSize="56"
+							FontAttributes="Bold"
+							LineHeight="1"
+							Margin="0,6,0,0"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+						<HorizontalStackLayout Spacing="20" Margin="0,14,0,0">
+							<VerticalStackLayout Spacing="0">
+								<Label
+									Text="着"
+									FontSize="13"
+									FontAttributes="Bold"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+								<Label
+									AutomationId="OriginalTimetable.V4.HeroArrive"
+									Text="{Binding NextStationArriveText, Source={x:Reference Self}}"
+									FontSize="30"
+									FontAttributes="Bold"
+									FontFamily="Menlo"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</VerticalStackLayout>
+							<VerticalStackLayout Spacing="0">
+								<Label
+									Text="発"
+									FontSize="13"
+									FontAttributes="Bold"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+								<Label
+									AutomationId="OriginalTimetable.V4.HeroDepart"
+									Text="{Binding NextStationDepartText, Source={x:Reference Self}}"
+									FontSize="30"
+									FontAttributes="Bold"
+									FontFamily="Menlo"
+									TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+							</VerticalStackLayout>
+						</HorizontalStackLayout>
+					</VerticalStackLayout>
+					<VerticalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="End" VerticalOptions="End">
+						<Label
+							Text="番線 PLATFORM"
+							FontSize="11"
+							CharacterSpacing="1.6"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Border
+							AutomationId="OriginalTimetable.V4.HeroTrack"
+							WidthRequest="72"
+							HeightRequest="72"
+							Background="{StaticResource OT_Accent}"
+							StrokeThickness="0"
+							StrokeShape="RoundRectangle 12"
+							HorizontalOptions="End">
+							<Label
+								Text="{Binding NextStationTrack, Source={x:Reference Self}}"
+								FontSize="46"
+								FontAttributes="Bold"
+								FontFamily="Menlo"
+								HorizontalOptions="Center"
+								VerticalOptions="Center"
+								TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+						</Border>
+						<VerticalStackLayout
+							AutomationId="OriginalTimetable.V4.HeroPreview"
+							Spacing="2"
+							HorizontalOptions="End"
+							Margin="0,4,0,0"
+							IsVisible="{Binding HasNextPlusOne, Source={x:Reference Self}}">
+							<Label
+								Text="NEXT+1"
+								FontSize="11"
+								CharacterSpacing="1.6"
+								HorizontalOptions="End"
+								TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+							<Label
+								Text="{Binding NextPlusOneText, Source={x:Reference Self}}"
+								FontSize="16"
+								FontAttributes="Bold"
+								HorizontalOptions="End"
+								TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+						</VerticalStackLayout>
+					</VerticalStackLayout>
+				</Grid>
+			</Border>
+
+			<!-- Empty state -->
+			<Label
+				Grid.Row="2"
+				AutomationId="OriginalTimetable.V4.EmptyState"
+				IsVisible="{Binding HasNoActiveTrain, Source={x:Reference Self}}"
+				Text="列車を選択してください"
+				FontSize="16"
+				HorizontalOptions="Center"
+				VerticalOptions="Center"
+				TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+
+			<!-- Mini list (CollectionView; current station is hidden — shown in hero) -->
+			<CollectionView
+				x:Name="TabletMiniList"
+				Grid.Row="2"
+				AutomationId="OriginalTimetable.V4.MiniList"
+				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}"
+				ItemsSource="{Binding Items, Source={x:Reference Self}}"
+				SelectionMode="None">
+				<CollectionView.Header>
+					<Grid
+						ColumnDefinitions="*,100,100,50"
+						ColumnSpacing="8"
+						Padding="14,10,14,4">
+						<Label
+							Grid.Column="0"
+							Text="停車場"
+							FontSize="13"
+							CharacterSpacing="1.3"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Label
+							Grid.Column="1"
+							Text="着"
+							FontSize="13"
+							CharacterSpacing="1.3"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Label
+							Grid.Column="2"
+							Text="発"
+							FontSize="13"
+							CharacterSpacing="1.3"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Label
+							Grid.Column="3"
+							Text="線"
+							FontSize="13"
+							CharacterSpacing="1.3"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					</Grid>
+				</CollectionView.Header>
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="local:V4RowItem">
+						<SwipeView AutomationId="{Binding RowAutomationId}">
+							<SwipeView.RightItems>
+								<SwipeItems Mode="Reveal">
+									<SwipeItem
+										AutomationId="{Binding MarkerAutomationId}"
+										Text="マーカー"
+										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
+										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
+										CommandParameter="{Binding Id}"/>
+									<SwipeItem
+										AutomationId="{Binding MemoAutomationId}"
+										Text="メモ"
+										BackgroundColor="{StaticResource OT_MarkerCautionBg}"
+										Command="{Binding OpenMemoCommand, Source={x:Reference Self}}"
+										CommandParameter="{Binding Id}"/>
+									<SwipeItem
+										AutomationId="{Binding ClearAutomationId}"
+										Text="クリア"
+										BackgroundColor="{AppThemeBinding Light={StaticResource OT_AccentSoft_Light}, Dark={StaticResource OT_AccentSoft_Dark}}"
+										Command="{Binding ClearMarkerCommand, Source={x:Reference Self}}"
+										CommandParameter="{Binding Id}"/>
+								</SwipeItems>
+							</SwipeView.RightItems>
+							<VerticalStackLayout Spacing="0">
+								<!-- Section break row (Phase 1: rendered when present) -->
+								<Border
+									IsVisible="{Binding IsSectionBreakRow}"
+									Padding="14,8"
+									Margin="0,6,0,0"
+									Background="{StaticResource OT_AccentSoft}"
+									StrokeThickness="0,1,0,0.5"
+									Stroke="{StaticResource OT_Accent}"
+									StrokeShape="Rectangle">
+									<Label
+										Text="{Binding SectionBreakLabel}"
+										FontSize="15"
+										FontAttributes="Bold"
+										VerticalOptions="Center"
+										TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+								</Border>
+
+								<!-- Mini row (hidden when this is the hero's station) -->
+								<Border
+									IsVisible="{Binding IsVisibleNormalRow}"
+									StrokeThickness="0,0,0,1"
+									Stroke="{StaticResource OT_Rule}"
+									StrokeShape="Rectangle"
+									Padding="0"
+									Background="{StaticResource OT_Bg}">
+									<Border.Triggers>
+										<DataTrigger TargetType="Border" Binding="{Binding IsPassed}" Value="True">
+											<Setter Property="Opacity" Value="0.4"/>
+										</DataTrigger>
+									</Border.Triggers>
+									<Grid
+										ColumnDefinitions="*,100,100,50"
+										ColumnSpacing="8"
+										Padding="14,8">
+										<HorizontalStackLayout
+											Grid.Column="0"
+											Spacing="6"
+											VerticalOptions="Center">
+											<Label
+												Text="{Binding StationName}"
+												FontSize="22"
+												FontAttributes="Bold"
+												VerticalOptions="Center"
+												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
+												<Label.Triggers>
+													<DataTrigger TargetType="Label" Binding="{Binding IsPass}" Value="True">
+														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+													</DataTrigger>
+												</Label.Triggers>
+											</Label>
+											<Border
+												IsVisible="{Binding IsPass}"
+												Background="{StaticResource OT_Rule}"
+												Padding="6,1"
+												StrokeThickness="0"
+												StrokeShape="RoundRectangle 3"
+												VerticalOptions="Center">
+												<Label
+													Text="通過"
+													FontSize="11"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+											</Border>
+											<!-- Marker badge -->
+											<Border
+												AutomationId="{Binding MarkerBadgeAutomationId}"
+												IsVisible="{Binding HasMarker}"
+												Padding="6,1"
+												StrokeThickness="0"
+												StrokeShape="RoundRectangle 4"
+												VerticalOptions="Center"
+												Background="{StaticResource OT_Bg}">
+												<Border.Triggers>
+													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
+													</DataTrigger>
+													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerCaution}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_MarkerCautionBgBrush}"/>
+													</DataTrigger>
+													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerStar}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_MarkerStarBgBrush}"/>
+													</DataTrigger>
+												</Border.Triggers>
+												<Label
+													Text="{Binding MarkerText}"
+													FontSize="11"
+													FontAttributes="Bold"
+													TextColor="{StaticResource OT_MarkerFlagFg}">
+													<Label.Triggers>
+														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerCaution}" Value="True">
+															<Setter Property="TextColor" Value="{StaticResource OT_MarkerCautionFg}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerStar}" Value="True">
+															<Setter Property="TextColor" Value="{StaticResource OT_MarkerStarFg}"/>
+														</DataTrigger>
+													</Label.Triggers>
+												</Label>
+											</Border>
+											<!-- Memo dot -->
+											<Ellipse
+												IsVisible="{Binding HasMemo}"
+												WidthRequest="8"
+												HeightRequest="8"
+												Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
+												VerticalOptions="Center"/>
+										</HorizontalStackLayout>
+										<Label
+											Grid.Column="1"
+											Text="{Binding ArriveText}"
+											FontSize="17"
+											FontFamily="Menlo"
+											HorizontalOptions="End"
+											VerticalOptions="Center"
+											TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+										<Label
+											Grid.Column="2"
+											Text="{Binding DepartText}"
+											FontSize="17"
+											FontAttributes="Bold"
+											FontFamily="Menlo"
+											HorizontalOptions="End"
+											VerticalOptions="Center"
+											TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+										<Border
+											Grid.Column="3"
+											IsVisible="{Binding HasTrackName}"
+											Background="{StaticResource OT_PlatBg}"
+											Padding="6,2"
+											StrokeThickness="0"
+											StrokeShape="RoundRectangle 4"
+											VerticalOptions="Center"
+											HorizontalOptions="End">
+											<Label
+												Text="{Binding TrackName}"
+												FontSize="13"
+												FontAttributes="Bold"
+												TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}"/>
+										</Border>
+									</Grid>
+								</Border>
+							</VerticalStackLayout>
+						</SwipeView>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
+		</Grid>
+
+		<!-- Compact layout (< 600pt) -->
+		<Grid
+			x:Name="CompactGrid"
+			AutomationId="OriginalTimetable.V4.CompactGrid"
+			RowDefinitions="Auto,Auto,*"
+			IsVisible="False">
+
+			<!-- Train stripe (compact) -->
+			<Border
+				Grid.Row="0"
+				Background="{StaticResource OT_BgSoft}"
+				StrokeThickness="0,0,0,1"
+				Stroke="{StaticResource OT_Rule}"
+				StrokeShape="Rectangle"
+				Padding="12,8">
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+					<Border
+						Grid.Column="0"
+						Background="{StaticResource OT_Accent}"
+						Padding="8,3"
+						StrokeThickness="0"
+						StrokeShape="RoundRectangle 4"
+						IsVisible="{Binding HasHeaderType, Source={x:Reference Self}}"
+						VerticalOptions="Center">
+						<Label
+							Text="{Binding HeaderTypeText, Source={x:Reference Self}}"
+							FontSize="14"
+							FontAttributes="Bold"
+							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+					</Border>
+					<Label
+						Grid.Column="1"
+						Text="{Binding HeaderTrainNumberText, Source={x:Reference Self}}"
+						FontSize="20"
+						FontAttributes="Bold"
+						FontFamily="Menlo"
+						VerticalOptions="Center"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+					<Label
+						Grid.Column="2"
+						Text="{Binding HeaderDestinationText, Source={x:Reference Self}}"
+						FontSize="12"
+						VerticalOptions="Center"
+						LineBreakMode="TailTruncation"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					<Label
+						Grid.Column="3"
+						Text="{Binding HeaderCarsAndSpeedTextCompact, Source={x:Reference Self}}"
+						FontSize="12"
+						HorizontalOptions="End"
+						VerticalOptions="Center"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+				</Grid>
+			</Border>
+
+			<!-- Hero (compact) -->
+			<Border
+				Grid.Row="1"
+				Background="{StaticResource OT_AccentSoft}"
+				StrokeThickness="0,0,0,2"
+				Stroke="{StaticResource OT_Accent}"
+				StrokeShape="Rectangle"
+				Padding="14,12,14,14"
+				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}">
+				<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+					<VerticalStackLayout Grid.Column="0" Spacing="0">
+						<Label
+							Text="次駅 NEXT"
+							FontSize="12"
+							FontAttributes="Bold"
+							CharacterSpacing="1.4"
+							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+						<Label
+							Text="{Binding NextStationName, Source={x:Reference Self}}"
+							FontSize="40"
+							FontAttributes="Bold"
+							LineHeight="1"
+							Margin="0,4,0,0"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+						<HorizontalStackLayout Spacing="16" Margin="0,10,0,0">
+							<VerticalStackLayout Spacing="0">
+								<Label
+									Text="着"
+									FontSize="12"
+									FontAttributes="Bold"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+								<Label
+									Text="{Binding NextStationArriveText, Source={x:Reference Self}}"
+									FontSize="22"
+									FontAttributes="Bold"
+									FontFamily="Menlo"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</VerticalStackLayout>
+							<VerticalStackLayout Spacing="0">
+								<Label
+									Text="発"
+									FontSize="12"
+									FontAttributes="Bold"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+								<Label
+									Text="{Binding NextStationDepartText, Source={x:Reference Self}}"
+									FontSize="22"
+									FontAttributes="Bold"
+									FontFamily="Menlo"
+									TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+							</VerticalStackLayout>
+						</HorizontalStackLayout>
+					</VerticalStackLayout>
+					<VerticalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="End" VerticalOptions="End">
+						<Label
+							Text="番線"
+							FontSize="10"
+							CharacterSpacing="1.4"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Border
+							WidthRequest="60"
+							HeightRequest="60"
+							Background="{StaticResource OT_Accent}"
+							StrokeThickness="0"
+							StrokeShape="RoundRectangle 12"
+							HorizontalOptions="End">
+							<Label
+								Text="{Binding NextStationTrack, Source={x:Reference Self}}"
+								FontSize="36"
+								FontAttributes="Bold"
+								FontFamily="Menlo"
+								HorizontalOptions="Center"
+								VerticalOptions="Center"
+								TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+						</Border>
+					</VerticalStackLayout>
+				</Grid>
+			</Border>
+
+			<!-- Empty state -->
+			<Label
+				Grid.Row="2"
+				IsVisible="{Binding HasNoActiveTrain, Source={x:Reference Self}}"
+				Text="列車を選択してください"
+				FontSize="14"
+				HorizontalOptions="Center"
+				VerticalOptions="Center"
+				TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+
+			<!-- Mini list (compact) -->
+			<CollectionView
+				x:Name="CompactMiniList"
+				Grid.Row="2"
+				AutomationId="OriginalTimetable.V4.Compact.MiniList"
+				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}"
+				ItemsSource="{Binding Items, Source={x:Reference Self}}"
+				SelectionMode="None">
+				<CollectionView.Header>
+					<Grid
+						ColumnDefinitions="*,64,64,40"
+						ColumnSpacing="6"
+						Padding="12,8,12,4">
+						<Label
+							Grid.Column="0"
+							Text="停車場"
+							FontSize="11"
+							CharacterSpacing="1.3"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Label
+							Grid.Column="1"
+							Text="着"
+							FontSize="11"
+							CharacterSpacing="1.3"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Label
+							Grid.Column="2"
+							Text="発"
+							FontSize="11"
+							CharacterSpacing="1.3"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<Label
+							Grid.Column="3"
+							Text="線"
+							FontSize="11"
+							CharacterSpacing="1.3"
+							HorizontalOptions="End"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					</Grid>
+				</CollectionView.Header>
+				<CollectionView.ItemTemplate>
+					<DataTemplate x:DataType="local:V4RowItem">
+						<SwipeView AutomationId="{Binding RowAutomationId}">
+							<SwipeView.RightItems>
+								<SwipeItems Mode="Reveal">
+									<SwipeItem
+										AutomationId="{Binding MarkerAutomationId}"
+										Text="マーカー"
+										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
+										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
+										CommandParameter="{Binding Id}"/>
+									<SwipeItem
+										AutomationId="{Binding MemoAutomationId}"
+										Text="メモ"
+										BackgroundColor="{StaticResource OT_MarkerCautionBg}"
+										Command="{Binding OpenMemoCommand, Source={x:Reference Self}}"
+										CommandParameter="{Binding Id}"/>
+									<SwipeItem
+										AutomationId="{Binding ClearAutomationId}"
+										Text="クリア"
+										BackgroundColor="{AppThemeBinding Light={StaticResource OT_AccentSoft_Light}, Dark={StaticResource OT_AccentSoft_Dark}}"
+										Command="{Binding ClearMarkerCommand, Source={x:Reference Self}}"
+										CommandParameter="{Binding Id}"/>
+								</SwipeItems>
+							</SwipeView.RightItems>
+							<VerticalStackLayout Spacing="0">
+								<Border
+									IsVisible="{Binding IsSectionBreakRow}"
+									Padding="12,6"
+									Margin="0,4,0,0"
+									Background="{StaticResource OT_AccentSoft}"
+									StrokeThickness="0,1,0,0.5"
+									Stroke="{StaticResource OT_Accent}"
+									StrokeShape="Rectangle">
+									<Label
+										Text="{Binding SectionBreakLabel}"
+										FontSize="12"
+										FontAttributes="Bold"
+										VerticalOptions="Center"
+										TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+								</Border>
+
+								<Border
+									IsVisible="{Binding IsVisibleNormalRow}"
+									StrokeThickness="0,0,0,1"
+									Stroke="{StaticResource OT_Rule}"
+									StrokeShape="Rectangle"
+									Padding="0"
+									Background="{StaticResource OT_Bg}">
+									<Border.Triggers>
+										<DataTrigger TargetType="Border" Binding="{Binding IsPassed}" Value="True">
+											<Setter Property="Opacity" Value="0.4"/>
+										</DataTrigger>
+									</Border.Triggers>
+									<Grid
+										ColumnDefinitions="*,64,64,40"
+										ColumnSpacing="6"
+										Padding="12,6">
+										<HorizontalStackLayout
+											Grid.Column="0"
+											Spacing="5"
+											VerticalOptions="Center">
+											<Label
+												Text="{Binding StationName}"
+												FontSize="16"
+												FontAttributes="Bold"
+												VerticalOptions="Center"
+												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
+												<Label.Triggers>
+													<DataTrigger TargetType="Label" Binding="{Binding IsPass}" Value="True">
+														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+													</DataTrigger>
+												</Label.Triggers>
+											</Label>
+											<Border
+												IsVisible="{Binding IsPass}"
+												Background="{StaticResource OT_Rule}"
+												Padding="5,1"
+												StrokeThickness="0"
+												StrokeShape="RoundRectangle 3"
+												VerticalOptions="Center">
+												<Label
+													Text="通過"
+													FontSize="10"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+											</Border>
+											<Border
+												AutomationId="{Binding MarkerBadgeAutomationId}"
+												IsVisible="{Binding HasMarker}"
+												Padding="5,1"
+												StrokeThickness="0"
+												StrokeShape="RoundRectangle 4"
+												VerticalOptions="Center"
+												Background="{StaticResource OT_Bg}">
+												<Border.Triggers>
+													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
+													</DataTrigger>
+													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerCaution}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_MarkerCautionBgBrush}"/>
+													</DataTrigger>
+													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerStar}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_MarkerStarBgBrush}"/>
+													</DataTrigger>
+												</Border.Triggers>
+												<Label
+													Text="{Binding MarkerText}"
+													FontSize="10"
+													FontAttributes="Bold"
+													TextColor="{StaticResource OT_MarkerFlagFg}">
+													<Label.Triggers>
+														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerCaution}" Value="True">
+															<Setter Property="TextColor" Value="{StaticResource OT_MarkerCautionFg}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerStar}" Value="True">
+															<Setter Property="TextColor" Value="{StaticResource OT_MarkerStarFg}"/>
+														</DataTrigger>
+													</Label.Triggers>
+												</Label>
+											</Border>
+											<Ellipse
+												IsVisible="{Binding HasMemo}"
+												WidthRequest="7"
+												HeightRequest="7"
+												Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
+												VerticalOptions="Center"/>
+										</HorizontalStackLayout>
+										<Label
+											Grid.Column="1"
+											Text="{Binding ArriveText}"
+											FontSize="13"
+											FontFamily="Menlo"
+											HorizontalOptions="End"
+											VerticalOptions="Center"
+											TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+										<Label
+											Grid.Column="2"
+											Text="{Binding DepartText}"
+											FontSize="13"
+											FontAttributes="Bold"
+											FontFamily="Menlo"
+											HorizontalOptions="End"
+											VerticalOptions="Center"
+											TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+										<Border
+											Grid.Column="3"
+											IsVisible="{Binding HasTrackName}"
+											Background="{StaticResource OT_PlatBg}"
+											Padding="5,1"
+											StrokeThickness="0"
+											StrokeShape="RoundRectangle 4"
+											VerticalOptions="Center"
+											HorizontalOptions="End">
+											<Label
+												Text="{Binding TrackName}"
+												FontSize="11"
+												FontAttributes="Bold"
+												TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}"/>
+										</Border>
+									</Grid>
+								</Border>
+							</VerticalStackLayout>
+						</SwipeView>
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+			</CollectionView>
+		</Grid>
 	</Grid>
 </ContentPage>
