@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 
+using TR.Maui.AnchorPopover;
+
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -50,6 +52,11 @@ public partial class OriginalTimetableV1Page : ContentPage
 	public ICommand ClearMarkerCommand { get; }
 	public ICommand OpenMemoCommand { get; }
 	public ICommand ToggleNoteCommand { get; }
+	public ICommand OpenMarkerPopoverFromSwipeCommand { get; }
+
+	// Sheet-edit state. _memoRowId is set when MemoSheetOverlay opens; cleared
+	// on save/cancel/delete. Kept private and synchronous — no INPC needed.
+	string? _memoRowId;
 
 	public OriginalTimetableV1Page()
 	{
@@ -59,6 +66,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 		ClearMarkerCommand = new Command<string>(OnClearMarker);
 		OpenMemoCommand = new Command<string>(OnOpenMemo);
 		ToggleNoteCommand = new Command<string>(OnToggleNote);
+		OpenMarkerPopoverFromSwipeCommand = new Command<string>(OnOpenMarkerPopoverFromSwipe);
 
 		InitializeComponent();
 		BindingContext = _vm;
@@ -248,6 +256,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 			var marker = _vm.GetMarker(train.Id, row.Id);
 			bool hasMemo = !string.IsNullOrWhiteSpace(_vm.GetMemo(train.Id, row.Id));
 			bool hasNote = !string.IsNullOrWhiteSpace(row.Remarks);
+			bool isNoteOpen = hasNote && _vm.IsNoteOpen(train.Id, row.Id);
 
 			var item = new V1RowItem
 			{
@@ -263,6 +272,8 @@ public partial class OriginalTimetableV1Page : ContentPage
 				IsCurrent = isCurrent,
 				IsAlternateRow = isAlt,
 				HasNote = hasNote,
+				NoteText = row.Remarks ?? string.Empty,
+				IsNoteOpen = isNoteOpen,
 				Marker = marker,
 				HasMemo = hasMemo,
 				IsSectionBreakRow = false,
@@ -331,10 +342,11 @@ public partial class OriginalTimetableV1Page : ContentPage
 		_vm.ClearMarker(train.Id, rowId);
 	}
 
-	// Phase 1 placeholder — Phase 2 will surface a MemoSheet here.
 	void OnOpenMemo(string? rowId)
 	{
-		_ = rowId;
+		if (string.IsNullOrEmpty(rowId))
+			return;
+		OpenMemoSheet(rowId);
 	}
 
 	void OnToggleNote(string? rowId)
@@ -343,6 +355,115 @@ public partial class OriginalTimetableV1Page : ContentPage
 		if (train is null || string.IsNullOrEmpty(rowId))
 			return;
 		_vm.ToggleNote(train.Id, rowId);
+	}
+
+	// MarkerPopover wiring -------------------------------------------------
+
+	// SwipeItem "マーカー" entry point. The SwipeItem doesn't yield a View we
+	// can anchor the popover to (it's a MenuItem under the hood), so we
+	// anchor against RootGrid — AnchorPopover falls back to a centered
+	// positioning, matching what users expect when they invoke from a swipe.
+	void OnOpenMarkerPopoverFromSwipe(string? rowId)
+	{
+		if (string.IsNullOrEmpty(rowId))
+			return;
+		OpenMarkerPopover(RootGrid, rowId);
+	}
+
+	// Tap on the visible marker badge inside the row. Uses the badge Border
+	// (sender) as the anchor so the popover positions next to the marker.
+	void OnMarkerBadgeTapped(object? sender, TappedEventArgs e)
+	{
+		if (sender is not Border border)
+			return;
+		if (border.BindingContext is not V1RowItem item)
+			return;
+		OpenMarkerPopover(border, item.Id);
+	}
+
+	async void OpenMarkerPopover(View anchor, string rowId)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || string.IsNullOrEmpty(rowId))
+			return;
+
+		try
+		{
+			var popover = AnchorPopover.Create();
+			var current = _vm.GetMarker(train.Id, rowId);
+			var content = new MarkerPopoverContent();
+			content.Configure(popover, current, kind =>
+			{
+				_vm.SetMarker(train.Id, rowId, kind);
+			});
+
+			var options = new PopoverOptions
+			{
+				PreferredWidth = 240,
+				PreferredHeight = 140,
+				DismissOnTapOutside = true,
+			};
+			await popover.ShowAsync(content, anchor, options);
+		}
+		catch
+		{
+			// Swallow — popover failures shouldn't crash the page. The user
+			// can still cycle/clear via the SwipeView's other items.
+		}
+	}
+
+	// MemoSheet wiring -----------------------------------------------------
+
+	void OpenMemoSheet(string rowId)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		_memoRowId = rowId;
+		MemoEditor.Text = _vm.GetMemo(train.Id, rowId);
+		MemoSheetOverlay.IsVisible = true;
+	}
+
+	void CloseMemoSheet()
+	{
+		MemoSheetOverlay.IsVisible = false;
+		_memoRowId = null;
+	}
+
+	void OnMemoSaveClicked(object? sender, EventArgs e)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || _memoRowId is null)
+		{
+			CloseMemoSheet();
+			return;
+		}
+		_vm.SetMemo(train.Id, _memoRowId, MemoEditor.Text);
+		CloseMemoSheet();
+	}
+
+	void OnMemoDeleteClicked(object? sender, EventArgs e)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || _memoRowId is null)
+		{
+			CloseMemoSheet();
+			return;
+		}
+		_vm.SetMemo(train.Id, _memoRowId, null);
+		CloseMemoSheet();
+	}
+
+	void OnMemoCancelClicked(object? sender, EventArgs e) => CloseMemoSheet();
+
+	void OnMemoSheetScrimTapped(object? sender, TappedEventArgs e) => CloseMemoSheet();
+
+	// Sheet-body taps shouldn't dismiss — swallow the bubbling tap so the
+	// scrim's TapGestureRecognizer doesn't fire when the user taps the
+	// Editor / Buttons area.
+	void OnMemoSheetBodyTapped(object? sender, TappedEventArgs e)
+	{
+		// Intentionally empty — handler presence stops the gesture bubbling.
 	}
 }
 
@@ -364,6 +485,12 @@ public class V1RowItem
 	public bool IsCurrent { get; set; }
 	public bool IsAlternateRow { get; set; }
 	public bool HasNote { get; set; }
+	// Inline note body fields (Phase 2). NoteText is row.Remarks verbatim
+	// (rendered by HtmlAutoDetectLabel — supports BBCode + HTML); IsNoteOpen
+	// is sourced from OriginalTimetableViewModel.IsNoteOpen and drives the
+	// inline Border's IsVisible inside the row template.
+	public string NoteText { get; set; } = string.Empty;
+	public bool IsNoteOpen { get; set; }
 	public MarkerKind Marker { get; set; } = MarkerKind.None;
 	public bool HasMemo { get; set; }
 	public bool IsSectionBreakRow { get; set; }
@@ -391,6 +518,7 @@ public class V1RowItem
 	public string MemoAutomationId => $"{AutomationIdPrefix}{Id}.Memo";
 	public string ClearAutomationId => $"{AutomationIdPrefix}{Id}.Clear";
 	public string MarkerBadgeAutomationId => $"{AutomationIdPrefix}{Id}.MarkerBadge";
+	public string NoteBodyAutomationId => $"{AutomationIdPrefix}{Id}.NoteBody";
 
 	public static V1RowItem SectionBreak(string id, string label) => new()
 	{

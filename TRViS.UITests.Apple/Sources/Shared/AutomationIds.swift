@@ -240,6 +240,28 @@ enum AutomationIds {
             static func memo(_ rowId: String) -> String          { rowPrefix + rowId + ".Memo" }
             static func clear(_ rowId: String) -> String         { rowPrefix + rowId + ".Clear" }
             static func markerBadge(_ rowId: String) -> String   { rowPrefix + rowId + ".MarkerBadge" }
+            // Phase 2 — folded inline note body Border rendered below the
+            // normal row when ToggleNote is on; carries the row's Remarks.
+            static func noteBody(_ rowId: String) -> String      { rowPrefix + rowId + ".NoteBody" }
+
+            // Phase 2 overlay UI — marker chooser popover (AnchorPopover) and
+            // the bottom-sheet memo editor. Both are statically declared in
+            // XAML so AutomationIds are constant, not row-scoped.
+            enum MarkerPopover {
+                static let none    = "OriginalTimetable.V1.MarkerPopover.None"
+                static let flag    = "OriginalTimetable.V1.MarkerPopover.Flag"
+                static let caution = "OriginalTimetable.V1.MarkerPopover.Caution"
+                static let star    = "OriginalTimetable.V1.MarkerPopover.Star"
+            }
+
+            enum MemoSheet {
+                static let root   = "OriginalTimetable.V1.MemoSheet"
+                static let scrim  = "OriginalTimetable.V1.MemoSheet.Scrim"
+                static let editor = "OriginalTimetable.V1.MemoSheet.Editor"
+                static let save   = "OriginalTimetable.V1.MemoSheet.Save"
+                static let delete = "OriginalTimetable.V1.MemoSheet.Delete"
+                static let cancel = "OriginalTimetable.V1.MemoSheet.Cancel"
+            }
 
             // UI_TEST-only seam: invokes OnCycleMarker / OnClearMarker on the
             // first normal (non-section-break) row through the same handlers

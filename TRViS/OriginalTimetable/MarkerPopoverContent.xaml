@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	x:Class="TRViS.OriginalTimetable.MarkerPopoverContent">
+	<Border
+		Padding="12"
+		StrokeThickness="0"
+		StrokeShape="RoundRectangle 8"
+		Background="{StaticResource OT_Bg}">
+		<VerticalStackLayout Spacing="8">
+			<Label
+				Text="マーカー"
+				FontSize="13"
+				FontAttributes="Bold"
+				TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+			<HorizontalStackLayout Spacing="8">
+				<!-- None -->
+				<Border
+					x:Name="NoneBorder"
+					AutomationId="OriginalTimetable.V1.MarkerPopover.None"
+					WidthRequest="44"
+					HeightRequest="44"
+					StrokeThickness="1"
+					Stroke="{StaticResource OT_Rule}"
+					StrokeShape="RoundRectangle 6"
+					Background="{StaticResource OT_BgSoft}">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnNoneTapped"/>
+					</Border.GestureRecognizers>
+					<Label
+						Text="◯"
+						FontSize="18"
+						HorizontalOptions="Center"
+						VerticalOptions="Center"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+				</Border>
+				<!-- Flag -->
+				<Border
+					x:Name="FlagBorder"
+					AutomationId="OriginalTimetable.V1.MarkerPopover.Flag"
+					WidthRequest="44"
+					HeightRequest="44"
+					StrokeThickness="1"
+					Stroke="{StaticResource OT_Rule}"
+					StrokeShape="RoundRectangle 6"
+					Background="{StaticResource OT_MarkerFlagBgBrush}">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnFlagTapped"/>
+					</Border.GestureRecognizers>
+					<Label
+						Text="◆"
+						FontSize="18"
+						FontAttributes="Bold"
+						HorizontalOptions="Center"
+						VerticalOptions="Center"
+						TextColor="{StaticResource OT_MarkerFlagFg}"/>
+				</Border>
+				<!-- Caution -->
+				<Border
+					x:Name="CautionBorder"
+					AutomationId="OriginalTimetable.V1.MarkerPopover.Caution"
+					WidthRequest="44"
+					HeightRequest="44"
+					StrokeThickness="1"
+					Stroke="{StaticResource OT_Rule}"
+					StrokeShape="RoundRectangle 6"
+					Background="{StaticResource OT_MarkerCautionBgBrush}">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnCautionTapped"/>
+					</Border.GestureRecognizers>
+					<Label
+						Text="!"
+						FontSize="18"
+						FontAttributes="Bold"
+						HorizontalOptions="Center"
+						VerticalOptions="Center"
+						TextColor="{StaticResource OT_MarkerCautionFg}"/>
+				</Border>
+				<!-- Star -->
+				<Border
+					x:Name="StarBorder"
+					AutomationId="OriginalTimetable.V1.MarkerPopover.Star"
+					WidthRequest="44"
+					HeightRequest="44"
+					StrokeThickness="1"
+					Stroke="{StaticResource OT_Rule}"
+					StrokeShape="RoundRectangle 6"
+					Background="{StaticResource OT_MarkerStarBgBrush}">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnStarTapped"/>
+					</Border.GestureRecognizers>
+					<Label
+						Text="★"
+						FontSize="18"
+						FontAttributes="Bold"
+						HorizontalOptions="Center"
+						VerticalOptions="Center"
+						TextColor="{StaticResource OT_MarkerStarFg}"/>
+				</Border>
+			</HorizontalStackLayout>
+		</VerticalStackLayout>
+	</Border>
+</ContentView>

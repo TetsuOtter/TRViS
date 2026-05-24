@@ -366,6 +366,31 @@ public static class AutomationIds
 			public static string MemoFor(string rowId) => RowPrefix + rowId + ".Memo";
 			public static string ClearFor(string rowId) => RowPrefix + rowId + ".Clear";
 			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+			// Phase 2 — folded inline note body Border rendered below the
+			// normal row when ToggleNote is on; carries the row's Remarks.
+			public static string NoteBodyFor(string rowId) => RowPrefix + rowId + ".NoteBody";
+
+			// Phase 2 overlay UI — marker chooser popover (AnchorPopover) and
+			// the bottom-sheet memo editor. Both are statically declared in
+			// XAML (popover content + MemoSheetOverlay) so AutomationIds are
+			// constant, not row-scoped.
+			public static class MarkerPopover
+			{
+				public const string None = "OriginalTimetable.V1.MarkerPopover.None";
+				public const string Flag = "OriginalTimetable.V1.MarkerPopover.Flag";
+				public const string Caution = "OriginalTimetable.V1.MarkerPopover.Caution";
+				public const string Star = "OriginalTimetable.V1.MarkerPopover.Star";
+			}
+
+			public static class MemoSheet
+			{
+				public const string Root = "OriginalTimetable.V1.MemoSheet";
+				public const string Scrim = "OriginalTimetable.V1.MemoSheet.Scrim";
+				public const string Editor = "OriginalTimetable.V1.MemoSheet.Editor";
+				public const string Save = "OriginalTimetable.V1.MemoSheet.Save";
+				public const string Delete = "OriginalTimetable.V1.MemoSheet.Delete";
+				public const string Cancel = "OriginalTimetable.V1.MemoSheet.Cancel";
+			}
 
 			// UI_TEST-only seam: SwipeView's SwipeItem doesn't reliably surface
 			// as a tappable Button in XCUITest's accessibility tree (it derives

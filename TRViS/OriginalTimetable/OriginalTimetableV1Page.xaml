@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS.OriginalTimetable"
+	xmlns:controls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.OriginalTimetable.OriginalTimetableV1Page"
 	x:Name="Self"
 	Title="ダイヤ表 (V1)"
@@ -103,7 +104,7 @@
 										AutomationId="{Binding MarkerAutomationId}"
 										Text="マーカー"
 										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
-										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
+										Command="{Binding OpenMarkerPopoverFromSwipeCommand, Source={x:Reference Self}}"
 										CommandParameter="{Binding Id}"/>
 									<SwipeItem
 										AutomationId="{Binding MemoAutomationId}"
@@ -119,7 +120,7 @@
 										CommandParameter="{Binding Id}"/>
 								</SwipeItems>
 							</SwipeView.RightItems>
-							<Grid>
+							<VerticalStackLayout Spacing="0">
 								<!-- Section break row -->
 								<Border
 									IsVisible="{Binding IsSectionBreakRow}"
@@ -194,6 +195,9 @@
 												StrokeShape="RoundRectangle 4"
 												VerticalOptions="Center"
 												Background="{StaticResource OT_Bg}">
+												<Border.GestureRecognizers>
+													<TapGestureRecognizer Tapped="OnMarkerBadgeTapped"/>
+												</Border.GestureRecognizers>
 												<Border.Triggers>
 													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
 														<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
@@ -293,7 +297,22 @@
 											TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
 									</Grid>
 								</Border>
-							</Grid>
+
+								<!-- Inline note body (folded; visible when ToggleNote is on) -->
+								<Border
+									AutomationId="{Binding NoteBodyAutomationId}"
+									IsVisible="{Binding IsNoteOpen}"
+									BackgroundColor="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
+									StrokeThickness="0,1,0,1"
+									Stroke="{StaticResource OT_Rule}"
+									StrokeShape="Rectangle"
+									Padding="14,8">
+									<controls:HtmlAutoDetectLabel
+										Text="{Binding NoteText}"
+										TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
+										FontSize="13"/>
+								</Border>
+							</VerticalStackLayout>
 						</SwipeView>
 					</DataTemplate>
 				</CollectionView.ItemTemplate>
@@ -310,5 +329,63 @@
 			HorizontalOptions="Center"
 			VerticalOptions="Center"
 			TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+
+		<!-- Phase 2 — Memo bottom-sheet overlay. Declared statically as the
+		     last child of RootGrid so it overlays the row list; IsVisible
+		     toggles open/close (no imperative tree mutation, avoiding the
+		     ApplyStyleSheets NRE path that bit the previous V1 implementation). -->
+		<Grid
+			x:Name="MemoSheetOverlay"
+			AutomationId="OriginalTimetable.V1.MemoSheet"
+			IsVisible="False"
+			BackgroundColor="#80000000"
+			InputTransparent="False">
+			<Grid.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnMemoSheetScrimTapped"/>
+			</Grid.GestureRecognizers>
+			<Border
+				AutomationId="OriginalTimetable.V1.MemoSheet.Scrim"
+				VerticalOptions="End"
+				StrokeShape="RoundRectangle 16,16,0,0"
+				Background="{StaticResource OT_Bg}"
+				Padding="20,24"
+				StrokeThickness="0">
+				<Border.GestureRecognizers>
+					<!-- Swallow taps on the sheet itself so they don't dismiss via the scrim -->
+					<TapGestureRecognizer Tapped="OnMemoSheetBodyTapped"/>
+				</Border.GestureRecognizers>
+				<VerticalStackLayout Spacing="12">
+					<Label
+						Text="メモ"
+						FontSize="16"
+						FontAttributes="Bold"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+					<Editor
+						x:Name="MemoEditor"
+						AutomationId="OriginalTimetable.V1.MemoSheet.Editor"
+						AutoSize="TextChanges"
+						MinimumHeightRequest="120"
+						Placeholder="メモを入力..."/>
+					<HorizontalStackLayout Spacing="8" HorizontalOptions="End">
+						<Button
+							AutomationId="OriginalTimetable.V1.MemoSheet.Delete"
+							Text="削除"
+							Clicked="OnMemoDeleteClicked"
+							BackgroundColor="{AppThemeBinding Light={StaticResource OT_WarnBg_Light}, Dark={StaticResource OT_WarnBg_Dark}}"
+							TextColor="{AppThemeBinding Light={StaticResource OT_WarnFg_Light}, Dark={StaticResource OT_WarnFg_Dark}}"/>
+						<Button
+							AutomationId="OriginalTimetable.V1.MemoSheet.Cancel"
+							Text="キャンセル"
+							Clicked="OnMemoCancelClicked"/>
+						<Button
+							AutomationId="OriginalTimetable.V1.MemoSheet.Save"
+							Text="保存"
+							Clicked="OnMemoSaveClicked"
+							BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
+							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+					</HorizontalStackLayout>
+				</VerticalStackLayout>
+			</Border>
+		</Grid>
 	</Grid>
 </ContentPage>
