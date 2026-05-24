@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS.OriginalTimetable"
+	xmlns:controls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.OriginalTimetable.OriginalTimetableV2Page"
 	x:Name="Self"
 	Title="ダイヤ表 (V2)"
@@ -26,7 +27,7 @@
 				StrokeThickness="0,0,0,1"
 				Padding="14,10"
 				StrokeShape="Rectangle">
-				<Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12">
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12">
 					<Border
 						Grid.Column="0"
 						Background="{StaticResource OT_Accent}"
@@ -68,6 +69,23 @@
 							HorizontalOptions="End"
 							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
 					</VerticalStackLayout>
+					<!-- Tweaks panel toggle (Phase 3). Gear icon opens TweaksOverlay -->
+					<Border
+						Grid.Column="4"
+						AutomationId="OriginalTimetable.V2.TweaksButton"
+						Padding="6"
+						StrokeThickness="0"
+						BackgroundColor="Transparent"
+						VerticalOptions="Center">
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Tapped="OnTweaksButtonTapped"/>
+						</Border.GestureRecognizers>
+						<Label
+							Text="&#xE8B8;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="22"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					</Border>
 				</Grid>
 			</Border>
 
@@ -99,7 +117,7 @@
 										AutomationId="{Binding MarkerAutomationId}"
 										Text="マーカー"
 										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
-										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
+										Command="{Binding OpenMarkerPopoverFromSwipeCommand, Source={x:Reference Self}}"
 										CommandParameter="{Binding Id}"/>
 									<SwipeItem
 										AutomationId="{Binding MemoAutomationId}"
@@ -132,10 +150,10 @@
 										TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
 								</Border>
 
-								<!-- Normal card -->
+								<!-- Normal card. Outer Margin observable for density. -->
 								<Border
 									IsVisible="{Binding IsNormalRow}"
-									Margin="8,4"
+									Margin="{Binding TabletCardMargin}"
 									Padding="12"
 									Background="{StaticResource OT_Bg}"
 									Stroke="{StaticResource OT_Rule}"
@@ -148,154 +166,197 @@
 											<Setter Property="StrokeThickness" Value="1.5"/>
 										</DataTrigger>
 									</Border.Triggers>
-									<Grid
-										ColumnDefinitions="70,*,Auto,76"
-										ColumnSpacing="10"
-										RowSpacing="0">
-										<!-- Run minutes -->
-										<VerticalStackLayout Grid.Column="0" VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
-											<Label
-												Text="{Binding RunText}"
-												FontSize="22"
-												FontFamily="Menlo"
-												HorizontalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-											<Label
-												Text="運転"
-												FontSize="10"
-												HorizontalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-										</VerticalStackLayout>
+									<!-- Card body: row Grid + inline NoteFold stacked inside the
+									     outer Border so concentric radii are preserved. -->
+									<VerticalStackLayout Spacing="8">
+										<Grid
+											ColumnDefinitions="70,*,Auto,76"
+											ColumnSpacing="10"
+											RowSpacing="0">
+											<!-- Run minutes -->
+											<VerticalStackLayout Grid.Column="0" VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+												<Label
+													Text="{Binding RunText}"
+													FontSize="22"
+													FontFamily="Menlo"
+													HorizontalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+												<Label
+													Text="運転"
+													FontSize="10"
+													HorizontalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+											</VerticalStackLayout>
 
-										<!-- Station name + badges -->
-										<HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-											<Label
-												Text="{Binding StationName}"
-												FontSize="{Binding TabletStationFontSize}"
-												FontAttributes="Bold"
+											<!-- Station name + badges + memo dot + note toggle -->
+											<HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+												<Label
+													Text="{Binding StationName}"
+													FontSize="{Binding TabletStationFontSize}"
+													FontAttributes="Bold"
+													VerticalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
+													<Label.Triggers>
+														<DataTrigger TargetType="Label" Binding="{Binding IsPass}" Value="True">
+															<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
+															<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+														</DataTrigger>
+													</Label.Triggers>
+												</Label>
+												<!-- Marker badge (tap to open popover) -->
+												<Border
+													AutomationId="{Binding MarkerBadgeAutomationId}"
+													IsVisible="{Binding HasMarker}"
+													Padding="6,1"
+													StrokeThickness="0"
+													StrokeShape="RoundRectangle 4"
+													VerticalOptions="Center"
+													Background="{StaticResource OT_Bg}">
+													<Border.GestureRecognizers>
+														<TapGestureRecognizer Tapped="OnMarkerBadgeTapped"/>
+													</Border.GestureRecognizers>
+													<Border.Triggers>
+														<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
+															<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Border" Binding="{Binding IsMarkerCaution}" Value="True">
+															<Setter Property="Background" Value="{StaticResource OT_MarkerCautionBgBrush}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Border" Binding="{Binding IsMarkerStar}" Value="True">
+															<Setter Property="Background" Value="{StaticResource OT_MarkerStarBgBrush}"/>
+														</DataTrigger>
+													</Border.Triggers>
+													<Label
+														Text="{Binding MarkerText}"
+														FontSize="11"
+														FontAttributes="Bold"
+														TextColor="{StaticResource OT_MarkerFlagFg}">
+														<Label.Triggers>
+															<DataTrigger TargetType="Label" Binding="{Binding IsMarkerCaution}" Value="True">
+																<Setter Property="TextColor" Value="{StaticResource OT_MarkerCautionFg}"/>
+															</DataTrigger>
+															<DataTrigger TargetType="Label" Binding="{Binding IsMarkerStar}" Value="True">
+																<Setter Property="TextColor" Value="{StaticResource OT_MarkerStarFg}"/>
+															</DataTrigger>
+														</Label.Triggers>
+													</Label>
+												</Border>
+												<!-- Memo dot -->
+												<Ellipse
+													IsVisible="{Binding HasMemo}"
+													WidthRequest="8"
+													HeightRequest="8"
+													Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
+													VerticalOptions="Center"/>
+												<!-- Note toggle button -->
+												<Border
+													IsVisible="{Binding HasNote}"
+													WidthRequest="24"
+													HeightRequest="24"
+													StrokeThickness="0.5"
+													Stroke="{StaticResource OT_Rule}"
+													StrokeShape="RoundRectangle 12"
+													Background="{StaticResource OT_BgSoft}"
+													VerticalOptions="Center">
+													<Border.GestureRecognizers>
+														<TapGestureRecognizer
+															Command="{Binding ToggleNoteCommand, Source={x:Reference Self}}"
+															CommandParameter="{Binding Id}"/>
+													</Border.GestureRecognizers>
+													<Label
+														Text="≡"
+														FontSize="14"
+														HorizontalOptions="Center"
+														VerticalOptions="Center"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+												</Border>
+											</HorizontalStackLayout>
+
+											<!-- Arrive / Depart stacked vertically -->
+											<VerticalStackLayout
+												Grid.Column="2"
 												VerticalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
-												<Label.Triggers>
-													<DataTrigger TargetType="Label" Binding="{Binding IsPass}" Value="True">
-														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-													</DataTrigger>
-													<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
-														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
-													</DataTrigger>
-												</Label.Triggers>
-											</Label>
-											<!-- Marker badge -->
+												HorizontalOptions="End"
+												Spacing="2">
+												<HorizontalStackLayout Spacing="6" HorizontalOptions="End">
+													<Label
+														Text="着"
+														FontSize="14"
+														VerticalOptions="Center"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+													<Label
+														Text="{Binding ArriveText}"
+														FontSize="{Binding TabletTimeFontSize}"
+														FontAttributes="Bold"
+														FontFamily="Menlo"
+														HorizontalOptions="End"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+												</HorizontalStackLayout>
+												<HorizontalStackLayout Spacing="6" HorizontalOptions="End">
+													<Label
+														Text="発"
+														FontSize="14"
+														VerticalOptions="Center"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+													<Label
+														Text="{Binding DepartText}"
+														FontSize="{Binding TabletTimeFontSize}"
+														FontAttributes="Bold"
+														FontFamily="Menlo"
+														HorizontalOptions="End"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+												</HorizontalStackLayout>
+											</VerticalStackLayout>
+
+											<!-- Platform tile (inner concentric, 8 vs outer 14) -->
 											<Border
-												AutomationId="{Binding MarkerBadgeAutomationId}"
-												IsVisible="{Binding HasMarker}"
-												Padding="6,1"
+												Grid.Column="3"
+												IsVisible="{Binding HasTrackName}"
+												Background="{StaticResource OT_PlatBg}"
 												StrokeThickness="0"
-												StrokeShape="RoundRectangle 4"
+												StrokeShape="RoundRectangle 8"
+												WidthRequest="{Binding TabletPlatformSize}"
+												HeightRequest="{Binding TabletPlatformSize}"
 												VerticalOptions="Center"
-												Background="{StaticResource OT_Bg}">
+												HorizontalOptions="Center">
 												<Border.Triggers>
-													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
-														<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
-													</DataTrigger>
-													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerCaution}" Value="True">
-														<Setter Property="Background" Value="{StaticResource OT_MarkerCautionBgBrush}"/>
-													</DataTrigger>
-													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerStar}" Value="True">
-														<Setter Property="Background" Value="{StaticResource OT_MarkerStarBgBrush}"/>
+													<DataTrigger TargetType="Border" Binding="{Binding IsCurrent}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_Accent}"/>
 													</DataTrigger>
 												</Border.Triggers>
 												<Label
-													Text="{Binding MarkerText}"
-													FontSize="11"
+													Text="{Binding TrackName}"
+													FontSize="{Binding TabletPlatformFontSize}"
 													FontAttributes="Bold"
-													TextColor="{StaticResource OT_MarkerFlagFg}">
+													FontFamily="Menlo"
+													HorizontalOptions="Center"
+													VerticalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}">
 													<Label.Triggers>
-														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerCaution}" Value="True">
-															<Setter Property="TextColor" Value="{StaticResource OT_MarkerCautionFg}"/>
-														</DataTrigger>
-														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerStar}" Value="True">
-															<Setter Property="TextColor" Value="{StaticResource OT_MarkerStarFg}"/>
+														<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
+															<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
 														</DataTrigger>
 													</Label.Triggers>
 												</Label>
 											</Border>
-											<!-- Memo dot -->
-											<Ellipse
-												IsVisible="{Binding HasMemo}"
-												WidthRequest="8"
-												HeightRequest="8"
-												Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
-												VerticalOptions="Center"/>
-										</HorizontalStackLayout>
+										</Grid>
 
-										<!-- Arrive / Depart stacked vertically -->
-										<VerticalStackLayout
-											Grid.Column="2"
-											VerticalOptions="Center"
-											HorizontalOptions="End"
-											Spacing="2">
-											<HorizontalStackLayout Spacing="6" HorizontalOptions="End">
-												<Label
-													Text="着"
-													FontSize="14"
-													VerticalOptions="Center"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-												<Label
-													Text="{Binding ArriveText}"
-													FontSize="{Binding TabletTimeFontSize}"
-													FontAttributes="Bold"
-													FontFamily="Menlo"
-													HorizontalOptions="End"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-											</HorizontalStackLayout>
-											<HorizontalStackLayout Spacing="6" HorizontalOptions="End">
-												<Label
-													Text="発"
-													FontSize="14"
-													VerticalOptions="Center"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-												<Label
-													Text="{Binding DepartText}"
-													FontSize="{Binding TabletTimeFontSize}"
-													FontAttributes="Bold"
-													FontFamily="Menlo"
-													HorizontalOptions="End"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-											</HorizontalStackLayout>
-										</VerticalStackLayout>
-
-										<!-- Platform tile (inner concentric, 8 vs outer 14) -->
+										<!-- Inline NoteFold inside the card so concentric radii hold. -->
 										<Border
-											Grid.Column="3"
-											IsVisible="{Binding HasTrackName}"
-											Background="{StaticResource OT_PlatBg}"
+											AutomationId="{Binding NoteBodyAutomationId}"
+											IsVisible="{Binding IsNoteOpen}"
+											Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
 											StrokeThickness="0"
 											StrokeShape="RoundRectangle 8"
-											WidthRequest="{Binding TabletPlatformSize}"
-											HeightRequest="{Binding TabletPlatformSize}"
-											VerticalOptions="Center"
-											HorizontalOptions="Center">
-											<Border.Triggers>
-												<DataTrigger TargetType="Border" Binding="{Binding IsCurrent}" Value="True">
-													<Setter Property="Background" Value="{StaticResource OT_Accent}"/>
-												</DataTrigger>
-											</Border.Triggers>
-											<Label
-												Text="{Binding TrackName}"
-												FontSize="{Binding TabletPlatformFontSize}"
-												FontAttributes="Bold"
-												FontFamily="Menlo"
-												HorizontalOptions="Center"
-												VerticalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}">
-												<Label.Triggers>
-													<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
-														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
-													</DataTrigger>
-												</Label.Triggers>
-											</Label>
+											Padding="10,6">
+											<controls:HtmlAutoDetectLabel
+												Text="{Binding NoteText}"
+												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
+												FontSize="13"/>
 										</Border>
-									</Grid>
+									</VerticalStackLayout>
 								</Border>
 							</VerticalStackLayout>
 						</SwipeView>
@@ -320,7 +381,7 @@
 				StrokeThickness="0,0,0,1"
 				Padding="12,8"
 				StrokeShape="Rectangle">
-				<Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
 					<Border
 						Grid.Column="0"
 						Background="{StaticResource OT_Accent}"
@@ -350,6 +411,22 @@
 						VerticalOptions="Center"
 						LineBreakMode="TailTruncation"
 						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					<!-- Tweaks panel toggle (compact). Same handler as tablet gear. -->
+					<Border
+						Grid.Column="3"
+						Padding="6"
+						StrokeThickness="0"
+						BackgroundColor="Transparent"
+						VerticalOptions="Center">
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Tapped="OnTweaksButtonTapped"/>
+						</Border.GestureRecognizers>
+						<Label
+							Text="&#xE8B8;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="20"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					</Border>
 				</Grid>
 			</Border>
 
@@ -381,7 +458,7 @@
 										AutomationId="{Binding MarkerAutomationId}"
 										Text="マーカー"
 										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
-										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
+										Command="{Binding OpenMarkerPopoverFromSwipeCommand, Source={x:Reference Self}}"
 										CommandParameter="{Binding Id}"/>
 									<SwipeItem
 										AutomationId="{Binding MemoAutomationId}"
@@ -414,10 +491,10 @@
 										TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
 								</Border>
 
-								<!-- Normal card (compact) -->
+								<!-- Normal card (compact). Outer Margin observable. -->
 								<Border
 									IsVisible="{Binding IsNormalRow}"
-									Margin="6,3"
+									Margin="{Binding CompactCardMargin}"
 									Padding="10"
 									Background="{StaticResource OT_Bg}"
 									Stroke="{StaticResource OT_Rule}"
@@ -430,154 +507,357 @@
 											<Setter Property="StrokeThickness" Value="1.5"/>
 										</DataTrigger>
 									</Border.Triggers>
-									<Grid
-										ColumnDefinitions="60,*,Auto,64"
-										ColumnSpacing="8"
-										RowSpacing="0">
-										<VerticalStackLayout Grid.Column="0" VerticalOptions="Center" HorizontalOptions="Center" Spacing="1">
-											<Label
-												Text="{Binding RunText}"
-												FontSize="14"
-												FontFamily="Menlo"
-												HorizontalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-											<Label
-												Text="運転"
-												FontSize="9"
-												HorizontalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-										</VerticalStackLayout>
+									<VerticalStackLayout Spacing="6">
+										<Grid
+											ColumnDefinitions="60,*,Auto,64"
+											ColumnSpacing="8"
+											RowSpacing="0">
+											<VerticalStackLayout Grid.Column="0" VerticalOptions="Center" HorizontalOptions="Center" Spacing="1">
+												<Label
+													Text="{Binding RunText}"
+													FontSize="14"
+													FontFamily="Menlo"
+													HorizontalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+												<Label
+													Text="運転"
+													FontSize="9"
+													HorizontalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+											</VerticalStackLayout>
 
-										<HorizontalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Center">
-											<Label
-												Text="{Binding StationName}"
-												FontSize="{Binding CompactStationFontSize}"
-												FontAttributes="Bold"
+											<HorizontalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Center">
+												<Label
+													Text="{Binding StationName}"
+													FontSize="{Binding CompactStationFontSize}"
+													FontAttributes="Bold"
+													VerticalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
+													<Label.Triggers>
+														<DataTrigger TargetType="Label" Binding="{Binding IsPass}" Value="True">
+															<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
+															<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+														</DataTrigger>
+													</Label.Triggers>
+												</Label>
+												<Border
+													AutomationId="{Binding MarkerBadgeAutomationId}"
+													IsVisible="{Binding HasMarker}"
+													Padding="5,1"
+													StrokeThickness="0"
+													StrokeShape="RoundRectangle 4"
+													VerticalOptions="Center"
+													Background="{StaticResource OT_Bg}">
+													<Border.GestureRecognizers>
+														<TapGestureRecognizer Tapped="OnMarkerBadgeTapped"/>
+													</Border.GestureRecognizers>
+													<Border.Triggers>
+														<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
+															<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Border" Binding="{Binding IsMarkerCaution}" Value="True">
+															<Setter Property="Background" Value="{StaticResource OT_MarkerCautionBgBrush}"/>
+														</DataTrigger>
+														<DataTrigger TargetType="Border" Binding="{Binding IsMarkerStar}" Value="True">
+															<Setter Property="Background" Value="{StaticResource OT_MarkerStarBgBrush}"/>
+														</DataTrigger>
+													</Border.Triggers>
+													<Label
+														Text="{Binding MarkerText}"
+														FontSize="10"
+														FontAttributes="Bold"
+														TextColor="{StaticResource OT_MarkerFlagFg}">
+														<Label.Triggers>
+															<DataTrigger TargetType="Label" Binding="{Binding IsMarkerCaution}" Value="True">
+																<Setter Property="TextColor" Value="{StaticResource OT_MarkerCautionFg}"/>
+															</DataTrigger>
+															<DataTrigger TargetType="Label" Binding="{Binding IsMarkerStar}" Value="True">
+																<Setter Property="TextColor" Value="{StaticResource OT_MarkerStarFg}"/>
+															</DataTrigger>
+														</Label.Triggers>
+													</Label>
+												</Border>
+												<Ellipse
+													IsVisible="{Binding HasMemo}"
+													WidthRequest="7"
+													HeightRequest="7"
+													Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
+													VerticalOptions="Center"/>
+												<!-- Note toggle button -->
+												<Border
+													IsVisible="{Binding HasNote}"
+													WidthRequest="22"
+													HeightRequest="22"
+													StrokeThickness="0.5"
+													Stroke="{StaticResource OT_Rule}"
+													StrokeShape="RoundRectangle 11"
+													Background="{StaticResource OT_BgSoft}"
+													VerticalOptions="Center">
+													<Border.GestureRecognizers>
+														<TapGestureRecognizer
+															Command="{Binding ToggleNoteCommand, Source={x:Reference Self}}"
+															CommandParameter="{Binding Id}"/>
+													</Border.GestureRecognizers>
+													<Label
+														Text="≡"
+														FontSize="12"
+														HorizontalOptions="Center"
+														VerticalOptions="Center"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+												</Border>
+											</HorizontalStackLayout>
+
+											<VerticalStackLayout
+												Grid.Column="2"
 												VerticalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
-												<Label.Triggers>
-													<DataTrigger TargetType="Label" Binding="{Binding IsPass}" Value="True">
-														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-													</DataTrigger>
-													<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
-														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
-													</DataTrigger>
-												</Label.Triggers>
-											</Label>
+												HorizontalOptions="End"
+												Spacing="1">
+												<HorizontalStackLayout Spacing="4" HorizontalOptions="End">
+													<Label
+														Text="着"
+														FontSize="10"
+														VerticalOptions="Center"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+													<Label
+														Text="{Binding ArriveText}"
+														FontSize="{Binding CompactTimeFontSize}"
+														FontAttributes="Bold"
+														FontFamily="Menlo"
+														HorizontalOptions="End"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+												</HorizontalStackLayout>
+												<HorizontalStackLayout Spacing="4" HorizontalOptions="End">
+													<Label
+														Text="発"
+														FontSize="10"
+														VerticalOptions="Center"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+													<Label
+														Text="{Binding DepartText}"
+														FontSize="{Binding CompactTimeFontSize}"
+														FontAttributes="Bold"
+														FontFamily="Menlo"
+														HorizontalOptions="End"
+														TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+												</HorizontalStackLayout>
+											</VerticalStackLayout>
+
 											<Border
-												AutomationId="{Binding MarkerBadgeAutomationId}"
-												IsVisible="{Binding HasMarker}"
-												Padding="5,1"
+												Grid.Column="3"
+												IsVisible="{Binding HasTrackName}"
+												Background="{StaticResource OT_PlatBg}"
 												StrokeThickness="0"
-												StrokeShape="RoundRectangle 4"
+												StrokeShape="RoundRectangle 8"
+												WidthRequest="{Binding CompactPlatformSize}"
+												HeightRequest="{Binding CompactPlatformSize}"
 												VerticalOptions="Center"
-												Background="{StaticResource OT_Bg}">
+												HorizontalOptions="Center">
 												<Border.Triggers>
-													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
-														<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
-													</DataTrigger>
-													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerCaution}" Value="True">
-														<Setter Property="Background" Value="{StaticResource OT_MarkerCautionBgBrush}"/>
-													</DataTrigger>
-													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerStar}" Value="True">
-														<Setter Property="Background" Value="{StaticResource OT_MarkerStarBgBrush}"/>
+													<DataTrigger TargetType="Border" Binding="{Binding IsCurrent}" Value="True">
+														<Setter Property="Background" Value="{StaticResource OT_Accent}"/>
 													</DataTrigger>
 												</Border.Triggers>
 												<Label
-													Text="{Binding MarkerText}"
-													FontSize="10"
+													Text="{Binding TrackName}"
+													FontSize="{Binding CompactPlatformFontSize}"
 													FontAttributes="Bold"
-													TextColor="{StaticResource OT_MarkerFlagFg}">
+													FontFamily="Menlo"
+													HorizontalOptions="Center"
+													VerticalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}">
 													<Label.Triggers>
-														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerCaution}" Value="True">
-															<Setter Property="TextColor" Value="{StaticResource OT_MarkerCautionFg}"/>
-														</DataTrigger>
-														<DataTrigger TargetType="Label" Binding="{Binding IsMarkerStar}" Value="True">
-															<Setter Property="TextColor" Value="{StaticResource OT_MarkerStarFg}"/>
+														<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
+															<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
 														</DataTrigger>
 													</Label.Triggers>
 												</Label>
 											</Border>
-											<Ellipse
-												IsVisible="{Binding HasMemo}"
-												WidthRequest="7"
-												HeightRequest="7"
-												Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
-												VerticalOptions="Center"/>
-										</HorizontalStackLayout>
+										</Grid>
 
-										<VerticalStackLayout
-											Grid.Column="2"
-											VerticalOptions="Center"
-											HorizontalOptions="End"
-											Spacing="1">
-											<HorizontalStackLayout Spacing="4" HorizontalOptions="End">
-												<Label
-													Text="着"
-													FontSize="10"
-													VerticalOptions="Center"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-												<Label
-													Text="{Binding ArriveText}"
-													FontSize="{Binding CompactTimeFontSize}"
-													FontAttributes="Bold"
-													FontFamily="Menlo"
-													HorizontalOptions="End"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-											</HorizontalStackLayout>
-											<HorizontalStackLayout Spacing="4" HorizontalOptions="End">
-												<Label
-													Text="発"
-													FontSize="10"
-													VerticalOptions="Center"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-												<Label
-													Text="{Binding DepartText}"
-													FontSize="{Binding CompactTimeFontSize}"
-													FontAttributes="Bold"
-													FontFamily="Menlo"
-													HorizontalOptions="End"
-													TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-											</HorizontalStackLayout>
-										</VerticalStackLayout>
-
+										<!-- Inline NoteFold (compact) -->
 										<Border
-											Grid.Column="3"
-											IsVisible="{Binding HasTrackName}"
-											Background="{StaticResource OT_PlatBg}"
+											AutomationId="{Binding NoteBodyAutomationId}"
+											IsVisible="{Binding IsNoteOpen}"
+											Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
 											StrokeThickness="0"
-											StrokeShape="RoundRectangle 8"
-											WidthRequest="{Binding CompactPlatformSize}"
-											HeightRequest="{Binding CompactPlatformSize}"
-											VerticalOptions="Center"
-											HorizontalOptions="Center">
-											<Border.Triggers>
-												<DataTrigger TargetType="Border" Binding="{Binding IsCurrent}" Value="True">
-													<Setter Property="Background" Value="{StaticResource OT_Accent}"/>
-												</DataTrigger>
-											</Border.Triggers>
-											<Label
-												Text="{Binding TrackName}"
-												FontSize="{Binding CompactPlatformFontSize}"
-												FontAttributes="Bold"
-												FontFamily="Menlo"
-												HorizontalOptions="Center"
-												VerticalOptions="Center"
-												TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}">
-												<Label.Triggers>
-													<DataTrigger TargetType="Label" Binding="{Binding IsCurrent}" Value="True">
-														<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
-													</DataTrigger>
-												</Label.Triggers>
-											</Label>
+											StrokeShape="RoundRectangle 6"
+											Padding="8,5">
+											<controls:HtmlAutoDetectLabel
+												Text="{Binding NoteText}"
+												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
+												FontSize="12"/>
 										</Border>
-									</Grid>
+									</VerticalStackLayout>
 								</Border>
 							</VerticalStackLayout>
 						</SwipeView>
 					</DataTemplate>
 				</CollectionView.ItemTemplate>
 			</CollectionView>
+		</Grid>
+
+		<!-- Phase 2 — Memo bottom-sheet overlay. Sibling of TabletGrid /
+		     CompactGrid so it overlays both layouts. IsVisible toggles open. -->
+		<Grid
+			x:Name="MemoSheetOverlay"
+			AutomationId="OriginalTimetable.V2.MemoSheet"
+			IsVisible="False"
+			BackgroundColor="#80000000"
+			InputTransparent="False">
+			<Grid.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnMemoSheetScrimTapped"/>
+			</Grid.GestureRecognizers>
+			<Border
+				AutomationId="OriginalTimetable.V2.MemoSheet.Scrim"
+				VerticalOptions="End"
+				StrokeShape="RoundRectangle 16,16,0,0"
+				Background="{StaticResource OT_Bg}"
+				Padding="20,24"
+				StrokeThickness="0">
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnMemoSheetBodyTapped"/>
+				</Border.GestureRecognizers>
+				<VerticalStackLayout Spacing="12">
+					<Label
+						Text="メモ"
+						FontSize="16"
+						FontAttributes="Bold"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+					<Editor
+						x:Name="MemoEditor"
+						AutomationId="OriginalTimetable.V2.MemoSheet.Editor"
+						AutoSize="TextChanges"
+						MinimumHeightRequest="120"
+						Placeholder="メモを入力..."/>
+					<HorizontalStackLayout Spacing="8" HorizontalOptions="End">
+						<Button
+							AutomationId="OriginalTimetable.V2.MemoSheet.Delete"
+							Text="削除"
+							Clicked="OnMemoDeleteClicked"
+							BackgroundColor="{AppThemeBinding Light={StaticResource OT_WarnBg_Light}, Dark={StaticResource OT_WarnBg_Dark}}"
+							TextColor="{AppThemeBinding Light={StaticResource OT_WarnFg_Light}, Dark={StaticResource OT_WarnFg_Dark}}"/>
+						<Button
+							AutomationId="OriginalTimetable.V2.MemoSheet.Cancel"
+							Text="キャンセル"
+							Clicked="OnMemoCancelClicked"/>
+						<Button
+							AutomationId="OriginalTimetable.V2.MemoSheet.Save"
+							Text="保存"
+							Clicked="OnMemoSaveClicked"
+							BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
+							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+					</HorizontalStackLayout>
+				</VerticalStackLayout>
+			</Border>
+		</Grid>
+
+		<!-- Phase 3 — Tweaks panel overlay. -->
+		<Grid
+			x:Name="TweaksOverlay"
+			AutomationId="OriginalTimetable.V2.Tweaks.Overlay"
+			IsVisible="False"
+			BackgroundColor="#80000000"
+			InputTransparent="False">
+			<Grid.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnTweaksScrimTapped"/>
+			</Grid.GestureRecognizers>
+			<Border
+				AutomationId="OriginalTimetable.V2.Tweaks.Scrim"
+				HorizontalOptions="End"
+				VerticalOptions="Start"
+				Margin="0,60,16,0"
+				StrokeShape="RoundRectangle 12"
+				Background="{StaticResource OT_Bg}"
+				Stroke="{StaticResource OT_Rule}"
+				StrokeThickness="1"
+				Padding="14,12"
+				WidthRequest="240">
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnTweaksBodyTapped"/>
+				</Border.GestureRecognizers>
+				<VerticalStackLayout Spacing="14">
+					<Label
+						AutomationId="OriginalTimetable.V2.Tweaks.Title"
+						Text="表示設定"
+						FontSize="13"
+						FontAttributes="Bold"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+
+					<!-- ShowPasses toggle -->
+					<Grid ColumnDefinitions="*,Auto">
+						<Label
+							Grid.Column="0"
+							Text="通過駅を表示"
+							FontSize="13"
+							VerticalOptions="Center"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+						<Switch
+							Grid.Column="1"
+							AutomationId="OriginalTimetable.V2.Tweaks.ShowPasses"
+							IsToggled="{Binding ShowPasses, Mode=TwoWay}"/>
+					</Grid>
+
+					<!-- Density tri-state segmented -->
+					<VerticalStackLayout Spacing="4">
+						<Label
+							Text="行間"
+							FontSize="12"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<HorizontalStackLayout Spacing="6">
+							<Border
+								x:Name="DensityCompact"
+								AutomationId="OriginalTimetable.V2.Tweaks.Density.Compact"
+								StrokeShape="RoundRectangle 6"
+								StrokeThickness="0"
+								Padding="10,4"
+								Background="{StaticResource OT_BgSoft}">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnDensityCompactTapped"/>
+								</Border.GestureRecognizers>
+								<Label
+									x:Name="DensityCompactLabel"
+									Text="狭"
+									FontSize="12"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</Border>
+							<Border
+								x:Name="DensityComfortable"
+								AutomationId="OriginalTimetable.V2.Tweaks.Density.Comfortable"
+								StrokeShape="RoundRectangle 6"
+								StrokeThickness="0"
+								Padding="10,4"
+								Background="{StaticResource OT_BgSoft}">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnDensityComfortableTapped"/>
+								</Border.GestureRecognizers>
+								<Label
+									x:Name="DensityComfortableLabel"
+									Text="標準"
+									FontSize="12"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</Border>
+							<Border
+								x:Name="DensitySpacious"
+								AutomationId="OriginalTimetable.V2.Tweaks.Density.Spacious"
+								StrokeShape="RoundRectangle 6"
+								StrokeThickness="0"
+								Padding="10,4"
+								Background="{StaticResource OT_BgSoft}">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnDensitySpaciousTapped"/>
+								</Border.GestureRecognizers>
+								<Label
+									x:Name="DensitySpaciousLabel"
+									Text="広"
+									FontSize="12"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</Border>
+						</HorizontalStackLayout>
+					</VerticalStackLayout>
+				</VerticalStackLayout>
+			</Border>
 		</Grid>
 	</Grid>
 </ContentPage>

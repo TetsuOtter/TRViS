@@ -4,26 +4,36 @@ using System.Windows.Input;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using TR.Maui.AnchorPopover;
+
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
 
 namespace TRViS.OriginalTimetable;
 
-// V2 Card Stack — 独自時刻表ページ骨格 (Phase 1: tablet + compact).
+// V2 Card Stack — 独自時刻表ページ骨格 (Phase 1 + Phase 2 + Phase 3).
 //
-// Mirrors the V1 Phase 1 pattern (CollectionView + DataTemplate + SwipeView,
-// in-place ObservableObject mutation, IsVisible-toggled tablet/compact grids)
-// because that path was empirically verified to avoid the iPad
-// Microsoft.Maui.Controls.Element.ApplyStyleSheets NRE that bit earlier
-// imperative-tree V1 work. The card visual changes (rounded outer Border,
-// concentric inner platform tile, accent-soft background + 1.5px accent
-// border for current, vertically-stacked 着/発 with 40pt/22pt mono numerals)
-// are all expressed inside the DataTemplate — no custom controls Add'd.
+// Phase 1 (commit 30ab47f): card visual (rounded outer Border, concentric
+// inner platform tile, accent-soft background + 1.5px accent border for
+// current, vertically-stacked 着/発 with mono numerals, IsCurrent-flipped
+// metrics), tablet + compact split, real-data row mapping, sticky header,
+// section-break rows, marker badges, memo dots, SwipeItem CycleMarker/
+// ClearMarker commands.
 //
-// Phase 2 (MarkerPopover anchored to badge, MemoSheet overlay, note-fold
-// body) and Phase 3 (Density/Follow/Tweaks panel) land in subsequent tasks;
-// OpenMemoCommand here is a no-op so the SwipeItem keeps a valid binding.
+// Phase 2 (this commit): MarkerPopover anchored to badge / opened from swipe
+// (reuses MarkerPopoverContent verbatim), MemoSheet overlay (bottom-sheet),
+// inline NoteFold (Border placed *inside* the card outer Border so concentric
+// radii are preserved — V2 difference from V1, which puts the note as a
+// sibling underneath the row Border).
+//
+// Phase 3 (this commit): Tweaks panel (gear icon → overlay) with ShowPasses
+// Switch + Density tri-state (狭/標準/広); Density-driven scaling applied to
+// every per-card metric (platform size + font, time font, station font) via
+// ApplyCurrentAndDensityScaledMetrics, plus the card outer Margin
+// (TabletCardMargin / CompactCardMargin) — so density visibly reflows the
+// card stack without an Items.Clear+Add (scroll preserved); auto-follow to
+// the current card on CurIdxVersion changes when vm.Follow.
 public partial class OriginalTimetableV2Page : ContentPage
 {
 	public static readonly string NameOfThisClass = nameof(OriginalTimetableV2Page);
@@ -47,10 +57,16 @@ public partial class OriginalTimetableV2Page : ContentPage
 	public bool HasActiveTrain { get; private set; }
 	public bool HasNoActiveTrain => !HasActiveTrain;
 
-	// SwipeItem commands invoked from inside the DataTemplate.
+	// SwipeItem / inline commands invoked from inside the DataTemplate.
 	public ICommand CycleMarkerCommand { get; }
 	public ICommand ClearMarkerCommand { get; }
 	public ICommand OpenMemoCommand { get; }
+	public ICommand ToggleNoteCommand { get; }
+	public ICommand OpenMarkerPopoverFromSwipeCommand { get; }
+
+	// Sheet-edit state. _memoRowId is set when MemoSheetOverlay opens;
+	// cleared on save/cancel/delete. Kept private and synchronous.
+	string? _memoRowId;
 
 	public OriginalTimetableV2Page()
 	{
@@ -58,9 +74,9 @@ public partial class OriginalTimetableV2Page : ContentPage
 
 		CycleMarkerCommand = new Command<string>(OnCycleMarker);
 		ClearMarkerCommand = new Command<string>(OnClearMarker);
-		// Phase 1 — メモ SwipeItem keeps a valid binding but does nothing.
-		// MemoSheet overlay lands in Phase 2.
-		OpenMemoCommand = new Command<string>(_ => { });
+		OpenMemoCommand = new Command<string>(OnOpenMemo);
+		ToggleNoteCommand = new Command<string>(OnToggleNote);
+		OpenMarkerPopoverFromSwipeCommand = new Command<string>(OnOpenMarkerPopoverFromSwipe);
 
 		InitializeComponent();
 		BindingContext = _vm;
@@ -73,6 +89,7 @@ public partial class OriginalTimetableV2Page : ContentPage
 		_vm.PropertyChanged += OnVmPropertyChanged;
 		ApplyLayoutForWidth(Width);
 		RebuildItems();
+		UpdateDensityHighlight();
 	}
 
 	protected override void OnDisappearing()
@@ -86,18 +103,31 @@ public partial class OriginalTimetableV2Page : ContentPage
 	{
 		switch (e.PropertyName)
 		{
+			// ActiveTrain / ShowPasses change the *visible row set*, so a
+			// full Items rebuild is required (scroll reset acceptable).
 			case nameof(OriginalTimetableViewModel.ActiveTrain):
 			case nameof(OriginalTimetableViewModel.ShowPasses):
 				RebuildItems();
 				break;
+			// Partial in-place updates — V2RowItem is an ObservableObject so
+			// mutating props refreshes bound visuals without touching Items,
+			// preserving CollectionView scroll position.
 			case nameof(OriginalTimetableViewModel.MarkersVersion):
 				UpdateMarkersInPlace();
 				break;
 			case nameof(OriginalTimetableViewModel.MemosVersion):
 				UpdateMemosInPlace();
 				break;
+			case nameof(OriginalTimetableViewModel.NoteOpenVersion):
+				UpdateNoteOpenInPlace();
+				break;
 			case nameof(OriginalTimetableViewModel.CurIdxVersion):
 				UpdateCurrentInPlace();
+				AutoFollowScroll();
+				break;
+			case nameof(OriginalTimetableViewModel.Density):
+				UpdateDensityInPlace();
+				UpdateDensityHighlight();
 				break;
 		}
 	}
@@ -130,6 +160,19 @@ public partial class OriginalTimetableV2Page : ContentPage
 		}
 	}
 
+	void UpdateNoteOpenInPlace()
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			item.IsNoteOpen = item.HasNote && _vm.IsNoteOpen(train.Id, item.Id);
+		}
+	}
+
 	void UpdateCurrentInPlace()
 	{
 		var train = _vm.ActiveTrain;
@@ -144,37 +187,108 @@ public partial class OriginalTimetableV2Page : ContentPage
 			if (item.IsCurrent != nowCurrent)
 			{
 				item.IsCurrent = nowCurrent;
-				ApplyCurrentScaledMetrics(item);
+				ApplyCurrentAndDensityScaledMetrics(item, _vm.Density);
 			}
 		}
 	}
 
-	// Tablet/compact "current emphasis" metrics. Mirrors v2.jsx: current
-	// station gets a larger platform tile (70/52pt vs 56/44) and 40pt arrive/
-	// depart numerals (vs 24pt). Station/font for the name itself bumps too.
-	static void ApplyCurrentScaledMetrics(V2RowItem item)
+	void UpdateDensityInPlace()
 	{
+		var d = _vm.Density;
+		foreach (var item in Items)
+		{
+			if (item.IsSectionBreakRow)
+				continue;
+			ApplyCurrentAndDensityScaledMetrics(item, d);
+		}
+	}
+
+	// state.jsx densityScale: compact=0.82, comfortable=1.0, spacious=1.12.
+	static double DensityScale(Density d) => d switch
+	{
+		Density.Compact => 0.82,
+		Density.Spacious => 1.12,
+		_ => 1.0,
+	};
+
+	// Card outer Margin per density. V2 cards are floating tiles, so margin
+	// is the breathing-room equivalent (vs V1's in-row padding).
+	static (Thickness tablet, Thickness compact) DensityMargins(Density d) => d switch
+	{
+		Density.Compact => (new Thickness(4, 2), new Thickness(4, 2)),
+		Density.Spacious => (new Thickness(12, 6), new Thickness(10, 5)),
+		_ => (new Thickness(8, 4), new Thickness(6, 3)),
+	};
+
+	// Combined "current emphasis" + density scaling. Phase 1 only had IsCurrent
+	// flip; Phase 3 multiplies every base value by the density scale and also
+	// writes the card outer Margin (which V1 doesn't have because its cards
+	// aren't floating tiles).
+	static void ApplyCurrentAndDensityScaledMetrics(V2RowItem item, Density density)
+	{
+		double s = DensityScale(density);
+		double R(double v) => Math.Round(v * s, 1);
+		double RI(double v) => Math.Round(v * s);
+
 		if (item.IsCurrent)
 		{
-			item.TabletPlatformSize = 70;
-			item.TabletPlatformFontSize = 32;
-			item.TabletTimeFontSize = 32;
-			item.TabletStationFontSize = 28;
-			item.CompactPlatformSize = 52;
-			item.CompactPlatformFontSize = 22;
-			item.CompactTimeFontSize = 22;
-			item.CompactStationFontSize = 22;
+			item.TabletPlatformSize = RI(70);
+			item.TabletPlatformFontSize = R(32);
+			item.TabletTimeFontSize = R(32);
+			item.TabletStationFontSize = R(28);
+			item.CompactPlatformSize = RI(52);
+			item.CompactPlatformFontSize = R(22);
+			item.CompactTimeFontSize = R(22);
+			item.CompactStationFontSize = R(22);
 		}
 		else
 		{
-			item.TabletPlatformSize = 56;
-			item.TabletPlatformFontSize = 22;
-			item.TabletTimeFontSize = 22;
-			item.TabletStationFontSize = 22;
-			item.CompactPlatformSize = 44;
-			item.CompactPlatformFontSize = 16;
-			item.CompactTimeFontSize = 14;
-			item.CompactStationFontSize = 16;
+			item.TabletPlatformSize = RI(56);
+			item.TabletPlatformFontSize = R(22);
+			item.TabletTimeFontSize = R(22);
+			item.TabletStationFontSize = R(22);
+			item.CompactPlatformSize = RI(44);
+			item.CompactPlatformFontSize = R(16);
+			item.CompactTimeFontSize = R(14);
+			item.CompactStationFontSize = R(16);
+		}
+
+		var (tabletMargin, compactMargin) = DensityMargins(density);
+		item.TabletCardMargin = tabletMargin;
+		item.CompactCardMargin = compactMargin;
+	}
+
+	// Auto-follow: when Follow=true, scroll the visible CollectionView to
+	// the current-station card (center). Called after the CurIdxVersion
+	// in-place pass has flipped IsCurrent on each row.
+	void AutoFollowScroll()
+	{
+		if (!_vm.Follow)
+			return;
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
+		V2RowItem? curItem = null;
+		foreach (var i in Items)
+		{
+			if (!i.IsSectionBreakRow && i.OrigIndex == curOrigIdx)
+			{
+				curItem = i;
+				break;
+			}
+		}
+		if (curItem is null)
+			return;
+		var cv = TabletGrid.IsVisible ? TabletRowsList : CompactRowsList;
+		try
+		{
+			cv.ScrollTo(curItem, position: ScrollToPosition.Center, animate: true);
+		}
+		catch
+		{
+			// CollectionView.ScrollTo can throw on certain platforms when
+			// the list hasn't measured yet — swallow rather than crash.
 		}
 	}
 
@@ -232,6 +346,7 @@ public partial class OriginalTimetableV2Page : ContentPage
 		}
 
 		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
+		var density = _vm.Density;
 
 		TimetableRow? prev = null;
 		foreach (var (origIdx, row) in visibleRows)
@@ -249,6 +364,7 @@ public partial class OriginalTimetableV2Page : ContentPage
 			var marker = _vm.GetMarker(train.Id, row.Id);
 			bool hasMemo = !string.IsNullOrWhiteSpace(_vm.GetMemo(train.Id, row.Id));
 			bool hasNote = !string.IsNullOrWhiteSpace(row.Remarks);
+			bool isNoteOpen = hasNote && _vm.IsNoteOpen(train.Id, row.Id);
 
 			var item = new V2RowItem
 			{
@@ -262,6 +378,7 @@ public partial class OriginalTimetableV2Page : ContentPage
 				IsPass = row.IsPass,
 				IsCurrent = isCurrent,
 				HasNote = hasNote,
+				IsNoteOpen = isNoteOpen,
 				NoteText = row.Remarks ?? string.Empty,
 				Marker = marker,
 				HasMemo = hasMemo,
@@ -269,7 +386,7 @@ public partial class OriginalTimetableV2Page : ContentPage
 				SectionBreakLabel = string.Empty,
 			};
 			ApplyDerivedStyling(item);
-			ApplyCurrentScaledMetrics(item);
+			ApplyCurrentAndDensityScaledMetrics(item, density);
 			Items.Add(item);
 
 			prev = row;
@@ -328,20 +445,188 @@ public partial class OriginalTimetableV2Page : ContentPage
 			return;
 		_vm.ClearMarker(train.Id, rowId);
 	}
+
+	void OnOpenMemo(string? rowId)
+	{
+		if (string.IsNullOrEmpty(rowId))
+			return;
+		OpenMemoSheet(rowId);
+	}
+
+	void OnToggleNote(string? rowId)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || string.IsNullOrEmpty(rowId))
+			return;
+		_vm.ToggleNote(train.Id, rowId);
+	}
+
+	// MarkerPopover wiring -------------------------------------------------
+
+	// SwipeItem entry — SwipeItem isn't an anchor-eligible View, so we
+	// anchor against RootGrid (AnchorPopover falls back to centered).
+	void OnOpenMarkerPopoverFromSwipe(string? rowId)
+	{
+		if (string.IsNullOrEmpty(rowId))
+			return;
+		OpenMarkerPopover(RootGrid, rowId);
+	}
+
+	// Tap on the visible marker badge inside the card.
+	void OnMarkerBadgeTapped(object? sender, TappedEventArgs e)
+	{
+		if (sender is not Border border)
+			return;
+		if (border.BindingContext is not V2RowItem item)
+			return;
+		OpenMarkerPopover(border, item.Id);
+	}
+
+	async void OpenMarkerPopover(View anchor, string rowId)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || string.IsNullOrEmpty(rowId))
+			return;
+
+		try
+		{
+			var popover = AnchorPopover.Create();
+			var current = _vm.GetMarker(train.Id, rowId);
+			var content = new MarkerPopoverContent();
+			content.Configure(popover, current, kind =>
+			{
+				_vm.SetMarker(train.Id, rowId, kind);
+			});
+
+			var options = new PopoverOptions
+			{
+				PreferredWidth = 240,
+				PreferredHeight = 140,
+				DismissOnTapOutside = true,
+			};
+			await popover.ShowAsync(content, anchor, options);
+		}
+		catch
+		{
+			// Swallow — popover failures shouldn't crash the page.
+		}
+	}
+
+	// MemoSheet wiring -----------------------------------------------------
+
+	void OpenMemoSheet(string rowId)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null)
+			return;
+		_memoRowId = rowId;
+		MemoEditor.Text = _vm.GetMemo(train.Id, rowId);
+		MemoSheetOverlay.IsVisible = true;
+	}
+
+	void CloseMemoSheet()
+	{
+		MemoSheetOverlay.IsVisible = false;
+		_memoRowId = null;
+	}
+
+	void OnMemoSaveClicked(object? sender, EventArgs e)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || _memoRowId is null)
+		{
+			CloseMemoSheet();
+			return;
+		}
+		_vm.SetMemo(train.Id, _memoRowId, MemoEditor.Text);
+		CloseMemoSheet();
+	}
+
+	void OnMemoDeleteClicked(object? sender, EventArgs e)
+	{
+		var train = _vm.ActiveTrain;
+		if (train is null || _memoRowId is null)
+		{
+			CloseMemoSheet();
+			return;
+		}
+		_vm.SetMemo(train.Id, _memoRowId, null);
+		CloseMemoSheet();
+	}
+
+	void OnMemoCancelClicked(object? sender, EventArgs e) => CloseMemoSheet();
+
+	void OnMemoSheetScrimTapped(object? sender, TappedEventArgs e) => CloseMemoSheet();
+
+	void OnMemoSheetBodyTapped(object? sender, TappedEventArgs e)
+	{
+		// Intentionally empty — handler presence stops the gesture bubbling.
+	}
+
+	// Tweaks panel wiring (Phase 3) ---------------------------------------
+
+	void OnTweaksButtonTapped(object? sender, TappedEventArgs e)
+	{
+		TweaksOverlay.IsVisible = true;
+		UpdateDensityHighlight();
+	}
+
+	void OnTweaksScrimTapped(object? sender, TappedEventArgs e)
+		=> TweaksOverlay.IsVisible = false;
+
+	void OnTweaksBodyTapped(object? sender, TappedEventArgs e)
+	{
+		// Intentionally empty — handler presence stops the gesture bubbling.
+	}
+
+	void OnDensityCompactTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Compact;
+	}
+
+	void OnDensityComfortableTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Comfortable;
+	}
+
+	void OnDensitySpaciousTapped(object? sender, TappedEventArgs e)
+	{
+		_vm.Density = Density.Spacious;
+	}
+
+	void UpdateDensityHighlight()
+	{
+		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
+		var soft = (Brush?)Application.Current?.Resources["OT_BgSoft"];
+
+		var d = _vm.Density;
+		DensityCompact.Background = d == Density.Compact ? accent : soft;
+		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
+		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
+
+		var accentFg = Application.Current?.Resources["OT_AccentFg_Light"] as Color;
+		var fg = Application.Current?.Resources["OT_Fg_Light"] as Color;
+		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
+		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
+		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
+	}
 }
 
 // V2 card-stack row VM consumed by the CollectionView's DataTemplate.
-// ObservableObject so MarkersVersion / MemosVersion / CurIdxVersion can
-// mutate visible props in place (preserves CollectionView scroll position).
+// ObservableObject so MarkersVersion / MemosVersion / NoteOpenVersion /
+// CurIdxVersion / Density can mutate visible props in place (preserves
+// CollectionView scroll position).
 //
-// V2 differs from V1RowItem: no alternating-row striping (cards don't
-// stripe), no LimitText (limit info is folded into section-break label),
-// and *PlatformSize / *TimeFontSize / *StationFontSize are observable so
-// the IsCurrent flip can rescale the platform tile + arrive/depart
-// numerals + station name in place without rebuilding the row.
+// V2 differs from V1RowItem: no alternating-row striping, no LimitText, and
+// *PlatformSize / *TimeFontSize / *StationFontSize / *CardMargin are
+// observable so the IsCurrent flip + density scale rescale every per-card
+// metric without rebuilding Items. Inline NoteFold lives *inside* the card
+// outer Border to preserve concentric radii (V1 stacks it as a sibling).
 public partial class V2RowItem : ObservableObject
 {
 	public string Id { get; set; } = string.Empty;
+	// Index in ActiveTrain.Rows (the unfiltered list). -1 for section breaks.
+	// Used by AutoFollowScroll to locate the current-station item.
 	public int OrigIndex { get; set; } = -1;
 	public string StationName { get; set; } = string.Empty;
 	public string RunText { get; set; } = string.Empty;
@@ -355,6 +640,11 @@ public partial class V2RowItem : ObservableObject
 
 	public bool HasNote { get; set; }
 	public string NoteText { get; set; } = string.Empty;
+
+	// Mutated in-place by UpdateNoteOpenInPlace; must raise INPC so the
+	// inline NoteFold Border's IsVisible binding refreshes.
+	[ObservableProperty]
+	public partial bool IsNoteOpen { get; set; }
 
 	[ObservableProperty]
 	public partial MarkerKind Marker { get; set; } = MarkerKind.None;
@@ -376,9 +666,9 @@ public partial class V2RowItem : ObservableObject
 	[ObservableProperty]
 	public partial string MarkerText { get; set; } = string.Empty;
 
-	// Per-card emphasis metrics. ApplyCurrentScaledMetrics rewrites these
-	// whenever IsCurrent flips, driving the visible Border / platform tile
-	// / arrive-depart numerals to grow/shrink without an Items rebuild.
+	// Per-card emphasis metrics. ApplyCurrentAndDensityScaledMetrics rewrites
+	// these whenever IsCurrent flips OR vm.Density changes — Density scales
+	// each base value (compact 0.82 / comfortable 1.0 / spacious 1.12).
 	[ObservableProperty]
 	public partial double TabletPlatformSize { get; set; } = 56;
 	[ObservableProperty]
@@ -396,6 +686,14 @@ public partial class V2RowItem : ObservableObject
 	[ObservableProperty]
 	public partial double CompactStationFontSize { get; set; } = 16;
 
+	// Card outer Margin — density's breathing-room equivalent (V2 cards are
+	// floating tiles, so margin between cards is what reflows for density;
+	// V1 has no equivalent because its rows are flush-edge in a list).
+	[ObservableProperty]
+	public partial Thickness TabletCardMargin { get; set; } = new Thickness(8, 4);
+	[ObservableProperty]
+	public partial Thickness CompactCardMargin { get; set; } = new Thickness(6, 3);
+
 	public bool IsNormalRow => !IsSectionBreakRow;
 	public bool HasTrackName => !string.IsNullOrEmpty(TrackName);
 
@@ -405,6 +703,7 @@ public partial class V2RowItem : ObservableObject
 	public string MemoAutomationId => $"{AutomationIdPrefix}{Id}.Memo";
 	public string ClearAutomationId => $"{AutomationIdPrefix}{Id}.Clear";
 	public string MarkerBadgeAutomationId => $"{AutomationIdPrefix}{Id}.MarkerBadge";
+	public string NoteBodyAutomationId => $"{AutomationIdPrefix}{Id}.NoteBody";
 
 	public static V2RowItem SectionBreak(string id, string label) => new()
 	{
