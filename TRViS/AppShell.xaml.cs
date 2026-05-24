@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 using TRViS.DTAC;
 using TRViS.FirebaseWrapper;
+using TRViS.IO.Models;
 using TRViS.Localization;
 using TRViS.RootPages;
 using TRViS.Services;
@@ -92,6 +93,18 @@ public partial class AppShell : Shell
 		// 起動時の値も反映する (通常は null)
 		ApplyHeaderColorOverride(appVm.HeaderColorOverride_RGB, easterEggPageViewModel);
 
+		// FlyoutHeader / FlyoutFooter は AppViewModel を BindingContext として参照する。
+		// Shell.BindingContext は EasterEggPageViewModel 用に予約されているため、
+		// header/footer のサブツリーにのみローカルで割り当てる。
+		DiagramInfoHeader.BindingContext = appVm;
+		VersionFooter.BindingContext = appVm;
+
+		// 行路に紐づく列車セクション (動的) を Privacy Policy の上に挿入する。
+		// SelectedWork / OrderedTrainDataList の変化に応じて再構築する。
+		_PrivacyPolicyShellItemRef = FindPrivacyPolicyShellItem();
+		RebuildTrainMenuItems();
+		appVm.PropertyChanged += OnAppViewModelPropertyChangedForTrainMenu;
+
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
 		logger.Trace("Display Width/Height: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);
@@ -148,6 +161,110 @@ public partial class AppShell : Shell
 				// バインディングを再設定して既定挙動に戻す
 				this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
 			}
+		});
+	}
+
+	/// <summary>
+	/// XAML で宣言した Privacy Policy MenuItem を包む ShellItem を Items から探す。
+	/// Shell は top-level &lt;MenuItem&gt; を内部の MenuShellItem (internal 型) に
+	/// 自動ラップして Items に追加する。MenuShellItem は外部から参照不可だが、
+	/// BaseShellItem.BindingContext 等から元 MenuItem を特定するのは脆い。
+	/// 代わりに「初期状態の Items の末尾要素 = Privacy Policy の wrapper」と仮定して
+	/// 起動時に直接掴む (XAML 上 Privacy Policy が最後の Shell 直下要素のため)。
+	/// </summary>
+	ShellItem? FindPrivacyPolicyShellItem()
+	{
+		// XAML 定義上、Privacy Policy MenuItem は Shell の最後の直接子要素なので
+		// 初期化直後の Items でも最後の要素がそれにあたる。
+		return Items.Count > 0 ? Items[Items.Count - 1] : null;
+	}
+
+	// 動的に挿入した列車セクション (見出し + 列車 MenuItem + separator) の参照。
+	// 再構築時に Items から確実に取り除けるよう常にトラックする。
+	readonly List<ShellItem> _DynamicTrainShellItems = new();
+	ShellItem? _PrivacyPolicyShellItemRef;
+
+	void OnAppViewModelPropertyChangedForTrainMenu(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(AppViewModel.SelectedWork)
+			|| e.PropertyName == nameof(AppViewModel.OrderedTrainDataList))
+		{
+			MainThread.BeginInvokeOnMainThread(RebuildTrainMenuItems);
+		}
+	}
+
+	/// <summary>
+	/// Privacy Policy MenuItem の直前に「行路内 列車」セクション (見出し +
+	/// 列車 1 個 1 MenuItem + 仕切り) を再構築する。
+	/// プロトタイプ flyout.jsx L169-170 (sectionLabel('行路内 列車') + trainItem 列)
+	/// に対応する。Shell の制約上、見出し / 仕切りは無効化 MenuItem で代用する。
+	/// </summary>
+	void RebuildTrainMenuItems()
+	{
+		// 既存の動的アイテムを除去
+		foreach (var shellItem in _DynamicTrainShellItems)
+		{
+			Items.Remove(shellItem);
+		}
+		_DynamicTrainShellItems.Clear();
+
+		var trains = InstanceManager.AppViewModel.OrderedTrainDataList;
+		if (trains is null || trains.Count == 0)
+			return;
+
+		int insertIndex = _PrivacyPolicyShellItemRef is not null
+			? Items.IndexOf(_PrivacyPolicyShellItemRef)
+			: Items.Count;
+		if (insertIndex < 0)
+			insertIndex = Items.Count;
+
+		void InsertMenuItem(MenuItem mi)
+		{
+			// ShellItem には MenuItem → ShellItem の implicit conversion が
+			// 定義されており、暗黙ラッパーが生成される (MenuShellItem は internal で
+			// 直接 new できないが、この変換を通せば同等のラップが得られる)。
+			ShellItem wrapper = mi;
+			Items.Insert(insertIndex, wrapper);
+			_DynamicTrainShellItems.Add(wrapper);
+			insertIndex++;
+		}
+
+		// セクション見出し (無効化 MenuItem で代用)
+		InsertMenuItem(new MenuItem
+		{
+			Text = "—— 行路内 列車 ——",
+			IsEnabled = false,
+		});
+
+		var currentSelected = InstanceManager.AppViewModel.SelectedTrainData;
+		foreach (var train in trains)
+		{
+			string trainNumber = train.TrainNumber ?? string.Empty;
+			string label = string.IsNullOrEmpty(train.Destination)
+				? trainNumber
+				: $"{trainNumber}  {train.Destination}";
+
+			// 現在選択中の列車には先頭にマーカーを付ける (Bold 化は Shell.MenuItem では不可)。
+			if (ReferenceEquals(train, currentSelected))
+				label = "▶ " + label;
+
+			TrainData captured = train;
+			var mi = new MenuItem
+			{
+				Text = label,
+				Command = new Command(() =>
+				{
+					InstanceManager.AppViewModel.SelectedTrainData = captured;
+				}),
+			};
+			InsertMenuItem(mi);
+		}
+
+		// 仕切り (空 MenuItem)
+		InsertMenuItem(new MenuItem
+		{
+			Text = "———————————————",
+			IsEnabled = false,
 		});
 	}
 

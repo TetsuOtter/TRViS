@@ -18,20 +18,70 @@
 			Size="36"/>
 	</Shell.FlyoutIcon>
 
-	<Shell.FlyoutFooter>
-		<VerticalStackLayout
-			Margin="4">
-			<Border
-				BackgroundColor="{AppThemeBinding Default=White, Dark=Black}"
-				Stroke="{AppThemeBinding Default=#333, Dark=#CCC}"
-				HorizontalOptions="Center"
-				Margin="8"
-				Padding="8">
+	<Shell.FlyoutHeader>
+		<!--
+			BindingContext を Shell ではなく FlyoutHeader 直下の Border に限定して
+			設定する。Shell.BindingContext は EasterEggPageViewModel (BackgroundColor /
+			TitleColor / FlyoutIconImage.Color の SetBinding が依存) で占有されている
+			ため、ここで上書きすると配色が壊れる。code-behind 側で
+			DiagramInfoHeader.BindingContext = InstanceManager.AppViewModel を設定する。
+		-->
+		<Border
+			x:Name="DiagramInfoHeader"
+			BackgroundColor="{AppThemeBinding Light=#F8FBFB, Dark=#090E12}"
+			Padding="16,18,16,14"
+			StrokeThickness="0">
+			<VerticalStackLayout Spacing="2">
 				<Label
+					Text="ダイヤ情報"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="12"
+					FontAttributes="Bold"
+					CharacterSpacing="2"/>
+				<Label
+					x:Name="DiagramRouteLabel"
+					Text="{Binding SelectedWorkGroup.Name, FallbackValue='-', TargetNullValue='-'}"
+					TextColor="{AppThemeBinding Light=#0C181D, Dark=#EEF3F4}"
+					FontSize="22"
+					FontAttributes="Bold"/>
+				<Label
+					x:Name="DiagramWorkLabel"
+					Text="{Binding SelectedWork.Name, FallbackValue='', TargetNullValue=''}"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="14"/>
+			</VerticalStackLayout>
+		</Border>
+	</Shell.FlyoutHeader>
+
+	<Shell.FlyoutFooter>
+		<!--
+			Footer は version (左) + 施行日 (右) の 2 カラム表示にする。
+			BindingContext は code-behind 側で AppViewModel を割り当てる
+			(Shell.BindingContext は EasterEgg 用に予約されているため)。
+		-->
+		<Border
+			x:Name="VersionFooter"
+			BackgroundColor="Transparent"
+			Stroke="{AppThemeBinding Light=#E1E5E7, Dark=#222A30}"
+			StrokeThickness="0"
+			Padding="16,12,16,12">
+			<Grid ColumnDefinitions="*,Auto">
+				<Label
+					Grid.Column="0"
 					AutomationId="Shell.VersionLabel"
-					Text="{x:Static local:AppShell.AppVersionString}"/>
-			</Border>
-		</VerticalStackLayout>
+					Text="{x:Static local:AppShell.AppVersionString}"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="13"
+					VerticalTextAlignment="Center"/>
+				<Label
+					Grid.Column="1"
+					x:Name="EnforceDateLabel"
+					Text="{Binding SelectedWork.AffectDate, FallbackValue='-', TargetNullValue='-'}"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="13"
+					VerticalTextAlignment="Center"/>
+			</Grid>
+		</Border>
 	</Shell.FlyoutFooter>
 
 	<FlyoutItem
