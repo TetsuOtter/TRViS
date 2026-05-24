@@ -7,11 +7,5 @@
 	x:DataType="viewmodels:OriginalTimetableViewModel"
 	Title="ダイヤ表 (V1)"
 	BackgroundColor="{AppThemeBinding Light={StaticResource OT_Bg_Light}, Dark={StaticResource OT_Bg_Dark}}">
-	<Grid Padding="16">
-		<Label
-			HorizontalOptions="Center"
-			VerticalOptions="Center"
-			TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
-			Text="{Binding ActiveTrain.TrainNumber, StringFormat='V1 Modern Classic - {0}'}"/>
-	</Grid>
+	<Grid x:Name="RootGrid" SizeChanged="OnRootSizeChanged"/>
 </ContentPage>
