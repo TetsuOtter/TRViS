@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS.OriginalTimetable"
+	xmlns:controls="clr-namespace:TRViS.Controls"
 	x:Class="TRViS.OriginalTimetable.OriginalTimetableV4Page"
 	x:Name="Self"
 	Title="ダイヤ表 (V4)"
@@ -26,7 +27,7 @@
 				Stroke="{StaticResource OT_Rule}"
 				StrokeShape="Rectangle"
 				Padding="16,10">
-				<Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10">
 					<Border
 						Grid.Column="0"
 						AutomationId="OriginalTimetable.V4.TrainStripe.TypeChip"
@@ -65,6 +66,23 @@
 						HorizontalOptions="End"
 						VerticalOptions="Center"
 						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					<!-- Phase 3: gear button opens TweaksOverlay -->
+					<Border
+						Grid.Column="4"
+						AutomationId="OriginalTimetable.V4.TweaksButton"
+						Padding="6"
+						StrokeThickness="0"
+						BackgroundColor="Transparent"
+						VerticalOptions="Center">
+						<Border.GestureRecognizers>
+							<TapGestureRecognizer Tapped="OnTweaksButtonTapped"/>
+						</Border.GestureRecognizers>
+						<Label
+							Text="&#xE8B8;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="22"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+					</Border>
 				</Grid>
 			</Border>
 
@@ -78,98 +96,152 @@
 				StrokeShape="Rectangle"
 				Padding="18,16,18,18"
 				IsVisible="{Binding HasActiveTrain, Source={x:Reference Self}}">
-				<Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-					<VerticalStackLayout Grid.Column="0" Spacing="0">
-						<Label
-							Text="次駅 NEXT"
-							FontSize="13"
-							FontAttributes="Bold"
-							CharacterSpacing="1.6"
-							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
-						<Label
-							AutomationId="OriginalTimetable.V4.HeroStation"
-							Text="{Binding NextStationName, Source={x:Reference Self}}"
-							FontSize="56"
-							FontAttributes="Bold"
-							LineHeight="1"
-							Margin="0,6,0,0"
-							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-						<HorizontalStackLayout Spacing="20" Margin="0,14,0,0">
-							<VerticalStackLayout Spacing="0">
+				<VerticalStackLayout Spacing="10">
+					<Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+						<VerticalStackLayout Grid.Column="0" Spacing="0">
+							<HorizontalStackLayout Spacing="8">
 								<Label
-									Text="着"
+									Text="次駅 NEXT"
 									FontSize="13"
 									FontAttributes="Bold"
-									TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-								<Label
-									AutomationId="OriginalTimetable.V4.HeroArrive"
-									Text="{Binding NextStationArriveText, Source={x:Reference Self}}"
-									FontSize="30"
-									FontAttributes="Bold"
-									FontFamily="Menlo"
-									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-							</VerticalStackLayout>
-							<VerticalStackLayout Spacing="0">
-								<Label
-									Text="発"
-									FontSize="13"
-									FontAttributes="Bold"
-									TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-								<Label
-									AutomationId="OriginalTimetable.V4.HeroDepart"
-									Text="{Binding NextStationDepartText, Source={x:Reference Self}}"
-									FontSize="30"
-									FontAttributes="Bold"
-									FontFamily="Menlo"
+									CharacterSpacing="1.6"
+									VerticalOptions="Center"
 									TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
-							</VerticalStackLayout>
-						</HorizontalStackLayout>
-					</VerticalStackLayout>
-					<VerticalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="End" VerticalOptions="End">
-						<Label
-							Text="番線 PLATFORM"
-							FontSize="11"
-							CharacterSpacing="1.6"
-							HorizontalOptions="End"
-							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-						<Border
-							AutomationId="OriginalTimetable.V4.HeroTrack"
-							WidthRequest="72"
-							HeightRequest="72"
-							Background="{StaticResource OT_Accent}"
-							StrokeThickness="0"
-							StrokeShape="RoundRectangle 12"
-							HorizontalOptions="End">
+								<!-- Hero marker badge (tap to open MarkerPopover for next station) -->
+								<Border
+									AutomationId="OriginalTimetable.V4.Hero.MarkerBadge"
+									IsVisible="{Binding HasHeroMarker, Source={x:Reference Self}}"
+									Padding="6,1"
+									StrokeThickness="0"
+									StrokeShape="RoundRectangle 4"
+									VerticalOptions="Center"
+									Background="{StaticResource OT_Bg}">
+									<Border.GestureRecognizers>
+										<TapGestureRecognizer Tapped="OnHeroMarkerBadgeTapped"/>
+									</Border.GestureRecognizers>
+									<Label
+										Text="{Binding HeroMarkerText, Source={x:Reference Self}}"
+										FontSize="11"
+										FontAttributes="Bold"
+										TextColor="{StaticResource OT_MarkerFlagFg}"/>
+								</Border>
+								<!-- Tappable placeholder when no marker — anchors popover for adding -->
+								<Border
+									AutomationId="OriginalTimetable.V4.Hero.MarkerAdd"
+									IsVisible="{Binding HasNoHeroMarker, Source={x:Reference Self}}"
+									Padding="6,1"
+									StrokeThickness="0.5"
+									Stroke="{StaticResource OT_Rule}"
+									StrokeShape="RoundRectangle 4"
+									VerticalOptions="Center"
+									Background="Transparent">
+									<Border.GestureRecognizers>
+										<TapGestureRecognizer Tapped="OnHeroMarkerBadgeTapped"/>
+									</Border.GestureRecognizers>
+									<Label
+										Text="+ マーカー"
+										FontSize="11"
+										TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+								</Border>
+							</HorizontalStackLayout>
 							<Label
-								Text="{Binding NextStationTrack, Source={x:Reference Self}}"
-								FontSize="46"
+								AutomationId="OriginalTimetable.V4.HeroStation"
+								Text="{Binding NextStationName, Source={x:Reference Self}}"
+								FontSize="{Binding HeroStationFontSize, Source={x:Reference Self}}"
 								FontAttributes="Bold"
-								FontFamily="Menlo"
-								HorizontalOptions="Center"
-								VerticalOptions="Center"
-								TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
-						</Border>
-						<VerticalStackLayout
-							AutomationId="OriginalTimetable.V4.HeroPreview"
-							Spacing="2"
-							HorizontalOptions="End"
-							Margin="0,4,0,0"
-							IsVisible="{Binding HasNextPlusOne, Source={x:Reference Self}}">
+								LineHeight="1"
+								Margin="0,6,0,0"
+								TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							<HorizontalStackLayout Spacing="20" Margin="0,14,0,0">
+								<VerticalStackLayout Spacing="0">
+									<Label
+										Text="着"
+										FontSize="13"
+										FontAttributes="Bold"
+										TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+									<Label
+										AutomationId="OriginalTimetable.V4.HeroArrive"
+										Text="{Binding NextStationArriveText, Source={x:Reference Self}}"
+										FontSize="{Binding HeroTimeFontSize, Source={x:Reference Self}}"
+										FontAttributes="Bold"
+										FontFamily="Menlo"
+										TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+								</VerticalStackLayout>
+								<VerticalStackLayout Spacing="0">
+									<Label
+										Text="発"
+										FontSize="13"
+										FontAttributes="Bold"
+										TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+									<Label
+										AutomationId="OriginalTimetable.V4.HeroDepart"
+										Text="{Binding NextStationDepartText, Source={x:Reference Self}}"
+										FontSize="{Binding HeroTimeFontSize, Source={x:Reference Self}}"
+										FontAttributes="Bold"
+										FontFamily="Menlo"
+										TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+								</VerticalStackLayout>
+							</HorizontalStackLayout>
+						</VerticalStackLayout>
+						<VerticalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="End" VerticalOptions="End">
 							<Label
-								Text="NEXT+1"
+								Text="番線 PLATFORM"
 								FontSize="11"
 								CharacterSpacing="1.6"
 								HorizontalOptions="End"
 								TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-							<Label
-								Text="{Binding NextPlusOneText, Source={x:Reference Self}}"
-								FontSize="16"
-								FontAttributes="Bold"
+							<Border
+								AutomationId="OriginalTimetable.V4.HeroTrack"
+								WidthRequest="{Binding HeroPlatformSize, Source={x:Reference Self}}"
+								HeightRequest="{Binding HeroPlatformSize, Source={x:Reference Self}}"
+								Background="{StaticResource OT_Accent}"
+								StrokeThickness="0"
+								StrokeShape="RoundRectangle 12"
+								HorizontalOptions="End">
+								<Label
+									Text="{Binding NextStationTrack, Source={x:Reference Self}}"
+									FontSize="{Binding HeroPlatformFontSize, Source={x:Reference Self}}"
+									FontAttributes="Bold"
+									FontFamily="Menlo"
+									HorizontalOptions="Center"
+									VerticalOptions="Center"
+									TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+							</Border>
+							<VerticalStackLayout
+								AutomationId="OriginalTimetable.V4.HeroPreview"
+								Spacing="2"
 								HorizontalOptions="End"
-								TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+								Margin="0,4,0,0"
+								IsVisible="{Binding HasNextPlusOne, Source={x:Reference Self}}">
+								<Label
+									Text="NEXT+1"
+									FontSize="11"
+									CharacterSpacing="1.6"
+									HorizontalOptions="End"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+								<Label
+									Text="{Binding NextPlusOneText, Source={x:Reference Self}}"
+									FontSize="16"
+									FontAttributes="Bold"
+									HorizontalOptions="End"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</VerticalStackLayout>
 						</VerticalStackLayout>
-					</VerticalStackLayout>
-				</Grid>
+					</Grid>
+					<!-- Hero inline note (next station's Remarks) -->
+					<Border
+						AutomationId="OriginalTimetable.V4.Hero.NoteBody"
+						IsVisible="{Binding HasHeroNote, Source={x:Reference Self}}"
+						Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
+						StrokeThickness="0"
+						StrokeShape="RoundRectangle 6"
+						Padding="10,6">
+						<controls:HtmlAutoDetectLabel
+							Text="{Binding HeroNoteText, Source={x:Reference Self}}"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
+							FontSize="13"/>
+					</Border>
+				</VerticalStackLayout>
 			</Border>
 
 			<!-- Empty state -->
@@ -234,7 +306,7 @@
 										AutomationId="{Binding MarkerAutomationId}"
 										Text="マーカー"
 										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
-										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
+										Command="{Binding OpenMarkerPopoverFromSwipeCommand, Source={x:Reference Self}}"
 										CommandParameter="{Binding Id}"/>
 									<SwipeItem
 										AutomationId="{Binding MemoAutomationId}"
@@ -281,17 +353,18 @@
 											<Setter Property="Opacity" Value="0.4"/>
 										</DataTrigger>
 									</Border.Triggers>
+									<VerticalStackLayout Spacing="0">
 									<Grid
 										ColumnDefinitions="*,100,100,50"
 										ColumnSpacing="8"
-										Padding="14,8">
+										Padding="{Binding TabletRowPadding}">
 										<HorizontalStackLayout
 											Grid.Column="0"
 											Spacing="6"
 											VerticalOptions="Center">
 											<Label
 												Text="{Binding StationName}"
-												FontSize="22"
+												FontSize="{Binding TabletStationFontSize}"
 												FontAttributes="Bold"
 												VerticalOptions="Center"
 												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
@@ -313,7 +386,7 @@
 													FontSize="11"
 													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
 											</Border>
-											<!-- Marker badge -->
+											<!-- Marker badge (tap to open popover) -->
 											<Border
 												AutomationId="{Binding MarkerBadgeAutomationId}"
 												IsVisible="{Binding HasMarker}"
@@ -322,6 +395,9 @@
 												StrokeShape="RoundRectangle 4"
 												VerticalOptions="Center"
 												Background="{StaticResource OT_Bg}">
+												<Border.GestureRecognizers>
+													<TapGestureRecognizer Tapped="OnMarkerBadgeTapped"/>
+												</Border.GestureRecognizers>
 												<Border.Triggers>
 													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
 														<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
@@ -355,11 +431,33 @@
 												HeightRequest="8"
 												Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
 												VerticalOptions="Center"/>
+											<!-- Note toggle button -->
+											<Border
+												IsVisible="{Binding HasNote}"
+												WidthRequest="24"
+												HeightRequest="24"
+												StrokeThickness="0.5"
+												Stroke="{StaticResource OT_Rule}"
+												StrokeShape="RoundRectangle 12"
+												Background="{StaticResource OT_BgSoft}"
+												VerticalOptions="Center">
+												<Border.GestureRecognizers>
+													<TapGestureRecognizer
+														Command="{Binding ToggleNoteCommand, Source={x:Reference Self}}"
+														CommandParameter="{Binding Id}"/>
+												</Border.GestureRecognizers>
+												<Label
+													Text="≡"
+													FontSize="14"
+													HorizontalOptions="Center"
+													VerticalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+											</Border>
 										</HorizontalStackLayout>
 										<Label
 											Grid.Column="1"
 											Text="{Binding ArriveText}"
-											FontSize="17"
+											FontSize="{Binding TabletTimeFontSize}"
 											FontFamily="Menlo"
 											HorizontalOptions="End"
 											VerticalOptions="Center"
@@ -367,7 +465,7 @@
 										<Label
 											Grid.Column="2"
 											Text="{Binding DepartText}"
-											FontSize="17"
+											FontSize="{Binding TabletTimeFontSize}"
 											FontAttributes="Bold"
 											FontFamily="Menlo"
 											HorizontalOptions="End"
@@ -389,6 +487,21 @@
 												TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}"/>
 										</Border>
 									</Grid>
+									<!-- Inline NoteFold -->
+									<Border
+										AutomationId="{Binding NoteBodyAutomationId}"
+										IsVisible="{Binding IsNoteOpen}"
+										Margin="14,0,14,8"
+										Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
+										StrokeThickness="0"
+										StrokeShape="RoundRectangle 6"
+										Padding="10,6">
+										<controls:HtmlAutoDetectLabel
+											Text="{Binding NoteText}"
+											TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
+											FontSize="12"/>
+									</Border>
+								</VerticalStackLayout>
 								</Border>
 							</VerticalStackLayout>
 						</SwipeView>
@@ -513,15 +626,15 @@
 							HorizontalOptions="End"
 							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
 						<Border
-							WidthRequest="60"
-							HeightRequest="60"
+							WidthRequest="{Binding CompactHeroPlatformSize, Source={x:Reference Self}}"
+							HeightRequest="{Binding CompactHeroPlatformSize, Source={x:Reference Self}}"
 							Background="{StaticResource OT_Accent}"
 							StrokeThickness="0"
 							StrokeShape="RoundRectangle 12"
 							HorizontalOptions="End">
 							<Label
 								Text="{Binding NextStationTrack, Source={x:Reference Self}}"
-								FontSize="36"
+								FontSize="{Binding CompactHeroPlatformFontSize, Source={x:Reference Self}}"
 								FontAttributes="Bold"
 								FontFamily="Menlo"
 								HorizontalOptions="Center"
@@ -593,7 +706,7 @@
 										AutomationId="{Binding MarkerAutomationId}"
 										Text="マーカー"
 										BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
-										Command="{Binding CycleMarkerCommand, Source={x:Reference Self}}"
+										Command="{Binding OpenMarkerPopoverFromSwipeCommand, Source={x:Reference Self}}"
 										CommandParameter="{Binding Id}"/>
 									<SwipeItem
 										AutomationId="{Binding MemoAutomationId}"
@@ -638,17 +751,18 @@
 											<Setter Property="Opacity" Value="0.4"/>
 										</DataTrigger>
 									</Border.Triggers>
+									<VerticalStackLayout Spacing="0">
 									<Grid
 										ColumnDefinitions="*,64,64,40"
 										ColumnSpacing="6"
-										Padding="12,6">
+										Padding="{Binding CompactRowPadding}">
 										<HorizontalStackLayout
 											Grid.Column="0"
 											Spacing="5"
 											VerticalOptions="Center">
 											<Label
 												Text="{Binding StationName}"
-												FontSize="16"
+												FontSize="{Binding CompactStationFontSize}"
 												FontAttributes="Bold"
 												VerticalOptions="Center"
 												TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}">
@@ -678,6 +792,9 @@
 												StrokeShape="RoundRectangle 4"
 												VerticalOptions="Center"
 												Background="{StaticResource OT_Bg}">
+												<Border.GestureRecognizers>
+													<TapGestureRecognizer Tapped="OnMarkerBadgeTapped"/>
+												</Border.GestureRecognizers>
 												<Border.Triggers>
 													<DataTrigger TargetType="Border" Binding="{Binding IsMarkerFlag}" Value="True">
 														<Setter Property="Background" Value="{StaticResource OT_MarkerFlagBgBrush}"/>
@@ -710,11 +827,32 @@
 												HeightRequest="7"
 												Fill="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"
 												VerticalOptions="Center"/>
+											<Border
+												IsVisible="{Binding HasNote}"
+												WidthRequest="22"
+												HeightRequest="22"
+												StrokeThickness="0.5"
+												Stroke="{StaticResource OT_Rule}"
+												StrokeShape="RoundRectangle 11"
+												Background="{StaticResource OT_BgSoft}"
+												VerticalOptions="Center">
+												<Border.GestureRecognizers>
+													<TapGestureRecognizer
+														Command="{Binding ToggleNoteCommand, Source={x:Reference Self}}"
+														CommandParameter="{Binding Id}"/>
+												</Border.GestureRecognizers>
+												<Label
+													Text="≡"
+													FontSize="13"
+													HorizontalOptions="Center"
+													VerticalOptions="Center"
+													TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+											</Border>
 										</HorizontalStackLayout>
 										<Label
 											Grid.Column="1"
 											Text="{Binding ArriveText}"
-											FontSize="13"
+											FontSize="{Binding CompactTimeFontSize}"
 											FontFamily="Menlo"
 											HorizontalOptions="End"
 											VerticalOptions="Center"
@@ -722,7 +860,7 @@
 										<Label
 											Grid.Column="2"
 											Text="{Binding DepartText}"
-											FontSize="13"
+											FontSize="{Binding CompactTimeFontSize}"
 											FontAttributes="Bold"
 											FontFamily="Menlo"
 											HorizontalOptions="End"
@@ -744,12 +882,175 @@
 												TextColor="{AppThemeBinding Light={StaticResource OT_PlatFg_Light}, Dark={StaticResource OT_PlatFg_Dark}}"/>
 										</Border>
 									</Grid>
+									<!-- Inline NoteFold -->
+									<Border
+										AutomationId="{Binding NoteBodyAutomationId}"
+										IsVisible="{Binding IsNoteOpen}"
+										Margin="12,0,12,6"
+										Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
+										StrokeThickness="0"
+										StrokeShape="RoundRectangle 6"
+										Padding="8,5">
+										<controls:HtmlAutoDetectLabel
+											Text="{Binding NoteText}"
+											TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
+											FontSize="11"/>
+									</Border>
+								</VerticalStackLayout>
 								</Border>
 							</VerticalStackLayout>
 						</SwipeView>
 					</DataTemplate>
 				</CollectionView.ItemTemplate>
 			</CollectionView>
+		</Grid>
+
+		<!-- Phase 2 — Memo bottom-sheet overlay. Sibling of Tablet/Compact so it overlays both. -->
+		<Grid
+			x:Name="MemoSheetOverlay"
+			AutomationId="OriginalTimetable.V4.MemoSheet"
+			IsVisible="False"
+			BackgroundColor="#80000000"
+			InputTransparent="False">
+			<Grid.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnMemoSheetScrimTapped"/>
+			</Grid.GestureRecognizers>
+			<Border
+				AutomationId="OriginalTimetable.V4.MemoSheet.Scrim"
+				VerticalOptions="End"
+				StrokeShape="RoundRectangle 16,16,0,0"
+				Background="{StaticResource OT_Bg}"
+				Padding="20,24"
+				StrokeThickness="0">
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnMemoSheetBodyTapped"/>
+				</Border.GestureRecognizers>
+				<VerticalStackLayout Spacing="12">
+					<Label
+						Text="メモ"
+						FontSize="16"
+						FontAttributes="Bold"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+					<Editor
+						x:Name="MemoEditor"
+						AutomationId="OriginalTimetable.V4.MemoSheet.Editor"
+						AutoSize="TextChanges"
+						MinimumHeightRequest="120"
+						Placeholder="メモを入力..."/>
+					<HorizontalStackLayout Spacing="8" HorizontalOptions="End">
+						<Button
+							AutomationId="OriginalTimetable.V4.MemoSheet.Delete"
+							Text="削除"
+							Clicked="OnMemoDeleteClicked"
+							BackgroundColor="{AppThemeBinding Light={StaticResource OT_WarnBg_Light}, Dark={StaticResource OT_WarnBg_Dark}}"
+							TextColor="{AppThemeBinding Light={StaticResource OT_WarnFg_Light}, Dark={StaticResource OT_WarnFg_Dark}}"/>
+						<Button
+							AutomationId="OriginalTimetable.V4.MemoSheet.Cancel"
+							Text="キャンセル"
+							Clicked="OnMemoCancelClicked"/>
+						<Button
+							AutomationId="OriginalTimetable.V4.MemoSheet.Save"
+							Text="保存"
+							Clicked="OnMemoSaveClicked"
+							BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
+							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+					</HorizontalStackLayout>
+				</VerticalStackLayout>
+			</Border>
+		</Grid>
+
+		<!-- Phase 3 — Tweaks panel overlay. -->
+		<Grid
+			x:Name="TweaksOverlay"
+			AutomationId="OriginalTimetable.V4.Tweaks.Overlay"
+			IsVisible="False"
+			BackgroundColor="#80000000"
+			InputTransparent="False">
+			<Grid.GestureRecognizers>
+				<TapGestureRecognizer Tapped="OnTweaksScrimTapped"/>
+			</Grid.GestureRecognizers>
+			<Border
+				AutomationId="OriginalTimetable.V4.Tweaks.Scrim"
+				HorizontalOptions="End"
+				VerticalOptions="Start"
+				Margin="0,60,16,0"
+				StrokeShape="RoundRectangle 12"
+				Background="{StaticResource OT_Bg}"
+				Stroke="{StaticResource OT_Rule}"
+				StrokeThickness="1"
+				Padding="14,12"
+				WidthRequest="240">
+				<Border.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnTweaksBodyTapped"/>
+				</Border.GestureRecognizers>
+				<VerticalStackLayout Spacing="14">
+					<Label
+						AutomationId="OriginalTimetable.V4.Tweaks.Title"
+						Text="表示設定"
+						FontSize="13"
+						FontAttributes="Bold"
+						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+					<Grid ColumnDefinitions="*,Auto">
+						<Label
+							Grid.Column="0"
+							Text="通過駅を表示"
+							FontSize="13"
+							VerticalOptions="Center"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+						<Switch
+							Grid.Column="1"
+							AutomationId="OriginalTimetable.V4.Tweaks.ShowPasses"
+							IsToggled="{Binding ShowPasses, Mode=TwoWay}"/>
+					</Grid>
+					<VerticalStackLayout Spacing="4">
+						<Label
+							Text="行間"
+							FontSize="12"
+							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+						<HorizontalStackLayout Spacing="6">
+							<Border
+								x:Name="DensityCompact"
+								AutomationId="OriginalTimetable.V4.Tweaks.Density.Compact"
+								StrokeShape="RoundRectangle 6"
+								StrokeThickness="0"
+								Padding="10,4"
+								Background="{StaticResource OT_BgSoft}">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnDensityCompactTapped"/>
+								</Border.GestureRecognizers>
+								<Label x:Name="DensityCompactLabel" Text="狭" FontSize="12"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</Border>
+							<Border
+								x:Name="DensityComfortable"
+								AutomationId="OriginalTimetable.V4.Tweaks.Density.Comfortable"
+								StrokeShape="RoundRectangle 6"
+								StrokeThickness="0"
+								Padding="10,4"
+								Background="{StaticResource OT_BgSoft}">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnDensityComfortableTapped"/>
+								</Border.GestureRecognizers>
+								<Label x:Name="DensityComfortableLabel" Text="標準" FontSize="12"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</Border>
+							<Border
+								x:Name="DensitySpacious"
+								AutomationId="OriginalTimetable.V4.Tweaks.Density.Spacious"
+								StrokeShape="RoundRectangle 6"
+								StrokeThickness="0"
+								Padding="10,4"
+								Background="{StaticResource OT_BgSoft}">
+								<Border.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnDensitySpaciousTapped"/>
+								</Border.GestureRecognizers>
+								<Label x:Name="DensitySpaciousLabel" Text="広" FontSize="12"
+									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+							</Border>
+						</HorizontalStackLayout>
+					</VerticalStackLayout>
+				</VerticalStackLayout>
+			</Border>
 		</Grid>
 	</Grid>
 </ContentPage>
