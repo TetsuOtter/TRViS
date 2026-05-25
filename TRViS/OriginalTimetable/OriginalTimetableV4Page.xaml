@@ -354,6 +354,7 @@
 			<!-- Train stripe (compact) -->
 			<Border
 				Grid.Row="0"
+				AutomationId="OriginalTimetable.V4.Compact.TrainStripe"
 				Background="{StaticResource OT_BgSoft}"
 				StrokeThickness="0,0,0,1"
 				Stroke="{StaticResource OT_Rule}"
@@ -402,6 +403,7 @@
 			<!-- Hero (compact) -->
 			<Border
 				Grid.Row="1"
+				AutomationId="OriginalTimetable.V4.Compact.Hero"
 				Background="{StaticResource OT_AccentSoft}"
 				StrokeThickness="0,0,0,2"
 				Stroke="{StaticResource OT_Accent}"
@@ -482,6 +484,7 @@
 			<!-- Empty state -->
 			<Label
 				Grid.Row="2"
+				AutomationId="OriginalTimetable.V4.Compact.EmptyState"
 				IsVisible="{Binding HasNoActiveTrain, Source={x:Reference Self}}"
 				Text="列車を選択してください"
 				FontSize="14"

@@ -371,7 +371,12 @@ enum AutomationIds {
 
             static let emptyState       = "OriginalTimetable.V4.EmptyState"
             static let miniList         = "OriginalTimetable.V4.MiniList"
-            static let compactMiniList  = "OriginalTimetable.V4.Compact.MiniList"
+
+            // Compact-layout mirrors.
+            static let compactTrainStripe = "OriginalTimetable.V4.Compact.TrainStripe"
+            static let compactHero        = "OriginalTimetable.V4.Compact.Hero"
+            static let compactEmptyState  = "OriginalTimetable.V4.Compact.EmptyState"
+            static let compactMiniList    = "OriginalTimetable.V4.Compact.MiniList"
 
             // Per-row id patterns for MiniList rows.
             static let rowPrefix = "OriginalTimetable.V4.Row."

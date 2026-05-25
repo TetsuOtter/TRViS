@@ -15,15 +15,19 @@ class OriginalTimetableV4PageObject {
     }
 
     /// Waits up to `timeout` for V4 to reach a rendered state. TrainStripe,
-    /// Hero, MiniList, CompactMiniList, or EmptyState satisfies the wait.
+    /// Hero, MiniList, EmptyState, or their compact-layout mirrors satisfy
+    /// the wait.
     @discardableResult
     func waitForRendered(timeout: TimeInterval = 30) -> Bool {
         let anchors = [
             AutomationIds.OriginalTimetable.V4.trainStripe,
             AutomationIds.OriginalTimetable.V4.hero,
             AutomationIds.OriginalTimetable.V4.miniList,
-            AutomationIds.OriginalTimetable.V4.compactMiniList,
             AutomationIds.OriginalTimetable.V4.emptyState,
+            AutomationIds.OriginalTimetable.V4.compactTrainStripe,
+            AutomationIds.OriginalTimetable.V4.compactHero,
+            AutomationIds.OriginalTimetable.V4.compactMiniList,
+            AutomationIds.OriginalTimetable.V4.compactEmptyState,
         ]
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
@@ -37,9 +41,13 @@ class OriginalTimetableV4PageObject {
         return false
     }
 
+    /// True when any V4 EmptyState Label (tablet or compact) is visible.
     func isEmptyStateVisible(timeout: TimeInterval = 5) -> Bool {
-        return base.waitForElement(
+        if base.waitForElement(
             id: AutomationIds.OriginalTimetable.V4.emptyState, timeout: timeout
+        ) != nil { return true }
+        return base.waitForElement(
+            id: AutomationIds.OriginalTimetable.V4.compactEmptyState, timeout: timeout
         ) != nil
     }
 
