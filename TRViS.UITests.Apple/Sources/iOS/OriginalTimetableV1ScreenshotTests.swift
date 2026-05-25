@@ -57,8 +57,17 @@ class OriginalTimetableV1ScreenshotTests: BaseUITestCase {
         if !startHome.isDisplayed(timeout: 5) {
             _ = shell.navigateToHome()
         }
-        startHome.clearLoaderForTesting()
+        // Order matters: privacy first, then clearLoader. The privacy banner
+        // intercepts taps to all StartHome controls (including the seam
+        // TestClearLoaderButton) until accepted. On the first XCUITest run
+        // of a fresh install (the runner script `simctl uninstall`s, so V1
+        // tests can run before V2/V4/V6 ever accepted) clearLoaderForTesting()
+        // would silently no-op against the unreachable seam button and leave
+        // the app in a half-state. acceptPrivacyPolicyIfNeeded() fast-paths
+        // once accepted, so running it before clearLoader is cheap on the 2..N
+        // tests of the same session.
         startHome.acceptPrivacyPolicyIfNeeded()
+        startHome.clearLoaderForTesting()
 
         // Determinism: pin clock + language + light theme. Theme reset happens
         // in tearDown so the simulator's default appearance doesn't drift

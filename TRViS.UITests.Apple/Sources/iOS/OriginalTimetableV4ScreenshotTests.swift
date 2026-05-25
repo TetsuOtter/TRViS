@@ -33,8 +33,11 @@ class OriginalTimetableV4ScreenshotTests: BaseUITestCase {
         if !startHome.isDisplayed(timeout: 5) {
             _ = shell.navigateToHome()
         }
-        startHome.clearLoaderForTesting()
+        // Order matters: privacy first, then clearLoader — the privacy banner
+        // intercepts taps to the TestClearLoaderButton seam until accepted.
+        // See OriginalTimetableV1ScreenshotTests for the full rationale.
         startHome.acceptPrivacyPolicyIfNeeded()
+        startHome.clearLoaderForTesting()
 
         startHome.freezeClockForTesting()
         startHome.setLanguageJapaneseForTesting()
