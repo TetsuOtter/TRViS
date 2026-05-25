@@ -87,6 +87,11 @@ public partial class OriginalTimetableV4Page : ContentPage
 	public bool HasHeroMarker { get; private set; }
 	public bool HasNoHeroMarker => HasActiveTrain && !string.IsNullOrEmpty(NextStationId) && !HasHeroMarker;
 	public string HeroMarkerText { get; private set; } = string.Empty;
+	// Hero badge は Flag / Caution / Star ごとに別配色 (V1/V2 行の MarkerBadge と
+	// 同様)。以前は OT_Bg を背景に OT_MarkerFlagFg (#FFFFFF) を載せていたため
+	// ライトテーマで白 on 白 になり読めず、種別差も出なかった (#286 Copilot review)。
+	public Brush HeroMarkerBg { get; private set; } = Brush.Transparent;
+	public Color HeroMarkerFg { get; private set; } = Colors.Transparent;
 	public string HeroNoteText { get; private set; } = string.Empty;
 	public bool HasHeroNote { get; private set; }
 
@@ -469,6 +474,7 @@ public partial class OriginalTimetableV4Page : ContentPage
 	void RecomputeHeroMarker()
 	{
 		var train = _vm.ActiveTrain;
+		MarkerKind marker = MarkerKind.None;
 		if (train is null || string.IsNullOrEmpty(NextStationId))
 		{
 			HasHeroMarker = false;
@@ -476,7 +482,7 @@ public partial class OriginalTimetableV4Page : ContentPage
 		}
 		else
 		{
-			var marker = _vm.GetMarker(train.Id, NextStationId);
+			marker = _vm.GetMarker(train.Id, NextStationId);
 			HasHeroMarker = marker != MarkerKind.None;
 			HeroMarkerText = marker switch
 			{
@@ -486,9 +492,38 @@ public partial class OriginalTimetableV4Page : ContentPage
 				_ => string.Empty,
 			};
 		}
+
+		// 種別ごとに Bg/Fg ブラシを差し替える (Colors.xaml の OT_Marker*Bg/Fg と
+		// 同じ役割。Resources lookup の null は Transparent にフォールバック)。
+		Brush? bg = null;
+		Color? fg = null;
+		var resources = Application.Current?.Resources;
+		if (resources is not null)
+		{
+			switch (marker)
+			{
+				case MarkerKind.Flag:
+					bg = resources["OT_MarkerFlagBgBrush"] as Brush;
+					fg = resources["OT_MarkerFlagFg"] as Color;
+					break;
+				case MarkerKind.Caution:
+					bg = resources["OT_MarkerCautionBgBrush"] as Brush;
+					fg = resources["OT_MarkerCautionFg"] as Color;
+					break;
+				case MarkerKind.Star:
+					bg = resources["OT_MarkerStarBgBrush"] as Brush;
+					fg = resources["OT_MarkerStarFg"] as Color;
+					break;
+			}
+		}
+		HeroMarkerBg = bg ?? Brush.Transparent;
+		HeroMarkerFg = fg ?? Colors.Transparent;
+
 		OnPropertyChanged(nameof(HasHeroMarker));
 		OnPropertyChanged(nameof(HasNoHeroMarker));
 		OnPropertyChanged(nameof(HeroMarkerText));
+		OnPropertyChanged(nameof(HeroMarkerBg));
+		OnPropertyChanged(nameof(HeroMarkerFg));
 	}
 
 	void BuildItems(TrainData train)

@@ -135,7 +135,10 @@
 									CharacterSpacing="1.6"
 									VerticalOptions="Center"
 									TextColor="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
-								<!-- Hero marker badge (tap to open MarkerPopover for next station) -->
+								<!-- Hero marker badge (tap to open MarkerPopover for next station).
+								     Background/foreground を marker 種別ごとに切り替える
+								     (Flag/Caution/Star)。code-behind の RecomputeHeroMarker が
+								     OT_Marker*Bg/Fg リソースから配色を再構築する (#286)。 -->
 								<Border
 									AutomationId="OriginalTimetable.V4.Hero.MarkerBadge"
 									IsVisible="{Binding HasHeroMarker, Source={x:Reference Self}}"
@@ -143,7 +146,7 @@
 									StrokeThickness="0"
 									StrokeShape="RoundRectangle 4"
 									VerticalOptions="Center"
-									Background="{StaticResource OT_Bg}">
+									Background="{Binding HeroMarkerBg, Source={x:Reference Self}}">
 									<Border.GestureRecognizers>
 										<TapGestureRecognizer Tapped="OnHeroMarkerBadgeTapped"/>
 									</Border.GestureRecognizers>
@@ -151,7 +154,7 @@
 										Text="{Binding HeroMarkerText, Source={x:Reference Self}}"
 										FontSize="11"
 										FontAttributes="Bold"
-										TextColor="{StaticResource OT_MarkerFlagFg}"/>
+										TextColor="{Binding HeroMarkerFg, Source={x:Reference Self}}"/>
 								</Border>
 								<!-- Tappable placeholder when no marker — anchors popover for adding -->
 								<Border
