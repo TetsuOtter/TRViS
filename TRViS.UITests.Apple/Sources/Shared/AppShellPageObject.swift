@@ -189,4 +189,51 @@ class AppShellPageObject {
         item.tap()
         return OriginalTimetableV1PageObject(app: app, base: base)
     }
+
+    /// Navigates to the V2 (Card Stack) Original Timetable page via the Shell
+    /// flyout. iPad mini A17 portrait (744pt) renders the tablet stacked-card
+    /// layout; iPhone widths render the compact CollectionView.
+    func navigateToOriginalTimetableV2() -> OriginalTimetableV2PageObject {
+        openFlyout()
+        guard let item = waitForFlyoutItem(
+            id: AutomationIds.Shell.Flyout.originalTimetableV2,
+            label: "ダイヤ表 (V2)"
+        ) else {
+            attachDiagnosticScreenshot(name: "navigateToV2-flyout-not-found")
+            XCTFail("Flyout item 'ダイヤ表 (V2)' (\(AutomationIds.Shell.Flyout.originalTimetableV2)) not found")
+            return OriginalTimetableV2PageObject(app: app, base: base)
+        }
+        item.tap()
+        return OriginalTimetableV2PageObject(app: app, base: base)
+    }
+
+    /// Navigates to the V4 (Next Big) Original Timetable page via the Shell flyout.
+    func navigateToOriginalTimetableV4() -> OriginalTimetableV4PageObject {
+        openFlyout()
+        guard let item = waitForFlyoutItem(
+            id: AutomationIds.Shell.Flyout.originalTimetableV4,
+            label: "ダイヤ表 (V4)"
+        ) else {
+            attachDiagnosticScreenshot(name: "navigateToV4-flyout-not-found")
+            XCTFail("Flyout item 'ダイヤ表 (V4)' (\(AutomationIds.Shell.Flyout.originalTimetableV4)) not found")
+            return OriginalTimetableV4PageObject(app: app, base: base)
+        }
+        item.tap()
+        return OriginalTimetableV4PageObject(app: app, base: base)
+    }
+
+    /// Navigates to the V6 (Bold Editorial) Original Timetable page via the Shell flyout.
+    func navigateToOriginalTimetableV6() -> OriginalTimetableV6PageObject {
+        openFlyout()
+        guard let item = waitForFlyoutItem(
+            id: AutomationIds.Shell.Flyout.originalTimetableV6,
+            label: "ダイヤ表 (V6)"
+        ) else {
+            attachDiagnosticScreenshot(name: "navigateToV6-flyout-not-found")
+            XCTFail("Flyout item 'ダイヤ表 (V6)' (\(AutomationIds.Shell.Flyout.originalTimetableV6)) not found")
+            return OriginalTimetableV6PageObject(app: app, base: base)
+        }
+        item.tap()
+        return OriginalTimetableV6PageObject(app: app, base: base)
+    }
 }

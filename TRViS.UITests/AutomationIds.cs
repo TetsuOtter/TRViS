@@ -401,6 +401,207 @@ public static class AutomationIds
 			public const string TestCycleMarkerRow0Button = "OriginalTimetable.V1.Test.CycleMarkerRow0";
 			public const string TestClearMarkerRow0Button = "OriginalTimetable.V1.Test.ClearMarkerRow0";
 		}
+
+		/// <summary>
+		/// V2 = "Card Stack" — CollectionView-based stacked-card list with a
+		/// sticky train header, SwipeView per row (marker / memo / clear) and a
+		/// shared bottom-sheet memo editor + tweaks overlay. Phase 1/2/3 complete;
+		/// tablet layout (>= 600pt) and compact layout both implemented. Only
+		/// AutomationIds actually emitted by OriginalTimetableV2Page.xaml are
+		/// listed here.
+		/// </summary>
+		public static class V2
+		{
+			public const string Root = "OriginalTimetable.V2.Root";
+			public const string TabletGrid = "OriginalTimetable.V2.TabletGrid";
+			public const string CompactGrid = "OriginalTimetable.V2.CompactGrid";
+
+			public const string Header = "OriginalTimetable.V2.Header";
+			public const string EmptyState = "OriginalTimetable.V2.EmptyState";
+			public const string RowsList = "OriginalTimetable.V2.RowsList";
+
+			public const string CompactHeader = "OriginalTimetable.V2.Compact.Header";
+			public const string CompactEmptyState = "OriginalTimetable.V2.Compact.EmptyState";
+			public const string CompactRowsList = "OriginalTimetable.V2.Compact.RowsList";
+
+			// Per-row id patterns; append the row's TimetableRow.Id. Built from
+			// V2RowItem.RowAutomationId / MarkerAutomationId / etc. Mirrors V1.
+			public const string RowPrefix = "OriginalTimetable.V2.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MemoFor(string rowId) => RowPrefix + rowId + ".Memo";
+			public static string ClearFor(string rowId) => RowPrefix + rowId + ".Clear";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+			public static string NoteBodyFor(string rowId) => RowPrefix + rowId + ".NoteBody";
+
+			public const string TweaksButton = "OriginalTimetable.V2.TweaksButton";
+			public static class Tweaks
+			{
+				public const string Overlay = "OriginalTimetable.V2.Tweaks.Overlay";
+				public const string Scrim = "OriginalTimetable.V2.Tweaks.Scrim";
+				public const string Title = "OriginalTimetable.V2.Tweaks.Title";
+				public const string ShowPasses = "OriginalTimetable.V2.Tweaks.ShowPasses";
+				public static class Density
+				{
+					public const string Compact = "OriginalTimetable.V2.Tweaks.Density.Compact";
+					public const string Comfortable = "OriginalTimetable.V2.Tweaks.Density.Comfortable";
+					public const string Spacious = "OriginalTimetable.V2.Tweaks.Density.Spacious";
+				}
+			}
+
+			public static class MemoSheet
+			{
+				public const string Root = "OriginalTimetable.V2.MemoSheet";
+				public const string Scrim = "OriginalTimetable.V2.MemoSheet.Scrim";
+				public const string Editor = "OriginalTimetable.V2.MemoSheet.Editor";
+				public const string Save = "OriginalTimetable.V2.MemoSheet.Save";
+				public const string Delete = "OriginalTimetable.V2.MemoSheet.Delete";
+				public const string Cancel = "OriginalTimetable.V2.MemoSheet.Cancel";
+			}
+		}
+
+		/// <summary>
+		/// V4 = "Next Big" — hero card highlighting the next-arrival station + a
+		/// MiniList of upcoming rows. Tablet layout pairs Hero + MiniList side by
+		/// side; compact layout stacks them. AutomationIds reflect only what
+		/// OriginalTimetableV4Page.xaml emits — Hero.* covers the hero card,
+		/// TrainStripe.* covers the persistent train-info strip header.
+		/// </summary>
+		public static class V4
+		{
+			public const string Root = "OriginalTimetable.V4.Root";
+			public const string TabletGrid = "OriginalTimetable.V4.TabletGrid";
+			public const string CompactGrid = "OriginalTimetable.V4.CompactGrid";
+
+			// Persistent train-info strip rendered above the Hero area.
+			public const string TrainStripe = "OriginalTimetable.V4.TrainStripe";
+			public const string TrainStripeTypeChip = "OriginalTimetable.V4.TrainStripe.TypeChip";
+			public const string TrainStripeTrainNumber = "OriginalTimetable.V4.TrainStripe.TrainNumber";
+
+			// Hero card (next arrival focus).
+			public const string Hero = "OriginalTimetable.V4.Hero";
+			public const string HeroMarkerBadge = "OriginalTimetable.V4.Hero.MarkerBadge";
+			public const string HeroMarkerAdd = "OriginalTimetable.V4.Hero.MarkerAdd";
+			public const string HeroStation = "OriginalTimetable.V4.HeroStation";
+			public const string HeroArrive = "OriginalTimetable.V4.HeroArrive";
+			public const string HeroDepart = "OriginalTimetable.V4.HeroDepart";
+			public const string HeroTrack = "OriginalTimetable.V4.HeroTrack";
+			public const string HeroPreview = "OriginalTimetable.V4.HeroPreview";
+			public const string HeroNoteBody = "OriginalTimetable.V4.Hero.NoteBody";
+
+			public const string EmptyState = "OriginalTimetable.V4.EmptyState";
+			public const string MiniList = "OriginalTimetable.V4.MiniList";
+			public const string CompactMiniList = "OriginalTimetable.V4.Compact.MiniList";
+
+			// Per-row id patterns for MiniList rows (mirrors V1/V2 pattern).
+			public const string RowPrefix = "OriginalTimetable.V4.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MemoFor(string rowId) => RowPrefix + rowId + ".Memo";
+			public static string ClearFor(string rowId) => RowPrefix + rowId + ".Clear";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+			public static string NoteBodyFor(string rowId) => RowPrefix + rowId + ".NoteBody";
+
+			public const string TweaksButton = "OriginalTimetable.V4.TweaksButton";
+			public static class Tweaks
+			{
+				public const string Overlay = "OriginalTimetable.V4.Tweaks.Overlay";
+				public const string Scrim = "OriginalTimetable.V4.Tweaks.Scrim";
+				public const string Title = "OriginalTimetable.V4.Tweaks.Title";
+				public const string ShowPasses = "OriginalTimetable.V4.Tweaks.ShowPasses";
+				public static class Density
+				{
+					public const string Compact = "OriginalTimetable.V4.Tweaks.Density.Compact";
+					public const string Comfortable = "OriginalTimetable.V4.Tweaks.Density.Comfortable";
+					public const string Spacious = "OriginalTimetable.V4.Tweaks.Density.Spacious";
+				}
+			}
+
+			public static class MemoSheet
+			{
+				public const string Root = "OriginalTimetable.V4.MemoSheet";
+				public const string Scrim = "OriginalTimetable.V4.MemoSheet.Scrim";
+				public const string Editor = "OriginalTimetable.V4.MemoSheet.Editor";
+				public const string Save = "OriginalTimetable.V4.MemoSheet.Save";
+				public const string Delete = "OriginalTimetable.V4.MemoSheet.Delete";
+				public const string Cancel = "OriginalTimetable.V4.MemoSheet.Cancel";
+			}
+		}
+
+		/// <summary>
+		/// V6 = "Bold Editorial" — masthead + train stripe + past chips + a large
+		/// CurrentBlock anchored on the current row, followed by an UpcomingList.
+		/// Tablet (>=600pt) and compact layouts each have their own automation
+		/// surface. AutomationIds match exactly what OriginalTimetableV6Page.xaml
+		/// emits.
+		/// </summary>
+		public static class V6
+		{
+			public const string Root = "OriginalTimetable.V6.Root";
+			public const string TabletGrid = "OriginalTimetable.V6.TabletGrid";
+			public const string CompactGrid = "OriginalTimetable.V6.CompactGrid";
+
+			public const string Masthead = "OriginalTimetable.V6.Masthead";
+			public const string TrainStripe = "OriginalTimetable.V6.TrainStripe";
+			public const string PastChips = "OriginalTimetable.V6.PastChips";
+			public const string CurrentBlock = "OriginalTimetable.V6.CurrentBlock";
+			public const string CurrentBlockMarkerBadge = "OriginalTimetable.V6.CurrentBlock.MarkerBadge";
+			public const string CurrentBlockStationName = "OriginalTimetable.V6.CurrentBlock.StationName";
+			public const string CurrentBlockNoteBody = "OriginalTimetable.V6.CurrentBlock.NoteBody";
+			public const string EmptyState = "OriginalTimetable.V6.EmptyState";
+			public const string UpcomingList = "OriginalTimetable.V6.UpcomingList";
+
+			// Compact-layout mirrors.
+			public const string CompactMasthead = "OriginalTimetable.V6.Compact.Masthead";
+			public const string CompactTrainStripe = "OriginalTimetable.V6.Compact.TrainStripe";
+			public const string CompactPastChips = "OriginalTimetable.V6.Compact.PastChips";
+			public const string CompactCurrentBlock = "OriginalTimetable.V6.Compact.CurrentBlock";
+			public const string CompactCurrentBlockMarkerBadge = "OriginalTimetable.V6.Compact.CurrentBlock.MarkerBadge";
+			public const string CompactCurrentBlockNoteBody = "OriginalTimetable.V6.Compact.CurrentBlock.NoteBody";
+			public const string CompactEmptyState = "OriginalTimetable.V6.Compact.EmptyState";
+			public const string CompactUpcomingList = "OriginalTimetable.V6.Compact.UpcomingList";
+
+			public const string TweaksButton = "OriginalTimetable.V6.TweaksButton";
+			public const string CompactTweaksButton = "OriginalTimetable.V6.Compact.TweaksButton";
+
+			// Per-row id patterns (UpcomingList rows mirror V1/V2/V4).
+			public const string RowPrefix = "OriginalTimetable.V6.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MemoFor(string rowId) => RowPrefix + rowId + ".Memo";
+			public static string ClearFor(string rowId) => RowPrefix + rowId + ".Clear";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+			public static string NoteBodyFor(string rowId) => RowPrefix + rowId + ".NoteBody";
+
+			// V6-specific: PastChips row prefix (rendered as small chips above
+			// the CurrentBlock for stations already passed).
+			public const string PastChipPrefix = "OriginalTimetable.V6.PastChip.";
+			public static string PastChipFor(string rowId) => PastChipPrefix + rowId;
+
+			public static class Tweaks
+			{
+				public const string Overlay = "OriginalTimetable.V6.Tweaks.Overlay";
+				public const string Scrim = "OriginalTimetable.V6.Tweaks.Scrim";
+				public const string Title = "OriginalTimetable.V6.Tweaks.Title";
+				public const string ShowPasses = "OriginalTimetable.V6.Tweaks.ShowPasses";
+				public static class Density
+				{
+					public const string Compact = "OriginalTimetable.V6.Tweaks.Density.Compact";
+					public const string Comfortable = "OriginalTimetable.V6.Tweaks.Density.Comfortable";
+					public const string Spacious = "OriginalTimetable.V6.Tweaks.Density.Spacious";
+				}
+			}
+
+			public static class MemoSheet
+			{
+				public const string Root = "OriginalTimetable.V6.MemoSheet";
+				public const string Scrim = "OriginalTimetable.V6.MemoSheet.Scrim";
+				public const string Editor = "OriginalTimetable.V6.MemoSheet.Editor";
+				public const string Save = "OriginalTimetable.V6.MemoSheet.Save";
+				public const string Delete = "OriginalTimetable.V6.MemoSheet.Delete";
+				public const string Cancel = "OriginalTimetable.V6.MemoSheet.Cancel";
+			}
+		}
 	}
 
 	public static class ThirdParty

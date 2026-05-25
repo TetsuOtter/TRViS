@@ -342,6 +342,9 @@ run_ios_for_device_class() {
     ONLY_TESTING_ARGS=(
       -only-testing:TRViSUITests_iOS/ScreenshotRegressionTests
       -only-testing:TRViSUITests_iOS/OriginalTimetableV1ScreenshotTests
+      -only-testing:TRViSUITests_iOS/OriginalTimetableV2ScreenshotTests
+      -only-testing:TRViSUITests_iOS/OriginalTimetableV4ScreenshotTests
+      -only-testing:TRViSUITests_iOS/OriginalTimetableV6ScreenshotTests
     )
   fi
   log "Running XCUITest on simulator $SIM_UDID (device-class=$dc) …"

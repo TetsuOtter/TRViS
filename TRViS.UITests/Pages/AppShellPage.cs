@@ -395,4 +395,38 @@ public class AppShellPage : PageObject
 		return new OriginalTimetableV1PageObject(Driver);
 	}
 
+	/// <summary>
+	/// Navigates to the V2 (Card Stack) Original Timetable page via the Shell
+	/// flyout. Mirrors NavigateToOriginalTimetableV1 — V2's layout is also
+	/// tablet-only for the rich card view (compact placeholder on narrow widths).
+	/// </summary>
+	public OriginalTimetableV2PageObject NavigateToOriginalTimetableV2()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV2, "ダイヤ表 (V2)").Click();
+		return new OriginalTimetableV2PageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates to the V4 (Next Big) Original Timetable page via the Shell
+	/// flyout.
+	/// </summary>
+	public OriginalTimetableV4PageObject NavigateToOriginalTimetableV4()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV4, "ダイヤ表 (V4)").Click();
+		return new OriginalTimetableV4PageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates to the V6 (Bold Editorial) Original Timetable page via the
+	/// Shell flyout.
+	/// </summary>
+	public OriginalTimetableV6PageObject NavigateToOriginalTimetableV6()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV6, "ダイヤ表 (V6)").Click();
+		return new OriginalTimetableV6PageObject(Driver);
+	}
+
 }

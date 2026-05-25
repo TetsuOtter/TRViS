@@ -294,5 +294,181 @@ enum AutomationIds {
             static let testCycleMarkerRow0Button = "OriginalTimetable.V1.Test.CycleMarkerRow0"
             static let testClearMarkerRow0Button = "OriginalTimetable.V1.Test.ClearMarkerRow0"
         }
+
+        /// V2 = "Card Stack" — CollectionView-based stacked-card list with a
+        /// sticky train header, SwipeView per row, shared bottom-sheet memo
+        /// editor + tweaks overlay. Tablet (>=600pt) and compact layouts both
+        /// implemented. Only the identifiers actually emitted by
+        /// OriginalTimetableV2Page.xaml are mirrored here.
+        enum V2 {
+            static let root              = "OriginalTimetable.V2.Root"
+            static let tabletGrid        = "OriginalTimetable.V2.TabletGrid"
+            static let compactGrid       = "OriginalTimetable.V2.CompactGrid"
+
+            static let header            = "OriginalTimetable.V2.Header"
+            static let emptyState        = "OriginalTimetable.V2.EmptyState"
+            static let rowsList          = "OriginalTimetable.V2.RowsList"
+
+            static let compactHeader     = "OriginalTimetable.V2.Compact.Header"
+            static let compactEmptyState = "OriginalTimetable.V2.Compact.EmptyState"
+            static let compactRowsList   = "OriginalTimetable.V2.Compact.RowsList"
+
+            // Per-row id patterns; append the row's TimetableRow.Id.
+            static let rowPrefix = "OriginalTimetable.V2.Row."
+            static func row(_ rowId: String) -> String         { rowPrefix + rowId }
+            static func marker(_ rowId: String) -> String      { rowPrefix + rowId + ".Marker" }
+            static func memo(_ rowId: String) -> String        { rowPrefix + rowId + ".Memo" }
+            static func clear(_ rowId: String) -> String       { rowPrefix + rowId + ".Clear" }
+            static func markerBadge(_ rowId: String) -> String { rowPrefix + rowId + ".MarkerBadge" }
+            static func noteBody(_ rowId: String) -> String    { rowPrefix + rowId + ".NoteBody" }
+
+            static let tweaksButton = "OriginalTimetable.V2.TweaksButton"
+            enum Tweaks {
+                static let overlay    = "OriginalTimetable.V2.Tweaks.Overlay"
+                static let scrim      = "OriginalTimetable.V2.Tweaks.Scrim"
+                static let title      = "OriginalTimetable.V2.Tweaks.Title"
+                static let showPasses = "OriginalTimetable.V2.Tweaks.ShowPasses"
+                enum Density {
+                    static let compact     = "OriginalTimetable.V2.Tweaks.Density.Compact"
+                    static let comfortable = "OriginalTimetable.V2.Tweaks.Density.Comfortable"
+                    static let spacious    = "OriginalTimetable.V2.Tweaks.Density.Spacious"
+                }
+            }
+
+            enum MemoSheet {
+                static let root   = "OriginalTimetable.V2.MemoSheet"
+                static let scrim  = "OriginalTimetable.V2.MemoSheet.Scrim"
+                static let editor = "OriginalTimetable.V2.MemoSheet.Editor"
+                static let save   = "OriginalTimetable.V2.MemoSheet.Save"
+                static let delete = "OriginalTimetable.V2.MemoSheet.Delete"
+                static let cancel = "OriginalTimetable.V2.MemoSheet.Cancel"
+            }
+        }
+
+        /// V4 = "Next Big" — hero card highlighting next-arrival station + a
+        /// MiniList of upcoming rows. AutomationIds match exactly what
+        /// OriginalTimetableV4Page.xaml emits.
+        enum V4 {
+            static let root         = "OriginalTimetable.V4.Root"
+            static let tabletGrid   = "OriginalTimetable.V4.TabletGrid"
+            static let compactGrid  = "OriginalTimetable.V4.CompactGrid"
+
+            // Persistent train-info strip rendered above the Hero area.
+            static let trainStripe            = "OriginalTimetable.V4.TrainStripe"
+            static let trainStripeTypeChip    = "OriginalTimetable.V4.TrainStripe.TypeChip"
+            static let trainStripeTrainNumber = "OriginalTimetable.V4.TrainStripe.TrainNumber"
+
+            // Hero card.
+            static let hero               = "OriginalTimetable.V4.Hero"
+            static let heroMarkerBadge    = "OriginalTimetable.V4.Hero.MarkerBadge"
+            static let heroMarkerAdd      = "OriginalTimetable.V4.Hero.MarkerAdd"
+            static let heroStation        = "OriginalTimetable.V4.HeroStation"
+            static let heroArrive         = "OriginalTimetable.V4.HeroArrive"
+            static let heroDepart         = "OriginalTimetable.V4.HeroDepart"
+            static let heroTrack          = "OriginalTimetable.V4.HeroTrack"
+            static let heroPreview        = "OriginalTimetable.V4.HeroPreview"
+            static let heroNoteBody       = "OriginalTimetable.V4.Hero.NoteBody"
+
+            static let emptyState       = "OriginalTimetable.V4.EmptyState"
+            static let miniList         = "OriginalTimetable.V4.MiniList"
+            static let compactMiniList  = "OriginalTimetable.V4.Compact.MiniList"
+
+            // Per-row id patterns for MiniList rows.
+            static let rowPrefix = "OriginalTimetable.V4.Row."
+            static func row(_ rowId: String) -> String         { rowPrefix + rowId }
+            static func marker(_ rowId: String) -> String      { rowPrefix + rowId + ".Marker" }
+            static func memo(_ rowId: String) -> String        { rowPrefix + rowId + ".Memo" }
+            static func clear(_ rowId: String) -> String       { rowPrefix + rowId + ".Clear" }
+            static func markerBadge(_ rowId: String) -> String { rowPrefix + rowId + ".MarkerBadge" }
+            static func noteBody(_ rowId: String) -> String    { rowPrefix + rowId + ".NoteBody" }
+
+            static let tweaksButton = "OriginalTimetable.V4.TweaksButton"
+            enum Tweaks {
+                static let overlay    = "OriginalTimetable.V4.Tweaks.Overlay"
+                static let scrim      = "OriginalTimetable.V4.Tweaks.Scrim"
+                static let title      = "OriginalTimetable.V4.Tweaks.Title"
+                static let showPasses = "OriginalTimetable.V4.Tweaks.ShowPasses"
+                enum Density {
+                    static let compact     = "OriginalTimetable.V4.Tweaks.Density.Compact"
+                    static let comfortable = "OriginalTimetable.V4.Tweaks.Density.Comfortable"
+                    static let spacious    = "OriginalTimetable.V4.Tweaks.Density.Spacious"
+                }
+            }
+
+            enum MemoSheet {
+                static let root   = "OriginalTimetable.V4.MemoSheet"
+                static let scrim  = "OriginalTimetable.V4.MemoSheet.Scrim"
+                static let editor = "OriginalTimetable.V4.MemoSheet.Editor"
+                static let save   = "OriginalTimetable.V4.MemoSheet.Save"
+                static let delete = "OriginalTimetable.V4.MemoSheet.Delete"
+                static let cancel = "OriginalTimetable.V4.MemoSheet.Cancel"
+            }
+        }
+
+        /// V6 = "Bold Editorial" — masthead + train stripe + past chips +
+        /// large CurrentBlock + UpcomingList. AutomationIds match exactly what
+        /// OriginalTimetableV6Page.xaml emits.
+        enum V6 {
+            static let root              = "OriginalTimetable.V6.Root"
+            static let tabletGrid        = "OriginalTimetable.V6.TabletGrid"
+            static let compactGrid       = "OriginalTimetable.V6.CompactGrid"
+
+            static let masthead          = "OriginalTimetable.V6.Masthead"
+            static let trainStripe       = "OriginalTimetable.V6.TrainStripe"
+            static let pastChips         = "OriginalTimetable.V6.PastChips"
+            static let currentBlock      = "OriginalTimetable.V6.CurrentBlock"
+            static let currentBlockMarkerBadge = "OriginalTimetable.V6.CurrentBlock.MarkerBadge"
+            static let currentBlockStationName = "OriginalTimetable.V6.CurrentBlock.StationName"
+            static let currentBlockNoteBody    = "OriginalTimetable.V6.CurrentBlock.NoteBody"
+            static let emptyState        = "OriginalTimetable.V6.EmptyState"
+            static let upcomingList      = "OriginalTimetable.V6.UpcomingList"
+
+            // Compact-layout mirrors.
+            static let compactMasthead     = "OriginalTimetable.V6.Compact.Masthead"
+            static let compactTrainStripe  = "OriginalTimetable.V6.Compact.TrainStripe"
+            static let compactPastChips    = "OriginalTimetable.V6.Compact.PastChips"
+            static let compactCurrentBlock = "OriginalTimetable.V6.Compact.CurrentBlock"
+            static let compactCurrentBlockMarkerBadge = "OriginalTimetable.V6.Compact.CurrentBlock.MarkerBadge"
+            static let compactCurrentBlockNoteBody    = "OriginalTimetable.V6.Compact.CurrentBlock.NoteBody"
+            static let compactEmptyState   = "OriginalTimetable.V6.Compact.EmptyState"
+            static let compactUpcomingList = "OriginalTimetable.V6.Compact.UpcomingList"
+
+            static let tweaksButton        = "OriginalTimetable.V6.TweaksButton"
+            static let compactTweaksButton = "OriginalTimetable.V6.Compact.TweaksButton"
+
+            // Per-row id patterns (UpcomingList rows).
+            static let rowPrefix = "OriginalTimetable.V6.Row."
+            static func row(_ rowId: String) -> String         { rowPrefix + rowId }
+            static func marker(_ rowId: String) -> String      { rowPrefix + rowId + ".Marker" }
+            static func memo(_ rowId: String) -> String        { rowPrefix + rowId + ".Memo" }
+            static func clear(_ rowId: String) -> String       { rowPrefix + rowId + ".Clear" }
+            static func markerBadge(_ rowId: String) -> String { rowPrefix + rowId + ".MarkerBadge" }
+            static func noteBody(_ rowId: String) -> String    { rowPrefix + rowId + ".NoteBody" }
+
+            // V6-specific: past-chip prefix.
+            static let pastChipPrefix = "OriginalTimetable.V6.PastChip."
+            static func pastChip(_ rowId: String) -> String    { pastChipPrefix + rowId }
+
+            enum Tweaks {
+                static let overlay    = "OriginalTimetable.V6.Tweaks.Overlay"
+                static let scrim      = "OriginalTimetable.V6.Tweaks.Scrim"
+                static let title      = "OriginalTimetable.V6.Tweaks.Title"
+                static let showPasses = "OriginalTimetable.V6.Tweaks.ShowPasses"
+                enum Density {
+                    static let compact     = "OriginalTimetable.V6.Tweaks.Density.Compact"
+                    static let comfortable = "OriginalTimetable.V6.Tweaks.Density.Comfortable"
+                    static let spacious    = "OriginalTimetable.V6.Tweaks.Density.Spacious"
+                }
+            }
+
+            enum MemoSheet {
+                static let root   = "OriginalTimetable.V6.MemoSheet"
+                static let scrim  = "OriginalTimetable.V6.MemoSheet.Scrim"
+                static let editor = "OriginalTimetable.V6.MemoSheet.Editor"
+                static let save   = "OriginalTimetable.V6.MemoSheet.Save"
+                static let delete = "OriginalTimetable.V6.MemoSheet.Delete"
+                static let cancel = "OriginalTimetable.V6.MemoSheet.Cancel"
+            }
+        }
     }
 }
