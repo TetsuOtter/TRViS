@@ -645,8 +645,14 @@ public partial class OriginalTimetableV2Page : ContentPage
 		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
 		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
 
-		var accentFg = Application.Current?.Resources["OT_AccentFg_Light"] as Color;
-		var fg = Application.Current?.Resources["OT_Fg_Light"] as Color;
+		// テーマに応じて *_Light / *_Dark の対を切り替える。
+		// 以前は常に *_Light を読んでいたためダークテーマでコントラストが崩れていた
+		// (#286 Copilot review)。
+		bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
+		string accentFgKey = isDark ? "OT_AccentFg_Dark" : "OT_AccentFg_Light";
+		string fgKey = isDark ? "OT_Fg_Dark" : "OT_Fg_Light";
+		var accentFg = Application.Current?.Resources[accentFgKey] as Color;
+		var fg = Application.Current?.Resources[fgKey] as Color;
 		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
 		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
 		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
