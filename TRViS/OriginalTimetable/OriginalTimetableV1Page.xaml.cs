@@ -14,16 +14,21 @@ namespace TRViS.OriginalTimetable;
 
 // V1 Modern Classic — 独自時刻表ページ骨格 (Phase 1: tablet ≥600pt only).
 //
-// Probe (37e5e44) verified that a CollectionView + DataTemplate + SwipeView
-// renders without the ApplyStyleSheets NRE that crashed our prior custom
-// V1TabletLayout on iPad mini A17. This page now feeds the same render path
-// from real TrainData via OriginalTimetableViewModel.ActiveTrain.
-//
 // Phase 1 covers: real-data row mapping, sticky header, section-break rows
 // (RunOutLimit ↔ RunInLimit transition), marker badges, memo dots, note
 // toggle button, SwipeItem CycleMarker/ClearMarker commands, and width-based
-// tablet/compact split. MarkerPopover / MemoSheet / NoteFold body / phone
-// compact UI / tweaks panel / E2E test are Phase 2/3.
+// tablet/compact split.
+//
+// History: an early iteration used a hand-rolled tablet Layout that hit an
+// ApplyStyleSheets NRE on iPad mini A17; that was replaced by a CollectionView
+// + DataTemplate which then hit Apple's ObservationTracking._AccessList /
+// _NativeDictionary.copy use-after-free during cell recycling (swiftlang#84228 —
+// triggered by HtmlAutoDetectLabel inside the recycled cells). The current
+// shape replaces CollectionView with BindableLayout-on-VerticalStackLayout
+// inside a ScrollView: V1RowTablet / V1RowCompact (programmatic View subclasses
+// in V1Row.cs) are instantiated per item by the BindableLayout. Children are
+// added as regular VerticalStackLayout siblings, so no UICollectionView /
+// SwiftUI ViewGraph is involved on iOS and the crash path is gone.
 public partial class OriginalTimetableV1Page : ContentPage
 {
 	public static readonly string NameOfThisClass = nameof(OriginalTimetableV1Page);
@@ -180,7 +185,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 				break;
 			// Partial in-place updates — V1RowItem is an ObservableObject so
 			// mutating its props refreshes the bound visuals without ever
-			// touching Items, which preserves CollectionView scroll position.
+			// touching Items, which preserves ScrollView scroll position.
 			case nameof(OriginalTimetableViewModel.MarkersVersion):
 				UpdateMarkersInPlace();
 				break;
@@ -290,10 +295,15 @@ public partial class OriginalTimetableV1Page : ContentPage
 		return (tabletPad, compactPad, tabletStation, compactStation);
 	}
 
-	// Auto-follow: when Follow=true, scroll the visible CollectionView to the
+	// Auto-follow: when Follow=true, scroll the visible row host to the
 	// current-station row (center). Called after the CurIdxVersion in-place
 	// pass has flipped IsCurrent on each row.
-	void AutoFollowScroll()
+	//
+	// Post-refactor: rows live inside a BindableLayout-driven VerticalStackLayout
+	// (TabletRowsHost / CompactRowsHost) wrapped in a ScrollView. BindableLayout
+	// preserves Items order so the child at index i corresponds to Items[i].
+	// We scroll to that child via ScrollView.ScrollToAsync (the View overload).
+	async void AutoFollowScroll()
 	{
 		if (!_vm.Follow)
 			return;
@@ -301,26 +311,34 @@ public partial class OriginalTimetableV1Page : ContentPage
 		if (train is null)
 			return;
 		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
-		V1RowItem? curItem = null;
-		foreach (var i in Items)
+		int curIdx = -1;
+		for (int i = 0; i < Items.Count; i++)
 		{
-			if (!i.IsSectionBreakRow && i.OrigIndex == curOrigIdx)
+			var it = Items[i];
+			if (!it.IsSectionBreakRow && it.OrigIndex == curOrigIdx)
 			{
-				curItem = i;
+				curIdx = i;
 				break;
 			}
 		}
-		if (curItem is null)
+		if (curIdx < 0)
 			return;
-		var cv = TabletGrid.IsVisible ? TabletRowsList : CompactRowsList;
+
+		bool tablet = TabletGrid.IsVisible;
+		ScrollView scroll = tablet ? TabletScroll : CompactScroll;
+		VerticalStackLayout host = tablet ? TabletRowsHost : CompactRowsHost;
+		if (curIdx >= host.Children.Count)
+			return;
+		if (host.Children[curIdx] is not View target)
+			return;
 		try
 		{
-			cv.ScrollTo(curItem, position: ScrollToPosition.Center, animate: true);
+			await scroll.ScrollToAsync(target, ScrollToPosition.Center, animated: true);
 		}
 		catch
 		{
-			// CollectionView.ScrollTo can throw on certain platforms when the
-			// list hasn't measured yet — swallow rather than crash auto-follow.
+			// ScrollToAsync can throw if the host hasn't measured yet — swallow
+			// rather than crash auto-follow.
 		}
 	}
 
@@ -483,6 +501,35 @@ public partial class OriginalTimetableV1Page : ContentPage
 		};
 	}
 
+	// ── Public entry points for V1Row* (Parent-walked invocations) ─────────
+	//
+	// V1RowTablet / V1RowCompact don't bind their SwipeItem.Command through
+	// the row's BindingContext (the BindingContext is the per-row V1RowItem,
+	// not the page). Instead, each row walks up its Parent chain to find this
+	// page on first interaction and calls one of these methods directly.
+
+	public void OpenMarkerPopoverFromSwipe(string? rowId)
+		=> OnOpenMarkerPopoverFromSwipe(rowId);
+
+	public void ClearMarkerFromRow(string? rowId)
+		=> OnClearMarker(rowId);
+
+	public void OpenMemoFromRow(string? rowId)
+		=> OnOpenMemo(rowId);
+
+	public void ToggleNoteForRow(string? rowId)
+		=> OnToggleNote(rowId);
+
+	// Badge tap (anchored popover). The View is the badge Border that owns
+	// the tap gesture in V1Row*; we use it as the popover anchor so the
+	// floating UI positions next to the visible marker.
+	public void OpenMarkerPopoverFromBadge(View? anchor, string? rowId)
+	{
+		if (anchor is null || string.IsNullOrEmpty(rowId))
+			return;
+		OpenMarkerPopover(anchor, rowId);
+	}
+
 	void OnCycleMarker(string? rowId)
 	{
 		var train = _vm.ActiveTrain;
@@ -527,16 +574,8 @@ public partial class OriginalTimetableV1Page : ContentPage
 		OpenMarkerPopover(RootGrid, rowId);
 	}
 
-	// Tap on the visible marker badge inside the row. Uses the badge Border
-	// (sender) as the anchor so the popover positions next to the marker.
-	void OnMarkerBadgeTapped(object? sender, TappedEventArgs e)
-	{
-		if (sender is not Border border)
-			return;
-		if (border.BindingContext is not V1RowItem item)
-			return;
-		OpenMarkerPopover(border, item.Id);
-	}
+	// (OnMarkerBadgeTapped removed — V1RowTablet / V1RowCompact wire the badge
+	//  tap directly to OpenMarkerPopoverFromBadge() via Parent-walk.)
 
 	async void OpenMarkerPopover(View anchor, string rowId)
 	{
