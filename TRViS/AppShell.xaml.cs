@@ -193,17 +193,100 @@ public partial class AppShell : Shell
 	// 動的に挿入した列車セクション (見出し + 列車 MenuItem + separator) の参照。
 	// 再構築時に Items から確実に取り除けるよう常にトラックする。
 	readonly List<ShellItem> _DynamicTrainShellItems = new();
+	// 現在の選択マーカー ("▶ ") を付け替えできるよう、列車ごとの MenuItem 参照を
+	// (TrainData, MenuItem) のタプルで保持する。SelectedTrainData 変化時は
+	// このリストを走査して MenuItem.Text を in-place 更新する (#286)。
+	readonly List<(TrainData Train, MenuItem MenuItem)> _TrainMenuItemMap = new();
 	ShellItem? _PrivacyPolicyShellItemRef;
+	// 行路 / 列車リストの再構築が必要だが flyout が開いている間は Shell.Items を
+	// 触らない (Android では animation 中の Items mutation でフライアウトが
+	// 描画されなくなる問題があるため)。フライアウトが閉じたタイミングで反映する。
+	bool _TrainMenuRebuildPending;
+	bool _FlyoutCloseSubscribed;
 
 	void OnAppViewModelPropertyChangedForTrainMenu(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
-		// SelectedTrainData 変化時も「▶」マーカーを付け替える必要があるため
-		// 再構築をトリガーする (#286 Copilot review)。
-		if (e.PropertyName == nameof(AppViewModel.SelectedWork)
-			|| e.PropertyName == nameof(AppViewModel.OrderedTrainDataList)
-			|| e.PropertyName == nameof(AppViewModel.SelectedTrainData))
+		// SelectedTrainData の変化はマーカー (「▶ 」プレフィックス) の付け替えのみで
+		// 済むため、Shell.Items を再構築せず既存 MenuItem の Text を in-place 更新する。
+		// これにより flyout を開いた直後でも Items mutation を起こさず、Android で
+		// フライアウト animation が描画されなくなる問題 (#286) を回避する。
+		if (e.PropertyName == nameof(AppViewModel.SelectedTrainData))
 		{
-			MainThread.BeginInvokeOnMainThread(RebuildTrainMenuItems);
+			MainThread.BeginInvokeOnMainThread(UpdateTrainSelectionMarker);
+			return;
+		}
+
+		// SelectedWork / OrderedTrainDataList の変化は列車一覧そのものが変わるので
+		// Shell.Items の再構築が必要。flyout が開いている間は再構築を遅延し、
+		// FlyoutIsPresented が false に遷移したタイミングで flush する。
+		if (e.PropertyName == nameof(AppViewModel.SelectedWork)
+			|| e.PropertyName == nameof(AppViewModel.OrderedTrainDataList))
+		{
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				if (FlyoutIsPresented)
+				{
+					_TrainMenuRebuildPending = true;
+					EnsureFlyoutCloseSubscription();
+				}
+				else
+				{
+					RebuildTrainMenuItems();
+				}
+			});
+		}
+	}
+
+	void EnsureFlyoutCloseSubscription()
+	{
+		if (_FlyoutCloseSubscribed)
+			return;
+		_FlyoutCloseSubscribed = true;
+		this.PropertyChanged += OnShellPropertyChangedForFlyoutClose;
+	}
+
+	void OnShellPropertyChangedForFlyoutClose(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName != nameof(FlyoutIsPresented))
+			return;
+		if (FlyoutIsPresented)
+			return;
+		// FlyoutIsPresented が false に遷移したので、保留中の再構築を反映する。
+		// Items mutation は閉じている間 (animation 終了後) に行うため安全。
+		if (_TrainMenuRebuildPending)
+		{
+			_TrainMenuRebuildPending = false;
+			RebuildTrainMenuItems();
+		}
+	}
+
+	/// <summary>
+	/// SelectedTrainData の変化に応じて、既存 MenuItem.Text の「▶ 」プレフィックスを
+	/// 付け替えるだけの軽量パス。Shell.Items を変更しないため、flyout を開いた直後
+	/// でも安全に呼べる。
+	/// </summary>
+	void UpdateTrainSelectionMarker()
+	{
+		if (_TrainMenuItemMap.Count == 0)
+			return;
+
+		var currentSelected = InstanceManager.AppViewModel.SelectedTrainData;
+		foreach (var (train, menuItem) in _TrainMenuItemMap)
+		{
+			string trainNumber = train.TrainNumber ?? string.Empty;
+			string label = string.IsNullOrEmpty(train.Destination)
+				? trainNumber
+				: $"{trainNumber}  {train.Destination}";
+
+			bool isSelected = ReferenceEquals(train, currentSelected)
+				|| (currentSelected is not null
+					&& !string.IsNullOrEmpty(train.Id)
+					&& train.Id == currentSelected.Id);
+			if (isSelected)
+				label = "▶ " + label;
+
+			if (menuItem.Text != label)
+				menuItem.Text = label;
 		}
 	}
 
@@ -221,6 +304,7 @@ public partial class AppShell : Shell
 			Items.Remove(shellItem);
 		}
 		_DynamicTrainShellItems.Clear();
+		_TrainMenuItemMap.Clear();
 
 		var trains = InstanceManager.AppViewModel.OrderedTrainDataList;
 		if (trains is null || trains.Count == 0)
@@ -279,6 +363,9 @@ public partial class AppShell : Shell
 				}),
 			};
 			InsertMenuItem(mi);
+			// SelectedTrainData が変わったときに Text を in-place 更新できるよう、
+			// 列車 → MenuItem のマッピングを保持する。
+			_TrainMenuItemMap.Add((captured, mi));
 		}
 
 		// 仕切り (空 MenuItem)
