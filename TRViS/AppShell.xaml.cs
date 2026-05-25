@@ -168,14 +168,25 @@ public partial class AppShell : Shell
 	/// XAML で宣言した Privacy Policy MenuItem を包む ShellItem を Items から探す。
 	/// Shell は top-level &lt;MenuItem&gt; を内部の MenuShellItem (internal 型) に
 	/// 自動ラップして Items に追加する。MenuShellItem は外部から参照不可だが、
-	/// BaseShellItem.BindingContext 等から元 MenuItem を特定するのは脆い。
-	/// 代わりに「初期状態の Items の末尾要素 = Privacy Policy の wrapper」と仮定して
-	/// 起動時に直接掴む (XAML 上 Privacy Policy が最後の Shell 直下要素のため)。
+	/// 元 MenuItem の AutomationId は MenuShellItem.AutomationId に
+	/// 一方向バインドされる (MAUI 実装) ため、ラッパー側の AutomationId を見て
+	/// 安定マッチできる。以前は「Items の末尾 = Privacy Policy」と仮定していたが、
+	/// 末尾に新しい FlyoutItem/MenuItem を XAML 追加した瞬間に動的列車セクションの
+	/// 挿入位置が壊れていたため、明示アンカー方式に置き換えた (#286 Copilot review)。
 	/// </summary>
 	ShellItem? FindPrivacyPolicyShellItem()
 	{
-		// XAML 定義上、Privacy Policy MenuItem は Shell の最後の直接子要素なので
-		// 初期化直後の Items でも最後の要素がそれにあたる。
+		string anchorId = MenuPrivacyPolicyOnline.AutomationId;
+		if (string.IsNullOrEmpty(anchorId))
+			return Items.Count > 0 ? Items[Items.Count - 1] : null;
+
+		foreach (var item in Items)
+		{
+			if (item.AutomationId == anchorId)
+				return item;
+		}
+		// フォールバック: AutomationId が剥がれた場合でも従来通り末尾を返して
+		// 動作を維持する (Privacy Policy 配置が最後である限り無害)。
 		return Items.Count > 0 ? Items[Items.Count - 1] : null;
 	}
 
@@ -186,8 +197,11 @@ public partial class AppShell : Shell
 
 	void OnAppViewModelPropertyChangedForTrainMenu(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
+		// SelectedTrainData 変化時も「▶」マーカーを付け替える必要があるため
+		// 再構築をトリガーする (#286 Copilot review)。
 		if (e.PropertyName == nameof(AppViewModel.SelectedWork)
-			|| e.PropertyName == nameof(AppViewModel.OrderedTrainDataList))
+			|| e.PropertyName == nameof(AppViewModel.OrderedTrainDataList)
+			|| e.PropertyName == nameof(AppViewModel.SelectedTrainData))
 		{
 			MainThread.BeginInvokeOnMainThread(RebuildTrainMenuItems);
 		}
@@ -245,7 +259,14 @@ public partial class AppShell : Shell
 				: $"{trainNumber}  {train.Destination}";
 
 			// 現在選択中の列車には先頭にマーカーを付ける (Bold 化は Shell.MenuItem では不可)。
-			if (ReferenceEquals(train, currentSelected))
+			// ReferenceEquals だけだと reload/soft-update で同 Id の別 instance に
+			// 置き換わったときにハイライトが消えるため、Id 一致でもマッチさせる
+			// (#286 Copilot review)。
+			bool isSelected = ReferenceEquals(train, currentSelected)
+				|| (currentSelected is not null
+					&& !string.IsNullOrEmpty(train.Id)
+					&& train.Id == currentSelected.Id);
+			if (isSelected)
 				label = "▶ " + label;
 
 			TrainData captured = train;

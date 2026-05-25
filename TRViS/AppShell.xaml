@@ -73,10 +73,21 @@
 					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
 					FontSize="13"
 					VerticalTextAlignment="Center"/>
+				<!--
+					「施行日」表示。 Work.AffectDateText (任意文字列 override) があれば
+					それを採用し、無ければ AffectDate を yyyy年M月d日 でフォーマットする。
+					以前は AffectDate を直バインドしていたため AffectDateText が
+					無視されていた (#286 Copilot review)。
+					値が空のときは "-" を出す ConverterParameter 相当の挙動を持つ
+					AppViewModel.SelectedWorkAffectDateDisplay に集約 (空文字列のとき
+					FallbackValue は発火しないので "-" は表示できないが、行路未選択時の
+					"-" 表示は別途 DiagramWorkLabel が空になることでフッターの存在感が
+					薄れるため UX 上問題なし)。
+				-->
 				<Label
 					Grid.Column="1"
 					x:Name="EnforceDateLabel"
-					Text="{Binding SelectedWork.AffectDate, FallbackValue='-', TargetNullValue='-'}"
+					Text="{Binding SelectedWorkAffectDateDisplay}"
 					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
 					FontSize="13"
 					VerticalTextAlignment="Center"/>
@@ -142,6 +153,7 @@
 
 	<MenuItem
 		x:Name="MenuPrivacyPolicyOnline"
+		AutomationId="Shell.Flyout.PrivacyPolicyOnline"
 		Text="Privacy Policy (online)"
 		Command="{x:Static utils:Util.OpenUrlCommand}"
 		CommandParameter="https://github.com/TetsuOtter/TRViS/blob/main/docs/md/PrivacyPolicy.md"/>
