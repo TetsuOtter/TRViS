@@ -504,7 +504,7 @@ public partial class OriginalTimetableV6Page : ContentPage
 				FontSize = 13,
 			};
 			_currentNoteLabel.SetBinding(
-				Label.TextProperty,
+				HtmlAutoDetectLabel.TextProperty,
 				new Binding(nameof(CurrentNoteText), source: this));
 			CurrentNoteHost.Content = _currentNoteLabel;
 		}
@@ -516,7 +516,7 @@ public partial class OriginalTimetableV6Page : ContentPage
 				FontSize = 12,
 			};
 			_compactCurrentNoteLabel.SetBinding(
-				Label.TextProperty,
+				HtmlAutoDetectLabel.TextProperty,
 				new Binding(nameof(CurrentNoteText), source: this));
 			CompactCurrentNoteHost.Content = _compactCurrentNoteLabel;
 		}

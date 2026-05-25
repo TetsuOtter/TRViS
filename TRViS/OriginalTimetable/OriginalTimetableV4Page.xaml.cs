@@ -605,7 +605,7 @@ public partial class OriginalTimetableV4Page : ContentPage
 			FontSize = 13,
 		};
 		_heroNoteLabel.SetBinding(
-			Label.TextProperty,
+			HtmlAutoDetectLabel.TextProperty,
 			new Binding(nameof(HeroNoteText), source: this));
 		HeroNoteHost.Content = _heroNoteLabel;
 	}
