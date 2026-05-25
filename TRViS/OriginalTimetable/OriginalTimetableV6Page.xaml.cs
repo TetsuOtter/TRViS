@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using TR.Maui.AnchorPopover;
 
+using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -114,6 +115,14 @@ public partial class OriginalTimetableV6Page : ContentPage
 
 	// MemoSheet edit state (Phase 2).
 	string? _memoRowId;
+
+	// Current NoteBody HAL is constructed lazily — see EnsureCurrentNoteLabel
+	// and the matching XAML comments on CurrentNoteHost / CompactCurrentNoteHost.
+	// Both stay null until the first time HasCurrentNote flips to true; that
+	// defers HAL construction out of the XAML inflation pass
+	// (swiftlang#84228 workaround).
+	HtmlAutoDetectLabel? _currentNoteLabel;
+	HtmlAutoDetectLabel? _compactCurrentNoteLabel;
 
 	public OriginalTimetableV6Page()
 	{
@@ -398,6 +407,8 @@ public partial class OriginalTimetableV6Page : ContentPage
 			HasCurrentStation = true;
 			CurrentNoteText = cur.Remarks ?? string.Empty;
 			HasCurrentNote = !string.IsNullOrWhiteSpace(CurrentNoteText);
+			if (HasCurrentNote)
+				EnsureCurrentNoteLabels();
 			RecomputeCurrentMarkerInternal(train.Id, cur.Id);
 		}
 
@@ -477,6 +488,38 @@ public partial class OriginalTimetableV6Page : ContentPage
 		OnPropertyChanged(nameof(IsCurrentMarkerCaution));
 		OnPropertyChanged(nameof(IsCurrentMarkerStar));
 		OnPropertyChanged(nameof(CurrentMarkerText));
+	}
+
+	// Lazy HAL construction for the current-station note (both tablet and
+	// compact hosts). See _currentNoteLabel field comment and the matching
+	// XAML comment on CurrentNoteHost. Idempotent — no-op once both labels
+	// exist; the Text bindings then handle CurrentNoteText updates.
+	void EnsureCurrentNoteLabels()
+	{
+		if (_currentNoteLabel is null)
+		{
+			_currentNoteLabel = new HtmlAutoDetectLabel
+			{
+				TextColor = V6RowTablet.LookupColorThemeAware("OT_Fg_Light", "OT_Fg_Dark"),
+				FontSize = 13,
+			};
+			_currentNoteLabel.SetBinding(
+				Label.TextProperty,
+				new Binding(nameof(CurrentNoteText), source: this));
+			CurrentNoteHost.Content = _currentNoteLabel;
+		}
+		if (_compactCurrentNoteLabel is null)
+		{
+			_compactCurrentNoteLabel = new HtmlAutoDetectLabel
+			{
+				TextColor = V6RowTablet.LookupColorThemeAware("OT_Fg_Light", "OT_Fg_Dark"),
+				FontSize = 12,
+			};
+			_compactCurrentNoteLabel.SetBinding(
+				Label.TextProperty,
+				new Binding(nameof(CurrentNoteText), source: this));
+			CompactCurrentNoteHost.Content = _compactCurrentNoteLabel;
+		}
 	}
 
 	void RecomputeCurrentMarkerInternal(string trainId, string rowId)

@@ -256,19 +256,23 @@
 							</VerticalStackLayout>
 						</VerticalStackLayout>
 					</Grid>
-					<!-- Hero inline note (next station's Remarks) -->
+					<!-- Hero inline note (next station's Remarks).
+					     Content (HtmlAutoDetectLabel) is constructed lazily in
+					     code-behind (EnsureHeroNoteLabel) the first time
+					     HasHeroNote flips true, to avoid eager HAL
+					     construction during XAML inflation. That eager path
+					     trips Apple's SwiftUI ObservationTracking._AccessList
+					     bug (swiftlang#84228) on iPad mini A17 / iOS 26
+					     simulators. See V4Row.cs for the same pattern
+					     applied per mini-list row. -->
 					<Border
+						x:Name="HeroNoteHost"
 						AutomationId="OriginalTimetable.V4.Hero.NoteBody"
 						IsVisible="{Binding HasHeroNote, Source={x:Reference Self}}"
 						Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
 						StrokeThickness="0"
 						StrokeShape="RoundRectangle 6"
-						Padding="10,6">
-						<controls:HtmlAutoDetectLabel
-							Text="{Binding HeroNoteText, Source={x:Reference Self}}"
-							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
-							FontSize="13"/>
-					</Border>
+						Padding="10,6"/>
 				</VerticalStackLayout>
 			</Border>
 

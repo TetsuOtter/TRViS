@@ -304,19 +304,19 @@
 									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
 							</Border>
 						</Grid>
-						<!-- Current note body (Phase 2). Read-only Remarks for current station. -->
+						<!-- Current note body (Phase 2). Read-only Remarks for current station.
+						     Content (HtmlAutoDetectLabel) lazily constructed in
+						     code-behind (EnsureCurrentNoteLabel) the first time
+						     HasCurrentNote flips true — see XAML comment in V4Page
+						     for the SwiftUI bug (swiftlang#84228) this avoids. -->
 						<Border
+							x:Name="CurrentNoteHost"
 							AutomationId="OriginalTimetable.V6.CurrentBlock.NoteBody"
 							IsVisible="{Binding HasCurrentNote, Source={x:Reference Self}}"
 							Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
 							StrokeThickness="0"
 							StrokeShape="RoundRectangle 6"
-							Padding="10,6">
-							<controls:HtmlAutoDetectLabel
-								Text="{Binding CurrentNoteText, Source={x:Reference Self}}"
-								TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
-								FontSize="13"/>
-						</Border>
+							Padding="10,6"/>
 					</VerticalStackLayout>
 				</Border>
 			</SwipeView>
@@ -644,19 +644,16 @@
 									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
 							</Border>
 						</Grid>
-						<!-- Current note body (compact, Phase 2) -->
+						<!-- Current note body (compact, Phase 2).
+						     Lazy HAL construction — see CurrentNoteHost comment above. -->
 						<Border
+							x:Name="CompactCurrentNoteHost"
 							AutomationId="OriginalTimetable.V6.Compact.CurrentBlock.NoteBody"
 							IsVisible="{Binding HasCurrentNote, Source={x:Reference Self}}"
 							Background="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"
 							StrokeThickness="0"
 							StrokeShape="RoundRectangle 6"
-							Padding="8,5">
-							<controls:HtmlAutoDetectLabel
-								Text="{Binding CurrentNoteText, Source={x:Reference Self}}"
-								TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"
-								FontSize="12"/>
-						</Border>
+							Padding="8,5"/>
 					</VerticalStackLayout>
 				</Border>
 			</SwipeView>

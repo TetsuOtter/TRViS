@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using TR.Maui.AnchorPopover;
 
+using TRViS.Controls;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -110,6 +111,12 @@ public partial class OriginalTimetableV4Page : ContentPage
 
 	// Sheet-edit state.
 	string? _memoRowId;
+
+	// Hero NoteBody HAL is constructed lazily — see EnsureHeroNoteLabel
+	// and the matching XAML comment on HeroNoteHost. Stays null until the
+	// first time HasHeroNote flips to true; that defers HAL construction
+	// out of the XAML inflation pass (swiftlang#84228 workaround).
+	HtmlAutoDetectLabel? _heroNoteLabel;
 
 	public OriginalTimetableV4Page()
 	{
@@ -431,6 +438,8 @@ public partial class OriginalTimetableV4Page : ContentPage
 			NextStationTrack = string.IsNullOrEmpty(nextRow.TrackName) ? "–" : nextRow.TrackName!;
 			HeroNoteText = nextRow.Remarks ?? string.Empty;
 			HasHeroNote = !string.IsNullOrWhiteSpace(HeroNoteText);
+			if (HasHeroNote)
+				EnsureHeroNoteLabel();
 
 			if (nextPlusOneIdx >= 0)
 			{
@@ -580,6 +589,25 @@ public partial class OriginalTimetableV4Page : ContentPage
 			MarkerKind.Star => "★",
 			_ => string.Empty,
 		};
+	}
+
+	// Lazy HAL construction for the hero note — see field comment on
+	// _heroNoteLabel and the matching XAML comment on HeroNoteHost. No-op
+	// once the label exists; the Text binding then handles all subsequent
+	// HeroNoteText changes automatically.
+	void EnsureHeroNoteLabel()
+	{
+		if (_heroNoteLabel is not null)
+			return;
+		_heroNoteLabel = new HtmlAutoDetectLabel
+		{
+			TextColor = V4RowTablet.LookupColorThemeAware("OT_Fg_Light", "OT_Fg_Dark"),
+			FontSize = 13,
+		};
+		_heroNoteLabel.SetBinding(
+			Label.TextProperty,
+			new Binding(nameof(HeroNoteText), source: this));
+		HeroNoteHost.Content = _heroNoteLabel;
 	}
 
 	void OnCycleMarker(string? rowId)
