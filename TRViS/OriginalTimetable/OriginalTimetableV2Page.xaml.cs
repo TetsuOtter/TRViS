@@ -14,26 +14,33 @@ namespace TRViS.OriginalTimetable;
 
 // V2 Card Stack — 独自時刻表ページ骨格 (Phase 1 + Phase 2 + Phase 3).
 //
-// Phase 1 (commit 30ab47f): card visual (rounded outer Border, concentric
-// inner platform tile, accent-soft background + 1.5px accent border for
-// current, vertically-stacked 着/発 with mono numerals, IsCurrent-flipped
-// metrics), tablet + compact split, real-data row mapping, sticky header,
-// section-break rows, marker badges, memo dots, SwipeItem CycleMarker/
-// ClearMarker commands.
+// Phase 1: card visual (rounded outer Border, concentric inner platform tile,
+// accent-soft background + 1.5px accent border for current, vertically-stacked
+// 着/発 with mono numerals, IsCurrent-flipped metrics), tablet + compact split,
+// real-data row mapping, sticky header, section-break rows, marker badges,
+// memo dots, SwipeItem CycleMarker/ClearMarker commands.
 //
-// Phase 2 (this commit): MarkerPopover anchored to badge / opened from swipe
-// (reuses MarkerPopoverContent verbatim), MemoSheet overlay (bottom-sheet),
-// inline NoteFold (Border placed *inside* the card outer Border so concentric
-// radii are preserved — V2 difference from V1, which puts the note as a
-// sibling underneath the row Border).
+// Phase 2: MarkerPopover anchored to badge / opened from swipe (reuses
+// MarkerPopoverContent verbatim), MemoSheet overlay (bottom-sheet), inline
+// NoteFold (Border placed *inside* the card outer Border so concentric radii
+// are preserved — V2 difference from V1, which puts the note as a sibling
+// underneath the row Border).
 //
-// Phase 3 (this commit): Tweaks panel (gear icon → overlay) with ShowPasses
-// Switch + Density tri-state (狭/標準/広); Density-driven scaling applied to
-// every per-card metric (platform size + font, time font, station font) via
+// Phase 3: Tweaks panel (gear icon → overlay) with ShowPasses Switch + Density
+// tri-state (狭/標準/広); Density-driven scaling applied to every per-card
+// metric (platform size + font, time font, station font) via
 // ApplyCurrentAndDensityScaledMetrics, plus the card outer Margin
-// (TabletCardMargin / CompactCardMargin) — so density visibly reflows the
-// card stack without an Items.Clear+Add (scroll preserved); auto-follow to
-// the current card on CurIdxVersion changes when vm.Follow.
+// (TabletCardMargin / CompactCardMargin) — so density visibly reflows the card
+// stack without an Items.Clear+Add (scroll preserved); auto-follow to the
+// current card on CurIdxVersion changes when vm.Follow.
+//
+// History/workaround: an earlier shape used CollectionView + DataTemplate
+// (HtmlAutoDetectLabel inside the template). On iOS simulators this trips
+// Apple's ObservationTracking._AccessList / _NativeDictionary.copy use-after-
+// free during cell recycling (swiftlang#84228). Refactored to mirror the V1
+// fix (commit 682e2d4): BindableLayout-on-VSL inside a ScrollView, with
+// V2RowTablet / V2RowCompact (programmatic ContentView subclasses in V2Row.cs)
+// instantiated per item. No UICollectionView / SwiftUI ViewGraph involved.
 public partial class OriginalTimetableV2Page : ContentPage
 {
 	public static readonly string NameOfThisClass = nameof(OriginalTimetableV2Page);
@@ -258,10 +265,14 @@ public partial class OriginalTimetableV2Page : ContentPage
 		item.CompactCardMargin = compactMargin;
 	}
 
-	// Auto-follow: when Follow=true, scroll the visible CollectionView to
-	// the current-station card (center). Called after the CurIdxVersion
-	// in-place pass has flipped IsCurrent on each row.
-	void AutoFollowScroll()
+	// Auto-follow: when Follow=true, scroll the visible row host to the
+	// current-station card (center). Called after the CurIdxVersion in-place
+	// pass has flipped IsCurrent on each row.
+	//
+	// Post-refactor: rows live inside a BindableLayout-driven VerticalStackLayout
+	// (TabletRowsHost / CompactRowsHost) wrapped in a ScrollView. BindableLayout
+	// preserves Items order so the child at index i corresponds to Items[i].
+	async void AutoFollowScroll()
 	{
 		if (!_vm.Follow)
 			return;
@@ -269,26 +280,34 @@ public partial class OriginalTimetableV2Page : ContentPage
 		if (train is null)
 			return;
 		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
-		V2RowItem? curItem = null;
-		foreach (var i in Items)
+		int curIdx = -1;
+		for (int i = 0; i < Items.Count; i++)
 		{
-			if (!i.IsSectionBreakRow && i.OrigIndex == curOrigIdx)
+			var it = Items[i];
+			if (!it.IsSectionBreakRow && it.OrigIndex == curOrigIdx)
 			{
-				curItem = i;
+				curIdx = i;
 				break;
 			}
 		}
-		if (curItem is null)
+		if (curIdx < 0)
 			return;
-		var cv = TabletGrid.IsVisible ? TabletRowsList : CompactRowsList;
+
+		bool tablet = TabletGrid.IsVisible;
+		ScrollView scroll = tablet ? TabletScroll : CompactScroll;
+		VerticalStackLayout host = tablet ? TabletRowsHost : CompactRowsHost;
+		if (curIdx >= host.Children.Count)
+			return;
+		if (host.Children[curIdx] is not View target)
+			return;
 		try
 		{
-			cv.ScrollTo(curItem, position: ScrollToPosition.Center, animate: true);
+			await scroll.ScrollToAsync(target, ScrollToPosition.Center, animated: true);
 		}
 		catch
 		{
-			// CollectionView.ScrollTo can throw on certain platforms when
-			// the list hasn't measured yet — swallow rather than crash.
+			// ScrollToAsync can throw if the host hasn't measured yet — swallow
+			// rather than crash auto-follow.
 		}
 	}
 
@@ -461,6 +480,35 @@ public partial class OriginalTimetableV2Page : ContentPage
 		_vm.ToggleNote(train.Id, rowId);
 	}
 
+	// ── Public entry points for V2Row* (Parent-walked invocations) ─────────
+	//
+	// V2RowTablet / V2RowCompact don't bind their SwipeItem.Command through
+	// the row's BindingContext (the BindingContext is the per-row V2RowItem,
+	// not the page). Instead, each row walks up its Parent chain to find this
+	// page on first interaction and calls one of these methods directly.
+
+	public void OpenMarkerPopoverFromSwipe(string? rowId)
+		=> OnOpenMarkerPopoverFromSwipe(rowId);
+
+	public void ClearMarkerFromRow(string? rowId)
+		=> OnClearMarker(rowId);
+
+	public void OpenMemoFromRow(string? rowId)
+		=> OnOpenMemo(rowId);
+
+	public void ToggleNoteForRow(string? rowId)
+		=> OnToggleNote(rowId);
+
+	// Badge tap (anchored popover). The View is the badge Border that owns
+	// the tap gesture in V2Row*; we use it as the popover anchor so the
+	// floating UI positions next to the visible marker.
+	public void OpenMarkerPopoverFromBadge(View? anchor, string? rowId)
+	{
+		if (anchor is null || string.IsNullOrEmpty(rowId))
+			return;
+		OpenMarkerPopover(anchor, rowId);
+	}
+
 	// MarkerPopover wiring -------------------------------------------------
 
 	// SwipeItem entry — SwipeItem isn't an anchor-eligible View, so we
@@ -472,15 +520,8 @@ public partial class OriginalTimetableV2Page : ContentPage
 		OpenMarkerPopover(RootGrid, rowId);
 	}
 
-	// Tap on the visible marker badge inside the card.
-	void OnMarkerBadgeTapped(object? sender, TappedEventArgs e)
-	{
-		if (sender is not Border border)
-			return;
-		if (border.BindingContext is not V2RowItem item)
-			return;
-		OpenMarkerPopover(border, item.Id);
-	}
+	// (OnMarkerBadgeTapped removed — V2RowTablet / V2RowCompact wire the badge
+	//  tap directly to OpenMarkerPopoverFromBadge() via Parent-walk.)
 
 	async void OpenMarkerPopover(View anchor, string rowId)
 	{
