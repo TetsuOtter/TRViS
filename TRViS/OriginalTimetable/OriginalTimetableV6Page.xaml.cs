@@ -290,18 +290,18 @@ public partial class OriginalTimetableV6Page : ContentPage
 
 	// V6 upcoming list does not need to scroll-follow the current station
 	// (current is rendered in its own big block above). But CurIdxVersion
-	// rebuilds Items (boundary shifts), so we proactively reset to top to
-	// avoid the CollectionView retaining a stale offset into the new list.
+	// rebuilds Items (boundary shifts), so we proactively reset the ScrollView
+	// to top to avoid retaining a stale offset into the new list.
 	void AutoFollowScroll()
 	{
 		try
 		{
-			var cv = TabletGrid.IsVisible ? TabletUpcomingList : CompactUpcomingList;
-			cv.ScrollTo(index: 0, position: ScrollToPosition.Start, animate: false);
+			var sv = TabletGrid.IsVisible ? TabletScroll : CompactScroll;
+			sv.ScrollToAsync(0, 0, animated: false);
 		}
 		catch
 		{
-			// Swallow — CollectionView.ScrollTo can throw on certain platforms.
+			// Swallow — ScrollView.ScrollToAsync can throw on certain platforms.
 		}
 	}
 
@@ -589,13 +589,33 @@ public partial class OriginalTimetableV6Page : ContentPage
 		OpenMarkerPopover(RootGrid, rowId);
 	}
 
-	void OnMarkerBadgeTapped(object? sender, TappedEventArgs e)
+	// ── Public entry points for V6Row* (Parent-walked invocations) ─────────
+	//
+	// V6RowTablet / V6RowCompact don't bind their SwipeItem.Command through
+	// the row's BindingContext (the BindingContext is the per-row V6RowItem,
+	// not the page). Instead, each row walks up its Parent chain to find this
+	// page on first interaction and calls one of these methods directly.
+
+	public void OpenMarkerPopoverFromSwipe(string? rowId)
+		=> OnOpenMarkerPopoverFromSwipe(rowId);
+
+	public void ClearMarkerFromRow(string? rowId)
+		=> OnClearMarker(rowId);
+
+	public void OpenMemoFromRow(string? rowId)
+		=> OnOpenMemo(rowId);
+
+	public void ToggleNoteForRow(string? rowId)
+		=> OnToggleNote(rowId);
+
+	// Badge tap (anchored popover). The View is the badge Border that owns
+	// the tap gesture in V6Row*; we use it as the popover anchor so the
+	// floating UI positions next to the visible marker.
+	public void OpenMarkerPopoverFromBadge(View? anchor, string? rowId)
 	{
-		if (sender is not Border border)
+		if (anchor is null || string.IsNullOrEmpty(rowId))
 			return;
-		if (border.BindingContext is not V6RowItem item)
-			return;
-		OpenMarkerPopover(border, item.Id);
+		OpenMarkerPopover(anchor, rowId);
 	}
 
 	void OnCurrentMarkerBadgeTapped(object? sender, TappedEventArgs e)
