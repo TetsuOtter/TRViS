@@ -7,6 +7,7 @@
 	x:Class="TRViS.OriginalTimetable.OriginalTimetableV6Page"
 	x:Name="Self"
 	Title="ダイヤ表 (V6)"
+	Shell.NavBarIsVisible="False"
 	SizeChanged="OnRootSizeChanged"
 	BackgroundColor="{AppThemeBinding Light={StaticResource OT_Bg_Light}, Dark={StaticResource OT_Bg_Dark}}">
 	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V6.Root">
