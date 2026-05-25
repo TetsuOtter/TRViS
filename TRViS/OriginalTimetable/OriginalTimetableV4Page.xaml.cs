@@ -31,7 +31,7 @@ namespace TRViS.OriginalTimetable;
 // HeroPlatformFontSize + compact equivalents) AND every mini-row metric
 // (Tablet/Compact * Station/TimeFontSize, RowPadding) via
 // ApplyDensityScaledMetrics — so density visibly reflows without an
-// Items.Clear+Add (CollectionView scroll preserved).
+// Items.Clear+Add (scroll preserved).
 //
 // V4-specific CurIdxVersion strategy: hero retargets AND mini-list's
 // IsHiddenInList shifts (the previously-hero row becomes visible, the new
@@ -39,6 +39,16 @@ namespace TRViS.OriginalTimetable;
 // split RebuildItems into RecomputeHero(train) + the mini-list build, and
 // on CurIdxVersion call RecomputeHero + UpdateCurrentInPlace + (if Follow)
 // scroll mini list to top. Items collection is not cleared so scroll holds.
+//
+// History/workaround: an earlier shape used CollectionView + DataTemplate
+// for the mini list (HtmlAutoDetectLabel inside the template). On iOS
+// simulators this trips Apple's ObservationTracking._AccessList /
+// _NativeDictionary.copy use-after-free during cell recycling
+// (swiftlang#84228). Refactored to mirror the V1/V2 fix: BindableLayout-on-VSL
+// inside a ScrollView, with V4RowTablet / V4RowCompact (programmatic
+// ContentView subclasses in V4Row.cs) instantiated per item. The hero block,
+// train stripe, and overlays are unchanged — only the two CollectionViews
+// (TabletMiniList / CompactMiniList) were replaced.
 public partial class OriginalTimetableV4Page : ContentPage
 {
 	public static readonly string NameOfThisClass = nameof(OriginalTimetableV4Page);
@@ -297,16 +307,21 @@ public partial class OriginalTimetableV4Page : ContentPage
 	// Mini list scroll — for V4 the simplest "follow" is scroll-to-top
 	// (hero is fixed at top so the user always sees the relevant cards
 	// starting just below it). Same intent as V1/V2 follow.
-	void AutoFollowScroll()
+	//
+	// Post-refactor: rows live in BindableLayout-driven VerticalStackLayouts
+	// (TabletRowsHost / CompactRowsHost) wrapped in a ScrollView. We just
+	// scroll the ScrollView to Y=0 — no need to walk children, the hero
+	// determines the focal row.
+	async void AutoFollowScroll()
 	{
 		try
 		{
-			var cv = TabletGrid.IsVisible ? TabletMiniList : CompactMiniList;
-			cv.ScrollTo(index: 0, position: ScrollToPosition.Start, animate: true);
+			var scroll = TabletGrid.IsVisible ? TabletScroll : CompactScroll;
+			await scroll.ScrollToAsync(0, 0, animated: true);
 		}
 		catch
 		{
-			// Swallow — CollectionView.ScrollTo can throw on certain platforms.
+			// Swallow — ScrollToAsync can throw if the host hasn't measured yet.
 		}
 	}
 
@@ -598,8 +613,39 @@ public partial class OriginalTimetableV4Page : ContentPage
 		_vm.ToggleNote(train.Id, rowId);
 	}
 
+	// ── Public entry points for V4Row* (Parent-walked invocations) ─────────
+	//
+	// V4RowTablet / V4RowCompact don't bind their SwipeItem.Command through
+	// the row's BindingContext (the BindingContext is the per-row V4RowItem,
+	// not the page). Instead, each row walks up its Parent chain to find this
+	// page on first interaction and calls one of these methods directly.
+
+	public void OpenMarkerPopoverFromSwipe(string? rowId)
+		=> OnOpenMarkerPopoverFromSwipe(rowId);
+
+	public void ClearMarkerFromRow(string? rowId)
+		=> OnClearMarker(rowId);
+
+	public void OpenMemoFromRow(string? rowId)
+		=> OnOpenMemo(rowId);
+
+	public void ToggleNoteForRow(string? rowId)
+		=> OnToggleNote(rowId);
+
+	// Badge tap (anchored popover). The View is the badge Border that owns
+	// the tap gesture in V4Row*; we use it as the popover anchor so the
+	// floating UI positions next to the visible marker.
+	public void OpenMarkerPopoverFromBadge(View? anchor, string? rowId)
+	{
+		if (anchor is null || string.IsNullOrEmpty(rowId))
+			return;
+		OpenMarkerPopover(anchor, rowId);
+	}
+
 	// MarkerPopover wiring -------------------------------------------------
 
+	// SwipeItem entry — SwipeItem isn't an anchor-eligible View, so we
+	// anchor against RootGrid (AnchorPopover falls back to centered).
 	void OnOpenMarkerPopoverFromSwipe(string? rowId)
 	{
 		if (string.IsNullOrEmpty(rowId))
@@ -607,14 +653,8 @@ public partial class OriginalTimetableV4Page : ContentPage
 		OpenMarkerPopover(RootGrid, rowId);
 	}
 
-	void OnMarkerBadgeTapped(object? sender, TappedEventArgs e)
-	{
-		if (sender is not Border border)
-			return;
-		if (border.BindingContext is not V4RowItem item)
-			return;
-		OpenMarkerPopover(border, item.Id);
-	}
+	// (OnMarkerBadgeTapped removed — V4RowTablet / V4RowCompact wire the badge
+	//  tap directly to OpenMarkerPopoverFromBadge() via Parent-walk.)
 
 	void OnHeroMarkerBadgeTapped(object? sender, TappedEventArgs e)
 	{
