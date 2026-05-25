@@ -5,11 +5,13 @@ using TRViS.UITests.Infrastructure;
 namespace TRViS.UITests.Pages;
 
 /// <summary>
-/// Page object for OriginalTimetableV1Page ("Modern Classic"). Phase 1: tablet
-/// layout only (width &gt;= 600pt). On narrower viewports the V1 page renders a
-/// CompactPlaceholder Label; tests that need the tablet layout assert that
-/// either TabletGrid is visible or the EmptyState/RowsList is reachable, and
-/// skip the marker-cycle assertions on phone widths.
+/// Page object for OriginalTimetableV1Page ("Modern Classic"). V1 now ships
+/// both a tablet layout (width &gt;= 600pt; AutomationIds under
+/// <c>OriginalTimetable.V1.*</c> — Header / EmptyState / RowsList / Row.*)
+/// and a real compact layout (narrow viewports; AutomationIds under
+/// <c>OriginalTimetable.V1.Compact.*</c> — CompactRoot / CompactHeader /
+/// CompactEmptyState / CompactRowsList). Marker chooser popover ids are
+/// shared across all variants under <c>OriginalTimetable.MarkerPopover.*</c>.
 /// </summary>
 public class OriginalTimetableV1PageObject : PageObject
 {

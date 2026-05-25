@@ -335,17 +335,36 @@ public static class AutomationIds
 
 	/// <summary>
 	/// Independent timetable display pages (V1/V2/V4/V6). V1 = "Modern Classic" —
-	/// CollectionView-based row list, sticky train-info header, marker badges,
-	/// memo dots, note toggles. Phase 1 implementation covers tablet layout
-	/// (width &gt;= 600pt); the compact placeholder shows on narrower viewports.
+	/// BindableLayout-based row list, sticky train-info header, marker badges,
+	/// memo dots, note toggles. Ships both tablet (width &gt;= 600pt) and a real
+	/// compact layout (narrow viewports — Compact.* ids).
 	/// </summary>
 	public static class OriginalTimetable
 	{
+		/// <summary>
+		/// Marker chooser popover content (MarkerPopoverContent.xaml) is shared
+		/// by V1/V2/V4/V6 — only one popover is on screen at a time, so the
+		/// AutomationIds are variant-agnostic (not nested under V*.).
+		/// </summary>
+		public static class MarkerPopover
+		{
+			public const string None = "OriginalTimetable.MarkerPopover.None";
+			public const string Flag = "OriginalTimetable.MarkerPopover.Flag";
+			public const string Caution = "OriginalTimetable.MarkerPopover.Caution";
+			public const string Star = "OriginalTimetable.MarkerPopover.Star";
+		}
+
 		public static class V1
 		{
 			public const string Root = "OriginalTimetable.V1.Root";
 			public const string TabletGrid = "OriginalTimetable.V1.TabletGrid";
-			public const string CompactPlaceholder = "OriginalTimetable.V1.CompactPlaceholder";
+
+			// Compact-layout mirrors. V1 now ships a real compact layout
+			// (previously a placeholder label); these mirror V2/V4/V6 patterns.
+			public const string CompactRoot = "OriginalTimetable.V1.Compact.Root";
+			public const string CompactHeader = "OriginalTimetable.V1.Compact.Header";
+			public const string CompactEmptyState = "OriginalTimetable.V1.Compact.EmptyState";
+			public const string CompactRowsList = "OriginalTimetable.V1.Compact.RowsList";
 
 			public const string Header = "OriginalTimetable.V1.Header";
 			public const string HeaderTypeChip = "OriginalTimetable.V1.Header.TypeChip";
@@ -370,17 +389,11 @@ public static class AutomationIds
 			// normal row when ToggleNote is on; carries the row's Remarks.
 			public static string NoteBodyFor(string rowId) => RowPrefix + rowId + ".NoteBody";
 
-			// Phase 2 overlay UI — marker chooser popover (AnchorPopover) and
-			// the bottom-sheet memo editor. Both are statically declared in
-			// XAML (popover content + MemoSheetOverlay) so AutomationIds are
+			// Phase 2 overlay UI — bottom-sheet memo editor. Statically
+			// declared in XAML (MemoSheetOverlay) so AutomationIds are
 			// constant, not row-scoped.
-			public static class MarkerPopover
-			{
-				public const string None = "OriginalTimetable.V1.MarkerPopover.None";
-				public const string Flag = "OriginalTimetable.V1.MarkerPopover.Flag";
-				public const string Caution = "OriginalTimetable.V1.MarkerPopover.Caution";
-				public const string Star = "OriginalTimetable.V1.MarkerPopover.Star";
-			}
+			// (Marker chooser popover ids moved to OriginalTimetable.MarkerPopover
+			// since the content is shared across V1/V2/V4/V6.)
 
 			public static class MemoSheet
 			{

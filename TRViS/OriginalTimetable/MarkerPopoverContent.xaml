@@ -18,7 +18,7 @@
 				<!-- None -->
 				<Border
 					x:Name="NoneBorder"
-					AutomationId="OriginalTimetable.V1.MarkerPopover.None"
+					AutomationId="OriginalTimetable.MarkerPopover.None"
 					WidthRequest="44"
 					HeightRequest="44"
 					StrokeThickness="1"
@@ -38,7 +38,7 @@
 				<!-- Flag -->
 				<Border
 					x:Name="FlagBorder"
-					AutomationId="OriginalTimetable.V1.MarkerPopover.Flag"
+					AutomationId="OriginalTimetable.MarkerPopover.Flag"
 					WidthRequest="44"
 					HeightRequest="44"
 					StrokeThickness="1"
@@ -59,7 +59,7 @@
 				<!-- Caution -->
 				<Border
 					x:Name="CautionBorder"
-					AutomationId="OriginalTimetable.V1.MarkerPopover.Caution"
+					AutomationId="OriginalTimetable.MarkerPopover.Caution"
 					WidthRequest="44"
 					HeightRequest="44"
 					StrokeThickness="1"
@@ -80,7 +80,7 @@
 				<!-- Star -->
 				<Border
 					x:Name="StarBorder"
-					AutomationId="OriginalTimetable.V1.MarkerPopover.Star"
+					AutomationId="OriginalTimetable.MarkerPopover.Star"
 					WidthRequest="44"
 					HeightRequest="44"
 					StrokeThickness="1"

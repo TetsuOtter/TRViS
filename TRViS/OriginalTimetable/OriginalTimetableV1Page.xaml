@@ -223,6 +223,7 @@
 			<!-- Empty-state when ActiveTrain is null -->
 			<Label
 				Grid.Row="1"
+				AutomationId="OriginalTimetable.V1.Compact.EmptyState"
 				IsVisible="{Binding HasNoActiveTrain, Source={x:Reference Self}}"
 				Text="列車を選択してください"
 				FontSize="14"
