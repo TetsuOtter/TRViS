@@ -1,6 +1,6 @@
 namespace TRViS.DTAC.Logic.Formatters;
 
-internal static class AffectDateFormatter
+public static class AffectDateFormatter
 {
 	public static string FormatAffectDate(DateTime? affectDate, int dayCount)
 	{

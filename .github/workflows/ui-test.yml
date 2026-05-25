@@ -763,7 +763,13 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-apple-xcuitest-ios:
     runs-on: macos-26
-    timeout-minutes: 20
+    # The OT page suite (V1/V2/V4/V6 × empty/with-train/screenshot/marker)
+    # pushed cumulative job time over the previous 20-minute cap — CI run
+    # 26398299664 was killed mid-SelectFileDialogTests after all OT tests
+    # passed cleanly. Catalyst's twin uses 25 minutes; bumping iOS to 30
+    # gives the same per-OT-test headroom plus a buffer for the slower
+    # iOS simulator launch.
+    timeout-minutes: 30
     needs: build-ios
 
     steps:

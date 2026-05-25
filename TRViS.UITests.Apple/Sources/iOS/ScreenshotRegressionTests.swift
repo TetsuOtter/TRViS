@@ -43,8 +43,18 @@ class ScreenshotRegressionTests: BaseUITestCase {
         if !start.isDisplayed(timeout: 5) {
             _ = shell.navigateToHome()
         }
-        start.clearLoaderForTesting()
+        // Order matters: privacy first, then clearLoader. The privacy banner
+        // intercepts taps to all StartHome controls (including the seam
+        // TestClearLoaderButton) until accepted. On the first XCUITest run
+        // of a fresh install (the runner script `simctl uninstall`s) the
+        // clearLoaderForTesting() seam tap would silently no-op against the
+        // unreachable button. acceptPrivacyPolicyIfNeeded() fast-paths when
+        // already accepted, so the swap is cheap on the 2..N tests/iterations.
+        // NOTE: the mid-test combo-loop reset below (≈line 98) intentionally
+        // only calls clearLoaderForTesting() — by that point privacy is
+        // already accepted in this process, so the loader reset is enough.
         start.acceptPrivacyPolicyIfNeeded()
+        start.clearLoaderForTesting()
     }
 
     // MARK: — Main test

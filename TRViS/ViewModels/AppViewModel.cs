@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using TRViS.Core;
+using TRViS.DTAC.Logic.Formatters;
 using TRViS.IO;
 using TRViS.IO.Models;
 using TRViS.NetworkSyncService;
@@ -160,6 +161,25 @@ public partial class AppViewModel : ObservableObject
 		set => SelectionManager.SelectedWork = value;
 	}
 
+	/// <summary>
+	/// 「施行日」表示用 (フライアウト Footer 等)。
+	/// <see cref="Work.AffectDateText"/> が設定されていればそれを優先表示し、
+	/// 未設定なら <see cref="Work.AffectDate"/> を yyyy年M月d日 フォーマットで表示する。
+	/// どちらも無い場合は空文字列。
+	/// SelectionManager.PropertyChanged を介して SelectedWork の変化に追随する
+	/// (コンストラクタで再 fire 設定済み)。
+	/// </summary>
+	public string SelectedWorkAffectDateDisplay
+	{
+		get
+		{
+			var work = SelectionManager.SelectedWork;
+			if (work is null)
+				return string.Empty;
+			return AffectDateFormatter.FormatAffectDateOrText(work.AffectDateText, work.AffectDate, 0);
+		}
+	}
+
 	public TrainData? SelectedTrainData
 	{
 		get => SelectionManager.SelectedTrainData;
@@ -219,7 +239,14 @@ public partial class AppViewModel : ObservableObject
 
 	public AppViewModel()
 	{
-		SelectionManager.PropertyChanged += (_, e) => OnPropertyChanged(e.PropertyName);
+		SelectionManager.PropertyChanged += (_, e) =>
+		{
+			OnPropertyChanged(e.PropertyName);
+			// SelectedWork に紐づく派生表示プロパティ (Footer の施行日等) も
+			// 同タイミングで再評価させる。
+			if (e.PropertyName == nameof(SelectedWork))
+				OnPropertyChanged(nameof(SelectedWorkAffectDateDisplay));
+		};
 
 		if (Application.Current is not null)
 		{

@@ -380,4 +380,53 @@ public class AppShellPage : PageObject
 		return new EasterEggPageObject(Driver);
 	}
 
+	/// <summary>
+	/// Navigates to the V1 (Modern Classic) Original Timetable page via the
+	/// Shell flyout. Used by OriginalTimetableV1Tests to reach the page after
+	/// committing a Work/Train selection on StartHome / DTAC.
+	///
+	/// Windows is not exercised in this fixture (V1 layout is tablet-only;
+	/// FlyoutItemOrder doesn't list the V1 entry).
+	/// </summary>
+	public OriginalTimetableV1PageObject NavigateToOriginalTimetableV1()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV1, "ダイヤ表 (V1)").Click();
+		return new OriginalTimetableV1PageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates to the V2 (Card Stack) Original Timetable page via the Shell
+	/// flyout. Mirrors NavigateToOriginalTimetableV1 — V2's layout is also
+	/// tablet-only for the rich card view (compact placeholder on narrow widths).
+	/// </summary>
+	public OriginalTimetableV2PageObject NavigateToOriginalTimetableV2()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV2, "ダイヤ表 (V2)").Click();
+		return new OriginalTimetableV2PageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates to the V4 (Next Big) Original Timetable page via the Shell
+	/// flyout.
+	/// </summary>
+	public OriginalTimetableV4PageObject NavigateToOriginalTimetableV4()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV4, "ダイヤ表 (V4)").Click();
+		return new OriginalTimetableV4PageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates to the V6 (Bold Editorial) Original Timetable page via the
+	/// Shell flyout.
+	/// </summary>
+	public OriginalTimetableV6PageObject NavigateToOriginalTimetableV6()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV6, "ダイヤ表 (V6)").Click();
+		return new OriginalTimetableV6PageObject(Driver);
+	}
+
 }

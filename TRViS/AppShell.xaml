@@ -8,6 +8,7 @@
 	xmlns:loc="clr-namespace:TRViS.Localization"
 	xmlns:pages="clr-namespace:TRViS.RootPages"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	xmlns:ot="clr-namespace:TRViS.OriginalTimetable"
 	FlyoutBackgroundColor="{AppThemeBinding Light=#EEE, Dark=#111}">
 	<Shell.FlyoutIcon>
 		<FontImageSource
@@ -17,20 +18,81 @@
 			Size="36"/>
 	</Shell.FlyoutIcon>
 
-	<Shell.FlyoutFooter>
-		<VerticalStackLayout
-			Margin="4">
-			<Border
-				BackgroundColor="{AppThemeBinding Default=White, Dark=Black}"
-				Stroke="{AppThemeBinding Default=#333, Dark=#CCC}"
-				HorizontalOptions="Center"
-				Margin="8"
-				Padding="8">
+	<Shell.FlyoutHeader>
+		<!--
+			BindingContext を Shell ではなく FlyoutHeader 直下の Border に限定して
+			設定する。Shell.BindingContext は EasterEggPageViewModel (BackgroundColor /
+			TitleColor / FlyoutIconImage.Color の SetBinding が依存) で占有されている
+			ため、ここで上書きすると配色が壊れる。code-behind 側で
+			DiagramInfoHeader.BindingContext = InstanceManager.AppViewModel を設定する。
+		-->
+		<Border
+			x:Name="DiagramInfoHeader"
+			BackgroundColor="{AppThemeBinding Light=#F8FBFB, Dark=#090E12}"
+			Padding="16,18,16,14"
+			StrokeThickness="0">
+			<VerticalStackLayout Spacing="2">
 				<Label
+					Text="ダイヤ情報"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="12"
+					FontAttributes="Bold"
+					CharacterSpacing="2"/>
+				<Label
+					x:Name="DiagramRouteLabel"
+					Text="{Binding SelectedWorkGroup.Name, FallbackValue='-', TargetNullValue='-'}"
+					TextColor="{AppThemeBinding Light=#0C181D, Dark=#EEF3F4}"
+					FontSize="22"
+					FontAttributes="Bold"/>
+				<Label
+					x:Name="DiagramWorkLabel"
+					Text="{Binding SelectedWork.Name, FallbackValue='', TargetNullValue=''}"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="14"/>
+			</VerticalStackLayout>
+		</Border>
+	</Shell.FlyoutHeader>
+
+	<Shell.FlyoutFooter>
+		<!--
+			Footer は version (左) + 施行日 (右) の 2 カラム表示にする。
+			BindingContext は code-behind 側で AppViewModel を割り当てる
+			(Shell.BindingContext は EasterEgg 用に予約されているため)。
+		-->
+		<Border
+			x:Name="VersionFooter"
+			BackgroundColor="Transparent"
+			Stroke="{AppThemeBinding Light=#E1E5E7, Dark=#222A30}"
+			StrokeThickness="0"
+			Padding="16,12,16,12">
+			<Grid ColumnDefinitions="*,Auto">
+				<Label
+					Grid.Column="0"
 					AutomationId="Shell.VersionLabel"
-					Text="{x:Static local:AppShell.AppVersionString}"/>
-			</Border>
-		</VerticalStackLayout>
+					Text="{x:Static local:AppShell.AppVersionString}"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="13"
+					VerticalTextAlignment="Center"/>
+				<!--
+					「施行日」表示。 Work.AffectDateText (任意文字列 override) があれば
+					それを採用し、無ければ AffectDate を yyyy年M月d日 でフォーマットする。
+					以前は AffectDate を直バインドしていたため AffectDateText が
+					無視されていた (#286 Copilot review)。
+					値が空のときは "-" を出す ConverterParameter 相当の挙動を持つ
+					AppViewModel.SelectedWorkAffectDateDisplay に集約 (空文字列のとき
+					FallbackValue は発火しないので "-" は表示できないが、行路未選択時の
+					"-" 表示は別途 DiagramWorkLabel が空になることでフッターの存在感が
+					薄れるため UX 上問題なし)。
+				-->
+				<Label
+					Grid.Column="1"
+					x:Name="EnforceDateLabel"
+					Text="{Binding SelectedWorkAffectDateDisplay}"
+					TextColor="{AppThemeBinding Light=#66747B, Dark=#869197}"
+					FontSize="13"
+					VerticalTextAlignment="Center"/>
+			</Grid>
+		</Border>
 	</Shell.FlyoutFooter>
 
 	<FlyoutItem
@@ -47,6 +109,42 @@
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
 	</FlyoutItem>
 	<FlyoutItem
+		AutomationId="Shell.Flyout.OriginalTimetableV1"
+		Title="ダイヤ表 (V1)"
+		Route="{x:Static ot:OriginalTimetableV1Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV1Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		AutomationId="Shell.Flyout.OriginalTimetableV2"
+		Title="ダイヤ表 (V2)"
+		Route="{x:Static ot:OriginalTimetableV2Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV2Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		AutomationId="Shell.Flyout.OriginalTimetableV4"
+		Title="ダイヤ表 (V4)"
+		Route="{x:Static ot:OriginalTimetableV4Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV4Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		AutomationId="Shell.Flyout.OriginalTimetableV6"
+		Title="ダイヤ表 (V6)"
+		Route="{x:Static ot:OriginalTimetableV6Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV6Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
 		x:Name="FlyoutSettings"
 		AutomationId="Shell.Flyout.Settings"
 		Title="Settings">
@@ -55,6 +153,7 @@
 
 	<MenuItem
 		x:Name="MenuPrivacyPolicyOnline"
+		AutomationId="Shell.Flyout.PrivacyPolicyOnline"
 		Text="Privacy Policy (online)"
 		Command="{x:Static utils:Util.OpenUrlCommand}"
 		CommandParameter="https://github.com/TetsuOtter/TRViS/blob/main/docs/md/PrivacyPolicy.md"/>
