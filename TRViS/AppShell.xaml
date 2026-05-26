@@ -41,6 +41,7 @@
 		<ShellContent ContentTemplate="{DataTemplate pages:StartHomePage}"/>
 	</FlyoutItem>
 	<FlyoutItem
+		x:Name="FlyoutDTAC"
 		AutomationId="Shell.Flyout.DTAC"
 		Title="D-TAC"
 		Route="{x:Static dtac:ViewHost.NameOfThisClass}">

@@ -44,12 +44,27 @@ public partial class ViewHost : ContentPage
 #endif
 
 		_presenter.StateChanged += OnPresenterStateChanged;
-		// ViewHost is a cached ShellContent (DataTemplate) — the same instance is
-		// reused on every navigation. Disposing the presenter on Unloaded would
-		// permanently sever its event subscriptions, so the second visit would
-		// freeze the clock and stop updating the title (#240).
-		// HorizontalTimetablePage uses the same factory but is RegisterRoute'd
-		// (a fresh page per navigation), so its Unloaded+Dispose remains correct.
+		// On iOS/Windows ViewHost is a cached ShellContent (DataTemplate) — the same
+		// instance is reused on every navigation. Disposing or unsubscribing on Unloaded
+		// would permanently sever event subscriptions, so the second visit would freeze
+		// the clock and stop updating the title (#240).
+		// On Android (MAUI #16927 mitigation) ViewHost is a route-created page — a fresh
+		// instance per navigation. An Unloaded cleanup is added under #if ANDROID to break
+		// the references this instance holds to long-lived singletons (Shell.Navigated,
+		// AppShell.SafeAreaMarginChanged, DTACViewHostViewModel.PropertyChanged) so old
+		// instances can be GC'd after each visit.
+		// HorizontalTimetablePage uses the same factory and is always RegisterRoute'd
+		// (fresh per visit on all platforms), so its Unloaded+Dispose is unconditional.
+#if ANDROID
+		Unloaded += (_, _) =>
+		{
+			Shell.Current.Navigated -= OnShellNavigated;
+			_dtacViewModel.PropertyChanged -= OnDtacViewModelPropertyChanged;
+			if (Shell.Current is AppShell appShellForCleanup)
+				appShellForCleanup.SafeAreaMarginChanged -= AppShell_SafeAreaMarginChanged;
+			_presenter.Dispose();
+		};
+#endif
 
 		Shell.SetNavBarIsVisible(this, false);
 
@@ -65,13 +80,7 @@ public partial class ViewHost : ContentPage
 		ViewModel = dtacViewModel;
 		BindingContext = ViewModel;
 
-		Shell.Current.Navigated += (s, e) =>
-		{
-			bool isCurrentPage = Shell.Current.CurrentPage is ViewHost;
-			_dtacViewModel.IsViewHostVisible = isCurrentPage;
-			if (isCurrentPage && _dtacViewModel.IsVerticalViewMode)
-				VerticalStylePageView.OnViewBecameActive();
-		};
+		Shell.Current.Navigated += OnShellNavigated;
 
 		_dtacViewModel.PropertyChanged += OnDtacViewModelPropertyChanged;
 
@@ -327,6 +336,14 @@ public partial class ViewHost : ContentPage
 	}
 #endif
 
+	private void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
+	{
+		bool isCurrentPage = Shell.Current.CurrentPage is ViewHost;
+		_dtacViewModel.IsViewHostVisible = isCurrentPage;
+		if (isCurrentPage && _dtacViewModel.IsVerticalViewMode)
+			VerticalStylePageView.OnViewBecameActive();
+	}
+
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
 		AppBarView.UpdateSafeAreaMargin(oldValue, newValue);
@@ -435,7 +452,15 @@ public partial class ViewHost : ContentPage
 		logger.Info("TestNavigateHomeButton clicked: GoToAsync StartHomePage (bypassing flyout)");
 		try
 		{
+#if ANDROID
+			// ViewHost is a push route on Android. GoToAsync("//absolute") from a
+			// pushed Fragment doesn't properly pop it — after 2 such navigations
+			// the back stack is corrupted and a 3rd push renders blank. Use ".."
+			// (pop) to match what the system back button does.
+			await Shell.Current.GoToAsync("..");
+#else
 			await Shell.Current.GoToAsync("//" + StartHomePage.NameOfThisClass);
+#endif
 		}
 		catch (Exception ex)
 		{
