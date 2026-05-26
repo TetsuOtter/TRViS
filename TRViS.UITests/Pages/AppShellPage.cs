@@ -342,8 +342,11 @@ public class AppShellPage : PageObject
 							// completes. Wait for StartHome to appear so the next test's
 							// PollDisplayed / ClearLoaderForTesting calls don't race
 							// the navigation.
+							// Anchor on HomeBody, not Title: after a Work is committed the
+							// page lands in Home mode where the Hero AppTitle Label is
+							// hidden. HomeBody is present in Home mode on all platforms.
 							new WebDriverWait(Driver, TimeSpan.FromSeconds(10))
-								.Until(d => d.FindElements(AutomationIdLocator(AutomationIds.StartHome.Title)).Count > 0);
+								.Until(d => d.FindElements(AutomationIdLocator(AutomationIds.StartHome.HomeBody)).Count > 0);
 							return new StartHomePageObject(Driver);
 						}
 					}
@@ -365,6 +368,18 @@ public class AppShellPage : PageObject
 			OpenFlyout();
 			WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
 		}
+		return new StartHomePageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates to StartHome via the production flyout path (MenuButton → flyout
+	/// "Home" tap) rather than the UI_TEST seam. Use this to exercise the real
+	/// Shell FlyoutItem navigation instead of the GoToAsync("..") seam.
+	/// </summary>
+	public StartHomePageObject NavigateToHomeViaFlyout()
+	{
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
 		return new StartHomePageObject(Driver);
 	}
 

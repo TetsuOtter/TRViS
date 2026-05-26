@@ -75,6 +75,12 @@ public class NavigationTests : BaseUITest
 	[Test]
 	public void Flyout_NavigateToDTAC()
 	{
+		// On Android the DTAC FlyoutItem is removed (MAUI #16927 mitigation):
+		// DTAC is a relative route reachable only after a Work is committed.
+		// Flyout-based navigation to DTAC no longer exists on this platform.
+		if (IsAndroid)
+			Assert.Ignore("Android: DTAC flyout item removed (MAUI #16927); DTAC reachable only via relative route after Work commit.");
+
 		var page = _shell.NavigateToDTAC();
 		Assert.That(page.IsDisplayed(), Is.True,
 			"DTACViewHost page should be displayed after navigation.");
@@ -96,6 +102,14 @@ public class NavigationTests : BaseUITest
 	[Test]
 	public void DTAC_ReopenAfterNavigateAway_ClockKeepsTicking()
 	{
+		// This regression tests the *cached* ShellContent model (#240): the same
+		// ViewHost instance is reused across visits. On Android (MAUI #16927
+		// mitigation), ViewHost is a fresh route-created instance per visit — the
+		// cached-instance failure mode does not apply. Android DTAC tear-down
+		// coverage is provided by Dtac_TearDownRepro_Tests instead.
+		if (IsAndroid)
+			Assert.Ignore("Android: ViewHost is route-created (fresh per visit); cached-ShellContent regression (#240) does not apply.");
+
 		var dtac = _shell.NavigateToDTAC();
 		Assert.That(dtac.IsDisplayed(), Is.True,
 			"DTAC should be visible on the first visit.");
@@ -132,6 +146,14 @@ public class NavigationTests : BaseUITest
 	[Test]
 	public void DTAC_ReopenAfterWorkSelected_TitleUpdated()
 	{
+		// Same rationale as DTAC_ReopenAfterNavigateAway_ClockKeepsTicking: this
+		// test exercises the cached ShellContent model (#240). On Android, ViewHost
+		// is route-created (fresh per visit) so the presenter-disposal failure mode
+		// cannot occur. Skip on Android; see Dtac_TearDownRepro_Tests for Android
+		// DTAC coverage.
+		if (IsAndroid)
+			Assert.Ignore("Android: ViewHost is route-created (fresh per visit); cached-ShellContent regression (#240) does not apply.");
+
 		// Clear any loader/SelectedWork left by a prior test in this
 		// fixture's shared Appium session — base SetUp only navigates to
 		// StartHome and accepts the privacy policy. Without this, a

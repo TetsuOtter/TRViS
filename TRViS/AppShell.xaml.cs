@@ -41,6 +41,19 @@ public partial class AppShell : Shell
 
 		InitializeComponent();
 
+#if ANDROID
+		// MAUI #16927 mitigation: hosting DTAC as a cached ShellContent causes a
+		// render-tree blank after navigation away. Remove the FlyoutItem, then
+		// register ViewHost as a relative push route.
+		// RegisterRoute MUST come after Items.Remove: AppShell.xaml's
+		// FlyoutDTAC has Route="ViewHost", so InitializeComponent registers that
+		// name into the Shell routing table. Items.Remove then un-registers it.
+		// A RegisterRoute call placed before InitializeComponent would be silently
+		// overridden by the XAML and then erased by Items.Remove.
+		Items.Remove(FlyoutDTAC);
+		Routing.RegisterRoute(TRViS.DTAC.ViewHost.NameOfThisClass, typeof(TRViS.DTAC.ViewHost));
+#endif
+
 		// Flyout/MenuItem Title binding refresh is unreliable in MAUI Shell, so
 		// set them imperatively now and again whenever the UI language changes.
 		ApplyLocalization();
@@ -150,6 +163,32 @@ public partial class AppShell : Shell
 			}
 		});
 	}
+
+#if ANDROID
+	/// <summary>
+	/// On Android, ViewHost is a push route. When a FlyoutItem tap fires
+	/// GoToAsync("//absolute") while ViewHost is current, MAUI does not pop the
+	/// Fragment first — stale Fragments accumulate and the 3rd push renders blank.
+	/// Pop ViewHost before resuming the absolute navigation so the back stack stays clean.
+	/// </summary>
+	protected override void OnNavigating(ShellNavigatingEventArgs args)
+	{
+		base.OnNavigating(args);
+
+		if (args.Target.Location.OriginalString.StartsWith("//", StringComparison.Ordinal) &&
+			CurrentPage is TRViS.DTAC.ViewHost)
+		{
+			logger.Info("OnNavigating: popping ViewHost before absolute nav to {0}", args.Target.Location);
+			var deferral = args.GetDeferral();
+			_ = Dispatcher.DispatchAsync(async () =>
+			{
+				try { await GoToAsync(".."); }
+				catch (Exception ex) { logger.Error(ex, "Pre-absolute pop of ViewHost failed"); }
+				finally { deferral.Complete(); }
+			});
+		}
+	}
+#endif
 
 	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 	{
