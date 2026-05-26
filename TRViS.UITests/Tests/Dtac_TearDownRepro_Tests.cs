@@ -53,15 +53,17 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 		// on a blank page), so probe StartHome first and fall back to the
 		// NavigateToHome seam exactly like NavigationTests.SetUp does.
 		//
-		// Check HomeBody in addition to Title: after GoToAsync("..") pops
-		// ViewHost, StartHome lands in Home mode where Title is hidden but
-		// HomeBody is visible. Calling NavigateToHome from StartHome (already
-		// there) would issue GoToAsync("//StartHomePage") redundantly, which on
-		// Android adds a Fragment to the back stack and corrupts it for the
-		// next ViewHost push.
+		// Check HomeBody in addition to Title: after the seam's
+		// GoToAsync("//StartHomePage"), StartHome lands in Home mode where
+		// Title is hidden but HomeBody is visible. Calling NavigateToHome from
+		// StartHome (already there) would issue GoToAsync("//StartHomePage")
+		// redundantly, which on Android adds a Fragment to the back stack and
+		// corrupts it for the next ViewHost push.
 		var startHome = new StartHomePageObject(Driver);
-		if (!startHome.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3)
-			&& !startHome.PollDisplayed(AutomationIds.StartHome.HomeBody, timeoutSeconds: 1))
+		// Use a generous timeout: after TearDown restarts the Android app,
+		// SetUp runs while the process is still warming up (typically 3-6 s).
+		if (!startHome.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 10)
+			&& !startHome.PollDisplayed(AutomationIds.StartHome.HomeBody, timeoutSeconds: 2))
 		{
 			new AppShellPage(Driver).NavigateToHome();
 			startHome = new StartHomePageObject(Driver);
@@ -70,6 +72,37 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 		startHome.ClearLoaderForTesting();
 
 		_startHomePage = startHome;
+	}
+
+	[TearDown]
+	public override void TearDown()
+	{
+		base.TearDown();
+
+		if (!IsAndroid)
+			return;
+
+		// Restart the Android app between [Repeat] iterations so each iteration
+		// begins with a clean FragmentManager. GoToAsync-based Shell navigation
+		// does not reliably remove the ViewHost push-route Fragment from the back
+		// stack (MAUI #16927 family); the lingering Fragment causes blank DTAC on
+		// the second GoToAsync("ViewHost") push. Process restart is the only
+		// reliable way to guarantee a clean FragmentManager.
+		//
+		// terminateApp without clearApp intentionally: SharedPreferences (privacy
+		// policy accepted flag) must survive so SetUp's AcceptPrivacyPolicyIfNeeded
+		// remains a no-op on every iteration after the first.
+		try
+		{
+			Driver.ExecuteScript("mobile: terminateApp",
+				new Dictionary<string, object> { { "appId", "dev.t0r.trvis" } });
+			Driver.ExecuteScript("mobile: activateApp",
+				new Dictionary<string, object> { { "appId", "dev.t0r.trvis" } });
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"DtacTearDownRepro: app restart failed: {ex.Message}");
+		}
 	}
 
 	/// <summary>
@@ -102,11 +135,10 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 		Assert.That(dtac.IsDisplayed(), Is.True,
 			"DTAC should be visible after AutoOpen.");
 
-		// Now navigate back to StartHome via the TestNavigateHomeButton seam.
-		// On Android the seam uses GoToAsync("..") (pop, matching back-button
-		// behaviour); on other platforms it uses GoToAsync("//StartHomePage").
-		// NavigateToHome internally waits up to 10 s for StartHome.HomeBody
-		// to appear. If the tear-down blank reproduces, that wait throws
+		// Now navigate back to StartHome via the TestNavigateHomeButton seam
+		// (GoToAsync("//StartHomePage") on all platforms). NavigateToHome
+		// internally waits up to 10 s for StartHome.HomeBody to appear. If
+		// the tear-down blank reproduces, that wait throws
 		// WebDriverTimeoutException — wrap so we can capture artifacts and
 		// report a clean Assert.Fail.
 		var appShell = new AppShellPage(Driver);
