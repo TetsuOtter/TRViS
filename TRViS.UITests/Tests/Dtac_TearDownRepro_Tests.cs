@@ -52,8 +52,16 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 		// session a prior iteration ends on DTAC (or, if the bug reproduces,
 		// on a blank page), so probe StartHome first and fall back to the
 		// NavigateToHome seam exactly like NavigationTests.SetUp does.
+		//
+		// Check HomeBody in addition to Title: after GoToAsync("..") pops
+		// ViewHost, StartHome lands in Home mode where Title is hidden but
+		// HomeBody is visible. Calling NavigateToHome from StartHome (already
+		// there) would issue GoToAsync("//StartHomePage") redundantly, which on
+		// Android adds a Fragment to the back stack and corrupts it for the
+		// next ViewHost push.
 		var startHome = new StartHomePageObject(Driver);
-		if (!startHome.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3))
+		if (!startHome.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 3)
+			&& !startHome.PollDisplayed(AutomationIds.StartHome.HomeBody, timeoutSeconds: 1))
 		{
 			new AppShellPage(Driver).NavigateToHome();
 			startHome = new StartHomePageObject(Driver);
