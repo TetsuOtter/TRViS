@@ -83,21 +83,28 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 			return;
 
 		// Restart the Android app between [Repeat] iterations so each iteration
-		// begins with a clean FragmentManager. GoToAsync-based Shell navigation
-		// does not reliably remove the ViewHost push-route Fragment from the back
-		// stack (MAUI #16927 family); the lingering Fragment causes blank DTAC on
-		// the second GoToAsync("ViewHost") push. Process restart is the only
-		// reliable way to guarantee a clean FragmentManager.
+		// begins with a clean FragmentManager AND clean app state. GoToAsync-based
+		// Shell navigation does not reliably remove the ViewHost push-route Fragment
+		// from the back stack (MAUI #16927 family); the lingering Fragment causes
+		// blank DTAC on the second GoToAsync("ViewHost") push. Process restart is
+		// the only reliable way to guarantee a clean FragmentManager.
 		//
-		// terminateApp without clearApp intentionally: SharedPreferences (privacy
-		// policy accepted flag) must survive so SetUp's AcceptPrivacyPolicyIfNeeded
-		// remains a no-op on every iteration after the first.
+		// clearApp (= adb pm clear) is used intentionally: terminateApp alone
+		// preserves SharedPreferences, which keeps the loaded Work selection alive.
+		// The next fixture then sees a Home-mode app and StartHome.Title is hidden,
+		// breaking IsDisplayed() checks (e.g. Footer_OpenAndCloseThirdPartyLicenses).
+		// clearApp wipes all app data → fresh Start mode on next launch.
+		// PrivacyAcceptedInCurrentSession is reset to false so the next SetUp's
+		// AcceptPrivacyPolicyIfNeeded re-dismisses the privacy banner.
 		try
 		{
 			Driver.ExecuteScript("mobile: terminateApp",
 				new Dictionary<string, object> { { "appId", "dev.t0r.trvis" } });
+			Driver.ExecuteScript("mobile: clearApp",
+				new Dictionary<string, object> { { "appId", "dev.t0r.trvis" } });
 			Driver.ExecuteScript("mobile: activateApp",
 				new Dictionary<string, object> { { "appId", "dev.t0r.trvis" } });
+			Infrastructure.BaseUITest.PrivacyAcceptedInCurrentSession = false;
 		}
 		catch (Exception ex)
 		{
