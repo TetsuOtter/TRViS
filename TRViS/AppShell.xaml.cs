@@ -28,17 +28,6 @@ public partial class AppShell : Shell
 		logger.Trace("AppShell Creating");
 
 		Routing.RegisterRoute(HorizontalTimetablePage.NameOfThisClass, typeof(HorizontalTimetablePage));
-#if ANDROID
-		// MAUI #16927 mitigation: hosting DTAC as a cached ShellContent
-		// DataTemplate on Android causes a render-tree blank after navigation
-		// away (any subsequent page renders as an empty DrawerLayout). Workaround:
-		// register ViewHost as a relative route and remove the FlyoutItem (see
-		// FlyoutDTAC removal below) so DTAC isn't pre-instantiated. DTAC is
-		// reachable on Android only after a Work is committed (via
-		// HomeGridView.NavigateToDTACAsync), matching the comment further down
-		// noting that DTAC has no committed selection from a cold flyout tap.
-		Routing.RegisterRoute(TRViS.DTAC.ViewHost.NameOfThisClass, typeof(TRViS.DTAC.ViewHost));
-#endif
 		logger.Info("Application Version: {0}", AppVersionString);
 
 		EasterEggPageViewModel easterEggPageViewModel = InstanceManager.EasterEggPageViewModel;
@@ -53,11 +42,16 @@ public partial class AppShell : Shell
 		InitializeComponent();
 
 #if ANDROID
-		// See the RegisterRoute(ViewHost) block above (MAUI #16927). Remove the
-		// DTAC FlyoutItem so DTAC isn't a cached ShellContent (the trigger of
-		// the blanking bug). DTAC stays reachable via the relative route push
-		// from HomeGridView.NavigateToDTACAsync once a Work has been committed.
+		// MAUI #16927 mitigation: hosting DTAC as a cached ShellContent causes a
+		// render-tree blank after navigation away. Remove the FlyoutItem, then
+		// register ViewHost as a relative push route.
+		// RegisterRoute MUST come after Items.Remove: AppShell.xaml's
+		// FlyoutDTAC has Route="ViewHost", so InitializeComponent registers that
+		// name into the Shell routing table. Items.Remove then un-registers it.
+		// A RegisterRoute call placed before InitializeComponent would be silently
+		// overridden by the XAML and then erased by Items.Remove.
 		Items.Remove(FlyoutDTAC);
+		Routing.RegisterRoute(TRViS.DTAC.ViewHost.NameOfThisClass, typeof(TRViS.DTAC.ViewHost));
 #endif
 
 		// Flyout/MenuItem Title binding refresh is unreliable in MAUI Shell, so
