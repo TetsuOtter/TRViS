@@ -452,7 +452,15 @@ public partial class ViewHost : ContentPage
 		logger.Info("TestNavigateHomeButton clicked: GoToAsync StartHomePage (bypassing flyout)");
 		try
 		{
+#if ANDROID
+			// ViewHost is a push route on Android. GoToAsync("//absolute") from a
+			// pushed Fragment doesn't properly pop it — after 2 such navigations
+			// the back stack is corrupted and a 3rd push renders blank. Use ".."
+			// (pop) to match what the system back button does.
+			await Shell.Current.GoToAsync("..");
+#else
 			await Shell.Current.GoToAsync("//" + StartHomePage.NameOfThisClass);
+#endif
 		}
 		catch (Exception ex)
 		{

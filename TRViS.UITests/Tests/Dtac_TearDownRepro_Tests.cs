@@ -94,12 +94,13 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 		Assert.That(dtac.IsDisplayed(), Is.True,
 			"DTAC should be visible after AutoOpen.");
 
-		// Now navigate back to StartHome via the TestNavigateHomeButton
-		// seam (Shell.Current.GoToAsync("//StartHomePage") on main).
-		// NavigateToHome internally waits up to 10 s for the StartHome
-		// title to appear. If the tear-down blank reproduces, that wait
-		// throws WebDriverTimeoutException — wrap so we can capture
-		// artifacts and report a clean Assert.Fail.
+		// Now navigate back to StartHome via the TestNavigateHomeButton seam.
+		// On Android the seam uses GoToAsync("..") (pop, matching back-button
+		// behaviour); on other platforms it uses GoToAsync("//StartHomePage").
+		// NavigateToHome internally waits up to 10 s for StartHome.HomeBody
+		// to appear. If the tear-down blank reproduces, that wait throws
+		// WebDriverTimeoutException — wrap so we can capture artifacts and
+		// report a clean Assert.Fail.
 		var appShell = new AppShellPage(Driver);
 		try
 		{
