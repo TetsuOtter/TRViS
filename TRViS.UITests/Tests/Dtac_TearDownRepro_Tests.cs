@@ -125,4 +125,50 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 				$"({ex.GetType().Name}: {ex.Message}). Likely DTAC-teardown blank on main.");
 		}
 	}
+
+	/// <summary>
+	/// Production flyout path: DTAC MenuButton → flyout "Home" tap.
+	/// On Android, ViewHost is a push route. A FlyoutItem tap internally issues
+	/// <c>GoToAsync("//absolute")</c>, which does NOT pop the Fragment first.
+	/// After 2 such cycles the Fragment back stack has 2 stale ViewHost entries;
+	/// the 3rd <c>GoToAsync("ViewHost")</c> push renders blank (same symptom as
+	/// <see cref="DtacToHome_DoesNotBlank_OnAndroid"/> before the seam fix).
+	/// </summary>
+	[Test]
+	[Repeat(3)]
+	public void DtacToHome_ViaFlyout_DoesNotBlank_OnAndroid()
+	{
+		Assert.That(_startHomePage.IsDisplayed(), Is.True,
+			"StartHome should be visible at iteration start.");
+
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+		var dtac = _startHomePage.AutoOpenForTesting();
+		Assert.That(dtac.IsDisplayed(), Is.True,
+			"DTAC should be visible after AutoOpen.");
+
+		// Production path: MenuButton opens the flyout, user taps "Home".
+		// This dispatches GoToAsync("//StartHomePage") without first popping
+		// the pushed ViewHost Fragment — the back stack corruption case.
+		var appShell = new AppShellPage(Driver);
+		try
+		{
+			var home = appShell.NavigateToHomeViaFlyout();
+
+			TakeScreenshot();
+			DumpPageSource();
+
+			Assert.That(home.PollDisplayed(AutomationIds.StartHome.HomeBody, timeoutSeconds: 30), Is.True,
+				"StartHome (Home-mode body) should be visible after flyout 'Home' tap from DTAC — " +
+				"if this blanks, the Fragment back-stack corruption exists on the production flyout path.");
+		}
+		catch (WebDriverTimeoutException ex)
+		{
+			TakeScreenshot();
+			DumpPageSource();
+			Assert.Fail(
+				"Flyout 'Home' tap timed out waiting for StartHome.HomeBody after DTAC tear-down " +
+				$"({ex.GetType().Name}: {ex.Message}). Likely Fragment back-stack blank via production flyout path.");
+		}
+	}
 }

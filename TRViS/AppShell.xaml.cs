@@ -164,6 +164,32 @@ public partial class AppShell : Shell
 		});
 	}
 
+#if ANDROID
+	/// <summary>
+	/// On Android, ViewHost is a push route. When a FlyoutItem tap fires
+	/// GoToAsync("//absolute") while ViewHost is current, MAUI does not pop the
+	/// Fragment first — stale Fragments accumulate and the 3rd push renders blank.
+	/// Pop ViewHost before resuming the absolute navigation so the back stack stays clean.
+	/// </summary>
+	protected override void OnNavigating(ShellNavigatingEventArgs args)
+	{
+		base.OnNavigating(args);
+
+		if (args.Target.Location.OriginalString.StartsWith("//", StringComparison.Ordinal) &&
+			CurrentPage is TRViS.DTAC.ViewHost)
+		{
+			logger.Info("OnNavigating: popping ViewHost before absolute nav to {0}", args.Target.Location);
+			var deferral = args.GetDeferral();
+			_ = Dispatcher.DispatchAsync(async () =>
+			{
+				try { await GoToAsync(".."); }
+				catch (Exception ex) { logger.Error(ex, "Pre-absolute pop of ViewHost failed"); }
+				finally { deferral.Complete(); }
+			});
+		}
+	}
+#endif
+
 	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 	{
 		base.OnPropertyChanged(propertyName);
