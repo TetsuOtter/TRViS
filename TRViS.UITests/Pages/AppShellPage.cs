@@ -371,18 +371,6 @@ public class AppShellPage : PageObject
 		return new StartHomePageObject(Driver);
 	}
 
-	/// <summary>
-	/// Navigates to StartHome via the production flyout path (MenuButton → flyout
-	/// "Home" tap) rather than the UI_TEST seam. Use this to exercise the real
-	/// Shell FlyoutItem navigation instead of the GoToAsync("..") seam.
-	/// </summary>
-	public StartHomePageObject NavigateToHomeViaFlyout()
-	{
-		OpenFlyout();
-		WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
-		return new StartHomePageObject(Driver);
-	}
-
 	public EasterEggPageObject NavigateToSettings()
 	{
 		if (_isWindows)
