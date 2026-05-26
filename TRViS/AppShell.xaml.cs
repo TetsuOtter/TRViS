@@ -41,6 +41,19 @@ public partial class AppShell : Shell
 
 		InitializeComponent();
 
+#if ANDROID
+		// MAUI #16927 mitigation: hosting DTAC as a cached ShellContent causes a
+		// render-tree blank after navigation away. Remove the FlyoutItem, then
+		// register ViewHost as a relative push route.
+		// RegisterRoute MUST come after Items.Remove: AppShell.xaml's
+		// FlyoutDTAC has Route="ViewHost", so InitializeComponent registers that
+		// name into the Shell routing table. Items.Remove then un-registers it.
+		// A RegisterRoute call placed before InitializeComponent would be silently
+		// overridden by the XAML and then erased by Items.Remove.
+		Items.Remove(FlyoutDTAC);
+		Routing.RegisterRoute(TRViS.DTAC.ViewHost.NameOfThisClass, typeof(TRViS.DTAC.ViewHost));
+#endif
+
 		// Flyout/MenuItem Title binding refresh is unreliable in MAUI Shell, so
 		// set them imperatively now and again whenever the UI language changes.
 		ApplyLocalization();
