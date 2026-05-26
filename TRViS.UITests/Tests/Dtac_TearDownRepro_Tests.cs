@@ -78,7 +78,7 @@ public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
 	/// clearer "blank shape" signal for the report).
 	/// </summary>
 	[Test]
-	[Repeat(1)]
+	[Repeat(3)]
 	public void DtacToHome_DoesNotBlank_OnAndroid()
 	{
 		// Cold launch → StartHome.
