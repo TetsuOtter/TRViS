@@ -636,7 +636,15 @@ public partial class HomeGridView : Grid
 		try
 		{
 			logger.Info("Navigating to DTAC page");
+#if ANDROID
+			// MAUI #16927 mitigation: on Android, DTAC is registered as a
+			// relative route (no FlyoutItem) — push it relatively. Going via
+			// "//ViewHost" would expect a Shell-item route, which no longer
+			// exists on this platform. See AppShell.xaml.cs.
+			await Shell.Current.GoToAsync(ViewHost.NameOfThisClass);
+#else
 			await Shell.Current.GoToAsync($"//{ViewHost.NameOfThisClass}");
+#endif
 		}
 		catch (Exception ex)
 		{
