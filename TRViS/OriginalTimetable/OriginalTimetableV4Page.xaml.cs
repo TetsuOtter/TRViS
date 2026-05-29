@@ -63,6 +63,10 @@ public partial class OriginalTimetableV4Page : ContentPage
 
 	public ObservableCollection<V4RowItem> Items { get; } = new();
 
+	// AppBar bindings — 乗務区 (depot = WorkGroup name) + 行路番号 (work name).
+	public string DepotName { get; private set; } = string.Empty;
+	public string WorkText { get; private set; } = string.Empty;
+
 	// Train-stripe bindings (refreshed by RebuildItems).
 	public string HeaderTypeText { get; private set; } = string.Empty;
 	public bool HasHeaderType { get; private set; }
@@ -135,6 +139,13 @@ public partial class OriginalTimetableV4Page : ContentPage
 
 		InitializeComponent();
 		BindingContext = _vm;
+
+#if !ANDROID
+		// Replace the Shell NavBar ("ダイヤ表 (V4)") with our own OriginalTimetableAppBar
+		// (行路番号 + menu + clock). Android keeps the Shell NavBar (MAUI #16927 / flyout
+		// reachability constraint) and shows the AppBar below it.
+		Shell.SetNavBarIsVisible(this, false);
+#endif
 	}
 
 	protected override void OnAppearing()
@@ -357,6 +368,8 @@ public partial class OriginalTimetableV4Page : ContentPage
 	{
 		var train = _vm.ActiveTrain;
 		HasActiveTrain = train is not null;
+		DepotName = InstanceManager.AppViewModel.SelectedWorkGroup?.Name ?? string.Empty;
+		WorkText = train?.WorkName ?? string.Empty;
 		HeaderTypeText = train?.SpeedType ?? string.Empty;
 		HasHeaderType = !string.IsNullOrEmpty(HeaderTypeText);
 		HeaderTrainNumberText = train?.TrainNumber ?? string.Empty;
@@ -403,6 +416,8 @@ public partial class OriginalTimetableV4Page : ContentPage
 
 		OnPropertyChanged(nameof(HasActiveTrain));
 		OnPropertyChanged(nameof(HasNoActiveTrain));
+		OnPropertyChanged(nameof(DepotName));
+		OnPropertyChanged(nameof(WorkText));
 		OnPropertyChanged(nameof(HeaderTypeText));
 		OnPropertyChanged(nameof(HasHeaderType));
 		OnPropertyChanged(nameof(HeaderTrainNumberText));

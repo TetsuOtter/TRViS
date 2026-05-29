@@ -37,11 +37,22 @@
 		    +- Grid (MemoSheetOverlay)   ← unchanged overlay
 		    +- Grid (TweaksOverlay)      ← unchanged overlay
 	-->
-	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V4.Root">
+	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V4.Root" RowDefinitions="Auto,*" SafeAreaEdges="None">
+
+		<!-- Original AppBar (replaces Shell NavBar on non-Android): menu + 行路番号 + clock -->
+		<local:OriginalTimetableAppBar
+			Grid.Row="0"
+			AutomationId="OriginalTimetable.V4.AppBar"
+			DepotText="{Binding DepotName, Source={x:Reference Self}}"
+			WorkText="{Binding WorkText, Source={x:Reference Self}}"
+			MenuButtonAutomationId="OriginalTimetable.V4.AppBar.Menu"
+			TitleAutomationId="OriginalTimetable.V4.AppBar.Title"
+			ClockAutomationId="OriginalTimetable.V4.AppBar.Clock"/>
 
 		<!-- Tablet layout (>= 600pt) -->
 		<Grid
 			x:Name="TabletGrid"
+			Grid.Row="1"
 			AutomationId="OriginalTimetable.V4.TabletGrid"
 			RowDefinitions="Auto,Auto,*"
 			IsVisible="False">
@@ -350,6 +361,7 @@
 		<!-- Compact layout (< 600pt) -->
 		<Grid
 			x:Name="CompactGrid"
+			Grid.Row="1"
 			AutomationId="OriginalTimetable.V4.CompactGrid"
 			RowDefinitions="Auto,Auto,*"
 			IsVisible="False">
@@ -555,6 +567,8 @@
 		<!-- Phase 2 — Memo bottom-sheet overlay. Sibling of Tablet/Compact so it overlays both. -->
 		<Grid
 			x:Name="MemoSheetOverlay"
+			Grid.Row="0"
+			Grid.RowSpan="2"
 			AutomationId="OriginalTimetable.V4.MemoSheet"
 			IsVisible="False"
 			BackgroundColor="#80000000"
@@ -609,6 +623,8 @@
 		<!-- Phase 3 — Tweaks panel overlay. -->
 		<Grid
 			x:Name="TweaksOverlay"
+			Grid.Row="0"
+			Grid.RowSpan="2"
 			AutomationId="OriginalTimetable.V4.Tweaks.Overlay"
 			IsVisible="False"
 			BackgroundColor="#80000000"

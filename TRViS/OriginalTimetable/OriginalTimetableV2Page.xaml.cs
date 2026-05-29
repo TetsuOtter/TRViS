@@ -94,6 +94,13 @@ public partial class OriginalTimetableV2Page : ContentPage
 
 		InitializeComponent();
 		BindingContext = _vm;
+
+#if !ANDROID
+		// The masthead (with its own hamburger + 行路番号 + live clock) is the page's
+		// app bar, so hide the Shell NavBar ("ダイヤ表 (V2)"). Android keeps the Shell
+		// NavBar (MAUI #16927 / flyout reachability constraint).
+		Shell.SetNavBarIsVisible(this, false);
+#endif
 	}
 
 	protected override void OnAppearing()

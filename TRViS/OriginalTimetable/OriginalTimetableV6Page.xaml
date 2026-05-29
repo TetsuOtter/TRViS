@@ -9,11 +9,20 @@
 	Title="ダイヤ表 (V6)"
 	SizeChanged="OnRootSizeChanged"
 	BackgroundColor="{AppThemeBinding Light={StaticResource OT_Bg_Light}, Dark={StaticResource OT_Bg_Dark}}">
-	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V6.Root">
+	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V6.Root" RowDefinitions="Auto,*" SafeAreaEdges="None">
+
+		<!-- Original AppBar (replaces Shell NavBar on non-Android): menu + clock.
+		     The masthead below already carries 乗務区 / 行路番号, so no title here. -->
+		<local:OriginalTimetableAppBar
+			Grid.Row="0"
+			AutomationId="OriginalTimetable.V6.AppBar"
+			MenuButtonAutomationId="OriginalTimetable.V6.AppBar.Menu"
+			ClockAutomationId="OriginalTimetable.V6.AppBar.Clock"/>
 
 		<!-- Tablet layout (>= 600pt) -->
 		<Grid
 			x:Name="TabletGrid"
+			Grid.Row="1"
 			AutomationId="OriginalTimetable.V6.TabletGrid"
 			RowDefinitions="Auto,Auto,Auto,Auto,*"
 			IsVisible="False">
@@ -174,36 +183,23 @@
 				</ScrollView>
 			</Border>
 
-			<!-- Row 3: Current big block -->
-			<SwipeView
+			<!-- Row 3: Current big block (tap → marker popover). A styled Grid, NOT a Border:
+			     on iOS a Border (like a SwipeView) in this position balloons to fill the page —
+			     it returns the full available height as its desired height regardless of its
+			     content, and no Auto-row firewall (inside or outside the Border) corrects it.
+			     A Grid with an explicit Auto row sizes to its content, so the block stays
+			     compact. The teal fill is the Grid Background; the old Border's hairline stroke
+			     was the same colour as the fill (invisible), so nothing is lost by dropping it. -->
+			<Grid
 				Grid.Row="3"
+				RowDefinitions="Auto"
 				AutomationId="OriginalTimetable.V6.CurrentBlock"
-				IsVisible="{Binding HasCurrentStation, Source={x:Reference Self}}">
-				<SwipeView.RightItems>
-					<SwipeItems Mode="Reveal">
-						<SwipeItem
-							Text="マーカー"
-							BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
-							Command="{Binding OpenMarkerPopoverFromSwipeCommand, Source={x:Reference Self}}"
-							CommandParameter="{Binding CurrentRowId, Source={x:Reference Self}}"/>
-						<SwipeItem
-							Text="メモ"
-							BackgroundColor="{StaticResource OT_MarkerCautionBg}"
-							Command="{Binding OpenMemoCommand, Source={x:Reference Self}}"
-							CommandParameter="{Binding CurrentRowId, Source={x:Reference Self}}"/>
-						<SwipeItem
-							Text="クリア"
-							BackgroundColor="{AppThemeBinding Light={StaticResource OT_AccentSoft_Light}, Dark={StaticResource OT_AccentSoft_Dark}}"
-							Command="{Binding ClearMarkerCommand, Source={x:Reference Self}}"
-							CommandParameter="{Binding CurrentRowId, Source={x:Reference Self}}"/>
-					</SwipeItems>
-				</SwipeView.RightItems>
-				<Border
-					Padding="24,20"
-					StrokeThickness="0,1,0,1"
-					Stroke="{StaticResource OT_Accent}"
-					StrokeShape="Rectangle"
-					Background="{StaticResource OT_Accent}">
+				IsVisible="{Binding HasCurrentStation, Source={x:Reference Self}}"
+				Padding="24,20"
+				Background="{StaticResource OT_Accent}">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnCurrentBlockTapped"/>
+					</Grid.GestureRecognizers>
 					<VerticalStackLayout Spacing="10">
 						<HorizontalStackLayout Spacing="10">
 							<Label
@@ -320,8 +316,7 @@
 							StrokeShape="RoundRectangle 6"
 							Padding="10,6"/>
 					</VerticalStackLayout>
-				</Border>
-			</SwipeView>
+			</Grid>
 
 			<!-- Empty-state when ActiveTrain is null -->
 			<Label
@@ -356,6 +351,7 @@
 		<!-- Compact layout (< 600pt) — mirrors TabletGrid structure with smaller fonts. -->
 		<Grid
 			x:Name="CompactGrid"
+			Grid.Row="1"
 			AutomationId="OriginalTimetable.V6.CompactGrid"
 			RowDefinitions="Auto,Auto,Auto,Auto,*"
 			IsVisible="False">
@@ -517,36 +513,18 @@
 				</ScrollView>
 			</Border>
 
-			<!-- Row 3: Current big block (compact) -->
-			<SwipeView
+			<!-- Row 3: Current big block (compact). Styled Grid, not a Border —
+			     see the tablet block comment for the iOS measure quirk this avoids. -->
+			<Grid
 				Grid.Row="3"
+				RowDefinitions="Auto"
 				AutomationId="OriginalTimetable.V6.Compact.CurrentBlock"
-				IsVisible="{Binding HasCurrentStation, Source={x:Reference Self}}">
-				<SwipeView.RightItems>
-					<SwipeItems Mode="Reveal">
-						<SwipeItem
-							Text="マーカー"
-							BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
-							Command="{Binding OpenMarkerPopoverFromSwipeCommand, Source={x:Reference Self}}"
-							CommandParameter="{Binding CurrentRowId, Source={x:Reference Self}}"/>
-						<SwipeItem
-							Text="メモ"
-							BackgroundColor="{StaticResource OT_MarkerCautionBg}"
-							Command="{Binding OpenMemoCommand, Source={x:Reference Self}}"
-							CommandParameter="{Binding CurrentRowId, Source={x:Reference Self}}"/>
-						<SwipeItem
-							Text="クリア"
-							BackgroundColor="{AppThemeBinding Light={StaticResource OT_AccentSoft_Light}, Dark={StaticResource OT_AccentSoft_Dark}}"
-							Command="{Binding ClearMarkerCommand, Source={x:Reference Self}}"
-							CommandParameter="{Binding CurrentRowId, Source={x:Reference Self}}"/>
-					</SwipeItems>
-				</SwipeView.RightItems>
-				<Border
-					Padding="14,14"
-					StrokeThickness="0,1,0,1"
-					Stroke="{StaticResource OT_Accent}"
-					StrokeShape="Rectangle"
-					Background="{StaticResource OT_Accent}">
+				IsVisible="{Binding HasCurrentStation, Source={x:Reference Self}}"
+				Padding="14,14"
+				Background="{StaticResource OT_Accent}">
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnCurrentBlockTapped"/>
+					</Grid.GestureRecognizers>
 					<VerticalStackLayout Spacing="8">
 						<HorizontalStackLayout Spacing="8">
 							<Label
@@ -656,8 +634,7 @@
 							StrokeShape="RoundRectangle 6"
 							Padding="8,5"/>
 					</VerticalStackLayout>
-				</Border>
-			</SwipeView>
+			</Grid>
 
 			<!-- Empty-state -->
 			<Label
@@ -692,6 +669,8 @@
 		<!-- Phase 2 — Memo bottom-sheet overlay (sibling of Tablet/Compact). -->
 		<Grid
 			x:Name="MemoSheetOverlay"
+			Grid.Row="0"
+			Grid.RowSpan="2"
 			AutomationId="OriginalTimetable.V6.MemoSheet"
 			IsVisible="False"
 			BackgroundColor="#80000000"
@@ -746,6 +725,8 @@
 		<!-- Phase 3 — Tweaks panel overlay. -->
 		<Grid
 			x:Name="TweaksOverlay"
+			Grid.Row="0"
+			Grid.RowSpan="2"
 			AutomationId="OriginalTimetable.V6.Tweaks.Overlay"
 			IsVisible="False"
 			BackgroundColor="#80000000"

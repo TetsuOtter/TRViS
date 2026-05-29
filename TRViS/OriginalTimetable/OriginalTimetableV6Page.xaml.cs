@@ -135,6 +135,25 @@ public partial class OriginalTimetableV6Page : ContentPage
 
 		InitializeComponent();
 		BindingContext = _vm;
+
+#if !ANDROID
+		// Replace the Shell NavBar ("ダイヤ表 (V6)") with our own OriginalTimetableAppBar
+		// (menu + clock; the masthead already shows 乗務区 / 行路番号). Android keeps the
+		// Shell NavBar (MAUI #16927 / flyout reachability) and shows the AppBar below it.
+		Shell.SetNavBarIsVisible(this, false);
+#endif
+	}
+
+	// Current big block tap → marker popover for the current station. The block used
+	// to be a SwipeView (swipe → marker/memo/clear), but a SwipeView in a Grid Auto
+	// row stretches to fill the page on iOS, so it's now a plain Border. Tapping it
+	// opens the marker popover (add / change / clear), preserving marker management.
+	void OnCurrentBlockTapped(object? sender, TappedEventArgs e)
+	{
+		if (string.IsNullOrEmpty(CurrentRowId))
+			return;
+		var anchor = sender as View ?? RootGrid;
+		OpenMarkerPopover(anchor, CurrentRowId);
 	}
 
 	protected override void OnAppearing()

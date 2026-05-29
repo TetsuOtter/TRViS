@@ -92,6 +92,13 @@ public partial class OriginalTimetableV1Page : ContentPage
 		InitializeComponent();
 		BindingContext = _vm;
 
+#if !ANDROID
+		// The masthead (with its own hamburger + 行路番号 + live clock) is the page's
+		// app bar, so hide the Shell NavBar ("ダイヤ表 (V1)"). Android keeps the Shell
+		// NavBar (MAUI #16927 / flyout reachability constraint).
+		Shell.SetNavBarIsVisible(this, false);
+#endif
+
 #if UI_TEST
 		AddTestSeamButtons();
 #endif
@@ -282,8 +289,8 @@ public partial class OriginalTimetableV1Page : ContentPage
 		RootGrid.Margin = new Thickness(0, newValue.Top, 0, 0);
 	}
 
-	// Flyout-toggle (hamburger) handler. NavBar is hidden via Shell.NavBarIsVisible="False"
-	// on each Vx page, so we surface our own toggle in the page's custom header.
+	// Flyout-toggle (hamburger) handler. The Shell NavBar is hidden on non-Android
+	// (see ctor), so we surface our own toggle in the page's custom masthead.
 	void OnFlyoutToggleTapped(object? sender, TappedEventArgs e)
 	{
 		if (Shell.Current is not null)
