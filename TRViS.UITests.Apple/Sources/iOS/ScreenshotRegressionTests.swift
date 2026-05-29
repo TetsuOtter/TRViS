@@ -129,6 +129,83 @@ class ScreenshotRegressionTests: BaseUITestCase {
         )
     }
 
+    /// Captures the OriginalTimetable variant pages (V1/V2/V4/V6) in light and
+    /// dark (ja). The Shell flyout cannot be reopened from inside an Original
+    /// page (the edge-swipe is consumed and only V1 has a header toggle), so the
+    /// app is relaunched before each capture and the target page is reached fresh
+    /// from DTAC. Selection uses the ハコ tab only — never the 時刻表 tab (its
+    /// landscape render can block the main thread for ~60s) or the HT WebView.
+    func testCaptureOriginalTimetablePages() throws {
+        try XCTSkipIf(
+            ScreenshotBaselineHelper.baselineRoot.isEmpty,
+            "Skipping: TRVIS_SCREENSHOT_BASELINE_DIR not set"
+        )
+
+        let originals: [(id: String, label: String, screen: String, rootId: String)] = [
+            ("Shell.Flyout.OriginalTimetableV1", "ダイヤ表 (V1)", "originalV1", "OriginalTimetable.V1.Root"),
+            ("Shell.Flyout.OriginalTimetableV2", "ダイヤ表 (V2)", "originalV2", "OriginalTimetable.V2.Root"),
+            ("Shell.Flyout.OriginalTimetableV4", "ダイヤ表 (V4)", "originalV4", "OriginalTimetable.V4.Root"),
+            ("Shell.Flyout.OriginalTimetableV6", "ダイヤ表 (V6)", "originalV6", "OriginalTimetable.V6.Root"),
+        ]
+
+        var allFailures: [String] = []
+        let lang = "ja"
+
+        for (theme, dark) in [("light", false), ("dark", true)] {
+            for o in originals {
+                // Fresh app per capture so we always navigate from a root page.
+                app.launch()
+                if !start.isDisplayed(timeout: 15) {
+                    _ = shell.navigateToHome()
+                }
+                start.clearLoaderForTesting()
+                start.acceptPrivacyPolicyIfNeeded()
+
+                // Pin determinism + theme (theme seam lives on StartHome).
+                start.freezeClockForTesting()
+                start.setLanguageJapaneseForTesting()
+                start.forceThemeForTesting(dark: dark)
+                Thread.sleep(forTimeInterval: 1.0)
+
+                // Load + seed (the HT fixture contains 試単9091) + open DTAC, then
+                // select 試単9091 from the ハコ tab.
+                start.loadSample()
+                _ = start.waitForWorkGroupList(timeout: 30)
+                settle()
+                let dtac = start.seedHorizontalTimetableAndOpenForTesting()
+                if let hakoTab = waitForElement(id: AutomationIds.DTAC.tabHako, timeout: 15) {
+                    hakoTab.tap()
+                }
+                Thread.sleep(forTimeInterval: 0.5)
+                dtac.selectHakoTrain(trainNumber: "試単9091")
+                Thread.sleep(forTimeInterval: 0.5)
+
+                // Navigate to the target Original page (flyout from DTAC works).
+                if shell.navigateToOriginal(id: o.id, label: o.label) {
+                    _ = waitForElement(id: o.rootId, timeout: 20)
+                    settleUntilVisuallyStable()
+                    capture(screen: o.screen, theme: theme, lang: lang, failures: &allFailures)
+                } else {
+                    let msg = "[ScreenshotRegression] \(o.screen) [\(theme)]: flyout navigation failed — skipped."
+                    print(msg)
+                    allFailures.append(msg)
+                }
+            }
+        }
+
+        if ScreenshotBaselineHelper.updateMode {
+            print("[ScreenshotRegression] Original pages updated (\(allFailures.count) issue(s)).")
+            return
+        }
+        let gatedDeviceClasses = ["iphone", "ipad-mini-a17"]
+        if gatedDeviceClasses.contains(ScreenshotBaselineHelper.deviceClass) {
+            XCTAssertTrue(
+                allFailures.isEmpty,
+                "Original pages differ/failed:\n  " + allFailures.joined(separator: "\n  ")
+            )
+        }
+    }
+
     // MARK: — Per-combo walk
 
     private func captureCombo(theme: String, lang: String, dark: Bool, failures: inout [String]) {

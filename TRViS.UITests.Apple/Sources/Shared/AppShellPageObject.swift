@@ -144,6 +144,20 @@ class AppShellPageObject {
         return EasterEggPageObject(app: app, base: base)
     }
 
+    /// Navigates to an OriginalTimetable variant page (V1/V2/V4/V6) via the
+    /// Shell flyout MenuItem. Returns true if the flyout item was found and
+    /// tapped. Does NOT XCTFail on miss (returns false) so the screenshot walk
+    /// can skip a variant rather than aborting the whole combo.
+    func navigateToOriginal(id: String, label: String) -> Bool {
+        openFlyout()
+        guard let item = waitForFlyoutItem(id: id, label: label) else {
+            attachDiagnosticScreenshot(name: "navigateToOriginal-\(label)-not-found")
+            return false
+        }
+        item.tap()
+        return true
+    }
+
     /// Navigates back to StartHome via the Shell flyout.
     ///
     /// Uses the flyout drag on iOS (Apple platforms don't have Android's
