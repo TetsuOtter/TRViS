@@ -284,8 +284,8 @@ public partial class OriginalTimetableV1Page : ContentPage
 
 	void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
-		// Top inset only — the flyout-toggle / Tweaks gear sit in the header at
-		// the top of RootGrid. Bottom/sides are bezel-safe without margin.
+		// Top inset only — the flyout-toggle sits in the header at the top of
+		// RootGrid. Bottom/sides are bezel-safe without margin.
 		RootGrid.Margin = new Thickness(0, newValue.Top, 0, 0);
 	}
 
@@ -302,10 +302,8 @@ public partial class OriginalTimetableV1Page : ContentPage
 		switch (e.PropertyName)
 		{
 			case nameof(OriginalTimetableViewModel.ActiveTrain):
-			// Phase 3 — ShowPasses tweak toggles whether IsPass rows survive
-			// RebuildItems' filter. The visible row set changes, so we have
-			// to rebuild (scroll reset is acceptable here).
-			case nameof(OriginalTimetableViewModel.ShowPasses):
+				// Switching trains changes the visible row set, so rebuild
+				// (scroll reset is acceptable here).
 				RebuildItems();
 				break;
 			// Partial in-place updates — V1RowItem is an ObservableObject so
@@ -387,7 +385,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 
 	void UpdateDensityInPlace()
 	{
-		var (tabletPad, compactPad, tabletStation, compactStation) = DensityMetrics(_vm.Density);
+		var (tabletPad, compactPad, tabletStation, compactStation, tabletHeight, compactHeight) = DensityMetrics(_vm.Density);
 		foreach (var item in Items)
 		{
 			if (item.IsSectionBreakRow)
@@ -396,6 +394,8 @@ public partial class OriginalTimetableV1Page : ContentPage
 			item.CompactRowPadding = compactPad;
 			item.TabletStationFontSize = tabletStation;
 			item.CompactStationFontSize = compactStation;
+			item.TabletRowHeight = tabletHeight;
+			item.CompactRowHeight = compactHeight;
 		}
 	}
 
@@ -404,7 +404,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 	// station-name font size only; smaller numeric columns stay fixed so the
 	// time grid keeps a stable rhythm. Padding base values mirror the original
 	// XAML literals (Tablet 12,8 / Compact 10,7).
-	static (Thickness tabletPad, Thickness compactPad, double tabletStation, double compactStation)
+	static (Thickness tabletPad, Thickness compactPad, double tabletStation, double compactStation, double tabletHeight, double compactHeight)
 		DensityMetrics(Density d)
 	{
 		double scale = d switch
@@ -417,7 +417,10 @@ public partial class OriginalTimetableV1Page : ContentPage
 		var compactPad = new Thickness(10, Math.Round(7 * scale));
 		double tabletStation = Math.Round(32 * scale, 1);
 		double compactStation = Math.Round(20 * scale, 1);
-		return (tabletPad, compactPad, tabletStation, compactStation);
+		// Fixed, uniform row height per device-size tier.
+		double tabletHeight = d switch { Density.Compact => 50, Density.Spacious => 64, _ => 56 };
+		double compactHeight = d switch { Density.Compact => 42, Density.Spacious => 54, _ => 46 };
+		return (tabletPad, compactPad, tabletStation, compactStation, tabletHeight, compactHeight);
 	}
 
 	// Auto-follow: when Follow=true, scroll the visible row host to the
@@ -489,7 +492,20 @@ public partial class OriginalTimetableV1Page : ContentPage
 		// mirrors the tablet layout's row template at a 4-column scale.
 		TabletGrid.IsVisible = isTablet;
 		CompactGrid.IsVisible = !isTablet;
+
+		// Density now expresses the device-size tier (see OriginalTimetableViewModel)
+		// and drives the fixed row metrics; it is no longer a user choice.
+		var density = width >= 1000 ? Density.Spacious
+			: width >= TabletBreakpoint ? Density.Comfortable
+			: Density.Compact;
+		if (_vm.Density != density)
+			_vm.Density = density;
 	}
+
+	// 区間切替 (section-break) rows can't yet be represented by the real data
+	// model, so they are suppressed. The V1RowItem.SectionBreak factory and the
+	// V1Row section-break rendering are kept for when the model can express them.
+	const bool ShowSectionBreaks = false;
 
 	void RebuildItems()
 	{
@@ -526,24 +542,20 @@ public partial class OriginalTimetableV1Page : ContentPage
 		if (train is null || train.Rows is null || train.Rows.Length == 0)
 			return;
 
-		// Phase 1: skip info rows. Phase 3: also skip IsPass rows when the
-		// tweaks-panel ShowPasses toggle is off. Track the *visible* index
-		// for striping; CurIdx semantics stay tied to the underlying
+		// Skip info rows; pass (通過) rows are always shown. Track the *visible*
+		// index for striping; CurIdx semantics stay tied to the underlying
 		// ActiveTrain.Rows index (matches VM.Advance).
-		bool showPasses = _vm.ShowPasses;
 		var visibleRows = new List<(int origIdx, TimetableRow row)>(train.Rows.Length);
 		for (int i = 0; i < train.Rows.Length; i++)
 		{
 			var r = train.Rows[i];
 			if (r.IsInfoRow)
 				continue;
-			if (!showPasses && r.IsPass)
-				continue;
 			visibleRows.Add((i, r));
 		}
 
 		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
-		var (tabletPad, compactPad, tabletStation, compactStation) = DensityMetrics(_vm.Density);
+		var (tabletPad, compactPad, tabletStation, compactStation, tabletHeight, compactHeight) = DensityMetrics(_vm.Density);
 
 		int visibleSeq = 0;
 		TimetableRow? prev = null;
@@ -552,7 +564,7 @@ public partial class OriginalTimetableV1Page : ContentPage
 			// Section break: insert *before* the current row when the prior
 			// row's RunOutLimit differs from this row's RunInLimit. Skip when
 			// there is no prior (first visible row).
-			if (prev is not null && prev.RunOutLimit != row.RunInLimit)
+			if (ShowSectionBreaks && prev is not null && prev.RunOutLimit != row.RunInLimit)
 			{
 				var newLimit = row.RunInLimit;
 				var label = newLimit is int v
@@ -593,6 +605,8 @@ public partial class OriginalTimetableV1Page : ContentPage
 				CompactRowPadding = compactPad,
 				TabletStationFontSize = tabletStation,
 				CompactStationFontSize = compactStation,
+				TabletRowHeight = tabletHeight,
+				CompactRowHeight = compactHeight,
 			};
 			ApplyDerivedStyling(item);
 			Items.Add(item);
@@ -802,64 +816,6 @@ public partial class OriginalTimetableV1Page : ContentPage
 		// Intentionally empty — handler presence stops the gesture bubbling.
 	}
 
-	// Tweaks panel wiring (Phase 3) ---------------------------------------
-
-	void OnTweaksButtonTapped(object? sender, TappedEventArgs e)
-	{
-		TweaksOverlay.IsVisible = true;
-		UpdateDensityHighlight();
-	}
-
-	void OnTweaksScrimTapped(object? sender, TappedEventArgs e)
-		=> TweaksOverlay.IsVisible = false;
-
-	// Same swallow-the-tap pattern as the memo sheet — keeps the scrim's
-	// TapGestureRecognizer from dismissing when the user taps the panel body.
-	void OnTweaksBodyTapped(object? sender, TappedEventArgs e)
-	{
-		// Intentionally empty — handler presence stops the gesture bubbling.
-	}
-
-	void OnDensityCompactTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Compact;
-		UpdateDensityHighlight();
-	}
-
-	void OnDensityComfortableTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Comfortable;
-		UpdateDensityHighlight();
-	}
-
-	void OnDensitySpaciousTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Spacious;
-		UpdateDensityHighlight();
-	}
-
-	// Highlights the selected Density button with OT_Accent; unselected stay
-	// on OT_BgSoft. The list rows now observe vm.Density via
-	// OnVmPropertyChanged → UpdateDensityInPlace, which mutates each row's
-	// TabletRowPadding / CompactRowPadding / *StationFontSize props so the
-	// CollectionView reflows without an Items.Clear+Add (scroll preserved).
-	void UpdateDensityHighlight()
-	{
-		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
-		var soft = (Brush?)Application.Current?.Resources["OT_BgSoft"];
-
-		var d = _vm.Density;
-		DensityCompact.Background = d == Density.Compact ? accent : soft;
-		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
-		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
-
-		// Use the accent foreground color on the selected label for contrast.
-		var accentFg = Application.Current?.Resources["OT_AccentFg_Light"] as Color;
-		var fg = Application.Current?.Resources["OT_Fg_Light"] as Color;
-		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
-		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
-		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
-	}
 }
 
 // Row VM consumed by the CollectionView's DataTemplate. ObservableObject so
@@ -926,6 +882,10 @@ public partial class V1RowItem : ObservableObject
 	public partial Thickness TabletRowPadding { get; set; } = new Thickness(12, 8);
 	[ObservableProperty]
 	public partial Thickness CompactRowPadding { get; set; } = new Thickness(10, 7);
+	[ObservableProperty]
+	public partial double TabletRowHeight { get; set; } = 56;
+	[ObservableProperty]
+	public partial double CompactRowHeight { get; set; } = 46;
 	[ObservableProperty]
 	public partial double TabletStationFontSize { get; set; } = 32;
 	[ObservableProperty]

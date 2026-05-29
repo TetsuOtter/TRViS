@@ -26,13 +26,14 @@ namespace TRViS.OriginalTimetable;
 // inside the row Border) + hero NoteBody (always-visible when next station
 // has Remarks).
 //
-// Phase 3 (this commit): Tweaks panel (gear icon → overlay) with ShowPasses
-// Switch + Density tri-state (狭/標準/広). Density-driven scaling applied to
-// hero (HeroStationFontSize/HeroTimeFontSize/HeroPlatformSize/
-// HeroPlatformFontSize + compact equivalents) AND every mini-row metric
-// (Tablet/Compact * Station/TimeFontSize, RowPadding) via
-// ApplyDensityScaledMetrics — so density visibly reflows without an
-// Items.Clear+Add (scroll preserved).
+// Phase 3: Density is no longer a user choice (the gear/Tweaks panel was
+// removed). ApplyLayoutForWidth derives Density from the page width so it
+// expresses the device-size tier, and ApplyDensityScaledMetrics uses it to
+// pick *fixed* metrics for the hero (HeroStationFontSize/HeroTimeFontSize/
+// HeroPlatformSize/HeroPlatformFontSize + compact equivalents) AND every
+// mini-row (Tablet/Compact * Station/TimeFontSize, RowPadding, and a fixed
+// TabletRowHeight/CompactRowHeight) — rewritten in place without an
+// Items.Clear+Add (scroll preserved). 通過 rows are always shown.
 //
 // V4-specific CurIdxVersion strategy: hero retargets AND mini-list's
 // IsHiddenInList shifts (the previously-hero row becomes visible, the new
@@ -155,7 +156,6 @@ public partial class OriginalTimetableV4Page : ContentPage
 		_vm.PropertyChanged += OnVmPropertyChanged;
 		ApplyLayoutForWidth(Width);
 		RebuildItems();
-		UpdateDensityHighlight();
 	}
 
 	protected override void OnDisappearing()
@@ -170,7 +170,6 @@ public partial class OriginalTimetableV4Page : ContentPage
 		switch (e.PropertyName)
 		{
 			case nameof(OriginalTimetableViewModel.ActiveTrain):
-			case nameof(OriginalTimetableViewModel.ShowPasses):
 				// Visible row set changes — full rebuild required.
 				RebuildItems();
 				break;
@@ -198,7 +197,6 @@ public partial class OriginalTimetableV4Page : ContentPage
 				break;
 			case nameof(OriginalTimetableViewModel.Density):
 				UpdateDensityInPlace();
-				UpdateDensityHighlight();
 				break;
 		}
 	}
@@ -302,6 +300,19 @@ public partial class OriginalTimetableV4Page : ContentPage
 			Density.Spacious => new Thickness(12, 9),
 			_ => new Thickness(12, 6),
 		};
+		// Fixed, uniform row height per device-size tier (see ApplyLayoutForWidth).
+		item.TabletRowHeight = density switch
+		{
+			Density.Compact => 48,
+			Density.Spacious => 66,
+			_ => 56,
+		};
+		item.CompactRowHeight = density switch
+		{
+			Density.Compact => 40,
+			Density.Spacious => 52,
+			_ => 44,
+		};
 	}
 
 	void ApplyHeroDensityScale(Density density)
@@ -362,6 +373,14 @@ public partial class OriginalTimetableV4Page : ContentPage
 
 		TabletGrid.IsVisible = isTablet;
 		CompactGrid.IsVisible = !isTablet;
+
+		// Density now expresses the device-size tier (see OriginalTimetableViewModel)
+		// and drives the fixed row metrics; it is no longer a user choice.
+		var density = width >= 1000 ? Density.Spacious
+			: width >= TabletBreakpoint ? Density.Comfortable
+			: Density.Compact;
+		if (_vm.Density != density)
+			_vm.Density = density;
 	}
 
 	void RebuildItems()
@@ -541,9 +560,13 @@ public partial class OriginalTimetableV4Page : ContentPage
 		OnPropertyChanged(nameof(HeroMarkerFg));
 	}
 
+	// 区間切替 (section-break) rows can't yet be represented by the real data
+	// model, so they are suppressed. The V4RowItem.SectionBreak factory and the
+	// V4Row section-break rendering are kept for when the model can express them.
+	const bool ShowSectionBreaks = false;
+
 	void BuildItems(TrainData train)
 	{
-		bool showPasses = _vm.ShowPasses;
 		var rows = train.Rows!;
 		int curOrigIdx = _vm.GetCurIdxOverride(train.Id) ?? 0;
 		int nextIdx = FindNextStopIndex(rows, curOrigIdx);
@@ -555,10 +578,8 @@ public partial class OriginalTimetableV4Page : ContentPage
 			var r = rows[i];
 			if (r.IsInfoRow)
 				continue;
-			if (!showPasses && r.IsPass)
-				continue;
 
-			if (prev is not null && prev.RunOutLimit != r.RunInLimit)
+			if (ShowSectionBreaks && prev is not null && prev.RunOutLimit != r.RunInLimit)
 			{
 				var newLimit = r.RunInLimit;
 				var label = newLimit is int v
@@ -601,13 +622,10 @@ public partial class OriginalTimetableV4Page : ContentPage
 
 	int FindNextStopIndex(TimetableRow[] rows, int fromIdx)
 	{
-		bool showPasses = _vm.ShowPasses;
 		for (int i = fromIdx + 1; i < rows.Length; i++)
 		{
 			var r = rows[i];
 			if (r.IsInfoRow)
-				continue;
-			if (!showPasses && r.IsPass)
 				continue;
 			return i;
 		}
@@ -823,53 +841,6 @@ public partial class OriginalTimetableV4Page : ContentPage
 		// Intentionally empty — handler presence stops the gesture bubbling.
 	}
 
-	// Tweaks panel wiring (Phase 3) ---------------------------------------
-
-	void OnTweaksButtonTapped(object? sender, TappedEventArgs e)
-	{
-		TweaksOverlay.IsVisible = true;
-		UpdateDensityHighlight();
-	}
-
-	void OnTweaksScrimTapped(object? sender, TappedEventArgs e)
-		=> TweaksOverlay.IsVisible = false;
-
-	void OnTweaksBodyTapped(object? sender, TappedEventArgs e)
-	{
-		// Intentionally empty — handler presence stops the gesture bubbling.
-	}
-
-	void OnDensityCompactTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Compact;
-	}
-
-	void OnDensityComfortableTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Comfortable;
-	}
-
-	void OnDensitySpaciousTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Spacious;
-	}
-
-	void UpdateDensityHighlight()
-	{
-		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
-		var soft = (Brush?)Application.Current?.Resources["OT_BgSoft"];
-
-		var d = _vm.Density;
-		DensityCompact.Background = d == Density.Compact ? accent : soft;
-		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
-		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
-
-		var accentFg = Application.Current?.Resources["OT_AccentFg_Light"] as Color;
-		var fg = Application.Current?.Resources["OT_Fg_Light"] as Color;
-		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
-		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
-		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
-	}
 }
 
 // V4 mini-list row VM. ObservableObject so MarkersVersion / MemosVersion /
@@ -943,6 +914,10 @@ public partial class V4RowItem : ObservableObject
 	public partial Thickness TabletRowPadding { get; set; } = new Thickness(14, 8);
 	[ObservableProperty]
 	public partial Thickness CompactRowPadding { get; set; } = new Thickness(12, 6);
+	[ObservableProperty]
+	public partial double TabletRowHeight { get; set; } = 56;
+	[ObservableProperty]
+	public partial double CompactRowHeight { get; set; } = 44;
 
 	public bool IsNormalRow => !IsSectionBreakRow;
 	public bool IsVisibleNormalRow => IsNormalRow && !IsHiddenInList;

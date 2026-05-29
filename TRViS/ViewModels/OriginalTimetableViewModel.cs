@@ -20,11 +20,11 @@ public partial class OriginalTimetableViewModel : ObservableObject
 	readonly Dictionary<string, bool> _noteOpen = new();
 	readonly Dictionary<string, int> _curIdxOverride = new();
 
+	// Density is no longer a user choice — pages assign it from their current
+	// width (see each page's ApplyLayoutForWidth) so it expresses the device
+	// size tier (Compact / Comfortable / Spacious) that drives fixed row metrics.
 	[ObservableProperty]
 	public partial Density Density { get; set; } = Density.Comfortable;
-
-	[ObservableProperty]
-	public partial bool ShowPasses { get; set; } = true;
 
 	[ObservableProperty]
 	public partial TimetableTheme Theme { get; set; } = TimetableTheme.Light;
@@ -183,7 +183,6 @@ public partial class OriginalTimetableViewModel : ObservableObject
 		_noteOpen.Clear();
 		_curIdxOverride.Clear();
 		Density = Density.Comfortable;
-		ShowPasses = true;
 		Theme = TimetableTheme.Light;
 		Follow = true;
 		IconStyle = IconStyle.Emoji;

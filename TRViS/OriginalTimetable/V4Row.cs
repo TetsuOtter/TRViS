@@ -394,6 +394,9 @@ public sealed class V4RowTablet : ContentView
 			case nameof(V4RowItem.TabletRowPadding):
 				_rowGrid.Padding = _item!.TabletRowPadding;
 				break;
+			case nameof(V4RowItem.TabletRowHeight):
+				_rowGrid.HeightRequest = _item!.TabletRowHeight;
+				break;
 		}
 	}
 
@@ -424,6 +427,7 @@ public sealed class V4RowTablet : ContentView
 		_departLabel.Text       = _item.DepartText;
 		_departLabel.FontSize   = _item.TabletTimeFontSize;
 		_rowGrid.Padding        = _item.TabletRowPadding;
+		_rowGrid.HeightRequest  = _item.TabletRowHeight;
 
 		_trackLabel.Text       = _item.TrackName;
 		_trackBorder.IsVisible = _item.HasTrackName;
@@ -845,6 +849,9 @@ public sealed class V4RowCompact : ContentView
 			case nameof(V4RowItem.CompactRowPadding):
 				_rowGrid.Padding = _item!.CompactRowPadding;
 				break;
+			case nameof(V4RowItem.CompactRowHeight):
+				_rowGrid.HeightRequest = _item!.CompactRowHeight;
+				break;
 		}
 	}
 
@@ -875,6 +882,7 @@ public sealed class V4RowCompact : ContentView
 		_departLabel.Text     = _item.DepartText;
 		_departLabel.FontSize = _item.CompactTimeFontSize;
 		_rowGrid.Padding      = _item.CompactRowPadding;
+		_rowGrid.HeightRequest = _item.CompactRowHeight;
 
 		_trackLabel.Text       = _item.TrackName;
 		_trackBorder.IsVisible = _item.HasTrackName;

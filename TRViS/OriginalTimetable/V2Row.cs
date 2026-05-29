@@ -57,6 +57,7 @@ public sealed class V2RowTablet : ContentView
 	readonly Label _sectionBreakLabel;
 
 	readonly Border _normalCardBorder;
+	readonly Grid _cardGrid;
 	readonly Label _runLabel;
 	readonly HtmlAutoDetectLabel _stationNameLabel;
 	readonly Border _markerBadgeBorder;
@@ -296,7 +297,7 @@ public sealed class V2RowTablet : ContentView
 		};
 
 		// ── Inner card grid (4 cols) ──────────────────────────────────────────
-		var cardGrid = new Grid
+		_cardGrid = new Grid
 		{
 			ColumnDefinitions =
 			{
@@ -308,10 +309,10 @@ public sealed class V2RowTablet : ContentView
 			ColumnSpacing = 10,
 			RowSpacing = 0,
 		};
-		Grid.SetColumn(runColumn, 0);      cardGrid.Children.Add(runColumn);
-		Grid.SetColumn(stationCluster, 1); cardGrid.Children.Add(stationCluster);
-		Grid.SetColumn(timeColumn, 2);     cardGrid.Children.Add(timeColumn);
-		Grid.SetColumn(_trackBorder, 3);   cardGrid.Children.Add(_trackBorder);
+		Grid.SetColumn(runColumn, 0);      _cardGrid.Children.Add(runColumn);
+		Grid.SetColumn(stationCluster, 1); _cardGrid.Children.Add(stationCluster);
+		Grid.SetColumn(timeColumn, 2);     _cardGrid.Children.Add(timeColumn);
+		Grid.SetColumn(_trackBorder, 3);   _cardGrid.Children.Add(_trackBorder);
 
 		// ── Inline NoteFold (inside the card so concentric radii hold). The
 		// HtmlAutoDetectLabel is the previously-crashing control; safe here
@@ -333,7 +334,7 @@ public sealed class V2RowTablet : ContentView
 		};
 
 		var cardInner = new VerticalStackLayout { Spacing = 8 };
-		cardInner.Children.Add(cardGrid);
+		cardInner.Children.Add(_cardGrid);
 		cardInner.Children.Add(_noteBodyBorder);
 
 		_normalCardBorder = new Border
@@ -421,6 +422,9 @@ public sealed class V2RowTablet : ContentView
 			case nameof(V2RowItem.TabletCardMargin):
 				_normalCardBorder.Margin = _item!.TabletCardMargin;
 				break;
+			case nameof(V2RowItem.TabletCardHeight):
+				_cardGrid.HeightRequest = _item!.TabletCardHeight;
+				break;
 		}
 	}
 
@@ -453,6 +457,7 @@ public sealed class V2RowTablet : ContentView
 		_trackBorder.WidthRequest = _item.TabletPlatformSize;
 		_trackBorder.HeightRequest = _item.TabletPlatformSize;
 		_normalCardBorder.Margin = _item.TabletCardMargin;
+		_cardGrid.HeightRequest = _item.TabletCardHeight;
 
 		_noteToggleBorder.IsVisible = _item.HasNote;
 		_noteBodyLabel.Text = _item.NoteText;
@@ -591,6 +596,7 @@ public sealed class V2RowCompact : ContentView
 	readonly Label _sectionBreakLabel;
 
 	readonly Border _normalCardBorder;
+	readonly Grid _cardGrid;
 	readonly Label _runLabel;
 	readonly HtmlAutoDetectLabel _stationNameLabel;
 	readonly Border _markerBadgeBorder;
@@ -819,7 +825,7 @@ public sealed class V2RowCompact : ContentView
 			IsVisible = false,
 		};
 
-		var cardGrid = new Grid
+		_cardGrid = new Grid
 		{
 			ColumnDefinitions =
 			{
@@ -831,10 +837,10 @@ public sealed class V2RowCompact : ContentView
 			ColumnSpacing = 8,
 			RowSpacing = 0,
 		};
-		Grid.SetColumn(runColumn, 0);      cardGrid.Children.Add(runColumn);
-		Grid.SetColumn(stationCluster, 1); cardGrid.Children.Add(stationCluster);
-		Grid.SetColumn(timeColumn, 2);     cardGrid.Children.Add(timeColumn);
-		Grid.SetColumn(_trackBorder, 3);   cardGrid.Children.Add(_trackBorder);
+		Grid.SetColumn(runColumn, 0);      _cardGrid.Children.Add(runColumn);
+		Grid.SetColumn(stationCluster, 1); _cardGrid.Children.Add(stationCluster);
+		Grid.SetColumn(timeColumn, 2);     _cardGrid.Children.Add(timeColumn);
+		Grid.SetColumn(_trackBorder, 3);   _cardGrid.Children.Add(_trackBorder);
 
 		// Inline NoteFold (inside card)
 		_noteBodyLabel = new HtmlAutoDetectLabel
@@ -853,7 +859,7 @@ public sealed class V2RowCompact : ContentView
 		};
 
 		var cardInner = new VerticalStackLayout { Spacing = 6 };
-		cardInner.Children.Add(cardGrid);
+		cardInner.Children.Add(_cardGrid);
 		cardInner.Children.Add(_noteBodyBorder);
 
 		_normalCardBorder = new Border
@@ -937,6 +943,9 @@ public sealed class V2RowCompact : ContentView
 			case nameof(V2RowItem.CompactCardMargin):
 				_normalCardBorder.Margin = _item!.CompactCardMargin;
 				break;
+			case nameof(V2RowItem.CompactCardHeight):
+				_cardGrid.HeightRequest = _item!.CompactCardHeight;
+				break;
 		}
 	}
 
@@ -969,6 +978,7 @@ public sealed class V2RowCompact : ContentView
 		_trackBorder.WidthRequest = _item.CompactPlatformSize;
 		_trackBorder.HeightRequest = _item.CompactPlatformSize;
 		_normalCardBorder.Margin = _item.CompactCardMargin;
+		_cardGrid.HeightRequest = _item.CompactCardHeight;
 
 		_noteToggleBorder.IsVisible = _item.HasNote;
 		_noteBodyLabel.Text = _item.NoteText;

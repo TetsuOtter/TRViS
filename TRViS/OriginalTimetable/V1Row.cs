@@ -404,6 +404,9 @@ public sealed class V1RowTablet : ContentView
 			case nameof(V1RowItem.TabletRowPadding):
 				_innerRowGrid.Padding = _item!.TabletRowPadding;
 				break;
+			case nameof(V1RowItem.TabletRowHeight):
+				_innerRowGrid.HeightRequest = _item!.TabletRowHeight;
+				break;
 			case nameof(V1RowItem.TabletStationFontSize):
 				_stationNameLabel.FontSize = _item!.TabletStationFontSize;
 				break;
@@ -450,6 +453,7 @@ public sealed class V1RowTablet : ContentView
 			: LookupColorThemeAware("OT_Fg_Light", "OT_Fg_Dark");
 
 		_innerRowGrid.Padding = _item.TabletRowPadding;
+		_innerRowGrid.HeightRequest = _item.TabletRowHeight;
 
 		// Note-toggle button visible only when row has a remarks body.
 		_noteToggleBorder.IsVisible = _item.HasNote;
@@ -851,6 +855,9 @@ public sealed class V1RowCompact : ContentView
 			case nameof(V1RowItem.CompactRowPadding):
 				_innerRowGrid.Padding = _item!.CompactRowPadding;
 				break;
+			case nameof(V1RowItem.CompactRowHeight):
+				_innerRowGrid.HeightRequest = _item!.CompactRowHeight;
+				break;
 			case nameof(V1RowItem.CompactStationFontSize):
 				_stationNameLabel.FontSize = _item!.CompactStationFontSize;
 				break;
@@ -890,6 +897,7 @@ public sealed class V1RowCompact : ContentView
 			: V1RowTablet_LookupColorThemeAware("OT_Fg_Light", "OT_Fg_Dark");
 
 		_innerRowGrid.Padding = _item.CompactRowPadding;
+		_innerRowGrid.HeightRequest = _item.CompactRowHeight;
 
 		_noteToggleBorder.IsVisible = _item.HasNote;
 		_noteBodyLabel.Text = _item.NoteText;

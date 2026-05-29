@@ -28,13 +28,11 @@ namespace TRViS.OriginalTimetable;
 //   - Past chip Tapped → vm.SetCurIdx(train.Id, origIndex): jump to that
 //     station (past chips become navigation, not just history).
 //
-// Phase 3 (this commit):
-//   - Tweaks panel (gear icon in train stripe → overlay) with ShowPasses
-//     Switch + Density tri-state (狭/標準/広).
-//   - Density-driven scaling applied to all 5 sections (Masthead route +
-//     Train stripe number + Past chip font + Current big block station/time
-//     + Upcoming row station/time/padding) so density visibly reflows
-//     without an Items.Clear+Add for marker/memo/note/density paths.
+// Density (狭/標準/広) is no longer user-selectable: ApplyLayoutForWidth derives
+// it from the page width as a device-size tier and it drives the fixed,
+// per-tier row metrics (Masthead route + Train stripe number + Past chip font +
+// Current big block station/time + Upcoming row station/time/padding/height).
+// 通過駅 are always shown; 区間切替 rows are suppressed (ShowSectionBreaks).
 //
 // V6 CurIdxVersion strategy: past/current/upcoming split shifts whenever
 // CurIdx changes, so we do full RebuildItems (unlike V1/V2/V4 which can
@@ -163,7 +161,6 @@ public partial class OriginalTimetableV6Page : ContentPage
 		_vm.PropertyChanged += OnVmPropertyChanged;
 		ApplyLayoutForWidth(Width);
 		RebuildItems();
-		UpdateDensityHighlight();
 	}
 
 	protected override void OnDisappearing()
@@ -178,7 +175,6 @@ public partial class OriginalTimetableV6Page : ContentPage
 		switch (e.PropertyName)
 		{
 			case nameof(OriginalTimetableViewModel.ActiveTrain):
-			case nameof(OriginalTimetableViewModel.ShowPasses):
 			// V6 specific: CurIdx 変化で past/current/upcoming の境界が動くため
 			// 部分更新 (V1 の UpdateCurrentInPlace) では足りず、丸ごと再構築する。
 			// upcoming list の scroll は top に戻る — V6 は current 駅を上部 big
@@ -200,7 +196,6 @@ public partial class OriginalTimetableV6Page : ContentPage
 				break;
 			case nameof(OriginalTimetableViewModel.Density):
 				UpdateDensityInPlace();
-				UpdateDensityHighlight();
 				break;
 		}
 	}
@@ -314,6 +309,19 @@ public partial class OriginalTimetableV6Page : ContentPage
 			Density.Spacious => new Thickness(12, 11),
 			_ => new Thickness(12, 8),
 		};
+		// Fixed, uniform row height per device-size tier (see ApplyLayoutForWidth).
+		item.TabletRowHeight = density switch
+		{
+			Density.Compact => 52,
+			Density.Spacious => 72,
+			_ => 60,
+		};
+		item.CompactRowHeight = density switch
+		{
+			Density.Compact => 42,
+			Density.Spacious => 56,
+			_ => 48,
+		};
 	}
 
 	// V6 upcoming list does not need to scroll-follow the current station
@@ -347,7 +355,20 @@ public partial class OriginalTimetableV6Page : ContentPage
 
 		TabletGrid.IsVisible = isTablet;
 		CompactGrid.IsVisible = !isTablet;
+
+		// Density now expresses the device-size tier (see OriginalTimetableViewModel)
+		// and drives the fixed row metrics; it is no longer a user choice.
+		var density = width >= 1000 ? Density.Spacious
+			: width >= TabletBreakpoint ? Density.Comfortable
+			: Density.Compact;
+		if (_vm.Density != density)
+			_vm.Density = density;
 	}
+
+	// 区間切替 (section-break) rows can't yet be represented by the real data
+	// model, so they are suppressed. The V6RowItem.SectionBreak factory and the
+	// V6Row section-break rendering are kept for when the model can express them.
+	const bool ShowSectionBreaks = false;
 
 	void RebuildItems()
 	{
@@ -395,7 +416,6 @@ public partial class OriginalTimetableV6Page : ContentPage
 		// Clamp to last row index so "all past" maps to the last row being current.
 		curOrigIdx = Math.Clamp(curOrigIdx, 0, train.Rows.Length - 1);
 
-		bool showPasses = _vm.ShowPasses;
 		var density = _vm.Density;
 
 		// Past chips — 全駅 (showPasses 関係なし; 過去 chip は履歴扱い).
@@ -439,8 +459,6 @@ public partial class OriginalTimetableV6Page : ContentPage
 			var r = train.Rows[i];
 			if (r.IsInfoRow)
 				continue;
-			if (!showPasses && r.IsPass)
-				continue;
 			upcomingVisible.Add((i, r));
 		}
 
@@ -448,7 +466,7 @@ public partial class OriginalTimetableV6Page : ContentPage
 		TimetableRow? prev = null;
 		foreach (var (origIdx, row) in upcomingVisible)
 		{
-			if (prev is not null && prev.RunOutLimit != row.RunInLimit)
+			if (ShowSectionBreaks && prev is not null && prev.RunOutLimit != row.RunInLimit)
 			{
 				var newLimit = row.RunInLimit;
 				var label = newLimit is int v
@@ -783,54 +801,6 @@ public partial class OriginalTimetableV6Page : ContentPage
 	{
 		// Intentionally empty — handler presence stops the gesture bubbling.
 	}
-
-	// Tweaks panel wiring (Phase 3) ---------------------------------------
-
-	void OnTweaksButtonTapped(object? sender, TappedEventArgs e)
-	{
-		TweaksOverlay.IsVisible = true;
-		UpdateDensityHighlight();
-	}
-
-	void OnTweaksScrimTapped(object? sender, TappedEventArgs e)
-		=> TweaksOverlay.IsVisible = false;
-
-	void OnTweaksBodyTapped(object? sender, TappedEventArgs e)
-	{
-		// Intentionally empty — handler presence stops the gesture bubbling.
-	}
-
-	void OnDensityCompactTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Compact;
-	}
-
-	void OnDensityComfortableTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Comfortable;
-	}
-
-	void OnDensitySpaciousTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Spacious;
-	}
-
-	void UpdateDensityHighlight()
-	{
-		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
-		var soft = (Brush?)Application.Current?.Resources["OT_BgSoft"];
-
-		var d = _vm.Density;
-		DensityCompact.Background = d == Density.Compact ? accent : soft;
-		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
-		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
-
-		var accentFg = Application.Current?.Resources["OT_AccentFg_Light"] as Color;
-		var fg = Application.Current?.Resources["OT_Fg_Light"] as Color;
-		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
-		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
-		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
-	}
 }
 
 // Past chip view-model. Tap-to-jump uses OrigIndex (Phase 2). PastChips is
@@ -907,6 +877,10 @@ public partial class V6RowItem : ObservableObject
 	public partial Thickness TabletRowPadding { get; set; } = new Thickness(16, 10);
 	[ObservableProperty]
 	public partial Thickness CompactRowPadding { get; set; } = new Thickness(12, 8);
+	[ObservableProperty]
+	public partial double TabletRowHeight { get; set; } = 60;
+	[ObservableProperty]
+	public partial double CompactRowHeight { get; set; } = 48;
 
 	public bool IsNormalRow => !IsSectionBreakRow;
 	public bool HasTrackName => !string.IsNullOrEmpty(TrackName);

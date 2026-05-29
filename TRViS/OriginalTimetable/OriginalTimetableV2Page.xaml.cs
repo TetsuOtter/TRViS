@@ -26,13 +26,15 @@ namespace TRViS.OriginalTimetable;
 // are preserved — V2 difference from V1, which puts the note as a sibling
 // underneath the row Border).
 //
-// Phase 3: Tweaks panel (gear icon → overlay) with ShowPasses Switch + Density
-// tri-state (狭/標準/広); Density-driven scaling applied to every per-card
-// metric (platform size + font, time font, station font) via
-// ApplyCurrentAndDensityScaledMetrics, plus the card outer Margin
-// (TabletCardMargin / CompactCardMargin) — so density visibly reflows the card
-// stack without an Items.Clear+Add (scroll preserved); auto-follow to the
-// current card on CurIdxVersion changes when vm.Follow.
+// Phase 3: Density is no longer a user choice (the gear/Tweaks panel was
+// removed). ApplyLayoutForWidth derives Density from the page width so it
+// expresses the device-size tier, and ApplyCurrentAndDensityScaledMetrics
+// uses it to pick *fixed* per-card metrics — platform size + fonts, the card
+// outer Margin (TabletCardMargin / CompactCardMargin), and a fixed card-content
+// height (TabletCardHeight / CompactCardHeight; current cards a larger tier,
+// the note fold still expands below). Metrics are rewritten in place (no
+// Items.Clear+Add, scroll preserved); auto-follow to the current card on
+// CurIdxVersion changes when vm.Follow.
 //
 // History/workaround: an earlier shape used CollectionView + DataTemplate
 // (HtmlAutoDetectLabel inside the template). On iOS simulators this trips
@@ -110,7 +112,6 @@ public partial class OriginalTimetableV2Page : ContentPage
 		_vm.PropertyChanged += OnVmPropertyChanged;
 		ApplyLayoutForWidth(Width);
 		RebuildItems();
-		UpdateDensityHighlight();
 		StartClock();
 	}
 
@@ -217,10 +218,9 @@ public partial class OriginalTimetableV2Page : ContentPage
 	{
 		switch (e.PropertyName)
 		{
-			// ActiveTrain / ShowPasses change the *visible row set*, so a
-			// full Items rebuild is required (scroll reset acceptable).
+			// Switching trains changes the *visible row set*, so a full Items
+			// rebuild is required (scroll reset acceptable).
 			case nameof(OriginalTimetableViewModel.ActiveTrain):
-			case nameof(OriginalTimetableViewModel.ShowPasses):
 				RebuildItems();
 				break;
 			// Partial in-place updates — V2RowItem is an ObservableObject so
@@ -241,7 +241,6 @@ public partial class OriginalTimetableV2Page : ContentPage
 				break;
 			case nameof(OriginalTimetableViewModel.Density):
 				UpdateDensityInPlace();
-				UpdateDensityHighlight();
 				break;
 		}
 	}
@@ -354,6 +353,8 @@ public partial class OriginalTimetableV2Page : ContentPage
 			item.CompactPlatformFontSize = R(26);
 			item.CompactTimeFontSize = R(22);
 			item.CompactStationFontSize = R(24);
+			item.TabletCardHeight = density switch { Density.Compact => 66, Density.Spacious => 90, _ => 80 };
+			item.CompactCardHeight = density switch { Density.Compact => 52, Density.Spacious => 68, _ => 60 };
 		}
 		else
 		{
@@ -365,6 +366,8 @@ public partial class OriginalTimetableV2Page : ContentPage
 			item.CompactPlatformFontSize = R(20);
 			item.CompactTimeFontSize = R(16);
 			item.CompactStationFontSize = R(20);
+			item.TabletCardHeight = density switch { Density.Compact => 54, Density.Spacious => 72, _ => 64 };
+			item.CompactCardHeight = density switch { Density.Compact => 44, Density.Spacious => 58, _ => 52 };
 		}
 
 		var (tabletMargin, compactMargin) = DensityMargins(density);
@@ -434,7 +437,20 @@ public partial class OriginalTimetableV2Page : ContentPage
 		// avoid the imperative-tree-mutation NRE path on iPad.
 		TabletGrid.IsVisible = isTablet;
 		CompactGrid.IsVisible = !isTablet;
+
+		// Density now expresses the device-size tier (see OriginalTimetableViewModel)
+		// and drives the fixed card metrics; it is no longer a user choice.
+		var density = width >= 1000 ? Density.Spacious
+			: width >= TabletBreakpoint ? Density.Comfortable
+			: Density.Compact;
+		if (_vm.Density != density)
+			_vm.Density = density;
 	}
+
+	// 区間切替 (section-break) cards can't yet be represented by the real data
+	// model, so they are suppressed. The V2RowItem.SectionBreak factory and the
+	// V2Row section-break rendering are kept for when the model can express them.
+	const bool ShowSectionBreaks = false;
 
 	void RebuildItems()
 	{
@@ -473,14 +489,11 @@ public partial class OriginalTimetableV2Page : ContentPage
 		if (train is null || train.Rows is null || train.Rows.Length == 0)
 			return;
 
-		bool showPasses = _vm.ShowPasses;
 		var visibleRows = new List<(int origIdx, TimetableRow row)>(train.Rows.Length);
 		for (int i = 0; i < train.Rows.Length; i++)
 		{
 			var r = train.Rows[i];
 			if (r.IsInfoRow)
-				continue;
-			if (!showPasses && r.IsPass)
 				continue;
 			visibleRows.Add((i, r));
 		}
@@ -491,7 +504,7 @@ public partial class OriginalTimetableV2Page : ContentPage
 		TimetableRow? prev = null;
 		foreach (var (origIdx, row) in visibleRows)
 		{
-			if (prev is not null && prev.RunOutLimit != row.RunInLimit)
+			if (ShowSectionBreaks && prev is not null && prev.RunOutLimit != row.RunInLimit)
 			{
 				var newLimit = row.RunInLimit;
 				var label = newLimit is int v
@@ -725,59 +738,6 @@ public partial class OriginalTimetableV2Page : ContentPage
 		// Intentionally empty — handler presence stops the gesture bubbling.
 	}
 
-	// Tweaks panel wiring (Phase 3) ---------------------------------------
-
-	void OnTweaksButtonTapped(object? sender, TappedEventArgs e)
-	{
-		TweaksOverlay.IsVisible = true;
-		UpdateDensityHighlight();
-	}
-
-	void OnTweaksScrimTapped(object? sender, TappedEventArgs e)
-		=> TweaksOverlay.IsVisible = false;
-
-	void OnTweaksBodyTapped(object? sender, TappedEventArgs e)
-	{
-		// Intentionally empty — handler presence stops the gesture bubbling.
-	}
-
-	void OnDensityCompactTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Compact;
-	}
-
-	void OnDensityComfortableTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Comfortable;
-	}
-
-	void OnDensitySpaciousTapped(object? sender, TappedEventArgs e)
-	{
-		_vm.Density = Density.Spacious;
-	}
-
-	void UpdateDensityHighlight()
-	{
-		var accent = (Brush?)Application.Current?.Resources["OT_Accent"];
-		var soft = (Brush?)Application.Current?.Resources["OT_BgSoft"];
-
-		var d = _vm.Density;
-		DensityCompact.Background = d == Density.Compact ? accent : soft;
-		DensityComfortable.Background = d == Density.Comfortable ? accent : soft;
-		DensitySpacious.Background = d == Density.Spacious ? accent : soft;
-
-		// テーマに応じて *_Light / *_Dark の対を切り替える。
-		// 以前は常に *_Light を読んでいたためダークテーマでコントラストが崩れていた
-		// (#286 Copilot review)。
-		bool isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
-		string accentFgKey = isDark ? "OT_AccentFg_Dark" : "OT_AccentFg_Light";
-		string fgKey = isDark ? "OT_Fg_Dark" : "OT_Fg_Light";
-		var accentFg = Application.Current?.Resources[accentFgKey] as Color;
-		var fg = Application.Current?.Resources[fgKey] as Color;
-		DensityCompactLabel.TextColor = (d == Density.Compact ? accentFg : fg) ?? Colors.Black;
-		DensityComfortableLabel.TextColor = (d == Density.Comfortable ? accentFg : fg) ?? Colors.Black;
-		DensitySpaciousLabel.TextColor = (d == Density.Spacious ? accentFg : fg) ?? Colors.Black;
-	}
 }
 
 // V2 card-stack row VM consumed by the CollectionView's DataTemplate.
@@ -861,6 +821,14 @@ public partial class V2RowItem : ObservableObject
 	public partial Thickness TabletCardMargin { get; set; } = new Thickness(8, 4);
 	[ObservableProperty]
 	public partial Thickness CompactCardMargin { get; set; } = new Thickness(6, 3);
+
+	// Fixed card-content height (the 4-column grid only; the note fold still
+	// expands below it). Two tiers — current cards are a larger fixed height —
+	// each fixed per device-size (Density) tier. Applied as HeightRequest.
+	[ObservableProperty]
+	public partial double TabletCardHeight { get; set; } = 64;
+	[ObservableProperty]
+	public partial double CompactCardHeight { get; set; } = 52;
 
 	public bool IsNormalRow => !IsSectionBreakRow;
 	public bool HasTrackName => !string.IsNullOrEmpty(TrackName);

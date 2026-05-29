@@ -35,7 +35,6 @@
 		    |    +- (same shape, V4RowCompact rows)
 		    |
 		    +- Grid (MemoSheetOverlay)   ← unchanged overlay
-		    +- Grid (TweaksOverlay)      ← unchanged overlay
 	-->
 	<Grid x:Name="RootGrid" AutomationId="OriginalTimetable.V4.Root" RowDefinitions="Auto,*" SafeAreaEdges="None">
 
@@ -66,7 +65,7 @@
 				Stroke="{StaticResource OT_Rule}"
 				StrokeShape="Rectangle"
 				Padding="16,10">
-				<Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10">
+				<Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
 					<Border
 						Grid.Column="0"
 						AutomationId="OriginalTimetable.V4.TrainStripe.TypeChip"
@@ -105,23 +104,6 @@
 						HorizontalOptions="End"
 						VerticalOptions="Center"
 						TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-					<!-- Phase 3: gear button opens TweaksOverlay -->
-					<Border
-						Grid.Column="4"
-						AutomationId="OriginalTimetable.V4.TweaksButton"
-						Padding="6"
-						StrokeThickness="0"
-						BackgroundColor="Transparent"
-						VerticalOptions="Center">
-						<Border.GestureRecognizers>
-							<TapGestureRecognizer Tapped="OnTweaksButtonTapped"/>
-						</Border.GestureRecognizers>
-						<Label
-							Text="&#xE8B8;"
-							FontFamily="MaterialIconsRegular"
-							FontSize="22"
-							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-					</Border>
 				</Grid>
 			</Border>
 
@@ -616,102 +598,6 @@
 							BackgroundColor="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"
 							TextColor="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
 					</HorizontalStackLayout>
-				</VerticalStackLayout>
-			</Border>
-		</Grid>
-
-		<!-- Phase 3 — Tweaks panel overlay. -->
-		<Grid
-			x:Name="TweaksOverlay"
-			Grid.Row="0"
-			Grid.RowSpan="2"
-			AutomationId="OriginalTimetable.V4.Tweaks.Overlay"
-			IsVisible="False"
-			BackgroundColor="#80000000"
-			InputTransparent="False">
-			<Grid.GestureRecognizers>
-				<TapGestureRecognizer Tapped="OnTweaksScrimTapped"/>
-			</Grid.GestureRecognizers>
-			<Border
-				AutomationId="OriginalTimetable.V4.Tweaks.Scrim"
-				HorizontalOptions="End"
-				VerticalOptions="Start"
-				Margin="0,60,16,0"
-				StrokeShape="RoundRectangle 12"
-				Background="{StaticResource OT_Bg}"
-				Stroke="{StaticResource OT_Rule}"
-				StrokeThickness="1"
-				Padding="14,12"
-				WidthRequest="240">
-				<Border.GestureRecognizers>
-					<TapGestureRecognizer Tapped="OnTweaksBodyTapped"/>
-				</Border.GestureRecognizers>
-				<VerticalStackLayout Spacing="14">
-					<Label
-						AutomationId="OriginalTimetable.V4.Tweaks.Title"
-						Text="表示設定"
-						FontSize="13"
-						FontAttributes="Bold"
-						TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-					<Grid ColumnDefinitions="*,Auto">
-						<Label
-							Grid.Column="0"
-							Text="通過駅を表示"
-							FontSize="13"
-							VerticalOptions="Center"
-							TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-						<Switch
-							Grid.Column="1"
-							AutomationId="OriginalTimetable.V4.Tweaks.ShowPasses"
-							IsToggled="{Binding ShowPasses, Mode=TwoWay}"/>
-					</Grid>
-					<VerticalStackLayout Spacing="4">
-						<Label
-							Text="行間"
-							FontSize="12"
-							TextColor="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
-						<HorizontalStackLayout Spacing="6">
-							<Border
-								x:Name="DensityCompact"
-								AutomationId="OriginalTimetable.V4.Tweaks.Density.Compact"
-								StrokeShape="RoundRectangle 6"
-								StrokeThickness="0"
-								Padding="10,4"
-								Background="{StaticResource OT_BgSoft}">
-								<Border.GestureRecognizers>
-									<TapGestureRecognizer Tapped="OnDensityCompactTapped"/>
-								</Border.GestureRecognizers>
-								<Label x:Name="DensityCompactLabel" Text="狭" FontSize="12"
-									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-							</Border>
-							<Border
-								x:Name="DensityComfortable"
-								AutomationId="OriginalTimetable.V4.Tweaks.Density.Comfortable"
-								StrokeShape="RoundRectangle 6"
-								StrokeThickness="0"
-								Padding="10,4"
-								Background="{StaticResource OT_BgSoft}">
-								<Border.GestureRecognizers>
-									<TapGestureRecognizer Tapped="OnDensityComfortableTapped"/>
-								</Border.GestureRecognizers>
-								<Label x:Name="DensityComfortableLabel" Text="標準" FontSize="12"
-									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-							</Border>
-							<Border
-								x:Name="DensitySpacious"
-								AutomationId="OriginalTimetable.V4.Tweaks.Density.Spacious"
-								StrokeShape="RoundRectangle 6"
-								StrokeThickness="0"
-								Padding="10,4"
-								Background="{StaticResource OT_BgSoft}">
-								<Border.GestureRecognizers>
-									<TapGestureRecognizer Tapped="OnDensitySpaciousTapped"/>
-								</Border.GestureRecognizers>
-								<Label x:Name="DensitySpaciousLabel" Text="広" FontSize="12"
-									TextColor="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
-							</Border>
-						</HorizontalStackLayout>
-					</VerticalStackLayout>
 				</VerticalStackLayout>
 			</Border>
 		</Grid>
