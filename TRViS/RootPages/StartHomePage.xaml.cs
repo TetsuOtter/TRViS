@@ -229,6 +229,9 @@ public partial class StartHomePage : ContentPage
 		AddTestSimulateWebSocketConnectedSeam();
 		AddTestOpenOTSimplePageSeam();
 		AddTestOpenOTV1PageSeam();
+		AddTestOpenOTV2PageSeam();
+		AddTestOpenOTV4PageSeam();
+		AddTestOpenOTV6PageSeam();
 		AddTestCommitFirstWorkSeam();
 #endif
 
@@ -1798,6 +1801,9 @@ public partial class StartHomePage : ContentPage
 	}
 
 	private const string AutomationIdValueForTestNavigateToOTV1 = "StartHome.TestNavigateToOTV1Button";
+	private const string AutomationIdValueForTestNavigateToOTV2 = "StartHome.TestNavigateToOTV2Button";
+	private const string AutomationIdValueForTestNavigateToOTV4 = "StartHome.TestNavigateToOTV4Button";
+	private const string AutomationIdValueForTestNavigateToOTV6 = "StartHome.TestNavigateToOTV6Button";
 
 	private void AddTestOpenOTV1PageSeam()
 	{
@@ -1828,6 +1834,102 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestNavigateToOTV1Button failed");
+		}
+	}
+
+	private void AddTestOpenOTV2PageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTV2,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(132, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTV2Button_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTV2Button_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTV2Button clicked: navigating to OriginalTimetableV2Page");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableV2Page.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTV2Button failed");
+		}
+	}
+
+	private void AddTestOpenOTV4PageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTV4,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(156, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTV4Button_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTV4Button_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTV4Button clicked: navigating to OriginalTimetableV4Page");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableV4Page.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTV4Button failed");
+		}
+	}
+
+	private void AddTestOpenOTV6PageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTV6,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(180, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTV6Button_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTV6Button_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTV6Button clicked: navigating to OriginalTimetableV6Page");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableV6Page.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTV6Button failed");
 		}
 	}
 

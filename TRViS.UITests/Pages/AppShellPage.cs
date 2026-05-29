@@ -29,6 +29,9 @@ public class AppShellPage : PageObject
 		"Home",
 		"D-TAC",
 		"ダイヤ表 (V1)",
+		"ダイヤ表 (V2)",
+		"ダイヤ表 (V4)",
+		"ダイヤ表 (V6)",
 		"ダイヤ表 (テスト)",
 		"Settings",
 	];
@@ -432,6 +435,10 @@ public class AppShellPage : PageObject
 			NavigateViaKeyboard("ダイヤ表 (V2)");
 			return new OriginalTimetableV2PageObject(Driver);
 		}
+
+		if (IsAndroid && TryNavigateViaStartHomeSeam(AutomationIds.StartHome.TestNavigateToOTV2Button))
+			return new OriginalTimetableV2PageObject(Driver);
+
 		OpenFlyout();
 		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV2, "ダイヤ表 (V2)").Click();
 		return new OriginalTimetableV2PageObject(Driver);
@@ -444,6 +451,10 @@ public class AppShellPage : PageObject
 			NavigateViaKeyboard("ダイヤ表 (V4)");
 			return new OriginalTimetableV4PageObject(Driver);
 		}
+
+		if (IsAndroid && TryNavigateViaStartHomeSeam(AutomationIds.StartHome.TestNavigateToOTV4Button))
+			return new OriginalTimetableV4PageObject(Driver);
+
 		OpenFlyout();
 		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV4, "ダイヤ表 (V4)").Click();
 		return new OriginalTimetableV4PageObject(Driver);
@@ -456,9 +467,55 @@ public class AppShellPage : PageObject
 			NavigateViaKeyboard("ダイヤ表 (V6)");
 			return new OriginalTimetableV6PageObject(Driver);
 		}
+
+		if (IsAndroid && TryNavigateViaStartHomeSeam(AutomationIds.StartHome.TestNavigateToOTV6Button))
+			return new OriginalTimetableV6PageObject(Driver);
+
 		OpenFlyout();
 		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV6, "ダイヤ表 (V6)").Click();
 		return new OriginalTimetableV6PageObject(Driver);
+	}
+
+	private bool TryNavigateViaStartHomeSeam(string seamAutomationId)
+	{
+		var seamLocator = AutomationIdLocator(seamAutomationId);
+		if (TryClickDisplayedElement(seamLocator, TimeSpan.FromSeconds(2), 200))
+			return true;
+
+		NavigateToHome();
+		Thread.Sleep(500);
+		return TryClickDisplayedElement(seamLocator, TimeSpan.FromSeconds(5), 250);
+	}
+
+	private bool TryClickDisplayedElement(By locator, TimeSpan timeout, int pollingIntervalMs)
+	{
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			var deadline = DateTime.UtcNow + timeout;
+			while (DateTime.UtcNow < deadline)
+			{
+				var elements = Driver.FindElements(locator);
+				if (elements.Count > 0)
+				{
+					bool displayed;
+					try { displayed = elements[0].Displayed; }
+					catch (StaleElementReferenceException) { displayed = false; }
+					if (displayed)
+					{
+						elements[0].Click();
+						return true;
+					}
+				}
+				Thread.Sleep(pollingIntervalMs);
+			}
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+
+		return false;
 	}
 
 	public DTACViewHostPageObject NavigateToDTAC()

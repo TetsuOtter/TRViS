@@ -132,6 +132,9 @@ public static class AutomationIds
 		// AutomationId does not map to resource-id, so flyout-based navigation fails.
 		public const string TestNavigateToOTSimpleButton = "StartHome.TestNavigateToOTSimpleButton";
 		public const string TestNavigateToOTV1Button = "StartHome.TestNavigateToOTV1Button";
+		public const string TestNavigateToOTV2Button = "StartHome.TestNavigateToOTV2Button";
+		public const string TestNavigateToOTV4Button = "StartHome.TestNavigateToOTV4Button";
+		public const string TestNavigateToOTV6Button = "StartHome.TestNavigateToOTV6Button";
 		public const string TestCommitFirstWorkButton = "StartHome.TestCommitFirstWorkButton";
 
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
