@@ -94,14 +94,21 @@ class ScreenshotRegressionTests: BaseUITestCase {
             let (theme, lang) = (combo.theme, combo.lang)
             let dark = (theme == "dark")
 
-            // Between combo iterations, navigate back to StartHome / Start mode.
-            // The first iteration is already set up by setUpWithError().
-            if combo != combos.first! {
-                if !start.isDisplayed(timeout: 5) {
-                    _ = shell.navigateToHome()
-                }
-                start.clearLoaderForTesting()
+            // Relaunch the app for each combo to avoid main-thread busy failures
+            // that can occur on heavily loaded CI runners. Recreate page objects
+            // after launch and give the process a short beat to stabilise.
+            app.terminate()
+            app.launch()
+            start = StartHomePageObject(app: app, base: self)
+            shell = AppShellPageObject(app: app, base: self)
+            Thread.sleep(forTimeInterval: 1.0)
+
+            // Ensure we're back at StartHome; be generous with the timeout after a relaunch.
+            if !start.isDisplayed(timeout: 20) {
+                _ = shell.navigateToHome()
             }
+            start.clearLoaderForTesting()
+            start.acceptPrivacyPolicyIfNeeded()
 
             var failures: [String] = []
             captureCombo(theme: theme, lang: lang, dark: dark, failures: &failures)
