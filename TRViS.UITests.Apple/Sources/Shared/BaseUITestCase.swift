@@ -20,7 +20,9 @@ class BaseUITestCase: XCTestCase {
 
     // Cold-launch budget. MAUI runtime initialisation can take 30+ s on a fresh
     // simulator or a Catalyst sandbox on a busy CI runner.
-    let launchTimeout: TimeInterval = 90
+    // Increased to 180s to accommodate CI runner load spikes that can block
+    // the main thread during heavy MAUI initialization.
+    let launchTimeout: TimeInterval = 180
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -43,7 +45,7 @@ class BaseUITestCase: XCTestCase {
     /// Returns the first matching element found within `timeout`, or nil on timeout.
     func waitForElement(
         id: String,
-        timeout: TimeInterval = 30,
+        timeout: TimeInterval = 60,
         types: [XCUIElement.ElementType] = [.button, .staticText, .image, .other, .any]
     ) -> XCUIElement? {
         let deadline = Date().addingTimeInterval(timeout)

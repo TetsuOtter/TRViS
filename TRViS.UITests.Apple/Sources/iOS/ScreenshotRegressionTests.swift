@@ -371,10 +371,30 @@ class ScreenshotRegressionTests: BaseUITestCase {
     /// Takes a screenshot and either updates the baseline or diffs against it.
     /// Failures are accumulated into `failures` rather than failing immediately,
     /// so the full walk completes and produces a complete diff report.
+    private func takeScreenshotWithRetries(attempts: Int = 4, retryDelay: TimeInterval = 1.0) -> Data? {
+        for _ in 0..<attempts {
+            let shot = XCUIScreen.main.screenshot()
+            let data = shot.pngRepresentation
+            if data.count > 0 {
+                return data
+            }
+            Thread.sleep(forTimeInterval: retryDelay)
+        }
+        return nil
+    }
+
     private func capture(screen: String, theme: String, lang: String, failures: inout [String]) {
-        let shot    = XCUIScreen.main.screenshot()
+        // Give the UI a moment to settle and attempt a screenshot with retries
+        // to avoid transient "main run loop busy" errors on CI.
+        settleUntilVisuallyStable(maxWait: 8.0)
+        guard let shotData = takeScreenshotWithRetries() else {
+            let msg = "[ScreenshotBaseline] Failed to capture screenshot for \(screen)-\(theme)-\(lang)"
+            print(msg)
+            failures.append(msg)
+            return
+        }
         let pngData = ScreenshotBaselineHelper.maskNonDeterministicRegions(
-            shot.pngRepresentation
+            shotData
         )
 
         // Always attach for CI artifact inspection / Apple review deliverable
@@ -434,7 +454,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
     /// Used for the connect-server modal whose open animation + async history
     /// population can outlast the fixed settle window (matches C# SettleUntilVisuallyStable).
     private func settleUntilVisuallyStable(
-        maxWait: TimeInterval = 6.0,
+        maxWait: TimeInterval = 12.0,
         probeInterval: TimeInterval = 0.25,
         requiredStableComparisons: Int = 2
     ) {
