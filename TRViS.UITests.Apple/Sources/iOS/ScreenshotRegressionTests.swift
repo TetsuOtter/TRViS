@@ -38,9 +38,14 @@ class ScreenshotRegressionTests: BaseUITestCase {
         start = StartHomePageObject(app: app, base: self)
         shell = AppShellPageObject(app: app, base: self)
 
+        // After launch, give the app time to stabilize especially in CI
+        // where main thread may be heavily loaded. This prevents "Timed out
+        // while evaluating UI query" failures during first accessibility probe.
+        Thread.sleep(forTimeInterval: 3.0)
+
         // A prior test in this session may have left the app on DTAC / Settings /
         // a modal. Get back to StartHome in Start mode before each test.
-        if !start.isDisplayed(timeout: 5) {
+        if !start.isDisplayed(timeout: 20) {
             _ = shell.navigateToHome()
         }
         start.clearLoaderForTesting()
