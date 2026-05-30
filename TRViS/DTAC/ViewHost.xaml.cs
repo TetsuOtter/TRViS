@@ -68,6 +68,14 @@ public partial class ViewHost : ContentPage
 
 		InitializeComponent();
 
+#if !ANDROID
+		// DTAC draws its own AppBar (menu + title + live clock). Keep the Shell
+		// NavBar hidden on iOS/iPadOS/macOS/Windows to avoid double app bars.
+		// Android keeps the Shell NavBar due flyout reachability constraints
+		// (same rationale as OriginalTimetable pages).
+		Shell.SetNavBarIsVisible(this, false);
+#endif
+
 		var state = _presenter.CurrentState;
 		AppBarView.Title = state.TitleText;
 		Title = state.TitleText;

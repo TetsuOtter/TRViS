@@ -29,7 +29,11 @@ public class HorizontalTimetablePage : ContentPage
 		_presenter.StateChanged += OnPresenterStateChanged;
 		Unloaded += (_, _) => _presenter.Dispose();
 
+#if !ANDROID
+		// HorizontalTimetable has its own DTAC AppBar; hide the Shell NavBar on
+		// non-Android platforms to prevent double app bars in screenshots/UX.
 		Shell.SetNavBarIsVisible(this, false);
+#endif
 		DTACElementStyles.DefaultBGColor.Apply(this, BackgroundColorProperty);
 
 		var mainGrid = new Grid
