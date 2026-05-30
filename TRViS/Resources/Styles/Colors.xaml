@@ -67,4 +67,69 @@
 	<Color x:Key="Blue200Accent">#72ACF1</Color>
 	<Color x:Key="Blue300Accent">#A7CBF6</Color>
 
+	<!-- OriginalTimetable design tokens -->
+	<Color x:Key="OT_Bg_Light">#F8FBFB</Color>
+	<Color x:Key="OT_Bg_Dark">#090E12</Color>
+	<Color x:Key="OT_BgSoft_Light">#EFF4F6</Color>
+	<Color x:Key="OT_BgSoft_Dark">#13191E</Color>
+	<!-- Card surface: light is pure white (lifts above bg); dark matches BgSoft (prototype.html) -->
+	<Color x:Key="OT_Card_Light">#FFFFFF</Color>
+	<Color x:Key="OT_Card_Dark">#13191E</Color>
+	<Color x:Key="OT_Fg_Light">#0C181D</Color>
+	<Color x:Key="OT_Fg_Dark">#EEF3F4</Color>
+	<Color x:Key="OT_Muted_Light">#66747B</Color>
+	<Color x:Key="OT_Muted_Dark">#869197</Color>
+	<Color x:Key="OT_Rule_Light">#E1E5E7</Color>
+	<Color x:Key="OT_Rule_Dark">#222A30</Color>
+	<Color x:Key="OT_RuleStrong_Light">#B1B9BD</Color>
+	<Color x:Key="OT_RuleStrong_Dark">#3E4952</Color>
+	<Color x:Key="OT_Accent_Light">#0083A0</Color>
+	<Color x:Key="OT_Accent_Dark">#00BCC5</Color>
+	<Color x:Key="OT_AccentFg_Light">#FFFFFF</Color>
+	<Color x:Key="OT_AccentFg_Dark">#030D12</Color>
+	<Color x:Key="OT_AccentFgStrong_Light">#00587C</Color>
+	<Color x:Key="OT_AccentFgStrong_Dark">#34DDE5</Color>
+	<Color x:Key="OT_AccentSoft_Light">#D1F6FF</Color>
+	<Color x:Key="OT_AccentSoft_Dark">#02242B</Color>
+	<Color x:Key="OT_AccentShadow_Light">#2E0083A0</Color>
+	<Color x:Key="OT_AccentShadow_Dark">#4C00BCC5</Color>
+	<Color x:Key="OT_PlatBg_Light">#E1E9ED</Color>
+	<Color x:Key="OT_PlatBg_Dark">#222A30</Color>
+	<Color x:Key="OT_PlatFg_Light">#182429</Color>
+	<Color x:Key="OT_PlatFg_Dark">#DEE6EA</Color>
+	<Color x:Key="OT_RowCurrent_Light">#D5F9FF</Color>
+	<Color x:Key="OT_RowCurrent_Dark">#002A33</Color>
+	<Color x:Key="OT_RowAlt_Light">#F6F9FA</Color>
+	<Color x:Key="OT_RowAlt_Dark">#0D1216</Color>
+	<Color x:Key="OT_WarnBg_Light">#FFE6B4</Color>
+	<Color x:Key="OT_WarnBg_Dark">#462400</Color>
+	<Color x:Key="OT_WarnFg_Light">#590F00</Color>
+	<Color x:Key="OT_WarnFg_Dark">#FFE9B2</Color>
+	<Color x:Key="OT_WarnBorder_Light">#EFB062</Color>
+	<Color x:Key="OT_WarnBorder_Dark">#915200</Color>
+	<Color x:Key="OT_MarkerFlagBg">#31AA40</Color>
+	<Color x:Key="OT_MarkerFlagFg">#FFFFFF</Color>
+	<Color x:Key="OT_MarkerCautionBg">#E95E00</Color>
+	<Color x:Key="OT_MarkerCautionFg">#FFFFFF</Color>
+	<Color x:Key="OT_MarkerStarBg">#D29000</Color>
+	<Color x:Key="OT_MarkerStarFg">#1A1A1A</Color>
+
+	<SolidColorBrush x:Key="OT_Bg" Color="{AppThemeBinding Light={StaticResource OT_Bg_Light}, Dark={StaticResource OT_Bg_Dark}}"/>
+	<SolidColorBrush x:Key="OT_BgSoft" Color="{AppThemeBinding Light={StaticResource OT_BgSoft_Light}, Dark={StaticResource OT_BgSoft_Dark}}"/>
+	<SolidColorBrush x:Key="OT_Card" Color="{AppThemeBinding Light={StaticResource OT_Card_Light}, Dark={StaticResource OT_Card_Dark}}"/>
+	<SolidColorBrush x:Key="OT_Fg" Color="{AppThemeBinding Light={StaticResource OT_Fg_Light}, Dark={StaticResource OT_Fg_Dark}}"/>
+	<SolidColorBrush x:Key="OT_Muted" Color="{AppThemeBinding Light={StaticResource OT_Muted_Light}, Dark={StaticResource OT_Muted_Dark}}"/>
+	<SolidColorBrush x:Key="OT_Rule" Color="{AppThemeBinding Light={StaticResource OT_Rule_Light}, Dark={StaticResource OT_Rule_Dark}}"/>
+	<SolidColorBrush x:Key="OT_RuleStrong" Color="{AppThemeBinding Light={StaticResource OT_RuleStrong_Light}, Dark={StaticResource OT_RuleStrong_Dark}}"/>
+	<SolidColorBrush x:Key="OT_Accent" Color="{AppThemeBinding Light={StaticResource OT_Accent_Light}, Dark={StaticResource OT_Accent_Dark}}"/>
+	<SolidColorBrush x:Key="OT_AccentFg" Color="{AppThemeBinding Light={StaticResource OT_AccentFg_Light}, Dark={StaticResource OT_AccentFg_Dark}}"/>
+	<SolidColorBrush x:Key="OT_AccentFgStrong" Color="{AppThemeBinding Light={StaticResource OT_AccentFgStrong_Light}, Dark={StaticResource OT_AccentFgStrong_Dark}}"/>
+	<SolidColorBrush x:Key="OT_AccentSoft" Color="{AppThemeBinding Light={StaticResource OT_AccentSoft_Light}, Dark={StaticResource OT_AccentSoft_Dark}}"/>
+	<SolidColorBrush x:Key="OT_RowAlt" Color="{AppThemeBinding Light={StaticResource OT_RowAlt_Light}, Dark={StaticResource OT_RowAlt_Dark}}"/>
+	<SolidColorBrush x:Key="OT_RowCurrent" Color="{AppThemeBinding Light={StaticResource OT_RowCurrent_Light}, Dark={StaticResource OT_RowCurrent_Dark}}"/>
+	<SolidColorBrush x:Key="OT_PlatBg" Color="{AppThemeBinding Light={StaticResource OT_PlatBg_Light}, Dark={StaticResource OT_PlatBg_Dark}}"/>
+	<SolidColorBrush x:Key="OT_MarkerFlagBgBrush" Color="{StaticResource OT_MarkerFlagBg}"/>
+	<SolidColorBrush x:Key="OT_MarkerCautionBgBrush" Color="{StaticResource OT_MarkerCautionBg}"/>
+	<SolidColorBrush x:Key="OT_MarkerStarBgBrush" Color="{StaticResource OT_MarkerStarBg}"/>
+
 </ResourceDictionary>

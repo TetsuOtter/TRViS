@@ -8,6 +8,7 @@
 	xmlns:loc="clr-namespace:TRViS.Localization"
 	xmlns:pages="clr-namespace:TRViS.RootPages"
 	xmlns:dtac="clr-namespace:TRViS.DTAC"
+	xmlns:ot="clr-namespace:TRViS.OriginalTimetable"
 	FlyoutBackgroundColor="{AppThemeBinding Light=#EEE, Dark=#111}">
 	<Shell.FlyoutIcon>
 		<FontImageSource
@@ -46,6 +47,56 @@
 		Title="D-TAC"
 		Route="{x:Static dtac:ViewHost.NameOfThisClass}">
 		<ShellContent ContentTemplate="{DataTemplate dtac:ViewHost}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		x:Name="FlyoutOriginalTimetableV1"
+		AutomationId="Shell.Flyout.OriginalTimetableV1"
+		Title="ダイヤ表 (V1)"
+		Route="{x:Static ot:OriginalTimetableV1Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV1Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		x:Name="FlyoutOriginalTimetableV2"
+		AutomationId="Shell.Flyout.OriginalTimetableV2"
+		Title="ダイヤ表 (V2)"
+		Route="{x:Static ot:OriginalTimetableV2Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV2Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		x:Name="FlyoutOriginalTimetableV4"
+		AutomationId="Shell.Flyout.OriginalTimetableV4"
+		Title="ダイヤ表 (V4)"
+		Route="{x:Static ot:OriginalTimetableV4Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV4Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		x:Name="FlyoutOriginalTimetableV6"
+		AutomationId="Shell.Flyout.OriginalTimetableV6"
+		Title="ダイヤ表 (V6)"
+		Route="{x:Static ot:OriginalTimetableV6Page.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableV6Page}"/>
+	</FlyoutItem>
+	<FlyoutItem
+		x:Name="FlyoutOriginalTimetableSimple"
+		AutomationId="Shell.Flyout.OriginalTimetableSimple"
+		Title="ダイヤ表 (テスト)"
+		Route="{x:Static ot:OriginalTimetableSimplePage.NameOfThisClass}">
+		<FlyoutItem.Icon>
+			<FontImageSource Glyph="&#xe538;" FontFamily="MaterialIconsRegular" Size="24"/>
+		</FlyoutItem.Icon>
+		<ShellContent ContentTemplate="{DataTemplate ot:OriginalTimetableSimplePage}"/>
 	</FlyoutItem>
 	<FlyoutItem
 		x:Name="FlyoutSettings"
