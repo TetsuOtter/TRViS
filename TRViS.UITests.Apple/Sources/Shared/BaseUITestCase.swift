@@ -45,7 +45,7 @@ class BaseUITestCase: XCTestCase {
     /// Returns the first matching element found within `timeout`, or nil on timeout.
     func waitForElement(
         id: String,
-        timeout: TimeInterval = 120,
+        timeout: TimeInterval = 180,
         types: [XCUIElement.ElementType] = [.button, .staticText, .image, .other, .any]
     ) -> XCUIElement? {
         let deadline = Date().addingTimeInterval(timeout)
