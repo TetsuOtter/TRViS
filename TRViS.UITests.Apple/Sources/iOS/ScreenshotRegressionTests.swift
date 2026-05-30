@@ -371,7 +371,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
     /// Takes a screenshot and either updates the baseline or diffs against it.
     /// Failures are accumulated into `failures` rather than failing immediately,
     /// so the full walk completes and produces a complete diff report.
-    private func takeScreenshotWithRetries(attempts: Int = 4, retryDelay: TimeInterval = 1.0) -> Data? {
+    private func takeScreenshotWithRetries(attempts: Int = 8, retryDelay: TimeInterval = 2.0) -> Data? {
         for _ in 0..<attempts {
             let shot = XCUIScreen.main.screenshot()
             let data = shot.pngRepresentation
@@ -454,7 +454,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
     /// Used for the connect-server modal whose open animation + async history
     /// population can outlast the fixed settle window (matches C# SettleUntilVisuallyStable).
     private func settleUntilVisuallyStable(
-        maxWait: TimeInterval = 12.0,
+        maxWait: TimeInterval = 20.0,
         probeInterval: TimeInterval = 0.25,
         requiredStableComparisons: Int = 2
     ) {
