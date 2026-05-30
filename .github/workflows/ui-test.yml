@@ -982,17 +982,11 @@ jobs:
   # Depends on build-ios to avoid a double MAUI rebuild.
   # ─────────────────────────────────────────────
   ui-test-apple-screenshot:
-    if: false
     runs-on: macos-26
     # 4 combos × ~90 s each + simulator boot + install + xcodegen overhead.
     # The iPad mini A17 is a second sequential pass (SKIP_BUILD=true reuses
     # the simulator binary but boots a new device). 60 min gives comfortable
     # headroom for both device classes.
-    # DISABLED: Screenshot regression tests timeout on CI due to main-thread
-    # contention during MAUI initialization. The feature (V1/V2/V4/V6 navigation)
-    # is verified by passing Android and Catalyst tests. V2/V4/V6 screenshot
-    # validation was completed locally showing 0% pixel diff. Re-enable after
-    # fixing MAUI simulator thread-pool / timer configuration.
     timeout-minutes: 60
     needs: build-ios
     env:
