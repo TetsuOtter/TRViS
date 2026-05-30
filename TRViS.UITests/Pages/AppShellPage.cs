@@ -28,6 +28,11 @@ public class AppShellPage : PageObject
 	private static readonly string[] FlyoutItemOrder = [
 		"Home",
 		"D-TAC",
+		"ダイヤ表 (V1)",
+		"ダイヤ表 (V2)",
+		"ダイヤ表 (V4)",
+		"ダイヤ表 (V6)",
+		"ダイヤ表 (テスト)",
 		"Settings",
 	];
 
@@ -282,6 +287,237 @@ public class AppShellPage : PageObject
 		throw new InvalidOperationException($"Failed to navigate to '{title}' via keyboard after 3 attempts");
 	}
 
+	/// <summary>
+	/// Navigates to OriginalTimetableSimplePage. On Windows uses keyboard navigation.
+	/// On iOS/Mac uses the flyout (FlyoutItem with a real AutomationId). On Android,
+	/// the FlyoutItem is replaced with a MenuItem whose AutomationId does not map to
+	/// resource-id, so we use the StartHome seam button (same polling shape as
+	/// NavigateToHome): it calls GoToAsync(NameOfThisClass) which works reliably on
+	/// Android push routes.
+	/// </summary>
+	public OriginalTimetableSimplePageObject NavigateToOriginalTimetableSimple()
+	{
+		if (_isWindows)
+		{
+			NavigateViaKeyboard("ダイヤ表 (テスト)");
+			return new OriginalTimetableSimplePageObject(Driver);
+		}
+
+		if (IsAndroid)
+		{
+			// Android: FlyoutItem replaced with MenuItem — AutomationId does not map to
+			// resource-id so WaitForFlyoutItem fails. Use the StartHome seam button instead.
+			var seamLocator = AutomationIdLocator(AutomationIds.StartHome.TestNavigateToOTSimpleButton);
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			try
+			{
+				var deadline = DateTime.UtcNow.AddSeconds(5);
+				while (DateTime.UtcNow < deadline)
+				{
+					var elements = Driver.FindElements(seamLocator);
+					if (elements.Count > 0)
+					{
+						try
+						{
+							if (elements[0].Displayed)
+							{
+								elements[0].Click();
+								return new OriginalTimetableSimplePageObject(Driver);
+							}
+						}
+						catch (StaleElementReferenceException) { }
+					}
+					Thread.Sleep(250);
+				}
+			}
+			finally
+			{
+				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+			}
+			// If the seam wasn't found (unexpected), fall through to flyout as last resort.
+		}
+
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableSimple, "ダイヤ表 (テスト)").Click();
+		return new OriginalTimetableSimplePageObject(Driver);
+	}
+
+	/// <summary>
+	/// Navigates to OriginalTimetableV1Page. On Windows uses keyboard navigation.
+	/// On iOS/Mac uses the flyout (FlyoutItem with a real AutomationId). On Android,
+	/// the FlyoutItem is replaced with a MenuItem whose AutomationId does not map to
+	/// resource-id, so we use the StartHome seam button (same pattern as
+	/// NavigateToOriginalTimetableSimple). The seam is only on StartHome, so if the
+	/// app is elsewhere (e.g. on DTAC after AutoOpenForTesting), NavigateToHome() is
+	/// called first; if already on StartHome the seam is found quickly (~250ms).
+	/// </summary>
+	public OriginalTimetableV1PageObject NavigateToOriginalTimetableV1()
+	{
+		if (_isWindows)
+		{
+			NavigateViaKeyboard("ダイヤ表 (V1)");
+			return new OriginalTimetableV1PageObject(Driver);
+		}
+
+		if (IsAndroid)
+		{
+			// V1 is a MenuItem (push route) on Android — flyout navigation does not
+			// work reliably. Use the StartHome seam button instead. If we're not on
+			// StartHome, navigate there first.
+			var startHomeSeamLocator = AutomationIdLocator(AutomationIds.StartHome.TestNavigateToOTV1Button);
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			try
+			{
+				var deadline = DateTime.UtcNow.AddSeconds(2);
+				while (DateTime.UtcNow < deadline)
+				{
+					var elements = Driver.FindElements(startHomeSeamLocator);
+					if (elements.Count > 0)
+					{
+						try
+						{
+							if (elements[0].Displayed)
+							{
+								elements[0].Click();
+								return new OriginalTimetableV1PageObject(Driver);
+							}
+						}
+						catch (StaleElementReferenceException) { }
+					}
+					Thread.Sleep(200);
+				}
+			}
+			finally
+			{
+				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+			}
+
+			// Not on StartHome — navigate there, then retry (5s).
+			NavigateToHome();
+			Thread.Sleep(500);
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			try
+			{
+				var deadline = DateTime.UtcNow.AddSeconds(5);
+				while (DateTime.UtcNow < deadline)
+				{
+					var elements = Driver.FindElements(startHomeSeamLocator);
+					if (elements.Count > 0)
+					{
+						bool disp;
+						try { disp = elements[0].Displayed; }
+						catch (StaleElementReferenceException) { disp = false; }
+						if (disp)
+						{
+							elements[0].Click();
+							return new OriginalTimetableV1PageObject(Driver);
+						}
+					}
+					Thread.Sleep(250);
+				}
+			}
+			finally
+			{
+				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+			}
+			// Seam not found after navigating home (unexpected), fall through to flyout.
+		}
+
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV1, "ダイヤ表 (V1)").Click();
+		return new OriginalTimetableV1PageObject(Driver);
+	}
+
+	public OriginalTimetableV2PageObject NavigateToOriginalTimetableV2()
+	{
+		if (_isWindows)
+		{
+			NavigateViaKeyboard("ダイヤ表 (V2)");
+			return new OriginalTimetableV2PageObject(Driver);
+		}
+
+		if (IsAndroid && TryNavigateViaStartHomeSeam(AutomationIds.StartHome.TestNavigateToOTV2Button))
+			return new OriginalTimetableV2PageObject(Driver);
+
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV2, "ダイヤ表 (V2)").Click();
+		return new OriginalTimetableV2PageObject(Driver);
+	}
+
+	public OriginalTimetableV4PageObject NavigateToOriginalTimetableV4()
+	{
+		if (_isWindows)
+		{
+			NavigateViaKeyboard("ダイヤ表 (V4)");
+			return new OriginalTimetableV4PageObject(Driver);
+		}
+
+		if (IsAndroid && TryNavigateViaStartHomeSeam(AutomationIds.StartHome.TestNavigateToOTV4Button))
+			return new OriginalTimetableV4PageObject(Driver);
+
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV4, "ダイヤ表 (V4)").Click();
+		return new OriginalTimetableV4PageObject(Driver);
+	}
+
+	public OriginalTimetableV6PageObject NavigateToOriginalTimetableV6()
+	{
+		if (_isWindows)
+		{
+			NavigateViaKeyboard("ダイヤ表 (V6)");
+			return new OriginalTimetableV6PageObject(Driver);
+		}
+
+		if (IsAndroid && TryNavigateViaStartHomeSeam(AutomationIds.StartHome.TestNavigateToOTV6Button))
+			return new OriginalTimetableV6PageObject(Driver);
+
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.OriginalTimetableV6, "ダイヤ表 (V6)").Click();
+		return new OriginalTimetableV6PageObject(Driver);
+	}
+
+	private bool TryNavigateViaStartHomeSeam(string seamAutomationId)
+	{
+		var seamLocator = AutomationIdLocator(seamAutomationId);
+		if (TryClickDisplayedElement(seamLocator, TimeSpan.FromSeconds(2), 200))
+			return true;
+
+		NavigateToHome();
+		Thread.Sleep(500);
+		return TryClickDisplayedElement(seamLocator, TimeSpan.FromSeconds(5), 250);
+	}
+
+	private bool TryClickDisplayedElement(By locator, TimeSpan timeout, int pollingIntervalMs)
+	{
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			var deadline = DateTime.UtcNow + timeout;
+			while (DateTime.UtcNow < deadline)
+			{
+				var elements = Driver.FindElements(locator);
+				if (elements.Count > 0)
+				{
+					bool displayed;
+					try { displayed = elements[0].Displayed; }
+					catch (StaleElementReferenceException) { displayed = false; }
+					if (displayed)
+					{
+						elements[0].Click();
+						return true;
+					}
+				}
+				Thread.Sleep(pollingIntervalMs);
+			}
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+
+		return false;
+	}
+
 	public DTACViewHostPageObject NavigateToDTAC()
 	{
 		if (_isWindows)
@@ -342,11 +578,15 @@ public class AppShellPage : PageObject
 							// completes. Wait for StartHome to appear so the next test's
 							// PollDisplayed / ClearLoaderForTesting calls don't race
 							// the navigation.
-							// Anchor on HomeBody, not Title: after a Work is committed the
-							// page lands in Home mode where the Hero AppTitle Label is
-							// hidden. HomeBody is present in Home mode on all platforms.
+							// Check HomeBody (Home mode — Title hidden after a Work is
+							// committed) OR Title (Start mode — no loader loaded, Title
+							// visible). Without the Title branch, returning from a page
+							// that was navigated to BEFORE loading any data would wait 10s
+							// for HomeBody, time out, then unnecessarily open the flyout.
 							new WebDriverWait(Driver, TimeSpan.FromSeconds(10))
-								.Until(d => d.FindElements(AutomationIdLocator(AutomationIds.StartHome.HomeBody)).Count > 0);
+								.Until(d =>
+									d.FindElements(AutomationIdLocator(AutomationIds.StartHome.HomeBody)).Count > 0
+									|| d.FindElements(AutomationIdLocator(AutomationIds.StartHome.Title)).Count > 0);
 							return new StartHomePageObject(Driver);
 						}
 					}
@@ -362,12 +602,134 @@ public class AppShellPage : PageObject
 		}
 
 		if (_isWindows)
-			NavigateViaKeyboard("Home");
-		else
 		{
-			OpenFlyout();
-			WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
+			NavigateViaKeyboard("Home");
+			return new StartHomePageObject(Driver);
 		}
+
+		// Android: unified loop — handles any navigation-stack depth (V2/V4/V6 use
+		// relative GoToAsync, so the stack may be [StartHome, V6, V2] etc.).
+		// Strategy:
+		//   1. Done when StartHome content is visible AND flyout confirmed closed.
+		//   2. Flyout open with "Home" visible → click it (absolute GoToAsync clears stack).
+		//   3. "Navigate up" visible (push-route, flyout closed) → Back(). MAUI then
+		//      auto-opens the flyout; step 2 fires next iteration.
+		//   4. Hamburger visible → open flyout so step 2 can fire next iteration.
+		if (IsAndroid)
+		{
+			var androidDeadline = DateTime.UtcNow.AddSeconds(30);
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+			try
+			{
+				while (DateTime.UtcNow < androidDeadline)
+				{
+					// 1. StartHome content visible AND flyout closed → done.
+					// Dual-check guards against stale nodes found mid-transition.
+					try
+					{
+						bool onStartHome =
+							Driver.FindElements(AutomationIdLocator(AutomationIds.StartHome.LoadDemoButton)).Count > 0
+							|| Driver.FindElements(AutomationIdLocator(AutomationIds.StartHome.HomeBody)).Count > 0
+							|| Driver.FindElements(AutomationIdLocator(AutomationIds.StartHome.PrivacyReconfirmBanner)).Count > 0;
+						bool flyoutOpen =
+							Driver.FindElements(MobileBy.AccessibilityId("Close navigation drawer")).Count > 0;
+						if (onStartHome && !flyoutOpen)
+							return new StartHomePageObject(Driver);
+					}
+					catch { }
+
+					// 2. Flyout open and "Home" item visible → click (absolute nav clears stack).
+					// After clicking, wait up to 3 s for StartHome to settle rather than
+					// using a fixed sleep — prevents step 3 from pressing Back() mid-animation.
+					try
+					{
+						var homeItems = Driver.FindElements(AutomationIdLocator(AutomationIds.Shell.Flyout.StartHome));
+						if (homeItems.Count > 0)
+						{
+							bool disp;
+							try { disp = homeItems[0].Displayed; } catch { disp = false; }
+							if (disp)
+							{
+								homeItems[0].Click();
+								var homeSettleDeadline = DateTime.UtcNow.AddSeconds(3);
+								while (DateTime.UtcNow < homeSettleDeadline)
+								{
+									try
+									{
+										bool onHome =
+											Driver.FindElements(AutomationIdLocator(AutomationIds.StartHome.LoadDemoButton)).Count > 0
+											|| Driver.FindElements(AutomationIdLocator(AutomationIds.StartHome.HomeBody)).Count > 0
+											|| Driver.FindElements(AutomationIdLocator(AutomationIds.StartHome.PrivacyReconfirmBanner)).Count > 0;
+										bool flyoutStillOpen =
+											Driver.FindElements(MobileBy.AccessibilityId("Close navigation drawer")).Count > 0;
+										if (onHome && !flyoutStillOpen)
+											return new StartHomePageObject(Driver);
+									}
+									catch { }
+									Thread.Sleep(150);
+								}
+								continue;
+							}
+						}
+					}
+					catch { }
+
+					// 3. "Navigate up" visible (push-route page, flyout closed) → Back().
+					try
+					{
+						bool hasNavUp = Driver.FindElements(MobileBy.AccessibilityId("Navigate up"))
+							.Any(b => { try { return b.Displayed; } catch { return false; } });
+						if (hasNavUp)
+						{
+							Driver.Navigate().Back();
+							Thread.Sleep(400);
+							continue;
+						}
+					}
+					catch { }
+
+					// 4. Hamburger visible → open flyout so step 2 fires next iteration.
+					try
+					{
+						var burgers = Driver.FindElements(MobileBy.AccessibilityId("Open navigation drawer"));
+						if (burgers.Count > 0)
+						{
+							bool disp;
+							try { disp = burgers[0].Displayed; } catch { disp = false; }
+							if (disp)
+							{
+								burgers[0].Click();
+								Thread.Sleep(400);
+								continue;
+							}
+						}
+					}
+					catch { }
+
+					Thread.Sleep(200);
+				}
+			}
+			finally
+			{
+				Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+			}
+			return new StartHomePageObject(Driver);
+		}
+
+		OpenFlyout();
+		WaitForFlyoutItem(AutomationIds.Shell.Flyout.StartHome, "Home").Click();
+		// Wait for StartHome content to be accessible after flyout navigation.
+		// On Android the flyout may remain open briefly after GoToAsync("//StartHome").
+		// Poll until the flyout closes AND main content elements appear.
+		try
+		{
+			new WebDriverWait(Driver, TimeSpan.FromSeconds(20))
+				.Until(d =>
+					d.FindElements(AutomationIdLocator(AutomationIds.StartHome.HomeBody)).Count > 0
+					|| d.FindElements(AutomationIdLocator(AutomationIds.StartHome.LoadDemoButton)).Count > 0
+					|| d.FindElements(AutomationIdLocator(AutomationIds.StartHome.PrivacyReconfirmBanner)).Count > 0);
+		}
+		catch (WebDriverTimeoutException) { /* best-effort — caller will use in-app seams to confirm state */ }
 		return new StartHomePageObject(Driver);
 	}
 

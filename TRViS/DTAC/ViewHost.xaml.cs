@@ -66,8 +66,6 @@ public partial class ViewHost : ContentPage
 		};
 #endif
 
-		Shell.SetNavBarIsVisible(this, false);
-
 		InitializeComponent();
 
 		var state = _presenter.CurrentState;
@@ -334,6 +332,7 @@ public partial class ViewHost : ContentPage
 		_testAppVm.SelectedTrainData = current with { Rows = modified };
 		logger.Debug("TestIsInfoRowTransitionButton: changed row {0} to IsInfoRow=true", target);
 	}
+
 #endif
 
 	private void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
