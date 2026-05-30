@@ -653,13 +653,10 @@ jobs:
           }
           Write-Host "EXE: $exePath"
 
-          # Start Appium using npx to avoid relying on npm global layout / package.json
-          if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
-            Write-Host "npx not found; ensuring npm is available and installing npm tooling (best-effort)"
-            npm install -g npm || true
-          }
-          Write-Host "Starting Appium server via npx..."
-          $appiumProcess = Start-Process -FilePath "npx" -ArgumentList "appium" -PassThru -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          # Start Appium using npm start (which is safe on Windows) instead of npx
+          # npx is a .cmd file which fails under Start-Process. Using npm start as fallback.
+          Write-Host "Starting Appium server via npm start appium..."
+          $appiumProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm start -- --port 4723" -PassThru -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log" -WorkingDirectory (npm root -g)
           Write-Host "Appium PID: $($appiumProcess.Id)"
           Start-Sleep -Seconds 5
           if ($appiumProcess.HasExited) {
