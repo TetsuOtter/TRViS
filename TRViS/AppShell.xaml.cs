@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 using TRViS.DTAC;
 using TRViS.FirebaseWrapper;
+using TRViS.OriginalTimetable;
 using TRViS.Localization;
 using TRViS.RootPages;
 using TRViS.Services;
@@ -52,6 +53,76 @@ public partial class AppShell : Shell
 		// overridden by the XAML and then erased by Items.Remove.
 		Items.Remove(FlyoutDTAC);
 		Routing.RegisterRoute(TRViS.DTAC.ViewHost.NameOfThisClass, typeof(TRViS.DTAC.ViewHost));
+
+		// Same mitigation for OriginalTimetable pages (same MAUI #16927 root cause).
+		// FlyoutItem is replaced by a MenuItem whose Command navigates via push route
+		// so the flyout remains usable on Android.
+		Items.Remove(FlyoutOriginalTimetableV1);
+		Routing.RegisterRoute(OriginalTimetableV1Page.NameOfThisClass, typeof(OriginalTimetableV1Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V1)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV1",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV1Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV1Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableV2);
+		Routing.RegisterRoute(OriginalTimetableV2Page.NameOfThisClass, typeof(OriginalTimetableV2Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V2)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV2",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV2Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV2Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableV4);
+		Routing.RegisterRoute(OriginalTimetableV4Page.NameOfThisClass, typeof(OriginalTimetableV4Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V4)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV4",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV4Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV4Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableV6);
+		Routing.RegisterRoute(OriginalTimetableV6Page.NameOfThisClass, typeof(OriginalTimetableV6Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V6)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV6",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV6Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV6Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableSimple);
+		Routing.RegisterRoute(OriginalTimetableSimplePage.NameOfThisClass, typeof(OriginalTimetableSimplePage));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (テスト)",
+			// Same AutomationId as the XAML FlyoutItem so WaitForFlyoutItem()
+			// in the test layer finds this MenuItem by its id on Android.
+			AutomationId = "Shell.Flyout.OriginalTimetableSimple",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableSimplePage.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableSimplePage failed"); }
+			}),
+		});
 #endif
 
 		// Flyout/MenuItem Title binding refresh is unreliable in MAUI Shell, so

@@ -13,6 +13,11 @@ public static class AutomationIds
 		{
 			public const string StartHome = "Shell.Flyout.StartHome";
 			public const string DTAC = "Shell.Flyout.DTAC";
+			public const string OriginalTimetableV1 = "Shell.Flyout.OriginalTimetableV1";
+			public const string OriginalTimetableV2 = "Shell.Flyout.OriginalTimetableV2";
+			public const string OriginalTimetableV4 = "Shell.Flyout.OriginalTimetableV4";
+			public const string OriginalTimetableV6 = "Shell.Flyout.OriginalTimetableV6";
+			public const string OriginalTimetableSimple = "Shell.Flyout.OriginalTimetableSimple";
 			public const string Settings = "Shell.Flyout.Settings";
 		}
 	}
@@ -122,6 +127,15 @@ public static class AutomationIds
 		// status indicator in the Connected state (#266) so the indicator's
 		// states can be E2E-verified without a real WebSocket server.
 		public const string TestSimulateWebSocketConnectedButton = "StartHome.TestSimulateWebSocketConnectedButton";
+		// Navigates directly to OriginalTimetableSimplePage via GoToAsync, bypassing
+		// the flyout. On Android the FlyoutItem is replaced with a MenuItem whose
+		// AutomationId does not map to resource-id, so flyout-based navigation fails.
+		public const string TestNavigateToOTSimpleButton = "StartHome.TestNavigateToOTSimpleButton";
+		public const string TestNavigateToOTV1Button = "StartHome.TestNavigateToOTV1Button";
+		public const string TestNavigateToOTV2Button = "StartHome.TestNavigateToOTV2Button";
+		public const string TestNavigateToOTV4Button = "StartHome.TestNavigateToOTV4Button";
+		public const string TestNavigateToOTV6Button = "StartHome.TestNavigateToOTV6Button";
+		public const string TestCommitFirstWorkButton = "StartHome.TestCommitFirstWorkButton";
 
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
 		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against
@@ -327,6 +341,122 @@ public static class AutomationIds
 	{
 		public const string ReloadSavedButton = "Settings.ReloadSavedButton";
 		public const string SaveButton = "Settings.SaveButton";
+	}
+
+	public static class OriginalTimetable
+	{
+		public static class Simple
+		{
+			public const string Root = "OriginalTimetable.Simple.Root";
+			public const string PageLabel = "OriginalTimetable.Simple.PageLabel";
+		}
+
+		public static class V1
+		{
+			public const string Root = "OriginalTimetable.V1.Root";
+			public const string TabletGrid = "OriginalTimetable.V1.TabletGrid";
+			public const string CompactRoot = "OriginalTimetable.V1.Compact.Root";
+			public const string CompactHeader = "OriginalTimetable.V1.Compact.Header";
+			public const string CompactHeaderTrainNumber = "OriginalTimetable.V1.Compact.Header.TrainNumber";
+			public const string CompactEmptyState = "OriginalTimetable.V1.Compact.EmptyState";
+			public const string CompactRowsList = "OriginalTimetable.V1.Compact.RowsList";
+			public const string Header = "OriginalTimetable.V1.Header";
+			public const string HeaderTypeChip = "OriginalTimetable.V1.Header.TypeChip";
+			public const string TabletFlyoutToggle = "OriginalTimetable.V1.Tablet.FlyoutToggle";
+			public const string CompactFlyoutToggle = "OriginalTimetable.V1.Compact.FlyoutToggle";
+			public const string HeaderTrainNumber = "OriginalTimetable.V1.Header.TrainNumber";
+			public const string HeaderCarCount = "OriginalTimetable.V1.Header.CarCount";
+			public const string HeaderMaxSpeed = "OriginalTimetable.V1.Header.MaxSpeed";
+			public const string EmptyState = "OriginalTimetable.V1.EmptyState";
+			public const string RowsList = "OriginalTimetable.V1.RowsList";
+			public const string RowPrefix = "OriginalTimetable.V1.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MemoFor(string rowId) => RowPrefix + rowId + ".Memo";
+			public static string ClearFor(string rowId) => RowPrefix + rowId + ".Clear";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+			public static string NoteBodyFor(string rowId) => RowPrefix + rowId + ".NoteBody";
+			public static class MemoSheet
+			{
+				public const string Root = "OriginalTimetable.V1.MemoSheet";
+				public const string Scrim = "OriginalTimetable.V1.MemoSheet.Scrim";
+				public const string Editor = "OriginalTimetable.V1.MemoSheet.Editor";
+				public const string Save = "OriginalTimetable.V1.MemoSheet.Save";
+				public const string Delete = "OriginalTimetable.V1.MemoSheet.Delete";
+				public const string Cancel = "OriginalTimetable.V1.MemoSheet.Cancel";
+			}
+			public const string TestCycleMarkerRow0Button = "OriginalTimetable.V1.Test.CycleMarkerRow0";
+			public const string TestClearMarkerRow0Button = "OriginalTimetable.V1.Test.ClearMarkerRow0";
+		}
+
+		public static class MarkerPopover
+		{
+			public const string None = "OriginalTimetable.MarkerPopover.None";
+			public const string Flag = "OriginalTimetable.MarkerPopover.Flag";
+			public const string Caution = "OriginalTimetable.MarkerPopover.Caution";
+			public const string Star = "OriginalTimetable.MarkerPopover.Star";
+		}
+
+		public static class V2
+		{
+			public const string Root = "OriginalTimetable.V2.Root";
+			public const string TabletGrid = "OriginalTimetable.V2.TabletGrid";
+			public const string CompactGrid = "OriginalTimetable.V2.CompactGrid";
+			public const string Header = "OriginalTimetable.V2.Header";
+			public const string EmptyState = "OriginalTimetable.V2.EmptyState";
+			public const string RowsList = "OriginalTimetable.V2.RowsList";
+			public const string CompactHeader = "OriginalTimetable.V2.Compact.Header";
+			public const string CompactEmptyState = "OriginalTimetable.V2.Compact.EmptyState";
+			public const string CompactRowsList = "OriginalTimetable.V2.Compact.RowsList";
+			public const string RowPrefix = "OriginalTimetable.V2.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MemoFor(string rowId) => RowPrefix + rowId + ".Memo";
+			public static string ClearFor(string rowId) => RowPrefix + rowId + ".Clear";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+			public static string NoteBodyFor(string rowId) => RowPrefix + rowId + ".NoteBody";
+		}
+
+		public static class V4
+		{
+			public const string Root = "OriginalTimetable.V4.Root";
+			public const string TabletGrid = "OriginalTimetable.V4.TabletGrid";
+			public const string CompactGrid = "OriginalTimetable.V4.CompactGrid";
+			public const string TrainStripe = "OriginalTimetable.V4.TrainStripe";
+			public const string TrainStripeTrainNumber = "OriginalTimetable.V4.TrainStripe.TrainNumber";
+			public const string Hero = "OriginalTimetable.V4.Hero";
+			public const string HeroMarkerBadge = "OriginalTimetable.V4.Hero.MarkerBadge";
+			public const string HeroStation = "OriginalTimetable.V4.HeroStation";
+			public const string EmptyState = "OriginalTimetable.V4.EmptyState";
+			public const string CompactEmptyState = "OriginalTimetable.V4.Compact.EmptyState";
+			public const string MiniList = "OriginalTimetable.V4.MiniList";
+			public const string CompactMiniList = "OriginalTimetable.V4.Compact.MiniList";
+			public const string RowPrefix = "OriginalTimetable.V4.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+		}
+
+		public static class V6
+		{
+			public const string Root = "OriginalTimetable.V6.Root";
+			public const string TabletGrid = "OriginalTimetable.V6.TabletGrid";
+			public const string CompactGrid = "OriginalTimetable.V6.CompactGrid";
+			public const string Masthead = "OriginalTimetable.V6.Masthead";
+			public const string CurrentBlock = "OriginalTimetable.V6.CurrentBlock";
+			public const string CurrentBlockMarkerBadge = "OriginalTimetable.V6.CurrentBlock.MarkerBadge";
+			public const string CurrentBlockStationName = "OriginalTimetable.V6.CurrentBlock.StationName";
+			public const string EmptyState = "OriginalTimetable.V6.EmptyState";
+			public const string UpcomingList = "OriginalTimetable.V6.UpcomingList";
+			public const string CompactMasthead = "OriginalTimetable.V6.Compact.Masthead";
+			public const string CompactCurrentBlock = "OriginalTimetable.V6.Compact.CurrentBlock";
+			public const string CompactEmptyState = "OriginalTimetable.V6.Compact.EmptyState";
+			public const string CompactUpcomingList = "OriginalTimetable.V6.Compact.UpcomingList";
+			public const string RowPrefix = "OriginalTimetable.V6.Row.";
+			public static string RowFor(string rowId) => RowPrefix + rowId;
+			public static string MarkerFor(string rowId) => RowPrefix + rowId + ".Marker";
+			public static string MarkerBadgeFor(string rowId) => RowPrefix + rowId + ".MarkerBadge";
+		}
 	}
 
 	public static class ThirdParty

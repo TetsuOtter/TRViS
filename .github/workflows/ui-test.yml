@@ -637,36 +637,33 @@ jobs:
 
       - name: Run Windows UI Tests
         run: |
-          # Find the main app executable (not RestartAgent.exe)
-          $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "TRViS.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          # Find the main app executable (not RestartAgent.exe) anywhere under Debug
+          $exePath = Get-ChildItem -Path TRViS/bin/Debug -Filter "TRViS.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
           if (-not $exePath) {
-            Write-Host "[ERROR] TRViS.exe not found"
+            Write-Host "[ERROR] TRViS.exe not found under TRViS/bin/Debug"
+            Write-Host "Listing a few files under TRViS/bin/Debug for diagnosis:"
+            Get-ChildItem -Path TRViS/bin/Debug -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 20 | ForEach-Object { Write-Host $_.FullName }
             exit 1
           }
           Write-Host "EXE: $exePath"
 
-          # Find the Appium CLI entry point from the installed package's package.json.
-          # This is the only reliable way to get the correct JS file regardless of
-          # Appium version (2.x used build/lib/main.js, 3.x uses bin/appium.js).
-          # Running node.exe directly avoids the cmd.exe wrapper that breaks
-          # -RedirectStandardOutput when used with Start-Process.
-          $nodeExe = (Get-Command node).Source
-          $npmRoot = (npm root -g).Trim()
-          Write-Host "node: $nodeExe"
-          Write-Host "npm root: $npmRoot"
-
-          $appiumPkgJson = Join-Path $npmRoot "appium\package.json"
-          if (-not (Test-Path $appiumPkgJson)) {
-            Write-Host "[ERROR] appium package.json not found at $appiumPkgJson"
-            exit 1
+          # Start Appium using npx to avoid relying on npm global layout / package.json
+          # npx will run the globally-installed appium or fetch a compatible package if needed.
+          if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
+            Write-Host "npx not found; ensuring npm is available and installing npx tooling"
+            npm install -g npm || true
           }
-          $binField = (Get-Content $appiumPkgJson -Raw | ConvertFrom-Json).bin.appium
-          $binRelative = $binField -replace '^\./', ''
-          $appiumBinJs = Join-Path $npmRoot "appium\$binRelative"
-          Write-Host "appium script: $appiumBinJs"
-          if (-not (Test-Path $appiumBinJs)) {
-            Write-Host "[ERROR] appium script not found: $appiumBinJs"
-            Write-Host "package.json bin field: $binField"
+
+          Write-Host "Starting Appium server via npx..."
+          $appiumProcess = Start-Process -FilePath "npx" -ArgumentList "appium" -PassThru -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log"
+          Write-Host "Appium PID: $($appiumProcess.Id)"
+          Start-Sleep -Seconds 5
+          if ($appiumProcess.HasExited) {
+            Write-Host "[ERROR] Appium exited immediately (exit code $($appiumProcess.ExitCode))"
+            Write-Host "=== appium.log ==="
+            Get-Content appium.log -ErrorAction SilentlyContinue
+            Write-Host "=== appium-error.log ==="
+            Get-Content appium-error.log -ErrorAction SilentlyContinue
             exit 1
           }
 

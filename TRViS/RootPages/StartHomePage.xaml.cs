@@ -1,5 +1,6 @@
 using TRViS.IO;
 using TRViS.NetworkSyncService;
+using TRViS.OriginalTimetable;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -226,6 +227,12 @@ public partial class StartHomePage : ContentPage
 		AddTestSetLanguageEnglishSeam();
 		AddTestSetLanguageJapaneseSeam();
 		AddTestSimulateWebSocketConnectedSeam();
+		AddTestOpenOTSimplePageSeam();
+		AddTestOpenOTV1PageSeam();
+		AddTestOpenOTV2PageSeam();
+		AddTestOpenOTV4PageSeam();
+		AddTestOpenOTV6PageSeam();
+		AddTestCommitFirstWorkSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1751,6 +1758,233 @@ public partial class StartHomePage : ContentPage
 		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
 		// changes shape, this seam tracks it without per-test rewrites.
 		StartGrid.InvokeSelectFileForTest(sender!, e);
+	}
+
+	// Mirrors AutomationIds.StartHome.TestNavigateToOTSimpleButton.
+	// On Android, FlyoutItem is replaced with a MenuItem whose AutomationId does not
+	// map to resource-id; this seam lets tests bypass the broken flyout path.
+	private const string AutomationIdValueForTestNavigateToOTSimple = "StartHome.TestNavigateToOTSimpleButton";
+
+	// Same standalone code-behind pattern as AddTestSimulateWebSocketConnectedSeam.
+	// Placed at Margin=(60, 312) — column 2 (left=60), y=312 is proven visible on
+	// iPhone and directly beside TestSimulateWebSocketConnectedSeam at (30, 312).
+	private void AddTestOpenOTSimplePageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTSimple,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(60, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTSimpleButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTSimpleButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTSimpleButton clicked: navigating to OriginalTimetableSimplePage");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableSimplePage.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTSimpleButton failed");
+		}
+	}
+
+	private const string AutomationIdValueForTestNavigateToOTV1 = "StartHome.TestNavigateToOTV1Button";
+	private const string AutomationIdValueForTestNavigateToOTV2 = "StartHome.TestNavigateToOTV2Button";
+	private const string AutomationIdValueForTestNavigateToOTV4 = "StartHome.TestNavigateToOTV4Button";
+	private const string AutomationIdValueForTestNavigateToOTV6 = "StartHome.TestNavigateToOTV6Button";
+
+	private void AddTestOpenOTV1PageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTV1,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(84, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTV1Button_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTV1Button_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTV1Button clicked: navigating to OriginalTimetableV1Page");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableV1Page.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTV1Button failed");
+		}
+	}
+
+	private void AddTestOpenOTV2PageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTV2,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(132, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTV2Button_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTV2Button_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTV2Button clicked: navigating to OriginalTimetableV2Page");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableV2Page.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTV2Button failed");
+		}
+	}
+
+	private void AddTestOpenOTV4PageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTV4,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(156, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTV4Button_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTV4Button_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTV4Button clicked: navigating to OriginalTimetableV4Page");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableV4Page.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTV4Button failed");
+		}
+	}
+
+	private void AddTestOpenOTV6PageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestNavigateToOTV6,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(180, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestNavigateToOTV6Button_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestNavigateToOTV6Button_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestNavigateToOTV6Button clicked: navigating to OriginalTimetableV6Page");
+		try
+		{
+			await Shell.Current.GoToAsync(OriginalTimetableV6Page.NameOfThisClass);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestNavigateToOTV6Button failed");
+		}
+	}
+
+	private const string AutomationIdValueForTestCommitFirstWork = "StartHome.TestCommitFirstWorkButton";
+
+	// Commits the first available Work's selection (same as TestAutoOpenButton) but
+	// does NOT navigate to DTAC. Allows tests to set ActiveTrain and then navigate
+	// to V1 directly from StartHome, avoiding the DTAC→V1 push-route blank-page bug.
+	// Placed at Margin=(108, 312) — column 4 (left=108), beside OTV1 at (84, 312).
+	private void AddTestCommitFirstWorkSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestCommitFirstWork,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(108, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestCommitFirstWorkButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	void TestCommitFirstWorkButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestCommitFirstWorkButton clicked: committing first Work selection without DTAC navigation");
+		try
+		{
+			var groups = viewModel.WorkGroupList;
+			var firstGroup = groups?.FirstOrDefault();
+			if (firstGroup is null)
+			{
+				logger.Warn("TestCommitFirstWorkButton: no WorkGroup available — ignoring");
+				return;
+			}
+			var loader = viewModel.Loader;
+			if (loader is null)
+				return;
+			var firstWork = loader.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+			if (firstWork is null)
+			{
+				logger.Warn("TestCommitFirstWorkButton: first WorkGroup has no Work — aborting");
+				return;
+			}
+			HomeGrid.CommitPendingSelection(firstGroup, firstWork);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestCommitFirstWorkButton failed");
+		}
 	}
 #endif
 }
