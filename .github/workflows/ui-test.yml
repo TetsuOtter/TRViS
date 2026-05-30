@@ -817,6 +817,12 @@ jobs:
         working-directory: TRViS.UITests.Apple/ios
         run: xcodegen generate --quiet
 
+      - name: Inject low-performance flag into simulator (for CI)
+        run: |
+          # Conservative performance mode avoids main-thread watchdog timeouts
+          # by inserting rendering delays in the app's UI population code.
+          xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_PERFORMANCE_LEVEL low
+
       - name: Run XCUITest (iOS Simulator)
         run: |
           xcodebuild test \
@@ -1121,6 +1127,7 @@ jobs:
           xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_UPDATE       "$SCREENSHOT_UPDATE"
           xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_DEVICE_CLASS "${{ matrix.device-class }}"
           xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_BASELINE_DIR "$BASELINE_DIR"
+          xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_PERFORMANCE_LEVEL low
 
           xcodebuild test \
             -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
