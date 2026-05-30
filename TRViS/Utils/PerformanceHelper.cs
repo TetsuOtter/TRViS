@@ -69,7 +69,7 @@ public static class PerformanceHelper
 	private static PerformanceLevel GetPerformanceLevelFromDeviceModel()
 	{
 		// Honor explicit override from environment (set in CI or by tests).
-		string envPerf = System.Environment.GetEnvironmentVariable("TRVIS_PERFORMANCE_LEVEL")
+		string? envPerf = System.Environment.GetEnvironmentVariable("TRVIS_PERFORMANCE_LEVEL")
 			?? System.Environment.GetEnvironmentVariable("TRVIS_TEST_PERFORMANCE_LEVEL");
 		if (!string.IsNullOrEmpty(envPerf))
 		{
@@ -83,11 +83,6 @@ public static class PerformanceHelper
 					return PerformanceLevel.High;
 			}
 		}
-
-		// If running under the screenshot matrix, be conservative and choose Low
-		// so the UI population yields to the main loop and avoids watchdog timeouts.
-		if (!string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("TRVIS_SCREENSHOT_DEVICE_CLASS")))
-			return PerformanceLevel.Low;
 
 #if IOS
 		string deviceModel = DeviceInfo.Current.Model ?? "";

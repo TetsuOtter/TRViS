@@ -67,12 +67,15 @@ class DTACViewHostPageObject {
             return self
         }
         tab.tap()
-        Thread.sleep(forTimeInterval: 0.3)
+        // iOS can rotate to landscape when entering timetable; wait a beat for
+        // geometry + accessibility tree to settle before probing the scroll view.
+        Thread.sleep(forTimeInterval: 0.8)
         // Wait for the surrounding ScrollView — VerticalTimetableView may not
         // surface reliably as an accessibility element on iOS.
-        guard let _ = base.waitForElement(
-            id: AutomationIds.DTAC.timetableScrollView, timeout: 60
-        ) else {
+        if firstDescendant(id: AutomationIds.DTAC.timetableScrollView, timeout: 20) != nil {
+            return self
+        }
+        guard let _ = base.waitForElement(id: AutomationIds.DTAC.timetableScrollView, timeout: 60) else {
             XCTFail("TimetableScrollView not found within 60 s after tab tap")
             return self
         }

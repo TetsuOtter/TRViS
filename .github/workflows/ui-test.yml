@@ -1127,7 +1127,6 @@ jobs:
           xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_UPDATE       "$SCREENSHOT_UPDATE"
           xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_DEVICE_CLASS "${{ matrix.device-class }}"
           xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_SCREENSHOT_BASELINE_DIR "$BASELINE_DIR"
-          xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_PERFORMANCE_LEVEL low
 
           xcodebuild test \
             -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
