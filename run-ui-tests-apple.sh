@@ -338,7 +338,11 @@ run_ios_for_device_class() {
   # ScreenshotRegressionTests class so the full functional suite is not
   # re-run for every device class.
   local ONLY_TESTING_ARGS=()
-  if [[ "$UPDATE_SCREENSHOTS" == true || "$SCREENSHOT_MATRIX" == true ]]; then
+  if [[ -n "${XCUITEST_ONLY:-}" ]]; then
+    # Optional override: scope to a specific class or class/method, e.g.
+    #   XCUITEST_ONLY=TRViSUITests_iOS/ScreenshotRegressionTests/testCaptureOriginalTimetablePages
+    ONLY_TESTING_ARGS=(-only-testing:"$XCUITEST_ONLY")
+  elif [[ "$UPDATE_SCREENSHOTS" == true || "$SCREENSHOT_MATRIX" == true ]]; then
     ONLY_TESTING_ARGS=(-only-testing:TRViSUITests_iOS/ScreenshotRegressionTests)
   fi
   log "Running XCUITest on simulator $SIM_UDID (device-class=$dc) …"

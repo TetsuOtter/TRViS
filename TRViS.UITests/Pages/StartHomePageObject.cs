@@ -245,7 +245,24 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void LoadSample()
 	{
-		LoadDemoButton.Click();
+		AppiumElement loadBtn;
+		try
+		{
+			loadBtn = LoadDemoButton;
+		}
+		catch (OpenQA.Selenium.NoSuchElementException)
+		{
+			// Dump the accessibility tree so we can see exactly what's visible.
+			try
+			{
+				NUnit.Framework.TestContext.Out.WriteLine(
+					"[LoadSample] LoadDemoButton not found — page source:");
+				NUnit.Framework.TestContext.Out.WriteLine(Driver.PageSource);
+			}
+			catch { }
+			throw;
+		}
+		loadBtn.Click();
 
 		if (IsWorkGroupListVisible(timeoutSeconds: 12))
 			return;
@@ -438,6 +455,19 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
 
+	public AppiumElement TestNavigateToOTSimpleButton => FindByAutomationId(AutomationIds.StartHome.TestNavigateToOTSimpleButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that calls GoToAsync(OriginalTimetableSimplePage)
+	/// directly from StartHome. Used on Android where the flyout MenuItem's AutomationId
+	/// does not map to resource-id, making WaitForFlyoutItem unreliable.
+	/// </summary>
+	public OriginalTimetableSimplePageObject NavigateToOriginalTimetableSimple()
+	{
+		TestNavigateToOTSimpleButton.Click();
+		return new OriginalTimetableSimplePageObject(Driver);
+	}
+
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
 	/// constant in StartHomePage.xaml.cs so tests can look up the rendered
@@ -461,6 +491,15 @@ public class StartHomePageObject : PageObject
 		TestAutoOpenButton.Click();
 		return new DTACViewHostPageObject(Driver);
 	}
+
+	/// <summary>
+	/// Commits the first available WorkGroup/Work selection without navigating to
+	/// DTAC. Use this before NavigateToOriginalTimetableV1() to set ActiveTrain
+	/// while staying on StartHome, avoiding the Android push-route blank-page bug
+	/// that occurs when navigating from DTAC (push route) to V1 (push route).
+	/// </summary>
+	public void CommitFirstWork()
+		=> FindByAutomationId(AutomationIds.StartHome.TestCommitFirstWorkButton).Click();
 
 	/// <summary>
 	/// UI_TEST-only seam that picks first WorkGroup/Work, swaps the Work record
