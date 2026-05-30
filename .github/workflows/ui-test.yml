@@ -264,11 +264,12 @@ jobs:
         # Pipefail is still desirable, so set it explicitly.
         shell: bash --noprofile --norc -o pipefail {0}
         run: |
-          APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
+          APK_PATH=$(find TRViS/bin/Debug -name "*.apk" | head -1)
           if [ -z "$APK_PATH" ]; then
-            echo "ERROR: No APK found in TRViS/bin/Debug/net10.0-android"
-            find TRViS/bin/Debug/ -type f -name "*.apk" 2>/dev/null \
-              || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+            echo "ERROR: No APK found under TRViS/bin/Debug"
+            find TRViS/bin/Debug -type f -name "*.apk" 2>/dev/null || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+            echo "Listing a few TRViS/bin/Debug files for diagnosis:"
+            find TRViS/bin/Debug -maxdepth 3 -type f | head -n 50 || true
             exit 1
           fi
           echo "APK: $APK_PATH"
