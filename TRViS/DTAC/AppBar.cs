@@ -388,8 +388,16 @@ public class AppBar : Grid
 		_eevm.PropertyChanged += Eevm_PropertyChanged;
 		_appViewModel.PropertyChanged += AppViewModel_PropertyChanged;
 		UpdateConnectionStatus();
+		Loaded += OnLoaded;
 
 		logger.Trace("Created");
+	}
+
+	void OnLoaded(object? sender, EventArgs e)
+	{
+		if (Width > 0)
+			_lastWidth = Width;
+		UpdateTimeLabelVisibility();
 	}
 
 	void SetTitleBGGradientColor(AppTheme v)
@@ -618,14 +626,19 @@ public class AppBar : Grid
 			return;
 		}
 
-		// iPad/macOS/Windows should always show the DTAC clock when enabled.
-		// Width-based hiding is only for narrow phone layouts.
-		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
+		// XAML sets IsTimeLabelEnabled before first layout on some platforms
+		// (especially cached ShellContent). In that window _lastWidth can still
+		// be 0, so re-evaluate with current Width/Parent.Width when available.
+		double width = _lastWidth > 0 ? _lastWidth : Width;
+		if (width <= 0 && Parent is VisualElement parent && parent.Width > 0)
+			width = parent.Width;
+
+		if (width <= 0)
 		{
-			TimeLabel.IsVisible = true;
+			TimeLabel.IsVisible = false;
 			return;
 		}
 
-		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < _lastWidth;
+		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < width;
 	}
 }
