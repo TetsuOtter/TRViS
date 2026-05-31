@@ -398,6 +398,7 @@ public class AppBar : Grid
 		if (Width > 0)
 			_lastWidth = Width;
 		UpdateTimeLabelVisibility();
+		Dispatcher.Dispatch(UpdateTimeLabelVisibility);
 	}
 
 	void SetTitleBGGradientColor(AppTheme v)
@@ -450,6 +451,8 @@ public class AppBar : Grid
 	{
 		if (e.PropertyName == nameof(AppViewModel.ServerConnectionStatus))
 			UpdateConnectionStatus();
+		else if (e.PropertyName == nameof(AppViewModel.WindowWidth))
+			UpdateTimeLabelVisibility();
 	}
 
 	void UpdateConnectionStatus()
@@ -626,13 +629,13 @@ public class AppBar : Grid
 			return;
 		}
 
-		// XAML sets IsTimeLabelEnabled before first layout on some platforms
-		// (especially cached ShellContent). In that window _lastWidth can still
-		// be 0, so re-evaluate with current Width/Parent.Width when available.
-		double width = _lastWidth > 0 ? _lastWidth : Width;
-		if (width <= 0 && Parent is VisualElement parent && parent.Width > 0)
-			width = parent.Width;
-
+		double width = _appViewModel.WindowWidth;
+		if (width <= 0)
+		{
+			double parentWidth = Parent is VisualElement parent ? parent.Width : 0;
+			double shellWidth = Shell.Current is VisualElement shell ? shell.Width : 0;
+			width = Math.Max(Math.Max(parentWidth, shellWidth), Math.Max(_lastWidth, Width));
+		}
 		if (width <= 0)
 		{
 			TimeLabel.IsVisible = false;
