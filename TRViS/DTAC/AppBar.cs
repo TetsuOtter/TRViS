@@ -612,23 +612,20 @@ public class AppBar : Grid
 
 	void UpdateTimeLabelVisibility()
 	{
-		try
+		if (!_isTimeLabelEnabled)
 		{
-			if (!_isTimeLabelEnabled)
-			{
-				TimeLabel.IsVisible = false;
-				logger.Debug("UpdateTimeLabelVisibility: disabled -> TimeLabel.IsVisible=false");
-				return;
-			}
+			TimeLabel.IsVisible = false;
+			return;
+		}
 
-			bool visible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < _lastWidth;
-			logger.Debug("UpdateTimeLabelVisibility: lastWidth={0}, safeAreaRight={1}, threshold={2}, isEnabled={3} -> visible={4}",
-				_lastWidth, _lastSafeAreaMargin.Right, TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH, _isTimeLabelEnabled, visible);
-			TimeLabel.IsVisible = visible;
-		}
-		catch (Exception ex)
+		// iPad/macOS/Windows should always show the DTAC clock when enabled.
+		// Width-based hiding is only for narrow phone layouts.
+		if (DeviceInfo.Current.Idiom != DeviceIdiom.Phone)
 		{
-			logger.Error(ex, "UpdateTimeLabelVisibility failed");
+			TimeLabel.IsVisible = true;
+			return;
 		}
+
+		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < _lastWidth;
 	}
 }
