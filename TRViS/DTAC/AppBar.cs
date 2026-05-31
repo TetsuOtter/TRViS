@@ -612,11 +612,23 @@ public class AppBar : Grid
 
 	void UpdateTimeLabelVisibility()
 	{
-		if (!_isTimeLabelEnabled)
+		try
 		{
-			TimeLabel.IsVisible = false;
-			return;
+			if (!_isTimeLabelEnabled)
+			{
+				TimeLabel.IsVisible = false;
+				logger.Debug("UpdateTimeLabelVisibility: disabled -> TimeLabel.IsVisible=false");
+				return;
+			}
+
+			bool visible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < _lastWidth;
+			logger.Debug("UpdateTimeLabelVisibility: lastWidth={0}, safeAreaRight={1}, threshold={2}, isEnabled={3} -> visible={4}",
+				_lastWidth, _lastSafeAreaMargin.Right, TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH, _isTimeLabelEnabled, visible);
+			TimeLabel.IsVisible = visible;
 		}
-		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < _lastWidth;
+		catch (Exception ex)
+		{
+			logger.Error(ex, "UpdateTimeLabelVisibility failed");
+		}
 	}
 }
