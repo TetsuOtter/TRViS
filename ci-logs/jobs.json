@@ -1,0 +1,7 @@
+{"conclusion":"success","id":78625007808,"name":"ui-test-android","status":"completed"}
+{"conclusion":"success","id":78625007813,"name":"ui-test-apple-xcuitest-catalyst","status":"completed"}
+{"conclusion":"failure","id":78625007819,"name":"ui-test-windows","status":"completed"}
+{"conclusion":"success","id":78625007822,"name":"build-ios","status":"completed"}
+{"conclusion":"cancelled","id":78625117538,"name":"ui-test-apple-xcuitest-ios","status":"completed"}
+{"conclusion":"failure","id":78625117541,"name":"ui-test-apple-screenshot (ipad-mini-a17)","status":"completed"}
+{"conclusion":"failure","id":78625117542,"name":"ui-test-apple-screenshot (iphone)","status":"completed"}

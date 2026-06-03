@@ -63,6 +63,7 @@ public partial class App : Application
 	}
 
 	static string? AppLinkUri { get; set; }
+	internal static bool HasPendingAppLink => AppLinkUri is not null;
 
 	public static void SetAppLinkUri(string uri)
 	{

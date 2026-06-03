@@ -19,6 +19,9 @@ internal static class InstanceManager
 	private static DTACViewHostViewModel? _DTACViewHostViewModel = null;
 	public static DTACViewHostViewModel DTACViewHostViewModel { get => _DTACViewHostViewModel ??= new(); }
 
+	private static OriginalTimetableViewModel? _OriginalTimetableViewModel = null;
+	public static OriginalTimetableViewModel OriginalTimetableViewModel { get => _OriginalTimetableViewModel ??= new(); }
+
 	private static EasterEggPageViewModel? _EasterEggPageViewModel = null;
 	public static EasterEggPageViewModel EasterEggPageViewModel { get => _EasterEggPageViewModel ??= new(); }
 

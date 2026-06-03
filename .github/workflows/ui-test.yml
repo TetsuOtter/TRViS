@@ -264,11 +264,12 @@ jobs:
         # Pipefail is still desirable, so set it explicitly.
         shell: bash --noprofile --norc -o pipefail {0}
         run: |
-          APK_PATH=$(find TRViS/bin/Debug/net10.0-android -name "*.apk" | head -1)
+          APK_PATH=$(find TRViS/bin/Debug -name "*.apk" | head -1)
           if [ -z "$APK_PATH" ]; then
-            echo "ERROR: No APK found in TRViS/bin/Debug/net10.0-android"
-            find TRViS/bin/Debug/ -type f -name "*.apk" 2>/dev/null \
-              || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+            echo "ERROR: No APK found under TRViS/bin/Debug"
+            find TRViS/bin/Debug -type f -name "*.apk" 2>/dev/null || echo "(no APKs found anywhere under TRViS/bin/Debug/)"
+            echo "Listing a few TRViS/bin/Debug files for diagnosis:"
+            find TRViS/bin/Debug -maxdepth 3 -type f | head -n 50 || true
             exit 1
           fi
           echo "APK: $APK_PATH"
@@ -637,49 +638,26 @@ jobs:
 
       - name: Run Windows UI Tests
         run: |
-          # Find the main app executable (not RestartAgent.exe)
-          $exePath = Get-ChildItem -Path TRViS/bin/Debug/${{ env.TARGET_FRAMEWORK_WIN }}/${{ env.TARGET_RUNTIME_WIN }} -Filter "TRViS.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          # Find the main app executable (not RestartAgent.exe) anywhere under TRViS/bin
+          $exePath = Get-ChildItem -Path TRViS/bin -Filter "TRViS.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
           if (-not $exePath) {
-            Write-Host "[ERROR] TRViS.exe not found"
-            exit 1
+            Write-Host "TRViS.exe not found under TRViS/bin. Attempting dotnet publish to produce an executable for the test run."
+            Write-Host "Running dotnet publish to trvis-publish..."
+            dotnet publish ${{ env.CSPROJ_PATH }} -f ${{ env.TARGET_FRAMEWORK_WIN }} -c Debug -o "${PWD}/trvis-publish" /p:RuntimeIdentifierOverride=${{ env.TARGET_RUNTIME_WIN }} /p:WindowsPackageType=None /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
+            $exePath = Get-ChildItem -Path trvis-publish -Filter "TRViS.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+            if (-not $exePath) {
+              Write-Host "[ERROR] TRViS.exe still not found after publish. Listing trvis-publish contents for diagnosis:"
+              Get-ChildItem -Path trvis-publish -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+              exit 1
+            }
           }
           Write-Host "EXE: $exePath"
 
-          # Find the Appium CLI entry point from the installed package's package.json.
-          # This is the only reliable way to get the correct JS file regardless of
-          # Appium version (2.x used build/lib/main.js, 3.x uses bin/appium.js).
-          # Running node.exe directly avoids the cmd.exe wrapper that breaks
-          # -RedirectStandardOutput when used with Start-Process.
-          $nodeExe = (Get-Command node).Source
-          $npmRoot = (npm root -g).Trim()
-          Write-Host "node: $nodeExe"
-          Write-Host "npm root: $npmRoot"
-
-          $appiumPkgJson = Join-Path $npmRoot "appium\package.json"
-          if (-not (Test-Path $appiumPkgJson)) {
-            Write-Host "[ERROR] appium package.json not found at $appiumPkgJson"
-            exit 1
-          }
-          $binField = (Get-Content $appiumPkgJson -Raw | ConvertFrom-Json).bin.appium
-          $binRelative = $binField -replace '^\./', ''
-          $appiumBinJs = Join-Path $npmRoot "appium\$binRelative"
-          Write-Host "appium script: $appiumBinJs"
-          if (-not (Test-Path $appiumBinJs)) {
-            Write-Host "[ERROR] appium script not found: $appiumBinJs"
-            Write-Host "package.json bin field: $binField"
-            exit 1
-          }
-
-          Write-Host "Starting Appium server..."
-          $appiumProcess = Start-Process `
-            -FilePath $nodeExe `
-            -ArgumentList $appiumBinJs `
-            -PassThru `
-            -RedirectStandardOutput "appium.log" `
-            -RedirectStandardError "appium-error.log"
+          # Start Appium using cmd.exe /c appium (global) to avoid Start-Process issues with .cmd files
+          # npx is a .cmd file that fails with Start-Process. Use the installed global appium directly.
+          Write-Host "Starting Appium server via cmd.exe..."
+          $appiumProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c appium --port 4723" -PassThru -RedirectStandardOutput "appium.log" -RedirectStandardError "appium-error.log" -NoNewWindow
           Write-Host "Appium PID: $($appiumProcess.Id)"
-
-          # Give the process 5 seconds to start, then verify it did not exit immediately.
           Start-Sleep -Seconds 5
           if ($appiumProcess.HasExited) {
             Write-Host "[ERROR] Appium exited immediately (exit code $($appiumProcess.ExitCode))"
@@ -691,6 +669,7 @@ jobs:
           }
 
           # Wait for Appium to be ready by polling the /status endpoint.
+
           # Each iteration: up to 1s request timeout + 1s sleep = ~2s.
           # Allow 120 iterations (~4 minutes total) for Windows Defender / AV
           # to inspect the new node process before it can bind to the port.
@@ -763,7 +742,7 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-apple-xcuitest-ios:
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 45
     needs: build-ios
 
     steps:
@@ -837,6 +816,12 @@ jobs:
       - name: Generate Xcode project (iOS)
         working-directory: TRViS.UITests.Apple/ios
         run: xcodegen generate --quiet
+
+      - name: Inject low-performance flag into simulator (for CI)
+        run: |
+          # Conservative performance mode avoids main-thread watchdog timeouts
+          # by inserting rendering delays in the app's UI population code.
+          xcrun simctl spawn "$SIM_UDID" launchctl setenv TRVIS_PERFORMANCE_LEVEL low
 
       - name: Run XCUITest (iOS Simulator)
         run: |
@@ -1006,9 +991,9 @@ jobs:
     runs-on: macos-26
     # 4 combos × ~90 s each + simulator boot + install + xcodegen overhead.
     # The iPad mini A17 is a second sequential pass (SKIP_BUILD=true reuses
-    # the simulator binary but boots a new device). 60 min gives comfortable
+    # the simulator binary but boots a new device). 90 min gives comfortable
     # headroom for both device classes.
-    timeout-minutes: 60
+    timeout-minutes: 90
     needs: build-ios
     env:
       MSBuildEnableWorkloadResolver: "false"

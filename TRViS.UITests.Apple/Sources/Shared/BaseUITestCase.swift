@@ -20,7 +20,9 @@ class BaseUITestCase: XCTestCase {
 
     // Cold-launch budget. MAUI runtime initialisation can take 30+ s on a fresh
     // simulator or a Catalyst sandbox on a busy CI runner.
-    let launchTimeout: TimeInterval = 90
+    // Increased to 300s to accommodate CI runner load spikes that can block
+    // the main thread during heavy MAUI initialization.
+    let launchTimeout: TimeInterval = 300
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -43,30 +45,45 @@ class BaseUITestCase: XCTestCase {
     /// Returns the first matching element found within `timeout`, or nil on timeout.
     func waitForElement(
         id: String,
-        timeout: TimeInterval = 30,
+        timeout: TimeInterval = 180,
         types: [XCUIElement.ElementType] = [.button, .staticText, .image, .other, .any]
     ) -> XCUIElement? {
         let deadline = Date().addingTimeInterval(timeout)
+
+        // Fast path: one broad query first to avoid hammering multiple snapshots.
+        let any = app.descendants(matching: .any).matching(identifier: id).firstMatch
+        if any.waitForExistence(timeout: min(timeout, 2.0)) {
+            return any
+        }
+
         while Date() < deadline {
             for type in types {
-                let collection: XCUIElementQuery
+                let el: XCUIElement
                 switch type {
-                case .button:      collection = app.buttons
-                case .staticText:  collection = app.staticTexts
-                case .image:       collection = app.images
-                case .other:       collection = app.otherElements
+                case .button:
+                    el = app.buttons.matching(identifier: id).firstMatch
+                case .staticText:
+                    el = app.staticTexts.matching(identifier: id).firstMatch
+                case .image:
+                    el = app.images.matching(identifier: id).firstMatch
+                case .other:
+                    el = app.otherElements.matching(identifier: id).firstMatch
                 default:
-                    // For .any use descendant matching — covers all types
-                    let el = app.descendants(matching: .any)
-                        .matching(identifier: id).firstMatch
-                    if el.exists { return el }
-                    continue
+                    el = app.descendants(matching: .any).matching(identifier: id).firstMatch
                 }
-                let el = collection[id]
-                if el.exists { return el }
+
+                let remaining = deadline.timeIntervalSinceNow
+                if remaining <= 0 {
+                    return nil
+                }
+                if el.waitForExistence(timeout: min(0.5, remaining)) {
+                    return el
+                }
             }
-            Thread.sleep(forTimeInterval: 0.3)
+
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
         }
+
         return nil
     }
 

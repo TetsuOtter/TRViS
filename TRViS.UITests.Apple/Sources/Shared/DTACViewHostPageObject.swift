@@ -67,12 +67,12 @@ class DTACViewHostPageObject {
             return self
         }
         tab.tap()
-        Thread.sleep(forTimeInterval: 0.3)
+        // iOS can rotate to landscape when entering timetable; wait a beat for
+        // geometry + accessibility tree to settle before probing the scroll view.
+        Thread.sleep(forTimeInterval: 0.8)
         // Wait for the surrounding ScrollView — VerticalTimetableView may not
         // surface reliably as an accessibility element on iOS.
-        guard let _ = base.waitForElement(
-            id: AutomationIds.DTAC.timetableScrollView, timeout: 60
-        ) else {
+        guard let _ = firstDescendant(id: AutomationIds.DTAC.timetableScrollView, timeout: 60) else {
             XCTFail("TimetableScrollView not found within 60 s after tab tap")
             return self
         }
@@ -89,19 +89,32 @@ class DTACViewHostPageObject {
 
     // MARK: — StartEndRunButton / OpenCloseButton / LocationServiceButton
 
-    /// Returns the first element matching `automationId` using a descendant
-    /// query with `firstMatch`. This avoids "Multiple matching elements found"
-    /// errors that occur when the accessibility tree exposes the same id through
-    /// multiple XCUIElementType hierarchies simultaneously (observed on iOS 26
-    /// for custom ContentView subclasses like OpenCloseButton).
+    /// Returns the first element matching `automationId` by probing a small
+    /// set of likely XCUIElementQuery collections.
+    ///
+    /// We intentionally avoid `app.descendants(matching: .any)` here because
+    /// broad snapshots can stall under iOS 26 CI load (main-thread busy),
+    /// especially right after DTAC orientation transitions.
     private func firstDescendant(id: String, timeout: TimeInterval = 10) -> XCUIElement? {
         let deadline = Date().addingTimeInterval(timeout)
+        let queryBuilders: [() -> XCUIElement] = [
+            { self.app.buttons.matching(identifier: id).firstMatch },
+            { self.app.otherElements.matching(identifier: id).firstMatch },
+            { self.app.scrollViews.matching(identifier: id).firstMatch },
+            { self.app.staticTexts.matching(identifier: id).firstMatch },
+            { self.app.images.matching(identifier: id).firstMatch },
+        ]
+
         while Date() < deadline {
-            let el = app.descendants(matching: .any)
-                .matching(identifier: id)
-                .firstMatch
-            if el.exists { return el }
-            Thread.sleep(forTimeInterval: 0.3)
+            for build in queryBuilders {
+                let remaining = deadline.timeIntervalSinceNow
+                if remaining <= 0 { return nil }
+                let el = build()
+                if el.waitForExistence(timeout: min(0.4, remaining)) {
+                    return el
+                }
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
         }
         return nil
     }

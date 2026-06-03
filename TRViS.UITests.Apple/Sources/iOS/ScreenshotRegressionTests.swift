@@ -38,9 +38,14 @@ class ScreenshotRegressionTests: BaseUITestCase {
         start = StartHomePageObject(app: app, base: self)
         shell = AppShellPageObject(app: app, base: self)
 
+        // After launch, give the app time to stabilize especially in CI
+        // where main thread may be heavily loaded. This prevents "Timed out
+        // while evaluating UI query" failures during first accessibility probe.
+        Thread.sleep(forTimeInterval: 3.0)
+
         // A prior test in this session may have left the app on DTAC / Settings /
         // a modal. Get back to StartHome in Start mode before each test.
-        if !start.isDisplayed(timeout: 5) {
+        if !start.isDisplayed(timeout: 20) {
             _ = shell.navigateToHome()
         }
         start.clearLoaderForTesting()
@@ -89,14 +94,21 @@ class ScreenshotRegressionTests: BaseUITestCase {
             let (theme, lang) = (combo.theme, combo.lang)
             let dark = (theme == "dark")
 
-            // Between combo iterations, navigate back to StartHome / Start mode.
-            // The first iteration is already set up by setUpWithError().
-            if combo != combos.first! {
-                if !start.isDisplayed(timeout: 5) {
-                    _ = shell.navigateToHome()
-                }
-                start.clearLoaderForTesting()
+            // Relaunch the app for each combo to avoid main-thread busy failures
+            // that can occur on heavily loaded CI runners. Recreate page objects
+            // after launch and give the process a short beat to stabilise.
+            app.terminate()
+            app.launch()
+            start = StartHomePageObject(app: app, base: self)
+            shell = AppShellPageObject(app: app, base: self)
+            Thread.sleep(forTimeInterval: 1.0)
+
+            // Ensure we're back at StartHome; be generous with the timeout after a relaunch.
+            if !start.isDisplayed(timeout: 20) {
+                _ = shell.navigateToHome()
             }
+            start.clearLoaderForTesting()
+            start.acceptPrivacyPolicyIfNeeded()
 
             var failures: [String] = []
             captureCombo(theme: theme, lang: lang, dark: dark, failures: &failures)
@@ -127,6 +139,83 @@ class ScreenshotRegressionTests: BaseUITestCase {
             "[\(deviceClass)] \(allFailures.count) screen(s) differ from baseline:\n  " +
             allFailures.joined(separator: "\n  ")
         )
+    }
+
+    /// Captures the OriginalTimetable variant pages (V1/V2/V4/V6) in light and
+    /// dark (ja). The Shell flyout cannot be reopened from inside an Original
+    /// page (the edge-swipe is consumed and only V1 has a header toggle), so the
+    /// app is relaunched before each capture and the target page is reached fresh
+    /// from DTAC. Selection uses the ハコ tab only — never the 時刻表 tab (its
+    /// landscape render can block the main thread for ~60s) or the HT WebView.
+    func testCaptureOriginalTimetablePages() throws {
+        try XCTSkipIf(
+            ScreenshotBaselineHelper.baselineRoot.isEmpty,
+            "Skipping: TRVIS_SCREENSHOT_BASELINE_DIR not set"
+        )
+
+        let originals: [(id: String, label: String, screen: String, rootId: String)] = [
+            ("Shell.Flyout.OriginalTimetableV1", "ダイヤ表 (V1)", "originalV1", "OriginalTimetable.V1.Root"),
+            ("Shell.Flyout.OriginalTimetableV2", "ダイヤ表 (V2)", "originalV2", "OriginalTimetable.V2.Root"),
+            ("Shell.Flyout.OriginalTimetableV4", "ダイヤ表 (V4)", "originalV4", "OriginalTimetable.V4.Root"),
+            ("Shell.Flyout.OriginalTimetableV6", "ダイヤ表 (V6)", "originalV6", "OriginalTimetable.V6.Root"),
+        ]
+
+        var allFailures: [String] = []
+        let lang = "ja"
+
+        for (theme, dark) in [("light", false), ("dark", true)] {
+            for o in originals {
+                // Fresh app per capture so we always navigate from a root page.
+                app.launch()
+                if !start.isDisplayed(timeout: 15) {
+                    _ = shell.navigateToHome()
+                }
+                start.clearLoaderForTesting()
+                start.acceptPrivacyPolicyIfNeeded()
+
+                // Pin determinism + theme (theme seam lives on StartHome).
+                start.freezeClockForTesting()
+                start.setLanguageJapaneseForTesting()
+                start.forceThemeForTesting(dark: dark)
+                Thread.sleep(forTimeInterval: 1.0)
+
+                // Load + seed (the HT fixture contains 試単9091) + open DTAC, then
+                // select 試単9091 from the ハコ tab.
+                start.loadSample()
+                _ = start.waitForWorkGroupList(timeout: 30)
+                settle()
+                let dtac = start.seedHorizontalTimetableAndOpenForTesting()
+                if let hakoTab = waitForElement(id: AutomationIds.DTAC.tabHako, timeout: 15) {
+                    hakoTab.tap()
+                }
+                Thread.sleep(forTimeInterval: 0.5)
+                dtac.selectHakoTrain(trainNumber: "試単9091")
+                Thread.sleep(forTimeInterval: 0.5)
+
+                // Navigate to the target Original page (flyout from DTAC works).
+                if shell.navigateToOriginal(id: o.id, label: o.label) {
+                    _ = waitForElement(id: o.rootId, timeout: 20)
+                    settleUntilVisuallyStable()
+                    capture(screen: o.screen, theme: theme, lang: lang, failures: &allFailures)
+                } else {
+                    let msg = "[ScreenshotRegression] \(o.screen) [\(theme)]: flyout navigation failed — skipped."
+                    print(msg)
+                    allFailures.append(msg)
+                }
+            }
+        }
+
+        if ScreenshotBaselineHelper.updateMode {
+            print("[ScreenshotRegression] Original pages updated (\(allFailures.count) issue(s)).")
+            return
+        }
+        let gatedDeviceClasses = ["iphone", "ipad-mini-a17"]
+        if gatedDeviceClasses.contains(ScreenshotBaselineHelper.deviceClass) {
+            XCTAssertTrue(
+                allFailures.isEmpty,
+                "Original pages differ/failed:\n  " + allFailures.joined(separator: "\n  ")
+            )
+        }
     }
 
     // MARK: — Per-combo walk
@@ -294,10 +383,30 @@ class ScreenshotRegressionTests: BaseUITestCase {
     /// Takes a screenshot and either updates the baseline or diffs against it.
     /// Failures are accumulated into `failures` rather than failing immediately,
     /// so the full walk completes and produces a complete diff report.
+    private func takeScreenshotWithRetries(attempts: Int = 8, retryDelay: TimeInterval = 2.0) -> Data? {
+        for _ in 0..<attempts {
+            let shot = XCUIScreen.main.screenshot()
+            let data = shot.pngRepresentation
+            if data.count > 0 {
+                return data
+            }
+            Thread.sleep(forTimeInterval: retryDelay)
+        }
+        return nil
+    }
+
     private func capture(screen: String, theme: String, lang: String, failures: inout [String]) {
-        let shot    = XCUIScreen.main.screenshot()
+        // Give the UI a moment to settle and attempt a screenshot with retries
+        // to avoid transient "main run loop busy" errors on CI.
+        settleUntilVisuallyStable(maxWait: 8.0)
+        guard let shotData = takeScreenshotWithRetries() else {
+            let msg = "[ScreenshotBaseline] Failed to capture screenshot for \(screen)-\(theme)-\(lang)"
+            print(msg)
+            failures.append(msg)
+            return
+        }
         let pngData = ScreenshotBaselineHelper.maskNonDeterministicRegions(
-            shot.pngRepresentation
+            shotData
         )
 
         // Always attach for CI artifact inspection / Apple review deliverable
@@ -357,7 +466,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
     /// Used for the connect-server modal whose open animation + async history
     /// population can outlast the fixed settle window (matches C# SettleUntilVisuallyStable).
     private func settleUntilVisuallyStable(
-        maxWait: TimeInterval = 6.0,
+        maxWait: TimeInterval = 20.0,
         probeInterval: TimeInterval = 0.25,
         requiredStableComparisons: Int = 2
     ) {

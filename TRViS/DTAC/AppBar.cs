@@ -388,8 +388,17 @@ public class AppBar : Grid
 		_eevm.PropertyChanged += Eevm_PropertyChanged;
 		_appViewModel.PropertyChanged += AppViewModel_PropertyChanged;
 		UpdateConnectionStatus();
+		Loaded += OnLoaded;
 
 		logger.Trace("Created");
+	}
+
+	void OnLoaded(object? sender, EventArgs e)
+	{
+		if (Width > 0)
+			_lastWidth = Width;
+		UpdateTimeLabelVisibility();
+		Dispatcher.Dispatch(UpdateTimeLabelVisibility);
 	}
 
 	void SetTitleBGGradientColor(AppTheme v)
@@ -442,6 +451,8 @@ public class AppBar : Grid
 	{
 		if (e.PropertyName == nameof(AppViewModel.ServerConnectionStatus))
 			UpdateConnectionStatus();
+		else if (e.PropertyName == nameof(AppViewModel.WindowWidth))
+			UpdateTimeLabelVisibility();
 	}
 
 	void UpdateConnectionStatus()
@@ -617,6 +628,20 @@ public class AppBar : Grid
 			TimeLabel.IsVisible = false;
 			return;
 		}
-		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < _lastWidth;
+
+		double width = _appViewModel.WindowWidth;
+		if (width <= 0)
+		{
+			double parentWidth = Parent is VisualElement parent ? parent.Width : 0;
+			double shellWidth = Shell.Current is VisualElement shell ? shell.Width : 0;
+			width = Math.Max(Math.Max(parentWidth, shellWidth), Math.Max(_lastWidth, Width));
+		}
+		if (width <= 0)
+		{
+			TimeLabel.IsVisible = false;
+			return;
+		}
+
+		TimeLabel.IsVisible = (TIME_LABEL_VISIBLE_MIN_PARENT_WIDTH + _lastSafeAreaMargin.Right) < width;
 	}
 }

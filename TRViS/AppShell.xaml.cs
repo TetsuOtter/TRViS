@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 using TRViS.DTAC;
 using TRViS.FirebaseWrapper;
+using TRViS.OriginalTimetable;
 using TRViS.Localization;
 using TRViS.RootPages;
 using TRViS.Services;
@@ -17,6 +18,7 @@ namespace TRViS;
 public partial class AppShell : Shell
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+	bool _initialStartHomeNavigationQueued;
 
 	static public string AppVersionString
 		=> $"Version: {AppInfo.Current.VersionString}-{AppInfo.Current.BuildString}";
@@ -52,6 +54,76 @@ public partial class AppShell : Shell
 		// overridden by the XAML and then erased by Items.Remove.
 		Items.Remove(FlyoutDTAC);
 		Routing.RegisterRoute(TRViS.DTAC.ViewHost.NameOfThisClass, typeof(TRViS.DTAC.ViewHost));
+
+		// Same mitigation for OriginalTimetable pages (same MAUI #16927 root cause).
+		// FlyoutItem is replaced by a MenuItem whose Command navigates via push route
+		// so the flyout remains usable on Android.
+		Items.Remove(FlyoutOriginalTimetableV1);
+		Routing.RegisterRoute(OriginalTimetableV1Page.NameOfThisClass, typeof(OriginalTimetableV1Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V1)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV1",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV1Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV1Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableV2);
+		Routing.RegisterRoute(OriginalTimetableV2Page.NameOfThisClass, typeof(OriginalTimetableV2Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V2)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV2",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV2Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV2Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableV4);
+		Routing.RegisterRoute(OriginalTimetableV4Page.NameOfThisClass, typeof(OriginalTimetableV4Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V4)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV4",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV4Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV4Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableV6);
+		Routing.RegisterRoute(OriginalTimetableV6Page.NameOfThisClass, typeof(OriginalTimetableV6Page));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (V6)",
+			AutomationId = "Shell.Flyout.OriginalTimetableV6",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableV6Page.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableV6Page failed"); }
+			}),
+		});
+
+		Items.Remove(FlyoutOriginalTimetableSimple);
+		Routing.RegisterRoute(OriginalTimetableSimplePage.NameOfThisClass, typeof(OriginalTimetableSimplePage));
+		Items.Add(new MenuItem
+		{
+			Text = "ダイヤ表 (テスト)",
+			// Same AutomationId as the XAML FlyoutItem so WaitForFlyoutItem()
+			// in the test layer finds this MenuItem by its id on Android.
+			AutomationId = "Shell.Flyout.OriginalTimetableSimple",
+			Command = new Command(async () =>
+			{
+				try { await Shell.Current.GoToAsync(OriginalTimetableSimplePage.NameOfThisClass); }
+				catch (Exception ex) { logger.Error(ex, "Navigation to OriginalTimetableSimplePage failed"); }
+			}),
+		});
 #endif
 
 		// Flyout/MenuItem Title binding refresh is unreliable in MAUI Shell, so
@@ -60,18 +132,11 @@ public partial class AppShell : Shell
 		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
 			MainThread.BeginInvokeOnMainThread(ApplyLocalization);
 
-		// Always launch into the Start/Home page. The Start screen handles the
-		// privacy-policy-not-accepted case via an in-page banner + modal dialog
-		// (PrivacyPolicyDialog), which also hosts the Firebase analytics opt-in.
-		// The dedicated FirebaseSettingPage / Privacy / TPL flyout entries were
-		// removed since Home now covers all three.
-		// Fire-and-forget: the Shell ctor cannot be async; we discard the Task and
-		// log via continuation so a navigation failure doesn't vanish.
-		_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
-		{
-			if (t.IsFaulted)
-				logger.Error(t.Exception, "Initial GoToAsync(StartHomePage) failed");
-		}, TaskScheduler.Default);
+		// Always launch into the Start/Home page once the Shell is loaded. Doing
+		// this after Loaded avoids racing the initial handler/bootstrap path on
+		// iOS, where the screenshot harness probes the StartHome seams almost
+		// immediately after app launch.
+		Loaded += (_, _) => EnsureInitialStartHomeNavigation();
 		InstanceManager.AnalyticsWrapper.Log(AnalyticsEvents.AppLaunched);
 
 		// Always start with the flyout enabled. On Mac Catalyst the navigation
@@ -124,6 +189,19 @@ public partial class AppShell : Shell
 #endif
 
 		logger.Trace("AppShell Created");
+	}
+
+	void EnsureInitialStartHomeNavigation()
+	{
+		if (_initialStartHomeNavigationQueued || App.HasPendingAppLink)
+			return;
+
+		_initialStartHomeNavigationQueued = true;
+		_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
+		{
+			if (t.IsFaulted)
+				logger.Error(t.Exception, "Initial GoToAsync(StartHomePage) failed");
+		}, TaskScheduler.Default);
 	}
 
 	/// <summary>
@@ -268,4 +346,3 @@ public partial class AppShell : Shell
 	}
 #endif
 }
-

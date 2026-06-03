@@ -68,6 +68,22 @@ public static class PerformanceHelper
 	/// <returns>パフォーマンスレベル</returns>
 	private static PerformanceLevel GetPerformanceLevelFromDeviceModel()
 	{
+		// Honor explicit override from environment (set in CI or by tests).
+		string? envPerf = System.Environment.GetEnvironmentVariable("TRVIS_PERFORMANCE_LEVEL")
+			?? System.Environment.GetEnvironmentVariable("TRVIS_TEST_PERFORMANCE_LEVEL");
+		if (!string.IsNullOrEmpty(envPerf))
+		{
+			switch (envPerf.ToLowerInvariant())
+			{
+				case "low":
+					return PerformanceLevel.Low;
+				case "medium":
+					return PerformanceLevel.Medium;
+				case "high":
+					return PerformanceLevel.High;
+			}
+		}
+
 #if IOS
 		string deviceModel = DeviceInfo.Current.Model ?? "";
 
