@@ -37,6 +37,9 @@ public sealed class ViewHostPresenter : IDisposable
     private void ApplyInitialState()
     {
         _currentState.TitleText = _appViewModel.SelectedWork?.Name ?? string.Empty;
+        int currentSec = _timeProvider.GetCurrentTimeSeconds();
+        _lastTotalSeconds = currentSec;
+        _currentState.TimeLabelText = FormatTimeLabel(currentSec);
     }
 
     private int _lastTotalSeconds = 0;
