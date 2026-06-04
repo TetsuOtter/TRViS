@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Layouts;
 using Microsoft.Maui.Maps;
 
+using TRViS.Core;
 using TRViS.IO.Models;
 using TRViS.Services;
 using TRViS.LocationService.Abstractions;
@@ -57,6 +58,10 @@ public class MyMap : MyMapBase
 	}
 
 	Circle? currentLocationCircle;
+	// GPS 更新ごとの MoveToRegion を間引き、MKCircle overlay の renderer 探索レースを
+	// 抑えるためのスロットル (#291)。判定ロジックは TRViS.Core 側で単体テスト済み。
+	readonly MapRecenterThrottle recenterThrottle = new();
+
 	public override void SetCurrentLocation(double latitude, double longitude, double accuracy_m)
 	{
 		logger.Trace("SetCurrentLocation(lat={0}, lon={1}, acc={2})", latitude, longitude, accuracy_m);
@@ -70,7 +75,15 @@ public class MyMap : MyMapBase
 		{
 			currentLocationCircle.Center = new Location(latitude, longitude);
 			currentLocationCircle.Radius = Distance.FromMeters(accuracy_m);
-			map.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(latitude, longitude), map.VisibleRegion?.Radius ?? Distance.FromMeters(500)));
+
+			// GPS 更新ごとに MoveToRegion を呼ぶと、region 変更アニメーション中に
+			// MKCircle overlay の renderer 探索とレースし
+			// "MKOverlayRenderer not found" で異常終了する (#291)。
+			// 一定距離・一定時間が経過したときのみ recenter して overlay churn を抑える。
+			if (recenterThrottle.ShouldRecenter(latitude, longitude, DateTime.UtcNow))
+			{
+				map.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(latitude, longitude), map.VisibleRegion?.Radius ?? Distance.FromMeters(500)));
+			}
 
 			infoLabel.Text = $"{DateTime.Now}\nlat: {latitude:F6}\nlon: {longitude:F6}\nacc: {accuracy_m:F1} m";
 		});
@@ -85,6 +98,8 @@ public class MyMap : MyMapBase
 			{
 				return;
 			}
+			// 次の現在地取得で必ず recenter させる (サービス再開時に追従を再開)。
+			recenterThrottle.Reset();
 			currentLocationCircle = new()
 			{
 				Center = new Location(0, 0),
