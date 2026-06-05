@@ -16,6 +16,9 @@ public class SimpleView : Grid
 	const double TIME_ROW_HEIGHT = 20;
 	List<SimpleRow> Rows { get; } = [];
 	CancellationTokenSource? _cts;
+	// Serializes render passes so a superseded pass fully unwinds (Clear() included)
+	// before the next pass starts adding rows.
+	readonly SemaphoreSlim _renderGate = new(1, 1);
 	SimpleRow? _SelectedRow = null;
 	bool _IsBusy = false;
 	public bool IsBusy
@@ -149,89 +152,108 @@ public class SimpleView : Grid
 	{
 		logger.Debug("newWork: {0}", newWork?.Name ?? "null");
 
-		_cts?.Cancel();
-		_cts = new CancellationTokenSource();
-		var token = _cts.Token;
+		// Atomically supersede any in-flight render: publish a fresh token source and
+		// cancel the previous one in a single step. The old non-atomic
+		// "cancel-then-assign" let two concurrent invocations (ctor warm-up +
+		// AppViewModel PropertyChanged at startup) each miss the other's
+		// cancellation, so both rendered a full set of rows and the stale
+		// (unselected) set was stranded under the live one — visible as the
+		// unselected border showing behind the selected box.
+		var newCts = new CancellationTokenSource();
+		Interlocked.Exchange(ref _cts, newCts)?.Cancel();
+		var token = newCts.Token;
 
-		await MainThread.InvokeOnMainThreadAsync(Clear);
-		SelectedRow = null;
-		if (newWork is null)
-		{
-			logger.Debug("newWork is null");
-			return;
-		}
-
-		token.ThrowIfCancellationRequested();
-
-		ILoader? loader = InstanceManager.AppViewModel.Loader;
-		if (loader is null)
-		{
-			logger.Debug("loader is null");
-			return;
-		}
-
-		token.ThrowIfCancellationRequested();
-
-		// Use the ordered train list created by AppViewModel
-		var orderedTrainDataList = InstanceManager.AppViewModel.OrderedTrainDataList;
-		if (orderedTrainDataList is null || orderedTrainDataList.Count == 0)
-		{
-			logger.Debug("OrderedTrainDataList is null or empty");
-			return;
-		}
-
-		token.ThrowIfCancellationRequested();
-
-		IsBusy = true;
+		// Serialize passes so a superseded pass fully unwinds (Clear() and the
+		// non-thread-safe Rows mutations included) before the next pass starts.
+		await _renderGate.WaitAsync(token).ConfigureAwait(false);
 		try
 		{
-			Rows.Clear();
-			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
-				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
-			await MainThread.InvokeOnMainThreadAsync(() => SetRowDefinitions(orderedTrainDataList.Count));
-			TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
+			token.ThrowIfCancellationRequested();
 
-			if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
-				await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
-
-			int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
-
-			for (int i = 0; i < orderedTrainDataList.Count; i++)
+			await MainThread.InvokeOnMainThreadAsync(Clear);
+			SelectedRow = null;
+			if (newWork is null)
 			{
-				token.ThrowIfCancellationRequested();
+				logger.Debug("newWork is null");
+				return;
+			}
 
-				TrainData trainData = orderedTrainDataList[i];
-				string trainId = trainData.Id;
-				if (trainData is null)
+			token.ThrowIfCancellationRequested();
+
+			ILoader? loader = InstanceManager.AppViewModel.Loader;
+			if (loader is null)
+			{
+				logger.Debug("loader is null");
+				return;
+			}
+
+			token.ThrowIfCancellationRequested();
+
+			// Use the ordered train list created by AppViewModel
+			var orderedTrainDataList = InstanceManager.AppViewModel.OrderedTrainDataList;
+			if (orderedTrainDataList is null || orderedTrainDataList.Count == 0)
+			{
+				logger.Debug("OrderedTrainDataList is null or empty");
+				return;
+			}
+
+			token.ThrowIfCancellationRequested();
+
+			IsBusy = true;
+			try
+			{
+				Rows.Clear();
+				if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+					await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
+				await MainThread.InvokeOnMainThreadAsync(() => SetRowDefinitions(orderedTrainDataList.Count));
+				TrainData? selectedTrainData = InstanceManager.AppViewModel.SelectedTrainData;
+
+				if (0 < PerformanceHelper.DelayBeforeSettingRowsMs)
+					await Task.Delay(PerformanceHelper.DelayBeforeSettingRowsMs / 2, token);
+
+				int renderDelayMs = PerformanceHelper.RowRenderDelayMs;
+
+				for (int i = 0; i < orderedTrainDataList.Count; i++)
 				{
-					logger.Debug("trainData is null");
-					continue;
-				}
+					token.ThrowIfCancellationRequested();
 
-				await MainThread.InvokeOnMainThreadAsync(() =>
-				{
-					if (token.IsCancellationRequested)
-						return;
-
-					SimpleRow row = new(this, i, trainData);
-					Rows.Add(row);
-					row.IsSelectedChanged += OnIsSelectedChanged;
-					if (trainId == selectedTrainData?.Id)
+					TrainData trainData = orderedTrainDataList[i];
+					string trainId = trainData.Id;
+					if (trainData is null)
 					{
-						logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
-						row.IsSelected = true;
-						SelectedRow = row;
+						logger.Debug("trainData is null");
+						continue;
 					}
-				});
 
-				token.ThrowIfCancellationRequested();
+					await MainThread.InvokeOnMainThreadAsync(() =>
+					{
+						if (token.IsCancellationRequested)
+							return;
 
-				await Task.Delay(renderDelayMs, token);
+						SimpleRow row = new(this, i, trainData);
+						Rows.Add(row);
+						row.IsSelectedChanged += OnIsSelectedChanged;
+						if (trainId == selectedTrainData?.Id)
+						{
+							logger.Debug("trainData == selectedTrainData ({0})", trainData.TrainNumber);
+							row.IsSelected = true;
+							SelectedRow = row;
+						}
+					});
+
+					token.ThrowIfCancellationRequested();
+
+					await Task.Delay(renderDelayMs, token);
+				}
+			}
+			finally
+			{
+				IsBusy = false;
 			}
 		}
 		finally
 		{
-			IsBusy = false;
+			_renderGate.Release();
 		}
 	}
 
