@@ -1,7 +1,7 @@
 using TRViS.Services;
 
 using LogicITimeProvider = TRViS.DTAC.Logic.Abstractions.ITimeProvider;
-using TRViS.LocationService.Abstractions;
+using AppITimeProvider = TRViS.LocationService.Abstractions.ITimeProvider;
 
 namespace TRViS.DTAC.Adapters;
 
@@ -11,11 +11,13 @@ namespace TRViS.DTAC.Adapters;
 internal class TimeProviderAdapter : LogicITimeProvider, IDisposable
 {
     private readonly TRViS.Services.LocationService _locationService;
+    private readonly AppITimeProvider _appTimeProvider;
     private bool _disposed;
 
-    public TimeProviderAdapter(TRViS.Services.LocationService locationService)
+    public TimeProviderAdapter(TRViS.Services.LocationService locationService, AppITimeProvider appTimeProvider)
     {
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+        _appTimeProvider = appTimeProvider ?? throw new ArgumentNullException(nameof(appTimeProvider));
         _locationService.TimeChanged += OnTimeChanged;
     }
 
@@ -25,6 +27,13 @@ internal class TimeProviderAdapter : LogicITimeProvider, IDisposable
     }
 
     public event EventHandler<int>? TimeChanged;
+
+    // LocationService fires TimeChanged only when the value changes. If the clock
+    // was frozen before this adapter was created (so lastTime_s already equals the
+    // frozen value), no event would fire and the caller would never see the current
+    // time. GetCurrentTimeSeconds() lets callers prime their initial state without
+    // waiting for an event that may never arrive.
+    public int GetCurrentTimeSeconds() => _appTimeProvider.GetCurrentTimeSeconds();
 
     public void Dispose()
     {
