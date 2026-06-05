@@ -1,0 +1,188 @@
+using OpenQA.Selenium;
+using TRViS.UITests.Pages;
+
+namespace TRViS.UITests.Tests;
+
+/// <summary>
+/// TDD step 1 (fix/dtac-teardown-android): reproduce the DTAC tear-down blank
+/// on Android. Probe 4b on fix/maui-16927-android-flyoutpage confirmed that
+/// DTAC's view-subtree (presenter / VerticalTimetableView / AppBar /
+/// ScreenWakeLock / TabHako) corrupts the subsequent Detail-swap in the
+/// Android FlyoutPage host. Open question: does the same DTAC tear-down bug
+/// surface on `main`, where the navigation primitive is
+/// <c>Shell.Current.GoToAsync("//StartHomePage")</c> instead of
+/// <c>FlyoutPage.Detail = newNav</c>? If yes, main has a latent same-family
+/// bug; if no, only the FlyoutPage branch is affected.
+///
+/// The test is Android-only because the FlyoutPage / Shell render-coupling
+/// bug is host-specific (Apple / Windows hosts render via a different code
+/// path). Other platforms hit <c>Assert.Ignore</c> in SetUp.
+///
+/// Use <c>[Repeat(3)]</c> — NOT <c>[Retry]</c> — so a transient first-iter
+/// failure does not mask intermittent reproductions. The
+/// <c>AssemblyUITestSetUp</c> global session is reused across iterations;
+/// SetUp recovers per-iteration via the same NavigateToHome + ClearLoader
+/// pattern <see cref="NavigationTests"/> uses.
+/// </summary>
+[TestFixture]
+[Category("Repro")]
+public class Dtac_TearDownRepro_Tests : Infrastructure.BaseUITest
+{
+	// Share one Appium session across this fixture's iterations. The
+	// assembly-level [SetUpFixture] also keeps the session global, but
+	// declaring the override mirrors the convention NavigationTests uses
+	// when its [SetUp] needs to recover the app state per test/iteration.
+	protected override bool ShareSessionAcrossTestsInFixture => true;
+
+	private StartHomePageObject _startHomePage = null!;
+
+	[SetUp]
+	public override void SetUp()
+	{
+		base.SetUp();
+
+		// Android-only repro: the FlyoutPage-host blanking observed on the
+		// other branch is a render-path issue specific to the Android host.
+		// On main the host is Shell, but the same DTAC tear-down family
+		// MAY still corrupt the next render. Other platforms skip.
+		if (!IsAndroid)
+			Assert.Ignore("Android-only repro: DTAC tear-down blank is Android-host-specific.");
+
+		// Recover to StartHome at the top of each iteration. In a shared
+		// session a prior iteration ends on DTAC (or, if the bug reproduces,
+		// on a blank page), so probe StartHome first and fall back to the
+		// NavigateToHome seam exactly like NavigationTests.SetUp does.
+		//
+		// Check HomeBody in addition to Title: after the seam's
+		// GoToAsync("//StartHomePage"), StartHome lands in Home mode where
+		// Title is hidden but HomeBody is visible. Calling NavigateToHome from
+		// StartHome (already there) would issue GoToAsync("//StartHomePage")
+		// redundantly, which on Android adds a Fragment to the back stack and
+		// corrupts it for the next ViewHost push.
+		var startHome = new StartHomePageObject(Driver);
+		// Use a generous timeout: after TearDown restarts the Android app,
+		// SetUp runs while the process is still warming up (typically 3-6 s).
+		if (!startHome.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 10)
+			&& !startHome.PollDisplayed(AutomationIds.StartHome.HomeBody, timeoutSeconds: 2))
+		{
+			new AppShellPage(Driver).NavigateToHome();
+			startHome = new StartHomePageObject(Driver);
+		}
+		startHome.AcceptPrivacyPolicyIfNeeded();
+		startHome.ClearLoaderForTesting();
+
+		_startHomePage = startHome;
+	}
+
+	[TearDown]
+	public override void TearDown()
+	{
+		base.TearDown();
+
+		if (!IsAndroid)
+			return;
+
+		// Clear the loaded Work BEFORE restarting. terminateApp without clearApp
+		// preserves SharedPreferences, so the Work selection survives the restart
+		// and the next iteration/fixture sees Home mode (StartHome.Title hidden).
+		// clearApp would fix that but also wipes the privacy-accepted flag, forcing
+		// AcceptPrivacyPolicyIfNeeded to re-run in every subsequent fixture and
+		// leaving NavigationTests in a state where Footer_OpenAndCloseThirdPartyLicenses
+		// fails (StartHome.IsDisplayed() times out). ClearLoaderForTesting is the
+		// targeted fix: sets AppViewModel.Loader=null, returning Start mode, without
+		// touching SharedPreferences.
+		// PollDisplayed guards against the ~2 s implicit-wait penalty when TearDown
+		// runs after a test failure that left the app on a non-StartHome page.
+		var startHome = new Pages.StartHomePageObject(Driver);
+		if (startHome.PollDisplayed(AutomationIds.StartHome.HomeBody, timeoutSeconds: 1)
+			|| startHome.PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 1))
+		{
+			try { startHome.ClearLoaderForTesting(); }
+			catch (Exception ex)
+			{
+				TestContext.Out.WriteLine($"DtacTearDownRepro: ClearLoaderForTesting failed: {ex.Message}");
+			}
+		}
+
+		// Restart the Android app so each iteration begins with a clean
+		// FragmentManager. GoToAsync-based Shell navigation does not reliably
+		// remove the ViewHost push-route Fragment from the back stack
+		// (MAUI #16927 family); the lingering Fragment causes blank DTAC on the
+		// second GoToAsync("ViewHost") push. Process restart is the only reliable
+		// way to guarantee a clean FragmentManager.
+		// Do NOT use clearApp: SharedPreferences (privacy-accepted flag, etc.)
+		// must survive so PrivacyAcceptedInCurrentSession stays accurate.
+		try
+		{
+			Driver.ExecuteScript("mobile: terminateApp",
+				new Dictionary<string, object> { { "appId", "dev.t0r.trvis" } });
+			Driver.ExecuteScript("mobile: activateApp",
+				new Dictionary<string, object> { { "appId", "dev.t0r.trvis" } });
+		}
+		catch (Exception ex)
+		{
+			TestContext.Out.WriteLine($"DtacTearDownRepro: app restart failed: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Cold StartHome → load sample + commit Work (AutoOpen) → DTAC →
+	/// NavigateToHome via the DTAC.TestNavigateHomeButton seam → assert
+	/// StartHome is on screen.
+	///
+	/// If StartHome fails to appear within the NavigateToHome internal
+	/// 10 s budget, the seam tap dispatched but the rendered tree did not
+	/// converge to StartHome — i.e. the DTAC tear-down blank repro'd on
+	/// main as well. Catching the resulting <c>WebDriverTimeoutException</c>
+	/// lets us capture screenshot + page-source FROM INSIDE the test (the
+	/// TearDown hook also dumps on failure, but in-test artifacts give a
+	/// clearer "blank shape" signal for the report).
+	/// </summary>
+	[Test]
+	[Repeat(3)]
+	public void DtacToHome_DoesNotBlank_OnAndroid()
+	{
+		// Cold launch → StartHome.
+		Assert.That(_startHomePage.IsDisplayed(), Is.True,
+			"StartHome should be visible at iteration start.");
+
+		// Commit a Work via TestAutoOpenButton → DTAC visible. This boots
+		// the full DTAC subtree (presenter / VerticalTimetableView / AppBar
+		// / ScreenWakeLock / TabHako) — the Probe-4b-implicated chain.
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+		var dtac = _startHomePage.AutoOpenForTesting();
+		Assert.That(dtac.IsDisplayed(), Is.True,
+			"DTAC should be visible after AutoOpen.");
+
+		// Now navigate back to StartHome via the TestNavigateHomeButton seam
+		// (GoToAsync("//StartHomePage") on all platforms). NavigateToHome
+		// internally waits up to 10 s for StartHome.HomeBody to appear. If
+		// the tear-down blank reproduces, that wait throws
+		// WebDriverTimeoutException — wrap so we can capture artifacts and
+		// report a clean Assert.Fail.
+		var appShell = new AppShellPage(Driver);
+		try
+		{
+			var home = appShell.NavigateToHome();
+
+			// Capture artifacts BEFORE the final assertion so a regression
+			// run has same-iteration evidence even if the assertion below
+			// fails.
+			TakeScreenshot();
+			DumpPageSource();
+
+			Assert.That(home.PollDisplayed(AutomationIds.StartHome.HomeBody, timeoutSeconds: 30), Is.True,
+				"StartHome (Home-mode body) should be visible after navigating away from DTAC — " +
+				"if this blanks, the DTAC tear-down bug exists on main too.");
+		}
+		catch (WebDriverTimeoutException ex)
+		{
+			TakeScreenshot();
+			DumpPageSource();
+			Assert.Fail(
+				"NavigateToHome timed out waiting for StartHome.HomeBody after DTAC tear-down " +
+				$"({ex.GetType().Name}: {ex.Message}). Likely DTAC-teardown blank on main.");
+		}
+	}
+}

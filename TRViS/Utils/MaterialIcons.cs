@@ -64,6 +64,9 @@ internal static class MaterialIcons
 	/// <summary>wifi — network sync / WebSocket-loaded data.</summary>
 	public const string Wifi = "\uE63E";
 
+	/// <summary>wifi_off \u2014 server sync connection lost (disconnected state).</summary>
+	public const string WifiOff = "\uE648";
+
 	// E8xx — content / files
 	/// <summary>code — file with code/text content (used for .json files).</summary>
 	public const string Code = "\uE86F";

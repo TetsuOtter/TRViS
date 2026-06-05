@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Common_OK" xml:space="preserve"><value>OK</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="Common_Yes" xml:space="preserve"><value>はい</value></data>
+  <data name="Common_No" xml:space="preserve"><value>いいえ</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>閉じる</value></data>
+  <data name="Common_Continue" xml:space="preserve"><value>続ける</value></data>
+  <data name="Common_Stop" xml:space="preserve"><value>やめる</value></data>
+  <data name="Common_Error" xml:space="preserve"><value>エラー</value></data>
+  <data name="Common_Success" xml:space="preserve"><value>成功</value></data>
+  <data name="Shell_Home" xml:space="preserve"><value>ホーム</value></data>
+  <data name="Shell_ThirdPartyLicenses" xml:space="preserve"><value>サードパーティライセンス</value></data>
+  <data name="Shell_Settings" xml:space="preserve"><value>設定</value></data>
+  <data name="Shell_FirebaseSetting" xml:space="preserve"><value>Firebase 設定</value></data>
+  <data name="Shell_PrivacyPolicy" xml:space="preserve"><value>プライバシーポリシー</value></data>
+  <data name="Shell_PrivacyPolicyOnline" xml:space="preserve"><value>プライバシーポリシー (オンライン)</value></data>
+  <data name="StartHome_PrivacyPolicy" xml:space="preserve"><value>プライバシーポリシー</value></data>
+  <data name="StartHome_ThirdPartyLicenses" xml:space="preserve"><value>サードパーティライセンス</value></data>
+  <data name="StartHome_ConnectServer" xml:space="preserve"><value>サーバーから読み込み</value></data>
+  <data name="StartHome_SelectFile" xml:space="preserve"><value>ファイルを選択</value></data>
+  <data name="StartHome_PrivacyReconfirmTitle" xml:space="preserve"><value>プライバシーポリシーへの同意が必要です</value></data>
+  <data name="StartHome_PrivacyReconfirmBody" xml:space="preserve"><value>アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。</value></data>
+  <data name="StartHome_LoadDemo" xml:space="preserve"><value>デモデータで開始</value></data>
+  <data name="StartHome_SampleLoadFailedFormat" xml:space="preserve"><value>サンプルデータの読み込みに失敗しました: {0}</value></data>
+  <data name="Home_LoadedData" xml:space="preserve"><value>読み込み済みデータ</value></data>
+  <data name="Home_Reconnect" xml:space="preserve"><value>再接続</value></data>
+  <data name="Home_Reconnecting" xml:space="preserve"><value>再接続中...</value></data>
+  <data name="Home_WorkGroup" xml:space="preserve"><value>Work Group</value></data>
+  <data name="Home_Work" xml:space="preserve"><value>Work</value></data>
+  <data name="Home_Change" xml:space="preserve"><value>変更</value></data>
+  <data name="Home_Disconnect" xml:space="preserve"><value>閉じる</value></data>
+  <data name="Home_Open" xml:space="preserve"><value>開く</value></data>
+  <data name="Home_LoaderType_Demo" xml:space="preserve"><value>デモデータ</value></data>
+  <data name="Home_LoaderType_Json" xml:space="preserve"><value>JSON ファイル</value></data>
+  <data name="Home_LoaderType_Sqlite" xml:space="preserve"><value>SQLite ファイル</value></data>
+  <data name="Home_LoaderType_ServerDisconnected" xml:space="preserve"><value>サーバー未接続</value></data>
+  <data name="Home_LoaderType_ServerConnected" xml:space="preserve"><value>サーバー接続中</value></data>
+  <data name="Home_DiagramFormat" xml:space="preserve"><value>ダイヤ: {0}</value></data>
+  <data name="Home_WorkCountFormat" xml:space="preserve"><value>Work 数: {0}</value></data>
+  <data name="Home_AffectDateFormat" xml:space="preserve"><value>施行日: {0}</value></data>
+  <data name="Home_TrainCountFormat" xml:space="preserve"><value>列車数: {0}</value></data>
+  <data name="Home_NotSelectedTitle" xml:space="preserve"><value>選択されていません</value></data>
+  <data name="Home_NotSelectedBody" xml:space="preserve"><value>Work Group と Work を選択してから「開く」を押してください。</value></data>
+  <data name="Home_ConfirmTitle" xml:space="preserve"><value>確認</value></data>
+  <data name="Home_ConfirmCloseBody" xml:space="preserve"><value>現在のデータを閉じますか？</value></data>
+  <data name="ConnectServer_Title" xml:space="preserve"><value>サーバーから読み込み</value></data>
+  <data name="ConnectServer_HistoryHint" xml:space="preserve"><value>履歴から選択するか、新しいURLを入力してください。</value></data>
+  <data name="ConnectServer_BackToHistory" xml:space="preserve"><value>履歴に戻る</value></data>
+  <data name="ConnectServer_UrlLabel" xml:space="preserve"><value>URL</value></data>
+  <data name="ConnectServer_UrlHint" xml:space="preserve"><value>時刻表ファイル (.json / .sqlite) のURL、または
+リアルタイム配信サーバー (ws:// / wss://) のURLを指定できます。</value></data>
+  <data name="ConnectServer_SaveUrlLabel" xml:space="preserve"><value>URLを履歴に残す</value></data>
+  <data name="ConnectServer_SaveUrlHint" xml:space="preserve"><value>OFFにすると、今回限りの読み込みとして履歴には残しません。</value></data>
+  <data name="ConnectServer_Connect" xml:space="preserve"><value>読み込む</value></data>
+  <data name="ConnectServer_NewConnection" xml:space="preserve"><value>新規接続</value></data>
+  <data name="ConnectServer_AlertCannotConnectTitle" xml:space="preserve"><value>接続できませんでした</value></data>
+  <data name="ConnectServer_AlertEnterUrl" xml:space="preserve"><value>URLを入力してください。</value></data>
+  <data name="ConnectServer_AlertInvalidUrl" xml:space="preserve"><value>URLの形式が正しくありません。</value></data>
+  <data name="ConnectServer_AlertLoadFailedFormat" xml:space="preserve"><value>読み込みに失敗しました: {0}</value></data>
+  <data name="SelectFile_Title" xml:space="preserve"><value>ファイルを選択</value></data>
+  <data name="SelectFile_FileListHint" xml:space="preserve"><value>アプリ内のファイルから選択するか、別の場所から開いてください。</value></data>
+  <data name="SelectFile_EmptyMessage" xml:space="preserve"><value>このフォルダにファイルがありません</value></data>
+  <data name="SelectFile_EmptyDetail" xml:space="preserve"><value>下のボタンから他の場所のファイルを開くか、保存場所を開いてファイルを配置してください。</value></data>
+  <data name="SelectFile_Browse" xml:space="preserve"><value>他の場所からファイルを開く</value></data>
+  <data name="SelectFile_OpenStorage" xml:space="preserve"><value>保存場所を開く</value></data>
+  <data name="SelectFile_UpFolder" xml:space="preserve"><value>上の階層へ</value></data>
+  <data name="SelectFile_FolderEmpty" xml:space="preserve"><value>(空)</value></data>
+  <data name="SelectFile_FolderCountFormat" xml:space="preserve"><value>フォルダ {0}</value></data>
+  <data name="SelectFile_FileCountFormat" xml:space="preserve"><value>ファイル {0}</value></data>
+  <data name="SelectFile_AlertCannotLoadTitle" xml:space="preserve"><value>読み込めませんでした</value></data>
+  <data name="SelectFile_AlertUnsupportedFormat" xml:space="preserve"><value>対応していないファイル形式です。</value></data>
+  <data name="SelectFile_AlertCannotOpenFileTitle" xml:space="preserve"><value>ファイルを開けませんでした</value></data>
+  <data name="SelectFile_AlertCannotOpenFolderTitle" xml:space="preserve"><value>フォルダを開けませんでした</value></data>
+  <data name="Privacy_Title" xml:space="preserve"><value>プライバシーポリシー</value></data>
+  <data name="Privacy_LogCollectionTitle" xml:space="preserve"><value>ログ収集のお知らせ</value></data>
+  <data name="Privacy_DescBody" xml:space="preserve"><value>TRViSでは、アプリの品質向上のため、アプリのクラッシュやエラー情報を収集します。
+また、アプリの使用状況を調査するため、プライバシーポリシーに基づき、一部の情報を収集します。
+これらの情報は、主にFirebaseを用いて収集します。
+これらの情報収集を拒否される場合、本アプリを使用できない場合があります。</value></data>
+  <data name="Privacy_CrashRequiredNotice" xml:space="preserve"><value>クラッシュ/エラーログの送信は必須ですが、
+以下の機能については有効/無効を選択できます。</value></data>
+  <data name="Privacy_AllowAnalytics" xml:space="preserve"><value>使用状況の収集を許可する</value></data>
+  <data name="Privacy_RestoreSaved" xml:space="preserve"><value>保存値を復元</value></data>
+  <data name="Privacy_AgreeAndSave" xml:space="preserve"><value>同意して保存</value></data>
+  <data name="Privacy_Save" xml:space="preserve"><value>保存</value></data>
+  <data name="Firebase_Title" xml:space="preserve"><value>Firebase 設定</value></data>
+  <data name="Firebase_AlertSavedBodyFormat" xml:space="preserve"><value>保存しました
+InstallId: {0}</value></data>
+  <data name="ThirdParty_Title" xml:space="preserve"><value>サードパーティライセンス</value></data>
+  <data name="ThirdParty_Close" xml:space="preserve"><value>閉じる</value></data>
+  <data name="ThirdParty_LicenseExpressionFormat" xml:space="preserve"><value>ライセンス: {0}</value></data>
+  <data name="ThirdParty_OpenLicense" xml:space="preserve"><value>ライセンスを開く</value></data>
+  <data name="ThirdParty_NoLicenseInfo" xml:space="preserve"><value>(ライセンス情報なし)</value></data>
+  <data name="ThirdParty_AlertCannotLoadTitle" xml:space="preserve"><value>ライセンス情報を読み込めません</value></data>
+  <data name="ThirdParty_AlertCannotLoadBodyFormat" xml:space="preserve"><value>{0}に関するライセンス情報の読み込みに失敗しました。
+(license: {1})
+{2}</value></data>
+  <data name="ThirdParty_AlertInvalidUrlTitle" xml:space="preserve"><value>無効なURL</value></data>
+  <data name="ThirdParty_AlertInvalidUrlFormat" xml:space="preserve"><value>URLが無効です: {0}</value></data>
+  <data name="ThirdParty_AlertCannotOpenUrlTitle" xml:space="preserve"><value>URLを開けません</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>設定</value></data>
+  <data name="Settings_ReloadSaved" xml:space="preserve"><value>保存値を再読込</value></data>
+  <data name="Settings_Save" xml:space="preserve"><value>保存</value></data>
+  <data name="Settings_LocationInterval" xml:space="preserve"><value>位置情報の取得間隔</value></data>
+  <data name="Settings_TimeProgression" xml:space="preserve"><value>時間の進み方</value></data>
+  <data name="Settings_TimeProgression_1x" xml:space="preserve"><value>1倍速（リアルタイム）</value></data>
+  <data name="Settings_TimeProgression_30x" xml:space="preserve"><value>30倍速（1秒で30秒進む）</value></data>
+  <data name="Settings_TimeProgression_60x" xml:space="preserve"><value>60倍速（1秒で60秒進む）</value></data>
+  <data name="Settings_Advanced" xml:space="preserve"><value>高度な設定</value></data>
+  <data name="Settings_ShowMapLandscape" xml:space="preserve"><value>横向きにした際に、横に地図を表示する</value></data>
+  <data name="Settings_KeepScreenOn" xml:space="preserve"><value>運行中は画面OFFを抑制する</value></data>
+  <data name="Settings_HorizontalTimetableButtonLabel" xml:space="preserve"><value>横型時刻表ボタンの表示名</value></data>
+  <data name="Settings_HTBL_Horizontal" xml:space="preserve"><value>横型時刻表</value></data>
+  <data name="Settings_HTBL_Train" xml:space="preserve"><value>電車時刻表</value></data>
+  <data name="Settings_HTBL_ETrain" xml:space="preserve"><value>Ｅ電時刻表</value></data>
+  <data name="Settings_AppTheme" xml:space="preserve"><value>アプリのテーマ</value></data>
+  <data name="Settings_Theme_System" xml:space="preserve"><value>システムに従う</value></data>
+  <data name="Settings_Theme_Light" xml:space="preserve"><value>ライト</value></data>
+  <data name="Settings_Theme_Dark" xml:space="preserve"><value>ダーク</value></data>
+  <data name="Settings_PdfEngine" xml:space="preserve"><value>PDFの描画エンジン</value></data>
+  <data name="Settings_PdfEngineHint" xml:space="preserve"><value>PDFがうまく表示されない場合は、別のエンジンに切り替えてください。</value></data>
+  <data name="Settings_PdfEngineDisplayFormat" xml:space="preserve"><value>pdf.js {0} ({1})</value></data>
+  <data name="Settings_PdfRender_Svg" xml:space="preserve"><value>SVG描画</value></data>
+  <data name="Settings_PdfRender_Canvas" xml:space="preserve"><value>canvas描画</value></data>
+  <data name="Settings_PdfEngineCurrentFormat" xml:space="preserve"><value>現在の描画エンジン: {0}</value></data>
+  <data name="Settings_PdfEngineCurrentFallbackFormat" xml:space="preserve"><value>現在の描画エンジン: {0} (変更するには上のリストから選択してください)</value></data>
+  <data name="Settings_LogFilePath" xml:space="preserve"><value>ログファイルの場所</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>言語</value></data>
+  <data name="Settings_Language_System" xml:space="preserve"><value>システムに従う</value></data>
+  <data name="Settings_Language_Japanese" xml:space="preserve"><value>日本語</value></data>
+  <data name="Settings_Language_English" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_AlertReloadFailedFormat" xml:space="preserve"><value>再読込に失敗しました
+{0}</value></data>
+  <data name="Settings_AlertSavedSuccess" xml:space="preserve"><value>保存しました</value></data>
+  <data name="Settings_AlertSaveFailedFormat" xml:space="preserve"><value>保存に失敗しました
+{0}</value></data>
+  <data name="Settings_AlertLoadSettingFailedTitle" xml:space="preserve"><value>設定ファイルの読み込みに失敗しました</value></data>
+  <data name="Settings_AlertInvalidLocationIntervalTitle" xml:space="preserve"><value>位置情報取得間隔の値が不正です</value></data>
+  <data name="Settings_AlertInvalidLocationIntervalFormat" xml:space="preserve"><value>値({0})は{1}以上である必要があります</value></data>
+  <data name="SettingFile_LoadFailedFormat" xml:space="preserve"><value>設定ファイルの読み込みに失敗しました。{0}</value></data>
+  <data name="SettingFile_LoadFailedNull" xml:space="preserve"><value>設定ファイルの読み込みに失敗しました。(結果がnullです)</value></data>
+  <data name="SettingFile_EmptyJson" xml:space="preserve"><value>JSONファイル文字列が空です</value></data>
+  <data name="ShowAlert_UnknownErrorFormat" xml:space="preserve"><value>不明なエラーが発生しました。アプリを終了します。
+{0}</value></data>
+  <data name="AppLink_CannotOpenFileTitle" xml:space="preserve"><value>ファイルを開けません</value></data>
+  <data name="AppLink_IdentifyFailedFormat" xml:space="preserve"><value>AppLink の解析に失敗しました
+{0}</value></data>
+  <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>外部ファイルを開く</value></data>
+  <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>ファイル `{0}` を開きますか?</value></data>
+  <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>ローカルパスが不正です</value></data>
+  <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>外部位置情報サービス</value></data>
+  <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。
+このサーバーを使用してもよろしいですか?
+Server: {0}</value></data>
+  <data name="AppLink_CannotSetExternalLocationTitle" xml:space="preserve"><value>外部位置情報サービスを設定できません</value></data>
+  <data name="AppLink_SetNetworkSyncFailedFormat" xml:space="preserve"><value>外部位置情報サービスの設定に失敗しました
+{0}</value></data>
+  <data name="AppLink_FileLoadCompleteBody" xml:space="preserve"><value>ファイルの読み込みが完了しました</value></data>
+  <data name="AppLink_WebSocketUrlMissing" xml:space="preserve"><value>WebSocket URLが指定されていません</value></data>
+  <data name="AppLink_WebSocketConnectedBody" xml:space="preserve"><value>WebSocket接続が完了しました</value></data>
+  <data name="AppLink_LocalFileOutsideFolder" xml:space="preserve"><value>指定されたファイルは時刻表フォルダの外にあります。</value></data>
+  <data name="AppLink_FileNotFoundFormat" xml:space="preserve"><value>ファイルが見つかりません: {0}</value></data>
+  <data name="AppLink_PathResolveFailedFormat" xml:space="preserve"><value>ファイルパスの解決に失敗しました: {0}</value></data>
+  <data name="AppLink_MaybeDifferentNetworkTitle" xml:space="preserve"><value>ネットワークが異なる可能性があります</value></data>
+  <data name="AppLink_MaybeDifferentNetworkBodyFormat" xml:space="preserve"><value>接続先と違うネットワークに属しているため、接続に失敗する可能性があります。
+このまま接続しますか?
+接続先:{0}
+{1}</value></data>
+  <data name="AppLink_ThisDeviceFormat" xml:space="preserve"><value>この端末[{0}]:{1}</value></data>
+  <data name="AppLink_EmptyFileBody" xml:space="preserve"><value>時刻表ファイルを確認しましたが、ファイルの中身がありませんでした。</value></data>
+  <data name="AppLink_ContinueDownloadTitle" xml:space="preserve"><value>ダウンロードを続けますか?</value></data>
+  <data name="AppLink_UnknownSizeBody" xml:space="preserve"><value>ダウンロードするファイルのサイズが不明です。ダウンロードを継続しますか?</value></data>
+  <data name="AppLink_FileSizeFormat" xml:space="preserve"><value>ダウンロードするファイルのサイズは {0} byte です。このファイルをダウンロードしますか?</value></data>
+  <data name="LoadError_FileTitle" xml:space="preserve"><value>読み込めませんでした</value></data>
+  <data name="LoadError_ConnectionTitle" xml:space="preserve"><value>接続できませんでした</value></data>
+  <data name="LoadError_TimeoutTitle" xml:space="preserve"><value>接続できませんでした (Timeout)</value></data>
+  <data name="LoadError_JsonMalformedBody" xml:space="preserve"><value>ファイルのJSON形式が正しくありません。ファイルが壊れていないか、TRViSに対応した時刻表ファイルかを確認してください。</value></data>
+  <data name="LoadError_JsonPositionFormat" xml:space="preserve"><value>
+
+(エラー位置: {0}行目, {1}文字目)</value></data>
+  <data name="LoadError_SqliteCorruptBody" xml:space="preserve"><value>データベースファイルが壊れているか、TRViSに対応した形式ではありません。正しい時刻表データベースファイルかを確認してください。</value></data>
+  <data name="LoadError_SqliteCannotOpenBody" xml:space="preserve"><value>データベースファイルを開けませんでした。ファイルが存在し、読み取り可能かを確認してください。</value></data>
+  <data name="LoadError_SqlitePermissionBody" xml:space="preserve"><value>データベースファイルへのアクセスが拒否されました。ファイルのアクセス権を確認してください。</value></data>
+  <data name="LoadError_SqliteIOBody" xml:space="preserve"><value>データベースファイルの読み込み中にエラーが発生しました。ファイルやストレージに問題がないかを確認してください。</value></data>
+  <data name="LoadError_SqliteBusyBody" xml:space="preserve"><value>データベースファイルが他のアプリで使用中の可能性があります。しばらく待ってから再度お試しください。</value></data>
+  <data name="LoadError_SqliteOtherBody" xml:space="preserve"><value>データベースファイルの読み込みに失敗しました。正しい時刻表データベースファイルかを確認してください。</value></data>
+  <data name="LoadError_TimeoutBody" xml:space="preserve"><value>接続先がパソコンの場合は、
+接続先が同じネットワークに属しているか、
+またファイアウォールの例外設定がきちんと今のネットワークに行われているか
+を確認してください。</value></data>
+  <data name="LoadError_FileNotFoundBody" xml:space="preserve"><value>ファイルが見つかりませんでした。ファイルが移動・削除されていないかを確認してください。</value></data>
+  <data name="LoadError_UnauthorizedBody" xml:space="preserve"><value>ファイルへのアクセスが拒否されました。ファイルのアクセス権を確認してください。</value></data>
+  <data name="LoadError_EmptyOrNullBody" xml:space="preserve"><value>ファイルの内容が空か、正しい時刻表ファイルではありません。ファイルの内容を確認してください。</value></data>
+  <data name="LoadError_HttpWithStatusFormat" xml:space="preserve"><value>サーバーからファイルを取得できませんでした。(サーバー応答コード: {0} {1})</value></data>
+  <data name="LoadError_HttpNoStatusBody" xml:space="preserve"><value>サーバーからファイルを取得できませんでした。ネットワーク接続と接続先URLを確認してください。</value></data>
+  <data name="LoadError_IOBody" xml:space="preserve"><value>ファイルの読み込み中にエラーが発生しました。ファイルやストレージに問題がないかを確認してください。</value></data>
+  <data name="LoadError_UnknownFormat" xml:space="preserve"><value>ファイルの読み込みに失敗しました。
+
+詳細: {0}</value></data>
+</root>

@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS"
+	xmlns:loc="clr-namespace:TRViS.Localization"
 	xmlns:rootpages="clr-namespace:TRViS.RootPages"
 	x:Class="TRViS.RootPages.HomeGridView"
 	ColumnDefinitions="3*,4*"
@@ -33,7 +34,7 @@
 		<Border.StrokeShape>
 			<RoundRectangle CornerRadius="8"/>
 		</Border.StrokeShape>
-		<Grid ColumnDefinitions="Auto,*"
+		<Grid ColumnDefinitions="Auto,*,Auto"
 					ColumnSpacing="10">
 			<Label
 				x:Name="LoaderInfoGlyphLabel"
@@ -52,7 +53,7 @@
 					FontSize="14"
 					FontAttributes="Bold"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Text="読み込み済みデータ"/>
+					Text="{loc:Translate Home_LoadedData}"/>
 				<Label
 					AutomationId="StartHome.LoaderInfoDetail"
 					x:Name="LoaderInfoDetailLabel"
@@ -60,7 +61,43 @@
 					LineBreakMode="MiddleTruncation"
 					TextColor="{x:Static local:RootStyles.TableDetailColor}"
 					Text=""/>
+				<!-- ダイヤ情報 (サーバーから RequestDiagramInfo の応答 / ブロードキャストで
+				     受信)。未受信時は両ラベルとも IsVisible=false で行が潰れる。読み取り専用。 -->
+				<Label
+					AutomationId="StartHome.DiagramInfoName"
+					x:Name="DiagramInfoNameLabel"
+					FontSize="13"
+					FontAttributes="Bold"
+					Margin="0,4,0,0"
+					LineBreakMode="TailTruncation"
+					TextColor="{x:Static local:RootStyles.TableTextColor}"
+					IsVisible="False"
+					Text=""/>
+				<Label
+					AutomationId="StartHome.DiagramInfoDescription"
+					x:Name="DiagramInfoDescriptionLabel"
+					FontSize="11"
+					LineBreakMode="TailTruncation"
+					TextColor="{x:Static local:RootStyles.TableDetailColor}"
+					IsVisible="False"
+					Text=""/>
 			</VerticalStackLayout>
+			<!-- 再接続ボタン: WebSocket 接続が切断されたときだけ表示する (#261)。
+			     既存の 閉じる/開く 行 (HomeButtonsRow) は親 StartHomePage が
+			     reparent するため触らず、自己完結するこのカード内に置く。 -->
+			<Button
+				x:Name="ReconnectButton"
+				AutomationId="StartHome.ReconnectButton"
+				Grid.Column="2"
+				Text="{loc:Translate Home_Reconnect}"
+				FontSize="13"
+				FontAttributes="Bold"
+				HeightRequest="36"
+				Padding="14,0"
+				CornerRadius="8"
+				VerticalOptions="Center"
+				IsVisible="False"
+				Clicked="OnReconnectClicked"/>
 		</Grid>
 	</Border>
 
@@ -88,7 +125,7 @@
 			FontSize="Subtitle"
 			Margin="2,8,2,4"
 			TextColor="{x:Static local:RootStyles.TableTextColor}"
-			Text="Work Group"/>
+			Text="{loc:Translate Home_WorkGroup}"/>
 
 		<Border
 			x:Name="WorkGroupChip"
@@ -121,7 +158,7 @@
 					Text=""/>
 				<Label
 					Grid.Column="2"
-					Text="変更"
+					Text="{loc:Translate Home_Change}"
 					FontSize="12"
 					VerticalOptions="Center"
 					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
@@ -166,7 +203,7 @@
 			FontSize="Subtitle"
 			Margin="2,8,2,4"
 			TextColor="{x:Static local:RootStyles.TableTextColor}"
-			Text="Work"/>
+			Text="{loc:Translate Home_Work}"/>
 
 		<Border
 			x:Name="WorkChip"
@@ -198,7 +235,7 @@
 					Text=""/>
 				<Label
 					Grid.Column="2"
-					Text="変更"
+					Text="{loc:Translate Home_Change}"
 					FontSize="12"
 					VerticalOptions="Center"
 					TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
@@ -252,7 +289,7 @@
 			Grid.Column="0"
 			AutomationId="StartHome.DisconnectButton"
 			x:Name="DisconnectButton"
-			Text="閉じる"
+			Text="{loc:Translate Home_Disconnect}"
 			HeightRequest="40"
 			CornerRadius="8"
 			Clicked="OnDisconnectClicked"/>
@@ -260,7 +297,7 @@
 			Grid.Column="1"
 			x:Name="OpenButton"
 			AutomationId="StartHome.OpenButton"
-			Text="開く"
+			Text="{loc:Translate Home_Open}"
 			HeightRequest="40"
 			CornerRadius="8"
 			FontAttributes="Bold"

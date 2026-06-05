@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using TRViS.DTAC;
 using TRViS.IO;
 using TRViS.IO.Models;
+using TRViS.Localization;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
@@ -64,6 +65,16 @@ public partial class HomeGridView : Grid
 
 		WorkGroupListView.ItemsSource = _workGroupItems;
 		WorkListView.ItemsSource = _workItems;
+
+		// Code-set labels (loader type, diagram info, picker subtitles) don't
+		// re-evaluate on a language change, so rebuild them when culture changes.
+		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				UpdateLoaderInfoLabels();
+				RebuildWorkGroupItems();
+				SyncPendingFromCommitted();
+			});
 	}
 
 	// ----- Parent-driven lifecycle / hooks -----
@@ -77,6 +88,7 @@ public partial class HomeGridView : Grid
 	{
 		RebuildWorkGroupItems();
 		SyncPendingFromCommitted();
+		UpdateDiagramInfoLabels();
 	}
 
 	/// <summary>
@@ -96,6 +108,16 @@ public partial class HomeGridView : Grid
 				break;
 
 			case nameof(AppViewModel.LoaderSourceLabel):
+				UpdateLoaderInfoLabels();
+				break;
+
+			case nameof(AppViewModel.CurrentDiagramInfo):
+				// サーバーがダイヤ情報を送ってきた (RequestDiagramInfo 応答 or ブロードキャスト)。
+				UpdateDiagramInfoLabels();
+				break;
+
+			case nameof(AppViewModel.IsServerConnectionLost):
+				// 切断 / 再接続成功で状態が変わった -> ステータス行と再接続ボタンを更新。
 				UpdateLoaderInfoLabels();
 				break;
 
@@ -141,28 +163,58 @@ public partial class HomeGridView : Grid
 	/// </summary>
 	public void UpdateLoaderInfoLabels()
 	{
+		UpdateDiagramInfoLabels();
+
 		ILoader? loader = viewModel.Loader;
 		if (loader is null)
 		{
-			LoaderInfoTitleLabel.Text = "読み込み済みデータ";
+			LoaderInfoTitleLabel.Text = AppResources.Home_LoadedData;
 			LoaderInfoDetailLabel.Text = "";
 			LoaderInfoGlyphLabel.Text = MaterialIcons.Description;
+			ReconnectButton.IsVisible = false;
 			return;
 		}
+
+		// #261: a WebSocket loader whose connection dropped must not keep showing
+		// "サーバー接続中". Cached WorkGroup/Work/Train data is still readable from
+		// the (LocationService-disposed) service, so the picker stays usable and
+		// 開く still works — only the status line + 再接続 button change.
+		bool wsConnectionLost = loader is WebSocketNetworkSyncService && viewModel.IsServerConnectionLost;
 
 		// Title = loader type, glyph = matching Material Icon, detail = source label
 		// (file name, URL) set atomically with the loader via AppViewModel.SetLoader.
 		(string title, string glyph) = loader switch
 		{
-			SampleDataLoader => ("デモデータ", MaterialIcons.Science),
-			LoaderJson => ("JSON ファイル", MaterialIcons.Description),
-			LoaderSQL => ("SQLite ファイル", MaterialIcons.Storage),
-			WebSocketNetworkSyncService => ("サーバー接続中", MaterialIcons.Wifi),
+			SampleDataLoader => (AppResources.Home_LoaderType_Demo, MaterialIcons.Science),
+			LoaderJson => (AppResources.Home_LoaderType_Json, MaterialIcons.Description),
+			LoaderSQL => (AppResources.Home_LoaderType_Sqlite, MaterialIcons.Storage),
+			WebSocketNetworkSyncService when wsConnectionLost => (AppResources.Home_LoaderType_ServerDisconnected, MaterialIcons.WifiOff),
+			WebSocketNetworkSyncService => (AppResources.Home_LoaderType_ServerConnected, MaterialIcons.Wifi),
 			_ => (loader.GetType().Name, MaterialIcons.Description),
 		};
 		LoaderInfoTitleLabel.Text = title;
 		LoaderInfoGlyphLabel.Text = glyph;
 		LoaderInfoDetailLabel.Text = viewModel.LoaderSourceLabel ?? string.Empty;
+		ReconnectButton.IsVisible = wsConnectionLost;
+	}
+
+	/// <summary>
+	/// サーバーから受信したダイヤ情報 (ダイヤ名・説明) を接続情報カードに読み取り専用で
+	/// 反映する。未受信時は両ラベルを非表示にして行を潰す。
+	/// </summary>
+	public void UpdateDiagramInfoLabels()
+	{
+		DiagramInfo? info = viewModel.CurrentDiagramInfo;
+
+		string? name = info?.Name;
+		bool hasName = !string.IsNullOrWhiteSpace(name);
+		DiagramInfoNameLabel.IsVisible = hasName;
+		DiagramInfoNameLabel.Text = hasName ? string.Format(AppResources.Home_DiagramFormat, name) : string.Empty;
+
+		string? description = info?.Description;
+		bool hasDescription = !string.IsNullOrWhiteSpace(description);
+		DiagramInfoDescriptionLabel.IsVisible = hasDescription;
+		DiagramInfoDescriptionLabel.Text = hasDescription ? description ?? string.Empty : string.Empty;
 	}
 
 	// ----- Two-step picker (WorkGroup -> Work) -----
@@ -307,7 +359,7 @@ public partial class HomeGridView : Grid
 				foreach (var wg in groups)
 				{
 					int workCount = GetWorkCountCached(loader, wg.Id);
-					string subtitle = $"Work 数: {workCount}";
+					string subtitle = string.Format(AppResources.Home_WorkCountFormat, workCount);
 					_workGroupItems.Add(new WorkGroupListItem(wg, wg.Name, subtitle));
 				}
 			}
@@ -359,8 +411,8 @@ public partial class HomeGridView : Grid
 
 				List<string> parts = new(2);
 				if (w.AffectDate is { } d)
-					parts.Add($"施行日: {d:yyyy/MM/dd}");
-				parts.Add($"列車数: {trainCount}");
+					parts.Add(string.Format(AppResources.Home_AffectDateFormat, d.ToString("yyyy/MM/dd")));
+				parts.Add(string.Format(AppResources.Home_TrainCountFormat, trainCount));
 				_workItems.Add(new WorkListItem(w, w.Name, string.Join(" · ", parts)));
 			}
 		}
@@ -420,6 +472,15 @@ public partial class HomeGridView : Grid
 			// Work list for the new group.
 			_pendingWork = null;
 			RebuildWorkItems();
+			// Symmetric with the single-WorkGroup auto-select in
+			// TimetableSelectionManager: a Work list with exactly one entry is a
+			// no-choice step, so auto-pick it here too — the user goes straight
+			// to 開く instead of tapping a one-item list. (The committed-state and
+			// single-WG load paths already get the only Work via
+			// TimetableSelectionManager.OnWorkGroupChanged; this covers the
+			// remaining gap: manually picking a WG in the multi-WG picker.)
+			if (_workItems.Count == 1)
+				_pendingWork = _workItems[0].Source;
 			SyncListViewSelections();
 			RefreshStepUi();
 		}
@@ -485,7 +546,7 @@ public partial class HomeGridView : Grid
 		if (pendingWG is null || pendingW is null)
 		{
 			logger.Info("Open ignored: pending selection incomplete (WG={0}, W={1})", pendingWG, pendingW);
-			await Util.DisplayAlertAsync("選択されていません", "Work Group と Work を選択してから「開く」を押してください。", "OK");
+			await Util.DisplayAlertAsync(AppResources.Home_NotSelectedTitle, AppResources.Home_NotSelectedBody, AppResources.Common_OK);
 			return;
 		}
 
@@ -522,7 +583,7 @@ public partial class HomeGridView : Grid
 		if (viewModel.Loader is null)
 			return;
 
-		bool confirm = await Util.DisplayAlertAsync("確認", "現在のデータを閉じますか？", "閉じる", "キャンセル");
+		bool confirm = await Util.DisplayAlertAsync(AppResources.Home_ConfirmTitle, AppResources.Home_ConfirmCloseBody, AppResources.Common_Close, AppResources.Common_Cancel);
 		if (!confirm)
 			return;
 
@@ -539,6 +600,35 @@ public partial class HomeGridView : Grid
 		// Loader change triggers OnViewModelPropertyChanged -> animate back to Start mode.
 	}
 
+	async void OnReconnectClicked(object sender, EventArgs e)
+	{
+		logger.Info("Reconnect clicked");
+		if (viewModel.Loader is not WebSocketNetworkSyncService)
+			return;
+
+		ReconnectButton.IsEnabled = false;
+		ReconnectButton.Text = AppResources.Home_Reconnecting;
+		try
+		{
+			// HandleWebSocketAppLinkAsync (via ReconnectWebSocketAsync) owns user
+			// feedback: on success it resets IsServerConnectionLost (-> this button
+			// hides via the PropertyChanged path) and shows its own "Success!"
+			// alert; on failure it shows its own connection-error alert and the
+			// banner stays so the user can retry.
+			await viewModel.ReconnectWebSocketAsync(CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "OnReconnectClicked failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "HomeGridView.OnReconnectClicked");
+		}
+		finally
+		{
+			ReconnectButton.Text = AppResources.Home_Reconnect;
+			ReconnectButton.IsEnabled = true;
+		}
+	}
+
 	// ----- Navigation -----
 
 	public static async Task NavigateToDTACAsync()
@@ -546,7 +636,15 @@ public partial class HomeGridView : Grid
 		try
 		{
 			logger.Info("Navigating to DTAC page");
+#if ANDROID
+			// MAUI #16927 mitigation: on Android, DTAC is registered as a
+			// relative route (no FlyoutItem) — push it relatively. Going via
+			// "//ViewHost" would expect a Shell-item route, which no longer
+			// exists on this platform. See AppShell.xaml.cs.
+			await Shell.Current.GoToAsync(ViewHost.NameOfThisClass);
+#else
 			await Shell.Current.GoToAsync($"//{ViewHost.NameOfThisClass}");
+#endif
 		}
 		catch (Exception ex)
 		{

@@ -13,19 +13,8 @@ public static class AutomationIds
 		{
 			public const string StartHome = "Shell.Flyout.StartHome";
 			public const string DTAC = "Shell.Flyout.DTAC";
-			public const string ThirdPartyLicenses = "Shell.Flyout.ThirdPartyLicenses";
 			public const string Settings = "Shell.Flyout.Settings";
-			public const string Firebase = "Shell.Flyout.Firebase";
-			public const string PrivacyPolicy = "Shell.Flyout.PrivacyPolicy";
 		}
-	}
-
-	public static class Firebase
-	{
-		public const string Title = "Firebase.Title";
-		public const string AnalyticsSwitch = "Firebase.AnalyticsSwitch";
-		public const string ResetButton = "Firebase.ResetButton";
-		public const string SaveButton = "Firebase.SaveButton";
 	}
 
 	/// <summary>
@@ -66,6 +55,9 @@ public static class AutomationIds
 		public const string WorkChip = "StartHome.WorkChip";
 		public const string OpenButton = "StartHome.OpenButton";
 		public const string DisconnectButton = "StartHome.DisconnectButton";
+		// Shown in the LoaderInfoCard only when a WebSocket loader's connection
+		// dropped (#261). Tapping it re-runs the last WebSocket connect.
+		public const string ReconnectButton = "StartHome.ReconnectButton";
 
 		// UI_TEST-only seed seams.
 		public const string TestSeedButton = "StartHome.TestSeedButton";
@@ -114,6 +106,22 @@ public static class AutomationIds
 		// default a prior LoadSample leaves the page in Home mode and the
 		// LoadDemo button hidden behind the loader-info card.
 		public const string TestClearLoaderButton = "StartHome.TestClearLoaderButton";
+		// Sets a non-connected WebSocketNetworkSyncService as AppViewModel.Loader
+		// and flips IsServerConnectionLost=true, putting Home into the #261
+		// "サーバー未接続 + 再接続" state WITHOUT a real WebSocket server.
+		public const string TestSimulateWebSocketDisconnectButton = "StartHome.TestSimulateWebSocketDisconnectButton";
+		// Switches the UI language to English through the same ViewModel path
+		// the Settings language picker uses (#40). Lets the i18n E2E assert a
+		// {loc:Translate}-bound label flips without driving a native Picker.
+		public const string TestSetLanguageEnglishButton = "StartHome.TestSetLanguageEnglishButton";
+		// Pins the UI language to Japanese so fixtures asserting hard-coded
+		// Japanese strings stay deterministic regardless of CI device locale.
+		public const string TestSetLanguageJapaneseButton = "StartHome.TestSetLanguageJapaneseButton";
+		// Builds a WebSocket-TYPED loader carrying real sample data, commits the
+		// first WG/Work and navigates to DTAC. Lands on DTAC with the AppBar
+		// status indicator in the Connected state (#266) so the indicator's
+		// states can be E2E-verified without a real WebSocket server.
+		public const string TestSimulateWebSocketConnectedButton = "StartHome.TestSimulateWebSocketConnectedButton";
 
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
 		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against
@@ -124,6 +132,21 @@ public static class AutomationIds
 		// tree). The seam handler routes to OnSelectFileClicked so the test
 		// still exercises Navigation.PushModalAsync(SelectFileDialog).
 		public const string TestOpenSelectFileDialogButton = "StartHome.TestOpenSelectFileDialogButton";
+
+		// Screenshot-regression determinism seams. TestFreezeClockButton pins
+		// AppTimeProvider at 09:41:00 (Apple marketing time) so the DTAC
+		// AppBar's live HH:mm:ss clock is pixel-stable across baseline
+		// captures. The two theme buttons force app-wide Light / Dark so a
+		// single shared Appium session can capture both palettes without
+		// depending on the simulator's system appearance.
+		public const string TestFreezeClockButton = "StartHome.TestFreezeClockButton";
+		public const string TestForceLightThemeButton = "StartHome.TestForceLightThemeButton";
+		public const string TestForceDarkThemeButton = "StartHome.TestForceDarkThemeButton";
+		// Inverse of the two above. The screenshot fixture runs at Order(3),
+		// so a frozen clock / forced theme would otherwise leak into the
+		// dozens of later fixtures sharing the assembly-wide iOS session.
+		public const string TestUnfreezeClockButton = "StartHome.TestUnfreezeClockButton";
+		public const string TestResetThemeButton = "StartHome.TestResetThemeButton";
 	}
 
 	public static class PrivacyDialog
@@ -147,6 +170,12 @@ public static class AutomationIds
 		public const string StartEndRunButton = "DTAC.StartEndRunButton";
 		public const string LocationServiceButton = "DTAC.LocationServiceButton";
 		public const string OpenCloseButton = "DTAC.OpenCloseButton";
+
+		// Per-train ハコ row button id (UI_TEST builds only). Append the TrainNumber.
+		public const string HakoRowPrefix = "DTAC.HakoRow.";
+		// Remarks panel toggle button (UI_TEST builds only), distinct from OpenCloseButton
+		// which is the PageHeader's TrainInfo/BeforeDeparture toggle.
+		public const string RemarksOpenCloseButton = "DTAC.RemarksOpenCloseButton";
 		public const string TimetableScrollView = "DTAC.TimetableScrollView";
 		public const string VerticalTimetableView = "DTAC.VerticalTimetableView";
 		public const string NextTrainButton = "DTAC.NextTrainButton";
@@ -165,6 +194,59 @@ public static class AutomationIds
 		// shell navigation triggers ViewHost.OnDisappearing which also unlocks
 		// the orientation.
 		public const string TestNavigateHomeButton = "DTAC.TestNavigateHomeButton";
+
+		// UI_TEST-only state mirrors. The real AppBar TitleLabel / TimeLabel
+		// don't reliably surface on iOS (iOS only exposes a Label in the
+		// accessibility tree when its text is non-empty, and TimeLabel
+		// additionally hides on narrow phones via a width threshold). These
+		// invisible mirror labels are kept always non-empty by sentinel
+		// prefixes (TestSeamTitlePrefix / TestSeamTimePrefix) so they are
+		// always findable. Tests strip the prefix before asserting.
+		public const string TestTitleSeam = "DTAC.TestTitleSeam";
+		public const string TestTimeSeam = "DTAC.TestTimeSeam";
+		public const string TestSeamTitlePrefix = "T:";
+		public const string TestSeamTimePrefix = "C:";
+
+		// UI_TEST-only seam: changes the first non-InfoRow in the current train's
+		// TimetableRows to IsInfoRow=true, then re-sets AppViewModel.SelectedTrainData
+		// with the modified clone. This exercises the WebSocket soft-update code path
+		// (same train ID → ApplyPositionAlignedDiff → PropertyChanged("IsInfoRow") →
+		// UpdateAllComponents) to reproduce the "station-name label stays visible after
+		// IsInfoRow false→true transition" bug.
+		public const string TestSeedIsInfoRowTransitionButton = "DTAC.TestSeedIsInfoRowTransitionButton";
+
+		// AutomationId pattern for timetable row components (set in UI_TEST builds only).
+		// Use string.Format: TimetableRowStationNamePattern.Replace("{0}", rowIndex.ToString())
+		public const string TimetableRowStationNamePattern = "TimetableRow.{0}.StationName";
+		public const string TimetableRowInfoRowPattern = "TimetableRow.{0}.InfoRow";
+
+		// UI_TEST-only seams (#266): mutate the singleton AppViewModel's
+		// WebSocket connection flags so the AppBar status indicator can be
+		// driven through Connected/Disconnected/Reconnecting while on DTAC
+		// (the only page that shows the AppBar) without a real server.
+		public const string TestWsConnectedButton = "DTAC.TestWsConnectedButton";
+		public const string TestWsDisconnectedButton = "DTAC.TestWsDisconnectedButton";
+		public const string TestWsReconnectingButton = "DTAC.TestWsReconnectingButton";
+	}
+
+	/// <summary>
+	/// Shared title bar (TRViS.DTAC.AppBar), shown on the DTAC ViewHost and the
+	/// HorizontalTimetable page.
+	/// </summary>
+	public static class AppBar
+	{
+		// UI_TEST-only invisible mirror Label reflecting AppViewModel.
+		// ServerConnectionStatus (#266). Ellipse/ActivityIndicator don't
+		// reliably surface in the iOS accessibility tree, so the indicator's
+		// state is mirrored here as ConnectionStatusPrefix + enum name (always
+		// non-empty → always findable). Strip the prefix before asserting.
+		public const string ConnectionStatus = "AppBar.ConnectionStatus";
+		public const string ConnectionStatusPrefix = "S:";
+
+		// The real (visible) status indicator. Tappable when Disconnected to
+		// confirm reconnect (#266). Not UI_TEST-gated — it's a real
+		// interactive control.
+		public const string ConnectionStatusButton = "AppBar.ConnectionStatusButton";
 	}
 
 	/// <summary>

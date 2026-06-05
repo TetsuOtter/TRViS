@@ -208,10 +208,14 @@ void OnIsEnabledChanged(bool value)
 	{
 		logger.Debug("NetworkSyncServiceCanStartChanged: {0}", canStart);
 
-		// WebSocket接続時にのみ、CanStartがtrueになったら自動で「運行開始」と「位置情報ON」をする
-		if (canStart && _CurrentService is WebSocketNetworkSyncService)
+		// NetworkSyncService (HTTP / WebSocket) 接続時は、サーバが CanStart=true を
+		// 通知したら自動で「運行開始」=「位置情報ON」にする。サーバ駆動の連携
+		// (TRViS.LocalServers 等) では利用者が手動でトグルする想定がないため。
+		// HTTP も同じ連携形態なので WebSocket と挙動を揃える。
+		// LonLatLocationService (GPS) は NetworkSyncServiceBase ではないので対象外。
+		if (canStart && _CurrentService is NetworkSyncServiceBase)
 		{
-			logger.Info("CanStart is true and WebSocket is being used -> automatically enable location service");
+			logger.Info("CanStart is true on a NetworkSyncService -> automatically enable location service");
 			IsEnabled = true;
 		}
 	}
@@ -341,7 +345,13 @@ void OnIsEnabledChanged(bool value)
 	{
 		logger.Trace("Setting StationLocations...");
 
-		IsEnabled = false;
+		// GPS (LonLat) は駅集合が変わると初回測位からやり直す必要があるため一旦停止する。
+		// サーバ駆動 (NetworkSyncService) は次の同期で新しい駅集合に対して再評価され
+		// (NetworkSyncServiceBase.StaLocationInfo セッタが検出器をリセットする)、
+		// かつ自動 ON は CanStart のエッジトリガなので、ここで IsEnabled を落とすと
+		// 二度と自動 ON されず位置マーカーが固まる。NetworkSyncService では落とさない。
+		if (_CurrentService is not NetworkSyncServiceBase)
+			IsEnabled = false;
 		if (_CurrentService is null)
 		{
 			logger.Debug("_CurrentService is null -> do nothing");
@@ -443,6 +453,17 @@ void OnIsEnabledChanged(bool value)
 		if (currentService is IDisposable disposable)
 			disposable.Dispose();
 
+		// CanStartChanged は値の遷移時にしか発火しない (エッジトリガ)。WebSocket は
+		// SetNetworkSyncService より前に ConnectAsync 済みで、最初の SyncedData
+		// (CanStart false->true) をここで購読する前に受信し得る。その場合 false->true
+		// の遷移が失われ、以後 SyncedData が来ても CanStart は true のまま遷移しないため
+		// 自動 IsEnabled=true が二度と走らない (特にサーバが接続直後に状態を push する
+		// 再接続時に位置情報が disable のまま固定される)。購読完了後に現在の CanStart
+		// レベルを取り込んで補正する。OnNetworkSyncServiceCanStartChanged 側で
+		// WebSocket 限定ガードが掛かっているため HTTP の挙動は変わらない。
+		if (nextService.CanStart)
+			OnNetworkSyncServiceCanStartChanged(nextService, true);
+
 		if (nextService is not WebSocketNetworkSyncService)
 		{
 			CancellationTokenSource nextTokenSource = new();
@@ -450,6 +471,37 @@ void OnIsEnabledChanged(bool value)
 			// バックグラウンドで実行し続ける
 			_ = Task.Run(() => NetworkSyncServiceTask(nextService, nextTokenSource.Token));
 		}
+
+		// 接続確立直後にカレントダイヤ情報を要求する。
+		// WebSocket 以外では基底実装が no-op、応答／ブロードキャストは
+		// DiagramInfoUpdated イベントで通知される。
+		_ = RequestDiagramInfoOnConnectAsync(nextService);
+	}
+
+	async Task RequestDiagramInfoOnConnectAsync(NetworkSyncServiceBase service)
+	{
+		try
+		{
+			await service.RequestDiagramInfoAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Warn(ex, "RequestDiagramInfoAsync failed on connect");
+		}
+	}
+
+	/// <summary>
+	/// 現在使用中の NetworkSyncService にダイヤ情報を要求する。
+	/// NetworkSyncService が使用されていない場合は何もしない。
+	/// 応答は <see cref="DiagramInfoUpdated"/> イベントで通知される。
+	/// </summary>
+	/// <param name="diagramId">取得対象のダイヤID。null でカレントダイヤ。</param>
+	/// <param name="token">キャンセルトークン</param>
+	public Task RequestDiagramInfoAsync(string? diagramId = null, CancellationToken token = default)
+	{
+		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
+			return networkSyncService.RequestDiagramInfoAsync(diagramId, token);
+		return Task.CompletedTask;
 	}
 
 	/// <summary>

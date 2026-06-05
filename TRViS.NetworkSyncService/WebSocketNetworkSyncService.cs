@@ -69,6 +69,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private Task? _ReceiveLoopTask;
 	private volatile bool _isDisconnecting = false;
 
+	// ClientWebSocket は同時に 1 つの SendAsync しか許さない。ID 更新 / 各種 Request
+	// (ServerInfo / DiagramInfo) / 再接続後の再送が fire-and-forget で重なり得るため、
+	// すべての送信をこのセマフォで直列化する。
+	private readonly SemaphoreSlim _sendLock = new(1, 1);
+
 	// 再接続管理用
 	private readonly int _reconnectAttemptMax;  // 最大再接続試行回数
 	private readonly int _reconnectIntervalMs;  // 再接続間隔
@@ -781,6 +786,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 	}
 
+	protected override bool IsCurrentTrainStillTracked()
+	{
+		// RaiseTimetableUpdated は CacheTimetableData の後に呼ばれるため、
+		// All スコープ受信時はここでチェックする時点で既に新ペイロードを反映した
+		// _TrainDataCache になっている。残っていれば「同じ列車が新時刻表にも存在する」
+		// と見なし、駅 index / 走行フラグを維持する。
+		if (string.IsNullOrEmpty(TrainId))
+			return false;
+		return _TrainDataCache.ContainsKey(TrainId);
+	}
+
 	protected override void OnWorkGroupIdChanged(string? value)
 	{
 		logger.Debug("OnWorkGroupIdChanged: {0}", value);
@@ -832,12 +848,20 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			string json = JsonSerializer.Serialize(payload);
 			logger.Debug("SendRequestMessageAsync: Sending request: {0}", json);
 			byte[] bytes = Encoding.UTF8.GetBytes(json);
-			await _WebSocket.SendAsync(
-				new ArraySegment<byte>(bytes),
-				WebSocketMessageType.Text,
-				endOfMessage: true,
-				cancellationToken
-			);
+			await _sendLock.WaitAsync(cancellationToken);
+			try
+			{
+				await _WebSocket.SendAsync(
+					new ArraySegment<byte>(bytes),
+					WebSocketMessageType.Text,
+					endOfMessage: true,
+					cancellationToken
+				);
+			}
+			finally
+			{
+				_sendLock.Release();
+			}
 		}
 		catch (WebSocketException ex)
 		{
@@ -866,12 +890,20 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			string json = JsonSerializer.Serialize(updateMessage);
 			logger.Debug("SendIdUpdateAsync: Sending ID update: {0}", json);
 			byte[] bytes = Encoding.UTF8.GetBytes(json);
-			await _WebSocket.SendAsync(
-				new ArraySegment<byte>(bytes),
-				WebSocketMessageType.Text,
-				endOfMessage: true,
-				CancellationToken.None
-			);
+			await _sendLock.WaitAsync();
+			try
+			{
+				await _WebSocket.SendAsync(
+					new ArraySegment<byte>(bytes),
+					WebSocketMessageType.Text,
+					endOfMessage: true,
+					CancellationToken.None
+				);
+			}
+			finally
+			{
+				_sendLock.Release();
+			}
 		}
 		catch (WebSocketException ex)
 		{
@@ -926,9 +958,36 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		return new List<TrainData>();
 	}
 
+#if UI_TEST
+	/// <summary>
+	/// UI_TEST 専用: 実サーバー無しで、この WebSocket ローダーの ILoader キャッシュを
+	/// 別ローダー (サンプルデータ等) の内容で埋める。AppBar の接続ステータス表示 (#266)
+	/// を DTAC 画面で検証するために、データを持つ "WebSocket 型" のローダーを
+	/// ネットワーク無しで用意する用途。
+	/// </summary>
+	public void SeedCachesFromLoaderForTesting(TRViS.IO.ILoader source)
+	{
+		ArgumentNullException.ThrowIfNull(source);
+		foreach (var wg in source.GetWorkGroupList())
+		{
+			_WorkGroupCache[wg.Id] = wg;
+			var works = source.GetWorkList(wg.Id).ToList();
+			_WorkListCache[wg.Id] = works;
+			foreach (var w in works)
+			{
+				var trains = source.GetTrainDataList(w.Id).ToList();
+				_TrainListByWorkIdCache[w.Id] = trains;
+				foreach (var t in trains)
+					_TrainDataCache[t.Id] = t;
+			}
+		}
+	}
+#endif
+
 	private async Task<int> AttemptReconnectAsync(int reconnectAttempt, CancellationToken cancellationToken)
 	{
 		logger.Info("AttemptReconnectAsync: Starting reconnection attempts (max: {0})", _reconnectAttemptMax);
+		RaiseReconnecting();
 
 		while (reconnectAttempt < _reconnectAttemptMax && !cancellationToken.IsCancellationRequested)
 		{
@@ -958,6 +1017,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				await SendIdUpdateAsync();
 
 				logger.Info("AttemptReconnectAsync: Successfully reconnected on attempt {0}", reconnectAttempt);
+				RaiseReconnected();
 				return reconnectAttempt;  // 再接続成功 (ReceiveLoopAsync がループを再開する)
 			}
 			catch (OperationCanceledException)
@@ -1038,5 +1098,6 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		_ReceiveLoopCts?.Cancel();
 		_ReceiveLoopCts?.Dispose();
 		_WebSocket.Dispose();
+		_sendLock.Dispose();
 	}
 }

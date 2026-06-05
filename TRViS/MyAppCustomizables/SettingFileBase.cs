@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using TRViS.Localization;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -19,9 +20,9 @@ public partial class SettingFileStructure
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	/// <summary>
-	/// タイトルバーの背景色
+	/// タイトルバーの背景色 (既定: #558833)
 	/// </summary>
-	public ColorSetting TitleColor { get; set; } = new();
+	public ColorSetting TitleColor { get; set; } = new(0x55, 0x88, 0x33);
 
 	/// <summary>
 	/// マーカーの色一覧
@@ -65,7 +66,17 @@ public partial class SettingFileStructure
 	/// <summary>
 	/// 横型時刻表ボタンに表示するラベル
 	/// </summary>
-	public HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
+	public HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Train;
+
+	/// <summary>
+	/// PDF 表示に使用する pdf.js のバージョンと描画方式
+	/// </summary>
+	public PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;
+
+	/// <summary>
+	/// UIの表示言語 (System の場合は端末の言語設定に従う)
+	/// </summary>
+	public AppLanguage AppLanguage { get; set; } = AppLanguage.System;
 
 	public override string ToString()
 	{
@@ -78,7 +89,9 @@ public partial class SettingFileStructure
 			+ $"ShowMapWhenLandscape: {ShowMapWhenLandscape},"
 			+ $"KeepScreenOnWhenRunning: {KeepScreenOnWhenRunning},"
 			+ $"TimeProgressionRate: {TimeProgressionRate},"
-			+ $"HorizontalTimetableButtonLabel: {HorizontalTimetableButtonLabel}"
+			+ $"HorizontalTimetableButtonLabel: {HorizontalTimetableButtonLabel},"
+			+ $"PdfJsRenderEngine: {PdfJsRenderEngine},"
+			+ $"AppLanguage: {AppLanguage}"
 		;
 	}
 
@@ -97,6 +110,8 @@ public partial class SettingFileStructure
 			&& KeepScreenOnWhenRunning.Equals(v.KeepScreenOnWhenRunning)
 			&& TimeProgressionRate.Equals(v.TimeProgressionRate)
 			&& HorizontalTimetableButtonLabel.Equals(v.HorizontalTimetableButtonLabel)
+			&& PdfJsRenderEngine.Equals(v.PdfJsRenderEngine)
+			&& AppLanguage.Equals(v.AppLanguage)
 		;
 	}
 
@@ -104,7 +119,7 @@ public partial class SettingFileStructure
 		=> Equals(obj as SettingFileStructure);
 
 	public override int GetHashCode()
-		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, HorizontalTimetableButtonLabel));
+		=> HashCode.Combine(TitleColor, MarkerColors, MarkerTexts, LocationServiceInterval_Seconds, InitialTheme, ShowMapWhenLandscape, KeepScreenOnWhenRunning, HashCode.Combine(TimeProgressionRate, HorizontalTimetableButtonLabel, PdfJsRenderEngine, AppLanguage));
 
 	#region Loaders
 
@@ -142,7 +157,7 @@ public partial class SettingFileStructure
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to load setting file.");
-			return (new(), "設定ファイルの読み込みに失敗しました。" + ex.Message);
+			return (new(), string.Format(AppResources.SettingFile_LoadFailedFormat, ex.Message));
 		}
 	}
 
@@ -159,13 +174,13 @@ public partial class SettingFileStructure
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to load setting file.");
-			return (new(), "設定ファイルの読み込みに失敗しました。" + ex.Message);
+			return (new(), string.Format(AppResources.SettingFile_LoadFailedFormat, ex.Message));
 		}
 
 		if (settingFileStructure is null)
 		{
 			logger.Warn("Failed to load setting file. (result is null)");
-			return (new(), "設定ファイルの読み込みに失敗しました。(結果がnullです)");
+			return (new(), AppResources.SettingFile_LoadFailedNull);
 		}
 
 		return (settingFileStructure, null);
@@ -178,7 +193,7 @@ public partial class SettingFileStructure
 		if (string.IsNullOrWhiteSpace(jsonString))
 		{
 			logger.Warn("Empty JSON string.");
-			return (new(), "JSONファイル文字列が空です");
+			return (new(), AppResources.SettingFile_EmptyJson);
 		}
 
 		try
@@ -190,13 +205,13 @@ public partial class SettingFileStructure
 		catch (Exception ex)
 		{
 			logger.Error(ex, "Failed to load setting file.");
-			return (new(), "設定ファイルの読み込みに失敗しました。" + ex.Message);
+			return (new(), string.Format(AppResources.SettingFile_LoadFailedFormat, ex.Message));
 		}
 
 		if (settingFileStructure is null)
 		{
 			logger.Warn("Failed to load setting file. (result is null)");
-			return (new(), "設定ファイルの読み込みに失敗しました。(結果がnullです)");
+			return (new(), AppResources.SettingFile_LoadFailedNull);
 		}
 
 		return (settingFileStructure, null);

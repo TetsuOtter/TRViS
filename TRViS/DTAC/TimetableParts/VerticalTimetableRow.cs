@@ -264,7 +264,12 @@ public class VerticalTimetableRow : IDisposable
 	private static HtmlAutoDetectLabel CreateStationNameComponent()
 	{
 		var label = DTACElementStyles.TimetableHtmlAutoDetectLabel<HtmlAutoDetectLabel>();
-		label.Margin = new Thickness(0);
+		// A 4-char station name (e.g. "さ新都心") rendered at the fixed timetable
+		// font no longer fits the fixed station-name column width, so it wrapped
+		// and only the first line ("さ新") stayed visible. Neither the font nor
+		// the column width may change, so widen only this label past its cell
+		// with a negative horizontal margin to keep the name on one line.
+		label.Margin = new Thickness(-16, 0);
 		return label;
 	}
 
@@ -361,18 +366,60 @@ public class VerticalTimetableRow : IDisposable
 		}
 
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
+#if UI_TEST
+		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
+#endif
 		InfoRowLabel.Text = Model.InfoText;
+#if UI_TEST
+		// Mirror the id onto the inner Label (set synchronously by the Text
+		// setter) so it surfaces as an Android resource-id; see UpdateStationName.
+		if (InfoRowLabel.Content is Element infoInner)
+			infoInner.AutomationId = InfoRowLabel.AutomationId;
+#endif
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
 		Grid.SetColumnSpan(InfoRowLabel, 6);
 	}
+	private void RemoveNonInfoRowComponents()
+	{
+		RemoveComponent(ref DriveTimeGrid);
+		DriveTimeMMLabel = null;
+		DriveTimeSSLabel = null;
+		RemoveComponent(ref StationNameLabel);
+		RemoveComponent(ref ArrivalTimeCell);
+		if (Brackets is var (open, close))
+		{
+			RemoveComponent(ref open);
+			RemoveComponent(ref close);
+		}
+		Brackets = null;
+		if (OpOnlyStopBrackets is var (opOpen, opClose))
+		{
+			RemoveComponent(ref opOpen);
+			RemoveComponent(ref opClose);
+		}
+		OpOnlyStopBrackets = null;
+		RemoveComponent(ref DepartureTimeCell);
+		RemoveComponent(ref LastStopLineGrid);
+		RemoveComponent(ref TrackNameLabel);
+		RemoveComponent(ref RunInOutLimitGrid);
+		RunInLimitLabel = null;
+		RunOutLimitLabel = null;
+		RemoveComponent(ref RemarksLabel);
+		RemoveComponent(ref MarkerBox);
+		RemoveComponent(ref MarkerTransparentBox);
+		BackgroundBoxView!.Color = Colors.Transparent;
+	}
+
 	private void UpdateAllComponents()
 	{
 		if (Model.IsInfoRow)
 		{
+			RemoveNonInfoRowComponents();
 			UpdateInfoRow();
 		}
 		else
 		{
+			RemoveComponent(ref InfoRowLabel);
 			UpdateDriveTime();
 			UpdateStationName();
 			UpdateArrivalTime();
@@ -408,6 +455,7 @@ public class VerticalTimetableRow : IDisposable
 		SetRowIfAttached(RunInOutLimitGrid);
 		SetRowIfAttached(RemarksLabel);
 		SetRowIfAttached(MarkerBox);
+		SetRowIfAttached(MarkerTransparentBox);
 		SetRowIfAttached(InfoRowLabel);
 	}
 
@@ -448,7 +496,19 @@ public class VerticalTimetableRow : IDisposable
 		}
 
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
+#if UI_TEST
+		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
+#endif
 		label.Text = StationNameConverter.Convert(Model.StationName);
+#if UI_TEST
+		// HtmlAutoDetectLabel is a ContentView whose AutomationId does not surface
+		// as an Android UIAutomator2 resource-id. Its inner Content (set
+		// synchronously by the Text setter above) is a Label subclass, which does
+		// map to a resource-id, so mirror the id onto it. The outer id is kept for
+		// iOS/macOS which find the ContentView wrapper directly.
+		if (label.Content is Element inner)
+			inner.AutomationId = label.AutomationId;
+#endif
 	}
 
 	private void UpdateArrivalTime()

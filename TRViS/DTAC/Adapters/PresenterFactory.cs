@@ -40,7 +40,7 @@ internal static class PresenterFactory
 		rawViewHostViewModel = InstanceManager.DTACViewHostViewModel;
 
 		var appViewModelAdapter = new AppViewModelAdapter(rawAppViewModel);
-		var timeProvider = new TimeProviderAdapter(InstanceManager.LocationService);
+		var timeProvider = new TimeProviderAdapter(InstanceManager.LocationService, InstanceManager.TimeProvider);
 
 		return new ViewHostPresenter(
 			appViewModelAdapter,

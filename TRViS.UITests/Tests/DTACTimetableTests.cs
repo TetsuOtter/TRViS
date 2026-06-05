@@ -1,6 +1,4 @@
 using OpenQA.Selenium;
-using OpenQA.Selenium.Appium.iOS;
-using OpenQA.Selenium.Appium.Mac;
 using TRViS.UITests.Pages;
 
 namespace TRViS.UITests.Tests;
@@ -81,7 +79,7 @@ public class DTACTimetableTests : BaseUITest
 		Assert.That(_startHomePage.IsDisplayed(), Is.True,
 			"StartHome should be displayed at fixture entry.");
 
-		// Phase 1: LoadSample populates WorkGroup list.
+		// Step 1: LoadSample populates WorkGroup list.
 		_startHomePage.LoadSample();
 		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
 		// Sample data ships with 2 WorkGroups. Use >=2 rather than ==2 so
@@ -91,12 +89,12 @@ public class DTACTimetableTests : BaseUITest
 		Assert.That(count, Is.GreaterThanOrEqualTo(2),
 			"LoadSample should produce at least 2 work-group rows.");
 
-		// Phase 2: AutoOpenForTesting commits selection + navigates to DTAC.
+		// Step 2: AutoOpenForTesting commits selection + navigates to DTAC.
 		var dtac = _startHomePage.AutoOpenForTesting();
 		Assert.That(dtac.IsDisplayed(), Is.True,
 			"DTAC view should be displayed after AutoOpenForTesting.");
 
-		// Phase 3: Switch to timetable tab.
+		// Step 3: Switch to timetable tab.
 		dtac.SwitchToTimetableTab();
 		// VerticalTimetableView is a MAUI Grid that isn't reliably exposed
 		// as an accessibility element on iOS. Assert against the
@@ -106,7 +104,7 @@ public class DTACTimetableTests : BaseUITest
 			"TimetableScrollView should be visible after switching to the 時刻表 tab " +
 			"(also the GPS auto-scroll target).");
 
-		// Phase 4: 運行開始 toggle round-trip.
+		// Step 4: 運行開始 toggle round-trip.
 		var startEnd = dtac.StartEndRunButton;
 		Assert.That(startEnd.Displayed, Is.True,
 			"StartEndRunButton should be visible in the timetable tab.");
@@ -125,7 +123,7 @@ public class DTACTimetableTests : BaseUITest
 		Assert.That(dtac.StartEndRunButton.Displayed, Is.True,
 			"StartEndRunButton should still be visible after toggling 運行開始 off (repeated taps OK).");
 
-		// Phase 5: OpenClose toggle round-trip. Last sub-flow so any
+		// Step 5: OpenClose toggle round-trip. Last sub-flow so any
 		// page-header state left behind is reset by the next test's
 		// app-restart.
 		var openClose = dtac.OpenCloseButton;
@@ -187,13 +185,6 @@ public class DTACTimetableTests : BaseUITest
 	[Test]
 	public void NextTrainButton_Hidden_WhenSelectedTrainHasNoNextTrainId()
 	{
-		if (Driver is MacDriver || Driver is IOSDriver)
-			Assert.Ignore(
-				"Apple's accessibility tree (XCUITest / mac2) surfaces unparented " +
-				"elements with AutomationId as visible on some OS versions — we " +
-				"cannot reliably distinguish \"hidden\" from \"displayed\" via Appium " +
-				"here. Coverage on Android and Windows is sufficient for this assertion.");
-
 		var dtac = LoadSampleAndOpenDTAC();
 		dtac.SwitchToTimetableTab();
 

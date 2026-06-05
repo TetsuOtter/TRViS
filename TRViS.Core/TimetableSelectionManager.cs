@@ -105,10 +105,14 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 	private void OnLoaderChanged(ILoader? loader)
 	{
-		// Selection is intentionally cleared rather than auto-picking the first
-		// WorkGroup. The Home page presents a tentative-selection picker; the
-		// committed selection on this manager only changes when the user presses
-		// "Open" (StartHomePage) or via Refresh() (websocket flows).
+		// When there is a *real* choice (2+ WorkGroups) selection is intentionally
+		// cleared rather than auto-picking the first one: the Home page presents a
+		// tentative-selection picker and the committed selection only changes when
+		// the user presses "Open" (StartHomePage) or via Refresh() (websocket flows).
+		// This was the #224 contract. The single-WorkGroup case below is a scoped
+		// re-introduction of the pre-#224 auto-pick: a one-item picker is pure
+		// friction, so commit it straight away (the cascade then picks the first
+		// Work and Train, so the timetable is ready without any user taps).
 		_selectedWorkGroup = null;
 		_selectedWork = null;
 		_selectedTrainData = null;
@@ -118,7 +122,50 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		RaisePropertyChanged(nameof(SelectedWork));
 		RaisePropertyChanged(nameof(SelectedTrainData));
 		WorkGroupList = loader?.GetWorkGroupList();
-		// (intentional: no SelectedWorkGroup auto-pick — see comment above)
+
+		TryAutoSelectSingleWorkGroup();
+	}
+
+	/// <summary>
+	/// Single-WorkGroup convenience auto-pick (scoped re-introduction of the
+	/// pre-#224 behavior): a one-item picker is pure friction, so commit it
+	/// straight away and let the cascade pick the first Work and Train.
+	/// A genuine multi-WorkGroup choice is left to the Home picker (stays null).
+	///
+	/// Shared by <see cref="OnLoaderChanged"/> and <see cref="Refresh"/>:
+	/// synchronous loaders have the WorkGroup list ready at load time, but
+	/// async loaders (WebSocket) only populate it later via a server push,
+	/// so OnLoaderChanged sees an empty list and Refresh must retry once the
+	/// data arrives — otherwise a single-WorkGroup WebSocket connection is
+	/// never auto-selected.
+	///
+	/// Auto-select is a convenience, never a load requirement. Committing the
+	/// WorkGroup cascades into loader.GetWorkList / GetTrainDataList; on a
+	/// malformed or partial source those throw, and a cascade failure must
+	/// roll back to the "WorkGroup picker" state, not fail the whole load.
+	/// </summary>
+	private void TryAutoSelectSingleWorkGroup()
+	{
+		if (_selectedWorkGroup is not null)
+			return;
+		if (WorkGroupList?.Count != 1)
+			return;
+
+		try
+		{
+			SelectedWorkGroup = WorkGroupList[0];
+		}
+		catch
+		{
+			_selectedWorkGroup = null;
+			_selectedWork = null;
+			_selectedTrainData = null;
+			WorkList = null;
+			OrderedTrainDataList = null;
+			RaisePropertyChanged(nameof(SelectedWorkGroup));
+			RaisePropertyChanged(nameof(SelectedWork));
+			RaisePropertyChanged(nameof(SelectedTrainData));
+		}
 	}
 
 	/// <summary>
@@ -236,13 +283,19 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		var newWorkGroupList = _loader.GetWorkGroupList();
 		WorkGroupList = newWorkGroupList;
 
-		// No prior commit: keep selection null. The Home picker is the source of
-		// truth for tentative state; we must not yank the user into a forced commit
-		// just because new list data arrived (would make the "no default selection"
-		// rule inconsistent across loader types — websocket pushes would still pick
-		// a default).
+		// No prior commit: keep selection null so the Home picker stays the source
+		// of truth for a *genuine* (multi-WorkGroup) choice. The single-WorkGroup
+		// case is the exception — it is auto-committed at load time, but async
+		// loaders (WebSocket) only deliver the WorkGroup list via a later server
+		// push, so OnLoaderChanged saw an empty list. Retry the single-WorkGroup
+		// auto-pick here now that the data has arrived; multi-WorkGroup still
+		// stays null (picker owns it).
 		if (_selectedWorkGroup is null)
-			return;
+		{
+			TryAutoSelectSingleWorkGroup();
+			if (_selectedWorkGroup is null)
+				return;
+		}
 
 		string? prevWorkGroupId = _selectedWorkGroup.Id;
 		var matchedWorkGroup = newWorkGroupList.FirstOrDefault(wg => wg.Id == prevWorkGroupId);

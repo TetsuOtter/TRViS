@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 using TRViS.DTAC;
 using TRViS.FirebaseWrapper;
+using TRViS.Localization;
 using TRViS.RootPages;
 using TRViS.Services;
 using TRViS.Utils;
@@ -40,10 +41,30 @@ public partial class AppShell : Shell
 
 		InitializeComponent();
 
+#if ANDROID
+		// MAUI #16927 mitigation: hosting DTAC as a cached ShellContent causes a
+		// render-tree blank after navigation away. Remove the FlyoutItem, then
+		// register ViewHost as a relative push route.
+		// RegisterRoute MUST come after Items.Remove: AppShell.xaml's
+		// FlyoutDTAC has Route="ViewHost", so InitializeComponent registers that
+		// name into the Shell routing table. Items.Remove then un-registers it.
+		// A RegisterRoute call placed before InitializeComponent would be silently
+		// overridden by the XAML and then erased by Items.Remove.
+		Items.Remove(FlyoutDTAC);
+		Routing.RegisterRoute(TRViS.DTAC.ViewHost.NameOfThisClass, typeof(TRViS.DTAC.ViewHost));
+#endif
+
+		// Flyout/MenuItem Title binding refresh is unreliable in MAUI Shell, so
+		// set them imperatively now and again whenever the UI language changes.
+		ApplyLocalization();
+		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
+			MainThread.BeginInvokeOnMainThread(ApplyLocalization);
+
 		// Always launch into the Start/Home page. The Start screen handles the
-		// privacy-policy-not-accepted case via an in-page banner + modal dialog,
-		// so the dedicated FirebaseSettingPage is no longer the launch destination
-		// (it remains accessible from the flyout for re-entry).
+		// privacy-policy-not-accepted case via an in-page banner + modal dialog
+		// (PrivacyPolicyDialog), which also hosts the Firebase analytics opt-in.
+		// The dedicated FirebaseSettingPage / Privacy / TPL flyout entries were
+		// removed since Home now covers all three.
 		// Fire-and-forget: the Shell ctor cannot be async; we discard the Task and
 		// log via continuation so a navigation failure doesn't vanish.
 		_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
@@ -61,8 +82,8 @@ public partial class AppShell : Shell
 		// Privacy gating now happens at the *button* level inside StartHomePage
 		// (Connect/SelectFile/Demo are disabled until accepted) and at Firebase
 		// analytics opt-in, not at the Shell navigation level. Letting users tap
-		// through to ThirdPartyLicenses / Settings / D-TAC before accepting is
-		// acceptable: D-TAC has no committed selection so it shows nothing.
+		// through to Settings / D-TAC before accepting is acceptable: D-TAC has
+		// no committed selection so it shows nothing.
 		FlyoutIcon = FlyoutIconImage;
 		FlyoutBehavior = FlyoutBehavior.Flyout;
 
@@ -103,6 +124,19 @@ public partial class AppShell : Shell
 #endif
 
 		logger.Trace("AppShell Created");
+	}
+
+	/// <summary>
+	/// Flyout / MenuItem のタイトルを現在の言語で再設定する。"D-TAC" は
+	/// ブランド名のため翻訳しない。
+	/// </summary>
+	void ApplyLocalization()
+	{
+		// Firebase/Privacy/TPL のサイドバー項目は main 側のリファクタ
+		// (7ece849) で削除済みのため、現存する Home / Settings のみ再設定する。
+		FlyoutStartHome.Title = AppResources.Shell_Home;
+		FlyoutSettings.Title = AppResources.Shell_Settings;
+		MenuPrivacyPolicyOnline.Text = AppResources.Shell_PrivacyPolicyOnline;
 	}
 
 	/// <summary>

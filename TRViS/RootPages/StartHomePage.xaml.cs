@@ -1,4 +1,5 @@
 using TRViS.IO;
+using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -92,6 +93,10 @@ public partial class StartHomePage : ContentPage
 	const double HOME_HEADER_ROW_HEIGHT_LARGE_BASE = 208.0;
 	const double FOOTER_ROW_HEIGHT_BASE = 36.0;
 	const double LOADER_INFO_ROW_HEIGHT_BASE = 60.0;
+	// ダイヤ情報 (ダイヤ名・説明) を受信すると LoaderInfoCard は 4 行 (種別 / ソース /
+	// ダイヤ名 / 説明) になり 60pt では潰れる。受信後はこの拡張高さに切り替える。
+	// 未受信時は従来どおりコンパクトな 60pt 行のまま。
+	const double LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM_BASE = 104.0;
 	const double HOME_BUTTONS_ROW_HEIGHT_BASE = 44.0;
 	const double START_BODY_ROW_HEIGHT_FULL_BASE = 280.0;
 	const double START_BODY_ROW_HEIGHT_COMPACT_BASE = 200.0;
@@ -105,6 +110,7 @@ public partial class StartHomePage : ContentPage
 	static readonly double HOME_HEADER_ROW_HEIGHT_LARGE = HOME_HEADER_ROW_HEIGHT_LARGE_BASE * _fontScale;
 	static readonly double FOOTER_ROW_HEIGHT = FOOTER_ROW_HEIGHT_BASE * _fontScale;
 	static readonly double LOADER_INFO_ROW_HEIGHT = LOADER_INFO_ROW_HEIGHT_BASE * _fontScale;
+	static readonly double LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM = LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM_BASE * _fontScale;
 	static readonly double HOME_BUTTONS_ROW_HEIGHT = HOME_BUTTONS_ROW_HEIGHT_BASE * _fontScale;
 	static readonly double START_BODY_ROW_HEIGHT_FULL = START_BODY_ROW_HEIGHT_FULL_BASE * _fontScale;
 	static readonly double START_BODY_ROW_HEIGHT_COMPACT = START_BODY_ROW_HEIGHT_COMPACT_BASE * _fontScale;
@@ -216,6 +222,10 @@ public partial class StartHomePage : ContentPage
 
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
+		AddTestSimulateWebSocketDisconnectSeam();
+		AddTestSetLanguageEnglishSeam();
+		AddTestSetLanguageJapaneseSeam();
+		AddTestSimulateWebSocketConnectedSeam();
 #endif
 
 		logger.Trace("Created");
@@ -250,6 +260,13 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Debug("Loader changed -> evaluate page mode");
 			_ = ApplyModeForCurrentLoaderAsync();
+		}
+		else if (propertyName == nameof(AppViewModel.CurrentDiagramInfo))
+		{
+			// Diagram info just arrived/cleared; HomeGrid above already settled the
+			// label IsVisible flags. Now grow/shrink the LoaderInfoCard band so the
+			// (now visible) ダイヤ名・説明 lines aren't squeezed into the 60pt row.
+			RefreshLoaderInfoRowHeight();
 		}
 	}
 
@@ -442,6 +459,18 @@ public partial class StartHomePage : ContentPage
 	double EffectiveHomeHeaderRowHeight() =>
 		(Height > 0 && Height <= HOME_SMALL_HEIGHT_THRESHOLD) ? HOME_HEADER_ROW_HEIGHT : HOME_HEADER_ROW_HEIGHT_LARGE;
 
+	// LoaderInfoCard 行の実効高さ。サーバーからダイヤ情報 (名称/説明) を受信して
+	// いる間はカードが 4 行に増えるため拡張高さ、未受信時は従来の 60pt 行。
+	// PortraitHomeRows[1] / PortraitHomeRowsBg[1] / LandscapePhoneRows[3] と
+	// TransitionToAsync の Row3 アニメ目標値がすべてこの一点を参照することで、
+	// 接続済みのまま回転・モード遷移しても拡張高さが維持される。
+	// InstanceManager.AppViewModel を直接読むのは、コンストラクタで viewModel
+	// 代入より前に UpdateGridRowDefinitions が呼ばれるため (その時点では未受信)。
+	double EffectiveLoaderInfoRowHeight() =>
+		DiagramInfo.HasDisplayableContent(InstanceManager.AppViewModel.CurrentDiagramInfo)
+			? LOADER_INFO_ROW_HEIGHT_WITH_DIAGRAM
+			: LOADER_INFO_ROW_HEIGHT;
+
 	/// <summary>
 	/// When in Home mode on a small screen (≤ HOME_SMALL_HEIGHT_THRESHOLD), shrinks
 	/// the AppHeader to a compact icon-only band so the WorkGroup/Work list has
@@ -584,21 +613,52 @@ public partial class StartHomePage : ContentPage
 			// Home-only), so collapse it and give the Star row that extra space.
 			LandscapePhoneRows[3].Height = mode == PageMode.Start
 				? new GridLength(0)
-				: new GridLength(LOADER_INFO_ROW_HEIGHT);
+				: new GridLength(EffectiveLoaderInfoRowHeight());
 			BackgroundGrid.RowDefinitions = LandscapePhoneRows;
 			StartGrid.RowDefinitions = LandscapePhoneRows;
 			HomeGrid.RowDefinitions = LandscapePhoneRows;
 			return;
 		}
 		double headerHeight = EffectiveHomeHeaderRowHeight();
+		double loaderInfoHeight = EffectiveLoaderInfoRowHeight();
 		PortraitStartRowsBg[0].Height = GridLength.Star;
 		// Both body-grid and BG-grid Home row 0 must match so AppHeader's row
 		// stays in sync with the body grids (which depend on the same scheme).
 		PortraitHomeRows[0].Height = new GridLength(headerHeight);
 		PortraitHomeRowsBg[0].Height = new GridLength(headerHeight);
+		// Same alignment rule for Row 1: the LoaderInfoCard band grows when
+		// diagram info is received, so keep body-grid and BG-grid in lockstep.
+		PortraitHomeRows[1].Height = new GridLength(loaderInfoHeight);
+		PortraitHomeRowsBg[1].Height = new GridLength(loaderInfoHeight);
 		StartGrid.RowDefinitions = PortraitStartRows;
 		HomeGrid.RowDefinitions = PortraitHomeRows;
 		BackgroundGrid.RowDefinitions = mode == PageMode.Start ? PortraitStartRowsBg : PortraitHomeRowsBg;
+	}
+
+	/// <summary>
+	/// Snaps just the LoaderInfoCard row to its effective height when diagram
+	/// info is received/cleared while the page is already laid out. Deliberately
+	/// does NOT call UpdateGridRowDefinitions: that also resets Row 0 / reassigns
+	/// the BackgroundGrid scheme, which would fight an in-flight Start↔Home
+	/// transition animation. Mutating the shared collection's row height alone
+	/// invalidates layout and keeps body grid + BackgroundGrid aligned (portrait
+	/// uses the paired *Home/*HomeBg collections; landscape shares one instance).
+	/// </summary>
+	void RefreshLoaderInfoRowHeight()
+	{
+		double h = EffectiveLoaderInfoRowHeight();
+		if (_isLandscapePhone)
+		{
+			// Start mode collapses Row 3 to 0 (LoaderInfoCard is Home-only); leave
+			// it alone so we don't reveal the card behind the Start layout.
+			if (_currentMode != PageMode.Start)
+				LandscapePhoneRows[3].Height = new GridLength(h);
+		}
+		else
+		{
+			PortraitHomeRows[1].Height = new GridLength(h);
+			PortraitHomeRowsBg[1].Height = new GridLength(h);
+		}
 	}
 
 	protected override async void OnAppearing()
@@ -609,6 +669,8 @@ public partial class StartHomePage : ContentPage
 		// unsubscribe — avoids accumulating handlers if Shell recreates the page.
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 		viewModel.PropertyChanged += OnViewModelPropertyChanged;
+		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
+		viewModel.AutoNavigateToTimetableRequested += OnAutoNavigateToTimetableRequested;
 
 		UpdatePrivacyDependentControls();
 
@@ -627,12 +689,46 @@ public partial class StartHomePage : ContentPage
 		// here. The user opens files explicitly via the "ファイルを選択" button
 		// (SelectFileDialog) or via a `trvis://app/open/json?local=…` AppLink.
 		await ApplyModeForCurrentLoaderAsync();
+
+		// A server-driven load that fired while the ConnectServerDialog modal was
+		// still up could not navigate then; this OnAppearing (after the modal
+		// popped and revealed us) is where that deferred jump finally runs.
+		await TryConsumeAutoNavigateAsync();
 	}
 
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
+	}
+
+	// The pending intent is latched on AppViewModel (not a field here): a
+	// cold-start deeplink can raise it before this page subscribes, so the
+	// subscriber must not own the state. We consume it on the live event (warm
+	// path: already subscribed → immediate) AND on every OnAppearing (cold-start
+	// race, and the ConnectServerDialog-modal path where the event fires while
+	// the dialog is still up). Fail-safe: if nothing consumes it the user just
+	// stays on Home — no crash.
+	void OnAutoNavigateToTimetableRequested(object? sender, EventArgs e)
+	{
+		// Hop to the UI thread (the event may be raised from an off-thread WS
+		// callback) and try now; if a modal is still up this no-ops and the
+		// latched flag is consumed by the next OnAppearing instead.
+		MainThread.BeginInvokeOnMainThread(async () => await TryConsumeAutoNavigateAsync());
+	}
+
+	async Task TryConsumeAutoNavigateAsync()
+	{
+		if (!viewModel.AutoNavigateToTimetablePending)
+			return;
+		// Don't navigate while a modal (e.g. ConnectServerDialog) is still on the
+		// stack — Shell.GoToAsync underneath a modal is ill-defined. Leave the
+		// flag latched; OnAppearing retries once the modal pops and reveals us.
+		if ((Shell.Current?.Navigation?.ModalStack?.Count ?? 0) > 0)
+			return;
+		viewModel.ConsumeAutoNavigateToTimetablePending();
+		await HomeGridView.NavigateToDTACAsync();
 	}
 
 	void UpdatePrivacyDependentControls()
@@ -751,7 +847,7 @@ public partial class StartHomePage : ContentPage
 		if (landscapePhone)
 		{
 			fromRow3 = LandscapePhoneRows[3].Height.Value;
-			toRow3 = target == PageMode.Home ? LOADER_INFO_ROW_HEIGHT : 0;
+			toRow3 = target == PageMode.Home ? EffectiveLoaderInfoRowHeight() : 0;
 			animateRow3 = Math.Abs(fromRow3 - toRow3) > 0.5;
 		}
 
@@ -965,6 +1061,13 @@ public partial class StartHomePage : ContentPage
 		for (int i = 0; i < 12; i++)
 			host.RowDefinitions.Add(new RowDefinition { Height = 24 });
 		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
+		// Second 24px column for the screenshot-regression seams. A second
+		// COLUMN (not extra rows) keeps these buttons inside the proven-visible
+		// top-left y=[0,72] band — the documented seam-column ceiling (y=336)
+		// and the iPhone XAML-row-growth hang both only bite when the single
+		// column is extended DOWNWARD; widening it sideways into the still-empty
+		// top-left corner is safe on every device.
+		host.ColumnDefinitions.Add(new ColumnDefinition { Width = 24 });
 		Grid.SetRow(host, 0);
 
 		// AutomationIds are part of the contract with TRViS.UITests/AutomationIds.cs.
@@ -987,6 +1090,25 @@ public partial class StartHomePage : ContentPage
 		// share a single Appium session and need each test to start from a
 		// "no loader" state.
 		AddSeamButton(host, 11, "StartHome.TestClearLoaderButton", TestClearLoaderButton_Clicked);
+
+		// Screenshot-regression determinism seams, placed in the second 24px
+		// column (rows 0..2) so they never collide with the row-indexed seams
+		// above. TestFreezeClockButton pins AppTimeProvider to 09:41:00 (Apple
+		// marketing time) so the DTAC AppBar's live HH:mm:ss clock is
+		// pixel-stable; the two theme buttons force app-wide Light / Dark so a
+		// single Appium session can capture both palettes deterministically
+		// without depending on the simulator's system appearance.
+		AddSeamButton(host, 0, 1, "StartHome.TestFreezeClockButton", TestFreezeClockButton_Clicked);
+		AddSeamButton(host, 1, 1, "StartHome.TestForceLightThemeButton", TestForceLightThemeButton_Clicked);
+		AddSeamButton(host, 2, 1, "StartHome.TestForceDarkThemeButton", TestForceDarkThemeButton_Clicked);
+		// Rows 3..4 of the same second column: inverses of the freeze/force
+		// seams above. The screenshot fixture runs at Order(3); without these
+		// the frozen clock and forced theme leak into the dozens of later
+		// fixtures sharing the assembly-wide iOS session. Rows 3..4 stay well
+		// inside the y=336 seam-column ceiling (column 0 already proves rows
+		// 0..11 tappable).
+		AddSeamButton(host, 3, 1, "StartHome.TestUnfreezeClockButton", TestUnfreezeClockButton_Clicked);
+		AddSeamButton(host, 4, 1, "StartHome.TestResetThemeButton", TestResetThemeButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1041,7 +1163,250 @@ public partial class StartHomePage : ContentPage
 	// test project. Inlined here to avoid a project reference.
 	private const string AutomationIdValueForTestOpenSelectFileDialog = "StartHome.TestOpenSelectFileDialogButton";
 
+	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton.
+	private const string AutomationIdValueForTestSimulateWsDisconnect = "StartHome.TestSimulateWebSocketDisconnectButton";
+
+	// Mirrors AutomationIds.StartHome.TestSetLanguageEnglishButton.
+	private const string AutomationIdValueForTestSetLanguageEnglish = "StartHome.TestSetLanguageEnglishButton";
+
+	// Mirrors AutomationIds.StartHome.TestSetLanguageJapaneseButton.
+	private const string AutomationIdValueForTestSetLanguageJapanese = "StartHome.TestSetLanguageJapaneseButton";
+
+	// UI_TEST-only seam: same standalone-code-behind pattern as
+	// AddTestOpenSelectFileDialogSeam (kept out of TestSeamHost's 12-row Grid
+	// for the documented iPhone layout-row-growth reason). Margin y = 312 sits
+	// directly below the SelectFile seam (which occupies y=[288,312]), keeping
+	// the seam column contiguous in the top-left corner.
+	//
+	// SEAM-COLUMN CEILING: y=336 is the bottom of the usable column. A further
+	// standalone seam at y=[336,360] was attempted in PR #271 and its tap was
+	// silently swallowed on iOS/Mac (element findable but hit-testing did not
+	// dispatch Clicked — overlapped by Start-mode content at that offset),
+	// while a 13th TestSeamHost row regresses Android and risks the iPhone
+	// hang above. If another seam is needed, rework the column (e.g. a
+	// horizontal second column / off-corner host) rather than extending down.
+	private void AddTestSimulateWebSocketDisconnectSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSimulateWsDisconnect,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSimulateWebSocketDisconnectButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketConnectedButton.
+	private const string AutomationIdValueForTestSimulateWsConnected = "StartHome.TestSimulateWebSocketConnectedButton";
+
+	// UI_TEST-only seam (#266): builds a WebSocket-TYPED loader carrying real
+	// sample data (so the picker/commit/DTAC nav path works without a server),
+	// commits the first WG/Work and navigates to DTAC. On DTAC the AppBar status
+	// indicator is shown; status is Connected (Loader is WS, not lost, not
+	// reconnecting). The DTAC-side seams then drive it to Disconnected /
+	// Reconnecting.
+	//
+	// Placed in a PARALLEL second column (Margin left = 30), NOT stacked below
+	// the WS-disconnect seam: continuing the single column past y=312 rendered
+	// at y≈414 on iPhone, which is below the visible cutoff (XCUITest reports
+	// visible="false" → Appium's tap silently no-ops → handler never runs →
+	// test timed out waiting for DTAC). iPad (taller) showed it, so only
+	// ui-test-ios (iphone) failed. Re-using the WS-disconnect seam's
+	// proven-visible y (=312) in a 24px-clear second column keeps it tappable
+	// on every device. The first column is 24px wide at x≈base; left margin 30
+	// clears it.
+	private void AddTestSimulateWebSocketConnectedSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSimulateWsConnected,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(30, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSimulateWebSocketConnectedButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	// Drives Home into the #261 "サーバー未接続 + 再接続" state without a real
+	// server: a WebSocketNetworkSyncService constructed but never connected is a
+	// valid (empty) ILoader, so SetLoader flips the page to Home mode showing
+	// "サーバー接続中", then IsServerConnectionLost=true swaps it to the
+	// disconnected status + reveals the 再接続 button. No _lastWebSocketAppLinkInfo
+	// is stored, so a subsequent 再接続 tap is a deterministic no-op
+	// (ReconnectWebSocketAsync returns false) — keeps the test network-free.
+	void TestSimulateWebSocketDisconnectButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSimulateWebSocketDisconnectButton clicked: simulating WS connection-lost state");
+		try
+		{
+			var service = new WebSocketNetworkSyncService(
+				new Uri("ws://uitest.invalid/"),
+				new System.Net.WebSockets.ClientWebSocket());
+			var previous = viewModel.Loader;
+			viewModel.SetLoader(service, "ws://uitest.invalid/");
+			previous?.Dispose();
+			viewModel.IsServerConnectionLost = true;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSimulateWebSocketDisconnectButton failed");
+		}
+	}
+
+	// UI_TEST-only seam. Sets the UI language to English through the same
+	// ViewModel path the Settings picker uses, so the E2E can assert a
+	// {loc:Translate}-bound label (StartHome.ConnectServerButton) flips
+	// without driving a native Picker.
+	//
+	// PARALLEL-COLUMN PLACEMENT (not the single y-stacked column): the
+	// previous y=336 stacking rendered at screen y≈414 on the shorter iPhone
+	// viewport, where XCUITest reports visible="false", so Appium's .Click()
+	// silently no-ops and the handler never fires. Proven by the failing-run
+	// LanguageSettingsTests.SwitchToEnglish iPhone page-source (this seam at
+	// y=414 visible="false"; ConnectServerButton stayed "サーバーから読み込み"
+	// with no exception) — iPad's taller screen hid the bug, which is why
+	// only the iphone job failed. Reuses y=288, already proven visible on
+	// iPhone in this very page-source (SelectFile seam at screen y=366
+	// visible="true"), in the second clear seam column (left=30, the same
+	// proven-visible band the WS-Connected seam uses) — exactly the "rework
+	// the column rather than extending down" guidance above.
+	private void AddTestSetLanguageEnglishSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSetLanguageEnglish,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(30, 288, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSetLanguageEnglishButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	void TestSetLanguageEnglishButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSetLanguageEnglishButton clicked: switching UI language to English");
+		try
+		{
+			InstanceManager.EasterEggPageViewModel.SelectedAppLanguage
+				= TRViS.MyAppCustomizables.AppLanguage.English;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSetLanguageEnglishButton failed");
+		}
+	}
+
+	// Pins the UI language to Japanese so fixtures that assert hard-coded
+	// Japanese strings (e.g. WebSocketReconnectTests' "サーバー未接続") stay
+	// deterministic regardless of the CI device locale — those strings are now
+	// resolved from resx and would otherwise depend on CurrentUICulture. Also
+	// driven by ScreenshotRegressionTests on iPhone (the */ja cases), so it
+	// must be tappable there too.
+	//
+	// Same off-screen-iPhone defect/fix as AddTestSetLanguageEnglishSeam: the
+	// old y=360 single-column slot rendered at screen y≈438 (visible="false")
+	// on iPhone, no-opping the tap. Placed in a third clear seam column
+	// (left=60) at the proven-visible y=288 row. left=60 keeps the 24px-wide
+	// seam's center (screen x≈131) left of the AppHeader (screen x≈136), and
+	// the seam is added to RootGrid after InitializeComponent so it draws
+	// above the header regardless.
+	private void AddTestSetLanguageJapaneseSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSetLanguageJapanese,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(60, 288, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSetLanguageJapaneseButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	void TestSetLanguageJapaneseButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSetLanguageJapaneseButton clicked: switching UI language to Japanese");
+		try
+		{
+			InstanceManager.EasterEggPageViewModel.SelectedAppLanguage
+				= TRViS.MyAppCustomizables.AppLanguage.Japanese;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSetLanguageJapaneseButton failed");
+		}
+	}
+
+	async void TestSimulateWebSocketConnectedButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSimulateWebSocketConnectedButton clicked: WS-typed loader (sample data) -> DTAC");
+		try
+		{
+			var sample = await SampleDataLoader.CreateAsync();
+			var service = new WebSocketNetworkSyncService(
+				new Uri("ws://uitest.invalid/"),
+				new System.Net.WebSockets.ClientWebSocket());
+			service.SeedCachesFromLoaderForTesting(sample);
+			sample.Dispose();
+
+			var previous = viewModel.Loader;
+			viewModel.SetLoader(service, "ws://uitest.invalid/");
+			previous?.Dispose();
+
+			var firstGroup = viewModel.WorkGroupList?.FirstOrDefault();
+			if (firstGroup is null)
+			{
+				logger.Warn("TestSimulateWebSocketConnected: no WorkGroup in sample data — ignoring");
+				return;
+			}
+			var firstWork = service.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+			if (firstWork is null)
+			{
+				logger.Warn("TestSimulateWebSocketConnected: first WorkGroup has no Work — aborting");
+				return;
+			}
+
+			HomeGrid.CommitPendingSelection(firstGroup, firstWork);
+			await HomeGridView.NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSimulateWebSocketConnectedButton failed");
+		}
+	}
+
 	static void AddSeamButton(Grid host, int row, string automationId, EventHandler clicked)
+		=> AddSeamButton(host, row, 0, automationId, clicked);
+
+	static void AddSeamButton(Grid host, int row, int column, string automationId, EventHandler clicked)
 	{
 		var button = new Button
 		{
@@ -1053,6 +1418,7 @@ public partial class StartHomePage : ContentPage
 		};
 		button.Clicked += clicked;
 		Grid.SetRow(button, row);
+		Grid.SetColumn(button, column);
 		host.Children.Add(button);
 	}
 
@@ -1330,6 +1696,50 @@ public partial class StartHomePage : ContentPage
 		{
 			logger.Error(ex, "TestClearLoaderButton failed");
 		}
+	}
+
+	void TestFreezeClockButton_Clicked(object? sender, EventArgs e)
+	{
+		// 09:41:00 = Apple's marketing time (9*3600 + 41*60 = 34860s since
+		// midnight). Pinning AppTimeProvider here makes the DTAC AppBar's live
+		// HH:mm:ss clock pixel-deterministic for screenshot baselines. The
+		// LocationService 100 ms poll converges the visible label within one
+		// tick because the frozen value differs from the last-raised real value.
+		logger.Info("TestFreezeClockButton clicked: freezing AppTimeProvider at 09:41:00");
+		AppTimeProvider.UiTestFrozenSeconds = 34860;
+	}
+
+	void TestForceLightThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestForceLightThemeButton clicked: forcing app-wide Light theme");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Light;
+	}
+
+	void TestForceDarkThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestForceDarkThemeButton clicked: forcing app-wide Dark theme");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Dark;
+	}
+
+	void TestUnfreezeClockButton_Clicked(object? sender, EventArgs e)
+	{
+		// Exact inverse of TestFreezeClockButton: null = AppTimeProvider
+		// follows the real clock again. Prevents 09:41:00 leaking into the
+		// later fixtures that share this assembly-wide iOS session.
+		logger.Info("TestUnfreezeClockButton clicked: unfreezing AppTimeProvider");
+		AppTimeProvider.UiTestFrozenSeconds = null;
+	}
+
+	void TestResetThemeButton_Clicked(object? sender, EventArgs e)
+	{
+		// Exact inverse of the two force-theme seams (which set only
+		// UserAppTheme). Unspecified = follow the OS appearance again, so a
+		// forced Light/Dark palette does not leak into later fixtures.
+		logger.Info("TestResetThemeButton clicked: resetting app-wide theme to Unspecified");
+		if (Application.Current is Application app)
+			app.UserAppTheme = AppTheme.Unspecified;
 	}
 
 	void TestOpenSelectFileDialogButton_Clicked(object? sender, EventArgs e)

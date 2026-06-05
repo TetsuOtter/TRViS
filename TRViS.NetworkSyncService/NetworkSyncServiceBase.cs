@@ -55,10 +55,54 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 			if (_staLocationInfo == value)
 				return;
 
+			// 旧 current 駅を控えておく (新配列で対応駅を Location_m で探すため)。
+			StaLocationInfo? oldCurrentStation = null;
+			if (_staLocationInfo is not null
+				&& CurrentStationIndex >= 0
+				&& CurrentStationIndex < _staLocationInfo.Length)
+			{
+				oldCurrentStation = _staLocationInfo[CurrentStationIndex];
+			}
+			int oldIndex = CurrentStationIndex;
+			bool oldRunning = IsRunningToNextStation;
+
 			_staLocationInfo = value;
 			_lonLatStationDetector.SetStationLocations(value);
-			ResetLocationInfo();
+
+			// #245: 「現在の位置情報サービスの状態をもとに、更新後の駅 index を計算する」
+			// 旧 current 駅が新配列にも存在するならその index に追従させ、走行フラグを引き継ぐ。
+			// (= 「前の駅が削除された」「後の駅が追加された」等の編集で index がずれたケース)
+			// 存在しなければ駅自体が削除されたものとみなしてリセットする。
+			int newIndex = FindStationIndexByLocation_m(value, oldCurrentStation);
+			if (newIndex < 0)
+			{
+				ResetLocationInfo();
+				return;
+			}
+			if (newIndex == oldIndex && oldRunning == IsRunningToNextStation)
+			{
+				// 状態が変わらない: _lonLatStationDetector は上の SetStationLocations で履歴クリア
+				// 済みなので Sync で同期だけ取り、外部にはイベントを飛ばさない。
+				_lonLatStationDetector.Sync(newIndex, oldRunning);
+				return;
+			}
+			ForceSetLocationInfo(newIndex, oldRunning);
 		}
+	}
+
+	private static int FindStationIndexByLocation_m(StaLocationInfo[]? newArray, StaLocationInfo? oldStation)
+	{
+		if (newArray is null || oldStation is null)
+			return -1;
+		double key = oldStation.Location_m;
+		if (double.IsNaN(key))
+			return -1;
+		for (int i = 0; i < newArray.Length; i++)
+		{
+			if (newArray[i].Location_m == key)
+				return i;
+		}
+		return -1;
 	}
 
 	// Location_m が NaN かつ緯度経度が配信されたときの駅判定エンジン。
@@ -124,6 +168,10 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? ConnectionClosed;
 	public event EventHandler? ConnectionFailed;
+	/// <summary>接続が切れて自動再接続を開始した時に発火する (#266)。</summary>
+	public event EventHandler? Reconnecting;
+	/// <summary>自動再接続に成功して受信を再開した時に発火する (#266)。</summary>
+	public event EventHandler? Reconnected;
 	public event EventHandler<bool>? CanStartChanged;
 
 	/// <summary>
@@ -362,18 +410,31 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 		ConnectionFailed?.Invoke(this, EventArgs.Empty);
 	}
 
+	protected void RaiseReconnecting()
+	{
+		Reconnecting?.Invoke(this, EventArgs.Empty);
+	}
+
+	protected void RaiseReconnected()
+	{
+		Reconnected?.Invoke(this, EventArgs.Empty);
+	}
+
 	/// <summary>
 	/// 時刻表の更新を受信したとき、位置情報を初期状態にリセットすべきかを判定する。
 	/// リアルタイム編集対応のため、自スコープと一致する更新では位置情報を維持する
 	/// (例: 編集中の Train が更新されても駅 index を保持する)。
-	/// 全体更新 (<see cref="TimetableScopeType.All"/>) の場合のみリセットする。
+	/// 全体更新 (<see cref="TimetableScopeType.All"/>) の場合も、現在追跡中の Train が
+	/// 新ペイロードに残っていれば維持する (#245: 運行中の意図しないリセットを防ぐ)。
 	/// </summary>
 	private bool ShouldResetLocationOnTimetableUpdate(TimetableData timetableData)
 	{
 		return timetableData.Scope switch
 		{
-			// 全体更新: 構造が変わるため位置情報をリセットする
-			TimetableScopeType.All => true,
+			// 全体更新: 現在追跡中の Train が新ペイロードに残っていれば維持する。
+			//   - 残っている → 編集や再配信のたびに運行中状態を巻き戻されては困るので維持
+			//   - 残っていない (削除された or 未選択) → 古い駅 index が新時刻表で有効な保証がないのでリセット
+			TimetableScopeType.All => !IsCurrentTrainStillTracked(),
 			// WorkGroup / Work / Train 単位の更新: 自スコープと一致するか否かに関わらず維持する。
 			//   - 一致する場合 → ユーザーが今見ているデータの再描画を期待しているのでリセットしない
 			//   - 一致しない場合 → そもそも現在の表示と無関係なのでリセットしない
@@ -383,6 +444,14 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 			_ => false,
 		};
 	}
+
+	/// <summary>
+	/// 現在 <see cref="TrainId"/> として追跡している列車が、最新の時刻表データに依然存在しているかを返す。
+	/// <see cref="ShouldResetLocationOnTimetableUpdate"/> が Scope.All 受信時の判定に使う。
+	/// 既定では false (= リセット側に倒す) を返す。時刻表キャッシュにアクセスできる実装側で
+	/// override すること (例: WebSocketNetworkSyncService)。
+	/// </summary>
+	protected virtual bool IsCurrentTrainStillTracked() => false;
 
 	public void ForceSetLocationInfo(
 		int stationIndex,

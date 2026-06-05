@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using TRViS.Controls;
+using TRViS.Localization;
 using TRViS.Models;
 using TRViS.Services;
 using TRViS.ViewModels;
@@ -39,6 +40,9 @@ public partial class ThirdPartyLicenses : ContentPage
 		BindingContext = viewModel;
 
 		viewModel.PropertyChanged += ViewModel_PropertyChanged;
+		ApplyLicenseExpressionLabel();
+		LocalizationResourceManager.Current.CultureChanged += (_, _) =>
+			MainThread.BeginInvokeOnMainThread(ApplyLicenseExpressionLabel);
 		LicenseTextArea.PropertyChanged += (_, e) =>
 		{
 			if (e.PropertyName == nameof(Width))
@@ -75,8 +79,26 @@ public partial class ThirdPartyLicenses : ContentPage
 		}
 	}
 
+	/// <summary>
+	/// "License Expression: {0}" のラベルを現在の言語で再構築する。
+	/// 値が空のときは空文字 (IsVisible は XAML の DataTrigger が制御)。
+	/// </summary>
+	void ApplyLicenseExpressionLabel()
+	{
+		string expr = viewModel.LicenseExpression;
+		LicenseExpressionLabel.Text = string.IsNullOrEmpty(expr)
+			? string.Empty
+			: string.Format(AppResources.ThirdParty_LicenseExpressionFormat, expr);
+	}
+
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
+		if (e.PropertyName == nameof(ThirdPartyLicensesViewModel.LicenseExpression))
+		{
+			ApplyLicenseExpressionLabel();
+			return;
+		}
+
 		if (e.PropertyName != nameof(ThirdPartyLicensesViewModel.LicenseTextList))
 			return;
 
@@ -110,7 +132,7 @@ public partial class ThirdPartyLicenses : ContentPage
 
 					var btn = new Button()
 					{
-						Text = "Open License",
+						Text = AppResources.ThirdParty_OpenLicense,
 						HorizontalOptions = LayoutOptions.End,
 						Padding = new(4)
 					};
@@ -124,12 +146,12 @@ public partial class ThirdPartyLicenses : ContentPage
 							}
 							else
 							{
-								await Util.DisplayAlertAsync("Invalid URL", $"The URL is invalid: {v.Value}", "OK");
+								await Util.DisplayAlertAsync(AppResources.ThirdParty_AlertInvalidUrlTitle, string.Format(AppResources.ThirdParty_AlertInvalidUrlFormat, v.Value), AppResources.Common_OK);
 							}
 						}
 						catch (Exception ex)
 						{
-							await Util.DisplayAlertAsync("Cannot Open URL", ex.Message, "OK");
+							await Util.DisplayAlertAsync(AppResources.ThirdParty_AlertCannotOpenUrlTitle, ex.Message, AppResources.Common_OK);
 						}
 					};
 					grid.Add(urlLabel, 0, 0);
@@ -162,7 +184,7 @@ public partial class ThirdPartyLicenses : ContentPage
 			// NULL or Length=0
 			licenses.Children.Add(new Label()
 			{
-				Text = "(No License Info)"
+				Text = AppResources.ThirdParty_NoLicenseInfo
 			});
 		}
 

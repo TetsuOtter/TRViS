@@ -5,6 +5,7 @@ using System.Web;
 
 using TRViS.IO;
 using TRViS.IO.RequestInfo;
+using TRViS.Localization;
 using TRViS.NetworkSyncService;
 using TRViS.Services;
 using TRViS.Utils;
@@ -23,6 +24,102 @@ public partial class AppViewModel
 	const int EXTERNAL_RESOURCE_URL_HISTORY_MAX = 32;
 	private readonly List<string> _ExternalResourceUrlHistory;
 	public IReadOnlyList<string> ExternalResourceUrlHistory => _ExternalResourceUrlHistory;
+
+	// --- WebSocket connection-lost tracking / reconnect (#261) ---
+	// Captured at the last successful WebSocket connect so the Home screen's
+	// 再接続 button can re-run the exact same connect. The AppLinkInfo is kept
+	// (not just LoaderSourceLabel) because AppLinkInfo.FromAppLink rejects a raw
+	// ws:// string (it requires host == "app"), so the display label alone is
+	// not reconnectable.
+	private AppLinkInfo? _lastWebSocketAppLinkInfo;
+	private string? _lastWebSocketOriginalAppLink;
+	// Watches the active WS service for ConnectionClosed / ConnectionFailed and
+	// detaches the old one on reconnect. The subscribe/resubscribe/sender-guard
+	// logic is extracted here so it can be unit-tested without MAUI; the only
+	// MAUI-bound part (MainThread marshaling + observable set) stays in the
+	// MarkServerConnectionLost callback below.
+	private NetworkSyncConnectionLostWatcher? _wsConnectionLostWatcherField;
+	private NetworkSyncConnectionLostWatcher WsConnectionLostWatcher
+		=> _wsConnectionLostWatcherField ??= new NetworkSyncConnectionLostWatcher(
+			MarkServerConnectionLost,
+			MarkServerReconnecting,
+			MarkServerReconnected);
+
+	/// <summary>
+	/// 切断イベント監視を解除し、再接続情報を破棄する。WebSocket 以外 / null の
+	/// ローダーに切り替わったとき (<see cref="OnLoaderChanged"/>) に呼ばれる。
+	/// </summary>
+	internal void ClearWebSocketConnectionTracking()
+	{
+		WsConnectionLostWatcher.Clear();
+		_lastWebSocketAppLinkInfo = null;
+		_lastWebSocketOriginalAppLink = null;
+	}
+
+	// ConnectionClosed / ConnectionFailed は WebSocket の受信ループスレッドから
+	// 発火する。ここでは Loader を差し替えず (切断後もキャッシュ済みデータを
+	// Home 画面に出し続けたいため。LocationService 側が GPS へフォールバックして
+	// サービスを Dispose 済みでもキャッシュは読める)、フラグだけ立てる。
+	// 観測対象プロパティの set は HomeGridView のラベル / 表示更新を駆動するので
+	// UI スレッドへマーシャリングする。
+	private void MarkServerConnectionLost()
+	{
+		logger.Info("WebSocket connection lost -> IsServerConnectionLost = true");
+		RunOnMainThread(() =>
+		{
+			// 再接続試行が終わった (クリーンクローズ or 再接続失敗) 状態。
+			// IsServerReconnecting も落として Connecting で固着しないようにする (#266)。
+			IsServerReconnecting = false;
+			IsServerConnectionLost = true;
+		});
+	}
+
+	// 自動再接続の開始 (#266): ぐるぐる表示へ。Loader / IsServerConnectionLost は
+	// そのまま (再接続成功までキャッシュ表示を継続)。ServerConnectionStatus の
+	// 算出で IsServerReconnecting が優先されるため Connecting になる。
+	private void MarkServerReconnecting()
+	{
+		logger.Info("WebSocket reconnecting -> IsServerReconnecting = true");
+		RunOnMainThread(() => IsServerReconnecting = true);
+	}
+
+	// 自動再接続の成功 (#266): 接続済みへ。#261 の「自動再接続成功後も
+	// IsServerConnectionLost が true のまま固着する」ギャップもここで解消する
+	// (Home の切断バナーも自動復帰するようになる)。
+	private void MarkServerReconnected()
+	{
+		logger.Info("WebSocket reconnected -> clear reconnecting/lost flags");
+		RunOnMainThread(() =>
+		{
+			IsServerReconnecting = false;
+			IsServerConnectionLost = false;
+		});
+	}
+
+	private static void RunOnMainThread(Action action)
+	{
+		if (MainThread.IsMainThread)
+			action();
+		else
+			MainThread.BeginInvokeOnMainThread(action);
+	}
+
+	/// <summary>
+	/// 直近に成功した WebSocket 接続と同じ接続先へ再接続する。Home 画面の
+	/// 再接続ボタンから呼ばれる。再接続情報が無い場合は何もせず false を返す。
+	/// </summary>
+	public Task<bool> ReconnectWebSocketAsync(CancellationToken token)
+	{
+		AppLinkInfo? info = _lastWebSocketAppLinkInfo;
+		if (info is null)
+		{
+			logger.Warn("ReconnectWebSocketAsync: no stored WebSocket AppLink to reconnect with");
+			return Task.FromResult(false);
+		}
+		logger.Info("ReconnectWebSocketAsync: reconnecting to {0}", info.ResourceUri);
+		// addToHistory: false — a reconnect is not a new user-initiated entry.
+		return HandleWebSocketAppLinkAsync(info, _lastWebSocketOriginalAppLink, addToHistory: false, token);
+	}
 
 	public Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
 		=> HandleAppLinkUriAsync(uri, addToHistory: true, token);
@@ -68,7 +165,7 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Warn(ex, "AppLinkInfo Identify Failed");
-			await Util.DisplayAlertAsync("Cannot Open File", "AppLinkInfo Identify Failed\n" + ex.Message, "OK");
+			await Util.DisplayAlertAsync(AppResources.AppLink_CannotOpenFileTitle, string.Format(AppResources.AppLink_IdentifyFailedFormat, ex.Message), AppResources.Common_OK);
 			return false;
 		}
 
@@ -80,10 +177,10 @@ public partial class AppViewModel
 			string decodedUrl = HttpUtility.UrlDecode(path);
 
 			bool openRemoteFileCheckResult = await Util.DisplayAlertAsync(
-				"外部ファイルを開く",
-				$"ファイル `{decodedUrl}` を開きますか?",
-				"はい",
-				"いいえ"
+				AppResources.AppLink_OpenExternalFileTitle,
+				string.Format(AppResources.AppLink_OpenExternalFileFormat, decodedUrl),
+				AppResources.Common_Yes,
+				AppResources.Common_No
 			);
 			logger.Info("Uri: {0} -> openFile: {1}", path, openRemoteFileCheckResult);
 			if (!openRemoteFileCheckResult)
@@ -126,7 +223,7 @@ public partial class AppViewModel
 			if (!TryResolveLocalTimetablePath(appLinkInfo.LocalPath, out string? resolvedPath, out string? errorMessage))
 			{
 				logger.Warn("LocalPath rejected: {0} (input: {1})", errorMessage, appLinkInfo.LocalPath);
-				await Util.DisplayAlertAsync("Cannot Open File", errorMessage ?? "LocalPath is invalid", "OK");
+				await Util.DisplayAlertAsync(AppResources.AppLink_CannotOpenFileTitle, errorMessage ?? AppResources.AppLink_LocalPathInvalid, AppResources.Common_OK);
 				return false;
 			}
 			appLinkInfo = appLinkInfo with { ResourceUri = new Uri(resolvedPath!), LocalPath = null };
@@ -164,24 +261,11 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Error(ex, "OpenAppLinkAsync Failed");
-			if (appLinkInfo.ResourceUri?.HostNameType == UriHostNameType.IPv4
-				&& ex is TaskCanceledException
-				&& ex.InnerException is TimeoutException)
-			{
-				logger.Error(ex, "Timeout Error");
-				await Util.DisplayAlertAsync(
-					"接続できませんでした (Timeout)",
-					"接続先がパソコンの場合は、\n"
-					+ "接続先が同じネットワークに属しているか、\n"
-					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
-					+ "を確認してください。",
-					"OK"
-				);
-			}
-			else
-			{
-				await Util.DisplayAlertAsync("Cannot Open File", "OpenAppLinkAsync Failed\n" + ex.Message, "OK");
-			}
+			// main 側 (#49) の DisplayLoadErrorAsync は TimeoutException /
+			// TaskCanceledException を分類し、#40 の IPv4 タイムアウト特例を
+			// 意図的に一般化した上位互換 (LoadErrorMessage 参照)。重複を避け
+			// こちらに統一する。LoadErrorMessage の多言語化は本 i18n の範囲外。
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 
@@ -190,6 +274,18 @@ public partial class AppViewModel
 		logger.Info("Loader Initialized");
 		lastLoader?.Dispose();
 		logger.Debug("Last Loader Disposed");
+
+		// HTTP(S) integration (TRViS.LocalServers): the user explicitly pointed the
+		// app at a server to show its timetable, so skip the Home picker entirely.
+		// SelectionManager.OnLoaderChanged already auto-committed when there was a
+		// single WorkGroup; force the first one here for the multi-WorkGroup case
+		// so a timetable is always ready, then ask the UI to jump to it.
+		if (appLinkInfo.ResourceUri?.Scheme is "http" or "https")
+		{
+			if (SelectionManager.SelectedWorkGroup is null)
+				SelectionManager.SelectedWorkGroup = SelectionManager.WorkGroupList?.FirstOrDefault();
+			RequestAutoNavigateToTimetable();
+		}
 
 		// 履歴に追加（HTTPSのURLまたはAppLink）
 		string? historyEntry = addToHistory ? (decodedUrl ?? appLinkString) : null;
@@ -214,13 +310,10 @@ public partial class AppViewModel
 			if (appLinkInfo.ResourceUri?.Host != appLinkInfo.RealtimeServiceUri.Host)
 			{
 				doConnect = await Util.DisplayAlertAsync(
-					"External Location Service",
-					"位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。"
-					+ '\n' +
-					"このサーバーを使用してもよろしいですか?"
-					+ "Server: " + appLinkInfo.RealtimeServiceUri,
-					"はい",
-					"いいえ"
+					AppResources.AppLink_ExternalLocationServiceTitle,
+					string.Format(AppResources.AppLink_ExternalLocationServiceBodyFormat, appLinkInfo.RealtimeServiceUri),
+					AppResources.Common_Yes,
+					AppResources.Common_No
 				);
 				logger.Debug(
 					"ResourceUri.Host: {0}, RealtimeServiceUri.Host: {1} -> doConnect: {2}",
@@ -238,12 +331,12 @@ public partial class AppViewModel
 				catch (Exception ex)
 				{
 					logger.Error(ex, "SetNetworkSyncServiceAsync Failed");
-					await Util.DisplayAlertAsync("Cannot Set External Location Service", "SetNetworkSyncServiceAsync Failed\n" + ex.Message, "OK");
+					await Util.DisplayAlertAsync(AppResources.AppLink_CannotSetExternalLocationTitle, string.Format(AppResources.AppLink_SetNetworkSyncFailedFormat, ex.Message), AppResources.Common_OK);
 				}
 			}
 		}
 
-		await Util.DisplayAlertAsync("Success!", "ファイルの読み込みが完了しました", "OK");
+		await Util.DisplayAlertAsync(AppResources.Common_Success, AppResources.AppLink_FileLoadCompleteBody, AppResources.Common_OK);
 		return true;
 	}
 
@@ -252,7 +345,7 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is null)
 		{
 			logger.Error("ResourceUri is null");
-			await Util.DisplayAlertAsync("Error", "WebSocket URLが指定されていません", "OK");
+			await Util.DisplayAlertAsync(AppResources.Common_Error, AppResources.AppLink_WebSocketUrlMissing, AppResources.Common_OK);
 			return false;
 		}
 
@@ -269,6 +362,15 @@ public partial class AppViewModel
 
 			WebSocketNetworkSyncService service = await openFile.OpenWebSocketAppLinkAsync(appLinkInfo, token);
 
+			// Remember how to reconnect, watch this service for disconnects, and
+			// clear any prior "connection lost" banner — we now have a fresh live
+			// connection. Subscribe before SetLoader so an immediate drop is caught.
+			_lastWebSocketAppLinkInfo = appLinkInfo;
+			_lastWebSocketOriginalAppLink = originalAppLink;
+			WsConnectionLostWatcher.Watch(service);
+			IsServerConnectionLost = false;
+			IsServerReconnecting = false;
+
 			ILoader? lastLoader = this.Loader;
 			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
 			logger.Info("Loader Initialized from WebSocket");
@@ -276,6 +378,15 @@ public partial class AppViewModel
 			logger.Debug("Last Loader Disposed");
 
 			InstanceManager.LocationService.SetNetworkSyncService(service);
+
+			// WebSocket is a server-driven integration: jump straight to the
+			// timetable. WorkGroup data may still be arriving via server push, so
+			// the selection is best-effort here (SelectionManager.OnLoaderChanged
+			// already auto-committed if a single WorkGroup was present); the
+			// server's SelectTrain push refines it afterwards regardless.
+			if (SelectionManager.SelectedWorkGroup is null)
+				SelectionManager.SelectedWorkGroup = SelectionManager.WorkGroupList?.FirstOrDefault();
+			RequestAutoNavigateToTimetable();
 
 			// WebSocketのAppLinkを履歴に追加
 			if (addToHistory && originalAppLink is not null)
@@ -292,7 +403,7 @@ public partial class AppViewModel
 				AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 			}
 
-			await Util.DisplayAlertAsync("Success!", "WebSocket接続が完了しました", "OK");
+			await Util.DisplayAlertAsync(AppResources.Common_Success, AppResources.AppLink_WebSocketConnectedBody, AppResources.Common_OK);
 			return true;
 		}
 		catch (OperationCanceledException)
@@ -303,25 +414,9 @@ public partial class AppViewModel
 		catch (Exception ex)
 		{
 			logger.Error(ex, "HandleWebSocketAppLinkAsync Failed");
-
-			if (appLinkInfo.ResourceUri.HostNameType == UriHostNameType.IPv4
-				&& ex is TaskCanceledException
-				&& ex.InnerException is TimeoutException)
-			{
-				logger.Error(ex, "Timeout Error");
-				await Util.DisplayAlertAsync(
-					"接続できませんでした (Timeout)",
-					"接続先がパソコンの場合は、\n"
-					+ "接続先が同じネットワークに属しているか、\n"
-					+ "またファイアウォールの例外設定がきちんと今のネットワークに行われているか\n"
-					+ "を確認してください。",
-					"OK"
-				);
-			}
-			else
-			{
-				await Util.DisplayAlertAsync("Cannot Connect WebSocket", "WebSocket接続に失敗しました\n" + ex.Message, "OK");
-			}
+			// main 側 (#49) の DisplayLoadErrorAsync に統一 (上記と同様、
+			// タイムアウト特例を含め LoadErrorMessage が上位互換)。
+			await Util.DisplayLoadErrorAsync(ex);
 			return false;
 		}
 	}
@@ -348,13 +443,13 @@ public partial class AppViewModel
 			string candidate = Path.GetFullPath(Path.Combine(baseDir, localPath));
 			if (!candidate.StartsWith(baseDirWithSep, StringComparison.Ordinal))
 			{
-				errorMessage = "指定されたファイルは時刻表フォルダの外にあります。";
+				errorMessage = AppResources.AppLink_LocalFileOutsideFolder;
 				return false;
 			}
 
 			if (!File.Exists(candidate))
 			{
-				errorMessage = $"ファイルが見つかりません: {localPath}";
+				errorMessage = string.Format(AppResources.AppLink_FileNotFoundFormat, localPath);
 				return false;
 			}
 
@@ -363,7 +458,7 @@ public partial class AppViewModel
 		}
 		catch (Exception ex)
 		{
-			errorMessage = $"ファイルパスの解決に失敗しました: {ex.Message}";
+			errorMessage = string.Format(AppResources.AppLink_PathResolveFailedFormat, ex.Message);
 			return false;
 		}
 	}
@@ -411,12 +506,12 @@ public partial class AppViewModel
 		token.ThrowIfCancellationRequested();
 
 		logger.Warn("remoteIp is private but not same network");
-		string myIpListStr = string.Join('\n', myIpList.Select(static (x, i) => $"この端末[{i}]:{x}"));
+		string myIpListStr = string.Join('\n', myIpList.Select(static (x, i) => string.Format(AppResources.AppLink_ThisDeviceFormat, i, x)));
 		bool continueProcessing = await Util.DisplayAlertAsync(
-			"Maybe Different Network",
-			$"接続先と違うネットワークに属しているため、接続に失敗する可能性があります。\nこのまま接続しますか?\n接続先:{remoteIp}\n{myIpListStr}",
-			"続ける",
-			"やめる"
+			AppResources.AppLink_MaybeDifferentNetworkTitle,
+			string.Format(AppResources.AppLink_MaybeDifferentNetworkBodyFormat, remoteIp, myIpListStr),
+			AppResources.Common_Continue,
+			AppResources.Common_Stop
 		);
 		logger.Trace("continueProcessing: {0}", continueProcessing);
 		token.ThrowIfCancellationRequested();
@@ -432,9 +527,9 @@ public partial class AppViewModel
 		if (response.StatusCode == HttpStatusCode.NoContent)
 		{
 			await Util.DisplayAlertAsync(
-				"Cannot Open File",
-				$"時刻表ファイルを確認しましたが、ファイルの中身がありませんでした。",
-				"OK"
+				AppResources.AppLink_CannotOpenFileTitle,
+				AppResources.AppLink_EmptyFileBody,
+				AppResources.Common_OK
 			);
 			return false;
 		}
@@ -449,19 +544,19 @@ public partial class AppViewModel
 		{
 			logger.Warn("File Size Check Failed (Content-Length not set) -> check continue or not");
 			return await Util.DisplayAlertAsync(
-				"Continue to download?",
-				"ダウンロードするファイルのサイズが不明です。ダウンロードを継続しますか?",
-				"続ける",
-				"やめる"
+				AppResources.AppLink_ContinueDownloadTitle,
+				AppResources.AppLink_UnknownSizeBody,
+				AppResources.Common_Continue,
+				AppResources.Common_Stop
 			);
 		}
 
 		logger.Info("File Size Check Succeeded: {0} bytes", contentLength);
 		return await Util.DisplayAlertAsync(
-			"Continue to download?",
-			$"ダウンロードするファイルのサイズは {contentLength} byte です。このファイルをダウンロードしますか?",
-			"続ける",
-			"やめる"
+			AppResources.AppLink_ContinueDownloadTitle,
+			string.Format(AppResources.AppLink_FileSizeFormat, contentLength),
+			AppResources.Common_Continue,
+			AppResources.Common_Stop
 		);
 	}
 

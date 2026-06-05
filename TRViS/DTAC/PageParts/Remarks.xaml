@@ -36,6 +36,7 @@
 
 	<local:OpenCloseButton
 		x:Name="OpenCloseButton"
+		AutomationId="DTAC.RemarksOpenCloseButton"
 		Grid.Row="0"
 		TextWhenOpen="&#xe5cf;"
 		TextWhenClosed="&#xe5ce;"

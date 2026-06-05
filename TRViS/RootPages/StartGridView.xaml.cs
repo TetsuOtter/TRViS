@@ -1,4 +1,5 @@
 using TRViS.IO;
+using TRViS.Localization;
 using TRViS.Services;
 using TRViS.Utils;
 using TRViS.ViewModels;
@@ -13,6 +14,14 @@ namespace TRViS.RootPages;
 public partial class StartGridView : Grid
 {
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
+
+	// Re-entrancy guard for the demo load. OnLoadDemoClicked is an async void
+	// UI-thread handler that does not hide LoadDemoButton while
+	// SampleDataLoader.CreateAsync is awaited, so a second tap arriving before
+	// the first completes would kick off a concurrent SetLoader + dispose
+	// race. A plain bool is sufficient because all access is on the MAUI UI
+	// thread.
+	bool _isLoadingDemo;
 
 	// ----- Primary / Demo button sizing applied by ApplyCompactStyling -----
 	// Two tiers: full-size for non-compact portrait + tablet windows, and
@@ -96,7 +105,7 @@ public partial class StartGridView : Grid
 		{
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnConnectServerClicked (PushModalAsync failed)");
 			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlertAsync("Open Popup Failed", ex.ToString(), "OK");
+			await Util.DisplayAlertAsync("Open Popup Failed", ex.ToString(), AppResources.Common_OK);
 		}
 	}
 
@@ -112,12 +121,18 @@ public partial class StartGridView : Grid
 		{
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnSelectFileClicked (PushModalAsync failed)");
 			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlertAsync("Open Dialog Failed", ex.ToString(), "OK");
+			await Util.DisplayAlertAsync("Open Dialog Failed", ex.ToString(), AppResources.Common_OK);
 		}
 	}
 
 	async void OnLoadDemoClicked(object sender, EventArgs e)
 	{
+		if (_isLoadingDemo)
+		{
+			logger.Info("Load Demo ignored: a demo load is already in flight");
+			return;
+		}
+		_isLoadingDemo = true;
 		logger.Info("Load Demo clicked");
 
 		var viewModel = InstanceManager.AppViewModel;
@@ -137,7 +152,11 @@ public partial class StartGridView : Grid
 		{
 			logger.Error(ex, "Load demo failed");
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnLoadDemoClicked (CreateAsync failed)");
-			await Util.DisplayAlertAsync("エラー", $"サンプルデータの読み込みに失敗しました: {ex.Message}", "OK");
+			await Util.DisplayAlertAsync(AppResources.Common_Error, string.Format(AppResources.StartHome_SampleLoadFailedFormat, ex.Message), AppResources.Common_OK);
+		}
+		finally
+		{
+			_isLoadingDemo = false;
 		}
 	}
 

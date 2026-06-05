@@ -4,9 +4,11 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:models="clr-namespace:TRViS.Models"
 	xmlns:viewmodels="clr-namespace:TRViS.ViewModels"
+	xmlns:loc="clr-namespace:TRViS.Localization"
+	xmlns:local="clr-namespace:TRViS"
 	x:DataType="viewmodels:ThirdPartyLicensesViewModel"
 	x:Class="TRViS.RootPages.ThirdPartyLicenses"
-	Title="ThirdPartyLicenses">
+	Title="{loc:Translate ThirdParty_Title}">
 	<Grid
 		x:Name="RootGrid"
 		RowDefinitions="Auto,*">
@@ -20,7 +22,7 @@
 			IsVisible="False">
 			<Label
 				Grid.Column="0"
-				Text="Third Party Licenses"
+				Text="{loc:Translate ThirdParty_Title}"
 				FontSize="18"
 				FontAttributes="Bold"
 				VerticalOptions="Center"
@@ -29,9 +31,14 @@
 				AutomationId="ThirdParty.ModalCloseButton"
 				Grid.Column="1"
 				x:Name="ModalCloseButton"
-				Text="閉じる"
-				Padding="16,8"
-				CornerRadius="8"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="40"
+				HeightRequest="40"
+				Padding="0"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
 				Clicked="OnModalCloseClicked"/>
 		</Grid>
 
@@ -83,9 +90,9 @@
 					HorizontalOptions="Start"
 					Text="{Binding SelectedLicenseData.id}"/>
 				<Label
+					x:Name="LicenseExpressionLabel"
 					Grid.Row="1"
-					HorizontalOptions="Start"
-					Text="{Binding LicenseExpression, StringFormat='License Expression: {0}'}">
+					HorizontalOptions="Start">
 					<Label.Triggers>
 						<DataTrigger
 							TargetType="Label"

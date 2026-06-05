@@ -1,0 +1,82 @@
+name: CD - Create Release
+description: Download build artifacts, package them, and create a draft GitHub release.
+
+inputs:
+  tag_name:
+    required: true
+  ASSET_NAME_WIN_X64:
+    required: true
+  ASSET_NAME_WIN_X86:
+    required: true
+  ASSET_NAME_WIN_X64_SELF_CONTAINED:
+    required: true
+  ASSET_NAME_WIN_X86_SELF_CONTAINED:
+    required: true
+  OUTPUT_DIR:
+    required: true
+  GITHUB_TOKEN:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Download APK
+      uses: actions/download-artifact@v8
+      with:
+        name: apk
+        path: ${{ inputs.OUTPUT_DIR }}
+    - name: Download windows asset (x64)
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X64 }}
+        path: ${{ inputs.ASSET_NAME_WIN_X64 }}
+    - name: Download windows asset (x86)
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X86 }}
+        path: ${{ inputs.ASSET_NAME_WIN_X86 }}
+    - name: Download windows asset (x64 self-contained)
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+        path: ${{ inputs.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+    - name: Download windows asset (x86 self-contained)
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+        path: ${{ inputs.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+
+    - name: pack win-x64
+      shell: bash
+      run: |
+        7z a -tzip ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X64 }}.zip ${{ inputs.ASSET_NAME_WIN_X64 }}
+        7z a -t7z ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X64 }}.7z ${{ inputs.ASSET_NAME_WIN_X64 }}
+    - name: pack win-x86
+      shell: bash
+      run: |
+        7z a -tzip ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X86 }}.zip ${{ inputs.ASSET_NAME_WIN_X86 }}
+        7z a -t7z ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X86 }}.7z ${{ inputs.ASSET_NAME_WIN_X86 }}
+    - name: pack win-x64-self-contained
+      shell: bash
+      run: |
+        7z a -tzip ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.zip ${{ inputs.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+        7z a -t7z ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X64_SELF_CONTAINED }}.7z ${{ inputs.ASSET_NAME_WIN_X64_SELF_CONTAINED }}
+    - name: pack win-x86-self-contained
+      shell: bash
+      run: |
+        7z a -tzip ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.zip ${{ inputs.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+        7z a -t7z ${{ inputs.OUTPUT_DIR }}/${{ inputs.ASSET_NAME_WIN_X86_SELF_CONTAINED }}.7z ${{ inputs.ASSET_NAME_WIN_X86_SELF_CONTAINED }}
+
+    - name: Create Release
+      shell: bash
+      run: >
+        gh release create ${{ inputs.tag_name }}
+        --draft
+        --generate-notes
+        ${{ inputs.OUTPUT_DIR }}/*.apk
+        ${{ inputs.OUTPUT_DIR }}/*.zip
+        ${{ inputs.OUTPUT_DIR }}/*.7z
+        --repo ${{ github.repository }}
+        --notes 'This release is automatically created by actions ... https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}'
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}

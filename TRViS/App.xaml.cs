@@ -1,3 +1,4 @@
+using TRViS.Localization;
 using TRViS.Services;
 
 namespace TRViS;
@@ -10,9 +11,18 @@ public partial class App : Application
 	{
 		logger.Trace("App Creating (URL: {0})", AppLinkUri?.ToString() ?? "(null))");
 
+		// Resolve the saved UI language synchronously before any XAML is built so
+		// the very first render (AppShell + StartHomePage) is already localized.
+		LocalizationResourceManager.Current.InitializeFromSettings();
+
 		try
 		{
 			InitializeComponent();
+			// XamlC は System.String を既定コンストラクタで生成できないため
+			// (XC0004)、App.xaml に <sys:String> を置けない。Styles.xaml の
+			// 各暗黙スタイルは {DynamicResource DefaultFontFamily} で参照する
+			// ので、ここで Resources へ後挿ししても解決される。
+			Resources["DefaultFontFamily"] = "NotoSansJPRegular";
 		}
 		catch (Exception ex)
 		{

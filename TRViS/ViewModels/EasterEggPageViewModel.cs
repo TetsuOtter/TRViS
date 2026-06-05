@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using Microsoft.Maui.Controls;
 
+using TRViS.Localization;
 using TRViS.MyAppCustomizables;
 using TRViS.Services;
 using TRViS.Utils;
@@ -55,13 +56,37 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial bool KeepScreenOnWhenRunning { get; set; } = false;
 
 	[ObservableProperty]
-	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Horizontal;
+	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Train;
+
+	[ObservableProperty]
+	public partial PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;
 
 	[ObservableProperty]
 	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
 
 	[ObservableProperty]
 	public partial TimeProgressionRate TimeProgressionRate { get; set; } = TimeProgressionRate.X60;
+
+	[ObservableProperty]
+	public partial AppLanguage SelectedAppLanguage { get; set; } = AppLanguage.System;
+
+	// Set while we mirror the OS language into SelectedAppLanguage at startup,
+	// so OnSelectedAppLanguageChanged does not write that mirrored value back
+	// to the OS (which would be a redundant no-op at best, churn at worst).
+	bool _suppressLanguageWriteBack;
+
+	partial void OnSelectedAppLanguageChanged(AppLanguage value)
+	{
+		logger.Info("OnSelectedAppLanguageChanged: {0}", value);
+		// In-session UI updates immediately via resx (iOS won't re-localize
+		// the native bundle mid-session).
+		LocalizationResourceManager.Current.SetLanguage(value);
+		// On iOS / Mac Catalyst, mirror the choice into the OS so the per-app
+		// language entry in Settings stays in sync and next launch / native
+		// dialogs match. No-op on Android / Windows.
+		if (!_suppressLanguageWriteBack)
+			AppLanguageOsBridge.WriteOsOverride(value);
+	}
 
 	partial void OnSelectedAppThemeChanged(AppTheme value)
 	{
@@ -147,9 +172,9 @@ public partial class EasterEggPageViewModel : ObservableObject
 		if (!isNewlyCreated && errorMsg is not null)
 		{
 			await Shell.Current.DisplayAlertAsync(
-				"Failed to load setting file",
+				AppResources.Settings_AlertLoadSettingFailedTitle,
 				errorMsg,
-				"OK"
+				AppResources.Common_OK
 			);
 			// 読み込み自体に失敗しているため、設定の反映は行わない
 			return;
@@ -161,9 +186,9 @@ public partial class EasterEggPageViewModel : ObservableObject
 
 			// ここでは上書き保存は行わない。警告を出すのみに留める。
 			await Shell.Current.DisplayAlertAsync(
-				"Invalid LocationServiceInterval Value",
-				$"value({settingFile.LocationServiceInterval_Seconds}) must be same or more than {SettingFileStructure.MinimumLocationServiceIntervalValue}",
-				"OK"
+				AppResources.Settings_AlertInvalidLocationIntervalTitle,
+				string.Format(AppResources.Settings_AlertInvalidLocationIntervalFormat, settingFile.LocationServiceInterval_Seconds, SettingFileStructure.MinimumLocationServiceIntervalValue),
+				AppResources.Common_OK
 			);
 
 			settingFile.LocationServiceInterval_Seconds = SettingFileStructure.MinimumLocationServiceIntervalValue;
@@ -177,8 +202,34 @@ public partial class EasterEggPageViewModel : ObservableObject
 		ShowMapWhenLandscape = settingFile.ShowMapWhenLandscape;
 		KeepScreenOnWhenRunning = settingFile.KeepScreenOnWhenRunning;
 		HorizontalTimetableButtonLabel = settingFile.HorizontalTimetableButtonLabel;
+		PdfJsRenderEngine = settingFile.PdfJsRenderEngine;
 		SelectedAppTheme = settingFile.InitialTheme ?? AppTheme.Unspecified;
 		// TimeProgressionRate = settingFile.TimeProgressionRate;
+		if (AppLanguageOsBridge.IsSupported)
+		{
+			// iOS / Mac Catalyst: OS (AppleLanguages) が真実。Picker は OS の
+			// 実効言語をミラー表示し、解決は OS に追従 (System) させる。
+			// _suppressLanguageWriteBack: ここでの代入で
+			// OnSelectedAppLanguageChanged が AppleLanguages を上書きするのを防ぐ
+			// (起動時はミラーするだけで OS へ書き戻さない)。
+			_suppressLanguageWriteBack = true;
+			try
+			{
+				SelectedAppLanguage = AppLanguageOsBridge.GetEffectiveLanguage();
+			}
+			finally
+			{
+				_suppressLanguageWriteBack = false;
+			}
+			LocalizationResourceManager.Current.SetLanguage(AppLanguage.System);
+		}
+		else
+		{
+			SelectedAppLanguage = settingFile.AppLanguage;
+			// SetLanguage を明示的に呼ぶ (OnSelectedAppLanguageChanged は値が
+			// 変わらないと発火しないため、起動時の system 既定からの再適用を保証)。
+			LocalizationResourceManager.Current.SetLanguage(settingFile.AppLanguage);
+		}
 
 		MarkerViewModel?.UpdateList(settingFile);
 
@@ -209,8 +260,10 @@ public partial class EasterEggPageViewModel : ObservableObject
 			ShowMapWhenLandscape = ShowMapWhenLandscape,
 			KeepScreenOnWhenRunning = KeepScreenOnWhenRunning,
 			HorizontalTimetableButtonLabel = HorizontalTimetableButtonLabel,
+			PdfJsRenderEngine = PdfJsRenderEngine,
 			InitialTheme = SelectedAppTheme,
 			TimeProgressionRate = TimeProgressionRate,
+			AppLanguage = SelectedAppLanguage,
 		};
 
 		MarkerViewModel?.SetToSettings(settingFile);

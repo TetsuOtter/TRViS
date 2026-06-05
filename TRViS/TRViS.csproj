@@ -30,6 +30,10 @@
 		<MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
 		<IsAotCompatible>true</IsAotCompatible>
 		<MauiVersion>10.0.41</MauiVersion>
+		<!-- The neutral AppResources.resx is authored in English; declaring it lets
+		     the runtime use the main assembly directly for "en" without an extra
+		     satellite, and falls back to English for any key not yet translated. -->
+		<NeutralLanguage>en</NeutralLanguage>
 		<NoWarn>$(NoWarn);NU1608</NoWarn>
 		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">false</ValidateXcodeVersion>
 	</PropertyGroup>

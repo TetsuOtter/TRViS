@@ -48,10 +48,24 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		_locationService.CanUseServiceChanged += OnLocationServiceCanUseChanged;
 		_locationService.LocationStateChanged += OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated += OnGpsLocationUpdated_Internal;
+		_locationService.IsEnabledChanged += OnLocationServiceIsEnabledChanged_Internal;
 		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
 
 		// Sync initial train: PropertyChanged may have fired before this presenter subscribed.
 		SetSelectedTrainData(_appViewModelProvider.SelectedTrainData);
+
+		// Server-driven auto-enable fires on the LocationService BEFORE this
+		// presenter exists: the WebSocket flow is connect → CanStart enable →
+		// (navigate to DTAC) → presenter ctor. The CanUseServiceChanged /
+		// IsEnabledChanged edges are gone by the time we subscribe above, so
+		// reconcile the current levels now (after the train state is built).
+		// CanUse must be reconciled too: the LocationService button's
+		// *tappable* state is CanUseLocationService && IsRunning, so a missed
+		// CanUseServiceChanged leaves the button permanently disabled (cannot
+		// be turned OFF, and stays disabled across 運行終了→運行開始) even
+		// though it correctly reads ON.
+		OnLocationServiceCanUseChanged(this, _locationService.CanUseService);
+		OnLocationServiceIsEnabledChanged_Internal(this, _locationService.IsEnabled);
 	}
 
 	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -117,8 +131,35 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 			return;
 		}
 
+		// 同じ列車 (TrainId 一致) なら soft 更新パスへ。WS リアルタイム編集 (TRViS_Realtime_Editor)
+		// が同一 TrainId に対して都度新インスタンスを発行するため、ここで参照が変わったからといって
+		// 運行状態を巻き戻すと、ユーザーが「運行開始」を押した直後に列の DriveTime を 1 つ直しただけで
+		// 「運行前」に戻されてしまう。同 Id 更新は表示 field と RowStates の更新だけに留め、
+		// IsRunning / IsRunStarted / marker toggle / IsLocationServiceEnabled は維持する。
+		// 行数が変わった場合 (= 駅追加/削除) も同じ列車であれば soft path で対応する。
+		// RowStates dict は新 row 数に揃えてリサイズし、IsInfoRow を再同期する。
+		string? newId = trainData?.Id;
+		string? oldId = _lastTrainData?.Id;
+		bool canSoftUpdate = trainData is not null
+			&& TimetableRebuildPolicy.IsSameTrainEdit(oldId, newId);
+
 		_lastTrainData = trainData;
 
+		if (canSoftUpdate)
+		{
+			VerticalPageStateFactory.ApplyTrainDataFields(_currentState, trainData, affectDate);
+			VerticalPageStateFactory.ResizeAndSyncRowStates(_currentState, trainData!.Rows ?? []);
+
+			// 駅情報は更新する。NetworkSyncServiceBase.StaLocationInfo の setter が
+			// 旧 current 駅の Location_m を新配列で再検索して index を再計算するので、
+			// 走行中の駅追跡は維持される。
+			_locationService.SetTimetableRows(trainData.Rows);
+
+			RaiseStateChanged(VerticalPageStateSection.All);
+			return;
+		}
+
+		// 全面リセットパス: 列車切替 / 行数変化 / null クリア / 初回ロード のいずれか。
 		bool isLocationServiceEnabled = _currentState.LocationServiceState.IsEnabled;
 		bool canUseLocationService = _currentState.PageHeaderState.CanUseLocationService;
 
@@ -276,14 +317,56 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 	private void SetLocationServiceEnabled(bool enabled)
 	{
 		_locationService.IsEnabled = enabled;
-		_currentState.LocationServiceState.IsEnabled = enabled;
-		_currentState.PageHeaderState.IsLocationServiceEnabled = enabled;
-		_currentState.TimetableViewState.IsLocationServiceEnabled = enabled;
+		ApplyLocationServiceEnabledState(enabled);
+	}
+
+	/// <summary>
+	/// Mirrors the location-service enabled state into presenter state (button,
+	/// page header, and the position-marker gate in
+	/// <see cref="OnLocationStateChanged_Internal"/>). Split out from
+	/// <see cref="SetLocationServiceEnabled"/> so server-driven enable
+	/// (NetworkSyncService CanStart auto-enable, via
+	/// <see cref="OnLocationServiceIsEnabledChanged_Internal"/>) opens the same
+	/// gate the on-screen toggle does — without this, the marker stays frozen
+	/// after an auto-enable until the user manually toggles OFF→ON.
+	/// Idempotent so the echo from our own <see cref="SetLocationServiceEnabled"/>
+	/// write is a no-op.
+	/// </summary>
+	private void ApplyLocationServiceEnabledState(bool enabled)
+	{
+		if (_currentState.LocationServiceState.IsEnabled == enabled
+			&& _currentState.PageHeaderState.IsLocationServiceEnabled == enabled
+			&& _currentState.TimetableViewState.IsLocationServiceEnabled == enabled)
+		{
+			return;
+		}
+
+		VerticalPageStateUpdater.UpdateLocationServiceEnabledState(_currentState, enabled);
 
 		RaiseStateChanged(
 			VerticalPageStateSection.LocationService
 			| VerticalPageStateSection.PageHeader
 			| VerticalPageStateSection.TimetableView);
+	}
+
+	private void OnLocationServiceIsEnabledChanged_Internal(object? sender, bool enabled)
+	{
+		ApplyLocationServiceEnabledState(enabled);
+
+		// Server-driven integration (WebSocket / HTTP NetworkSyncService): when
+		// the server reports it can start, the run is server-driven too — auto
+		// start it so we don't leave a stale "運行開始" button while location is
+		// ON. Same intent as OnLocationServiceCanUseChanged's block, but driven
+		// off the (race-robust, level-reconciled) IsEnabled signal so a missed
+		// edge-triggered CanUseServiceChanged on (re)connect can't strand the
+		// run. NetworkSyncServiceCanStart is false for GPS/local sources, so the
+		// manual local-file flow is unaffected.
+		if (enabled
+			&& _locationService.NetworkSyncServiceCanStart
+			&& !_currentState.PageHeaderState.IsRunning)
+		{
+			SetIsRunning(true);
+		}
 	}
 
 	/// <summary>
@@ -339,6 +422,7 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		_locationService.CanUseServiceChanged -= OnLocationServiceCanUseChanged;
 		_locationService.LocationStateChanged -= OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated -= OnGpsLocationUpdated_Internal;
+		_locationService.IsEnabledChanged -= OnLocationServiceIsEnabledChanged_Internal;
 		_appViewModelProvider.PropertyChanged -= OnAppViewModelPropertyChanged;
 	}
 }

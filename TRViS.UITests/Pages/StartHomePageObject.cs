@@ -40,6 +40,16 @@ public class StartHomePageObject : PageObject
 	public AppiumElement OpenButton => FindByAutomationId(AutomationIds.StartHome.OpenButton);
 	public AppiumElement DisconnectButton => FindByAutomationId(AutomationIds.StartHome.DisconnectButton);
 
+	// Home mode — loader/connection status (#261).
+	public AppiumElement LoaderInfoTitle => FindByAutomationId(AutomationIds.StartHome.LoaderInfoTitle);
+	// Visible only while a WebSocket loader's connection is lost. Use
+	// WaitForElement: it flips visible asynchronously after IsServerConnectionLost.
+	public AppiumElement ReconnectButton => WaitForElement(AutomationIds.StartHome.ReconnectButton);
+
+	/// <summary>True once the #261 reconnect button is on screen (disconnected state).</summary>
+	public bool IsReconnectButtonVisible(double timeoutSeconds = 8)
+		=> PollDisplayed(AutomationIds.StartHome.ReconnectButton, timeoutSeconds);
+
 	/// <summary>
 	/// Returns true when the WorkGroupChip is currently visible (i.e. a tentative
 	/// WorkGroup has been selected). Returns false on any lookup error so callers
@@ -71,6 +81,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestSetupBrowseFallbackButton => FindByAutomationId(AutomationIds.StartHome.TestSetupBrowseFallbackButton);
 	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
 	public AppiumElement TestClearLoaderButton => FindByAutomationId(AutomationIds.StartHome.TestClearLoaderButton);
+	public AppiumElement TestSimulateWebSocketDisconnectButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton);
 
 	public bool IsDisplayed()
 	{
@@ -207,8 +218,44 @@ public class StartHomePageObject : PageObject
 	/// <summary>
 	/// Loads the demo (sample) data set. After load, the page transitions to Home mode
 	/// and the WorkGroup/Work lists become visible.
+	///
+	/// Tap-then-poll-then-retry-once: iPhone iOS-26 simulators intermittently
+	/// drop the first <c>LoadDemoButton</c> tap — WDA's pointerInput races the
+	/// Start→Home layout pass, so the button press never reaches the handler
+	/// and the page stays in Start mode (#251). When the WorkGroup list doesn't
+	/// appear within a generous budget AND the demo button is still on screen,
+	/// re-tap once.
+	///
+	/// "Button still on screen" does not by itself prove the first tap was
+	/// lost — the handler keeps LoadDemoButton visible while
+	/// SampleDataLoader.CreateAsync is awaited, so a genuinely slow load could
+	/// also still show it. The re-tap is nonetheless safe because
+	/// OnLoadDemoClicked carries a re-entrancy guard (StartGridView.xaml.cs):
+	/// a second tap arriving while a load is in flight is a logged no-op, so a
+	/// slow-but-progressing load is never double-triggered, and a truly lost
+	/// tap (handler never ran) is retried cleanly.
+	///
+	/// Timing: the happy path returns within ~1 s (the Start→Home transition
+	/// is ~380 ms). The hard-failure path is ~12 s + ~1 s + ~12 s here, then
+	/// the caller's existing WaitForElement(WorkGroupList) adds its own 30 s
+	/// before the canonical timeout + page-source dump — so a doubly-failed
+	/// load surfaces in roughly ~55 s rather than the previous 30 s, in
+	/// exchange for absorbing the lost-tap flake without a fixture rerun.
+	/// Mirrors the defensive probe-and-retry style of AppShellPage.OpenFlyout.
 	/// </summary>
-	public void LoadSample() => LoadDemoButton.Click();
+	public void LoadSample()
+	{
+		LoadDemoButton.Click();
+
+		if (IsWorkGroupListVisible(timeoutSeconds: 12))
+			return;
+
+		if (PollDisplayed(AutomationIds.StartHome.LoadDemoButton, timeoutSeconds: 1))
+		{
+			LoadDemoButton.Click();
+			IsWorkGroupListVisible(timeoutSeconds: 12);
+		}
+	}
 
 	/// <summary>
 	/// Taps "Connect to Server" and returns the dialog's page object.
@@ -234,6 +281,40 @@ public class StartHomePageObject : PageObject
 	{
 		FindByAutomationId(AutomationIds.StartHome.TestOpenSelectFileDialogButton).Click();
 		return new SelectFileDialogPageObject(Driver);
+	}
+
+	/// <summary>
+	/// Taps the Start-mode footer "Third Party Licenses" link, which pushes
+	/// the TPL page as a modal (asModal:true). The flyout entry was removed
+	/// once this footer link became the canonical entry point.
+	/// </summary>
+	public ThirdPartyLicensesPageObject OpenThirdPartyLicenses()
+	{
+		WaitForElement(AutomationIds.StartHome.ThirdPartyLicensesButton, TimeSpan.FromSeconds(30)).Click();
+		return new ThirdPartyLicensesPageObject(Driver);
+	}
+
+	/// <summary>
+	/// Taps the footer "Privacy Policy" link and waits for the privacy dialog
+	/// to surface. After privacy has already been accepted in the session
+	/// (the assembly-ordered AppLaunchTests fixture does this first) this
+	/// opens the read-only privacy dialog rather than the first-launch
+	/// reconfirm flow. Used by the screenshot-regression walk.
+	/// </summary>
+	public void OpenPrivacyPolicyDialog()
+	{
+		WaitForElement(AutomationIds.StartHome.PrivacyPolicyButton, TimeSpan.FromSeconds(30)).Click();
+		WaitForElement(AutomationIds.PrivacyDialog.Title, TimeSpan.FromSeconds(60));
+	}
+
+	/// <summary>
+	/// Dismisses the privacy dialog opened by <see cref="OpenPrivacyPolicyDialog"/>
+	/// and waits until the StartHome title is back on screen.
+	/// </summary>
+	public void ClosePrivacyPolicyDialog()
+	{
+		WaitForElement(AutomationIds.PrivacyDialog.CloseButton, TimeSpan.FromSeconds(30)).Click();
+		WaitForElement(AutomationIds.StartHome.Title, TimeSpan.FromSeconds(30));
 	}
 
 	/// <summary>
@@ -278,6 +359,84 @@ public class StartHomePageObject : PageObject
 	/// from "no loader" regardless of where the previous test left things.
 	/// </summary>
 	public void ClearLoaderForTesting() => TestClearLoaderButton.Click();
+
+	public AppiumElement TestFreezeClockButton => FindByAutomationId(AutomationIds.StartHome.TestFreezeClockButton);
+	public AppiumElement TestForceLightThemeButton => FindByAutomationId(AutomationIds.StartHome.TestForceLightThemeButton);
+	public AppiumElement TestForceDarkThemeButton => FindByAutomationId(AutomationIds.StartHome.TestForceDarkThemeButton);
+	public AppiumElement TestUnfreezeClockButton => FindByAutomationId(AutomationIds.StartHome.TestUnfreezeClockButton);
+	public AppiumElement TestResetThemeButton => FindByAutomationId(AutomationIds.StartHome.TestResetThemeButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that pins AppTimeProvider at 09:41:00 (Apple
+	/// marketing time). Makes the DTAC AppBar's live HH:mm:ss clock
+	/// pixel-deterministic for screenshot-regression baselines. Tap this on
+	/// StartHome BEFORE navigating into DTAC; the LocationService 100 ms poll
+	/// converges the visible label within one tick.
+	/// </summary>
+	public void FreezeClockForTesting() => TestFreezeClockButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that forces the app-wide theme to Light /
+	/// Dark, so one shared Appium session can capture both palettes
+	/// deterministically without depending on the simulator's system
+	/// appearance.
+	/// </summary>
+	public void ForceThemeForTesting(bool dark)
+	{
+		if (dark)
+			TestForceDarkThemeButton.Click();
+		else
+			TestForceLightThemeButton.Click();
+	}
+
+	/// <summary>
+	/// Inverse of <see cref="FreezeClockForTesting"/>: lets AppTimeProvider
+	/// follow the real clock again. The screenshot fixture runs at Order(3)
+	/// and shares the assembly-wide iOS session, so it must undo the freeze
+	/// before later fixtures run.
+	/// </summary>
+	public void UnfreezeClockForTesting() => TestUnfreezeClockButton.Click();
+
+	/// <summary>
+	/// Inverse of <see cref="ForceThemeForTesting"/>: resets the app-wide
+	/// theme to Unspecified (follow the OS) so a forced Light/Dark palette
+	/// does not leak into later fixtures sharing the iOS session.
+	/// </summary>
+	public void ResetThemeForTesting() => TestResetThemeButton.Click();
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that sets a non-connected
+	/// WebSocketNetworkSyncService loader and flips IsServerConnectionLost=true,
+	/// driving Home into the #261 "サーバー未接続 + 再接続" state without a real
+	/// WebSocket server.
+	/// </summary>
+	public void SimulateWebSocketDisconnectForTesting() => TestSimulateWebSocketDisconnectButton.Click();
+
+	public AppiumElement TestSetLanguageEnglishButton => FindByAutomationId(AutomationIds.StartHome.TestSetLanguageEnglishButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that switches the UI language to English
+	/// through the same ViewModel path the Settings language picker uses (#40).
+	/// </summary>
+	public void SetLanguageEnglishForTesting() => TestSetLanguageEnglishButton.Click();
+
+	public AppiumElement TestSetLanguageJapaneseButton => FindByAutomationId(AutomationIds.StartHome.TestSetLanguageJapaneseButton);
+
+	/// <summary>
+	/// Pins the UI language to Japanese (#40). Fixtures that assert hard-coded
+	/// Japanese strings call this in SetUp so the resx-resolved text is
+	/// deterministic regardless of the CI device locale.
+	/// </summary>
+	public void SetLanguageJapaneseForTesting() => TestSetLanguageJapaneseButton.Click();
+
+	public AppiumElement TestSimulateWebSocketConnectedButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam (#266) that builds a WebSocket-TYPED loader
+	/// carrying real sample data, commits the first WG/Work and navigates to
+	/// DTAC — landing with the AppBar status indicator in the Connected state.
+	/// </summary>
+	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
 
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
