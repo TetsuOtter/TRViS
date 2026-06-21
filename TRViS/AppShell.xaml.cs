@@ -105,6 +105,16 @@ public partial class AppShell : Shell
 		// 起動時の値も反映する (通常は null)
 		ApplyHeaderColorOverride(appVm.HeaderColorOverride_RGB, easterEggPageViewModel);
 
+		// サーバーから NavigateToHome コマンドを受信したときに、ホーム画面へ遷移する。
+		// WebSocket 受信スレッドから呼ばれるため MainThread に dispatch する。
+		appVm.NavigateToHomeRequested += (_, _) =>
+			MainThread.BeginInvokeOnMainThread(() =>
+				_ = GoToAsync("//" + nameof(StartHomePage)).ContinueWith(t =>
+				{
+					if (t.IsFaulted)
+						logger.Error(t.Exception, "NavigateToHome GoToAsync failed");
+				}, TaskScheduler.Default));
+
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
 		logger.Trace("Display Width/Height: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);

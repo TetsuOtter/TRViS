@@ -20,6 +20,8 @@ must carry a `MessageType` field (exact case). Unknown/missing
 | `HeaderColor` | Change header color | [§7](#7-headercolor) |
 | `Notification` | Notification | [§8](#8-notification) |
 | `TimeFormat` | Time display format | [§9](#9-timeformat) |
+| `NavigateToHome` | Navigate to home screen | [§10](#10-navigatetohome) |
+| `OpenTimetable` | Open timetable view for a specified train | [§11](#11-opentimetable) |
 
 > Notation: "Required" means a field the server effectively needs to
 > produce meaningful behavior. "Optional" may be omitted. A type
@@ -250,6 +252,53 @@ Specifies the title-bar time display format.
 | `Format` | string | e.g. `"HH:mm:ss"` / `"HH:mm"`. `null` or omitted → reset to device default. |
 
 The format string is interpreted per the client's time formatter.
+
+## 10. NavigateToHome
+
+Instructs the client to navigate to the home (start) screen.
+No additional fields are needed; the payload contains only `MessageType`.
+
+```jsonc
+{
+  "MessageType": "NavigateToHome"
+}
+```
+
+Only `MessageType` is present. On receipt the client navigates to the
+home screen immediately. Operation state and train selection are not
+affected by this command; use other server-driven commands to control
+those independently.
+
+---
+
+## 11. OpenTimetable
+
+Selects the specified train and opens the timetable view (D-TAC screen,
+"時刻表" tab) directly. On receipt the client:
+
+1. Applies the train selection (WorkGroupId / WorkId / TrainId) — same
+   rules as [`SelectTrain`](#5-selecttrain).
+2. Navigates to the D-TAC screen if not already there.
+3. Switches to the timetable (VerticalView) tab.
+
+```jsonc
+{
+  "MessageType": "OpenTimetable",
+  "WorkGroupId": "wg-1",  // string | null
+  "WorkId": "w-1",        // string | null
+  "TrainId": "t-1"        // string | null
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `WorkGroupId` | string | Optional. WorkGroup to select. |
+| `WorkId` | string | Optional. Work to select. |
+| `TrainId` | string | Optional. Train to select. |
+
+Each field is only accepted when of **JSON string type** (numbers etc.
+are ignored). A `null` or omitted field leaves that selection level
+unchanged.
 
 ---
 

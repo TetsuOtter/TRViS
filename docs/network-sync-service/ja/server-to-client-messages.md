@@ -20,6 +20,8 @@ JSON オブジェクトで、必ず `MessageType` フィールド（正確なケ
 | `HeaderColor` | ヘッダ色変更 | [§7](#7-headercolor) |
 | `Notification` | 通告 | [§8](#8-notification) |
 | `TimeFormat` | 時刻表示書式 | [§9](#9-timeformat) |
+| `NavigateToHome` | ホーム画面へ遷移 | [§10](#10-navigatetohome) |
+| `OpenTimetable` | 指定列車の時刻表ビューを開く | [§11](#11-opentimetable) |
 
 > 表記規約: 「必須」はサーバーが意味のある動作をさせるために事実上
 > 必要なフィールド。「任意」は省略可能。型不一致はおおむね「無視
@@ -245,6 +247,50 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 | `Format` | string | 例: `"HH:mm:ss"` / `"HH:mm"`。`null` または省略時は端末既定にリセット。 |
 
 書式文字列の解釈はクライアント側の時刻フォーマッタに準じます。
+
+## 10. NavigateToHome
+
+クライアントをホーム画面（スタート画面）へ遷移させる指示。
+追加フィールドは不要で、`MessageType` のみのペイロードとなります。
+
+```jsonc
+{
+  "MessageType": "NavigateToHome"
+}
+```
+
+フィールドは `MessageType` のみ。受信するとクライアントはホーム画面へ
+即座に遷移します（実行中の操作状態や列車選択はサーバー主導の他のコマンドで
+別途制御してください）。
+
+---
+
+## 11. OpenTimetable
+
+指定の列車を選択し、D-TAC 画面の「時刻表」タブを直接開きます。
+受信するとクライアントは以下を順番に実行します。
+
+1. 列車選択を適用（WorkGroupId / WorkId / TrainId） — [`SelectTrain`](#5-selecttrain) と同じルール。
+2. D-TAC 画面が表示されていなければ遷移する。
+3. 時刻表（VerticalView）タブへ切り替える。
+
+```jsonc
+{
+  "MessageType": "OpenTimetable",
+  "WorkGroupId": "wg-1",  // string | null
+  "WorkId": "w-1",        // string | null
+  "TrainId": "t-1"        // string | null
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `WorkGroupId` | string | 任意。選択する WorkGroup。 |
+| `WorkId` | string | 任意。選択する Work。 |
+| `TrainId` | string | 任意。選択する Train。 |
+
+各フィールドは **JSON 文字列型** のときのみ採用されます（数値等は無視）。
+`null` または省略した場合、その階層の選択は変更されません。
 
 ---
 

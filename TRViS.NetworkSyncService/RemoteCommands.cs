@@ -70,3 +70,16 @@ public class TimeFormatCommand
 {
 	public string? Format { get; set; }
 }
+
+/// <summary>
+/// 指定の列車の時刻表ビュー (D-TAC 画面の「時刻表」タブ) を開かせるコマンド。
+/// <see cref="SelectTrainCommand"/> と同じ階層指定で列車を選択した上で D-TAC へ遷移し、
+/// 時刻表タブ (VerticalView) を表示する。
+/// 任意のフィールドが null の場合、その階層は変更しない。
+/// </summary>
+public class OpenTimetableCommand
+{
+	public string? WorkGroupId { get; set; }
+	public string? WorkId { get; set; }
+	public string? TrainId { get; set; }
+}

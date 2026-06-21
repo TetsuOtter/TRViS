@@ -49,6 +49,8 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_HEADER_COLOR = "HeaderColor";
 	private const string MESSAGE_TYPE_NOTIFICATION = "Notification";
 	private const string MESSAGE_TYPE_TIME_FORMAT = "TimeFormat";
+	private const string MESSAGE_TYPE_NAVIGATE_TO_HOME = "NavigateToHome";
+	private const string MESSAGE_TYPE_OPEN_TIMETABLE = "OpenTimetable";
 	private const string TIMETABLE_DATA_JSON_KEY = "Data";
 
 	// ServerInfo / DiagramInfo のJSONキー
@@ -287,6 +289,14 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			{
 				ProcessTimeFormatMessage(root);
 			}
+			else if (messageType == MESSAGE_TYPE_NAVIGATE_TO_HOME)
+			{
+				RaiseNavigateToHomeRequested();
+			}
+			else if (messageType == MESSAGE_TYPE_OPEN_TIMETABLE)
+			{
+				ProcessOpenTimetableMessage(root);
+			}
 		}
 		catch (JsonException ex)
 		{
@@ -450,6 +460,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			TrainId = TryGetStringProperty(root, TRAIN_ID_JSON_KEY),
 		};
 		RaiseTrainSelectionRequested(cmd);
+	}
+
+	private void ProcessOpenTimetableMessage(JsonElement root)
+	{
+		var cmd = new OpenTimetableCommand
+		{
+			WorkGroupId = TryGetStringProperty(root, WORK_GROUP_ID_JSON_KEY),
+			WorkId = TryGetStringProperty(root, WORK_ID_JSON_KEY),
+			TrainId = TryGetStringProperty(root, TRAIN_ID_JSON_KEY),
+		};
+		RaiseOpenTimetableRequested(cmd);
 	}
 
 	private void ProcessOperationCommandMessage(JsonElement root)

@@ -295,6 +295,25 @@ public sealed class ReferenceServerClient : IDisposable
 		resp.EnsureSuccessStatusCode();
 	}
 
+	public async Task BroadcastNavigateToHomeAsync(CancellationToken ct = default)
+	{
+		var resp = await _http.PostAsync("/control/broadcast-navigate-to-home", null, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastOpenTimetableAsync(
+		string? workGroupId = null,
+		string? workId = null,
+		string? trainId = null,
+		CancellationToken ct = default)
+	{
+		var payload = new { WorkGroupId = workGroupId, WorkId = workId, TrainId = trainId };
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-open-timetable", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
 	// ================================================================
 	// ユーティリティ
 	// ================================================================

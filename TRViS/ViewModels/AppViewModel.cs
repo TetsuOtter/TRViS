@@ -239,6 +239,46 @@ public partial class AppViewModel : ObservableObject
 		_ExternalResourceUrlHistory = AppPreferenceService.GetFromJson(AppPreferenceKeys.ExternalResourceUrlHistory, [], out _, StringListJsonSourceGenerationContext.Default.ListString);
 	}
 
+	/// <summary>
+	/// サーバーからホーム画面への遷移要求を受信したときに発火する。
+	/// AppShell が購読して MainThread 上でナビゲーションを実行する。
+	/// WebSocket 受信スレッドから呼ばれるため、UI 操作は購読側で MainThread に dispatch する。
+	/// </summary>
+	public event EventHandler? NavigateToHomeRequested;
+
+	/// <summary>
+	/// サーバーから OpenTimetable コマンドを受信し、列車選択を適用した後に発火する。
+	/// StartHomePage (ホーム画面表示中) が購読して D-TAC へ遷移し、
+	/// ViewHost が購読して時刻表タブへ切り替える。
+	/// WebSocket 受信スレッドから呼ばれるため、UI 操作は購読側で MainThread に dispatch する。
+	/// </summary>
+	public event EventHandler? OpenTimetableViewRequested;
+
+	/// <summary>
+	/// D-TAC への遷移が未処理であることを表す latch。
+	/// StartHomePage が消費して <see cref="HomeGridView.NavigateToDTACAsync"/> を実行する。
+	/// </summary>
+	public bool OpenTimetableNavigationPending { get; private set; }
+
+	/// <summary>
+	/// D-TAC の時刻表タブへの切り替えが未処理であることを表す latch。
+	/// ViewHost が消費して TabMode を VerticalView に設定する。
+	/// StartHomePage とは独立しており、ナビゲーション後に ViewHost.OnAppearing で確認する。
+	/// </summary>
+	public bool OpenTimetableTabSwitchPending { get; private set; }
+
+	public void ConsumeOpenTimetableNavigationPending() => OpenTimetableNavigationPending = false;
+
+	/// <summary>
+	/// <see cref="OpenTimetableTabSwitchPending"/> フラグを消費する。消費できた場合 true を返す。
+	/// </summary>
+	public bool ConsumeOpenTimetableTabSwitchPending()
+	{
+		if (!OpenTimetableTabSwitchPending) return false;
+		OpenTimetableTabSwitchPending = false;
+		return true;
+	}
+
 	internal void SubscribeToLocationService(TRViS.Services.LocationService locationService)
 	{
 		locationService.TimetableUpdated += OnTimetableUpdated;
@@ -246,10 +286,48 @@ public partial class AppViewModel : ObservableObject
 		locationService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
 		locationService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
 		locationService.DiagramInfoUpdated += OnDiagramInfoUpdated;
+		locationService.NavigateToHomeRequested += OnNavigateToHomeRequested;
+		locationService.OpenTimetableRequested += OnOpenTimetableRequested;
 		// NotificationReceived / OperationCommandReceived / ServerInfo は
 		// LocationService 側で受信される。OperationCommand の動作 (位置情報 ON/OFF) は
 		// LocationService が直接適用する。Notification / ServerInfo の UI 表示は
 		// 個別画面側で必要に応じて購読する。
+	}
+
+	void OnNavigateToHomeRequested(object? sender, EventArgs _)
+	{
+		logger.Info("OnNavigateToHomeRequested");
+		NavigateToHomeRequested?.Invoke(this, EventArgs.Empty);
+	}
+
+	void OnOpenTimetableRequested(object? sender, OpenTimetableCommand cmd)
+	{
+		logger.Info("OnOpenTimetableRequested: WorkGroupId={0}, WorkId={1}, TrainId={2}",
+			cmd.WorkGroupId, cmd.WorkId, cmd.TrainId);
+
+		// 列車選択を適用 (SelectTrain と同じ階層ロジック)
+		if (cmd.WorkGroupId is not null)
+		{
+			var wg = SelectionManager.WorkGroupList?.FirstOrDefault(w => w.Id == cmd.WorkGroupId);
+			if (wg is not null && SelectionManager.SelectedWorkGroup?.Id != wg.Id)
+				SelectionManager.SelectedWorkGroup = wg;
+		}
+		if (cmd.WorkId is not null)
+		{
+			var work = SelectionManager.WorkList?.FirstOrDefault(w => w.Id == cmd.WorkId);
+			if (work is not null && SelectionManager.SelectedWork?.Id != work.Id)
+				SelectionManager.SelectedWork = work;
+		}
+		if (cmd.TrainId is not null)
+		{
+			var train = SelectionManager.OrderedTrainDataList?.FirstOrDefault(t => t.Id == cmd.TrainId);
+			if (train is not null && SelectionManager.SelectedTrainData?.Id != train.Id)
+				SelectionManager.SelectedTrainData = train;
+		}
+
+		OpenTimetableNavigationPending = true;
+		OpenTimetableTabSwitchPending = true;
+		OpenTimetableViewRequested?.Invoke(this, EventArgs.Empty);
 	}
 
 	/// <summary>

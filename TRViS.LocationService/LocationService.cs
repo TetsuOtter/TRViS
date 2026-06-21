@@ -51,6 +51,8 @@ public partial class LocationService : IDisposable
 	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
 	public event EventHandler<NotificationData>? NotificationReceived;
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
+	public event EventHandler? NavigateToHomeRequested;
+	public event EventHandler<OpenTimetableCommand>? OpenTimetableRequested;
 
 	/// <summary>
 	/// GPS位置情報が更新された際に発生するイベント。
@@ -188,6 +190,8 @@ void OnIsEnabledChanged(bool value)
 	void OnHeaderColorChangeRequested(object? sender, HeaderColorCommand cmd) => HeaderColorChangeRequested?.Invoke(sender, cmd);
 	void OnNotificationReceived(object? sender, NotificationData n) => NotificationReceived?.Invoke(sender, n);
 	void OnTimeFormatChangeRequested(object? sender, TimeFormatCommand cmd) => TimeFormatChangeRequested?.Invoke(sender, cmd);
+	void OnNavigateToHomeRequested(object? sender, EventArgs _) => NavigateToHomeRequested?.Invoke(sender, EventArgs.Empty);
+	void OnOpenTimetableRequested(object? sender, OpenTimetableCommand cmd) => OpenTimetableRequested?.Invoke(sender, cmd);
 
 	/// <summary>
 	/// NetworkSyncService 経由で配信された緯度経度を受け取り、
@@ -288,6 +292,8 @@ void OnIsEnabledChanged(bool value)
 			networkSyncService.HeaderColorChangeRequested -= OnHeaderColorChangeRequested;
 			networkSyncService.NotificationReceived -= OnNotificationReceived;
 			networkSyncService.TimeFormatChangeRequested -= OnTimeFormatChangeRequested;
+			networkSyncService.NavigateToHomeRequested -= OnNavigateToHomeRequested;
+			networkSyncService.OpenTimetableRequested -= OnOpenTimetableRequested;
 			networkSyncService.LonLatLocationReceived -= OnNetworkSyncServiceLonLatLocationReceived;
 		}
 		if (currentService is IDisposable disposable)
@@ -412,6 +418,8 @@ void OnIsEnabledChanged(bool value)
 		nextService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
 		nextService.NotificationReceived += OnNotificationReceived;
 		nextService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
+		nextService.NavigateToHomeRequested += OnNavigateToHomeRequested;
+		nextService.OpenTimetableRequested += OnOpenTimetableRequested;
 		nextService.ConnectionClosed += OnNetworkSyncServiceConnectionClosed;
 		nextService.ConnectionFailed += OnNetworkSyncServiceConnectionFailed;
 		nextService.CanStartChanged += OnNetworkSyncServiceCanStartChanged;
@@ -445,6 +453,8 @@ void OnIsEnabledChanged(bool value)
 			networkSyncService.HeaderColorChangeRequested -= OnHeaderColorChangeRequested;
 			networkSyncService.NotificationReceived -= OnNotificationReceived;
 			networkSyncService.TimeFormatChangeRequested -= OnTimeFormatChangeRequested;
+			networkSyncService.NavigateToHomeRequested -= OnNavigateToHomeRequested;
+			networkSyncService.OpenTimetableRequested -= OnOpenTimetableRequested;
 			networkSyncService.ConnectionClosed -= OnNetworkSyncServiceConnectionClosed;
 			networkSyncService.ConnectionFailed -= OnNetworkSyncServiceConnectionFailed;
 			networkSyncService.CanStartChanged -= OnNetworkSyncServiceCanStartChanged;

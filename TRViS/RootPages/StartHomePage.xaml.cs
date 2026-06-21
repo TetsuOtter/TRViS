@@ -671,6 +671,8 @@ public partial class StartHomePage : ContentPage
 		viewModel.PropertyChanged += OnViewModelPropertyChanged;
 		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
 		viewModel.AutoNavigateToTimetableRequested += OnAutoNavigateToTimetableRequested;
+		viewModel.OpenTimetableViewRequested -= OnOpenTimetableViewRequested;
+		viewModel.OpenTimetableViewRequested += OnOpenTimetableViewRequested;
 
 		UpdatePrivacyDependentControls();
 
@@ -701,6 +703,7 @@ public partial class StartHomePage : ContentPage
 		base.OnDisappearing();
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
+		viewModel.OpenTimetableViewRequested -= OnOpenTimetableViewRequested;
 	}
 
 	// The pending intent is latched on AppViewModel (not a field here): a
@@ -728,6 +731,22 @@ public partial class StartHomePage : ContentPage
 		if ((Shell.Current?.Navigation?.ModalStack?.Count ?? 0) > 0)
 			return;
 		viewModel.ConsumeAutoNavigateToTimetablePending();
+		await HomeGridView.NavigateToDTACAsync();
+	}
+
+	void OnOpenTimetableViewRequested(object? sender, EventArgs e)
+	{
+		MainThread.BeginInvokeOnMainThread(async () => await TryConsumeOpenTimetableViewAsync());
+	}
+
+	async Task TryConsumeOpenTimetableViewAsync()
+	{
+		if (!viewModel.OpenTimetableNavigationPending)
+			return;
+		if ((Shell.Current?.Navigation?.ModalStack?.Count ?? 0) > 0)
+			return;
+		// Tab の切り替えは ViewHost.OnAppearing が OpenTimetableTabSwitchPending を確認して行う。
+		viewModel.ConsumeOpenTimetableNavigationPending();
 		await HomeGridView.NavigateToDTACAsync();
 	}
 

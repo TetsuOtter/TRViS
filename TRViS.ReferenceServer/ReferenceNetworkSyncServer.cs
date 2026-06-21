@@ -148,6 +148,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			("POST", "broadcast-header-color") => await BroadcastHeaderColorAsync(request),
 			("POST", "broadcast-notification") => await BroadcastNotificationAsync(request),
 			("POST", "broadcast-time-format") => await BroadcastTimeFormatAsync(request),
+			("POST", "broadcast-navigate-to-home") => await BroadcastNavigateToHomeAsync(),
+			("POST", "broadcast-open-timetable") => await BroadcastOpenTimetableAsync(request),
 			_ => Error(HttpStatusCode.NotFound, $"Unknown control endpoint: {method} /control/{sub}"),
 		};
 	}
@@ -624,6 +626,37 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			{
 				MessageType = "TimeFormat",
 				Format = format,
+			});
+			await BroadcastTextAsync(msg);
+			return OkJson("{\"ok\":true}");
+		}
+		catch (JsonException ex) { return Error(HttpStatusCode.BadRequest, ex.Message); }
+	}
+
+	private async Task<HttpResponse> BroadcastNavigateToHomeAsync()
+	{
+		var msg = JsonSerializer.Serialize(new { MessageType = "NavigateToHome" });
+		await BroadcastTextAsync(msg);
+		return OkJson("{\"ok\":true}");
+	}
+
+	/// <summary>
+	/// OpenTimetable: { WorkGroupId?, WorkId?, TrainId? }
+	/// </summary>
+	private async Task<HttpResponse> BroadcastOpenTimetableAsync(HttpRequest request)
+	{
+		try
+		{
+			using var doc = JsonDocument.Parse(request.Body.Length > 0
+				? Encoding.UTF8.GetString(request.Body)
+				: "{}");
+			var root = doc.RootElement;
+			var msg = JsonSerializer.Serialize(new
+			{
+				MessageType = "OpenTimetable",
+				WorkGroupId = TryGetString(root, "WorkGroupId"),
+				WorkId = TryGetString(root, "WorkId"),
+				TrainId = TryGetString(root, "TrainId"),
 			});
 			await BroadcastTextAsync(msg);
 			return OkJson("{\"ok\":true}");
