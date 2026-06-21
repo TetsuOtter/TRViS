@@ -185,6 +185,11 @@ public static class AutomationIds
 		// pushes HorizontalTimetablePage onto the Shell stack.
 		public const string HorizontalTimetableButton = "DTAC.HorizontalTimetableButton";
 
+		// iPhone-only (#155). Tapping it pushes FullScrollVerticalTimetablePage
+		// onto the Shell stack (the separated landscape full-scroll timetable).
+		// Hidden on tablets and on the full-scroll page itself.
+		public const string FullScrollButton = "DTAC.FullScrollButton";
+
 		// UI_TEST-only seam: issues Shell.Current.GoToAsync("//StartHomePage")
 		// directly so shared-session fixtures can recover from DTAC without
 		// going through the flyout. The flyout is unreliable on Android when
@@ -261,6 +266,20 @@ public static class AutomationIds
 		// fixture-end TearDown can return the app to a Shell-rooted page
 		// (HT is a Shell.GoToAsync push and the flyout is gated to roots).
 		public const string BackButton = "HorizontalTimetable.BackButton";
+	}
+
+	/// <summary>
+	/// Separated full-scroll D-TAC page (#155). The whole vertical timetable
+	/// wrapped in one outer ScrollView, landscape on iPhone. Reached by tapping
+	/// <see cref="DTAC.FullScrollButton"/>; the timetable's scroll container is
+	/// still surfaced under <see cref="DTAC.TimetableScrollView"/> (the
+	/// AutomationId is shared across the embedded and full-scroll variants).
+	/// </summary>
+	public static class FullScroll
+	{
+		// AppBar back button. Tapping it pops back to ViewHost so the Shell
+		// flyout is reachable again (the full-scroll page is a Shell push).
+		public const string BackButton = "FullScroll.BackButton";
 	}
 
 	/// <summary>

@@ -19,6 +19,45 @@ internal static class InstanceManager
 	private static DTACViewHostViewModel? _DTACViewHostViewModel = null;
 	public static DTACViewHostViewModel DTACViewHostViewModel { get => _DTACViewHostViewModel ??= new(); }
 
+	// Shared so the embedded VerticalStylePage (cached ViewHost) and the
+	// separated full-scroll page reflect the same run / location state. Two
+	// independent presenters would diverge on manual 運行開始 / location
+	// toggles (the WebSocket-driven path auto-reconciles via LocationService,
+	// but local taps do not), so a user who started a run in portrait would
+	// see 運行開始 again on the full-scroll page.
+	private static TRViS.DTAC.Logic.Presenter.VerticalStylePagePresenter? _VerticalStylePagePresenter = null;
+	public static TRViS.DTAC.Logic.Presenter.VerticalStylePagePresenter VerticalStylePagePresenter
+	{
+		get => _VerticalStylePagePresenter ??= TRViS.DTAC.Adapters.PresenterFactory.Build();
+	}
+
+	// The separated full-scroll D-TAC surface (#155). Built once and kept for
+	// the app lifetime — same shape as the embedded VerticalStylePage in the
+	// cached ViewHost (which also lives forever with all its shared-service
+	// subscriptions). A fresh instance per navigation would multiply those
+	// subscriptions (VerticalTimetableView -> LocationServiceAdapter ->
+	// shared LocationService has no teardown), so the transient
+	// FullScrollVerticalTimetablePage just re-parents this singleton wrapper
+	// instead of rebuilding it.
+	private static TRViS.DTAC.WithRemarksView? _FullScrollVerticalStyleView = null;
+	public static TRViS.DTAC.WithRemarksView FullScrollVerticalStyleView
+	{
+		get
+		{
+			if (_FullScrollVerticalStyleView is not null)
+				return _FullScrollVerticalStyleView;
+
+			AppViewModel appViewModel = AppViewModel;
+			var vsp = new TRViS.DTAC.VerticalStylePage(VerticalStylePagePresenter, fullScroll: true);
+			var wrapper = new TRViS.DTAC.WithRemarksView { Content = vsp };
+			wrapper.SetBinding(
+				TRViS.DTAC.WithRemarksView.RemarksDataProperty,
+				BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: appViewModel));
+			_FullScrollVerticalStyleView = wrapper;
+			return _FullScrollVerticalStyleView;
+		}
+	}
+
 	private static EasterEggPageViewModel? _EasterEggPageViewModel = null;
 	public static EasterEggPageViewModel EasterEggPageViewModel { get => _EasterEggPageViewModel ??= new(); }
 
@@ -148,6 +187,7 @@ internal static class InstanceManager
 	}
 	public static void Dispose()
 	{
+		DisposeValue(ref _VerticalStylePagePresenter);
 		DisposeValue(ref _LocationServiceGpsAdapter);
 		DisposeValue(ref _LocationServiceIdSyncAdapter);
 		DisposeValue(ref _LocationServiceAlertSubscriber);

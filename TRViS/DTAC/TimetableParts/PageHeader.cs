@@ -147,16 +147,68 @@ public partial class PageHeader : Grid
 	}
 	#endregion
 
+	#region Full Scroll Button
+	public const string FullScrollButtonAutomationId = "DTAC.FullScrollButton";
+	const double FULL_SCROLL_BUTTON_COLUMN_WIDTH = 60;
+	readonly ColumnDefinition FullScrollButtonColumn = new(0);
+	readonly Button FullScrollButton;
+
+	private bool _IsFullScrollButtonVisible;
+	/// <summary>
+	/// Shows the entry button that navigates to the separated full-scroll D-TAC
+	/// page (#155). Only set true by the non-full-scroll, iPhone-idiom
+	/// VerticalStylePage; the full-scroll page itself hides it (no point
+	/// offering "go to full scroll" while already there).
+	/// </summary>
+	public bool IsFullScrollButtonVisible
+	{
+		get => _IsFullScrollButtonVisible;
+		set
+		{
+			if (_IsFullScrollButtonVisible == value)
+				return;
+			_IsFullScrollButtonVisible = value;
+			FullScrollButton.IsVisible = value;
+			FullScrollButtonColumn.Width = value
+				? new GridLength(FULL_SCROLL_BUTTON_COLUMN_WIDTH)
+				: new GridLength(0);
+			logger.Info("IsFullScrollButtonVisible: {0}", value);
+		}
+	}
+
+	private async void FullScrollButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("FullScrollButton_Clicked");
+		await Shell.Current.GoToAsync(FullScrollVerticalTimetablePage.NameOfThisClass, true);
+	}
+	#endregion
+
 	public PageHeader()
 	{
 		logger.Trace("Creating...");
 
 		ColumnDefinitions = new ColumnDefinitionCollection(
 			new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
+			FullScrollButtonColumn,
 			HorizontalTimetableButtonColumn,
 			new ColumnDefinition(176),
 			new ColumnDefinition(134),
 			new ColumnDefinition(60));
+
+		FullScrollButton = new Button
+		{
+			AutomationId = FullScrollButtonAutomationId,
+			Text = TRViS.Utils.MaterialIcons.Fullscreen,
+			FontFamily = DTACElementStyles.MaterialIconFontFamily,
+			FontSize = 32,
+			FontAutoScalingEnabled = false,
+			Padding = 0,
+			Margin = new(2, 8),
+			IsVisible = false,
+		};
+		DTACElementStyles.OpenCloseButtonBGColor.Apply(FullScrollButton, BackgroundColorProperty);
+		DTACElementStyles.HorizontalTimetableButtonTextColor.Apply(FullScrollButton, Button.TextColorProperty);
+		FullScrollButton.Clicked += FullScrollButton_Clicked;
 
 		HorizontalTimetableButtonBorder = new HorizontalTimetableButton();
 		// HasHorizontalTimetable defaults to false but OnHasHorizontalTimetableChanged
@@ -194,18 +246,21 @@ public partial class PageHeader : Grid
 			AffectDateLabel,
 			column: 0
 		);
-		this.Add(HorizontalTimetableButtonBorder,
+		this.Add(FullScrollButton,
 			column: 1
 		);
-		this.Add(StartEndRunButton,
+		this.Add(HorizontalTimetableButtonBorder,
 			column: 2
 		);
-		this.Add(LocationServiceButton,
+		this.Add(StartEndRunButton,
 			column: 3
+		);
+		this.Add(LocationServiceButton,
+			column: 4
 		);
 		this.Add(
 			OpenCloseButton,
-			column: 4
+			column: 5
 		);
 
 		logger.Trace("Created");
