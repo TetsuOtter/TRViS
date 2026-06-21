@@ -23,6 +23,7 @@ public partial class ViewHost : ContentPage
 
 	private readonly ViewHostPresenter _presenter;
 	private readonly DTACViewHostViewModel _dtacViewModel;
+	private readonly AppViewModel _appViewModel;
 
 #if UI_TEST
 	private AppViewModel? _testAppVm;
@@ -38,6 +39,7 @@ public partial class ViewHost : ContentPage
 			out DTACViewHostViewModel dtacViewModel);
 
 		_dtacViewModel = dtacViewModel;
+		_appViewModel = vm;
 
 #if UI_TEST
 		_testAppVm = vm;
@@ -55,11 +57,14 @@ public partial class ViewHost : ContentPage
 		// instances can be GC'd after each visit.
 		// HorizontalTimetablePage uses the same factory and is always RegisterRoute'd
 		// (fresh per visit on all platforms), so its Unloaded+Dispose is unconditional.
+		_appViewModel.OpenTimetableViewRequested += OnOpenTimetableViewRequested;
+
 #if ANDROID
 		Unloaded += (_, _) =>
 		{
 			Shell.Current.Navigated -= OnShellNavigated;
 			_dtacViewModel.PropertyChanged -= OnDtacViewModelPropertyChanged;
+			_appViewModel.OpenTimetableViewRequested -= OnOpenTimetableViewRequested;
 			if (Shell.Current is AppShell appShellForCleanup)
 				appShellForCleanup.SafeAreaMarginChanged -= AppShell_SafeAreaMarginChanged;
 			_presenter.Dispose();
@@ -436,6 +441,21 @@ public partial class ViewHost : ContentPage
 	{
 		base.OnAppearing();
 		UpdateOrientation();
+		if (_appViewModel.ConsumeOpenTimetableTabSwitchPending())
+			_dtacViewModel.TabMode = DTACViewHostViewModel.Mode.VerticalView;
+	}
+
+	// サーバーから OpenTimetable コマンドを受信し、かつ ViewHost が既にアクティブな場合に
+	// 即座に時刻表タブへ切り替える。ホーム画面側から遷移してくる場合は OnAppearing で処理する。
+	private void OnOpenTimetableViewRequested(object? sender, EventArgs _)
+	{
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			if (!ReferenceEquals(Shell.Current?.CurrentPage, this))
+				return;
+			if (_appViewModel.ConsumeOpenTimetableTabSwitchPending())
+				_dtacViewModel.TabMode = DTACViewHostViewModel.Mode.VerticalView;
+		});
 	}
 
 	protected override void OnDisappearing()

@@ -2342,6 +2342,71 @@ public class WebSocketIntegrationTests
 	}
 
 	// ================================================================
+	// NavigateToHome コマンド
+	// ================================================================
+
+	[Test]
+	public async Task NavigateToHome_Broadcast_ClientReceivesEvent()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForNonGenericEventAsync(
+				h => service.NavigateToHomeRequested += h,
+				h => service.NavigateToHomeRequested -= h
+			);
+
+			await _control.BroadcastNavigateToHomeAsync();
+
+			// タイムアウトなしで返れば成功
+			await task;
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
+	// OpenTimetable コマンド
+	// ================================================================
+
+	[Test]
+	public async Task OpenTimetable_Broadcast_ClientReceivesEventWithIds()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<OpenTimetableCommand>(
+				h => service.OpenTimetableRequested += h,
+				h => service.OpenTimetableRequested -= h
+			);
+
+			await _control.BroadcastOpenTimetableAsync(
+				workGroupId: TestData.WorkGroupId,
+				workId: TestData.WorkId,
+				trainId: TestData.TrainId
+			);
+
+			var cmd = await task;
+			Assert.Multiple(() =>
+			{
+				Assert.That(cmd.WorkGroupId, Is.EqualTo(TestData.WorkGroupId));
+				Assert.That(cmd.WorkId, Is.EqualTo(TestData.WorkId));
+				Assert.That(cmd.TrainId, Is.EqualTo(TestData.TrainId));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ================================================================
 	// 施行日テキスト (任意文字列)
 	// ================================================================
 
