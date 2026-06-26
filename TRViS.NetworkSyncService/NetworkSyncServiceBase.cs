@@ -166,6 +166,8 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
 	public event EventHandler<NotificationData>? NotificationReceived;
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
+	public event EventHandler? NavigateToHomeRequested;
+	public event EventHandler<OpenTimetableCommand>? OpenTimetableRequested;
 	public event EventHandler? ConnectionClosed;
 	public event EventHandler? ConnectionFailed;
 	/// <summary>接続が切れて自動再接続を開始した時に発火する (#266)。</summary>
@@ -398,6 +400,19 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	{
 		Logger.Info("RaiseTimeFormatChangeRequested: Format={0}", command.Format);
 		TimeFormatChangeRequested?.Invoke(this, command);
+	}
+
+	protected void RaiseNavigateToHomeRequested()
+	{
+		Logger.Info("RaiseNavigateToHomeRequested");
+		NavigateToHomeRequested?.Invoke(this, EventArgs.Empty);
+	}
+
+	protected void RaiseOpenTimetableRequested(OpenTimetableCommand command)
+	{
+		Logger.Info("RaiseOpenTimetableRequested: WorkGroupId={0}, WorkId={1}, TrainId={2}",
+			command.WorkGroupId, command.WorkId, command.TrainId);
+		OpenTimetableRequested?.Invoke(this, command);
 	}
 
 	protected void RaiseConnectionClosed()
