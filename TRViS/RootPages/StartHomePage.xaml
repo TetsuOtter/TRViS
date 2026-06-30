@@ -94,6 +94,22 @@
 		     flipped by code-behind. -->
 		<rootpages:HomeGridView x:Name="HomeGrid"/>
 
+		<!-- RFCPTC warning banner: visible when not connected to "RFCPTC" WiFi. -->
+		<Border
+			x:Name="RfcptcWarningBanner"
+			VerticalOptions="Start"
+			HorizontalOptions="Fill"
+			BackgroundColor="#E65100"
+			Padding="8,6"
+			IsVisible="False">
+			<Label
+				Text="RFCPTCに接続されていません"
+				TextColor="White"
+				FontSize="13"
+				FontAttributes="Bold"
+				HorizontalOptions="Center"/>
+		</Border>
+
 		<!-- Footer links: Privacy / TPL pinned to the page bottom. Lives at the
 		     RootGrid level (above all three layered grids) so (a) taps reach the
 		     buttons regardless of which body grid overlaps row 4, and (b) the
