@@ -123,6 +123,23 @@ internal static class InstanceManager
 		}
 	}
 
+	private static IWifiService? _WifiService = null;
+	public static IWifiService WifiService
+	{
+		get
+		{
+			if (_WifiService is not null)
+				return _WifiService;
+
+#if IOS
+			_WifiService = new Platforms.iOS.WifiService();
+#else
+			_WifiService = new DefaultWifiService();
+#endif
+			return _WifiService;
+		}
+	}
+
 	static HttpClient? _HttpClient = null;
 	public static HttpClient HttpClient
 	{
@@ -182,5 +199,10 @@ internal static class InstanceManager
 		{
 			// No-op for unsupported platforms
 		}
+	}
+
+	private class DefaultWifiService : IWifiService
+	{
+		public Task<string?> GetCurrentSsidAsync() => Task.FromResult<string?>(null);
 	}
 }

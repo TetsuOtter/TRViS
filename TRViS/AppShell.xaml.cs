@@ -41,6 +41,8 @@ public partial class AppShell : Shell
 
 		InitializeComponent();
 
+		AutoAcceptPrivacyPolicy();
+
 #if ANDROID
 		// MAUI #16927 mitigation: hosting DTAC as a cached ShellContent causes a
 		// render-tree blank after navigation away. Remove the FlyoutItem, then
@@ -134,6 +136,16 @@ public partial class AppShell : Shell
 #endif
 
 		logger.Trace("AppShell Created");
+	}
+
+	static void AutoAcceptPrivacyPolicy()
+	{
+		var fvm = InstanceManager.FirebaseSettingViewModel;
+		if (fvm.IsPrivacyPolicyAccepted)
+			return;
+		logger.Info("Internal build: auto-accepting privacy policy (no Firebase)");
+		fvm.LastAcceptedPrivacyPolicyRevision = Constants.PRIVACY_POLICY_REVISION;
+		AppPreferenceService.Set(AppPreferenceKeys.LastAcceptedPrivacyPolicyRevision, fvm.LastAcceptedPrivacyPolicyRevision);
 	}
 
 	/// <summary>
