@@ -234,19 +234,24 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
   "MessageType": "Notification",
   "Id": "n-001",                          // string | null
   "Title": "運転見合わせ",                // string | null
-  "Body": "強風のため…",                  // string | null
+  "Body": "強風のため…",                  // string | null（BBCode 可）
   "Priority": 1,                          // integer（0=通常,1=重要 等。サーバ任意）
-  "IssuedAt": "2024-03-01T09:00:00+09:00" // string (ISO 8601) | null
+  "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601) | null
+  "Acknowledged": false                   // boolean（省略可）。受領済みなら true
 }
 ```
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| `Id` | string | 通告識別子。 |
+| `Id` | string | 通告識別子。受領（[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification)）の対象キーになる。 |
 | `Title` | string | 見出し。 |
-| `Body` | string | 本文。 |
+| `Body` | string | 本文。**BBCode**（`[b]…[/b]` 等）を使用できる。表示側の解釈はクライアント実装に依存。 |
 | `Priority` | integer | 重要度。JSON 数値かつ 32bit 整数のときのみ採用、既定 `0`。意味づけはサーバー任意。 |
 | `IssuedAt` | string | 発行時刻。**ISO 8601**（往復可能形式、例 `2024-03-01T09:00:00+09:00`）。解釈できない場合は未設定。 |
+| `Acknowledged` | boolean | 任意。当該クライアントが既にこの通告を受領済みかをサーバーが示す。JSON の `true` のときのみ受領済み扱いで、それ以外（`false`/欠落）は未受領。再接続後などに通告を再配信する際、受領済みのものを既読として渡すために使う（クライアントは既読の通告を再度ポップアップ表示しない）。 |
+
+受領（クライアント → サーバー）については
+[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification) を参照。
 
 ## 9. TimeFormat
 

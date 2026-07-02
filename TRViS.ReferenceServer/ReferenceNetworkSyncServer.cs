@@ -602,7 +602,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 	}
 
 	/// <summary>
-	/// Notification: { Id?, Title?, Body?, Priority?, IssuedAt? (ISO8601) }
+	/// Notification: { Id?, Title?, Body?, Priority?, IssuedAt? (ISO8601), Acknowledged? }
 	/// </summary>
 	private async Task<HttpResponse> BroadcastNotificationAsync(HttpRequest request)
 	{
@@ -616,6 +616,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 				&& p.TryGetInt32(out int prio))
 				priority = prio;
 			string? issuedAt = TryGetString(root, "IssuedAt");
+			bool acknowledged = root.TryGetProperty("Acknowledged", out var ack)
+				&& ack.ValueKind == JsonValueKind.True;
 			var msg = JsonSerializer.Serialize(new
 			{
 				MessageType = "Notification",
@@ -624,6 +626,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 				Body = TryGetString(root, "Body"),
 				Priority = priority,
 				IssuedAt = issuedAt,
+				Acknowledged = acknowledged,
 			});
 			await BroadcastTextAsync(msg);
 			return OkJson("{\"ok\":true}");
@@ -950,6 +953,19 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 								await TrySendAsync(client.Connection, msg);
 							return;
 						}
+					case "AcknowledgeNotification":
+						{
+							// 通告の受領。テスト用に受領した Id を記録する
+							// (応答メッセージは規定されていないため返信しない)。
+							string? notificationId = TryGetString(root, "Id");
+							_receivedRequests.Enqueue(new ReceivedRequestDto(
+								ConnectionId: client.ConnectionId,
+								MessageType: messageType,
+								DiagramId: null,
+								ReceivedAt: DateTime.UtcNow,
+								NotificationId: notificationId));
+							return;
+						}
 				}
 			}
 
@@ -1127,5 +1143,6 @@ public sealed record ReceivedRequestDto(
 	DateTime ReceivedAt,
 	string? TrainNumber = null,
 	string? TrainId = null,
-	string? MatchMode = null
+	string? MatchMode = null,
+	string? NotificationId = null
 );
