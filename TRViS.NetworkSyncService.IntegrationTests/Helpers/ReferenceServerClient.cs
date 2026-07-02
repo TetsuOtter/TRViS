@@ -325,9 +325,10 @@ public sealed class ReferenceServerClient : IDisposable
 		string? body = null,
 		int priority = 0,
 		string? issuedAt = null,
+		bool acknowledged = false,
 		CancellationToken ct = default)
 	{
-		var payload = new { Id = id, Title = title, Body = body, Priority = priority, IssuedAt = issuedAt };
+		var payload = new { Id = id, Title = title, Body = body, Priority = priority, IssuedAt = issuedAt, Acknowledged = acknowledged };
 		var content = new StringContent(
 			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
 		var resp = await _http.PostAsync("/control/broadcast-notification", content, ct);

@@ -239,19 +239,24 @@ A notification (arbitrary announcement). Delivered as a received event
   "MessageType": "Notification",
   "Id": "n-001",                          // string | null
   "Title": "Service suspended",           // string | null
-  "Body": "Due to strong winds...",       // string | null
+  "Body": "Due to strong winds...",       // string | null (BBCode allowed)
   "Priority": 1,                          // integer (0=normal,1=important, server-defined)
-  "IssuedAt": "2024-03-01T09:00:00+09:00" // string (ISO 8601) | null
+  "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601) | null
+  "Acknowledged": false                   // boolean (optional). true if already acknowledged
 }
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `Id` | string | Notification identifier. |
+| `Id` | string | Notification identifier. Serves as the key for acknowledgement ([`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification)). |
 | `Title` | string | Heading. |
-| `Body` | string | Body text. |
+| `Body` | string | Body text. **BBCode** (`[b]…[/b]`, etc.) may be used. Rendering is up to the client implementation. |
 | `Priority` | integer | Importance. Accepted only as a JSON number readable as a 32-bit integer, default `0`. Meaning is server-defined. |
 | `IssuedAt` | string | Issue time. **ISO 8601** (round-trippable form, e.g. `2024-03-01T09:00:00+09:00`). Unset if unparseable. |
+| `Acknowledged` | boolean | Optional. Indicates whether the server considers this client to have already acknowledged this notification. Treated as acknowledged only on JSON `true`; otherwise (`false`/missing) unacknowledged. Used when re-delivering notifications (e.g. after reconnect) so already-acknowledged ones are marked read (the client does not re-popup a read notification). |
+
+For acknowledgement (client → server), see
+[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification).
 
 ## 9. TimeFormat
 

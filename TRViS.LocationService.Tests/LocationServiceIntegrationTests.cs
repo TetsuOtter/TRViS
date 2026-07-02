@@ -808,4 +808,17 @@ public class LocationServiceIntegrationTests
 
 		Assert.That(raised, Is.False);
 	}
+
+	// -------------------------------------------------------
+	// AcknowledgeNotificationAsync throws when no NetworkSyncService is connected.
+	// A silent success here would let the popup close as if acknowledged while the
+	// server never learns of the receipt (通告受領のサイレント取りこぼし防止)。
+	// -------------------------------------------------------
+	[Test]
+	public void AcknowledgeNotification_WhenNotConnected_Throws()
+	{
+		// Fresh LocationService: no NetworkSyncService has been set as current.
+		Assert.ThrowsAsync<InvalidOperationException>(
+			async () => await _locationService.AcknowledgeNotificationAsync("n-1"));
+	}
 }
