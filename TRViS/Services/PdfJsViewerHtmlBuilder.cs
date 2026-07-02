@@ -170,6 +170,22 @@ function b64ToBytes(b){var s=atob(b);var u=new Uint8Array(s.length);for(var i=0;
 function b64ToText(b){return new TextDecoder('utf-8').decode(b64ToBytes(b));}
 function makeJsBlobURL(t){return URL.createObjectURL(new Blob([t],{type:'application/javascript'}));}
 
+// canvas (backing store) の解像度上限。端末/ブラウザには canvas の一辺サイズ・
+// 総面積それぞれに上限があり (目安: 一辺 4096px 前後、総面積 16,777,216px 前後)、
+// これを超えて canvas.width/height を大きくすると描画がそのまま失敗し白紙表示に
+// なる。ピンチズームに追従して解像度を上げる際も、この上限までしか大きくせず、
+// それ以上はブラウザ側のビットマップ拡大 (ぼやけ) に委ねる。
+var MAX_CANVAS_DIM=4096;
+var MAX_CANVAS_AREA=16777216;
+function clampScale(baseVp,desiredScale){
+  var scale=desiredScale;
+  if(baseVp.width>0){scale=Math.min(scale,MAX_CANVAS_DIM/baseVp.width);}
+  if(baseVp.height>0){scale=Math.min(scale,MAX_CANVAS_DIM/baseVp.height);}
+  var area=baseVp.width*baseVp.height;
+  if(area>0){scale=Math.min(scale,Math.sqrt(MAX_CANVAS_AREA/area));}
+  return scale;
+}
+
 var statusEl=document.getElementById('status');
 var pagesEl=document.getElementById('pages');
 function fail(msg){statusEl.textContent=msg;statusEl.style.display='block';}
@@ -180,6 +196,45 @@ try{workerURL=makeJsBlobURL(b64ToText(WORKER_B64));}catch(e){fail('Worker init e
 function start(pdfjsLib){
   if(!pdfjsLib){fail('pdfjsLib unavailable');return;}
   if(!USE_CANVAS&&typeof pdfjsLib.SVGGraphics!=='function'){fail('SVGGraphics unavailable in this PDF.js build');return;}
+
+  // canvas モードのページごとの再描画状態。ピンチズーム追従・画面外ページの
+  // 解像度引き下げ (メモリ解放) はこの配列を使って調整する。
+  var pageStates=[];
+  var pageObserver=(USE_CANVAS&&typeof IntersectionObserver!=='undefined')
+    ?new IntersectionObserver(function(entries){
+        for(var i=0;i<entries.length;i++){
+          var s=entries[i].target.__pdfState;
+          if(s)s.visible=entries[i].isIntersecting;
+        }
+        scheduleRerender();
+      },{threshold:0.01})
+    :null;
+  var rerenderTimer=null;
+  function scheduleRerender(){
+    if(rerenderTimer)clearTimeout(rerenderTimer);
+    rerenderTimer=setTimeout(reconcile,200);
+  }
+  // 表示中のページはピンチズーム倍率まで解像度を追従させ、画面外/非ズーム時は
+  // 基本解像度まで落として同時に保持する高解像度 canvas の数を絞る (メモリ対策)。
+  function desiredScaleFor(state){
+    var dpr=window.devicePixelRatio||1;
+    var pinchScale=(window.visualViewport&&window.visualViewport.scale)||1;
+    var effectivePinch=state.visible?pinchScale:1;
+    return clampScale(state.baseVp,state.cssScale*dpr*effectivePinch);
+  }
+  function reconcile(){
+    for(var i=0;i<pageStates.length;i++){
+      var state=pageStates[i];
+      var target=desiredScaleFor(state);
+      if(!state.renderedScale||Math.abs(target-state.renderedScale)>state.renderedScale*0.08){
+        renderAtScale(state,target);
+      }
+    }
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',scheduleRerender);
+    window.visualViewport.addEventListener('scroll',scheduleRerender);
+  }
 
   if(USE_MODULE){
     try{pdfjsLib.GlobalWorkerOptions.workerPort=new Worker(workerURL,{type:'module'});}
@@ -222,22 +277,42 @@ function start(pdfjsLib){
     });
   }
 
-  // canvas 描画。Retina で滲まないよう devicePixelRatio 分だけ高解像度で描き、
-  // CSS では論理ピクセルにサイズを戻す。
+  // canvas 描画。Retina で滲まないよう devicePixelRatio 分だけ高解像度で描くが、
+  // canvas.style の CSS サイズは cssScale のみで決め、以後 (ピンチズーム追従の
+  // 再描画で) 内部解像度が clampScale で頭打ちになっても表示サイズは動かさない。
   function renderPageAsCanvas(page,maxCssWidth){
     var base=page.getViewport({scale:1});
     var cssScale=Math.min(2.5,maxCssWidth/base.width);
-    var dpr=window.devicePixelRatio||1;
-    var vp=page.getViewport({scale:cssScale*dpr});
     var canvas=document.createElement('canvas');
     canvas.className='page';
-    canvas.width=Math.ceil(vp.width);
-    canvas.height=Math.ceil(vp.height);
-    canvas.style.width=Math.ceil(vp.width/dpr)+'px';
-    canvas.style.height=Math.ceil(vp.height/dpr)+'px';
-    var ctx=canvas.getContext('2d');
-    return page.render({canvasContext:ctx,viewport:vp}).promise.then(function(){
-      pagesEl.appendChild(canvas);
+    canvas.style.width=Math.ceil(base.width*cssScale)+'px';
+    canvas.style.height=Math.ceil(base.height*cssScale)+'px';
+    var state={page:page,baseVp:base,cssScale:cssScale,canvas:canvas,ctx:canvas.getContext('2d'),renderedScale:0,renderTask:null,visible:true};
+    pageStates.push(state);
+    pagesEl.appendChild(canvas);
+    if(pageObserver){canvas.__pdfState=state;pageObserver.observe(canvas);}
+    return renderAtScale(state,desiredScaleFor(state));
+  }
+
+  // 指定 scale で再描画する。いったんオフスクリーン canvas に描いてから表示用
+  // canvas へ差し替えるため、再描画中も直前の内容が表示されたままになり
+  // (canvas.width の変更は内容を即クリアしてしまうため) チラつきが出ない。
+  function renderAtScale(state,scale){
+    if(state.renderTask){try{state.renderTask.cancel();}catch(e){}}
+    var vp=state.page.getViewport({scale:scale});
+    var off=document.createElement('canvas');
+    off.width=Math.ceil(vp.width);
+    off.height=Math.ceil(vp.height);
+    var task=state.page.render({canvasContext:off.getContext('2d'),viewport:vp});
+    state.renderTask=task;
+    state.renderedScale=scale;
+    return task.promise.then(function(){
+      state.canvas.width=off.width;
+      state.canvas.height=off.height;
+      state.ctx.drawImage(off,0,0);
+    }).catch(function(e){
+      if(e&&e.name==='RenderingCancelledException')return;
+      throw e;
     });
   }
 }
