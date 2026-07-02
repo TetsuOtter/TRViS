@@ -65,6 +65,21 @@ env:
   # Invoke-WebRequest resolves "localhost" to ::1 (IPv6) while Appium
   # listens on 0.0.0.0 (IPv4 only), causing connection refused.
   APPIUM_URL: http://127.0.0.1:4723
+  # Appium tool versions — PINNED. `npm install -g appium` and
+  # `appium driver install uiautomator2` are otherwise unversioned and
+  # resolve to "latest" on every run, so an upstream release silently
+  # changes the test environment. appium-uiautomator2-driver 8.0.0
+  # (2026-06-26) regressed resource-id reporting: the app launches and
+  # renders, the emulator stays alive, but the bundled uiautomator2 server
+  # (v10.2.4) matches 0 elements for every AutomationId → resource-id
+  # (StartHome.Title, SelectFile.Title, DTAC.TestNavigateHomeButton),
+  # failing 11/11 Android UI tests deterministically (#298). 7.6.2 is the
+  # last release before that regression and matches the last green run;
+  # it peer-depends on appium ^3.0.0, so appium stays on 3.5.2 (the same
+  # core the green and red runs both used — only the driver changed).
+  # Revisit / bump the driver once the upstream regression is fixed.
+  APPIUM_VERSION: "3.5.2"
+  UIA2_DRIVER_VERSION: "7.6.2"
 
   # Android emulator settings
   ANDROID_EMULATOR_API_LEVEL: 34
@@ -153,8 +168,8 @@ jobs:
 
       - name: Install Appium and UiAutomator2 driver
         run: |
-          npm install -g appium
-          appium driver install uiautomator2
+          npm install -g appium@${{ env.APPIUM_VERSION }}
+          appium driver install uiautomator2@${{ env.UIA2_DRIVER_VERSION }}
 
       - name: Install Android emulator system image
         run: |
@@ -631,8 +646,10 @@ jobs:
           /p:DefineConstants="${{ env.UI_TEST_DEFINES }}"
 
       - name: Install Appium and Windows driver
+        # appium pinned via APPIUM_VERSION (same 3.5.2 this job already used);
+        # the windows driver is unaffected by #298 and stays unpinned.
         run: |
-          npm install -g appium
+          npm install -g appium@${{ env.APPIUM_VERSION }}
           appium driver install --source=npm appium-windows-driver
 
       - name: Run Windows UI Tests
