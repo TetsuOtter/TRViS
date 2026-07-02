@@ -348,6 +348,23 @@ public static class AutomationIds
 	}
 
 	/// <summary>
+	/// Notification popup (通告). Shown when a server-pushed Notification is
+	/// received and judged unread. Has Title / BBCode body, an importance badge
+	/// (Priority ≥ 1), a 受領 (Acknowledge) button and a 閉じる (Close) button.
+	/// </summary>
+	public static class Notification
+	{
+		public const string Popup = "Notification.Popup";
+		public const string Title = "Notification.Title";
+		public const string Body = "Notification.Body";
+		public const string ImportantBadge = "Notification.ImportantBadge";
+		public const string IssuedAt = "Notification.IssuedAt";
+		public const string AcknowledgeButton = "Notification.AcknowledgeButton";
+		public const string DismissButton = "Notification.DismissButton";
+		public const string CloseButton = "Notification.CloseButton";
+	}
+
+	/// <summary>
 	/// Select-File modal dialog (replaces the direct OS FilePicker behaviour).
 	/// Lists JSON/SQLite files from the app documents folder as rich cards plus
 	/// a "他の場所からファイルを開く" button that falls back to the OS picker.
