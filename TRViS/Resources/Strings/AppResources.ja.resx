@@ -141,6 +141,10 @@
   <data name="ConnectServer_AlertEnterUrl" xml:space="preserve"><value>URLを入力してください。</value></data>
   <data name="ConnectServer_AlertInvalidUrl" xml:space="preserve"><value>URLの形式が正しくありません。</value></data>
   <data name="ConnectServer_AlertLoadFailedFormat" xml:space="preserve"><value>読み込みに失敗しました: {0}</value></data>
+  <data name="Notification_Title" xml:space="preserve"><value>通告</value></data>
+  <data name="Notification_Important" xml:space="preserve"><value>重要</value></data>
+  <data name="Notification_Acknowledge" xml:space="preserve"><value>受領</value></data>
+  <data name="Notification_Close" xml:space="preserve"><value>閉じる</value></data>
   <data name="SelectFile_Title" xml:space="preserve"><value>ファイルを選択</value></data>
   <data name="SelectFile_FileListHint" xml:space="preserve"><value>アプリ内のファイルから選択するか、別の場所から開いてください。</value></data>
   <data name="SelectFile_EmptyMessage" xml:space="preserve"><value>このフォルダにファイルがありません</value></data>

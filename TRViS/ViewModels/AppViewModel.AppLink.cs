@@ -155,6 +155,17 @@ public partial class AppViewModel
 			HandleTestSetGpsLocation(uri);
 			return true;
 		}
+
+		// Test-only: inject a Notification into NotificationCenter so UI tests can
+		// exercise the receive→popup→受領 flow without a real WebSocket server.
+		// Format: trvis://_test/notification?id=<id>&title=<t>&body=<bbcode>&priority=<n>&acknowledged=<bool>&reset=<bool>
+		// reset=true clears the notification store before injecting (clean slate for shared-session retries).
+		const string TestNotificationPrefix = "trvis://_test/notification";
+		if (uri.StartsWith(TestNotificationPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestInjectNotification(uri);
+			return true;
+		}
 #endif
 
 		AppLinkInfo appLinkInfo;
@@ -749,6 +760,44 @@ public partial class AppViewModel
 		locationService.SetLonLatLocationService();
 		locationService.SetGpsLocation(lon, lat, acc, useAverageDistance: false);
 		logger.Info("Test set GPS location: dispatched (lon={0}, lat={1}, acc={2})", lon, lat, acc);
+	}
+
+	/// <summary>
+	/// Test-only: inject a <see cref="TRViS.NetworkSyncService.NotificationData"/> into
+	/// <see cref="NotificationCenter"/> via the same path a real server-pushed
+	/// Notification takes, so UI tests can exercise the popup + 受領 flow.
+	/// </summary>
+	private void HandleTestInjectNotification(string uri)
+	{
+		logger.Info("Test inject notification invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		var query = qIndex >= 0
+			? HttpUtility.ParseQueryString(uri.Substring(qIndex + 1))
+			: new System.Collections.Specialized.NameValueCollection();
+
+		int priority = 0;
+		int.TryParse(query["priority"], System.Globalization.CultureInfo.InvariantCulture, out priority);
+		bool acknowledged = string.Equals(query["acknowledged"], "true", StringComparison.OrdinalIgnoreCase);
+		// fakeack=false: 受領を実経路 (未接続なら送信失敗) で通す。受領失敗時にポップアップが
+		// 閉じない異常系の検証用。既定は true (受領を成功扱いにして正常系を検証)。
+		bool fakeAck = !string.Equals(query["fakeack"], "false", StringComparison.OrdinalIgnoreCase);
+
+		// reset=true: 注入前に保持中の通告・既読状態を破棄し、クリーンな状態にする。
+		// セッション共有下でリトライが「受信済み → 再表示されない」で失敗するのを防ぐ。
+		if (string.Equals(query["reset"], "true", StringComparison.OrdinalIgnoreCase))
+			NotificationCenter.ResetForTesting();
+
+		var n = new TRViS.NetworkSyncService.NotificationData
+		{
+			Id = query["id"],
+			Title = query["title"],
+			Body = query["body"],
+			Priority = priority,
+			Acknowledged = acknowledged,
+		};
+		NotificationCenter.InjectNotificationForTesting(n, fakeAck);
+		logger.Info("Test inject notification: dispatched (id={0}, priority={1}, acknowledged={2}, fakeAck={3})", n.Id, n.Priority, n.Acknowledged, fakeAck);
 	}
 #endif
 

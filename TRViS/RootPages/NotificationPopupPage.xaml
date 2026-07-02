@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS"
+	xmlns:loc="clr-namespace:TRViS.Localization"
+	x:Class="TRViS.RootPages.NotificationPopupPage"
+	AutomationId="Notification.Popup"
+	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
+	Title="{loc:Translate Notification_Title}">
+
+	<Grid Padding="8">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Header: (optional) importance badge + close (x) -->
+		<Grid
+			Grid.Row="0"
+			ColumnDefinitions="Auto,*,Auto"
+			Padding="4">
+			<Border
+				x:Name="ImportantBadge"
+				Grid.Column="0"
+				IsVisible="False"
+				StrokeThickness="0"
+				BackgroundColor="#C62828"
+				Padding="8,2"
+				VerticalOptions="Center">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="4"/>
+				</Border.StrokeShape>
+				<Label
+					AutomationId="Notification.ImportantBadge"
+					Text="{loc:Translate Notification_Important}"
+					TextColor="White"
+					FontSize="12"
+					FontAttributes="Bold"/>
+			</Border>
+			<Button
+				x:Name="CloseButton"
+				AutomationId="Notification.CloseButton"
+				Grid.Column="2"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="40"
+				HeightRequest="40"
+				Padding="0"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Clicked="OnCloseClicked"/>
+		</Grid>
+
+		<!-- Title -->
+		<Label
+			x:Name="TitleLabel"
+			AutomationId="Notification.Title"
+			Grid.Row="1"
+			Margin="4,0,4,4"
+			FontSize="Title"
+			FontAttributes="Bold"
+			LineBreakMode="WordWrap"
+			TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+
+		<!-- Body (BBCode) — content is a BBCodeLabel injected from code-behind -->
+		<ScrollView Grid.Row="2" Margin="4">
+			<ContentView x:Name="BodyContainer"/>
+		</ScrollView>
+
+		<!-- Issued time -->
+		<Label
+			x:Name="IssuedAtLabel"
+			AutomationId="Notification.IssuedAt"
+			Grid.Row="3"
+			Margin="4,8,4,0"
+			IsVisible="False"
+			FontSize="12"
+			HorizontalTextAlignment="End"
+			TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+
+		<!-- Footer buttons -->
+		<VerticalStackLayout Grid.Row="4" Spacing="8" Margin="4,12,4,4">
+			<Button
+				x:Name="AcknowledgeButton"
+				AutomationId="Notification.AcknowledgeButton"
+				Text="{loc:Translate Notification_Acknowledge}"
+				HeightRequest="56"
+				CornerRadius="8"
+				FontAttributes="Bold"
+				FontSize="16"
+				Clicked="OnAcknowledgeClicked"/>
+			<Button
+				x:Name="DismissButton"
+				AutomationId="Notification.DismissButton"
+				Text="{loc:Translate Notification_Close}"
+				HeightRequest="44"
+				CornerRadius="8"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Clicked="OnCloseClicked"/>
+		</VerticalStackLayout>
+	</Grid>
+</ContentPage>
