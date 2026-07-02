@@ -181,6 +181,8 @@ jobs:
         github.event_name != 'pull_request'
         || github.event.pull_request.draft == false
       )
+      && !startsWith(github.ref_name, 'rfc/')
+      && !startsWith(github.head_ref, 'rfc/')
     needs:
       - get-version
     runs-on: ubuntu-latest
@@ -214,6 +216,8 @@ jobs:
         github.event_name != 'pull_request'
         || github.event.pull_request.draft == false
       )
+      && !startsWith(github.ref_name, 'rfc/')
+      && !startsWith(github.head_ref, 'rfc/')
     needs:
       - get-version
     runs-on: macos-26
@@ -251,6 +255,8 @@ jobs:
         github.event_name != 'pull_request'
         || github.event.pull_request.draft == false
       )
+      && !startsWith(github.ref_name, 'rfc/')
+      && !startsWith(github.head_ref, 'rfc/')
     needs:
       - get-version
     runs-on: windows-latest
@@ -310,6 +316,8 @@ jobs:
         github.event_name != 'pull_request'
         || github.event.pull_request.draft == false
       )
+      && !startsWith(github.ref_name, 'rfc/')
+      && !startsWith(github.head_ref, 'rfc/')
     needs:
       - build-mac
     runs-on: macos-26

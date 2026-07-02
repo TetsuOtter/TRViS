@@ -340,7 +340,29 @@ public partial class AppViewModel
 		return true;
 	}
 
-	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
+	internal async Task<bool> AutoConnectWebSocketAsync(string appLinkUri, CancellationToken token)
+	{
+		AppLinkInfo appLinkInfo;
+		try
+		{
+			appLinkInfo = AppLinkInfo.FromAppLink(appLinkUri);
+		}
+		catch (Exception ex)
+		{
+			logger.Warn(ex, "AutoConnectWebSocket: AppLinkInfo parse failed for {0}", appLinkUri);
+			return false;
+		}
+
+		if (appLinkInfo.ResourceUri?.Scheme is not ("ws" or "wss"))
+		{
+			logger.Warn("AutoConnectWebSocket: not a WebSocket URI");
+			return false;
+		}
+
+		return await HandleWebSocketAppLinkAsync(appLinkInfo, appLinkUri, addToHistory: false, token, showSuccessAlert: false);
+	}
+
+	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token, bool showSuccessAlert = true)
 	{
 		if (appLinkInfo.ResourceUri is null)
 		{
@@ -403,7 +425,8 @@ public partial class AppViewModel
 				AppPreferenceService.SetToJson(AppPreferenceKeys.ExternalResourceUrlHistory, _ExternalResourceUrlHistory, StringListJsonSourceGenerationContext.Default.ListString);
 			}
 
-			await Util.DisplayAlertAsync(AppResources.Common_Success, AppResources.AppLink_WebSocketConnectedBody, AppResources.Common_OK);
+			if (showSuccessAlert)
+				await Util.DisplayAlertAsync(AppResources.Common_Success, AppResources.AppLink_WebSocketConnectedBody, AppResources.Common_OK);
 			return true;
 		}
 		catch (OperationCanceledException)
