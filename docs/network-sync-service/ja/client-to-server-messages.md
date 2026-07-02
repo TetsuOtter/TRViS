@@ -12,7 +12,7 @@
 | 種別 | 判別方法 | 節 |
 |---|---|---|
 | ID 更新メッセージ | `MessageType` を**持たない** | [§1](#1-id-更新メッセージ) |
-| 要求メッセージ | `MessageType` を**持つ** | [§2](#2-requestserverinfo) / [§3](#3-requestdiagraminfo) |
+| 要求メッセージ | `MessageType` を**持つ** | [§2](#2-requestserverinfo) / [§3](#3-requestdiagraminfo) / [§4](#4-acknowledgenotification) |
 
 ---
 
@@ -131,14 +131,61 @@ sequenceDiagram
 
 ---
 
+## 4. AcknowledgeNotification
+
+[`Notification`](server-to-client-messages.md#8-notification)（通告）の
+**受領**をサーバーへ通知します。乗務員が通告を受け取った（受領した）ことを
+サーバーへ返すための処理です。TRViS では通告ポップアップの「受領」ボタンを
+押したときに送信されます。
+
+```jsonc
+{
+  "MessageType": "AcknowledgeNotification",
+  "Id": "n-001"   // 受領する通告の Id（必須）
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `Id` | string | 受領する通告の [`Notification.Id`](server-to-client-messages.md#8-notification)。必須。 |
+
+- クライアントは `Id` を持つ通告に対してのみ送信します（`Id` が `null` の
+  通告は受領対象としません）。
+- サーバーは当該クライアントの受領状態を記録し、以降に通告を再配信する際は
+  [`Notification.Acknowledged`](server-to-client-messages.md#8-notification) を
+  `true` にして返すことが推奨されます（クライアントの既読管理と整合させるため）。
+- **応答メッセージは規定されていません**（サーバー任意）。
+- 送信はベストエフォートです。クライアントは送信できたか否かに関わらず
+  ローカルの既読状態を更新し得ます（切断中はサーバーへ届かないため、サーバーは
+  次回配信時に未受領として扱ってよい）。
+
+```mermaid
+sequenceDiagram
+    participant C as TRViS
+    participant S as 外部サーバー
+    S-->>C: {"MessageType":"Notification","Id":"n-001", ...}
+    Note over C: ユーザーが「受領」ボタンを押す
+    C->>S: {"MessageType":"AcknowledgeNotification","Id":"n-001"}
+    Note over S: 受領状態を記録（応答は任意）
+```
+
+### 4.1 後方互換性
+
+`AcknowledgeNotification` は新しい要求メッセージですが、未知の `MessageType`
+は「黙って無視」する規定（[server-to-client 付録](server-to-client-messages.md#付録-パース挙動の要点)）に従うため、
+未対応サーバーでも問題は生じません。したがって `ProtocolVersion` の変更は不要です。
+
+---
+
 ## 付録: サーバー側ディスパッチの推奨実装
 
 ```text
 受信 JSON を parse
 ├─ "MessageType" あり?
-│   ├─ "RequestServerInfo"  → ServerInfo を返信
-│   ├─ "RequestDiagramInfo" → (DiagramId 任意) DiagramInfo を返信
-│   └─ それ以外             → 未知要求として無視 or 拡張で対応
+│   ├─ "RequestServerInfo"       → ServerInfo を返信
+│   ├─ "RequestDiagramInfo"      → (DiagramId 任意) DiagramInfo を返信
+│   ├─ "AcknowledgeNotification" → (Id 必須) 受領状態を記録（応答は任意）
+│   └─ それ以外                  → 未知要求として無視 or 拡張で対応
 └─ "MessageType" なし
     └─ WorkGroupId/WorkId/TrainId を読み取り購読状態を更新（ID 更新）
 ```

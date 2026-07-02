@@ -44,6 +44,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_DIAGRAM_INFO = "DiagramInfo";
 	private const string MESSAGE_TYPE_REQUEST_SERVER_INFO = "RequestServerInfo";
 	private const string MESSAGE_TYPE_REQUEST_DIAGRAM_INFO = "RequestDiagramInfo";
+	private const string MESSAGE_TYPE_ACKNOWLEDGE_NOTIFICATION = "AcknowledgeNotification";
 	private const string MESSAGE_TYPE_SELECT_TRAIN = "SelectTrain";
 	private const string MESSAGE_TYPE_OPERATION_COMMAND = "OperationCommand";
 	private const string MESSAGE_TYPE_HEADER_COLOR = "HeaderColor";
@@ -522,6 +523,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				System.Globalization.DateTimeStyles.RoundtripKind, out var dto))
 				n.IssuedAt = dto;
 		}
+		// Acknowledged は JSON の true のときのみ受領済み扱い (それ以外/欠落は false)。
+		if (root.TryGetProperty("Acknowledged", out var ack))
+			n.Acknowledged = ack.ValueKind == JsonValueKind.True;
 		RaiseNotificationReceived(n);
 	}
 
@@ -845,6 +849,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		if (diagramId is not null)
 			additional = new Dictionary<string, string?> { [DIAGRAM_ID_JSON_KEY] = diagramId };
 		return SendRequestMessageAsync(MESSAGE_TYPE_REQUEST_DIAGRAM_INFO, additional, cancellationToken);
+	}
+
+	/// <summary>
+	/// 通告の受領 (<c>AcknowledgeNotification</c>) をサーバーへ送信する。
+	/// 送信は SendRequestMessageAsync 経由でセマフォ直列化され、ソケットが未接続の
+	/// 場合はベストエフォートで無視される (呼び出し側はローカルの既読状態を維持する)。
+	/// </summary>
+	public override Task AcknowledgeNotificationAsync(string id, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(id);
+		var additional = new Dictionary<string, string?> { ["Id"] = id };
+		return SendRequestMessageAsync(MESSAGE_TYPE_ACKNOWLEDGE_NOTIFICATION, additional, cancellationToken);
 	}
 
 	private async Task SendRequestMessageAsync(
