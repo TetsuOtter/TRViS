@@ -10,8 +10,8 @@ public class WifiService : TRViS.Services.IWifiService
 	{
 		try
 		{
-			var dict = CaptiveNetwork.TryCopyCurrentNetworkInfo("en0");
-			if (dict is null)
+			var status = CaptiveNetwork.TryCopyCurrentNetworkInfo("en0", out Foundation.NSDictionary? dict);
+			if (status != StatusCode.OK || dict is null)
 			{
 				logger.Debug("WifiService(iOS): CaptiveNetwork returned null for en0");
 				return Task.FromResult<string?>(null);
