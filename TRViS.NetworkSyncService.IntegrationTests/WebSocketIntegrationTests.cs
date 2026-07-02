@@ -2332,7 +2332,66 @@ public class WebSocketIntegrationTests
 				Assert.That(n.Body, Is.EqualTo("本文です"));
 				Assert.That(n.Priority, Is.EqualTo(1));
 				Assert.That(n.IssuedAt, Is.Not.Null);
+				Assert.That(n.Acknowledged, Is.False, "Acknowledged 未指定は false");
 			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_ServerMarkedAcknowledged_ClientParsesFlag()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-ack",
+				title: "受領済み通告",
+				body: "本文",
+				priority: 0,
+				acknowledged: true
+			);
+			var n = await task;
+
+			Assert.That(n.Acknowledged, Is.True, "サーバーが Acknowledged=true で配信したら受領済みとして解釈する");
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AcknowledgeNotification_ClientSendsAck_ServerReceivesId()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await _control.ClearReceivedRequestsAsync();
+
+			await service.AcknowledgeNotificationAsync("n-1");
+
+			await ReferenceServerClient.WaitForConditionAsync(
+				async () => (await _control.GetReceivedRequestsAsync())
+					.Any(r => r.MessageType == "AcknowledgeNotification"),
+				timeoutMs: 3000
+			);
+
+			var requests = await _control.GetReceivedRequestsAsync();
+			var ack = requests.FirstOrDefault(r => r.MessageType == "AcknowledgeNotification");
+			Assert.That(ack, Is.Not.Null, "サーバーが AcknowledgeNotification を受信しているはず");
+			Assert.That(ack!.NotificationId, Is.EqualTo("n-1"), "受領した通告の Id が届いているはず");
 		}
 		finally
 		{

@@ -60,6 +60,12 @@ public class NotificationData
 	/// <summary>0=通常, 1=重要 等。サーバ任意。</summary>
 	public int Priority { get; set; }
 	public DateTimeOffset? IssuedAt { get; set; }
+	/// <summary>
+	/// サーバーがこのクライアントについて当該通告を「受領済み」と判断しているか。
+	/// true のとき、クライアントは既読扱いとしてポップアップを再表示しない
+	/// (再接続時などに一覧として再配信されたケースを想定)。省略/false は未受領。
+	/// </summary>
+	public bool Acknowledged { get; set; }
 }
 
 /// <summary>
