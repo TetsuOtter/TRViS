@@ -109,6 +109,8 @@ internal class FakeWebSocketNetworkSyncService : WebSocketNetworkSyncService
 	public new void RaiseConnectionFailed() => base.RaiseConnectionFailed();
 	public new void RaiseReconnecting() => base.RaiseReconnecting();
 	public new void RaiseReconnected() => base.RaiseReconnected();
+
+	public void SimulateProcessSyncedData(SyncedData syncedData) => ProcessSyncedData(syncedData);
 }
 
 // =========================================================
@@ -257,6 +259,42 @@ public class LocationServiceIntegrationTests
 	}
 
 	// -------------------------------------------------------
+	// 5b. 運行中に別列車 (TrainId 変化) へ切り替えると、旧列車の CanStart/CanUseService
+	//     を引き継がずリセットされる。切替直後にサーバへ ID 更新を送るだけでは CanStart
+	//     自体は次の SyncedData が来るまで再評価されないため、リセットしないと旧列車の
+	//     許可が新列車に一時的に紛れ込む (調査対象の不具合の派生: 別列車切替時の
+	//     CanStart 汚染)。
+	// -------------------------------------------------------
+	[Test]
+	public void SetTargetIds_DifferentTrainId_ResetsCanStartAndCanUseService()
+	{
+		// FakeWebSocketNetworkSyncService を使う: FakeNetworkSyncService (非 WebSocket 扱い)
+		// だと LocationService が裏で HTTP 相当のポーリングタスクを起動し、
+		// GetSyncedDataAsync (CanStart=false 固定) が本テストの手動 ProcessSyncedData と
+		// 競合して結果が不安定になるため。
+		var fakeNs = new FakeWebSocketNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		_locationService.SetTargetIds("wg1", "w1", "trainA");
+		fakeNs.SimulateProcessSyncedData(new SyncedData(Location_m: double.NaN, Time_ms: 0, CanStart: true));
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(fakeNs.CanStart, Is.True, "precondition: train A confirmed by server");
+			Assert.That(fakeNs.CanUseService, Is.True);
+		});
+
+		_locationService.SetTargetIds("wg1", "w1", "trainB");
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(fakeNs.CanStart, Is.False,
+				"switching to a different train must not carry over the previous train's CanStart");
+			Assert.That(fakeNs.CanUseService, Is.False,
+				"switching to a different train must not carry over the previous train's CanUseService");
+		});
+	}
+
+	// -------------------------------------------------------
 	// 6. Connection切断 → AlertRequested発火 + LonLatLocationService に切替
 	// -------------------------------------------------------
 	[Test]
@@ -354,6 +392,75 @@ public class LocationServiceIntegrationTests
 		Assert.That(_locationService.IsEnabled, Is.True,
 			"NetworkSyncService must stay enabled across SetStationLocations");
 		Assert.That(_locationService.CurrentService!.StaLocationInfo, Is.Not.Null);
+	}
+
+	// -------------------------------------------------------
+	// 7e. NetworkSyncServiceBase.StaLocationInfo の setter は「同一列車の
+	//     リアルタイム編集」(#245) 向けに Location_m の一致だけで旧 current 駅を
+	//     新配列上に追跡し直す実装になっており、TrainId を一切見ていない。
+	//     そのため、同一路線上の別列車へ切り替えたときにたまたま同じ Location_m
+	//     の駅があると、無関係な旧列車の走行状態が新列車に紛れ込む
+	//     (このテストは低レベル API 単体ではその危険があることを示す)。
+	//     実運用での唯一の呼び出し元である VerticalStylePagePresenter は、
+	//     別列車と確定している経路 (canSoftUpdate=false) で SetStationLocations の
+	//     直後に ResetLocationInfo を呼んで打ち消す設計になっている
+	//     (VerticalStylePagePresenterTests.SelectedTrainDataChanged_DifferentTrainId_ResetsLocationInfo
+	//     参照)。ここではその安全な利用パターンを低レベル API 側でも検証する。
+	// -------------------------------------------------------
+	[Test]
+	public void SetStationLocations_SwitchToDifferentTrain_WithoutExplicitReset_CanCarryOverStaleStationIndex()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		_locationService.SetTargetIds("wg1", "w1", "trainA");
+		fakeNs.SimulateCanStart(true);
+
+		// Train A: 3 stations, currently running toward station index 2 (2000m).
+		_locationService.SetStationLocations(new StaLocationInfo[]
+		{
+			new(0.0,    null, null, 200.0),
+			new(1000.0, null, null, 200.0),
+			new(2000.0, null, null, 200.0),
+		});
+		_locationService.ForceSetLocationInfo(2, true);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(_locationService.CurrentService!.CurrentStationIndex, Is.EqualTo(2));
+			Assert.That(_locationService.CurrentService!.IsRunningToNextStation, Is.True);
+		});
+
+		// Switch to an entirely different train (Train B) that happens to
+		// share a station at the same physical location (2000m) as Train A's
+		// current station, but at a different index in its own list. Without
+		// an explicit reset, the raw setter blindly carries the old state over.
+		_locationService.SetTargetIds("wg1", "w1", "trainB");
+		_locationService.SetStationLocations(new StaLocationInfo[]
+		{
+			new(500.0,  null, null, 200.0),
+			new(2000.0, null, null, 200.0),
+			new(4000.0, null, null, 200.0),
+		});
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(_locationService.CurrentService!.CurrentStationIndex, Is.EqualTo(1),
+				"Documents the raw setter's coincidental Location_m carry-over across unrelated trains");
+			Assert.That(_locationService.CurrentService!.IsRunningToNextStation, Is.True,
+				"Documents that the running flag also leaks across unrelated trains without an explicit reset");
+		});
+
+		// The real call site (VerticalStylePagePresenter) always follows a
+		// hard train switch with an explicit reset to undo this leak.
+		_locationService.CurrentService!.ResetLocationInfo();
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(_locationService.CurrentService!.CurrentStationIndex, Is.EqualTo(0),
+				"An explicit ResetLocationInfo after switching trains must clear the carried-over index");
+			Assert.That(_locationService.CurrentService!.IsRunningToNextStation, Is.False,
+				"An explicit ResetLocationInfo after switching trains must clear the carried-over running flag");
+		});
 	}
 
 	[Test]
@@ -572,5 +679,60 @@ public class LocationServiceIntegrationTests
 		fakeNs.SimulateDiagramInfoUpdated(new DiagramInfo { Id = "d-1" });
 
 		Assert.That(callCount, Is.EqualTo(0));
+	}
+
+	// -------------------------------------------------------
+	// 20. スレッド安全性: バックグラウンドの SyncedData 受信 (ProcessSyncedData →
+	//     CurrentStationIndex/IsRunningToNextStation の更新) と、UI 側からの
+	//     列車切替 (StaLocationInfo の差し替え) が同時に走っても例外にならず、
+	//     最終状態が新しい配列の範囲内に収まっていること。
+	//     (NetworkSyncServiceBase._locationStateLock による排他化の回帰テスト)
+	// -------------------------------------------------------
+	[Test]
+	public void ConcurrentSyncedDataAndStationSwitch_DoesNotThrow_AndStaysInBounds()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		fakeNs.SimulateCanStart(true);
+
+		var stationsA = new StaLocationInfo[]
+		{
+			new(0.0,    null, null, 200.0),
+			new(1000.0, null, null, 200.0),
+			new(2000.0, null, null, 200.0),
+		};
+		var stationsB = new StaLocationInfo[]
+		{
+			new(500.0,  null, null, 200.0),
+			new(1500.0, null, null, 200.0),
+		};
+		_locationService.SetStationLocations(stationsA);
+
+		const int iterations = 200;
+		var receiverTask = Task.Run(() =>
+		{
+			for (int i = 0; i < iterations; i++)
+			{
+				fakeNs.SimulateProcessSyncedData(new SyncedData(
+					Location_m: (i % 3) * 1000.0,
+					Time_ms: i * 1000,
+					CanStart: true
+				));
+			}
+		});
+		var switcherTask = Task.Run(() =>
+		{
+			for (int i = 0; i < iterations; i++)
+			{
+				_locationService.SetStationLocations(i % 2 == 0 ? stationsA : stationsB);
+			}
+		});
+
+		Assert.DoesNotThrow(() => Task.WaitAll(receiverTask, switcherTask));
+
+		var finalStations = _locationService.CurrentService!.StaLocationInfo!;
+		Assert.That(_locationService.CurrentService!.CurrentStationIndex,
+			Is.InRange(0, finalStations.Length - 1),
+			"CurrentStationIndex must stay within the bounds of whichever station array ended up current");
 	}
 }

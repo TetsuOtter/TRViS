@@ -64,7 +64,8 @@ public class VerticalStylePagePresenterTests
 			GpsLocationUpdated?.Invoke(this, new GpsLocationUpdate(lat, lon, accuracy));
 		}
 
-		public void ResetLocationInfo() { }
+		public int ResetLocationInfoCallCount { get; private set; } = 0;
+		public void ResetLocationInfo() { ResetLocationInfoCallCount++; }
 
 		public void ForceSetLocationInfo(int stationIndex, bool isRunningToNextStation)
 		{
@@ -299,6 +300,45 @@ public class VerticalStylePagePresenterTests
 			Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
 			Assert.False(presenter.CurrentState.TimetableViewState.IsRunStarted);
 		});
+	}
+
+	/// <summary>
+	/// 不具合再現: 運行中に別列車 (Id 変化) へ切り替わった場合、
+	/// NetworkSyncServiceBase.StaLocationInfo の setter (#245) は Location_m の一致だけで
+	/// 旧列車の駅 index / 走行フラグを新配列に引き継ごうとするため、たまたま同じ物理位置に
+	/// 駅を持つ別列車へ切り替えると、無関係な旧列車の走行状態が新列車に紛れ込む恐れがある。
+	/// canSoftUpdate=false (= 別列車と確定している) 経路では、SetTimetableRows の後で
+	/// 明示的に ResetLocationInfo を呼び、誤引き継ぎを防がなければならない。
+	/// </summary>
+	[Fact]
+	public void SelectedTrainDataChanged_DifferentTrainId_ResetsLocationInfo()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-A");
+		presenter.OnStartButtonClicked();
+		int resetsBeforeSwitch = locationService.ResetLocationInfoCallCount;
+
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, id: "train-B");
+
+		Assert.True(locationService.ResetLocationInfoCallCount > resetsBeforeSwitch,
+			"別列車への切替では、旧列車の駅 index / 走行フラグの誤引き継ぎを防ぐため ResetLocationInfo を呼ぶ必要がある");
+	}
+
+	/// <summary>
+	/// 同一列車の soft 編集 (Id 一致) では ResetLocationInfo を呼んではならない
+	/// (呼ぶと運行中の駅追跡が編集のたびに巻き戻ってしまう)。
+	/// </summary>
+	[Fact]
+	public void SelectedTrainDataChanged_SameIdAndRowCount_DoesNotResetLocationInfo()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, firstRowDriveTimeMM: 5);
+		presenter.OnStartButtonClicked();
+		int resetsBeforeEdit = locationService.ResetLocationInfoCallCount;
+
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3, firstRowDriveTimeMM: 7);
+
+		Assert.Equal(resetsBeforeEdit, locationService.ResetLocationInfoCallCount);
 	}
 
 	/// <summary>

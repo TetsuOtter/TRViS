@@ -179,6 +179,12 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		_currentState = newState;
 
 		_locationService.SetTimetableRows(trainData?.Rows);
+		// #245 の同一列車キャリーオーバー (Location_m 一致による駅 index 引き継ぎ) は
+		// TrainId を見ていないため、たまたま同じ Location_m の駅を持つ別列車に切り替えた
+		// 場合、無関係な旧列車の駅 index / 走行フラグが新列車へ誤って引き継がれる。
+		// ここは (canSoftUpdate=false =) 同一列車編集ではないと確定している経路なので、
+		// 明示的にリセットして誤引き継ぎを防ぐ。
+		_locationService.ResetLocationInfo();
 		_markerToggle.ResetToggle();
 
 		_currentState.PageHeaderState.IsRunning = false;
