@@ -98,6 +98,11 @@ public static class AppResources
 	public static string ConnectServer_AlertInvalidUrl => Get(nameof(ConnectServer_AlertInvalidUrl));
 	public static string ConnectServer_AlertLoadFailedFormat => Get(nameof(ConnectServer_AlertLoadFailedFormat));
 
+	public static string Notification_Title => Get(nameof(Notification_Title));
+	public static string Notification_Important => Get(nameof(Notification_Important));
+	public static string Notification_Acknowledge => Get(nameof(Notification_Acknowledge));
+	public static string Notification_Close => Get(nameof(Notification_Close));
+
 	public static string SelectFile_Title => Get(nameof(SelectFile_Title));
 	public static string SelectFile_FileListHint => Get(nameof(SelectFile_FileListHint));
 	public static string SelectFile_EmptyMessage => Get(nameof(SelectFile_EmptyMessage));
