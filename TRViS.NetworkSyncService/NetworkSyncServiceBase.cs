@@ -52,41 +52,47 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 		get => _staLocationInfo;
 		set
 		{
-			if (_staLocationInfo == value)
-				return;
-
-			// 旧 current 駅を控えておく (新配列で対応駅を Location_m で探すため)。
-			StaLocationInfo? oldCurrentStation = null;
-			if (_staLocationInfo is not null
-				&& CurrentStationIndex >= 0
-				&& CurrentStationIndex < _staLocationInfo.Length)
+			// WebSocket 受信ループ (バックグラウンドスレッド、ProcessSyncedData 経由) と
+			// UI 側 (列車切替等、この setter を直接呼ぶ) が異なるスレッドから同時に駅
+			// index/走行フラグを触りうるため、_locationStateLock で一貫性を保つ。
+			lock (_locationStateLock)
 			{
-				oldCurrentStation = _staLocationInfo[CurrentStationIndex];
-			}
-			int oldIndex = CurrentStationIndex;
-			bool oldRunning = IsRunningToNextStation;
+				if (_staLocationInfo == value)
+					return;
 
-			_staLocationInfo = value;
-			_lonLatStationDetector.SetStationLocations(value);
+				// 旧 current 駅を控えておく (新配列で対応駅を Location_m で探すため)。
+				StaLocationInfo? oldCurrentStation = null;
+				if (_staLocationInfo is not null
+					&& CurrentStationIndex >= 0
+					&& CurrentStationIndex < _staLocationInfo.Length)
+				{
+					oldCurrentStation = _staLocationInfo[CurrentStationIndex];
+				}
+				int oldIndex = CurrentStationIndex;
+				bool oldRunning = IsRunningToNextStation;
 
-			// #245: 「現在の位置情報サービスの状態をもとに、更新後の駅 index を計算する」
-			// 旧 current 駅が新配列にも存在するならその index に追従させ、走行フラグを引き継ぐ。
-			// (= 「前の駅が削除された」「後の駅が追加された」等の編集で index がずれたケース)
-			// 存在しなければ駅自体が削除されたものとみなしてリセットする。
-			int newIndex = FindStationIndexByLocation_m(value, oldCurrentStation);
-			if (newIndex < 0)
-			{
-				ResetLocationInfo();
-				return;
+				_staLocationInfo = value;
+				_lonLatStationDetector.SetStationLocations(value);
+
+				// #245: 「現在の位置情報サービスの状態をもとに、更新後の駅 index を計算する」
+				// 旧 current 駅が新配列にも存在するならその index に追従させ、走行フラグを引き継ぐ。
+				// (= 「前の駅が削除された」「後の駅が追加された」等の編集で index がずれたケース)
+				// 存在しなければ駅自体が削除されたものとみなしてリセットする。
+				int newIndex = FindStationIndexByLocation_m(value, oldCurrentStation);
+				if (newIndex < 0)
+				{
+					ResetLocationInfo();
+					return;
+				}
+				if (newIndex == oldIndex && oldRunning == IsRunningToNextStation)
+				{
+					// 状態が変わらない: _lonLatStationDetector は上の SetStationLocations で履歴クリア
+					// 済みなので Sync で同期だけ取り、外部にはイベントを飛ばさない。
+					_lonLatStationDetector.Sync(newIndex, oldRunning);
+					return;
+				}
+				ForceSetLocationInfo(newIndex, oldRunning);
 			}
-			if (newIndex == oldIndex && oldRunning == IsRunningToNextStation)
-			{
-				// 状態が変わらない: _lonLatStationDetector は上の SetStationLocations で履歴クリア
-				// 済みなので Sync で同期だけ取り、外部にはイベントを飛ばさない。
-				_lonLatStationDetector.Sync(newIndex, oldRunning);
-				return;
-			}
-			ForceSetLocationInfo(newIndex, oldRunning);
 		}
 	}
 
@@ -109,6 +115,13 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	// SyncedData が <see cref="SyncedData.Location_m"/> を持たない接続向けのフォールバック。
 	private readonly LonLatStationDetector _lonLatStationDetector = new();
 
+	// CurrentStationIndex/IsRunningToNextStation/StaLocationInfo/_lonLatStationDetector の
+	// 一連の読み書きを保護する。WebSocket 受信ループと UI スレッドからの直接呼び出しが
+	// 非同期に競合しうるため、これらをまとめて操作する箇所は必ずこのロックを取る。
+	// lock は同一スレッドから再入可能なので、ロック済みメソッドから他のロック済み
+	// メソッド (ForceSetLocationInfo 等) を呼び出しても問題ない。
+	private readonly object _locationStateLock = new();
+
 	private string? _WorkGroupId;
 	public string? WorkGroupId
 	{
@@ -118,6 +131,9 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 			if (_WorkGroupId == value)
 				return;
 			_WorkGroupId = value;
+			// 対象 WorkGroup が変わる = CanStart/CanUseService はもはや別対象に対する
+			// 古い許可なので、サーバが新対象について再確認するまで引き継いではならない。
+			ResetCanStartAndCanUseServiceOnTargetChanged();
 			OnWorkGroupIdChanged(value);
 		}
 	}
@@ -131,6 +147,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 			if (_WorkId == value)
 				return;
 			_WorkId = value;
+			ResetCanStartAndCanUseServiceOnTargetChanged();
 			OnWorkIdChanged(value);
 		}
 	}
@@ -144,8 +161,22 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 			if (_TrainId == value)
 				return;
 			_TrainId = value;
+			ResetCanStartAndCanUseServiceOnTargetChanged();
 			OnTrainIdChanged(value);
 		}
+	}
+
+	/// <summary>
+	/// WorkGroupId/WorkId/TrainId のいずれかが変わったとき、旧対象向けの CanStart/CanUseService
+	/// を引き継がないようにリセットする。切替直後にサーバへ ID 更新を送るだけで CanStart 自体は
+	/// 次の SyncedData が来るまで再評価されないため、そのままにすると旧対象の許可が新対象に
+	/// 一時的に紛れ込む (例: 別列車へ切替後、次の同期が来るまで前の列車の CanStart=true が
+	/// 残ったまま CanUseServiceChanged 等の別イベントで誤って自動開始判定されうる)。
+	/// </summary>
+	private void ResetCanStartAndCanUseServiceOnTargetChanged()
+	{
+		CanStart = false;
+		CanUseService = false;
 	}
 
 	public int CurrentStationIndex { get; private set; }
@@ -284,59 +315,65 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	/// </summary>
 	private void UpdateCurrentStationWithLonLat(double longitude_deg, double latitude_deg)
 	{
-		if (StaLocationInfo is null || !IsEnabled)
-			return;
-
-		bool changed = _lonLatStationDetector.UpdateWithLonLat(longitude_deg, latitude_deg);
-		if (changed)
+		lock (_locationStateLock)
 		{
-			ForceSetLocationInfo(_lonLatStationDetector.CurrentStationIndex, _lonLatStationDetector.IsRunningToNextStation);
+			if (StaLocationInfo is null || !IsEnabled)
+				return;
+
+			bool changed = _lonLatStationDetector.UpdateWithLonLat(longitude_deg, latitude_deg);
+			if (changed)
+			{
+				ForceSetLocationInfo(_lonLatStationDetector.CurrentStationIndex, _lonLatStationDetector.IsRunningToNextStation);
+			}
 		}
 	}
 
 	void UpdateCurrentStationWithLocation(double location_m)
 	{
-		if (StaLocationInfo is null || !IsEnabled || double.IsNaN(location_m))
-			return;
-
-		bool isIn(double threshold1, double threshold2)
+		lock (_locationStateLock)
 		{
-			if (threshold1 < threshold2)
-				return threshold1 <= location_m && location_m < threshold2;
+			if (StaLocationInfo is null || !IsEnabled || double.IsNaN(location_m))
+				return;
+
+			bool isIn(double threshold1, double threshold2)
+			{
+				if (threshold1 < threshold2)
+					return threshold1 <= location_m && location_m < threshold2;
+				else
+					return threshold2 <= location_m && location_m < threshold1;
+			}
+
+			// 距離が逆戻りする可能性は考えない
+			for (int i = 0; i < StaLocationInfo.Length; i++)
+			{
+				double staLocation_m = StaLocationInfo[i].Location_m;
+				double staNearbyRadius_m = StaLocationInfo[i].NearbyRadius_m;
+				if (isIn(staLocation_m - staNearbyRadius_m, staLocation_m + staNearbyRadius_m))
+				{
+					if (i != CurrentStationIndex || IsRunningToNextStation)
+						ForceSetLocationInfo(i, false);
+					return;
+				}
+				else if (i != 0 && isIn(StaLocationInfo[i - 1].Location_m, staLocation_m))
+				{
+					if (i - 1 != CurrentStationIndex || !IsRunningToNextStation)
+						ForceSetLocationInfo(i - 1, true);
+					return;
+				}
+			}
+
+			double distanceFromFirstStation = Math.Abs(location_m - StaLocationInfo[0].Location_m);
+			double distanceFromLastStation = Math.Abs(location_m - StaLocationInfo[^1].Location_m);
+			if (distanceFromFirstStation < distanceFromLastStation)
+			{
+				if (0 != CurrentStationIndex || IsRunningToNextStation)
+					ForceSetLocationInfo(0, false);
+			}
 			else
-				return threshold2 <= location_m && location_m < threshold1;
-		}
-
-		// 距離が逆戻りする可能性は考えない
-		for (int i = 0; i < StaLocationInfo.Length; i++)
-		{
-			double staLocation_m = StaLocationInfo[i].Location_m;
-			double staNearbyRadius_m = StaLocationInfo[i].NearbyRadius_m;
-			if (isIn(staLocation_m - staNearbyRadius_m, staLocation_m + staNearbyRadius_m))
 			{
-				if (i != CurrentStationIndex || IsRunningToNextStation)
-					ForceSetLocationInfo(i, false);
-				return;
+				if (StaLocationInfo.Length - 1 != CurrentStationIndex || IsRunningToNextStation)
+					ForceSetLocationInfo(StaLocationInfo.Length - 1, false);
 			}
-			else if (i != 0 && isIn(StaLocationInfo[i - 1].Location_m, staLocation_m))
-			{
-				if (i - 1 != CurrentStationIndex || !IsRunningToNextStation)
-					ForceSetLocationInfo(i - 1, true);
-				return;
-			}
-		}
-
-		double distanceFromFirstStation = Math.Abs(location_m - StaLocationInfo[0].Location_m);
-		double distanceFromLastStation = Math.Abs(location_m - StaLocationInfo[^1].Location_m);
-		if (distanceFromFirstStation < distanceFromLastStation)
-		{
-			if (0 != CurrentStationIndex || IsRunningToNextStation)
-				ForceSetLocationInfo(0, false);
-		}
-		else
-		{
-			if (StaLocationInfo.Length - 1 != CurrentStationIndex || IsRunningToNextStation)
-				ForceSetLocationInfo(StaLocationInfo.Length - 1, false);
 		}
 	}
 
@@ -473,20 +510,26 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 		bool isRunningToNextStation
 	)
 	{
-		CurrentStationIndex = stationIndex;
-		IsRunningToNextStation = isRunningToNextStation;
-		// 緯度経度ベースの駅判定エンジンも外部の強制セットに合わせて状態同期する。
-		// (距離履歴は外部介入の時点で意味を失うのでクリアする)
-		_lonLatStationDetector.Sync(stationIndex, isRunningToNextStation);
-		LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
+		lock (_locationStateLock)
+		{
+			CurrentStationIndex = stationIndex;
+			IsRunningToNextStation = isRunningToNextStation;
+			// 緯度経度ベースの駅判定エンジンも外部の強制セットに合わせて状態同期する。
+			// (距離履歴は外部介入の時点で意味を失うのでクリアする)
+			_lonLatStationDetector.Sync(stationIndex, isRunningToNextStation);
+			LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
+		}
 	}
 
 	public void ResetLocationInfo()
 	{
-		CurrentStationIndex = 0;
-		IsRunningToNextStation = false;
-		_lonLatStationDetector.Reset();
-		LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
+		lock (_locationStateLock)
+		{
+			CurrentStationIndex = 0;
+			IsRunningToNextStation = false;
+			_lonLatStationDetector.Reset();
+			LocationStateChanged?.Invoke(this, new LocationStateChangedEventArgs(CurrentStationIndex, IsRunningToNextStation));
+		}
 	}
 
 	public abstract void Dispose();

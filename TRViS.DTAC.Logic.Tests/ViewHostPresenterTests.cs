@@ -78,6 +78,10 @@ public class ViewHostPresenterTests
     {
         public event EventHandler<int>? TimeChanged;
 
+        public int CurrentTimeSeconds { get; set; }
+
+        public int GetCurrentTimeSeconds() => CurrentTimeSeconds;
+
         public void RaiseTimeChanged(int totalSeconds)
             => TimeChanged?.Invoke(this, totalSeconds);
     }
