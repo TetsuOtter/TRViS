@@ -12,7 +12,27 @@ Client-sent messages fall into two families:
 | Kind | Discriminator | Section |
 |---|---|---|
 | ID-update message | **no** `MessageType` | [§1](#1-id-update-message) |
-| Request message | **has** `MessageType` | [§2](#2-requestserverinfo) / [§3](#3-requestdiagraminfo) |
+| Request message | **has** `MessageType` | [§2](#2-requestserverinfo) / [§3](#3-requestdiagraminfo) / [§4](#4-searchtrain) / [§5](#5-requesttraintimetable) |
+
+### Request/response correlation (`RequestId`)
+
+Protocol v1.0 defined no correlation between a request and its response
+— responses were matched only by `MessageType`. The v1.1 train-search
+requests ([`SearchTrain`](#4-searchtrain),
+[`RequestTrainTimetable`](#5-requesttraintimetable)) add an explicit
+**`RequestId`**: a client-generated string the client uses to correlate
+the reply with the request it sent. How each request uses it differs:
+
+- [`SearchTrain`](#4-searchtrain): the server **must echo the same
+  `RequestId`** in its [`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse).
+- [`RequestTrainTimetable`](#5-requesttraintimetable): the response is a
+  **normal [`Timetable`](server-to-client-messages.md#2-timetable)** (no
+  new response type, no echoed `RequestId`); the client correlates by
+  the delivered Timetable's `TrainId`. The `RequestId` here is present
+  primarily for logging.
+
+These requests are only meaningful against a server that advertises the
+`TrainSearch` [feature](server-to-client-messages.md#3-serverinfo).
 
 ---
 
@@ -93,7 +113,7 @@ sequenceDiagram
     participant C as TRViS
     participant S as External server
     C->>S: {"MessageType":"RequestServerInfo"}
-    S-->>C: {"MessageType":"ServerInfo", "Name":..,"ProtocolVersion":"1.0", ...}
+    S-->>C: {"MessageType":"ServerInfo", "Name":..,"ProtocolVersion":"1.1", ...}
 ```
 
 ---
@@ -133,14 +153,111 @@ sequenceDiagram
 
 ---
 
+## 4. SearchTrain
+
+Requests a train search by train number. This is the first step of the
+train-search flow (v1.1). Only meaningful against a server that
+advertises the `TrainSearch`
+[feature](server-to-client-messages.md#3-serverinfo); the client shows
+its search UI only when that feature is present.
+
+```jsonc
+{
+  "MessageType": "SearchTrain",
+  "RequestId": "3f2a...unique...",   // client-generated correlation id (required)
+  "TrainNumber": "1234"              // the train number to search for
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `RequestId` | string | Client-generated correlation id. Required — the server echoes it in the response. |
+| `TrainNumber` | string | The train number to search for. |
+
+- The server **must** reply with a
+  [`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse)
+  echoing the same `RequestId`.
+- Matching semantics (exact vs partial match) are **server-defined**.
+- A server that supports the feature **must always respond — even with
+  zero results** (an empty `Results` array) — so the client can
+  distinguish "no results" from "no/failed response".
+- If the server does **not** support train search (does not advertise
+  `TrainSearch`), it simply does not respond; the client times out
+  (**default 10s**) and reports an error.
+
+```mermaid
+sequenceDiagram
+    participant C as TRViS
+    participant S as External server
+    C->>S: {"MessageType":"SearchTrain","RequestId":"3f2a...","TrainNumber":"1234"}
+    Note over C: waits up to 10s
+    S-->>C: {"MessageType":"SearchTrainResponse","RequestId":"3f2a...","Results":[...]}
+    Note over S: must respond even with an empty Results array
+```
+
+---
+
+## 5. RequestTrainTimetable
+
+Second step of the train-search flow: after the user picks a candidate
+from the [`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse)
+list and confirms, the client fetches that train's **full timetable**.
+
+```jsonc
+{
+  "MessageType": "RequestTrainTimetable",
+  "RequestId": "9c1b...unique...",  // correlation id (present; primarily for logging)
+  "WorkGroupId": "wg-1",
+  "WorkId": "w-1",
+  "TrainId": "t-1"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `RequestId` | string | Correlation id. Present, but primarily for logging (the response is not correlated by it — see below). |
+| `WorkGroupId` | string | WorkGroup id of the picked candidate. |
+| `WorkId` | string | Work id of the picked candidate. |
+| `TrainId` | string | Train id of the picked candidate. |
+
+- The server responds by sending a normal
+  [`Timetable`](server-to-client-messages.md#2-timetable) message at
+  **Train scope** (i.e. containing `WorkGroupId` + `WorkId` + `TrainId` +
+  `Data`, where `Data` is the `TrainData` in TRViS JSON format) — exactly
+  as documented in [server-to-client §2](server-to-client-messages.md#2-timetable)
+  and [timetable.md](timetable.md). **No new response message type is
+  introduced**; it reuses the existing Timetable delivery/caching
+  pipeline.
+- The client correlates the response by matching the delivered
+  `Timetable`'s `TrainId`, with a timeout (**default 15s**). If the
+  server has no such train it sends nothing and the client times out.
+- The [Train-scope parent inheritance guidance in timetable.md](timetable.md#21-parent-inheritance-train-scope-caveat)
+  still applies: include `WorkGroupId` / `WorkId` so the cache
+  parent-child relationship is built correctly.
+
+```mermaid
+sequenceDiagram
+    participant C as TRViS
+    participant S as External server
+    Note over C: user picks a candidate and confirms
+    C->>S: {"MessageType":"RequestTrainTimetable","RequestId":"9c1b...","WorkGroupId":..,"WorkId":..,"TrainId":"t-1"}
+    Note over C: waits up to 15s
+    S-->>C: {"MessageType":"Timetable","WorkGroupId":..,"WorkId":..,"TrainId":"t-1","Data":{...}}
+    Note over C: correlated by the delivered Timetable's TrainId
+```
+
+---
+
 ## Appendix: recommended server-side dispatch
 
 ```text
 parse received JSON
 ├─ has "MessageType"?
-│   ├─ "RequestServerInfo"  → reply ServerInfo
-│   ├─ "RequestDiagramInfo" → reply DiagramInfo (DiagramId optional)
-│   └─ otherwise            → ignore as unknown request, or handle as an extension
+│   ├─ "RequestServerInfo"       → reply ServerInfo (advertise Features, e.g. ["TrainSearch"])
+│   ├─ "RequestDiagramInfo"      → reply DiagramInfo (DiagramId optional)
+│   ├─ "SearchTrain"             → reply SearchTrainResponse echoing RequestId (always, even 0 results)
+│   ├─ "RequestTrainTimetable"   → reply Timetable at Train scope (WorkGroupId+WorkId+TrainId+Data)
+│   └─ otherwise                 → ignore as unknown request, or handle as an extension
 └─ no "MessageType"
     └─ read WorkGroupId/WorkId/TrainId and update subscription state (ID update)
 ```
