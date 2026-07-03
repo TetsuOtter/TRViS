@@ -32,11 +32,17 @@ public static class AppResources
 	public static string StartHome_PrivacyPolicy => Get(nameof(StartHome_PrivacyPolicy));
 	public static string StartHome_ThirdPartyLicenses => Get(nameof(StartHome_ThirdPartyLicenses));
 	public static string StartHome_ConnectServer => Get(nameof(StartHome_ConnectServer));
+	public static string StartHome_ScanQr => Get(nameof(StartHome_ScanQr));
 	public static string StartHome_SelectFile => Get(nameof(StartHome_SelectFile));
 	public static string StartHome_PrivacyReconfirmTitle => Get(nameof(StartHome_PrivacyReconfirmTitle));
 	public static string StartHome_PrivacyReconfirmBody => Get(nameof(StartHome_PrivacyReconfirmBody));
 	public static string StartHome_LoadDemo => Get(nameof(StartHome_LoadDemo));
 	public static string StartHome_SampleLoadFailedFormat => Get(nameof(StartHome_SampleLoadFailedFormat));
+
+	public static string ScanQr_Title => Get(nameof(ScanQr_Title));
+	public static string ScanQr_Instruction => Get(nameof(ScanQr_Instruction));
+	public static string ScanQr_PermissionDeniedTitle => Get(nameof(ScanQr_PermissionDeniedTitle));
+	public static string ScanQr_PermissionDeniedBody => Get(nameof(ScanQr_PermissionDeniedBody));
 
 	public static string Home_LoadedData => Get(nameof(Home_LoadedData));
 	public static string Home_Reconnect => Get(nameof(Home_Reconnect));

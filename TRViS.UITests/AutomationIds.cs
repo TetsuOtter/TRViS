@@ -33,6 +33,7 @@ public static class AutomationIds
 
 		// Start mode — primary buttons
 		public const string ConnectServerButton = "StartHome.ConnectServerButton";
+		public const string ScanQrButton = "StartHome.ScanQrButton";
 		public const string SelectFileButton = "StartHome.SelectFileButton";
 		public const string LoadDemoButton = "StartHome.LoadDemoButton";
 
@@ -132,6 +133,10 @@ public static class AutomationIds
 		// tree). The seam handler routes to OnSelectFileClicked so the test
 		// still exercises Navigation.PushModalAsync(SelectFileDialog).
 		public const string TestOpenSelectFileDialogButton = "StartHome.TestOpenSelectFileDialogButton";
+
+		// Direct invoker for OnScanQrClicked. Same reason as the SelectFile seam:
+		// the styled ScanQrButton's ACTION_CLICK is unreliable on Android Appium.
+		public const string TestOpenScanQrPageButton = "StartHome.TestOpenScanQrPageButton";
 
 		// Screenshot-regression determinism seams. TestFreezeClockButton pins
 		// AppTimeProvider at 09:41:00 (Apple marketing time) so the DTAC
@@ -285,6 +290,23 @@ public static class AutomationIds
 		public const string UrlInput = "ConnectServer.UrlInput";
 		public const string SaveConnectionSwitch = "ConnectServer.SaveConnectionSwitch";
 		public const string ConnectButton = "ConnectServer.ConnectButton";
+	}
+
+	/// <summary>
+	/// In-app QR scanner page (phone only). The camera can't be driven by
+	/// Appium, so the two TestSimulate* buttons feed a canned payload through the
+	/// same acceptance gate a live detection would hit.
+	/// </summary>
+	public static class ScanQr
+	{
+		public const string Instruction = "ScanQr.Instruction";
+		public const string CloseButton = "ScanQr.CloseButton";
+		public const string TorchButton = "ScanQr.TorchButton";
+
+		// UI_TEST seams: simulate detecting a valid TRViS AppLink (accept path)
+		// and a non-TRViS QR (reject path).
+		public const string TestSimulateValidButton = "ScanQr.TestSimulateValidButton";
+		public const string TestSimulateInvalidButton = "ScanQr.TestSimulateInvalidButton";
 	}
 
 	/// <summary>

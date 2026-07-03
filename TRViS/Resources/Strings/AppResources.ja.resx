@@ -76,11 +76,16 @@
   <data name="StartHome_PrivacyPolicy" xml:space="preserve"><value>プライバシーポリシー</value></data>
   <data name="StartHome_ThirdPartyLicenses" xml:space="preserve"><value>サードパーティライセンス</value></data>
   <data name="StartHome_ConnectServer" xml:space="preserve"><value>サーバーから読み込み</value></data>
+  <data name="StartHome_ScanQr" xml:space="preserve"><value>QRコードを読み取る</value></data>
   <data name="StartHome_SelectFile" xml:space="preserve"><value>ファイルを選択</value></data>
   <data name="StartHome_PrivacyReconfirmTitle" xml:space="preserve"><value>プライバシーポリシーへの同意が必要です</value></data>
   <data name="StartHome_PrivacyReconfirmBody" xml:space="preserve"><value>アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。</value></data>
   <data name="StartHome_LoadDemo" xml:space="preserve"><value>デモデータで開始</value></data>
   <data name="StartHome_SampleLoadFailedFormat" xml:space="preserve"><value>サンプルデータの読み込みに失敗しました: {0}</value></data>
+  <data name="ScanQr_Title" xml:space="preserve"><value>QRコードをスキャン</value></data>
+  <data name="ScanQr_Instruction" xml:space="preserve"><value>TRViSのQRコードをカメラに写してください</value></data>
+  <data name="ScanQr_PermissionDeniedTitle" xml:space="preserve"><value>カメラを使用できません</value></data>
+  <data name="ScanQr_PermissionDeniedBody" xml:space="preserve"><value>カメラの使用が許可されていません。QRコードを読み取るには、設定アプリでTRViSにカメラの使用を許可してください。</value></data>
   <data name="Home_LoadedData" xml:space="preserve"><value>読み込み済みデータ</value></data>
   <data name="Home_Reconnect" xml:space="preserve"><value>再接続</value></data>
   <data name="Home_Reconnecting" xml:space="preserve"><value>再接続中...</value></data>

@@ -36,6 +36,14 @@
 		<NeutralLanguage>en</NeutralLanguage>
 		<NoWarn>$(NoWarn);NU1608</NoWarn>
 		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">false</ValidateXcodeVersion>
+		<!-- In-app QR scanner (BarcodeScanning.Native.Maui) is phone-only: it uses
+		     native MLKit (Android) / Vision (iOS). The scan button and ScanQrPage
+		     are compiled only for these TFMs; desktop keeps the manual-URL flow.
+		     The library also supports MacCatalyst/Windows, but scanning a QR with a
+		     desktop webcam is not a target workflow and pulling the native/ZXingCpp
+		     dependencies into those builds is avoided. -->
+		<IsMobileTarget>false</IsMobileTarget>
+		<IsMobileTarget Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">true</IsMobileTarget>
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
 		<RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
@@ -125,6 +133,19 @@
 		<PackageReference Include="Xamarin.Firebase.Analytics" Version="123.0.0.3" />
 		<PackageReference Include="Xamarin.Firebase.Crashlytics" Version="120.0.4.1" />
 		<PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.10.0.2" />
+	</ItemGroup>
+	<!-- In-app QR scanner: phone-only (see IsMobileTarget above). -->
+	<ItemGroup Condition="'$(IsMobileTarget)' == 'true'">
+		<PackageReference
+			Include="BarcodeScanning.Native.Maui"
+			Version="3.0.4" />
+	</ItemGroup>
+	<!-- The scanner page references BarcodeScanning's CameraView, whose assembly
+	     is only referenced on mobile TFMs. Exclude the page (and its generated
+	     XAML partial) from desktop builds so they still compile. -->
+	<ItemGroup Condition="'$(IsMobileTarget)' != 'true'">
+		<MauiXaml Remove="RootPages\ScanQrPage.xaml" />
+		<Compile Remove="RootPages\ScanQrPage.xaml.cs" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\TRViS.Core\TRViS.Core.csproj" />

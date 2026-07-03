@@ -3,4 +3,11 @@
 	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true"></application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
+	<!-- In-app QR scanner (BarcodeScanning.Native.Maui). VIBRATE gives haptic
+	     feedback on a successful scan; camera is declared not-required so the
+	     app still installs on camera-less devices (the scan button just fails
+	     the permission request there). -->
+	<uses-permission android:name="android.permission.CAMERA" />
+	<uses-permission android:name="android.permission.VIBRATE" />
+	<uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
