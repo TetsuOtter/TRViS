@@ -35,38 +35,119 @@
 		     in the same cell. The banner z-orders on top (declared later) and stretches
 		     to Fill so it fully covers the buttons when visible. -->
 		<Grid Grid.Row="0">
-			<FlexLayout
+			<!-- Row/Column assignments below are the narrow-layout (phone) default;
+			     ApplyScanButtonLayoutForWidth re-lays this Grid out (RowDefinitions,
+			     ColumnDefinitions, and each button's Grid.Row/Column/ColumnSpan) once
+			     PrimaryButtons' measured width is known, switching between this
+			     2-row narrow shape and a 1-row wide shape. Using explicit Grid
+			     column boundaries (rather than FlexLayout's grow/justify) guarantees
+			     ConnectServerButton/SelectFileButton's left and right edges land on
+			     the exact same pixel across rows. -->
+			<Grid
 				x:Name="PrimaryButtons"
-				Direction="Row"
-				Wrap="Wrap"
-				JustifyContent="Center"
-				AlignItems="Center">
+				x:FieldModifier="public"
+				RowDefinitions="Auto,Auto"
+				ColumnDefinitions="*,Auto">
 				<Button
 					x:Name="ConnectServerButton"
 					x:FieldModifier="public"
 					AutomationId="StartHome.ConnectServerButton"
 					Text="{loc:Translate StartHome_ConnectServer}"
 					Style="{StaticResource PrimaryActionButton}"
-					Clicked="OnConnectServerClicked"/>
+					Grid.Row="0"
+					Grid.Column="0"
+					Clicked="OnConnectServerClicked">
+					<Button.ImageSource>
+						<!-- &#xe875; = dns (Material Icons) -->
+						<FontImageSource
+							FontFamily="MaterialIconsRegular"
+							Glyph="&#xe875;"
+							Size="28"
+							Color="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Primary}}"/>
+					</Button.ImageSource>
+				</Button>
 				<!-- In-app QR scanner entry point. Phone-only: hidden from
 				     code-behind on desktop TFMs where ScanQrPage / BarcodeScanning
 				     are not compiled (see StartGridView ctor + csproj IsMobileTarget).
-				     Defaults visible in XAML so mobile keeps its UIA peer. -->
-				<Button
+				     Defaults visible in XAML so mobile keeps its UIA peer.
+				     Grid.Row+Column are re-applied at runtime by
+				     ApplyScanButtonLayoutForWidth (narrow: icon-only square beside
+				     ConnectServerButton; wide: icon-over-short-label) - the XAML
+				     values here are just the pre-measurement default.
+				     WidthRequest/MinimumWidthRequest="84" (matching the default
+				     HeightRequest) must be set here rather than left to code-behind:
+				     the Auto column's very first Grid measurement pass runs before
+				     ApplyScanButtonLayoutForWidth fires (it's driven by
+				     PrimaryButtons.SizeChanged), and with the full un-shortened
+				     label text still in place at that point, an unconstrained Auto
+				     column would lock onto that label's full width instead of a
+				     square.
+
+				     A Border+Grid+TapGestureRecognizer instead of a native Button:
+				     iOS UIButton's Top-image-position layout math (Button.iOS.cs
+				     LayoutButton/ImageEdgeInsets) mis-centers the icon by ~6pt when
+				     stacked over a label, and that's a native MAUI limitation with
+				     no property-level fix. Composing the icon/label as two
+				     independently-centered Labels in our own Grid sidesteps it
+				     entirely. IsEnabled/IsVisible/AutomationId all still work the
+				     same as they did on the Button (VisualElement members). -->
+				<Border
 					x:Name="ScanQrButton"
 					x:FieldModifier="public"
 					AutomationId="StartHome.ScanQrButton"
-					Text="{loc:Translate StartHome_ScanQr}"
-					Style="{StaticResource PrimaryActionButton}"
-					Clicked="OnScanQrClicked"/>
+					Style="{StaticResource PrimaryActionButtonBorder}"
+					Grid.Row="0"
+					Grid.Column="1"
+					WidthRequest="84"
+					MinimumWidthRequest="84">
+					<Border.GestureRecognizers>
+						<TapGestureRecognizer Tapped="OnScanQrButtonTapped"/>
+					</Border.GestureRecognizers>
+					<Grid
+						RowDefinitions="Auto,Auto"
+						RowSpacing="4"
+						VerticalOptions="Center">
+						<!-- &#xf206; = qr_code_scanner (Material Icons) -->
+						<Label
+							x:Name="ScanQrButtonIcon"
+							Grid.Row="0"
+							Text="&#xf206;"
+							FontFamily="MaterialIconsRegular"
+							FontSize="28"
+							HorizontalOptions="Center"
+							HorizontalTextAlignment="Center"
+							TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Primary}}"/>
+						<Label
+							x:Name="ScanQrButtonLabel"
+							Grid.Row="1"
+							Text="{loc:Translate StartHome_ScanQr}"
+							FontAttributes="Bold"
+							LineBreakMode="WordWrap"
+							HorizontalOptions="Center"
+							HorizontalTextAlignment="Center"
+							TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Primary}}"/>
+					</Grid>
+				</Border>
 				<Button
 					x:Name="SelectFileButton"
 					x:FieldModifier="public"
 					AutomationId="StartHome.SelectFileButton"
 					Text="{loc:Translate StartHome_SelectFile}"
 					Style="{StaticResource PrimaryActionButton}"
-					Clicked="OnSelectFileClicked"/>
-			</FlexLayout>
+					Grid.Row="1"
+					Grid.Column="0"
+					Grid.ColumnSpan="2"
+					Clicked="OnSelectFileClicked">
+					<Button.ImageSource>
+						<!-- &#xe873; = description (Material Icons) -->
+						<FontImageSource
+							FontFamily="MaterialIconsRegular"
+							Glyph="&#xe873;"
+							Size="28"
+							Color="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Primary}}"/>
+					</Button.ImageSource>
+				</Button>
+			</Grid>
 
 			<!-- IsVisible is controlled exclusively from code (SetPrivacyAccepted).
 			     Do NOT set IsVisible="False" in XAML: on Windows MAUI a Border that

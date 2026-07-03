@@ -77,6 +77,7 @@
   <data name="StartHome_ThirdPartyLicenses" xml:space="preserve"><value>Third Party Licenses</value></data>
   <data name="StartHome_ConnectServer" xml:space="preserve"><value>Load from Server</value></data>
   <data name="StartHome_ScanQr" xml:space="preserve"><value>Scan QR Code</value></data>
+  <data name="StartHome_ScanQrShort" xml:space="preserve"><value>Scan</value></data>
   <data name="StartHome_SelectFile" xml:space="preserve"><value>Select File</value></data>
   <data name="StartHome_PrivacyReconfirmTitle" xml:space="preserve"><value>Privacy policy consent required</value></data>
   <data name="StartHome_PrivacyReconfirmBody" xml:space="preserve"><value>To use the app, please review and accept the privacy policy.</value></data>

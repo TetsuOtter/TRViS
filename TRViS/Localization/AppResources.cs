@@ -33,6 +33,7 @@ public static class AppResources
 	public static string StartHome_ThirdPartyLicenses => Get(nameof(StartHome_ThirdPartyLicenses));
 	public static string StartHome_ConnectServer => Get(nameof(StartHome_ConnectServer));
 	public static string StartHome_ScanQr => Get(nameof(StartHome_ScanQr));
+	public static string StartHome_ScanQrShort => Get(nameof(StartHome_ScanQrShort));
 	public static string StartHome_SelectFile => Get(nameof(StartHome_SelectFile));
 	public static string StartHome_PrivacyReconfirmTitle => Get(nameof(StartHome_PrivacyReconfirmTitle));
 	public static string StartHome_PrivacyReconfirmBody => Get(nameof(StartHome_PrivacyReconfirmBody));
