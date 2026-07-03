@@ -18,6 +18,9 @@ public class NotificationPopupPageObject : PageObject
 	public AppiumElement TitleLabel => WaitForElement(AutomationIds.Notification.Title);
 	public AppiumElement AcknowledgeButton => FindByAutomationId(AutomationIds.Notification.AcknowledgeButton);
 	public AppiumElement DismissButton => FindByAutomationId(AutomationIds.Notification.DismissButton);
+	public AppiumElement OrderNumberLabel => FindByAutomationId(AutomationIds.Notification.OrderNumber);
+	public AppiumElement SenderLabel => FindByAutomationId(AutomationIds.Notification.Sender);
+	public AppiumElement ReceiverLabel => FindByAutomationId(AutomationIds.Notification.Receiver);
 
 	public bool IsDisplayed(double timeoutSeconds = 10)
 		=> PollDisplayed(AutomationIds.Notification.Title, timeoutSeconds);
@@ -25,7 +28,22 @@ public class NotificationPopupPageObject : PageObject
 	public bool IsImportantBadgeVisible(double timeoutSeconds = 3)
 		=> PollDisplayed(AutomationIds.Notification.ImportantBadge, timeoutSeconds);
 
+	public bool IsIconBadgeVisible(double timeoutSeconds = 3)
+		=> PollDisplayed(AutomationIds.Notification.IconBadge, timeoutSeconds);
+
+	public bool IsOrderNumberVisible(double timeoutSeconds = 3)
+		=> PollDisplayed(AutomationIds.Notification.OrderNumber, timeoutSeconds);
+
+	public bool IsSenderVisible(double timeoutSeconds = 3)
+		=> PollDisplayed(AutomationIds.Notification.Sender, timeoutSeconds);
+
+	public bool IsReceiverVisible(double timeoutSeconds = 3)
+		=> PollDisplayed(AutomationIds.Notification.Receiver, timeoutSeconds);
+
 	public string ReadTitle() => TitleLabel.Text ?? string.Empty;
+	public string ReadOrderNumber() => OrderNumberLabel.Text ?? string.Empty;
+	public string ReadSender() => SenderLabel.Text ?? string.Empty;
+	public string ReadReceiver() => ReceiverLabel.Text ?? string.Empty;
 
 	/// <summary>Taps 受領 (acknowledge + close). Closes the popup whether or not the
 	/// server ack succeeds; only a confirmed send marks the notice read.</summary>

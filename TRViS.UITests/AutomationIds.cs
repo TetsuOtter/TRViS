@@ -371,6 +371,11 @@ public static class AutomationIds
 	public static class Notification
 	{
 		public const string Popup = "Notification.Popup";
+		public const string OrderNumber = "Notification.OrderNumber";
+		public const string Sender = "Notification.Sender";
+		public const string Receiver = "Notification.Receiver";
+		public const string IconBadge = "Notification.IconBadge";
+		public const string IconImage = "Notification.IconImage";
 		public const string Title = "Notification.Title";
 		public const string Body = "Notification.Body";
 		public const string ImportantBadge = "Notification.ImportantBadge";

@@ -144,6 +144,9 @@ To: {4} {5}</value></data>
   <data name="Notification_Important" xml:space="preserve"><value>Important</value></data>
   <data name="Notification_Acknowledge" xml:space="preserve"><value>Acknowledge</value></data>
   <data name="Notification_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Notification_OrderNumberFormat" xml:space="preserve"><value>Order No.: {0}</value></data>
+  <data name="Notification_SenderFormat" xml:space="preserve"><value>From: {0}</value></data>
+  <data name="Notification_ReceiverFormat" xml:space="preserve"><value>To: {0}</value></data>
   <data name="SelectFile_Title" xml:space="preserve"><value>Select File</value></data>
   <data name="SelectFile_FileListHint" xml:space="preserve"><value>Choose a file in the app, or open from another location.</value></data>
   <data name="SelectFile_EmptyMessage" xml:space="preserve"><value>No files in this folder</value></data>

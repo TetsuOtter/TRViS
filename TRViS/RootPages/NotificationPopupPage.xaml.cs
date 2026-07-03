@@ -54,6 +54,37 @@ public partial class NotificationPopupPage : ContentPage
 
 	private void ApplyEntry(NotificationStore.Entry entry)
 	{
+		// アイコン: 画像 (Base64) が優先。無ければ背景色+文字のバッジ。どちらも無ければ非表示。
+		if (!string.IsNullOrEmpty(entry.IconImageBase64) && TryDecodeIconImage(entry.IconImageBase64, out var iconSource))
+		{
+			IconImage.Source = iconSource;
+			IconImage.IsVisible = true;
+			IconBadge.IsVisible = false;
+		}
+		else if (!string.IsNullOrEmpty(entry.IconText))
+		{
+			IconBadgeLabel.Text = entry.IconText;
+			if (entry.IconColor_RGB is int rgb)
+				IconBadge.BackgroundColor = Color.FromRgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+			else
+				RootStyles.TableDetailColor.Apply(IconBadge, BackgroundColorProperty);
+			IconBadge.IsVisible = true;
+			IconImage.IsVisible = false;
+		}
+		else
+		{
+			IconBadge.IsVisible = false;
+			IconImage.IsVisible = false;
+		}
+
+		// 指令番号 / 指令者 / 受信者 (未設定の項目は行ごと非表示)。
+		OrderNumberLabel.Text = string.Format(TRViS.Localization.AppResources.Notification_OrderNumberFormat, entry.OrderNumber);
+		OrderNumberLabel.IsVisible = !string.IsNullOrEmpty(entry.OrderNumber);
+		SenderLabel.Text = string.Format(TRViS.Localization.AppResources.Notification_SenderFormat, entry.Sender);
+		SenderLabel.IsVisible = !string.IsNullOrEmpty(entry.Sender);
+		ReceiverLabel.Text = string.Format(TRViS.Localization.AppResources.Notification_ReceiverFormat, entry.Receiver);
+		ReceiverLabel.IsVisible = !string.IsNullOrEmpty(entry.Receiver);
+
 		// タイトル (未設定ならページタイトル = "通告" にフォールバック)。
 		TitleLabel.Text = string.IsNullOrEmpty(entry.Title)
 			? TRViS.Localization.AppResources.Notification_Title
@@ -75,10 +106,11 @@ public partial class NotificationPopupPage : ContentPage
 		// Priority による強調表示。
 		ImportantBadge.IsVisible = entry.IsImportant;
 
-		// 発行時刻。
+		// 発行時刻。TZ 指定ありは端末の現在 TZ に変換して表示、TZ 指定無しはその時刻をそのまま表示する。
 		if (entry.IssuedAt is System.DateTimeOffset issuedAt)
 		{
-			IssuedAtLabel.Text = issuedAt.LocalDateTime.ToString("yyyy/MM/dd HH:mm");
+			var displayDateTime = entry.IssuedAtIsUnspecifiedTimeZone ? issuedAt.DateTime : issuedAt.LocalDateTime;
+			IssuedAtLabel.Text = displayDateTime.ToString("yyyy/MM/dd HH:mm");
 			IssuedAtLabel.IsVisible = true;
 		}
 
@@ -89,6 +121,31 @@ public partial class NotificationPopupPage : ContentPage
 		AcknowledgeButton.IsVisible = entry.CanAcknowledge;
 		DismissButton.IsVisible = !entry.CanAcknowledge;
 		CloseButton.IsVisible = !entry.CanAcknowledge;
+	}
+
+	/// <summary>
+	/// アイコン画像の Base64 文字列 (data URI プレフィックス <c>data:image/...;base64,</c> を
+	/// 含んでいてもよい) を <see cref="ImageSource"/> にデコードする。不正な値は false を返し、
+	/// バッジ表示へフォールバックさせる。
+	/// </summary>
+	private static bool TryDecodeIconImage(string base64, out ImageSource? source)
+	{
+		source = null;
+		try
+		{
+			int commaIndex = base64.IndexOf(',');
+			string payload = base64.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && commaIndex >= 0
+				? base64[(commaIndex + 1)..]
+				: base64;
+			byte[] bytes = Convert.FromBase64String(payload);
+			source = ImageSource.FromStream(() => new MemoryStream(bytes));
+			return true;
+		}
+		catch (Exception ex)
+		{
+			logger.Warn(ex, "Failed to decode notification icon image");
+			return false;
+		}
 	}
 
 	// Android のハードウェア戻るボタン等による dismiss を、受領必須の通告では無効化する。
