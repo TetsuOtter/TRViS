@@ -19,11 +19,7 @@ internal class LocationServiceIdSyncAdapter : IDisposable
 		_locationService = locationService;
 		_appViewModel = appViewModel;
 		_appViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
-		_locationService.SetTargetIds(
-			_appViewModel.SelectedWorkGroup?.Id,
-			_appViewModel.SelectedWork?.Id,
-			_appViewModel.SelectedTrainData?.Id
-		);
+		SyncTargetIds();
 	}
 
 	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -33,13 +29,33 @@ internal class LocationServiceIdSyncAdapter : IDisposable
 			case nameof(AppViewModel.SelectedWorkGroup):
 			case nameof(AppViewModel.SelectedWork):
 			case nameof(AppViewModel.SelectedTrainData):
+			// 検索列車の表示切替時も、サーバーへ通知する対象 ID を更新する
+			// (検索列車の SyncedData がサーバーから配信されるように)。
+			case nameof(AppViewModel.IsDisplayingSearchedTrain):
 				logger.Debug("AppViewModel.{0} changed -> SetTargetIds", e.PropertyName);
-				_locationService.SetTargetIds(
-					_appViewModel.SelectedWorkGroup?.Id,
-					_appViewModel.SelectedWork?.Id,
-					_appViewModel.SelectedTrainData?.Id
-				);
+				SyncTargetIds();
 				break;
+		}
+	}
+
+	private void SyncTargetIds()
+	{
+		// 検索表示中は検索列車の WG/W/T、それ以外は所定の選択を通知する。
+		if (_appViewModel.IsDisplayingSearchedTrain)
+		{
+			_locationService.SetTargetIds(
+				_appViewModel.SearchedWorkGroupId,
+				_appViewModel.SearchedWorkId,
+				_appViewModel.SearchedTrainId
+			);
+		}
+		else
+		{
+			_locationService.SetTargetIds(
+				_appViewModel.SelectedWorkGroup?.Id,
+				_appViewModel.SelectedWork?.Id,
+				_appViewModel.SelectedTrainData?.Id
+			);
 		}
 	}
 
