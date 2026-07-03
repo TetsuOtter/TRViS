@@ -75,6 +75,39 @@ public partial class LocationService : IDisposable
 	public bool NetworkSyncServiceCanStart => (_CurrentService as NetworkSyncServiceBase)?.CanStart ?? false;
 
 	/// <summary>
+	/// 現在のサーバーが対応する拡張機能の一覧 (機能ネゴシエーション)。
+	/// NetworkSyncService 以外 (GPS 等) では空。
+	/// </summary>
+	public IReadOnlyList<string> ServerFeatures
+		=> (_CurrentService as NetworkSyncServiceBase)?.ServerFeatures ?? Array.Empty<string>();
+
+	/// <summary>指定の機能 (<see cref="ServerFeatureIds"/>) にサーバーが対応しているか。</summary>
+	public bool IsFeatureSupported(string featureId)
+		=> (_CurrentService as NetworkSyncServiceBase)?.IsFeatureSupported(featureId) ?? false;
+
+	/// <summary>
+	/// 列番でサーバーに列車を検索する。WebSocket 接続時のみ有効。
+	/// </summary>
+	public Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
+		string trainNumber, CancellationToken cancellationToken = default)
+	{
+		if (_CurrentService is not NetworkSyncServiceBase networkSyncService)
+			throw new InvalidOperationException("Train search requires a WebSocket network sync connection.");
+		return networkSyncService.SearchTrainAsync(trainNumber, cancellationToken);
+	}
+
+	/// <summary>
+	/// 検索候補の完全な時刻表を取得する (2 段階目)。WebSocket 接続時のみ有効。
+	/// </summary>
+	public Task<TRViS.IO.Models.TrainData?> FetchSearchedTrainTimetableAsync(
+		TrainSearchResult result, CancellationToken cancellationToken = default)
+	{
+		if (_CurrentService is not NetworkSyncServiceBase networkSyncService)
+			throw new InvalidOperationException("Train timetable fetch requires a WebSocket network sync connection.");
+		return networkSyncService.FetchSearchedTrainTimetableAsync(result, cancellationToken);
+	}
+
+	/// <summary>
 	/// GPS位置情報の更新間隔
 	/// </summary>
 	public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(1);

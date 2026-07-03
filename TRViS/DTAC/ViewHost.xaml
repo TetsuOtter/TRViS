@@ -32,8 +32,10 @@
 			Padding="4,0"
 			BackgroundColor="{x:Static local:DTACElementStyles.TabAreaBGColor}">
 			<local:TabButton
+				x:Name="HakoTabButton"
 				AutomationId="DTAC.TabHako"
 				Text="ハ　コ"
+				IsVisible="{Binding IsHakoTabVisible}"
 				CurrentMode="{Binding TabMode}"
 				TargetMode="Hako"/>
 			<local:TabButton
