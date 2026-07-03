@@ -625,23 +625,80 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		var n = new NotificationData
 		{
 			Id = TryGetStringProperty(root, "Id"),
+			OrderNumber = TryGetStringProperty(root, "OrderNumber"),
 			Title = TryGetStringProperty(root, "Title"),
 			Body = TryGetStringProperty(root, "Body"),
+			Receiver = TryGetStringProperty(root, "Receiver"),
+			Sender = TryGetStringProperty(root, "Sender"),
+			IconText = TryGetStringProperty(root, "IconText"),
+			IconImageBase64 = TryGetStringProperty(root, "IconImageBase64"),
 		};
 		if (root.TryGetProperty("Priority", out var p) && p.ValueKind == JsonValueKind.Number
 			&& p.TryGetInt32(out int prio))
 			n.Priority = prio;
+		if (root.TryGetProperty("IconColor_RGB", out var ic))
+		{
+			// 数値 (0xRRGGBB の 10 進表記) と "#RRGGBB" 形式の文字列の両方を受け付ける。
+			if (ic.ValueKind == JsonValueKind.Number && ic.TryGetInt32(out int iconRgb))
+				n.IconColor_RGB = iconRgb;
+			else if (ic.ValueKind == JsonValueKind.String && NotificationData.TryParseIconColor(ic.GetString(), out int hexIconRgb))
+				n.IconColor_RGB = hexIconRgb;
+		}
 		if (root.TryGetProperty("IssuedAt", out var t) && t.ValueKind == JsonValueKind.String)
 		{
 			string? s = t.GetString();
-			if (s is not null && DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
-				System.Globalization.DateTimeStyles.RoundtripKind, out var dto))
+			if (s is not null && TryParseIssuedAt(s, out var dto, out bool isUnspecifiedTimeZone))
+			{
 				n.IssuedAt = dto;
+				n.IssuedAtIsUnspecifiedTimeZone = isUnspecifiedTimeZone;
+			}
 		}
 		// Acknowledged は JSON の true のときのみ受領済み扱い (それ以外/欠落は false)。
 		if (root.TryGetProperty("Acknowledged", out var ack))
 			n.Acknowledged = ack.ValueKind == JsonValueKind.True;
 		RaiseNotificationReceived(n);
+	}
+
+	/// <summary>
+	/// <c>Notification.IssuedAt</c> の ISO 8601 文字列をパースする。オフセット
+	/// (<c>Z</c> または <c>+HH:mm</c>/<c>-HH:mm</c>) を含む文字列は TZ 指定ありと判断し、
+	/// 表示側で端末の現在 TZ に変換する (<see cref="DateTimeOffset.LocalDateTime"/>) ことを
+	/// 前提に <paramref name="value"/> をそのまま返す。オフセットを含まない文字列は
+	/// 「その時刻をそのまま表示する」ため、日時部分だけを Offset=0 の
+	/// <see cref="DateTimeOffset"/> に詰めて返し (<see cref="DateTimeOffset.DateTime"/> が
+	/// 元の文字列の値と一致する)、<paramref name="isUnspecifiedTimeZone"/> を true にする。
+	/// <para>
+	/// 日付のみ (例 <c>2024-03-01</c>) や空白区切り (例 <c>2024-03-01 09:00:00</c>) など、
+	/// ISO 8601 の日時区切り <c>T</c> を含まない文字列は常に TZ 指定無し扱いとする
+	/// (日付部分の <c>-</c> をオフセット記号と誤認しないため)。
+	/// </para>
+	/// </summary>
+	private static bool TryParseIssuedAt(string s, out DateTimeOffset value, out bool isUnspecifiedTimeZone)
+	{
+		value = default;
+		isUnspecifiedTimeZone = false;
+
+		// 'T' (ISO 8601 の日時区切り) が無い文字列は ISO 8601 形式ではないため、
+		// 日付部分の '-' をオフセット記号と誤認しないよう常に TZ 指定無し扱いにする。
+		int tIndex = s.IndexOf('T');
+		bool hasOffset = tIndex >= 0
+			&& (s[tIndex..].Contains('Z') || s[tIndex..].Contains('+') || s[tIndex..].Contains('-'));
+
+		if (hasOffset)
+		{
+			return DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
+				System.Globalization.DateTimeStyles.RoundtripKind, out value);
+		}
+
+		if (!DateTime.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
+			System.Globalization.DateTimeStyles.NoCurrentDateDefault, out var dt))
+			return false;
+
+		// オフセットは表示側で使わない (isUnspecifiedTimeZone=true のとき DateTime プロパティを
+		// そのまま表示する) ため、TimeSpan.Zero を仮に詰めるだけでよい。
+		value = new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Unspecified), TimeSpan.Zero);
+		isUnspecifiedTimeZone = true;
+		return true;
 	}
 
 	private void ProcessTimeFormatMessage(JsonElement root)

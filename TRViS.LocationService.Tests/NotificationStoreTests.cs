@@ -25,6 +25,38 @@ public class NotificationStoreTests
 		};
 
 	[Test]
+	public void Add_EntryExposesDisplayFields()
+	{
+		var store = new NotificationStore();
+		var data = new NotificationData
+		{
+			Id = "n-1",
+			OrderNumber = "ORD-001",
+			Title = "タイトル",
+			Body = "本文",
+			Receiver = "乗務員A",
+			Sender = "指令所",
+			IconText = "指",
+			IconColor_RGB = 0xC62828,
+			IconImageBase64 = "AAA=",
+			IssuedAtIsUnspecifiedTimeZone = true,
+		};
+
+		var result = store.Add(data);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(result.Entry.OrderNumber, Is.EqualTo("ORD-001"));
+			Assert.That(result.Entry.Receiver, Is.EqualTo("乗務員A"));
+			Assert.That(result.Entry.Sender, Is.EqualTo("指令所"));
+			Assert.That(result.Entry.IconText, Is.EqualTo("指"));
+			Assert.That(result.Entry.IconColor_RGB, Is.EqualTo(0xC62828));
+			Assert.That(result.Entry.IconImageBase64, Is.EqualTo("AAA="));
+			Assert.That(result.Entry.IssuedAtIsUnspecifiedTimeZone, Is.True);
+		});
+	}
+
+	[Test]
 	public void Add_NewUnread_ShouldDisplayAndTrack()
 	{
 		var store = new NotificationStore();

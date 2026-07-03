@@ -602,7 +602,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 	}
 
 	/// <summary>
-	/// Notification: { Id?, Title?, Body?, Priority?, IssuedAt? (ISO8601), Acknowledged? }
+	/// Notification: { Id?, OrderNumber?, Title?, Body?, Priority?, IssuedAt? (ISO8601),
+	/// Receiver?, Sender?, IconText?, IconColor_RGB?, IconImageBase64?, Acknowledged? }
 	/// </summary>
 	private async Task<HttpResponse> BroadcastNotificationAsync(HttpRequest request)
 	{
@@ -615,6 +616,16 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			if (root.TryGetProperty("Priority", out var p) && p.ValueKind == JsonValueKind.Number
 				&& p.TryGetInt32(out int prio))
 				priority = prio;
+			// クライアント側は数値 (0xRRGGBB) と "#RRGGBB" 文字列の両方を受け付けるため、
+			// このリファレンスサーバーは受け取った型 (数値 or 文字列) をそのまま転送する。
+			object? iconColor = null;
+			if (root.TryGetProperty("IconColor_RGB", out var ic))
+			{
+				if (ic.ValueKind == JsonValueKind.Number && ic.TryGetInt32(out int iconRgb))
+					iconColor = iconRgb;
+				else if (ic.ValueKind == JsonValueKind.String)
+					iconColor = ic.GetString();
+			}
 			string? issuedAt = TryGetString(root, "IssuedAt");
 			bool acknowledged = root.TryGetProperty("Acknowledged", out var ack)
 				&& ack.ValueKind == JsonValueKind.True;
@@ -622,10 +633,16 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			{
 				MessageType = "Notification",
 				Id = TryGetString(root, "Id"),
+				OrderNumber = TryGetString(root, "OrderNumber"),
 				Title = TryGetString(root, "Title"),
 				Body = TryGetString(root, "Body"),
 				Priority = priority,
 				IssuedAt = issuedAt,
+				Receiver = TryGetString(root, "Receiver"),
+				Sender = TryGetString(root, "Sender"),
+				IconText = TryGetString(root, "IconText"),
+				IconColor_RGB = iconColor,
+				IconImageBase64 = TryGetString(root, "IconImageBase64"),
 				Acknowledged = acknowledged,
 			});
 			await BroadcastTextAsync(msg);
