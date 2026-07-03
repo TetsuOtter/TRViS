@@ -1129,6 +1129,10 @@ public partial class StartHomePage : ContentPage
 		// 0..11 tappable).
 		AddSeamButton(host, 3, 1, "StartHome.TestUnfreezeClockButton", TestUnfreezeClockButton_Clicked);
 		AddSeamButton(host, 4, 1, "StartHome.TestResetThemeButton", TestResetThemeButton_Clicked);
+		// Row 5 of the second column: reuses an existing (already-proven-tappable)
+		// row/column slot rather than growing host's RowDefinitions — see the
+		// "13th XAML row" hang note above TestOpenSelectFileDialogButton.
+		AddSeamButton(host, 5, 1, "StartHome.TestSeedHakoDiagramButton", TestSeedHakoDiagramButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1728,6 +1732,47 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSeedNextTrainSelection failed");
+		}
+	}
+
+	/// <summary>
+	/// Test seam: tapped from UI tests via "StartHome.TestSeedHakoDiagramButton".
+	/// Commits selection to WorkGroup "hako-diagram-test" → Work
+	/// "hako-diagram-7stations" (6 trains spanning 7 turn-back stations, mixed
+	/// Inbound/Outbound directions) and navigates to DTAC. Lets the Hako-tab
+	/// diagram (ハコ図) screenshot walk land on a Work that deterministically
+	/// exercises the tablet diagram layout (7 turn-back stations, which the
+	/// diagram fits once the screen is wide enough — see
+	/// HakoDiagramLayoutCalculator.MaxTurnBackStationCount) without depending on
+	/// Work1-1's turn-back station count.
+	/// </summary>
+	async void TestSeedHakoDiagramButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSeedHakoDiagram clicked: committing hako-diagram-7stations and navigating to DTAC");
+		try
+		{
+			var wg = viewModel.WorkGroupList?.FirstOrDefault(w => w.Id == "hako-diagram-test");
+			if (wg is null)
+			{
+				logger.Warn("TestSeedHakoDiagram: hako-diagram-test WorkGroup not found");
+				return;
+			}
+			var loader = viewModel.Loader;
+			if (loader is null)
+				return;
+			var work = loader.GetWorkList(wg.Id)?.FirstOrDefault(w => w.Id == "hako-diagram-7stations");
+			if (work is null)
+			{
+				logger.Warn("TestSeedHakoDiagram: hako-diagram-7stations not found under hako-diagram-test");
+				return;
+			}
+
+			HomeGrid.CommitPendingSelection(wg, work);
+			await HomeGridView.NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSeedHakoDiagramButton failed");
 		}
 	}
 

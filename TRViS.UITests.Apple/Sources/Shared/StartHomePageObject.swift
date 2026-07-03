@@ -438,6 +438,16 @@ class StartHomePageObject {
         return DTACViewHostPageObject(app: app, base: base)
     }
 
+    // MARK: — Hako diagram seed seam (ScreenshotRegressionTests)
+
+    /// Commits WorkGroup "hako-diagram-test" / Work "hako-diagram-7stations"
+    /// (7 turn-back stations — the diagram layout's upper bound) and navigates
+    /// to DTAC. Returns the DTAC page object.
+    func seedHakoDiagramForTesting() -> DTACViewHostPageObject {
+        base.tapSeam(id: AutomationIds.StartHome.testSeedHakoDiagramButton)
+        return DTACViewHostPageObject(app: app, base: base)
+    }
+
     // MARK: — Constants (mirror C# StartHomePageObject literals)
 
     /// URLs seeded by seedUrlHistoryForTesting().

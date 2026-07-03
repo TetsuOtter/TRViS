@@ -275,6 +275,16 @@ class ScreenshotRegressionTests: BaseUITestCase {
         settle()
         capture(screen: "settings", theme: theme, lang: lang, failures: &failures)
 
+        // 12. Hako diagram (ハコ図) — dedicated Work with 7 turn-back stations,
+        // deterministically exercising the tablet-only diagram layout regardless
+        // of Work1-1's turn-back station count. Settings (step 11) left us off
+        // DTAC, so the seam buttons on StartHome are unreachable until we
+        // navigate home first.
+        _ = shell.navigateToHome()
+        _ = start.seedHakoDiagramForTesting()
+        Thread.sleep(forTimeInterval: 0.5)
+        capture(screen: "dtac-hako-diagram", theme: theme, lang: lang, failures: &failures)
+
         // Leave the app in a recoverable state for the next combo
         _ = shell.navigateToHome()
 
