@@ -5,6 +5,10 @@ using NLog;
 using TRViS.Services;
 using TRViS.Utils;
 
+#if ANDROID || IOS
+using BarcodeScanning;
+#endif
+
 namespace TRViS;
 
 public static class MauiProgram
@@ -69,6 +73,11 @@ public static class MauiProgram
 				fonts.AddFont("NotoSansJP-Regular.ttf", "NotoSansJPRegular");
 				fonts.AddFont("NotoSansJP-Bold.ttf", "NotoSansJPBold");
 			})
+#if ANDROID || IOS
+			// In-app QR scanner (phone-only). Registers the BarcodeScanning
+			// CameraView handler used by RootPages/ScanQrPage.
+			.UseBarcodeScanning()
+#endif
 			.ConfigureFirebase();
 
 		AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;

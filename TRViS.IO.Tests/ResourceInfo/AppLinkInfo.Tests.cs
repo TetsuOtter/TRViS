@@ -130,4 +130,32 @@ public class AppLinkInfoTests
 	public void NoPathDataOrLocal()
 		=> Assert.That(() => AppLinkInfo.FromAppLink("trvis://app/open/json?ver=1.0"),
 			Throws.ArgumentException);
+
+	// ----- IsTrvisAppLink: the in-app QR scanner's "only process TRViS
+	// AppLinks" gate. Accept any trvis:// URL (even a malformed body, which
+	// FromAppLink rejects later); reject every other scheme / non-URI. -----
+
+	[Test]
+	[TestCase("trvis://app/open/json?path=https://example.com/db.json")]
+	[TestCase("trvis://app/open/sqlite?local=foo.db")]
+	[TestCase("TRVIS://app/open/json?path=https://example.com/db.json")] // scheme is case-insensitive
+	[TestCase("  trvis://app/open/json?data=e30K  ")] // surrounding whitespace tolerated
+	[TestCase("trvis://garbage")] // malformed body is still a TRViS link (FromAppLink alerts later)
+	public void IsTrvisAppLink_AcceptsTrvisScheme(string text)
+		=> Assert.That(AppLinkInfo.IsTrvisAppLink(text), Is.True);
+
+	[Test]
+	[TestCase("https://example.com/db.json")]
+	[TestCase("http://example.com/db.json")]
+	[TestCase("ws://example.com/ws")]
+	[TestCase("wss://example.com/ws")]
+	[TestCase("https://app/open/json?path=x")] // host is "app" but scheme is not trvis -> reject
+	[TestCase("just some plain text")]
+	[TestCase("trvis")] // not an absolute URI
+	[TestCase("app/open/json")] // relative
+	[TestCase("")]
+	[TestCase("   ")]
+	[TestCase(null)]
+	public void IsTrvisAppLink_RejectsEverythingElse(string? text)
+		=> Assert.That(AppLinkInfo.IsTrvisAppLink(text), Is.False);
 }

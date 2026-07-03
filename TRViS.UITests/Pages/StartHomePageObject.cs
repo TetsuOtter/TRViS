@@ -267,6 +267,21 @@ public class StartHomePageObject : PageObject
 	}
 
 	/// <summary>
+	/// Opens the in-app QR scanner (phone only). Routes through the UI_TEST seam
+	/// (StartHome.TestOpenScanQrPageButton) rather than tapping the styled
+	/// ScanQrButton, because Appium UIAutomator2's ACTION_CLICK against a
+	/// PrimaryActionButton-styled Button is unreliable on Android (same reason
+	/// as <see cref="OpenSelectFileDialog"/>). The seam invokes the real
+	/// OnScanQrClicked, so the Navigation.PushModalAsync(ScanQrPage) flow is
+	/// still exercised.
+	/// </summary>
+	public ScanQrPageObject OpenScanQrPage()
+	{
+		FindByAutomationId(AutomationIds.StartHome.TestOpenScanQrPageButton).Click();
+		return new ScanQrPageObject(Driver);
+	}
+
+	/// <summary>
 	/// Opens the Select-File modal dialog. Routes through the UI_TEST seam
 	/// (StartHome.TestOpenSelectFileDialogButton) on every platform because
 	/// Appium UIAutomator2's ACTION_CLICK against the styled

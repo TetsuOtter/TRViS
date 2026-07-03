@@ -222,6 +222,7 @@ public partial class StartHomePage : ContentPage
 
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
+		AddTestOpenScanQrPageSeam();
 		AddTestSimulateWebSocketDisconnectSeam();
 		AddTestSetLanguageEnglishSeam();
 		AddTestSetLanguageJapaneseSeam();
@@ -1178,9 +1179,32 @@ public partial class StartHomePage : ContentPage
 		RootGrid.Children.Add(seam);
 	}
 
+	// Scan-QR open seam — same rationale/shape as the SelectFile seam above.
+	private void AddTestOpenScanQrPageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestOpenScanQrPage,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(0, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestOpenScanQrPageButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
 	// Mirrors AutomationIds.StartHome.TestOpenSelectFileDialogButton in the
 	// test project. Inlined here to avoid a project reference.
 	private const string AutomationIdValueForTestOpenSelectFileDialog = "StartHome.TestOpenSelectFileDialogButton";
+
+	// Mirrors AutomationIds.StartHome.TestOpenScanQrPageButton.
+	private const string AutomationIdValueForTestOpenScanQrPage = "StartHome.TestOpenScanQrPageButton";
 
 	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton.
 	private const string AutomationIdValueForTestSimulateWsDisconnect = "StartHome.TestSimulateWebSocketDisconnectButton";
@@ -1770,6 +1794,13 @@ public partial class StartHomePage : ContentPage
 		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
 		// changes shape, this seam tracks it without per-test rewrites.
 		StartGrid.InvokeSelectFileForTest(sender!, e);
+	}
+
+	void TestOpenScanQrPageButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestOpenScanQrPageButton clicked: invoking OnScanQrClicked directly");
+		// Same code path as the visible ScanQrButton — pushes the ScanQrPage modal.
+		StartGrid.InvokeScanQrForTest(sender!, e);
 	}
 #endif
 }
