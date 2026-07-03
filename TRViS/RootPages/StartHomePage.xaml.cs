@@ -1180,6 +1180,18 @@ public partial class StartHomePage : ContentPage
 	}
 
 	// Scan-QR open seam — same rationale/shape as the SelectFile seam above.
+	//
+	// Placed in the THIRD column (Margin left = 60), row y = 312 — i.e. directly
+	// below the Japanese-language seam at (60, 288), mirroring how the
+	// WS-connected seam sits at (30, 312) below the English seam at (30, 288).
+	// It must NOT reuse the first column's (0, 312): the WS-disconnect seam
+	// already owns that cell, and because Appium-uiautomator2's element click
+	// taps the element's CENTER PIXEL (not an accessibility ACTION_CLICK), two
+	// seams sharing exact bounds means the topmost one swallows every tap — the
+	// ScanQr handler would never fire and the scanner would never open. (60, 312)
+	// is the free intersection of two proven-visible coordinates (x = 60 from the
+	// Japanese seam, y = 312 from the WS seams), so it stays tappable on every
+	// device without extending past the y = 336 seam-column ceiling documented below.
 	private void AddTestOpenScanQrPageSeam()
 	{
 		var seam = new Button
@@ -1189,7 +1201,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(0, 312, 0, 0),
+			Margin = new Thickness(60, 312, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
