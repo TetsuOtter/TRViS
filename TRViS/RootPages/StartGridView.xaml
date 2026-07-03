@@ -48,6 +48,17 @@
 					Text="{loc:Translate StartHome_ConnectServer}"
 					Style="{StaticResource PrimaryActionButton}"
 					Clicked="OnConnectServerClicked"/>
+				<!-- In-app QR scanner entry point. Phone-only: hidden from
+				     code-behind on desktop TFMs where ScanQrPage / BarcodeScanning
+				     are not compiled (see StartGridView ctor + csproj IsMobileTarget).
+				     Defaults visible in XAML so mobile keeps its UIA peer. -->
+				<Button
+					x:Name="ScanQrButton"
+					x:FieldModifier="public"
+					AutomationId="StartHome.ScanQrButton"
+					Text="{loc:Translate StartHome_ScanQr}"
+					Style="{StaticResource PrimaryActionButton}"
+					Clicked="OnScanQrClicked"/>
 				<Button
 					x:Name="SelectFileButton"
 					x:FieldModifier="public"

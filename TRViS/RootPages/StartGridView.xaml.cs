@@ -43,6 +43,22 @@ public partial class StartGridView : Grid
 	public StartGridView()
 	{
 		InitializeComponent();
+
+		// The in-app QR scanner (ScanQrPage / BarcodeScanning) is compiled on
+		// phone TFMs only, and its native backend has a higher OS floor than the
+		// app itself (MLKit needs Android 24, Vision/AVFoundation needs iOS 15.1;
+		// the app supports Android 23 / iOS 12.2). Hide the entry button where
+		// the scanner isn't available so those users never reach a CameraView
+		// that would crash. Everything else keeps the manual URL / file flow.
+#if ANDROID
+		if (!OperatingSystem.IsAndroidVersionAtLeast(24))
+			ScanQrButton.IsVisible = false;
+#elif IOS
+		if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
+			ScanQrButton.IsVisible = false;
+#else
+		ScanQrButton.IsVisible = false;
+#endif
 	}
 
 	/// <summary>
@@ -54,6 +70,7 @@ public partial class StartGridView : Grid
 	{
 		PrivacyReconfirmBanner.IsVisible = !accepted;
 		ConnectServerButton.IsEnabled = accepted;
+		ScanQrButton.IsEnabled = accepted;
 		SelectFileButton.IsEnabled = accepted;
 		LoadDemoButton.IsEnabled = accepted;
 		LoadDemoButton.IsVisible = accepted;
@@ -71,6 +88,8 @@ public partial class StartGridView : Grid
 		{
 			ConnectServerButton.HeightRequest = PRIMARY_BUTTON_HEIGHT_COMPACT;
 			ConnectServerButton.FontSize = PRIMARY_BUTTON_FONT_SIZE_COMPACT;
+			ScanQrButton.HeightRequest = PRIMARY_BUTTON_HEIGHT_COMPACT;
+			ScanQrButton.FontSize = PRIMARY_BUTTON_FONT_SIZE_COMPACT;
 			SelectFileButton.HeightRequest = PRIMARY_BUTTON_HEIGHT_COMPACT;
 			SelectFileButton.FontSize = PRIMARY_BUTTON_FONT_SIZE_COMPACT;
 			LoadDemoButton.HeightRequest = DEMO_BUTTON_HEIGHT_COMPACT;
@@ -85,6 +104,8 @@ public partial class StartGridView : Grid
 		{
 			ConnectServerButton.HeightRequest = PRIMARY_BUTTON_HEIGHT;
 			ConnectServerButton.FontSize = PRIMARY_BUTTON_FONT_SIZE;
+			ScanQrButton.HeightRequest = PRIMARY_BUTTON_HEIGHT;
+			ScanQrButton.FontSize = PRIMARY_BUTTON_FONT_SIZE;
 			SelectFileButton.HeightRequest = PRIMARY_BUTTON_HEIGHT;
 			SelectFileButton.FontSize = PRIMARY_BUTTON_FONT_SIZE;
 			LoadDemoButton.HeightRequest = DEMO_BUTTON_HEIGHT;
@@ -107,6 +128,29 @@ public partial class StartGridView : Grid
 			logger.Error(ex, "PushModalAsync failed");
 			await Util.DisplayAlertAsync("Open Popup Failed", ex.ToString(), AppResources.Common_OK);
 		}
+	}
+
+	async void OnScanQrClicked(object sender, EventArgs e)
+	{
+		logger.Info("Scan QR clicked");
+
+#if ANDROID || IOS
+		try
+		{
+			await Navigation.PushModalAsync(new ScanQrPage());
+		}
+		catch (Exception ex)
+		{
+			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnScanQrClicked (PushModalAsync failed)");
+			logger.Error(ex, "PushModalAsync failed");
+			await Util.DisplayAlertAsync("Open Scanner Failed", ex.ToString(), AppResources.Common_OK);
+		}
+#else
+		// The scanner is phone-only and ScanQrButton is hidden on desktop, so
+		// this handler is unreachable there — but it must still compile for all
+		// TFMs since the Clicked binding is in shared XAML.
+		await Task.CompletedTask;
+#endif
 	}
 
 	async void OnSelectFileClicked(object sender, EventArgs e)
@@ -171,5 +215,12 @@ public partial class StartGridView : Grid
 	// shape change to OnSelectFileClicked without per-test rewrites.
 	internal void InvokeSelectFileForTest(object sender, EventArgs e)
 		=> OnSelectFileClicked(sender, e);
+
+	// Same idea for the Scan-QR seam: Appium's ACTION_CLICK against the styled
+	// PrimaryActionButton is unreliable on Android (see OpenScanQrPage /
+	// OpenSelectFileDialog in the page objects), so the E2E taps a plain seam
+	// button that routes through the real OnScanQrClicked here.
+	internal void InvokeScanQrForTest(object sender, EventArgs e)
+		=> OnScanQrClicked(sender, e);
 #endif
 }

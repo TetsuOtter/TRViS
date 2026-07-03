@@ -47,6 +47,8 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Check whether you are near a station or not.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan a TRViS QR code to open a timetable.</string>
 	<!-- Declaring the supported localizations makes iOS show the per-app
 	     "Preferred Language" entry under Settings > TRViS. The app localizes
 	     via .NET satellite assemblies (no .lproj), so this declaration is the
