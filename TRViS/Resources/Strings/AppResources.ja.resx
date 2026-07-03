@@ -76,11 +76,17 @@
   <data name="StartHome_PrivacyPolicy" xml:space="preserve"><value>プライバシーポリシー</value></data>
   <data name="StartHome_ThirdPartyLicenses" xml:space="preserve"><value>サードパーティライセンス</value></data>
   <data name="StartHome_ConnectServer" xml:space="preserve"><value>サーバーから読み込み</value></data>
+  <data name="StartHome_ScanQr" xml:space="preserve"><value>QRコードを読み取る</value></data>
+  <data name="StartHome_ScanQrShort" xml:space="preserve"><value>スキャン</value></data>
   <data name="StartHome_SelectFile" xml:space="preserve"><value>ファイルを選択</value></data>
   <data name="StartHome_PrivacyReconfirmTitle" xml:space="preserve"><value>プライバシーポリシーへの同意が必要です</value></data>
   <data name="StartHome_PrivacyReconfirmBody" xml:space="preserve"><value>アプリを使用するには、プライバシーポリシーをご確認のうえ同意してください。</value></data>
   <data name="StartHome_LoadDemo" xml:space="preserve"><value>デモデータで開始</value></data>
   <data name="StartHome_SampleLoadFailedFormat" xml:space="preserve"><value>サンプルデータの読み込みに失敗しました: {0}</value></data>
+  <data name="ScanQr_Title" xml:space="preserve"><value>QRコードをスキャン</value></data>
+  <data name="ScanQr_Instruction" xml:space="preserve"><value>TRViSのQRコードをカメラに写してください</value></data>
+  <data name="ScanQr_PermissionDeniedTitle" xml:space="preserve"><value>カメラを使用できません</value></data>
+  <data name="ScanQr_PermissionDeniedBody" xml:space="preserve"><value>カメラの使用が許可されていません。QRコードを読み取るには、設定アプリでTRViSにカメラの使用を許可してください。</value></data>
   <data name="Home_LoadedData" xml:space="preserve"><value>読み込み済みデータ</value></data>
   <data name="Home_Reconnect" xml:space="preserve"><value>再接続</value></data>
   <data name="Home_Reconnecting" xml:space="preserve"><value>再接続中...</value></data>
@@ -207,6 +213,10 @@ InstallId: {0}</value></data>
   <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>外部ファイルを開く</value></data>
   <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>ファイル `{0}` を開きますか?</value></data>
   <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>ローカルパスが不正です</value></data>
+  <data name="AppLink_UnknownDestinationTitle" xml:space="preserve"><value>接続しますか?</value></data>
+  <data name="AppLink_UnknownDestinationBodyFormat" xml:space="preserve"><value>この接続先には過去に接続したことがありません。
+接続してもよろしいですか?
+接続先: {0}</value></data>
   <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>外部位置情報サービス</value></data>
   <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。
 このサーバーを使用してもよろしいですか?
