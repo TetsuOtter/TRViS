@@ -269,6 +269,14 @@ class StartHomePageObject {
         base.tapSeam(id: AutomationIds.StartHome.testResetThemeButton)
     }
 
+    /// Clears in-memory privacy-policy acceptance, reinstating the reconfirm
+    /// banner (and disabling the flyout / entry-point buttons it gates).
+    /// Does not persist — a subsequent acceptPrivacyPolicyIfNeeded() restores
+    /// both the accepted state and the flyout via the real Save path.
+    func clearPrivacyPolicyAcceptanceForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testClearPrivacyPolicyButton)
+    }
+
     // MARK: — Privacy Policy dialog (used by ScreenshotRegressionTests)
 
     /// Taps the footer "Privacy Policy" link and waits for the dialog to appear.

@@ -1128,6 +1128,10 @@ public partial class StartHomePage : ContentPage
 		// 0..11 tappable).
 		AddSeamButton(host, 3, 1, "StartHome.TestUnfreezeClockButton", TestUnfreezeClockButton_Clicked);
 		AddSeamButton(host, 4, 1, "StartHome.TestResetThemeButton", TestResetThemeButton_Clicked);
+		// Row 5: clears in-memory privacy-policy acceptance so the reconfirm
+		// banner reappears, letting the screenshot walk capture the
+		// not-yet-agreed VRT state (#287) before re-accepting.
+		AddSeamButton(host, 5, 1, "StartHome.TestClearPrivacyPolicyButton", TestClearPrivacyPolicyButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1759,6 +1763,23 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestResetThemeButton clicked: resetting app-wide theme to Unspecified");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Unspecified;
+	}
+
+	void TestClearPrivacyPolicyButton_Clicked(object? sender, EventArgs e)
+	{
+		// In-memory only (no SaveAndApplySettings) — mirrors the theme-force
+		// seams above. UpdatePrivacyDependentControls() re-shows the reconfirm
+		// banner and disables the flyout, same as a genuinely unaccepted app.
+		logger.Info("TestClearPrivacyPolicyButton clicked: clearing in-memory privacy-policy acceptance");
+		try
+		{
+			InstanceManager.FirebaseSettingViewModel.LastAcceptedPrivacyPolicyRevision = string.Empty;
+			UpdatePrivacyDependentControls();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestClearPrivacyPolicyButton failed");
+		}
 	}
 
 	void TestOpenSelectFileDialogButton_Clicked(object? sender, EventArgs e)
