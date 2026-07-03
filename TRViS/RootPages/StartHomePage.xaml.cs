@@ -227,6 +227,7 @@ public partial class StartHomePage : ContentPage
 		AddTestSetLanguageEnglishSeam();
 		AddTestSetLanguageJapaneseSeam();
 		AddTestSimulateWebSocketConnectedSeam();
+		AddTestSimulateWebSocketSearchSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1463,6 +1464,77 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSimulateWebSocketConnectedButton failed");
+		}
+	}
+
+	private const string AutomationIdValueForTestSimulateWsSearch = "StartHome.TestSimulateWebSocketSearchButton";
+
+	// UI_TEST-only seam (Issue #197): builds a WebSocket-TYPED loader with sample
+	// data AND a canned train-search dataset (feature TrainSearch enabled), commits
+	// the first WG/Work and navigates to DTAC. On DTAC the QuickSwitch popup then
+	// shows the Search tab; the E2E searches "9999", picks the result, confirms and
+	// verifies the searched train is displayed with the ハコ tab hidden. Network-free.
+	//
+	// Placed in the proven-visible seam band (y=312) in a third clear column
+	// (left=60), matching the off-screen-iPhone-safe placement of the sibling seams.
+	private void AddTestSimulateWebSocketSearchSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSimulateWsSearch,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(60, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSimulateWebSocketSearchButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestSimulateWebSocketSearchButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSimulateWebSocketSearchButton clicked: WS-typed loader with train-search -> DTAC");
+		try
+		{
+			var sample = await SampleDataLoader.CreateAsync();
+			var service = new WebSocketNetworkSyncService(
+				new Uri("ws://uitest.invalid/"),
+				new System.Net.WebSockets.ClientWebSocket());
+			service.SeedCachesFromLoaderForTesting(sample);
+
+			var wg = sample.GetWorkGroupList().FirstOrDefault();
+			var work = wg is null ? null : service.GetWorkList(wg.Id)?.FirstOrDefault();
+			var baseTrain = work is null ? null : service.GetTrainDataList(work.Id)?.FirstOrDefault();
+			if (wg is null || work is null || baseTrain is null)
+			{
+				logger.Warn("TestSimulateWebSocketSearch: sample data missing — aborting");
+				sample.Dispose();
+				return;
+			}
+
+			// A canned "searched" train derived from a sample train, with a distinct number.
+			var searchedTrain = baseTrain with { Id = "uitest-searched-9999", TrainNumber = "9999" };
+			var summary = new NetworkSyncService.TrainSearchResult(
+				wg.Id, work.Id, searchedTrain.Id, "9999", "検索行路", 1,
+				"始発駅", "09:00", "終着駅", "10:00");
+			service.SeedTrainSearchForTesting(new[] { (summary, searchedTrain) });
+			sample.Dispose();
+
+			var previous = viewModel.Loader;
+			viewModel.SetLoader(service, "ws://uitest.invalid/");
+			previous?.Dispose();
+
+			HomeGrid.CommitPendingSelection(wg, work);
+			await HomeGridView.NavigateToDTACAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSimulateWebSocketSearchButton failed");
 		}
 	}
 
