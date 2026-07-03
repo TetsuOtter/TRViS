@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:TRViS"
+	xmlns:loc="clr-namespace:TRViS.Localization"
+	x:Class="TRViS.RootPages.NotificationPopupPage"
+	AutomationId="Notification.Popup"
+	BackgroundColor="{x:Static local:RootStyles.BackgroundColor}"
+	Title="{loc:Translate Notification_Title}">
+
+	<Grid Padding="8">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Header: icon + (optional) importance badge + close (x) -->
+		<Grid
+			Grid.Row="0"
+			ColumnDefinitions="Auto,Auto,*,Auto"
+			Padding="4">
+			<!-- Icon: either a background-color + short text badge, or an image. At most one is visible. -->
+			<Border
+				x:Name="IconBadge"
+				Grid.Column="0"
+				IsVisible="False"
+				StrokeThickness="0"
+				BackgroundColor="{x:Static local:RootStyles.TableDetailColor}"
+				WidthRequest="36"
+				HeightRequest="36"
+				Padding="0"
+				Margin="0,0,8,0"
+				VerticalOptions="Center">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="18"/>
+				</Border.StrokeShape>
+				<Label
+					x:Name="IconBadgeLabel"
+					AutomationId="Notification.IconBadge"
+					TextColor="White"
+					FontSize="14"
+					FontAttributes="Bold"
+					HorizontalTextAlignment="Center"
+					VerticalTextAlignment="Center"/>
+			</Border>
+			<Image
+				x:Name="IconImage"
+				AutomationId="Notification.IconImage"
+				Grid.Column="0"
+				IsVisible="False"
+				WidthRequest="36"
+				HeightRequest="36"
+				Margin="0,0,8,0"
+				Aspect="AspectFit"
+				VerticalOptions="Center"/>
+			<Border
+				x:Name="ImportantBadge"
+				Grid.Column="1"
+				IsVisible="False"
+				StrokeThickness="0"
+				BackgroundColor="#C62828"
+				Padding="8,2"
+				VerticalOptions="Center">
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="4"/>
+				</Border.StrokeShape>
+				<Label
+					AutomationId="Notification.ImportantBadge"
+					Text="{loc:Translate Notification_Important}"
+					TextColor="White"
+					FontSize="12"
+					FontAttributes="Bold"/>
+			</Border>
+			<Button
+				x:Name="CloseButton"
+				AutomationId="Notification.CloseButton"
+				Grid.Column="3"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="40"
+				HeightRequest="40"
+				Padding="0"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Clicked="OnCloseClicked"/>
+		</Grid>
+
+		<!-- Order number / sender / receiver -->
+		<VerticalStackLayout Grid.Row="1" Margin="4,0,4,4" Spacing="2">
+			<Label
+				x:Name="OrderNumberLabel"
+				AutomationId="Notification.OrderNumber"
+				IsVisible="False"
+				FontSize="12"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			<Label
+				x:Name="SenderLabel"
+				AutomationId="Notification.Sender"
+				IsVisible="False"
+				FontSize="12"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+			<Label
+				x:Name="ReceiverLabel"
+				AutomationId="Notification.Receiver"
+				IsVisible="False"
+				FontSize="12"
+				TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+		</VerticalStackLayout>
+
+		<!-- Title -->
+		<Label
+			x:Name="TitleLabel"
+			AutomationId="Notification.Title"
+			Grid.Row="2"
+			Margin="4,0,4,4"
+			FontSize="Title"
+			FontAttributes="Bold"
+			LineBreakMode="WordWrap"
+			TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+
+		<!-- Body (BBCode) — content is a BBCodeLabel injected from code-behind -->
+		<ScrollView Grid.Row="3" Margin="4">
+			<ContentView x:Name="BodyContainer"/>
+		</ScrollView>
+
+		<!-- Issued time -->
+		<Label
+			x:Name="IssuedAtLabel"
+			AutomationId="Notification.IssuedAt"
+			Grid.Row="4"
+			Margin="4,8,4,0"
+			IsVisible="False"
+			FontSize="12"
+			HorizontalTextAlignment="End"
+			TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+
+		<!-- Footer buttons -->
+		<VerticalStackLayout Grid.Row="5" Spacing="8" Margin="4,12,4,4">
+			<Button
+				x:Name="AcknowledgeButton"
+				AutomationId="Notification.AcknowledgeButton"
+				Text="{loc:Translate Notification_Acknowledge}"
+				HeightRequest="56"
+				CornerRadius="8"
+				FontAttributes="Bold"
+				FontSize="16"
+				Clicked="OnAcknowledgeClicked"/>
+			<Button
+				x:Name="DismissButton"
+				AutomationId="Notification.DismissButton"
+				Text="{loc:Translate Notification_Close}"
+				HeightRequest="44"
+				CornerRadius="8"
+				BackgroundColor="Transparent"
+				TextColor="{x:Static local:RootStyles.TableTextColor}"
+				Clicked="OnCloseClicked"/>
+		</VerticalStackLayout>
+	</Grid>
+</ContentPage>

@@ -34,6 +34,13 @@ public partial class AppViewModel : ObservableObject
 
 	public TimetableSelectionManager SelectionManager { get; } = new();
 
+	/// <summary>
+	/// サーバーから受信した通告 (Notification) の管理・ポップアップ表示要求を担う ViewModel。
+	/// AppShell が <see cref="NotificationCenterViewModel.DisplayRequested"/> を購読して
+	/// ポップアップを表示する。
+	/// </summary>
+	public NotificationCenterViewModel NotificationCenter { get; } = new();
+
 	[ObservableProperty]
 	public partial ILoader? Loader { get; set; }
 
@@ -288,10 +295,11 @@ public partial class AppViewModel : ObservableObject
 		locationService.DiagramInfoUpdated += OnDiagramInfoUpdated;
 		locationService.NavigateToHomeRequested += OnNavigateToHomeRequested;
 		locationService.OpenTimetableRequested += OnOpenTimetableRequested;
-		// NotificationReceived / OperationCommandReceived / ServerInfo は
+		// 通告 (Notification) は NotificationCenter が購読し、未読をポップアップ表示する
+		// (AppShell が DisplayRequested を購読)。OperationCommandReceived / ServerInfo は
 		// LocationService 側で受信される。OperationCommand の動作 (位置情報 ON/OFF) は
-		// LocationService が直接適用する。Notification / ServerInfo の UI 表示は
-		// 個別画面側で必要に応じて購読する。
+		// LocationService が直接適用する。ServerInfo の UI 表示は個別画面側で購読する。
+		NotificationCenter.Subscribe(locationService);
 	}
 
 	void OnNavigateToHomeRequested(object? sender, EventArgs _)
