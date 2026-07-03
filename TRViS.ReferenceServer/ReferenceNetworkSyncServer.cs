@@ -37,15 +37,22 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 
 	// --- サーバー情報・ダイヤ情報 ---
 	private readonly object _infoLock = new();
-	private ServerInfoState _serverInfo = new(
-		Name: "TRViS Reference Server",
-		Admin: null,
-		Version: "0.0.0",
-		ProtocolVersion: "1.0"
-	);
+	private ServerInfoState _serverInfo = DefaultServerInfo();
 	// DiagramId -> DiagramInfoState のマップ。null キーで「カレント」を表現。
 	private readonly Dictionary<string, DiagramInfoState> _diagrams = new();
 	private string? _currentDiagramId;
+
+	// --- 列車検索データセット (v1.1) ---
+	private readonly object _searchLock = new();
+	private List<SearchableTrain> _searchableTrains = DefaultSearchableTrains();
+
+	private static ServerInfoState DefaultServerInfo() => new(
+		Name: "TRViS Reference Server",
+		Admin: null,
+		Version: "0.0.0",
+		ProtocolVersion: "1.1",
+		Features: new[] { "TrainSearch" }
+	);
 
 	// --- 受信した RequestServerInfo / RequestDiagramInfo のログ (テスト用) ---
 	private readonly ConcurrentQueue<ReceivedRequestDto> _receivedRequests = new();
@@ -139,6 +146,9 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			("GET", "diagrams") => GetDiagrams(),
 			("POST", "diagrams") => SetDiagram(request),
 			("POST", "broadcast-diagram") => await BroadcastDiagramAsync(request),
+			// 列車検索データセット
+			("GET", "search-trains") => GetSearchTrains(),
+			("POST", "search-trains") => SetSearchTrains(request),
 			// 受信要求ログ (テスト用)
 			("GET", "received-requests") => GetReceivedRequests(),
 			("DELETE", "received-requests") => ClearReceivedRequests(),
@@ -314,14 +324,13 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 		while (_receivedRequests.TryDequeue(out _)) { }
 		lock (_infoLock)
 		{
-			_serverInfo = new ServerInfoState(
-				Name: "TRViS Reference Server",
-				Admin: null,
-				Version: "0.0.0",
-				ProtocolVersion: "1.0"
-			);
+			_serverInfo = DefaultServerInfo();
 			_diagrams.Clear();
 			_currentDiagramId = null;
+		}
+		lock (_searchLock)
+		{
+			_searchableTrains = DefaultSearchableTrains();
 		}
 		return OkJson("{\"ok\":true}");
 	}
@@ -340,6 +349,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			Admin = info.Admin,
 			Version = info.Version,
 			ProtocolVersion = info.ProtocolVersion,
+			Features = info.Features,
 		}, JsonOptions));
 	}
 
@@ -352,11 +362,21 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			var root = doc.RootElement;
 			lock (_infoLock)
 			{
+				string[]? features = _serverInfo.Features;
+				// Features は明示指定された場合のみ更新 (空配列で検索無効化のテストが可能)
+				if (root.TryGetProperty("Features", out var featProp) && featProp.ValueKind == JsonValueKind.Array)
+				{
+					features = featProp.EnumerateArray()
+						.Where(e => e.ValueKind == JsonValueKind.String)
+						.Select(e => e.GetString()!)
+						.ToArray();
+				}
 				_serverInfo = new ServerInfoState(
 					Name: TryGetString(root, "Name") ?? _serverInfo.Name,
 					Admin: TryGetString(root, "Admin") ?? _serverInfo.Admin,
 					Version: TryGetString(root, "Version") ?? _serverInfo.Version,
-					ProtocolVersion: TryGetString(root, "ProtocolVersion") ?? _serverInfo.ProtocolVersion
+					ProtocolVersion: TryGetString(root, "ProtocolVersion") ?? _serverInfo.ProtocolVersion,
+					Features: features
 				);
 			}
 			return OkJson("{\"ok\":true}");
@@ -385,6 +405,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			Admin = info.Admin,
 			Version = info.Version,
 			ProtocolVersion = info.ProtocolVersion,
+			Features = info.Features,
 		});
 	}
 
@@ -665,6 +686,147 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 	}
 
 	// ================================================================
+	// 列車検索 (v1.1)
+	// ================================================================
+
+	private bool IsTrainSearchEnabled()
+	{
+		lock (_infoLock)
+		{
+			return _serverInfo.Features?.Contains("TrainSearch", StringComparer.Ordinal) ?? false;
+		}
+	}
+
+	/// <summary>
+	/// 列番に一致する検索候補の <c>SearchTrainResponse</c> を構築する。
+	/// 一致が無くても空 Results で必ず応答する (結果0件とタイムアウトの区別のため)。
+	/// </summary>
+	private string BuildSearchTrainResponse(string requestId, string? trainNumber)
+	{
+		List<SearchableTrain> matches;
+		lock (_searchLock)
+		{
+			matches = string.IsNullOrEmpty(trainNumber)
+				? new List<SearchableTrain>()
+				: _searchableTrains
+					.Where(t => string.Equals(t.TrainNumber, trainNumber, StringComparison.OrdinalIgnoreCase))
+					.ToList();
+		}
+		return JsonSerializer.Serialize(new
+		{
+			MessageType = "SearchTrainResponse",
+			RequestId = requestId,
+			Results = matches.Select(t => new
+			{
+				t.WorkGroupId,
+				t.WorkId,
+				t.TrainId,
+				t.TrainNumber,
+				t.WorkName,
+				t.Direction,
+				t.StartStationName,
+				t.StartTime,
+				t.EndStationName,
+				t.EndTime,
+			}).ToArray(),
+		});
+	}
+
+	/// <summary>
+	/// 指定 TrainId の完全な時刻表を <c>Timetable</c> (Train スコープ) メッセージとして構築する。
+	/// Data は raw JSON として埋め込む。該当が無ければ null。
+	/// </summary>
+	private string? BuildTrainTimetableMessage(string trainId)
+	{
+		SearchableTrain? train;
+		lock (_searchLock)
+		{
+			train = _searchableTrains.FirstOrDefault(t => string.Equals(t.TrainId, trainId, StringComparison.Ordinal));
+		}
+		if (train is null)
+			return null;
+
+		using var ms = new MemoryStream();
+		using (var writer = new Utf8JsonWriter(ms))
+		{
+			writer.WriteStartObject();
+			writer.WriteString("MessageType", "Timetable");
+			writer.WriteString("WorkGroupId", train.WorkGroupId);
+			writer.WriteString("WorkId", train.WorkId);
+			writer.WriteString("TrainId", train.TrainId);
+			writer.WritePropertyName("Data");
+			using var innerDoc = JsonDocument.Parse(train.TimetableDataJson);
+			innerDoc.RootElement.WriteTo(writer);
+			writer.WriteEndObject();
+		}
+		return Encoding.UTF8.GetString(ms.ToArray());
+	}
+
+	private HttpResponse GetSearchTrains()
+	{
+		SearchableTrain[] arr;
+		lock (_searchLock) { arr = _searchableTrains.ToArray(); }
+		return OkJson(JsonSerializer.Serialize(arr.Select(t => new
+		{
+			t.WorkGroupId, t.WorkId, t.TrainId, t.TrainNumber, t.WorkName, t.Direction,
+			t.StartStationName, t.StartTime, t.EndStationName, t.EndTime,
+		}).ToArray(), JsonOptions));
+	}
+
+	/// <summary>
+	/// 検索可能列車データセットを差し替える。
+	/// ボディ: { "Trains": [ { WorkGroupId, WorkId, TrainId, TrainNumber, WorkName?, Direction?,
+	///   StartStationName?, StartTime?, EndStationName?, EndTime?, Data: (string|object) } ] }
+	/// Data は Train スコープの TrainData (文字列 or JSON)。
+	/// </summary>
+	private HttpResponse SetSearchTrains(HttpRequest request)
+	{
+		try
+		{
+			string body = Encoding.UTF8.GetString(request.Body);
+			using var doc = JsonDocument.Parse(body);
+			var root = doc.RootElement;
+			if (!root.TryGetProperty("Trains", out var trainsProp) || trainsProp.ValueKind != JsonValueKind.Array)
+				return Error(HttpStatusCode.BadRequest, "Missing 'Trains' array");
+
+			var list = new List<SearchableTrain>();
+			foreach (var t in trainsProp.EnumerateArray())
+			{
+				string? workGroupId = TryGetString(t, "WorkGroupId");
+				string? workId = TryGetString(t, "WorkId");
+				string? trainId = TryGetString(t, "TrainId");
+				string? trainNumber = TryGetString(t, "TrainNumber");
+				if (workGroupId is null || workId is null || trainId is null || trainNumber is null)
+					return Error(HttpStatusCode.BadRequest, "Each train needs WorkGroupId/WorkId/TrainId/TrainNumber");
+
+				int? direction = null;
+				if (t.TryGetProperty("Direction", out var dir) && dir.ValueKind == JsonValueKind.Number
+					&& dir.TryGetInt32(out int d))
+					direction = d;
+
+				string dataJson;
+				if (t.TryGetProperty("Data", out var dataProp))
+					dataJson = dataProp.ValueKind == JsonValueKind.String
+						? dataProp.GetString()!
+						: dataProp.GetRawText();
+				else
+					dataJson = "{}";
+
+				list.Add(new SearchableTrain(
+					workGroupId, workId, trainId, trainNumber,
+					TryGetString(t, "WorkName"), direction,
+					TryGetString(t, "StartStationName"), TryGetString(t, "StartTime"),
+					TryGetString(t, "EndStationName"), TryGetString(t, "EndTime"),
+					dataJson));
+			}
+
+			lock (_searchLock) { _searchableTrains = list; }
+			return OkJson("{\"ok\":true}");
+		}
+		catch (JsonException ex) { return Error(HttpStatusCode.BadRequest, ex.Message); }
+	}
+
+	// ================================================================
 	// WebSocket ハンドリング
 	// ================================================================
 
@@ -742,6 +904,38 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 								await TrySendAsync(client.Connection, resp);
 							return;
 						}
+					case "SearchTrain":
+						{
+							string? requestId = TryGetString(root, "RequestId");
+							string? trainNumber = TryGetString(root, "TrainNumber");
+							_receivedRequests.Enqueue(new ReceivedRequestDto(
+								ConnectionId: client.ConnectionId,
+								MessageType: messageType,
+								DiagramId: null,
+								ReceivedAt: DateTime.UtcNow,
+								TrainNumber: trainNumber));
+							// TrainSearch 機能が無効な場合は応答しない (クライアントはタイムアウトする)。
+							if (!IsTrainSearchEnabled() || requestId is null)
+								return;
+							await TrySendAsync(client.Connection, BuildSearchTrainResponse(requestId, trainNumber));
+							return;
+						}
+					case "RequestTrainTimetable":
+						{
+							string? trainId = TryGetString(root, "TrainId");
+							_receivedRequests.Enqueue(new ReceivedRequestDto(
+								ConnectionId: client.ConnectionId,
+								MessageType: messageType,
+								DiagramId: null,
+								ReceivedAt: DateTime.UtcNow,
+								TrainId: trainId));
+							if (!IsTrainSearchEnabled() || trainId is null)
+								return;
+							var msg = BuildTrainTimetableMessage(trainId);
+							if (msg is not null)
+								await TrySendAsync(client.Connection, msg);
+							return;
+						}
 				}
 			}
 
@@ -810,8 +1004,91 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 		}
 	}
 
-	private sealed record ServerInfoState(string? Name, string? Admin, string? Version, string? ProtocolVersion);
+	private sealed record ServerInfoState(string? Name, string? Admin, string? Version, string? ProtocolVersion, string[]? Features);
 	private sealed record DiagramInfoState(string Id, string? Name, string? Description, string[]? WorkGroupIds);
+
+	/// <summary>
+	/// 検索可能な列車 1 件。<c>SearchTrainResponse</c> のサマリと、
+	/// <c>RequestTrainTimetable</c> で返す完全な時刻表 (Train スコープの Data) を保持する。
+	/// </summary>
+	private sealed record SearchableTrain(
+		string WorkGroupId,
+		string WorkId,
+		string TrainId,
+		string TrainNumber,
+		string? WorkName,
+		int? Direction,
+		string? StartStationName,
+		string? StartTime,
+		string? EndStationName,
+		string? EndTime,
+		string TimetableDataJson
+	);
+
+	/// <summary>
+	/// 既定の検索可能列車。同一列番 "1234" で 2 行路 (別列車) を含み、
+	/// 「同じ列番で複数の候補」を再現する。
+	/// </summary>
+	private static List<SearchableTrain> DefaultSearchableTrains() => new()
+	{
+		new SearchableTrain(
+			WorkGroupId: "wg-ref-1", WorkId: "w-ref-1", TrainId: "t-ref-1234a",
+			TrainNumber: "1234", WorkName: "1行路", Direction: 1,
+			StartStationName: "東京", StartTime: "09:00", EndStationName: "大阪", EndTime: "12:30",
+			TimetableDataJson: BuildSampleTrainDataJson(
+				"t-ref-1234a", "1234", 1,
+				("東京", "09:00:00", 0.0), ("名古屋", "10:40:00", 366000.0), ("大阪", "12:30:00", 515000.0))),
+		new SearchableTrain(
+			WorkGroupId: "wg-ref-1", WorkId: "w-ref-2", TrainId: "t-ref-1234b",
+			TrainNumber: "1234", WorkName: "2行路", Direction: -1,
+			StartStationName: "新大阪", StartTime: "13:00", EndStationName: "博多", EndTime: "15:30",
+			TimetableDataJson: BuildSampleTrainDataJson(
+				"t-ref-1234b", "1234", -1,
+				("新大阪", "13:00:00", 0.0), ("岡山", "13:45:00", 180000.0), ("博多", "15:30:00", 622000.0))),
+		new SearchableTrain(
+			WorkGroupId: "wg-ref-2", WorkId: "w-ref-3", TrainId: "t-ref-5678",
+			TrainNumber: "5678", WorkName: "3行路", Direction: 1,
+			StartStationName: "名古屋", StartTime: "10:30", EndStationName: "京都", EndTime: "11:45",
+			TimetableDataJson: BuildSampleTrainDataJson(
+				"t-ref-5678", "5678", 1,
+				("名古屋", "10:30:00", 0.0), ("京都", "11:45:00", 148000.0))),
+	};
+
+	/// <summary>
+	/// サンプルの TrainData JSON (TRViS JSON フォーマット, Train スコープの Data) を生成する。
+	/// 各駅は始発を Departure、終着を Arrive、途中駅は両方を持たせる簡易版。
+	/// </summary>
+	private static string BuildSampleTrainDataJson(
+		string trainId, string trainNumber, int direction,
+		params (string StationName, string Time, double Location_m)[] stations)
+	{
+		using var ms = new MemoryStream();
+		using (var w = new Utf8JsonWriter(ms))
+		{
+			w.WriteStartObject();
+			w.WriteString("Id", trainId);
+			w.WriteString("TrainNumber", trainNumber);
+			w.WriteNumber("Direction", direction);
+			w.WritePropertyName("TimetableRows");
+			w.WriteStartArray();
+			for (int i = 0; i < stations.Length; i++)
+			{
+				var (name, time, loc) = stations[i];
+				w.WriteStartObject();
+				w.WriteString("StationName", name);
+				w.WriteNumber("Location_m", loc);
+				w.WriteNumber("OnStationDetectRadius_m", 300.0);
+				if (i > 0)
+					w.WriteString("Arrive", time);
+				if (i < stations.Length - 1)
+					w.WriteString("Departure", time);
+				w.WriteEndObject();
+			}
+			w.WriteEndArray();
+			w.WriteEndObject();
+		}
+		return Encoding.UTF8.GetString(ms.ToArray());
+	}
 }
 
 // DTO: テストプロジェクトから共有するため public に定義
@@ -833,5 +1110,7 @@ public sealed record ReceivedRequestDto(
 	string ConnectionId,
 	string? MessageType,
 	string? DiagramId,
-	DateTime ReceivedAt
+	DateTime ReceivedAt,
+	string? TrainNumber = null,
+	string? TrainId = null
 );
