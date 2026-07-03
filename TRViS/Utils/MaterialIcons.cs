@@ -74,10 +74,17 @@ internal static class MaterialIcons
 	/// <summary>description — generic file (default loader info glyph).</summary>
 	public const string Description = "\uE873";
 
+	/// <summary>dns - server rack, used for the "connect to server" home action.</summary>
+	public const string Dns = "\uE875";
+
 	/// <summary>language — globe / web URL (https / http history glyph).</summary>
 	public const string Language = "\uE894";
 
 	// EAxx
 	/// <summary>science — flask, used for the demo/sample data tile.</summary>
 	public const string Science = "\uEA4B";
+
+	// F2xx
+	/// <summary>qr_code_scanner, used for the "scan QR" home action.</summary>
+	public const string QrCodeScanner = "\uF206";
 }

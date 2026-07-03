@@ -74,6 +74,12 @@ public partial class StartGridView : Grid
 	{
 		InitializeComponent();
 
+		if (ConnectServerButton.ImageSource is FontImageSource connectIcon)
+			connectIcon.Glyph = MaterialIcons.Dns;
+		if (SelectFileButton.ImageSource is FontImageSource selectIcon)
+			selectIcon.Glyph = MaterialIcons.Description;
+		ScanQrButtonIcon.Text = MaterialIcons.QrCodeScanner;
+
 		ApplyIconContentLayout();
 		PrimaryButtons.SizeChanged += (_, _) => ApplyScanButtonLayoutForWidth(PrimaryButtons.Width);
 		// The app currently only ships ja/en (both LTR), but flip
