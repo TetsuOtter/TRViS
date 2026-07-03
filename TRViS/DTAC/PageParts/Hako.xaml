@@ -10,7 +10,7 @@
 	x:Class="TRViS.DTAC.Hako">
 	<Grid.RowDefinitions>
 		<RowDefinition Height="{x:Static local:VerticalStylePage.DATE_AND_START_BUTTON_ROW_HEIGHT}"/>
-		<RowDefinition Height="80"/>
+		<RowDefinition Height="{x:Static HakoParts:DiagramHeaderView.HeaderHeight}"/>
 		<RowDefinition Height="*"/>
 	</Grid.RowDefinitions>
 
@@ -26,6 +26,14 @@
 		Grid.Row="2">
 		<HakoParts:SimpleView
 			x:Name="SimpleView"/>
+	</ScrollView>
+
+	<ScrollView
+		x:Name="DiagramViewScrollView"
+		IsVisible="False"
+		Grid.Row="2">
+		<HakoParts:DiagramView
+			x:Name="DiagramView"/>
 	</ScrollView>
 
 	<Border
