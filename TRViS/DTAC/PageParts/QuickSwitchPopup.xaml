@@ -4,6 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
 	xmlns:local="clr-namespace:TRViS.DTAC.PageParts"
 	xmlns:models="clr-namespace:TRViS.IO.Models;assembly=TRViS.IO.ILoader"
+	xmlns:nsync="clr-namespace:TRViS.NetworkSyncService;assembly=TRViS.NetworkSyncService"
 	xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
 	x:Class="TRViS.DTAC.QuickSwitchPopup">
 	<Grid
@@ -21,6 +22,8 @@
 				<ColumnDefinition Width="*"/>
 				<ColumnDefinition Width="4"/>
 				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="4"/>
+				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
 
 			<local:TabButtonSmall
@@ -32,6 +35,13 @@
 				x:Name="WorkTabButton"
 				Grid.Column="2"
 				ButtonText="Work"/>
+
+			<local:TabButtonSmall
+				x:Name="SearchTabButton"
+				AutomationId="DTAC.QuickSwitch.SearchTab"
+				Grid.Column="4"
+				IsVisible="False"
+				ButtonText="Search"/>
 		</Grid>
 
 		<!-- Lists Container -->
@@ -79,6 +89,86 @@
 					</CollectionView.ItemTemplate>
 				</CollectionView>
 			</Border>
+
+			<!-- Train Search -->
+			<Grid
+				x:Name="SearchContainer"
+				IsVisible="False">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+
+				<Button
+					x:Name="ReturnToScheduledButton"
+					AutomationId="DTAC.QuickSwitch.ReturnToScheduled"
+					Grid.Row="0"
+					Margin="0,0,0,8"
+					IsVisible="False"
+					Clicked="ReturnToScheduledButton_Clicked"/>
+
+				<Grid
+					Grid.Row="1"
+					Margin="0,0,0,8">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="4"/>
+						<ColumnDefinition Width="Auto"/>
+					</Grid.ColumnDefinitions>
+
+					<Entry
+						x:Name="TrainNumberEntry"
+						AutomationId="DTAC.QuickSwitch.SearchEntry"
+						Grid.Column="0"
+						Keyboard="Numeric"
+						ReturnType="Search"
+						Completed="SearchButton_Clicked"/>
+
+					<Button
+						x:Name="SearchButton"
+						AutomationId="DTAC.QuickSwitch.SearchButton"
+						Grid.Column="2"
+						Clicked="SearchButton_Clicked"/>
+				</Grid>
+
+				<Label
+					x:Name="SearchStatusLabel"
+					AutomationId="DTAC.QuickSwitch.SearchStatus"
+					Grid.Row="2"
+					Margin="4,0,4,8"
+					IsVisible="False"
+					FontSize="13"/>
+
+				<CollectionView
+					x:Name="SearchResultsView"
+					AutomationId="DTAC.QuickSwitch.SearchResults"
+					Grid.Row="3"
+					SelectionMode="Single"
+					SelectionChanged="SearchResultsView_SelectionChanged">
+					<CollectionView.ItemTemplate>
+						<DataTemplate
+							x:DataType="nsync:TrainSearchResult">
+							<Grid Padding="8,6" RowSpacing="1" AutomationId="{Binding TrainId}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+								<HorizontalStackLayout Grid.Row="0" Spacing="8">
+									<Label Text="{Binding TrainNumber}" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+									<Label Text="{Binding WorkName}" FontSize="12" VerticalTextAlignment="Center"/>
+								</HorizontalStackLayout>
+								<HorizontalStackLayout Grid.Row="1" Spacing="4">
+									<Label Text="{Binding StartStationName}" FontSize="12"/>
+									<Label Text="→" FontSize="12"/>
+									<Label Text="{Binding EndStationName}" FontSize="12"/>
+								</HorizontalStackLayout>
+							</Grid>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
+			</Grid>
 		</Grid>
 	</Grid>
 </ContentView>

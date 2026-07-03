@@ -438,6 +438,16 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
 
+	public AppiumElement TestSimulateWebSocketSearchButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketSearchButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam (Issue #197) that builds a WebSocket-TYPED loader
+	/// advertising the TrainSearch feature with a canned dataset (train "9999"),
+	/// commits the first WG/Work and navigates to DTAC so the QuickSwitch Search tab
+	/// can be exercised without a real server.
+	/// </summary>
+	public void SimulateWebSocketSearchForTesting() => TestSimulateWebSocketSearchButton.Click();
+
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
 	/// constant in StartHomePage.xaml.cs so tests can look up the rendered

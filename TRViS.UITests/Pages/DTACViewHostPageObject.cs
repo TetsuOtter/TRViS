@@ -426,4 +426,77 @@ public class DTACViewHostPageObject : PageObject
 		}
 		return false;
 	}
+
+	// ---------- Train search (Issue #197) ----------
+
+	/// <summary>Taps the AppBar title to open the QuickSwitchPopup.</summary>
+	public void OpenQuickSwitch()
+	{
+		TitleLabel.Click();
+		Thread.Sleep(300);
+	}
+
+	/// <summary>True when the QuickSwitch Search tab is present (server advertises TrainSearch).</summary>
+	public bool IsSearchTabPresent(double timeoutSeconds = 5)
+		=> PollDisplayed(AutomationIds.DTAC.QuickSwitch.SearchTab, timeoutSeconds);
+
+	public void TapSearchTab()
+	{
+		FindByAutomationId(AutomationIds.DTAC.QuickSwitch.SearchTab).Click();
+		Thread.Sleep(200);
+	}
+
+	public void EnterTrainNumber(string number)
+	{
+		var entry = WaitForElement(AutomationIds.DTAC.QuickSwitch.SearchEntry);
+		try { entry.Clear(); } catch { /* some platforms disallow Clear on empty */ }
+		entry.SendKeys(number);
+	}
+
+	public void TapSearch()
+	{
+		FindByAutomationId(AutomationIds.DTAC.QuickSwitch.SearchButton).Click();
+		Thread.Sleep(300);
+	}
+
+	/// <summary>Waits for a search result row (its AutomationId is the candidate's TrainId).</summary>
+	public bool WaitForSearchResult(string trainId, double timeoutSeconds = 5)
+		=> PollDisplayed(trainId, timeoutSeconds);
+
+	public void TapSearchResult(string trainId) => FindByAutomationId(trainId).Click();
+
+	/// <summary>Accepts the native confirmation alert (OK). Cross-platform.</summary>
+	public void AcceptConfirmDialog()
+	{
+		Thread.Sleep(300);
+		try
+		{
+			Driver.SwitchTo().Alert().Accept();
+			return;
+		}
+		catch (NoAlertPresentException) { }
+		catch { /* fall through to element-based tap */ }
+
+		try
+		{
+			Driver.FindElement(By.XPath(
+				"//XCUIElementTypeAlert//XCUIElementTypeButton[@label='OK']" +
+				" | //android.widget.Button[@text='OK']" +
+				" | //*[@text='OK']")).Click();
+		}
+		catch { /* no alert surfaced */ }
+	}
+
+	public void TapReturnToScheduled()
+	{
+		FindByAutomationId(AutomationIds.DTAC.QuickSwitch.ReturnToScheduled).Click();
+		Thread.Sleep(300);
+	}
+
+	/// <summary>
+	/// True when the ハコ tab is present. While a searched train is displayed it is
+	/// hidden (Issue #197) and this returns false.
+	/// </summary>
+	public bool IsHakoTabPresent(double timeoutSeconds = 3)
+		=> PollDisplayed(AutomationIds.DTAC.TabHako, timeoutSeconds);
 }
