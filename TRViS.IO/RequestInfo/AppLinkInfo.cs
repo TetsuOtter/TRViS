@@ -38,6 +38,41 @@ public record AppLinkInfo(
 	const string OPEN_FILE_JSON = "/open/json";
 	const string OPEN_FILE_SQLITE = "/open/sqlite";
 
+	/// <summary>
+	/// The custom URL scheme that identifies a TRViS AppLink (<c>trvis://…</c>).
+	/// Registered as the Android <c>DataScheme</c> and the iOS
+	/// <c>CFBundleURLSchemes</c> entry. <see cref="FromAppLink(Uri)"/>
+	/// deliberately does <b>not</b> validate the scheme (only the host), so
+	/// callers that need to distinguish a TRViS link from an arbitrary URL —
+	/// e.g. the in-app QR scanner — must use <see cref="IsTrvisAppLink"/>.
+	/// </summary>
+	public const string Scheme = "trvis";
+
+	/// <summary>
+	/// Coarse gate for the in-app QR scanner: returns <c>true</c> only when
+	/// <paramref name="text"/> is an absolute URI using the TRViS custom scheme
+	/// (<see cref="Scheme"/>). Any other QR payload — <c>https</c>, <c>ws</c>,
+	/// plain text, an empty string — returns <c>false</c> so the scanner ignores
+	/// it and keeps scanning.
+	/// <para>
+	/// This intentionally does <b>not</b> validate the AppLink body (host, path,
+	/// query). A <c>trvis://</c> URL that is structurally malformed still returns
+	/// <c>true</c> here; <see cref="FromAppLink(Uri)"/> then throws and the caller
+	/// surfaces its existing "cannot open" alert. Note that checking the scheme
+	/// is essential and cannot be replaced by <see cref="FromAppLink(Uri)"/>'s
+	/// host check alone — <c>https://app/open/json</c> would pass the host check
+	/// but is not a TRViS AppLink.
+	/// </para>
+	/// </summary>
+	public static bool IsTrvisAppLink(string? text)
+	{
+		if (string.IsNullOrWhiteSpace(text))
+			return false;
+
+		return Uri.TryCreate(text.Trim(), UriKind.Absolute, out Uri? uri)
+			&& string.Equals(uri.Scheme, Scheme, StringComparison.OrdinalIgnoreCase);
+	}
+
   public static AppLinkInfo FromAppLink(
     string appLink
   )

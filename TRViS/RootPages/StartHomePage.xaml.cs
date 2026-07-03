@@ -222,6 +222,7 @@ public partial class StartHomePage : ContentPage
 
 #if UI_TEST
 		AddTestOpenSelectFileDialogSeam();
+		AddTestOpenScanQrPageSeam();
 		AddTestSimulateWebSocketDisconnectSeam();
 		AddTestSetLanguageEnglishSeam();
 		AddTestSetLanguageJapaneseSeam();
@@ -1178,9 +1179,44 @@ public partial class StartHomePage : ContentPage
 		RootGrid.Children.Add(seam);
 	}
 
+	// Scan-QR open seam — same rationale/shape as the SelectFile seam above.
+	//
+	// Placed in the THIRD column (Margin left = 60), row y = 312 — i.e. directly
+	// below the Japanese-language seam at (60, 288), mirroring how the
+	// WS-connected seam sits at (30, 312) below the English seam at (30, 288).
+	// It must NOT reuse the first column's (0, 312): the WS-disconnect seam
+	// already owns that cell, and because Appium-uiautomator2's element click
+	// taps the element's CENTER PIXEL (not an accessibility ACTION_CLICK), two
+	// seams sharing exact bounds means the topmost one swallows every tap — the
+	// ScanQr handler would never fire and the scanner would never open. (60, 312)
+	// is the free intersection of two proven-visible coordinates (x = 60 from the
+	// Japanese seam, y = 312 from the WS seams), so it stays tappable on every
+	// device without extending past the y = 336 seam-column ceiling documented below.
+	private void AddTestOpenScanQrPageSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestOpenScanQrPage,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(60, 312, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestOpenScanQrPageButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
 	// Mirrors AutomationIds.StartHome.TestOpenSelectFileDialogButton in the
 	// test project. Inlined here to avoid a project reference.
 	private const string AutomationIdValueForTestOpenSelectFileDialog = "StartHome.TestOpenSelectFileDialogButton";
+
+	// Mirrors AutomationIds.StartHome.TestOpenScanQrPageButton.
+	private const string AutomationIdValueForTestOpenScanQrPage = "StartHome.TestOpenScanQrPageButton";
 
 	// Mirrors AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton.
 	private const string AutomationIdValueForTestSimulateWsDisconnect = "StartHome.TestSimulateWebSocketDisconnectButton";
@@ -1770,6 +1806,13 @@ public partial class StartHomePage : ContentPage
 		// PushModalAsync) keeps this seam honest: if OnSelectFileClicked ever
 		// changes shape, this seam tracks it without per-test rewrites.
 		StartGrid.InvokeSelectFileForTest(sender!, e);
+	}
+
+	void TestOpenScanQrPageButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestOpenScanQrPageButton clicked: invoking OnScanQrClicked directly");
+		// Same code path as the visible ScanQrButton — pushes the ScanQrPage modal.
+		StartGrid.InvokeScanQrForTest(sender!, e);
 	}
 #endif
 }

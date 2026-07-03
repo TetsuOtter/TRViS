@@ -171,18 +171,27 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
+		// このURLに接続するのが初めてかどうかで文言を出し分ける。初めての場合は
+		// 「外部ファイルを開く」ではなく「初めての接続先」の確認に統一し、下の
+		// HandleAppLinkUriAsync(AppLinkInfo, ...) 側の同種チェックと二重にダイアログを
+		// 出さないよう skipUnknownDestinationCheck: true を渡す。
+		bool skipUnknownDestinationCheck = false;
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
 		{
 			string path = appLinkInfo.ResourceUri.ToString();
 			string decodedUrl = HttpUtility.UrlDecode(path);
+			skipUnknownDestinationCheck = true;
 
+			bool isKnownDestination = _ExternalResourceUrlHistory.Contains(decodedUrl);
 			bool openRemoteFileCheckResult = await Util.DisplayAlertAsync(
-				AppResources.AppLink_OpenExternalFileTitle,
-				string.Format(AppResources.AppLink_OpenExternalFileFormat, decodedUrl),
+				isKnownDestination ? AppResources.AppLink_OpenExternalFileTitle : AppResources.AppLink_UnknownDestinationTitle,
+				isKnownDestination
+					? string.Format(AppResources.AppLink_OpenExternalFileFormat, decodedUrl)
+					: string.Format(AppResources.AppLink_UnknownDestinationBodyFormat, decodedUrl),
 				AppResources.Common_Yes,
 				AppResources.Common_No
 			);
-			logger.Info("Uri: {0} -> openFile: {1}", path, openRemoteFileCheckResult);
+			logger.Info("Uri: {0} -> openFile: {1} (isKnownDestination: {2})", path, openRemoteFileCheckResult, isKnownDestination);
 			if (!openRemoteFileCheckResult)
 			{
 				return false;
@@ -191,12 +200,14 @@ public partial class AppViewModel
 
 		token.ThrowIfCancellationRequested();
 
-		return await HandleAppLinkUriAsync(appLinkInfo, uri, addToHistory, token);
+		return await HandleAppLinkUriAsync(appLinkInfo, uri, addToHistory, skipUnknownDestinationCheck, token);
 	}
 	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, CancellationToken token)
 		=> HandleAppLinkUriAsync(appLinkInfo, addToHistory: true, token);
 	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, bool addToHistory, CancellationToken token)
 		=> HandleAppLinkUriAsync(appLinkInfo, null, addToHistory, token);
+	public Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
+		=> HandleAppLinkUriAsync(appLinkInfo, originalAppLink, addToHistory, skipUnknownDestinationCheck: false, token);
 
 	/// <summary>
 	/// <paramref name="originalAppLink"/> is the raw URL string the user/system supplied
@@ -206,8 +217,12 @@ public partial class AppViewModel
 	/// Callers that build an <see cref="AppLinkInfo"/> directly (e.g. ConnectServerDialog
 	/// for raw <c>ws://</c> / <c>wss://</c> entries) must pass the original text here so
 	/// history persistence works for the WebSocket path.
+	/// <paramref name="skipUnknownDestinationCheck"/> is set by
+	/// <see cref="HandleAppLinkUriAsync(string, bool, CancellationToken)"/> when it has
+	/// already resolved the "initial connect to this destination" confirmation itself
+	/// (its http/https branch), so this method doesn't ask twice.
 	/// </summary>
-	public async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
+	async Task<bool> HandleAppLinkUriAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, bool skipUnknownDestinationCheck, CancellationToken token)
 	{
 		string? decodedUrl = null;
 		string? appLinkString = originalAppLink;
@@ -232,6 +247,34 @@ public partial class AppViewModel
 		if (appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https")
 		{
 			decodedUrl = HttpUtility.UrlDecode(appLinkInfo.ResourceUri.ToString());
+		}
+
+		token.ThrowIfCancellationRequested();
+
+		// QRスキャン等で読み取った接続先は確認なしで即座に繋がってしまう。過去に
+		// 一度も接続したことのない相手だけ「接続しますか?」を挟む。ローカルファイル
+		// (file://, appLinkInfo.LocalPath 由来) は上のブロックで既に確認不要な設計
+		// なのでここでは対象外とする。http/https は呼び出し元
+		// (HandleAppLinkUriAsync(string, ...)) が既にこの確認を兼ねたダイアログを
+		// 出している場合があるため、skipUnknownDestinationCheck で二重表示を避ける。
+		if (!skipUnknownDestinationCheck && appLinkInfo.ResourceUri is not null && appLinkInfo.ResourceUri.Scheme is "http" or "https" or "ws" or "wss")
+		{
+			string destinationKey = appLinkInfo.ResourceUri.Scheme is "http" or "https"
+				? decodedUrl!
+				: (originalAppLink ?? appLinkInfo.ResourceUri.ToString());
+
+			if (!_ExternalResourceUrlHistory.Contains(destinationKey))
+			{
+				bool confirmed = await Util.DisplayAlertAsync(
+					AppResources.AppLink_UnknownDestinationTitle,
+					string.Format(AppResources.AppLink_UnknownDestinationBodyFormat, destinationKey),
+					AppResources.Common_Yes,
+					AppResources.Common_No
+				);
+				logger.Info("Unknown destination {0} -> confirmed: {1}", destinationKey, confirmed);
+				if (!confirmed)
+					return false;
+			}
 		}
 
 		token.ThrowIfCancellationRequested();
