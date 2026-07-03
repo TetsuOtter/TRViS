@@ -46,6 +46,7 @@
 			<Button
 				x:Name="CloseButton"
 				AutomationId="ScanQr.CloseButton"
+				SemanticProperties.Description="{loc:Translate Common_Close}"
 				Grid.Column="0"
 				Text="&#xe5cd;"
 				FontFamily="MaterialIconsRegular"
@@ -69,6 +70,7 @@
 			<Button
 				x:Name="TorchButton"
 				AutomationId="ScanQr.TorchButton"
+				SemanticProperties.Description="{loc:Translate ScanQr_TorchButtonDescription}"
 				Grid.Column="2"
 				Text="&#xe3e7;"
 				FontFamily="MaterialIconsRegular"
@@ -81,5 +83,22 @@
 				TextColor="White"
 				Clicked="OnTorchClicked"/>
 		</Grid>
+
+		<!-- Trademark attribution required by DENSO WAVE's QR Code trademark
+		     usage guidelines: any use of the term "QR Code" must be accompanied
+		     by this notice. -->
+		<Label
+			AutomationId="ScanQr.TrademarkNotice"
+			AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
+			AbsoluteLayout.LayoutBounds="0,1,1,40"
+			Text="{loc:Translate ScanQr_TrademarkNotice}"
+			TextColor="#B3FFFFFF"
+			FontSize="9"
+			Padding="12,4"
+			LineBreakMode="WordWrap"
+			HorizontalTextAlignment="Center"
+			VerticalTextAlignment="Center"
+			BackgroundColor="#66000000"
+			InputTransparent="True"/>
 	</AbsoluteLayout>
 </ContentPage>

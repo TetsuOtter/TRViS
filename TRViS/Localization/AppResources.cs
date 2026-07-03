@@ -44,6 +44,9 @@ public static class AppResources
 	public static string ScanQr_Instruction => Get(nameof(ScanQr_Instruction));
 	public static string ScanQr_PermissionDeniedTitle => Get(nameof(ScanQr_PermissionDeniedTitle));
 	public static string ScanQr_PermissionDeniedBody => Get(nameof(ScanQr_PermissionDeniedBody));
+	public static string ScanQr_TrademarkNotice => Get(nameof(ScanQr_TrademarkNotice));
+	public static string ScanQr_OpenFailedMessage => Get(nameof(ScanQr_OpenFailedMessage));
+	public static string ScanQr_TorchButtonDescription => Get(nameof(ScanQr_TorchButtonDescription));
 
 	public static string Home_LoadedData => Get(nameof(Home_LoadedData));
 	public static string Home_Reconnect => Get(nameof(Home_Reconnect));

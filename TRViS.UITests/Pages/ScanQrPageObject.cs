@@ -30,6 +30,10 @@ public class ScanQrPageObject : PageObject
 	public AppiumElement Instruction => WaitForElement(AutomationIds.ScanQr.Instruction);
 	public AppiumElement CloseButton => FindByAutomationId(AutomationIds.ScanQr.CloseButton);
 
+	/// <summary>True when the DENSO WAVE QR Code trademark notice is on screen.</summary>
+	public bool IsTrademarkNoticeDisplayed(double timeoutSeconds = 8)
+		=> PollDisplayed(AutomationIds.ScanQr.TrademarkNotice, timeoutSeconds);
+
 	/// <summary>True when the scanner page is on screen.</summary>
 	public bool IsDisplayed(double timeoutSeconds = 8)
 		=> PollDisplayed(AutomationIds.ScanQr.Instruction, timeoutSeconds);

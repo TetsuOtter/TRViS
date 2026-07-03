@@ -54,6 +54,8 @@ public class ScanQrTests : BaseUITest
 	{
 		var scan = _startHome.OpenScanQrPage();
 		Assert.That(scan.IsDisplayed(), Is.True, "Scanner page should open.");
+		Assert.That(scan.IsTrademarkNoticeDisplayed(), Is.True,
+			"The DENSO WAVE QR Code trademark notice must be shown on the scanner page.");
 
 		scan.SimulateValidScan();
 

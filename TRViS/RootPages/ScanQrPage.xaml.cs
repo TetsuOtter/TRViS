@@ -133,7 +133,7 @@ public partial class ScanQrPage : ContentPage
 
 		foreach (BarcodeResult barcode in e.BarcodeResults)
 		{
-			string value = !string.IsNullOrEmpty(barcode.RawValue) ? barcode.RawValue : barcode.DisplayValue;
+			string? value = !string.IsNullOrEmpty(barcode.RawValue) ? barcode.RawValue : barcode.DisplayValue;
 			if (await TryHandleCandidateAsync(value))
 				return;
 		}

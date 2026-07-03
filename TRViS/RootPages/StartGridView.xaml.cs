@@ -354,7 +354,7 @@ public partial class StartGridView : Grid
 		{
 			InstanceManager.CrashlyticsWrapper.Log(ex, "StartHomePage.OnScanQrClicked (PushModalAsync failed)");
 			logger.Error(ex, "PushModalAsync failed");
-			await Util.DisplayAlertAsync("Open Scanner Failed", ex.ToString(), AppResources.Common_OK);
+			await Util.DisplayAlertAsync(AppResources.Common_Error, AppResources.ScanQr_OpenFailedMessage, AppResources.Common_OK);
 		}
 #else
 		// The scanner is phone-only and ScanQrButton is hidden on desktop, so

@@ -302,6 +302,7 @@ public static class AutomationIds
 		public const string Instruction = "ScanQr.Instruction";
 		public const string CloseButton = "ScanQr.CloseButton";
 		public const string TorchButton = "ScanQr.TorchButton";
+		public const string TrademarkNotice = "ScanQr.TrademarkNotice";
 
 		// UI_TEST seams: simulate detecting a valid TRViS AppLink (accept path)
 		// and a non-TRViS QR (reject path).

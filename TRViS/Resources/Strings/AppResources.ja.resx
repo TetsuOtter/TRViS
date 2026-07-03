@@ -67,6 +67,8 @@
   <data name="Common_Stop" xml:space="preserve"><value>やめる</value></data>
   <data name="Common_Error" xml:space="preserve"><value>エラー</value></data>
   <data name="Common_Success" xml:space="preserve"><value>成功</value></data>
+  <data name="ScanQr_OpenFailedMessage" xml:space="preserve"><value>QRスキャナーを開けませんでした。もう一度お試しください。</value></data>
+  <data name="ScanQr_TorchButtonDescription" xml:space="preserve"><value>ライトを切り替える</value></data>
   <data name="Shell_Home" xml:space="preserve"><value>ホーム</value></data>
   <data name="Shell_ThirdPartyLicenses" xml:space="preserve"><value>サードパーティライセンス</value></data>
   <data name="Shell_Settings" xml:space="preserve"><value>設定</value></data>
@@ -87,6 +89,7 @@
   <data name="ScanQr_Instruction" xml:space="preserve"><value>TRViSのQRコードをカメラに写してください</value></data>
   <data name="ScanQr_PermissionDeniedTitle" xml:space="preserve"><value>カメラを使用できません</value></data>
   <data name="ScanQr_PermissionDeniedBody" xml:space="preserve"><value>カメラの使用が許可されていません。QRコードを読み取るには、設定アプリでTRViSにカメラの使用を許可してください。</value></data>
+  <data name="ScanQr_TrademarkNotice" xml:space="preserve"><value>QRコードは株式会社デンソーウェーブの登録商標です。</value></data>
   <data name="Home_LoadedData" xml:space="preserve"><value>読み込み済みデータ</value></data>
   <data name="Home_Reconnect" xml:space="preserve"><value>再接続</value></data>
   <data name="Home_Reconnecting" xml:space="preserve"><value>再接続中...</value></data>
