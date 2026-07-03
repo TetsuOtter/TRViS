@@ -124,6 +124,84 @@ public abstract class PageObject
 	}
 
 	/// <summary>
+	/// Android-only: locates the positive ("accept", e.g. the AppResources.Common_Yes
+	/// button) or negative ("cancel" — Common_No) button of a native AlertDialog
+	/// raised via Util.DisplayAlertAsync. MAUI's Android DisplayAlert renders an
+	/// AndroidX AlertDialog whose buttons keep the platform's standard resource-ids
+	/// (android:id/button1 = positive, android:id/button2 = negative) regardless of
+	/// locale, so this is more robust than matching the (localized) button text.
+	/// Note: the single-button DisplayAlertAsync(title, message, cancel) overload
+	/// (e.g. Util.DisplayLoadErrorAsync) has no "accept" side — its one button
+	/// renders in the *negative* slot (button2), so callers dismissing that kind
+	/// of alert must pass positive: false.
+	/// </summary>
+	public AppiumElement WaitForNativeAlertButton(bool positive, TimeSpan? timeout = null)
+	{
+		var locator = By.Id(positive ? "android:id/button1" : "android:id/button2");
+		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(Driver, timeout ?? TimeSpan.FromSeconds(15));
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			return (AppiumElement)wait.Until(d =>
+			{
+				var elements = d.FindElements(locator);
+				if (elements.Count == 0)
+					return null!;
+				try
+				{
+					return elements[0].Displayed ? elements[0] : null!;
+				}
+				catch (StaleElementReferenceException)
+				{
+					return null!;
+				}
+			});
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
+
+	/// <summary>
+	/// Android-only: reads the title text of a currently-showing native AlertDialog.
+	/// Its title TextView keeps the app-scoped resource-id
+	/// ("&lt;package&gt;:id/alertTitle", not "android:id/alertTitle" — this
+	/// AlertDialog is built with the app's theme rather than the stock AppCompat
+	/// one) while its buttons keep the platform-standard "android:id/button1"/
+	/// "button2" ids (see WaitForNativeAlertButton). Used to distinguish which of
+	/// several possible Util.DisplayAlertAsync prompts is on screen.
+	/// </summary>
+	public string ReadNativeAlertTitle(TimeSpan? timeout = null)
+	{
+		var locator = By.Id($"{Config.AppiumConfig.AppPackage}:id/alertTitle");
+		var wait = new OpenQA.Selenium.Support.UI.WebDriverWait(Driver, timeout ?? TimeSpan.FromSeconds(15));
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			var element = (AppiumElement)wait.Until(d =>
+			{
+				var elements = d.FindElements(locator);
+				if (elements.Count == 0)
+					return null!;
+				try
+				{
+					return elements[0].Displayed ? elements[0] : null!;
+				}
+				catch (StaleElementReferenceException)
+				{
+					return null!;
+				}
+			});
+			return element.Text ?? string.Empty;
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+		}
+	}
+
+	/// <summary>
 	/// Windows-specific helper: locate an element by its visible text via UIA's
 	/// <c>Name</c> property. Used as a fallback for MAUI custom controls
 	/// (<c>ContentView</c>, <c>ToggleButton</c>) whose AutomationId is exposed

@@ -32,11 +32,21 @@ public static class AppResources
 	public static string StartHome_PrivacyPolicy => Get(nameof(StartHome_PrivacyPolicy));
 	public static string StartHome_ThirdPartyLicenses => Get(nameof(StartHome_ThirdPartyLicenses));
 	public static string StartHome_ConnectServer => Get(nameof(StartHome_ConnectServer));
+	public static string StartHome_ScanQr => Get(nameof(StartHome_ScanQr));
+	public static string StartHome_ScanQrShort => Get(nameof(StartHome_ScanQrShort));
 	public static string StartHome_SelectFile => Get(nameof(StartHome_SelectFile));
 	public static string StartHome_PrivacyReconfirmTitle => Get(nameof(StartHome_PrivacyReconfirmTitle));
 	public static string StartHome_PrivacyReconfirmBody => Get(nameof(StartHome_PrivacyReconfirmBody));
 	public static string StartHome_LoadDemo => Get(nameof(StartHome_LoadDemo));
 	public static string StartHome_SampleLoadFailedFormat => Get(nameof(StartHome_SampleLoadFailedFormat));
+
+	public static string ScanQr_Title => Get(nameof(ScanQr_Title));
+	public static string ScanQr_Instruction => Get(nameof(ScanQr_Instruction));
+	public static string ScanQr_PermissionDeniedTitle => Get(nameof(ScanQr_PermissionDeniedTitle));
+	public static string ScanQr_PermissionDeniedBody => Get(nameof(ScanQr_PermissionDeniedBody));
+	public static string ScanQr_TrademarkNotice => Get(nameof(ScanQr_TrademarkNotice));
+	public static string ScanQr_OpenFailedMessage => Get(nameof(ScanQr_OpenFailedMessage));
+	public static string ScanQr_TorchButtonDescription => Get(nameof(ScanQr_TorchButtonDescription));
 
 	public static string Home_LoadedData => Get(nameof(Home_LoadedData));
 	public static string Home_Reconnect => Get(nameof(Home_Reconnect));
@@ -161,6 +171,8 @@ public static class AppResources
 	public static string AppLink_OpenExternalFileTitle => Get(nameof(AppLink_OpenExternalFileTitle));
 	public static string AppLink_OpenExternalFileFormat => Get(nameof(AppLink_OpenExternalFileFormat));
 	public static string AppLink_LocalPathInvalid => Get(nameof(AppLink_LocalPathInvalid));
+	public static string AppLink_UnknownDestinationTitle => Get(nameof(AppLink_UnknownDestinationTitle));
+	public static string AppLink_UnknownDestinationBodyFormat => Get(nameof(AppLink_UnknownDestinationBodyFormat));
 	public static string AppLink_ExternalLocationServiceTitle => Get(nameof(AppLink_ExternalLocationServiceTitle));
 	public static string AppLink_ExternalLocationServiceBodyFormat => Get(nameof(AppLink_ExternalLocationServiceBodyFormat));
 	public static string AppLink_CannotSetExternalLocationTitle => Get(nameof(AppLink_CannotSetExternalLocationTitle));

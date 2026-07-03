@@ -610,7 +610,10 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-windows:
     runs-on: windows-latest
-    timeout-minutes: 20
+    # Successful runs take ~18 min; this PR's run hit 20m14s and was killed by
+    # the timeout mid-suite (no test actually failed — see run 28673468160).
+    # 25 min gives headroom as the suite keeps growing.
+    timeout-minutes: 25
 
     steps:
       - name: Checkout code

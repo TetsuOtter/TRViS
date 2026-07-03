@@ -67,6 +67,8 @@
   <data name="Common_Stop" xml:space="preserve"><value>Stop</value></data>
   <data name="Common_Error" xml:space="preserve"><value>Error</value></data>
   <data name="Common_Success" xml:space="preserve"><value>Success!</value></data>
+  <data name="ScanQr_OpenFailedMessage" xml:space="preserve"><value>Could not open the QR scanner. Please try again.</value></data>
+  <data name="ScanQr_TorchButtonDescription" xml:space="preserve"><value>Toggle flashlight</value></data>
   <data name="Shell_Home" xml:space="preserve"><value>Home</value></data>
   <data name="Shell_ThirdPartyLicenses" xml:space="preserve"><value>Third Party Licenses</value></data>
   <data name="Shell_Settings" xml:space="preserve"><value>Settings</value></data>
@@ -76,11 +78,18 @@
   <data name="StartHome_PrivacyPolicy" xml:space="preserve"><value>Privacy Policy</value></data>
   <data name="StartHome_ThirdPartyLicenses" xml:space="preserve"><value>Third Party Licenses</value></data>
   <data name="StartHome_ConnectServer" xml:space="preserve"><value>Load from Server</value></data>
+  <data name="StartHome_ScanQr" xml:space="preserve"><value>Scan QR Code</value></data>
+  <data name="StartHome_ScanQrShort" xml:space="preserve"><value>Scan</value></data>
   <data name="StartHome_SelectFile" xml:space="preserve"><value>Select File</value></data>
   <data name="StartHome_PrivacyReconfirmTitle" xml:space="preserve"><value>Privacy policy consent required</value></data>
   <data name="StartHome_PrivacyReconfirmBody" xml:space="preserve"><value>To use the app, please review and accept the privacy policy.</value></data>
   <data name="StartHome_LoadDemo" xml:space="preserve"><value>Start with demo data</value></data>
   <data name="StartHome_SampleLoadFailedFormat" xml:space="preserve"><value>Failed to load sample data: {0}</value></data>
+  <data name="ScanQr_Title" xml:space="preserve"><value>Scan QR Code</value></data>
+  <data name="ScanQr_Instruction" xml:space="preserve"><value>Point the camera at a TRViS QR code</value></data>
+  <data name="ScanQr_PermissionDeniedTitle" xml:space="preserve"><value>Camera Unavailable</value></data>
+  <data name="ScanQr_PermissionDeniedBody" xml:space="preserve"><value>Camera permission was denied. To scan QR codes, allow camera access for TRViS in the Settings app.</value></data>
+  <data name="ScanQr_TrademarkNotice" xml:space="preserve"><value>QR Code is a registered trademark of DENSO WAVE INCORPORATED.</value></data>
   <data name="Home_LoadedData" xml:space="preserve"><value>Loaded data</value></data>
   <data name="Home_Reconnect" xml:space="preserve"><value>Reconnect</value></data>
   <data name="Home_Reconnecting" xml:space="preserve"><value>Reconnecting...</value></data>
@@ -205,6 +214,10 @@ Your InstallId: {0}</value></data>
   <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>Open external file</value></data>
   <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>Open file `{0}`?</value></data>
   <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>LocalPath is invalid</value></data>
+  <data name="AppLink_UnknownDestinationTitle" xml:space="preserve"><value>Connect?</value></data>
+  <data name="AppLink_UnknownDestinationBodyFormat" xml:space="preserve"><value>You have never connected to this destination before.
+Connect anyway?
+Destination: {0}</value></data>
   <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>External Location Service</value></data>
   <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>A source for location info is specified, but it is a different server from the timetable file.
 Use this server?

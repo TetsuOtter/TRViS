@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:barcode="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
+	xmlns:loc="clr-namespace:TRViS.Localization"
+	x:Class="TRViS.RootPages.ScanQrPage"
+	BackgroundColor="Black"
+	Title="{loc:Translate ScanQr_Title}">
+
+	<AbsoluteLayout x:Name="RootLayout">
+		<!-- Live camera preview. BarcodeSymbologies is restricted to QRCode so
+		     the native detector ignores 1-D barcodes / DataMatrix / etc.; the
+		     "only TRViS AppLink" gate is enforced separately in code-behind. -->
+		<barcode:CameraView
+			x:Name="Barcode"
+			AbsoluteLayout.LayoutFlags="All"
+			AbsoluteLayout.LayoutBounds="0,0,1,1"
+			BarcodeSymbologies="QRCode"
+			CaptureQuality="Medium"
+			TapToFocusEnabled="True"
+			VibrationOnDetected="False"
+			OnDetectionFinished="OnDetectionFinished"/>
+
+		<!-- Centered viewfinder guide (visual only; InputTransparent so taps
+		     reach the camera for tap-to-focus). -->
+		<Border
+			AbsoluteLayout.LayoutFlags="PositionProportional"
+			AbsoluteLayout.LayoutBounds="0.5,0.45,240,240"
+			InputTransparent="True"
+			BackgroundColor="Transparent"
+			Stroke="White"
+			StrokeThickness="3">
+			<Border.StrokeShape>
+				<RoundRectangle CornerRadius="16"/>
+			</Border.StrokeShape>
+		</Border>
+
+		<!-- Top bar: close button + instruction. -->
+		<Grid
+			AbsoluteLayout.LayoutFlags="WidthProportional"
+			AbsoluteLayout.LayoutBounds="0,0,1,120"
+			ColumnDefinitions="Auto,*,Auto"
+			Padding="8,12"
+			BackgroundColor="#99000000">
+			<Button
+				x:Name="CloseButton"
+				AutomationId="ScanQr.CloseButton"
+				SemanticProperties.Description="{loc:Translate Common_Close}"
+				Grid.Column="0"
+				Text="&#xe5cd;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="44"
+				HeightRequest="44"
+				Padding="0"
+				VerticalOptions="Start"
+				BackgroundColor="Transparent"
+				TextColor="White"
+				Clicked="OnCloseClicked"/>
+			<Label
+				Grid.Column="1"
+				AutomationId="ScanQr.Instruction"
+				Text="{loc:Translate ScanQr_Instruction}"
+				TextColor="White"
+				FontSize="15"
+				HorizontalTextAlignment="Center"
+				VerticalOptions="Center"
+				LineBreakMode="WordWrap"/>
+			<Button
+				x:Name="TorchButton"
+				AutomationId="ScanQr.TorchButton"
+				SemanticProperties.Description="{loc:Translate ScanQr_TorchButtonDescription}"
+				Grid.Column="2"
+				Text="&#xe3e7;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="22"
+				WidthRequest="44"
+				HeightRequest="44"
+				Padding="0"
+				VerticalOptions="Start"
+				BackgroundColor="Transparent"
+				TextColor="White"
+				Clicked="OnTorchClicked"/>
+		</Grid>
+
+		<!-- Trademark attribution required by DENSO WAVE's QR Code trademark
+		     usage guidelines: any use of the term "QR Code" must be accompanied
+		     by this notice. -->
+		<Label
+			AutomationId="ScanQr.TrademarkNotice"
+			AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
+			AbsoluteLayout.LayoutBounds="0,1,1,40"
+			Text="{loc:Translate ScanQr_TrademarkNotice}"
+			TextColor="#B3FFFFFF"
+			FontSize="9"
+			Padding="12,4"
+			LineBreakMode="WordWrap"
+			HorizontalTextAlignment="Center"
+			VerticalTextAlignment="Center"
+			BackgroundColor="#66000000"
+			InputTransparent="True"/>
+	</AbsoluteLayout>
+</ContentPage>
