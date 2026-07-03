@@ -31,6 +31,14 @@ public partial class ScanQrPage : ContentPage
 		InitializeComponent();
 
 #if UI_TEST
+		// The CI emulator has no usable camera, and initializing the live
+		// CameraView there stalls the GL/surface pipeline (10 s+ frame times) so
+		// the page never renders for Appium. The E2E drives the "only TRViS
+		// AppLinks" gate through the hidden seam buttons instead of a real
+		// detection, so drop the camera preview entirely (and never request
+		// camera permission — see OnAppearing). Every other Barcode access is
+		// compiled out under UI_TEST for the same reason.
+		RootLayout.Children.Remove(Barcode);
 		BuildTestSeamButtons();
 #endif
 	}
@@ -72,6 +80,12 @@ public partial class ScanQrPage : ContentPage
 	{
 		base.OnAppearing();
 
+#if UI_TEST
+		// Seam-driven under test: no camera, no permission prompt. The page stays
+		// open so the hidden seam buttons can exercise the gate (see constructor).
+		await Task.CompletedTask;
+		return;
+#else
 		// The library owns the platform permission request (camera, and on
 		// Android the auto-granted VIBRATE). Ask before enabling the preview.
 		bool granted;
@@ -98,15 +112,18 @@ public partial class ScanQrPage : ContentPage
 		}
 
 		Barcode.CameraEnabled = true;
+#endif
 	}
 
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
+#if !UI_TEST
 		// Release the camera whenever the page leaves the screen (successful
 		// scan, close button, OS-level dismissal). Handler disconnection is
 		// automatic from .NET MAUI 9, so nothing else is required.
 		Barcode.CameraEnabled = false;
+#endif
 	}
 
 	private async void OnDetectionFinished(object? sender, OnDetectionFinishedEventArg e)
@@ -152,8 +169,10 @@ public partial class ScanQrPage : ContentPage
 		_handled = true;
 
 		logger.Info("Accepted TRViS AppLink from QR: {0}", trvisLink);
+#if !UI_TEST
 		Barcode.PauseScanning = true;
 		Barcode.CameraEnabled = false;
+#endif
 
 		// Haptic confirmation, fired only once a TRViS AppLink is accepted (the
 		// library's built-in VibrationOnDetected is disabled so ignored QR codes
@@ -186,14 +205,18 @@ public partial class ScanQrPage : ContentPage
 	private async void OnCloseClicked(object sender, EventArgs e)
 	{
 		logger.Trace("Close clicked");
+#if !UI_TEST
 		Barcode.CameraEnabled = false;
+#endif
 		await CloseAsync();
 	}
 
 	private void OnTorchClicked(object sender, EventArgs e)
 	{
+#if !UI_TEST
 		Barcode.TorchOn = !Barcode.TorchOn;
 		logger.Trace("Torch toggled -> {0}", Barcode.TorchOn);
+#endif
 	}
 
 	private async Task CloseAsync()
