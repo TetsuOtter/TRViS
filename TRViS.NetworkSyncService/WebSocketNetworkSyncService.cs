@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
@@ -53,6 +54,25 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_OPEN_TIMETABLE = "OpenTimetable";
 	private const string TIMETABLE_DATA_JSON_KEY = "Data";
 
+	// 列車検索 (v1.1) のJSONキー
+	private const string MESSAGE_TYPE_SEARCH_TRAIN = "SearchTrain";
+	private const string MESSAGE_TYPE_SEARCH_TRAIN_RESPONSE = "SearchTrainResponse";
+	private const string MESSAGE_TYPE_REQUEST_TRAIN_TIMETABLE = "RequestTrainTimetable";
+	private const string REQUEST_ID_JSON_KEY = "RequestId";
+	private const string TRAIN_NUMBER_JSON_KEY = "TrainNumber";
+	private const string SEARCH_RESULTS_JSON_KEY = "Results";
+	private const string SERVER_FEATURES_JSON_KEY = "Features";
+	private const string WORK_NAME_JSON_KEY = "WorkName";
+	private const string DIRECTION_JSON_KEY = "Direction";
+	private const string START_STATION_NAME_JSON_KEY = "StartStationName";
+	private const string START_TIME_JSON_KEY = "StartTime";
+	private const string END_STATION_NAME_JSON_KEY = "EndStationName";
+	private const string END_TIME_JSON_KEY = "EndTime";
+
+	// 列車検索のタイムアウト既定値 (Issue #197: 応答が無い場合にタイムアウトが働くこと)
+	private const int DEFAULT_SEARCH_TRAIN_TIMEOUT_MS = 10000;
+	private const int DEFAULT_FETCH_TIMETABLE_TIMEOUT_MS = 15000;
+
 	// ServerInfo / DiagramInfo のJSONキー
 	private const string SERVER_NAME_JSON_KEY = "Name";
 	private const string SERVER_ADMIN_JSON_KEY = "Admin";
@@ -89,6 +109,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		PropertyNameCaseInsensitive = true,
 	};
 
+	// 列車検索 (SearchTrain) の応答を RequestId で相関させるための待機辞書。
+	// 受信ループ (バックグラウンド) が応答受信時に該当 TCS を完了させる。
+	private readonly ConcurrentDictionary<string, TaskCompletionSource<IReadOnlyList<TrainSearchResult>>>
+		_pendingSearches = new();
+
+	/// <summary>列車検索 (<see cref="SearchTrainAsync"/>) のタイムアウト [ms]。</summary>
+	public int SearchTrainTimeoutMs { get; set; } = DEFAULT_SEARCH_TRAIN_TIMEOUT_MS;
+
+	/// <summary>時刻表取得 (<see cref="FetchSearchedTrainTimetableAsync"/>) のタイムアウト [ms]。</summary>
+	public int FetchTrainTimetableTimeoutMs { get; set; } = DEFAULT_FETCH_TIMETABLE_TIMEOUT_MS;
+
 	// ILoader実装用のキャッシュ
 	private readonly Dictionary<string, WorkGroup> _WorkGroupCache = [];
 	private readonly Dictionary<string, List<Work>> _WorkListCache = [];
@@ -121,6 +152,11 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		await _WebSocket.ConnectAsync(_Uri, cancellationToken);
 		logger.Info("ConnectAsync: Connected successfully");
 		StartReceiveLoop();
+
+		// 接続直後にサーバー情報を要求し、対応機能 (ServerInfo.Features) を取得する。
+		// fire-and-forget: 応答は ServerInfoUpdated / ServerFeatures に反映される。
+		// 非対応サーバーは応答しないだけで害はない。
+		_ = RequestServerInfoAsync(CancellationToken.None);
 	}
 
 	private static void ConfigureWebSocketOptions(ClientWebSocket webSocket)
@@ -297,6 +333,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			{
 				ProcessOpenTimetableMessage(root);
 			}
+			else if (messageType == MESSAGE_TYPE_SEARCH_TRAIN_RESPONSE)
+			{
+				ProcessSearchTrainResponseMessage(root);
+			}
 		}
 		catch (JsonException ex)
 		{
@@ -421,6 +461,21 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			info.Version = v.GetString();
 		if (root.TryGetProperty(SERVER_PROTOCOL_VERSION_JSON_KEY, out var pv) && pv.ValueKind != JsonValueKind.Null)
 			info.ProtocolVersion = pv.GetString();
+		if (root.TryGetProperty(SERVER_FEATURES_JSON_KEY, out var features) && features.ValueKind == JsonValueKind.Array)
+		{
+			var list = new List<string>();
+			foreach (var elem in features.EnumerateArray())
+			{
+				if (elem.ValueKind == JsonValueKind.String)
+				{
+					var s = elem.GetString();
+					if (!string.IsNullOrEmpty(s)) list.Add(s);
+				}
+			}
+			info.Features = [.. list];
+			// 機能ネゴシエーション結果を公開する (IsFeatureSupported / 検索タブの表示に使用)
+			ServerFeatures = list;
+		}
 
 		RaiseServerInfoUpdated(info);
 	}
@@ -449,6 +504,65 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 
 		RaiseDiagramInfoUpdated(info);
+	}
+
+	/// <summary>
+	/// 列車検索の応答 (<c>SearchTrainResponse</c>) を処理する。
+	/// RequestId で待機中の <see cref="SearchTrainAsync"/> を完了させる。
+	/// </summary>
+	private void ProcessSearchTrainResponseMessage(JsonElement root)
+	{
+		string? requestId = null;
+		if (root.TryGetProperty(REQUEST_ID_JSON_KEY, out var reqId) && reqId.ValueKind == JsonValueKind.String)
+			requestId = reqId.GetString();
+
+		if (string.IsNullOrEmpty(requestId))
+		{
+			logger.Warn("ProcessSearchTrainResponseMessage: missing RequestId, ignoring");
+			return;
+		}
+
+		var results = new List<TrainSearchResult>();
+		if (root.TryGetProperty(SEARCH_RESULTS_JSON_KEY, out var arr) && arr.ValueKind == JsonValueKind.Array)
+		{
+			foreach (var item in arr.EnumerateArray())
+			{
+				if (item.ValueKind != JsonValueKind.Object)
+					continue;
+				results.Add(new TrainSearchResult(
+					WorkGroupId: ReadOptionalString(item, WORK_GROUP_ID_JSON_KEY),
+					WorkId: ReadOptionalString(item, WORK_ID_JSON_KEY),
+					TrainId: ReadOptionalString(item, TRAIN_ID_JSON_KEY),
+					TrainNumber: ReadOptionalString(item, TRAIN_NUMBER_JSON_KEY),
+					WorkName: ReadOptionalString(item, WORK_NAME_JSON_KEY),
+					Direction: ReadOptionalInt(item, DIRECTION_JSON_KEY),
+					StartStationName: ReadOptionalString(item, START_STATION_NAME_JSON_KEY),
+					StartTime: ReadOptionalString(item, START_TIME_JSON_KEY),
+					EndStationName: ReadOptionalString(item, END_STATION_NAME_JSON_KEY),
+					EndTime: ReadOptionalString(item, END_TIME_JSON_KEY)
+				));
+			}
+		}
+
+		if (_pendingSearches.TryRemove(requestId, out var tcs))
+			tcs.TrySetResult(results);
+		else
+			logger.Debug("ProcessSearchTrainResponseMessage: no pending search for RequestId={0}", requestId);
+	}
+
+	private static string? ReadOptionalString(JsonElement element, string propertyName)
+	{
+		if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String)
+			return prop.GetString();
+		return null;
+	}
+
+	private static int? ReadOptionalInt(JsonElement element, string propertyName)
+	{
+		if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.Number
+			&& prop.TryGetInt32(out int value))
+			return value;
+		return null;
 	}
 
 	private void ProcessSelectTrainMessage(JsonElement root)
@@ -847,6 +961,113 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		return SendRequestMessageAsync(MESSAGE_TYPE_REQUEST_DIAGRAM_INFO, additional, cancellationToken);
 	}
 
+	/// <summary>
+	/// 列番でサーバーに列車を検索する (<c>SearchTrain</c>)。RequestId で応答を相関させ、
+	/// <see cref="SearchTrainTimeoutMs"/> 以内に応答が無ければ <see cref="TimeoutException"/>。
+	/// </summary>
+	public override async Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
+		string trainNumber, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(trainNumber);
+#if UI_TEST
+		if (_uiTestSearchEnabled)
+			return _uiTestSearchResults
+				.Where(r => string.Equals(r.TrainNumber, trainNumber, StringComparison.OrdinalIgnoreCase))
+				.ToList();
+#endif
+		if (_WebSocket.State != WebSocketState.Open)
+			throw new InvalidOperationException("SearchTrainAsync: WebSocket is not connected.");
+
+		string requestId = Guid.NewGuid().ToString("N");
+		var tcs = new TaskCompletionSource<IReadOnlyList<TrainSearchResult>>(
+			TaskCreationOptions.RunContinuationsAsynchronously);
+		_pendingSearches[requestId] = tcs;
+
+		try
+		{
+			var additional = new Dictionary<string, string?>
+			{
+				[REQUEST_ID_JSON_KEY] = requestId,
+				[TRAIN_NUMBER_JSON_KEY] = trainNumber,
+			};
+			await SendRequestMessageAsync(MESSAGE_TYPE_SEARCH_TRAIN, additional, cancellationToken);
+			return await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(SearchTrainTimeoutMs), cancellationToken);
+		}
+		catch (TimeoutException)
+		{
+			logger.Warn("SearchTrainAsync: timed out waiting for response (trainNumber={0})", trainNumber);
+			throw;
+		}
+		finally
+		{
+			_pendingSearches.TryRemove(requestId, out _);
+		}
+	}
+
+	/// <summary>
+	/// 検索候補の完全な時刻表を取得する (<c>RequestTrainTimetable</c>)。サーバーは
+	/// <c>Timetable</c> (Train スコープ) を返し、通常の受信パイプラインでキャッシュされる。
+	/// 対応する TrainId の <see cref="NetworkSyncServiceBase.TimetableUpdated"/> を
+	/// <see cref="FetchTrainTimetableTimeoutMs"/> 以内に待ち、キャッシュから <see cref="TrainData"/> を返す。
+	/// </summary>
+	public override async Task<TrainData?> FetchSearchedTrainTimetableAsync(
+		TrainSearchResult result, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(result);
+		if (string.IsNullOrEmpty(result.TrainId))
+			throw new ArgumentException("TrainSearchResult.TrainId must not be empty.", nameof(result));
+#if UI_TEST
+		if (_uiTestSearchEnabled)
+		{
+			_uiTestSearchTrainData.TryGetValue(result.TrainId, out var cannedTrain);
+			if (cannedTrain is not null)
+				_TrainDataCache[cannedTrain.Id] = cannedTrain;
+			return cannedTrain;
+		}
+#endif
+		if (_WebSocket.State != WebSocketState.Open)
+			throw new InvalidOperationException("FetchSearchedTrainTimetableAsync: WebSocket is not connected.");
+
+		string trainId = result.TrainId;
+
+		// 既にキャッシュ済みなら再取得せず即返す。
+		var cached = GetTrainData(trainId);
+		if (cached is not null)
+			return cached;
+
+		var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+		void OnTimetable(object? sender, TimetableData data)
+		{
+			if (string.Equals(data.TrainId, trainId, StringComparison.Ordinal))
+				tcs.TrySetResult(true);
+		}
+
+		TimetableUpdated += OnTimetable;
+		try
+		{
+			var additional = new Dictionary<string, string?>
+			{
+				[REQUEST_ID_JSON_KEY] = Guid.NewGuid().ToString("N"),
+				[WORK_GROUP_ID_JSON_KEY] = result.WorkGroupId,
+				[WORK_ID_JSON_KEY] = result.WorkId,
+				[TRAIN_ID_JSON_KEY] = trainId,
+			};
+			await SendRequestMessageAsync(MESSAGE_TYPE_REQUEST_TRAIN_TIMETABLE, additional, cancellationToken);
+			await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(FetchTrainTimetableTimeoutMs), cancellationToken);
+		}
+		catch (TimeoutException)
+		{
+			logger.Warn("FetchSearchedTrainTimetableAsync: timed out (trainId={0})", trainId);
+			throw;
+		}
+		finally
+		{
+			TimetableUpdated -= OnTimetable;
+		}
+
+		return GetTrainData(trainId);
+	}
+
 	private async Task SendRequestMessageAsync(
 		string messageType,
 		Dictionary<string, string?>? additional,
@@ -1001,6 +1222,30 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 				foreach (var t in trains)
 					_TrainDataCache[t.Id] = t;
 			}
+		}
+	}
+
+	private bool _uiTestSearchEnabled;
+	private readonly List<TrainSearchResult> _uiTestSearchResults = new();
+	private readonly Dictionary<string, TrainData> _uiTestSearchTrainData = new();
+
+	/// <summary>
+	/// UI_TEST 専用: 実サーバー無しで列車検索を成立させる。<c>TrainSearch</c> 機能を
+	/// 有効化し、<see cref="SearchTrainAsync"/> / <see cref="FetchSearchedTrainTimetableAsync"/>
+	/// が渡された canned データを返すようにする。
+	/// </summary>
+	public void SeedTrainSearchForTesting(IEnumerable<(TrainSearchResult Summary, TrainData Data)> trains)
+	{
+		ArgumentNullException.ThrowIfNull(trains);
+		_uiTestSearchEnabled = true;
+		ServerFeatures = new[] { ServerFeatureIds.TrainSearch };
+		_uiTestSearchResults.Clear();
+		_uiTestSearchTrainData.Clear();
+		foreach (var (summary, data) in trains)
+		{
+			_uiTestSearchResults.Add(summary);
+			if (summary.TrainId is not null)
+				_uiTestSearchTrainData[summary.TrainId] = data;
 		}
 	}
 #endif
