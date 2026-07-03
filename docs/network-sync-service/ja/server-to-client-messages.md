@@ -216,10 +216,16 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 {
   "MessageType": "Notification",
   "Id": "n-001",                          // string | null
+  "OrderNumber": "指令003号",             // string | null（指令番号）
   "Title": "運転見合わせ",                // string | null
   "Body": "強風のため…",                  // string | null（BBCode 可）
   "Priority": 1,                          // integer（0=通常,1=重要 等。サーバ任意）
-  "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601) | null
+  "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601、TZ オフセット任意) | null
+  "Receiver": "○○列車 乗務員",            // string | null（受信者）
+  "Sender": "指令所",                     // string | null（指令者）
+  "IconText": "指",                       // string | null（アイコン文字。IconImageBase64 未指定時のみ使用）
+  "IconColor_RGB": "#C62828",              // integer (0xRRGGBB) | string ("#RRGGBB") | 省略（アイコン背景色。既定色あり）
+  "IconImageBase64": null,                // string | null（アイコン画像。指定時は IconText より優先）
   "Acknowledged": false                   // boolean（省略可）。受領済みなら true
 }
 ```
@@ -227,11 +233,22 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 | フィールド | 型 | 説明 |
 |---|---|---|
 | `Id` | string | 通告識別子。受領（[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification)）の対象キーになる。 |
+| `OrderNumber` | string | 指令番号。表示のみに用いる（サーバー・現場運用側の管理番号）。 |
 | `Title` | string | 見出し。 |
 | `Body` | string | 本文。**BBCode**（`[b]…[/b]` 等）を使用できる。表示側の解釈はクライアント実装に依存。 |
 | `Priority` | integer | 重要度。JSON 数値かつ 32bit 整数のときのみ採用、既定 `0`。意味づけはサーバー任意。 |
-| `IssuedAt` | string | 発行時刻。**ISO 8601**（往復可能形式、例 `2024-03-01T09:00:00+09:00`）。解釈できない場合は未設定。 |
+| `IssuedAt` | string | 発行時刻。**ISO 8601**（往復可能形式）。TZ オフセット（`Z` または `+HH:mm`/`-HH:mm`）の有無で解釈が変わる（下記参照）。解釈できない場合は未設定。 |
+| `Receiver` | string | 受信者。表示のみに用いる。 |
+| `Sender` | string | 指令者（発信者）。表示のみに用いる。 |
+| `IconText` | string | アイコンとして表示する文字（1〜2 文字程度を想定）。`IconImageBase64` が指定されている場合は使用されない。 |
+| `IconColor_RGB` | integer \| string | `IconText` の背景色。**JSON 数値**（`0xRRGGBB` の 10 進表記、32bit 整数として読めるもの）または **`"#RRGGBB"` 形式の文字列**（先頭 `#` 必須、大文字小文字不問）のどちらでも指定できる。いずれの形式でも解釈できない場合は未設定（既定色）。未指定時はクライアント既定色。 |
+| `IconImageBase64` | string | アイコン画像の Base64 エンコードされたバイナリ（`data:image/png;base64,...` のような data URI プレフィックスを含んでいてもよい）。指定されている場合、`IconText`/`IconColor_RGB` より優先して表示する。 |
 | `Acknowledged` | boolean | 任意。当該クライアントが既にこの通告を受領済みかをサーバーが示す。JSON の `true` のときのみ受領済み扱いで、それ以外（`false`/欠落）は未受領。再接続後などに通告を再配信する際、受領済みのものを既読として渡すために使う（クライアントは既読の通告を再度ポップアップ表示しない）。 |
+
+**`IssuedAt` の TZ 有無による表示の違い:**
+- TZ オフセットあり（例 `2024-03-01T09:00:00+09:00` や `...Z`）: クライアントは**端末の現在の TZ を考慮**して変換した時刻を表示する。
+- TZ オフセットなし（例 `2024-03-01T09:00:00`）: クライアントは**その時刻をそのまま**（TZ 変換せずに）表示する。
+- 日時区切りの `T` を含まない文字列（例 `2024-03-01` のような日付のみ、`2024-03-01 09:00:00` のような空白区切り）は **ISO 8601 の日時形式ではない**ため、常に TZ 指定なし扱い（そのまま表示）になる。
 
 受領（クライアント → サーバー）については
 [`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification) を参照。
@@ -314,5 +331,5 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
   **JSON number 型必須**（文字列は無効）。
 - `SelectTrain` の各 ID は **JSON string 型必須**。
 - `OperationCommand.Action` は**必須**かつ既知の値のみ有効（大小無視）。
-- `Notification.IssuedAt` は **ISO 8601** のみ。
+- `Notification.IssuedAt` は **ISO 8601** のみ。TZ オフセットの有無で表示の変換有無が変わる（[§8](#8-notification) 参照）。
 - 未知の `MessageType`・`MessageType` 欠落・不正 JSON は **黙って無視**。

@@ -278,9 +278,33 @@ public sealed class ReferenceServerClient : IDisposable
 		int priority = 0,
 		string? issuedAt = null,
 		bool acknowledged = false,
+		string? orderNumber = null,
+		string? receiver = null,
+		string? sender = null,
+		string? iconText = null,
+		int? iconColor_RGB = null,
+		string? iconColorHex = null,
+		string? iconImageBase64 = null,
 		CancellationToken ct = default)
 	{
-		var payload = new { Id = id, Title = title, Body = body, Priority = priority, IssuedAt = issuedAt, Acknowledged = acknowledged };
+		// IconColor_RGB は数値 (0xRRGGBB) と "#RRGGBB" 文字列のどちらでも送れる。
+		// iconColorHex が指定されていればそちらを優先する。
+		object? iconColor = iconColorHex is not null ? iconColorHex : iconColor_RGB;
+		var payload = new
+		{
+			Id = id,
+			OrderNumber = orderNumber,
+			Title = title,
+			Body = body,
+			Priority = priority,
+			IssuedAt = issuedAt,
+			Receiver = receiver,
+			Sender = sender,
+			IconText = iconText,
+			IconColor_RGB = iconColor,
+			IconImageBase64 = iconImageBase64,
+			Acknowledged = acknowledged,
+		};
 		var content = new StringContent(
 			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
 		var resp = await _http.PostAsync("/control/broadcast-notification", content, ct);

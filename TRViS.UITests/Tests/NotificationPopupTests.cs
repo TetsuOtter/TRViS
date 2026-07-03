@@ -138,6 +138,37 @@ public class NotificationPopupTests : BaseUITest
 	}
 
 	/// <summary>
+	/// A notification carrying 指令番号/指令者/受信者 and a color+text icon badge
+	/// shows all of them in the popup.
+	/// </summary>
+	[Test]
+	public void Notification_WithOrderNumberSenderReceiverAndIcon_ShowsAllFields()
+	{
+		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+
+		const string deeplink =
+			"trvis://_test/notification?id=n-meta&title=Meta%20Notice&body=body&priority=0&reset=true"
+			+ "&ordernumber=ORD-042&sender=Dispatch&receiver=Crew&icontext=D&iconcolor=13022810";
+
+		var notif = InjectNotification(deeplink);
+
+		Assert.That(notif.IsDisplayed(), Is.True, "Popup should be displayed after receipt.");
+		Assert.Multiple(() =>
+		{
+			Assert.That(notif.IsOrderNumberVisible(), Is.True, "指令番号 should be shown.");
+			Assert.That(notif.ReadOrderNumber(), Does.Contain("ORD-042"));
+			Assert.That(notif.IsSenderVisible(), Is.True, "指令者 should be shown.");
+			Assert.That(notif.ReadSender(), Does.Contain("Dispatch"));
+			Assert.That(notif.IsReceiverVisible(), Is.True, "受信者 should be shown.");
+			Assert.That(notif.ReadReceiver(), Does.Contain("Crew"));
+			Assert.That(notif.IsIconBadgeVisible(), Is.True, "Icon badge should be shown when IconText is set.");
+		});
+
+		notif.Acknowledge();
+		Assert.That(notif.WaitUntilDismissed(), Is.True);
+	}
+
+	/// <summary>
 	/// A notification the server marks as already acknowledged
 	/// (<c>acknowledged=true</c>) must NOT pop up (it is treated as read).
 	/// </summary>

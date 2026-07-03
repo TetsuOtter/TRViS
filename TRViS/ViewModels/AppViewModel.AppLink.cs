@@ -159,6 +159,7 @@ public partial class AppViewModel
 		// Test-only: inject a Notification into NotificationCenter so UI tests can
 		// exercise the receive→popup→受領 flow without a real WebSocket server.
 		// Format: trvis://_test/notification?id=<id>&title=<t>&body=<bbcode>&priority=<n>&acknowledged=<bool>&reset=<bool>
+		//   &ordernumber=<n>&sender=<s>&receiver=<s>&icontext=<s>&iconcolor=<0xRRGGBB or %23RRGGBB>&iconimage=<base64>
 		// reset=true clears the notification store before injecting (clean slate for shared-session retries).
 		const string TestNotificationPrefix = "trvis://_test/notification";
 		if (uri.StartsWith(TestNotificationPrefix, StringComparison.OrdinalIgnoreCase))
@@ -745,13 +746,24 @@ public partial class AppViewModel
 		if (string.Equals(query["reset"], "true", StringComparison.OrdinalIgnoreCase))
 			NotificationCenter.ResetForTesting();
 
+		// 10 進整数 (0xRRGGBB) と "#RRGGBB" 形式の文字列の両方を受け付ける。
+		int? iconColor = null;
+		if (TRViS.NetworkSyncService.NotificationData.TryParseIconColor(query["iconcolor"], out int parsedIconColor))
+			iconColor = parsedIconColor;
+
 		var n = new TRViS.NetworkSyncService.NotificationData
 		{
 			Id = query["id"],
+			OrderNumber = query["ordernumber"],
 			Title = query["title"],
 			Body = query["body"],
 			Priority = priority,
 			Acknowledged = acknowledged,
+			Sender = query["sender"],
+			Receiver = query["receiver"],
+			IconText = query["icontext"],
+			IconColor_RGB = iconColor,
+			IconImageBase64 = query["iconimage"],
 		};
 		NotificationCenter.InjectNotificationForTesting(n, fakeAck);
 		logger.Info("Test inject notification: dispatched (id={0}, priority={1}, acknowledged={2}, fakeAck={3})", n.Id, n.Priority, n.Acknowledged, fakeAck);
