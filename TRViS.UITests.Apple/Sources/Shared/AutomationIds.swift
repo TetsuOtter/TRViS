@@ -64,6 +64,11 @@ enum AutomationIds {
         // HorizontalTimetable seed seam (HorizontalTimetableTests)
         static let testSeedHorizontalTimetableButton = "StartHome.TestSeedHorizontalTimetableButton"
 
+        // Hako diagram (ハコ図) seed seam (ScreenshotRegressionTests) — commits
+        // WorkGroup "hako-diagram-test" / Work "hako-diagram-7stations" and
+        // navigates to DTAC.
+        static let testSeedHakoDiagramButton = "StartHome.TestSeedHakoDiagramButton"
+
         // URL-history seams (ConnectServer tests)
         static let testClearHistoryButton = "StartHome.TestClearHistoryButton"
 
@@ -110,6 +115,10 @@ enum AutomationIds {
         static let openCloseButton        = "DTAC.OpenCloseButton"
         // Per-train ハコ row button id (UI_TEST builds only). Append the TrainNumber.
         static let hakoRowPrefix          = "DTAC.HakoRow."
+        // Per-train ハコ図 (diagram) train-number button id (UI_TEST builds only,
+        // tablet diagram layout — see DiagramView.cs). Append the TrainNumber.
+        // Distinct from hakoRowPrefix because the diagram button is not a list row.
+        static let hakoDiagramButtonPrefix = "DTAC.HakoDiagram."
         // Remarks panel toggle (UI_TEST builds only). openCloseButton is the PageHeader toggle.
         static let remarksOpenCloseButton = "DTAC.RemarksOpenCloseButton"
         static let timetableScrollView    = "DTAC.TimetableScrollView"

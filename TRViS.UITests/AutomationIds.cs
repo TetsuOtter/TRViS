@@ -100,6 +100,11 @@ public static class AutomationIds
 		// #225 doesn't rely on the default first-train selection (which has an
 		// empty NextTrainId).
 		public const string TestSeedNextTrainSelectionButton = "StartHome.TestSeedNextTrainSelectionButton";
+		// Commits WorkGroup "hako-diagram-test" / Work "hako-diagram-7stations"
+		// (6 trains, 7 turn-back stations — the diagram layout's upper bound) and
+		// navigates to DTAC. Lets the Hako-tab diagram (ハコ図) screenshot walk
+		// land on a Work that exercises the tablet diagram view deterministically.
+		public const string TestSeedHakoDiagramButton = "StartHome.TestSeedHakoDiagramButton";
 		// Sets AppViewModel.Loader=null + disposes the previous loader, mirroring
 		// OnDisconnectClicked's clear path but skipping the user-facing confirm
 		// dialog. Used by fixtures that share a single Appium session and need
@@ -178,6 +183,10 @@ public static class AutomationIds
 
 		// Per-train ハコ row button id (UI_TEST builds only). Append the TrainNumber.
 		public const string HakoRowPrefix = "DTAC.HakoRow.";
+		// Per-train ハコ図 (diagram) train-number button id (UI_TEST builds only,
+		// tablet diagram layout — see DiagramView.cs). Append the TrainNumber.
+		// Distinct from HakoRowPrefix because the diagram button is not a list row.
+		public const string HakoDiagramButtonPrefix = "DTAC.HakoDiagram.";
 		// Remarks panel toggle button (UI_TEST builds only), distinct from OpenCloseButton
 		// which is the PageHeader's TrainInfo/BeforeDeparture toggle.
 		public const string RemarksOpenCloseButton = "DTAC.RemarksOpenCloseButton";

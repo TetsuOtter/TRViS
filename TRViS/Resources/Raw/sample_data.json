@@ -1261,5 +1261,403 @@
         "ETrainTimetableContent": "aHR0cHM6Ly9leGFtcGxlLmNvbQ=="
       }
     ]
+  },
+  {
+    "Id": "hako-diagram-test",
+    "Name": "ハコ図確認",
+    "Works": [
+      {
+        "Id": "hako-diagram-2stations",
+        "Name": "ハコ図(2駅・図表示)",
+        "Trains": [
+          {
+            "Id": "diagram2-1",
+            "Direction": 1,
+            "TrainNumber": "D201",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "駅A", "Departure": "10:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:10:00", "IsLastStop": true }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "hako-diagram-3stations",
+        "Name": "ハコ図(3駅・図表示)",
+        "Trains": [
+          {
+            "Id": "diagram3-1",
+            "Direction": 1,
+            "TrainNumber": "D301",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "駅A", "Departure": "10:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram3-2",
+            "Direction": -1,
+            "TrainNumber": "D302",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "駅C", "Departure": "10:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:30:00", "IsLastStop": true }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "hako-diagram-4stations",
+        "Name": "ハコ図(4駅・図表示)",
+        "Trains": [
+          {
+            "Id": "diagram4-1",
+            "Direction": 1,
+            "TrainNumber": "D401",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "駅A", "Departure": "10:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram4-2",
+            "Direction": -1,
+            "TrainNumber": "D402",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "駅C", "Departure": "10:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:30:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram4-3",
+            "Direction": 1,
+            "TrainNumber": "D403",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "駅C", "Departure": "10:40:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "駅D", "Arrive": "10:50:00", "IsLastStop": true }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "hako-diagram-5stations",
+        "Name": "ハコ図(5駅・図表示)",
+        "Trains": [
+          {
+            "Id": "diagram5-1",
+            "Direction": 1,
+            "TrainNumber": "D501",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "駅A", "Departure": "10:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram5-2",
+            "Direction": -1,
+            "TrainNumber": "D502",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "駅C", "Departure": "10:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:30:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram5-3",
+            "Direction": 1,
+            "TrainNumber": "D503",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "駅C", "Departure": "10:40:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "駅D", "Arrive": "10:50:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram5-4",
+            "Direction": -1,
+            "TrainNumber": "D504",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 4000, "StationName": "駅E", "Departure": "11:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "駅D", "Arrive": "11:10:00", "IsLastStop": true }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "hako-diagram-6stations",
+        "Name": "ハコ図(6駅・図表示)",
+        "Trains": [
+          {
+            "Id": "diagram6-1",
+            "Direction": 1,
+            "TrainNumber": "D601",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "駅A", "Departure": "10:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram6-2",
+            "Direction": -1,
+            "TrainNumber": "D602",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "駅C", "Departure": "10:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:30:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram6-3",
+            "Direction": 1,
+            "TrainNumber": "D603",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "駅C", "Departure": "10:40:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "駅D", "Arrive": "10:50:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram6-4",
+            "Direction": -1,
+            "TrainNumber": "D604",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 4000, "StationName": "駅E", "Departure": "11:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "駅D", "Arrive": "11:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram6-5",
+            "Direction": 1,
+            "TrainNumber": "D605",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 4000, "StationName": "駅E", "Departure": "11:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 5000, "StationName": "駅F", "Arrive": "11:30:00", "IsLastStop": true }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "hako-diagram-7stations",
+        "Name": "ハコ図(7駅・図表示)",
+        "Trains": [
+          {
+            "Id": "diagram7-1",
+            "Direction": 1,
+            "TrainNumber": "D701",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "北", "Departure": "10:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "東京", "Arrive": "10:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-2",
+            "Direction": 1,
+            "TrainNumber": "D702",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 1000, "StationName": "東京", "Departure": "10:10:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 2000, "StationName": "名古屋", "Arrive": "10:20:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-3",
+            "Direction": 1,
+            "TrainNumber": "D703",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "名古屋", "Departure": "10:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "新大阪市", "Arrive": "10:30:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-4",
+            "Direction": 1,
+            "TrainNumber": "D704",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 3000, "StationName": "新大阪市", "Departure": "10:30:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 4000, "StationName": "南", "Arrive": "10:40:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-5",
+            "Direction": 1,
+            "TrainNumber": "D705",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 4000, "StationName": "南", "Departure": "10:40:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 5000, "StationName": "大阪", "Arrive": "10:50:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-6",
+            "Direction": 1,
+            "TrainNumber": "D706",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 5000, "StationName": "大阪", "Departure": "10:50:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 6000, "StationName": "神戸市", "Arrive": "11:00:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-7",
+            "Direction": -1,
+            "TrainNumber": "D707",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 6000, "StationName": "神戸市", "Departure": "11:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 5000, "StationName": "大阪", "Arrive": "11:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-8",
+            "Direction": -1,
+            "TrainNumber": "D708",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 5000, "StationName": "大阪", "Departure": "11:10:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 4000, "StationName": "南", "Arrive": "11:20:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-9",
+            "Direction": -1,
+            "TrainNumber": "D709",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 4000, "StationName": "南", "Departure": "11:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "新大阪市", "Arrive": "11:30:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-10",
+            "Direction": -1,
+            "TrainNumber": "D710",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 3000, "StationName": "新大阪市", "Departure": "11:30:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 2000, "StationName": "名古屋", "Arrive": "11:40:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-11",
+            "Direction": -1,
+            "TrainNumber": "D711",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "名古屋", "Departure": "11:40:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "東京", "Arrive": "11:50:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-12",
+            "Direction": -1,
+            "TrainNumber": "D712",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 1000, "StationName": "東京", "Departure": "11:50:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 0, "StationName": "北", "Arrive": "12:00:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-13",
+            "Direction": 1,
+            "TrainNumber": "D713",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "北", "Departure": "12:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "東京", "Arrive": "12:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-14",
+            "Direction": 1,
+            "TrainNumber": "D714",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 1000, "StationName": "東京", "Departure": "12:10:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 2000, "StationName": "名古屋", "Arrive": "12:20:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-15",
+            "Direction": 1,
+            "TrainNumber": "D715",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 2000, "StationName": "名古屋", "Departure": "12:20:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 3000, "StationName": "新大阪市", "Arrive": "12:30:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram7-16",
+            "Direction": 1,
+            "TrainNumber": "D716",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 3000, "StationName": "新大阪市", "Departure": "12:30:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 4000, "StationName": "南", "Arrive": "12:40:00", "IsLastStop": true }
+            ]
+          }
+        ]
+      },
+      {
+        "Id": "hako-diagram-8stations",
+        "Name": "ハコ図(8駅・一覧表示)",
+        "Trains": [
+          {
+            "Id": "diagram8-1",
+            "Direction": 1,
+            "TrainNumber": "D801",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 0, "StationName": "駅A", "Departure": "10:00:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 1000, "StationName": "駅B", "Arrive": "10:10:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram8-2",
+            "Direction": -1,
+            "TrainNumber": "D802",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 3000, "StationName": "駅D", "Departure": "10:15:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 2000, "StationName": "駅C", "Arrive": "10:25:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram8-3",
+            "Direction": 1,
+            "TrainNumber": "D803",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 4000, "StationName": "駅E", "Departure": "10:30:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 5000, "StationName": "駅F", "Arrive": "10:40:00", "IsLastStop": true }
+            ]
+          },
+          {
+            "Id": "diagram8-4",
+            "Direction": -1,
+            "TrainNumber": "D804",
+            "NextTrainId": "",
+            "TimetableRows": [
+              { "Id": "1", "Location_m": 7000, "StationName": "駅H", "Departure": "10:45:00", "TrackName": "1" },
+              { "Id": "2", "Location_m": 6000, "StationName": "駅G", "Arrive": "10:55:00", "IsLastStop": true }
+            ]
+          }
+        ]
+      }
+    ]
   }
 ]
