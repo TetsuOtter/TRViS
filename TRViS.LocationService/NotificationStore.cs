@@ -25,10 +25,18 @@ public sealed class NotificationStore
 		/// <summary>元の通告データ。</summary>
 		public NotificationData Data { get; }
 		public string? Id => Data.Id;
+		public string? OrderNumber => Data.OrderNumber;
 		public string? Title => Data.Title;
 		public string? Body => Data.Body;
 		public int Priority => Data.Priority;
 		public System.DateTimeOffset? IssuedAt => Data.IssuedAt;
+		/// <summary>true のとき <see cref="IssuedAt"/> は TZ 指定無し。表示側は値をそのまま (TZ 変換せず) 表示する。</summary>
+		public bool IssuedAtIsUnspecifiedTimeZone => Data.IssuedAtIsUnspecifiedTimeZone;
+		public string? Receiver => Data.Receiver;
+		public string? Sender => Data.Sender;
+		public string? IconText => Data.IconText;
+		public int? IconColor_RGB => Data.IconColor_RGB;
+		public string? IconImageBase64 => Data.IconImageBase64;
 
 		/// <summary>既読 (受領済み) か。</summary>
 		public bool IsRead { get; internal set; }
