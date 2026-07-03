@@ -213,6 +213,10 @@ InstallId: {0}</value></data>
   <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>外部ファイルを開く</value></data>
   <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>ファイル `{0}` を開きますか?</value></data>
   <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>ローカルパスが不正です</value></data>
+  <data name="AppLink_UnknownDestinationTitle" xml:space="preserve"><value>接続しますか?</value></data>
+  <data name="AppLink_UnknownDestinationBodyFormat" xml:space="preserve"><value>この接続先には過去に接続したことがありません。
+接続してもよろしいですか?
+接続先: {0}</value></data>
   <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>外部位置情報サービス</value></data>
   <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>位置情報等の取得元が指定されていますが、時刻表ファイルとは別のサーバーが指定されています。
 このサーバーを使用してもよろしいですか?

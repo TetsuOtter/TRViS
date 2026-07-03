@@ -211,6 +211,10 @@ Your InstallId: {0}</value></data>
   <data name="AppLink_OpenExternalFileTitle" xml:space="preserve"><value>Open external file</value></data>
   <data name="AppLink_OpenExternalFileFormat" xml:space="preserve"><value>Open file `{0}`?</value></data>
   <data name="AppLink_LocalPathInvalid" xml:space="preserve"><value>LocalPath is invalid</value></data>
+  <data name="AppLink_UnknownDestinationTitle" xml:space="preserve"><value>Connect?</value></data>
+  <data name="AppLink_UnknownDestinationBodyFormat" xml:space="preserve"><value>You have never connected to this destination before.
+Connect anyway?
+Destination: {0}</value></data>
   <data name="AppLink_ExternalLocationServiceTitle" xml:space="preserve"><value>External Location Service</value></data>
   <data name="AppLink_ExternalLocationServiceBodyFormat" xml:space="preserve"><value>A source for location info is specified, but it is a different server from the timetable file.
 Use this server?

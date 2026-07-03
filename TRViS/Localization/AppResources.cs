@@ -168,6 +168,8 @@ public static class AppResources
 	public static string AppLink_OpenExternalFileTitle => Get(nameof(AppLink_OpenExternalFileTitle));
 	public static string AppLink_OpenExternalFileFormat => Get(nameof(AppLink_OpenExternalFileFormat));
 	public static string AppLink_LocalPathInvalid => Get(nameof(AppLink_LocalPathInvalid));
+	public static string AppLink_UnknownDestinationTitle => Get(nameof(AppLink_UnknownDestinationTitle));
+	public static string AppLink_UnknownDestinationBodyFormat => Get(nameof(AppLink_UnknownDestinationBodyFormat));
 	public static string AppLink_ExternalLocationServiceTitle => Get(nameof(AppLink_ExternalLocationServiceTitle));
 	public static string AppLink_ExternalLocationServiceBodyFormat => Get(nameof(AppLink_ExternalLocationServiceBodyFormat));
 	public static string AppLink_CannotSetExternalLocationTitle => Get(nameof(AppLink_CannotSetExternalLocationTitle));
