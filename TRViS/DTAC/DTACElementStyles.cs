@@ -73,7 +73,11 @@ public static partial class DTACElementStyles
 	public const double DefaultTextSize = 16;
 	public const double DefaultTextSizePlus = 17;
 	public const double LargeTextSize = 24;
-	public const double AffectDateFontSize = 18;
+	public const double AffectDateFontSize = 20;
+	// Only the Hako tab's headers (乗務開始/乗務終了, diagram station names) use this — kept
+	// separate from HeaderLabelStyle's own FontSize so the Timetable tab's header label (also
+	// built via HeaderLabelStyle, in BeforeDeparture_AfterArrive) isn't affected.
+	public const double HakoHeaderFontSize = 20;
 	public const double BEFORE_REMARKS_FONT_SIZE = 17;
 	public const double AFTER_REMARKS_FONT_SIZE = 20;
 	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 32 : 30;
@@ -94,6 +98,11 @@ public static partial class DTACElementStyles
 	public const string DefaultFontFamily = "Hiragino Sans";
 	public const string MaterialIconFontFamily = "MaterialIconsRegular";
 	public const string TimetableNumFontFamily = "Helvetica";
+	// iOS only exposes Hiragino Sans as W3 (Regular)/W6 (Bold) — already fully used by
+	// FontAttributes.Bold elsewhere — so getting noticeably bolder than that (for
+	// 行路施行日/行路名) means switching to a different, heavier bundled font instead of a
+	// heavier Hiragino Sans weight.
+	public const string HakoBoldFontFamily = "NotoSansJPBold";
 
 	// Material Icons
 	public const string BackArrowIcon = "\ue5c4";
@@ -309,7 +318,7 @@ public static partial class DTACElementStyles
 		T v = LabelStyle<T>();
 
 		v.Margin = new(18, -8, 0, -8);
-		v.LineHeight = 1.4;
+		v.LineHeight = 1.2;
 		v.FontSize = AffectDateFontSize;
 		v.HorizontalOptions = LayoutOptions.Start;
 		v.VerticalOptions = LayoutOptions.Center;
@@ -323,9 +332,16 @@ public static partial class DTACElementStyles
 	{
 		T v = AffectDateLabelStyle<T>();
 
-		v.Margin = new(0, 0, v.Margin.Left, 0);
+		// Keep AffectDateLabelStyle's negative top/bottom margin (only override left/right) —
+		// now that this label matches AffectDate's FontSize/LineHeight, it needs the same bleed
+		// to fit its 2 lines in the fixed-height row; zeroing it out clipped the 2nd line off.
+		v.Margin = new(0, v.Margin.Top, v.Margin.Left, v.Margin.Bottom);
+		// Keep this label's own LineHeight (unlike AffectDateLabelStyle's) — it already looked
+		// right, so don't let it drift if AffectDate's LineHeight changes independently.
+		v.LineHeight = 1.0;
+		v.FontFamily = HakoBoldFontFamily;
 		v.FontAttributes = FontAttributes.Bold;
-		v.FontSize = DefaultTextSize;
+		v.FontSize = AffectDateFontSize;
 		v.Text = null;
 		v.HorizontalOptions = LayoutOptions.End;
 		v.HorizontalTextAlignment = TextAlignment.End;

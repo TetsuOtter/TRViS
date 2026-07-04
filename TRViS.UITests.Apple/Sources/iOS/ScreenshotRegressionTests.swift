@@ -297,6 +297,20 @@ class ScreenshotRegressionTests: BaseUITestCase {
         settle()
         capture(screen: "settings", theme: theme, lang: lang, failures: &failures)
 
+        // 12. Hako diagram (ハコ図) — dedicated Work with 7 turn-back stations,
+        // deterministically exercising the tablet-only diagram layout regardless
+        // of Work1-1's turn-back station count. Settings (step 11) left us off
+        // DTAC, so the seam buttons on StartHome are unreachable until we
+        // navigate home first.
+        _ = shell.navigateToHome()
+        let hako = start.seedHakoDiagramForTesting()
+        _ = hako.waitForHakoTrain(trainNumber: "D701")
+        // The train controls are created before SimpleView's busy overlay fades
+        // out. Wait for the framebuffer to stop changing so the activity
+        // indicator is never baked into a baseline or compared mid-animation.
+        settleUntilVisuallyStable(maxWait: 15.0)
+        capture(screen: "dtac-hako-diagram", theme: theme, lang: lang, failures: &failures)
+
         // Leave the app in a recoverable state for the next combo
         _ = shell.navigateToHome()
 
