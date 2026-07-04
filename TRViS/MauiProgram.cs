@@ -73,12 +73,18 @@ public static class MauiProgram
 				fonts.AddFont("NotoSansJP-Regular.ttf", "NotoSansJPRegular");
 				fonts.AddFont("NotoSansJP-Bold.ttf", "NotoSansJPBold");
 			})
-#if ANDROID || IOS
-			// In-app QR scanner (phone-only). Registers the BarcodeScanning
-			// CameraView handler used by RootPages/ScanQrPage.
-			.UseBarcodeScanning()
-#endif
 			.ConfigureFirebase();
+
+#if ANDROID
+		// Android's scanner handler is safe to register during startup.
+		builder.UseBarcodeScanning();
+#elif IOS
+		// BarcodeScanning.Native.Maui requires iOS 15.1. Do not execute any of
+		// its registration code on iOS 12-15.0; those versions create the
+		// AVFoundation fallback only when ScanQrPage is actually shown.
+		if (OperatingSystem.IsIOSVersionAtLeast(15, 1))
+			builder.UseBarcodeScanning();
+#endif
 
 		AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
@@ -221,4 +227,3 @@ public static class MauiProgram
 	}
 #endif
 }
-
