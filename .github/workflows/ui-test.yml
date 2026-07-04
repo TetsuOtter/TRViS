@@ -872,6 +872,12 @@ jobs:
             -exec codesign --force --sign "-" {} \;
           codesign --force --sign "-" "$APP_DIR"
           xcrun simctl install "$SIM_UDID" "$APP_DIR"
+          # Flush FrontBoard registration before XCUIApplication performs the
+          # first functional-test launch. On a fresh hosted simulator that cold
+          # launch can exceed XCTest's ~40 s launch timeout even though the app
+          # process starts successfully and remains alive.
+          xcrun simctl launch "$SIM_UDID" "${{ env.APP_PACKAGE }}" >/dev/null
+          xcrun simctl terminate "$SIM_UDID" "${{ env.APP_PACKAGE }}" || true
 
       - name: Generate Xcode project (iOS)
         working-directory: TRViS.UITests.Apple/ios

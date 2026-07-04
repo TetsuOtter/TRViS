@@ -145,14 +145,56 @@ class DTACViewHostPageObject {
 
     // MARK: — HakoRow train selection
 
-    /// Taps the ハコ row button for the given train number.
-    /// The button AutomationId is "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)"
-    /// (set only in UI_TEST builds via #if UI_TEST in SimpleRow.cs).
+    /// Waits until either the list or diagram layout has rendered the requested
+    /// train. Navigation to DTAC is asynchronous, so the screenshot walk must
+    /// not rely on a fixed delay after tapping its seed seam.
+    @discardableResult
+    func waitForHakoTrain(trainNumber: String, timeout: TimeInterval = 30) -> Bool {
+        let rowId = "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)"
+        let diagramId = "\(AutomationIds.DTAC.hakoDiagramButtonPrefix)\(trainNumber)"
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            for id in [rowId, diagramId] {
+                let element = app.descendants(matching: .any)
+                    .matching(identifier: id)
+                    .firstMatch
+                if element.exists &&
+                    element.frame.size.width > 0 &&
+                    element.frame.size.height > 0 {
+                    return true
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+
+        XCTFail("Neither HakoRow nor HakoDiagram rendered for train: \(trainNumber)")
+        return false
+    }
+
+    /// Taps the train-selection control for the given train number, whichever
+    /// ハコ layout is currently showing:
+    ///   - list layout (phone, or tablet with >7 turn-back stations): the row
+    ///     button "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)" (SimpleRow.cs)
+    ///   - diagram layout (tablet, <=7 turn-back stations): the train-number
+    ///     button "\(AutomationIds.DTAC.hakoDiagramButtonPrefix)\(trainNumber)" (DiagramView.cs)
+    /// Both are UI_TEST-only AutomationIds. Which one exists depends on
+    /// HakoDiagramLayoutCalculator.ShouldUseDiagramLayout, so try the row first
+    /// and fall back to the diagram button rather than asserting on layout mode.
     @discardableResult
     func selectHakoTrain(trainNumber: String) -> DTACViewHostPageObject {
-        let id = "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)"
-        guard let btn = firstDescendant(id: id, timeout: 15) else {
-            XCTFail("HakoRow not found: \(trainNumber)")
+        let rowId = "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)"
+        if let btn = firstDescendant(id: rowId, timeout: 5) {
+            btn.tap()
+            return self
+        }
+        let diagramId = "\(AutomationIds.DTAC.hakoDiagramButtonPrefix)\(trainNumber)"
+        guard let btn = firstDescendant(id: diagramId, timeout: 10) else {
+            let allIds = app.descendants(matching: .any).allElementsBoundByIndex
+                .compactMap { $0.identifier.isEmpty ? nil : $0.identifier }
+            print("[DEBUG] All non-empty identifiers in tree (\(allIds.count)): \(allIds)")
+            print("[DEBUG] full tree ===\n\(app.debugDescription)\n=== end full tree")
+            XCTFail("Neither HakoRow nor HakoDiagram button found for train: \(trainNumber)")
             return self
         }
         btn.tap()
