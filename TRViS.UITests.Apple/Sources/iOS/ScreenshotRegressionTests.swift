@@ -146,6 +146,21 @@ class ScreenshotRegressionTests: BaseUITestCase {
         // the first capture.
         Thread.sleep(forTimeInterval: 1.2)
 
+        // 0. StartHome — privacy policy not yet agreed (#287): reconfirm banner
+        // overlays the primary buttons and the flyout is disabled. Re-accept via
+        // the real Save path immediately after so the rest of the walk (and the
+        // flyout it depends on) proceeds from the normal accepted state.
+        start.clearPrivacyPolicyAcceptanceForTesting()
+        settle()
+        capture(screen: "startHome-privacyNotAgreed", theme: theme, lang: lang, failures: &failures)
+        start.acceptPrivacyPolicyIfNeeded()
+        // acceptPrivacyPolicyIfNeeded()'s internal 0.3 s wait is tuned for
+        // dismissing the dialog, not for the banner-hide/button-reveal
+        // animation this re-acceptance also triggers. Without this settle,
+        // the very next capture below lands mid-animation (~0.7% pixel diff
+        // on startHome-start, reproducibly, across all combos).
+        settle()
+
         // 1. StartHome — Start mode
         capture(screen: "startHome-start", theme: theme, lang: lang, failures: &failures)
 
@@ -244,10 +259,17 @@ class ScreenshotRegressionTests: BaseUITestCase {
             dtac.tapHorizontalTimetableButton()
             let ht = HorizontalTimetablePageObject(app: app, base: self)
             _ = waitForElement(id: AutomationIds.HorizontalTimetable.webView, timeout: 30)
-            // WebView first-paint is slower than a native page swap; the dark-theme
-            // first render in a session can take >1.5 s on loaded CI runners — use
-            // a generous fixed wait to prevent blank-screen captures.
-            Thread.sleep(forTimeInterval: 3.5)
+            // The wrapper is visible before WKWebView commits its first
+            // navigation. Waiting a fixed number of seconds was still racy on
+            // loaded iPad CI runners, occasionally capturing the dark page
+            // background instead of the transparent seeded PNG on WebView white.
+            guard waitForElement(
+                id: AutomationIds.HorizontalTimetable.webViewReady, timeout: 30
+            ) != nil else {
+                XCTFail("Horizontal timetable WebView did not finish navigation")
+                return
+            }
+            settle()
             capture(screen: "horizontalTimetable", theme: theme, lang: lang, failures: &failures)
             // Pop back to DTAC — HT is a Shell-pushed page, flyout unreachable from here
             _ = ht.tapBack()

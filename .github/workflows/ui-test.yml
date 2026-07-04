@@ -315,11 +315,16 @@ jobs:
           }
 
           start_emulator() {
+            # This helper is only used for retry attempts. The previous emulator
+            # may have died while Android was showing an app/system crash
+            # dialog; -no-snapshot alone preserves that dialog in userdata and
+            # poisons every test in the retry. Start from a genuinely clean AVD.
             $ANDROID_SDK_ROOT/emulator/emulator \
               -avd ${{ env.ANDROID_EMULATOR_AVD_NAME }} \
               -no-window \
               -gpu swiftshader_indirect \
               -no-snapshot \
+              -wipe-data \
               -noaudio \
               -no-boot-anim \
               -memory 6144 \
@@ -333,6 +338,17 @@ jobs:
             $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global transition_animation_scale 0.0
             $ANDROID_SDK_ROOT/platform-tools/adb shell settings put global animator_duration_scale 0.0
             $ANDROID_SDK_ROOT/platform-tools/adb shell input keyevent 82
+
+            # The original streaming adb process exits when attempt 1's device
+            # disappears. Capture the retry separately instead of leaving its
+            # failures without logcat coverage.
+            if [ -n "${LOGCAT_PID:-}" ]; then
+              kill "$LOGCAT_PID" 2>/dev/null || true
+            fi
+            $ANDROID_SDK_ROOT/platform-tools/adb logcat -c
+            $ANDROID_SDK_ROOT/platform-tools/adb logcat -v threadtime > "logcat-attempt-${1}.log" 2>&1 &
+            LOGCAT_PID=$!
+            echo "LOGCAT_PID=$LOGCAT_PID" >> "$GITHUB_ENV"
           }
 
           # First attempt uses the emulator + appium that the prior workflow
@@ -450,7 +466,7 @@ jobs:
             appium-attempt-*.log
             emulator.log
             emulator-attempt-*.log
-            logcat.log
+            logcat*.log
             **/*.trx
           if-no-files-found: ignore
 
@@ -783,7 +799,10 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-apple-xcuitest-ios:
     runs-on: macos-26
-    timeout-minutes: 20
+    # A successful main run currently takes about 18.5 minutes. A 20-minute
+    # ceiling leaves too little room for normal simulator variance and cancels
+    # the suite while tests are still passing.
+    timeout-minutes: 30
     needs: build-ios
 
     steps:
