@@ -66,6 +66,17 @@ public class HorizontalTimetablePage : ContentPage
 		// Microsoft.UI.Xaml.Controls.WebView2) を XPath / By.ClassName でフォール
 		// バックしている (HorizontalTimetablePageObject.cs)。
 		ContentWebView = new WebView();
+#if UI_TEST
+		// The host Grid is laid out before WKWebView has committed its first
+		// navigation, so waiting for HorizontalTimetable.WebView alone can still
+		// capture the page background. Expose a separate iOS-visible identifier
+		// only after the seeded image/HTML navigation has completed.
+		ContentWebView.Navigated += (_, e) =>
+		{
+			if (e.Result == WebNavigationResult.Success)
+				ContentWebView.AutomationId = "HorizontalTimetable.WebView.Ready";
+		};
+#endif
 		var webViewHost = new Grid
 		{
 			AutomationId = "HorizontalTimetable.WebView",
