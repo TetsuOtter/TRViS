@@ -303,8 +303,12 @@ class ScreenshotRegressionTests: BaseUITestCase {
         // DTAC, so the seam buttons on StartHome are unreachable until we
         // navigate home first.
         _ = shell.navigateToHome()
-        _ = start.seedHakoDiagramForTesting()
-        Thread.sleep(forTimeInterval: 0.5)
+        let hako = start.seedHakoDiagramForTesting()
+        _ = hako.waitForHakoTrain(trainNumber: "D701")
+        // The train controls are created before SimpleView's busy overlay fades
+        // out. Wait for the framebuffer to stop changing so the activity
+        // indicator is never baked into a baseline or compared mid-animation.
+        settleUntilVisuallyStable(maxWait: 15.0)
         capture(screen: "dtac-hako-diagram", theme: theme, lang: lang, failures: &failures)
 
         // Leave the app in a recoverable state for the next combo

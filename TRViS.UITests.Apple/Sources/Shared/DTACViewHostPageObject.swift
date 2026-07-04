@@ -145,6 +145,33 @@ class DTACViewHostPageObject {
 
     // MARK: — HakoRow train selection
 
+    /// Waits until either the list or diagram layout has rendered the requested
+    /// train. Navigation to DTAC is asynchronous, so the screenshot walk must
+    /// not rely on a fixed delay after tapping its seed seam.
+    @discardableResult
+    func waitForHakoTrain(trainNumber: String, timeout: TimeInterval = 30) -> Bool {
+        let rowId = "\(AutomationIds.DTAC.hakoRowPrefix)\(trainNumber)"
+        let diagramId = "\(AutomationIds.DTAC.hakoDiagramButtonPrefix)\(trainNumber)"
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            for id in [rowId, diagramId] {
+                let element = app.descendants(matching: .any)
+                    .matching(identifier: id)
+                    .firstMatch
+                if element.exists &&
+                    element.frame.size.width > 0 &&
+                    element.frame.size.height > 0 {
+                    return true
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+
+        XCTFail("Neither HakoRow nor HakoDiagram rendered for train: \(trainNumber)")
+        return false
+    }
+
     /// Taps the train-selection control for the given train number, whichever
     /// ハコ layout is currently showing:
     ///   - list layout (phone, or tablet with >7 turn-back stations): the row
