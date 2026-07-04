@@ -137,6 +137,8 @@ public partial class ScanQrPage : ContentPage
 			{
 				TapToFocusEnabled = true,
 				VibrationOnDetected = false,
+				BarcodeSymbologies = BarcodeFormats.QRCode,
+				CaptureQuality = CaptureQuality.Medium,
 			};
 			_modernScanner.OnDetectionFinished += OnDetectionFinished;
 			CameraHost.Content = _modernScanner;
