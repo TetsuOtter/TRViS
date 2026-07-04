@@ -144,8 +144,9 @@ enum AutomationIds {
 
     /// Horizontal timetable page (PNG/JPG/PDF/URI displayed in a WebView).
     enum HorizontalTimetable {
-        static let webView    = "HorizontalTimetable.WebView"
-        static let backButton = "HorizontalTimetable.BackButton"
+        static let webView      = "HorizontalTimetable.WebView"
+        static let webViewReady = "HorizontalTimetable.WebView.Ready"
+        static let backButton   = "HorizontalTimetable.BackButton"
     }
 
     enum ThirdParty {
