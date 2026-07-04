@@ -36,9 +36,10 @@
 		<NeutralLanguage>en</NeutralLanguage>
 		<NoWarn>$(NoWarn);NU1608</NoWarn>
 		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">false</ValidateXcodeVersion>
-		<!-- In-app QR scanner (BarcodeScanning.Native.Maui) is phone-only: it uses
-		     native MLKit (Android) / Vision (iOS). The scan button and ScanQrPage
-		     are compiled only for these TFMs; desktop keeps the manual-URL flow.
+		<!-- In-app QR scanner is phone-only. Android and iOS 15.1+ use
+		     BarcodeScanning.Native.Maui; iOS 12.2-15.0 uses an AVFoundation
+		     fallback. The scan page is compiled only for phone TFMs; desktop
+		     keeps the manual-URL flow.
 		     The library also supports MacCatalyst/Windows, but scanning a QR with a
 		     desktop webcam is not a target workflow and pulling the native/ZXingCpp
 		     dependencies into those builds is avoided. -->
@@ -140,9 +141,9 @@
 			Include="BarcodeScanning.Native.Maui"
 			Version="3.0.4" />
 	</ItemGroup>
-	<!-- The scanner page references BarcodeScanning's CameraView, whose assembly
-	     is only referenced on mobile TFMs. Exclude the page (and its generated
-	     XAML partial) from desktop builds so they still compile. -->
+	<!-- The scanner page's modern backend references BarcodeScanning.CameraView,
+	     whose assembly is only referenced on mobile TFMs. Exclude the page (and
+	     its generated XAML partial) from desktop builds so they still compile. -->
 	<ItemGroup Condition="'$(IsMobileTarget)' != 'true'">
 		<MauiXaml Remove="RootPages\ScanQrPage.xaml" />
 		<Compile Remove="RootPages\ScanQrPage.xaml.cs" />

@@ -24,6 +24,7 @@ public partial class ScanQrPage : ContentPage
 	// fires repeatedly while a code stays in frame, so a plain bool is enough
 	// to ensure we handle the first accepted TRViS link exactly once.
 	private bool _handled;
+	private CameraView? _modernScanner;
 
 	public ScanQrPage()
 	{
@@ -33,12 +34,8 @@ public partial class ScanQrPage : ContentPage
 #if UI_TEST
 		// The CI emulator has no usable camera, and initializing the live
 		// CameraView there stalls the GL/surface pipeline (10 s+ frame times) so
-		// the page never renders for Appium. The E2E drives the "only TRViS
-		// AppLinks" gate through the hidden seam buttons instead of a real
-		// detection, so drop the camera preview entirely (and never request
-		// camera permission — see OnAppearing). Every other Barcode access is
-		// compiled out under UI_TEST for the same reason.
-		RootLayout.Children.Remove(Barcode);
+		// the page never renders for Appium. The camera is not inserted into
+		// CameraHost in UI_TEST; hidden seam buttons drive the AppLink gate.
 		BuildTestSeamButtons();
 #endif
 	}
@@ -86,6 +83,34 @@ public partial class ScanQrPage : ContentPage
 		await Task.CompletedTask;
 		return;
 #else
+		try
+		{
+#if IOS
+			if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
+			{
+				if (!await StartLegacyIosScannerAsync())
+					await HandlePermissionDeniedAsync();
+				return;
+			}
+#endif
+			await StartModernScannerAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Starting QR scanner failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ScanQrPage.OnAppearing (start scanner)");
+			await Util.DisplayAlertAsync(
+				AppResources.Common_Error,
+				AppResources.ScanQr_OpenFailedMessage,
+				AppResources.Common_OK);
+			await CloseAsync();
+		}
+#endif
+	}
+
+#if !UI_TEST
+	private async Task StartModernScannerAsync()
+	{
 		// The library owns the platform permission request (camera, and on
 		// Android the auto-granted VIBRATE). Ask before enabling the preview.
 		bool granted;
@@ -102,18 +127,37 @@ public partial class ScanQrPage : ContentPage
 
 		if (!granted)
 		{
-			logger.Warn("Camera permission not granted -> closing scanner");
-			await Util.DisplayAlertAsync(
-				AppResources.ScanQr_PermissionDeniedTitle,
-				AppResources.ScanQr_PermissionDeniedBody,
-				AppResources.Common_OK);
-			await CloseAsync();
+			await HandlePermissionDeniedAsync();
 			return;
 		}
 
-		Barcode.CameraEnabled = true;
-#endif
+		if (_modernScanner is null)
+		{
+			_modernScanner = new CameraView
+			{
+				TapToFocusEnabled = true,
+				VibrationOnDetected = false,
+				BarcodeSymbologies = BarcodeFormats.QRCode,
+				CaptureQuality = CaptureQuality.Medium,
+			};
+			_modernScanner.OnDetectionFinished += OnDetectionFinished;
+			CameraHost.Content = _modernScanner;
+		}
+
+		_modernScanner.PauseScanning = false;
+		_modernScanner.CameraEnabled = true;
 	}
+
+	private async Task HandlePermissionDeniedAsync()
+	{
+		logger.Warn("Camera permission not granted -> closing scanner");
+		await Util.DisplayAlertAsync(
+			AppResources.ScanQr_PermissionDeniedTitle,
+			AppResources.ScanQr_PermissionDeniedBody,
+			AppResources.Common_OK);
+		await CloseAsync();
+	}
+#endif
 
 	protected override void OnDisappearing()
 	{
@@ -122,7 +166,7 @@ public partial class ScanQrPage : ContentPage
 		// Release the camera whenever the page leaves the screen (successful
 		// scan, close button, OS-level dismissal). Handler disconnection is
 		// automatic from .NET MAUI 9, so nothing else is required.
-		Barcode.CameraEnabled = false;
+		StopScanner();
 #endif
 	}
 
@@ -170,8 +214,9 @@ public partial class ScanQrPage : ContentPage
 
 		logger.Info("Accepted TRViS AppLink from QR: {0}", trvisLink);
 #if !UI_TEST
-		Barcode.PauseScanning = true;
-		Barcode.CameraEnabled = false;
+		if (_modernScanner is not null)
+			_modernScanner.PauseScanning = true;
+		StopScanner();
 #endif
 
 		// Haptic confirmation, fired only once a TRViS AppLink is accepted (the
@@ -206,7 +251,7 @@ public partial class ScanQrPage : ContentPage
 	{
 		logger.Trace("Close clicked");
 #if !UI_TEST
-		Barcode.CameraEnabled = false;
+		StopScanner();
 #endif
 		await CloseAsync();
 	}
@@ -214,20 +259,50 @@ public partial class ScanQrPage : ContentPage
 	private void OnTorchClicked(object sender, EventArgs e)
 	{
 #if !UI_TEST
-		Barcode.TorchOn = !Barcode.TorchOn;
-		logger.Trace("Torch toggled -> {0}", Barcode.TorchOn);
+#if IOS
+		if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
+		{
+			ToggleLegacyIosTorch();
+			return;
+		}
+#endif
+		if (_modernScanner is not null)
+		{
+			_modernScanner.TorchOn = !_modernScanner.TorchOn;
+			logger.Trace("Torch toggled -> {0}", _modernScanner.TorchOn);
+		}
 #endif
 	}
+
+#if !UI_TEST
+	private void StopScanner()
+	{
+#if IOS
+		if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
+		{
+			StopLegacyIosScanner();
+			return;
+		}
+#endif
+		if (_modernScanner is not null)
+			_modernScanner.CameraEnabled = false;
+	}
+#endif
 
 	private async Task CloseAsync()
 	{
 		try
 		{
+#if IOS && !UI_TEST
+			if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
+				await DisposeLegacyIosScannerAsync();
+#endif
 			await Navigation.PopModalAsync();
 		}
 		catch (Exception ex)
 		{
 			logger.Error(ex, "PopModalAsync failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "ScanQrPage.CloseAsync (PopModalAsync failed)");
 		}
 	}
 

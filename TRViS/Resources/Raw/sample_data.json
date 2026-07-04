@@ -1269,6 +1269,7 @@
       {
         "Id": "hako-diagram-2stations",
         "Name": "ハコ図(2駅・図表示)",
+        "AffectDate": "20260704",
         "Trains": [
           {
             "Id": "diagram2-1",
@@ -1285,6 +1286,7 @@
       {
         "Id": "hako-diagram-3stations",
         "Name": "ハコ図(3駅・図表示)",
+        "AffectDate": "20260704",
         "Trains": [
           {
             "Id": "diagram3-1",
@@ -1311,6 +1313,7 @@
       {
         "Id": "hako-diagram-4stations",
         "Name": "ハコ図(4駅・図表示)",
+        "AffectDate": "20260704",
         "Trains": [
           {
             "Id": "diagram4-1",
@@ -1347,6 +1350,7 @@
       {
         "Id": "hako-diagram-5stations",
         "Name": "ハコ図(5駅・図表示)",
+        "AffectDate": "20260704",
         "Trains": [
           {
             "Id": "diagram5-1",
@@ -1393,6 +1397,7 @@
       {
         "Id": "hako-diagram-6stations",
         "Name": "ハコ図(6駅・図表示)",
+        "AffectDate": "20260704",
         "Trains": [
           {
             "Id": "diagram6-1",
@@ -1449,6 +1454,7 @@
       {
         "Id": "hako-diagram-7stations",
         "Name": "ハコ図(7駅・図表示)",
+        "AffectDate": "20260704",
         "Trains": [
           {
             "Id": "diagram7-1",
@@ -1615,6 +1621,7 @@
       {
         "Id": "hako-diagram-8stations",
         "Name": "ハコ図(8駅・一覧表示)",
+        "AffectDate": "20260704",
         "Trains": [
           {
             "Id": "diagram8-1",
