@@ -54,6 +54,9 @@ internal static class MaterialIcons
 	/// <summary>close — modal/dialog dismiss.</summary>
 	public const string Close = "\uE5CD";
 
+	/// <summary>fullscreen - open the separated full-scroll D-TAC page.</summary>
+	public const string Fullscreen = "\uE5D0";
+
 	/// <summary>arrow_upward — "go up one folder" affordance.</summary>
 	public const string ArrowUpward = "\uE5D8";
 

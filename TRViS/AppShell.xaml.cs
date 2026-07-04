@@ -28,6 +28,7 @@ public partial class AppShell : Shell
 		logger.Trace("AppShell Creating");
 
 		Routing.RegisterRoute(HorizontalTimetablePage.NameOfThisClass, typeof(HorizontalTimetablePage));
+		Routing.RegisterRoute(FullScrollVerticalTimetablePage.NameOfThisClass, typeof(FullScrollVerticalTimetablePage));
 		logger.Info("Application Version: {0}", AppVersionString);
 
 		EasterEggPageViewModel easterEggPageViewModel = InstanceManager.EasterEggPageViewModel;
