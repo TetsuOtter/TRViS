@@ -2,25 +2,19 @@
 <ContentPage
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:barcode="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
 	xmlns:loc="clr-namespace:TRViS.Localization"
 	x:Class="TRViS.RootPages.ScanQrPage"
 	BackgroundColor="Black"
 	Title="{loc:Translate ScanQr_Title}">
 
 	<AbsoluteLayout x:Name="RootLayout">
-		<!-- Live camera preview. BarcodeSymbologies is restricted to QRCode so
-		     the native detector ignores 1-D barcodes / DataMatrix / etc.; the
-		     "only TRViS AppLink" gate is enforced separately in code-behind. -->
-		<barcode:CameraView
-			x:Name="Barcode"
+		<!-- The actual camera is inserted only after this page appears. This is
+		     deliberately a neutral host: iOS 12 gets an AVFoundation preview,
+		     while newer iOS and Android get BarcodeScanning.CameraView. -->
+		<ContentView
+			x:Name="CameraHost"
 			AbsoluteLayout.LayoutFlags="All"
-			AbsoluteLayout.LayoutBounds="0,0,1,1"
-			BarcodeSymbologies="QRCode"
-			CaptureQuality="Medium"
-			TapToFocusEnabled="True"
-			VibrationOnDetected="False"
-			OnDetectionFinished="OnDetectionFinished"/>
+			AbsoluteLayout.LayoutBounds="0,0,1,1"/>
 
 		<!-- Centered viewfinder guide (visual only; InputTransparent so taps
 		     reach the camera for tap-to-focus). -->

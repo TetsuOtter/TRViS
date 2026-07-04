@@ -99,18 +99,13 @@ public partial class StartGridView : Grid
 			});
 
 		// The in-app QR scanner (ScanQrPage / BarcodeScanning) is compiled on
-		// phone TFMs only, and its native backend has a higher OS floor than the
-		// app itself (MLKit needs Android 24, Vision/AVFoundation needs iOS 15.1;
-		// the app supports Android 23 / iOS 12.2). Hide the entry button where
-		// the scanner isn't available so those users never reach a CameraView
-		// that would crash. Everything else keeps the manual URL / file flow.
+		// phone TFMs only. Android's MLKit backend needs Android 24. On iOS
+		// 15.1+ BarcodeScanning.Native.Maui is used; iOS 12.2-15.0 uses the
+		// lazily-created AVFoundation fallback in ScanQrPage.
 #if ANDROID
 		if (!OperatingSystem.IsAndroidVersionAtLeast(24))
 			ScanQrButton.IsVisible = false;
-#elif IOS
-		if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
-			ScanQrButton.IsVisible = false;
-#else
+#elif !IOS
 		ScanQrButton.IsVisible = false;
 #endif
 	}
