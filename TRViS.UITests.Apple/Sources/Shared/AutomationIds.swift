@@ -54,6 +54,9 @@ enum AutomationIds {
         static let testForceDarkThemeButton  = "StartHome.TestForceDarkThemeButton"
         // Reset theme to Unspecified (follow OS) after the screenshot walk.
         static let testResetThemeButton = "StartHome.TestResetThemeButton"
+        // Clears in-memory privacy-policy acceptance so the reconfirm banner
+        // reappears, for capturing the not-yet-agreed VRT state (#287).
+        static let testClearPrivacyPolicyButton = "StartHome.TestClearPrivacyPolicyButton"
 
         // GPS seed seam (DTACTimetableTests)
         static let testSeedGpsButton    = "StartHome.TestSeedGpsButton"
