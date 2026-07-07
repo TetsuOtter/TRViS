@@ -104,10 +104,16 @@ public partial class AppViewModel : ObservableObject
 	}
 
 	partial void OnIsServerConnectionLostChanged(bool value)
-		=> OnPropertyChanged(nameof(ServerConnectionStatus));
+	{
+		OnPropertyChanged(nameof(ServerConnectionStatus));
+		OnPropertyChanged(nameof(IsTrainSearchAvailable));
+	}
 
 	partial void OnIsServerReconnectingChanged(bool value)
-		=> OnPropertyChanged(nameof(ServerConnectionStatus));
+	{
+		OnPropertyChanged(nameof(ServerConnectionStatus));
+		OnPropertyChanged(nameof(IsTrainSearchAvailable));
+	}
 
 	/// <summary>
 	/// Raised after a server-driven load (HTTP / WebSocket TRViS.LocalServers
@@ -164,6 +170,76 @@ public partial class AppViewModel : ObservableObject
 	{
 		get => SelectionManager.SelectedTrainData;
 		set => SelectionManager.SelectedTrainData = value;
+	}
+
+	// ================================================================
+	// 列車検索 (Issue #197): 検索して選択した列車の行路 (WorkGroup/Work) へ
+	// 完全に切り替える。ヘッダの行路番号も含め、通常の行路選択と同じ扱いになる
+	// (サーバー起点の SelectTrain コマンドと同じ ID ルックアップパターン、
+	// OnTrainSelectionRequested 参照)。
+	// ================================================================
+
+	/// <summary>
+	/// サーバーが列車検索に対応し、かつ WebSocket 接続中かどうか。QuickSwitchPopup の
+	/// 検索タブの表示可否に使う。オフライン (接続断/再接続中) の間は検索できないため
+	/// 併せて非表示にする。
+	/// </summary>
+	public bool IsTrainSearchAvailable
+		=> Loader is WebSocketNetworkSyncService ws
+			&& ws.IsFeatureSupported(ServerFeatureIds.TrainSearch)
+			&& ServerConnectionStatus == ServerConnectionStatus.Connected;
+
+	/// <summary>
+	/// 列番でサーバーに列車を検索する。<see cref="IsTrainSearchAvailable"/> が true のときのみ有効。
+	/// </summary>
+	public Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
+		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, System.Threading.CancellationToken cancellationToken = default)
+	{
+		if (Loader is not WebSocketNetworkSyncService ws)
+			throw new InvalidOperationException("Train search requires a WebSocket connection.");
+		return ws.SearchTrainAsync(trainNumber, matchMode, cancellationToken);
+	}
+
+	/// <summary>
+	/// 検索候補の完全な時刻表を取得する (2 段階目)。切替先の行路の列車データを
+	/// キャッシュへ確実に反映させるため、<see cref="SwitchToSearchedTrain"/> の前に呼ぶ。
+	/// </summary>
+	public Task<TrainData?> FetchSearchedTrainTimetableAsync(
+		TrainSearchResult result, System.Threading.CancellationToken cancellationToken = default)
+	{
+		if (Loader is not WebSocketNetworkSyncService ws)
+			throw new InvalidOperationException("Train timetable fetch requires a WebSocket connection.");
+		return ws.FetchSearchedTrainTimetableAsync(result, cancellationToken);
+	}
+
+	/// <summary>
+	/// 検索して選択した列車の行路へ完全に切り替える。WorkGroupId/WorkId/TrainId を
+	/// 既存のリストから ID で解決し、SelectionManager の選択を差し替える。
+	/// 該当 ID が (まだ) キャッシュに存在しない場合は該当階層の切替をスキップする
+	/// (OnTrainSelectionRequested と同じ挙動)。
+	/// </summary>
+	public void SwitchToSearchedTrain(string? workGroupId, string? workId, string? trainId)
+	{
+		if (workGroupId is not null)
+		{
+			var wg = SelectionManager.WorkGroupList?.FirstOrDefault(w => w.Id == workGroupId);
+			if (wg is not null && SelectionManager.SelectedWorkGroup?.Id != wg.Id)
+				SelectionManager.SelectedWorkGroup = wg;
+		}
+
+		if (workId is not null)
+		{
+			var work = SelectionManager.WorkList?.FirstOrDefault(w => w.Id == workId);
+			if (work is not null && SelectionManager.SelectedWork?.Id != work.Id)
+				SelectionManager.SelectedWork = work;
+		}
+
+		if (trainId is not null)
+		{
+			var train = SelectionManager.OrderedTrainDataList?.FirstOrDefault(t => t.Id == trainId);
+			if (train is not null && SelectionManager.SelectedTrainData?.Id != train.Id)
+				SelectionManager.SelectedTrainData = train;
+		}
 	}
 
 	bool _IsBgAppIconVisible = true;
@@ -365,6 +441,7 @@ public partial class AppViewModel : ObservableObject
 
 		// Loader 型が変わると ServerConnectionStatus の None 判定が変わる (#266)。
 		OnPropertyChanged(nameof(ServerConnectionStatus));
+		OnPropertyChanged(nameof(IsTrainSearchAvailable));
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
