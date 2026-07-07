@@ -24,8 +24,6 @@ public static class AppResources
 
 	public static string QuickSwitch_Tab_Search => Get(nameof(QuickSwitch_Tab_Search));
 	public static string QuickSwitch_Search_NumberPlaceholder => Get(nameof(QuickSwitch_Search_NumberPlaceholder));
-	public static string QuickSwitch_Search_Button => Get(nameof(QuickSwitch_Search_Button));
-	public static string QuickSwitch_Search_ReturnToScheduled => Get(nameof(QuickSwitch_Search_ReturnToScheduled));
 	public static string QuickSwitch_Search_Searching => Get(nameof(QuickSwitch_Search_Searching));
 	public static string QuickSwitch_Search_NoResults => Get(nameof(QuickSwitch_Search_NoResults));
 	public static string QuickSwitch_Search_Timeout => Get(nameof(QuickSwitch_Search_Timeout));

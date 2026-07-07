@@ -97,24 +97,14 @@
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 
-				<Button
-					x:Name="ReturnToScheduledButton"
-					AutomationId="DTAC.QuickSwitch.ReturnToScheduled"
-					Grid.Row="0"
-					Margin="0,0,0,8"
-					IsVisible="False"
-					Clicked="ReturnToScheduledButton_Clicked"/>
-
 				<Grid
-					Grid.Row="1"
+					Grid.Row="0"
 					Margin="0,0,0,8">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="4"/>
 						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
 
@@ -123,20 +113,23 @@
 						AutomationId="DTAC.QuickSwitch.SearchEntry"
 						Grid.Column="0"
 						Keyboard="Numeric"
-						ReturnType="Search"
-						Completed="SearchButton_Clicked"/>
+						TextChanged="TrainNumberEntry_TextChanged"/>
 
-					<Button
-						x:Name="SearchButton"
-						AutomationId="DTAC.QuickSwitch.SearchButton"
-						Grid.Column="2"
-						Clicked="SearchButton_Clicked"/>
+					<ActivityIndicator
+						x:Name="SearchLoadingIndicator"
+						AutomationId="DTAC.QuickSwitch.SearchLoading"
+						Grid.Column="1"
+						WidthRequest="24"
+						HeightRequest="24"
+						Margin="8,0,0,0"
+						IsRunning="False"
+						IsVisible="False"/>
 				</Grid>
 
 				<Label
 					x:Name="SearchStatusLabel"
 					AutomationId="DTAC.QuickSwitch.SearchStatus"
-					Grid.Row="2"
+					Grid.Row="1"
 					Margin="4,0,4,8"
 					IsVisible="False"
 					FontSize="13"/>
@@ -144,7 +137,7 @@
 				<CollectionView
 					x:Name="SearchResultsView"
 					AutomationId="DTAC.QuickSwitch.SearchResults"
-					Grid.Row="3"
+					Grid.Row="2"
 					SelectionMode="Single"
 					SelectionChanged="SearchResultsView_SelectionChanged">
 					<CollectionView.ItemTemplate>

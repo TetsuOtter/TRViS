@@ -189,10 +189,9 @@ public static class AutomationIds
 		{
 			public const string SearchTab = "DTAC.QuickSwitch.SearchTab";
 			public const string SearchEntry = "DTAC.QuickSwitch.SearchEntry";
-			public const string SearchButton = "DTAC.QuickSwitch.SearchButton";
+			public const string SearchLoading = "DTAC.QuickSwitch.SearchLoading";
 			public const string SearchStatus = "DTAC.QuickSwitch.SearchStatus";
 			public const string SearchResults = "DTAC.QuickSwitch.SearchResults";
-			public const string ReturnToScheduled = "DTAC.QuickSwitch.ReturnToScheduled";
 		}
 
 		public const string StartEndRunButton = "DTAC.StartEndRunButton";

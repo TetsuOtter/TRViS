@@ -453,13 +453,9 @@ public class DTACViewHostPageObject : PageObject
 		entry.SendKeys(number);
 	}
 
-	public void TapSearch()
-	{
-		FindByAutomationId(AutomationIds.DTAC.QuickSwitch.SearchButton).Click();
-		Thread.Sleep(300);
-	}
-
-	/// <summary>Waits for a search result row (its AutomationId is the candidate's TrainId).</summary>
+	/// <summary>Waits for a search result row (its AutomationId is the candidate's TrainId).
+	/// Search runs automatically (debounced) as the train number is typed — there is no
+	/// search button to tap.</summary>
 	public bool WaitForSearchResult(string trainId, double timeoutSeconds = 5)
 		=> PollDisplayed(trainId, timeoutSeconds);
 
@@ -487,16 +483,7 @@ public class DTACViewHostPageObject : PageObject
 		catch { /* no alert surfaced */ }
 	}
 
-	public void TapReturnToScheduled()
-	{
-		FindByAutomationId(AutomationIds.DTAC.QuickSwitch.ReturnToScheduled).Click();
-		Thread.Sleep(300);
-	}
-
-	/// <summary>
-	/// True when the ハコ tab is present. While a searched train is displayed it is
-	/// hidden (Issue #197) and this returns false.
-	/// </summary>
+	/// <summary>True when the ハコ tab is present.</summary>
 	public bool IsHakoTabPresent(double timeoutSeconds = 3)
 		=> PollDisplayed(AutomationIds.DTAC.TabHako, timeoutSeconds);
 }

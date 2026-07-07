@@ -62,8 +62,6 @@
   <data name="Common_Cancel" xml:space="preserve"><value>キャンセル</value></data>
   <data name="QuickSwitch_Tab_Search" xml:space="preserve"><value>検索</value></data>
   <data name="QuickSwitch_Search_NumberPlaceholder" xml:space="preserve"><value>列番</value></data>
-  <data name="QuickSwitch_Search_Button" xml:space="preserve"><value>検索</value></data>
-  <data name="QuickSwitch_Search_ReturnToScheduled" xml:space="preserve"><value>所定列車に戻る</value></data>
   <data name="QuickSwitch_Search_Searching" xml:space="preserve"><value>検索中...</value></data>
   <data name="QuickSwitch_Search_NoResults" xml:space="preserve"><value>該当する列車が見つかりませんでした。</value></data>
   <data name="QuickSwitch_Search_Timeout" xml:space="preserve"><value>サーバーが応答しませんでした。もう一度お試しください。</value></data>

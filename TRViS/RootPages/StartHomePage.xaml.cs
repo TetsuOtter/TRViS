@@ -1471,9 +1471,10 @@ public partial class StartHomePage : ContentPage
 
 	// UI_TEST-only seam (Issue #197): builds a WebSocket-TYPED loader with sample
 	// data AND a canned train-search dataset (feature TrainSearch enabled), commits
-	// the first WG/Work and navigates to DTAC. On DTAC the QuickSwitch popup then
-	// shows the Search tab; the E2E searches "9999", picks the result, confirms and
-	// verifies the searched train is displayed with the ハコ tab hidden. Network-free.
+	// the first WG/Work and navigates to DTAC. The canned search result belongs to a
+	// DIFFERENT WG/Work so the E2E can verify a full duty switch (not just a train
+	// swap). On DTAC the QuickSwitch popup shows the Search tab; the E2E types "9999",
+	// picks the result, confirms, and verifies the header/行路 switched. Network-free.
 	//
 	// Placed in the proven-visible seam band (y=312) in a third clear column
 	// (left=60), matching the off-screen-iPhone-safe placement of the sibling seams.
@@ -1507,12 +1508,25 @@ public partial class StartHomePage : ContentPage
 				new System.Net.WebSockets.ClientWebSocket());
 			service.SeedCachesFromLoaderForTesting(sample);
 
+			// Committed selection: the first WorkGroup/Work in the sample data.
 			var wg = sample.GetWorkGroupList().FirstOrDefault();
 			var work = wg is null ? null : service.GetWorkList(wg.Id)?.FirstOrDefault();
-			var baseTrain = work is null ? null : service.GetTrainDataList(work.Id)?.FirstOrDefault();
-			if (wg is null || work is null || baseTrain is null)
+			if (wg is null || work is null)
 			{
 				logger.Warn("TestSimulateWebSocketSearch: sample data missing — aborting");
+				sample.Dispose();
+				return;
+			}
+
+			// The searched train belongs to a DIFFERENT WorkGroup/Work than the committed
+			// selection, so the E2E can verify the search-driven switch changes the whole
+			// duty (including the header's 行路番号), not just the displayed train.
+			var searchWg = sample.GetWorkGroupList().Skip(1).FirstOrDefault();
+			var searchWork = searchWg is null ? null : service.GetWorkList(searchWg.Id)?.FirstOrDefault();
+			var baseTrain = searchWork is null ? null : service.GetTrainDataList(searchWork.Id)?.FirstOrDefault();
+			if (searchWg is null || searchWork is null || baseTrain is null)
+			{
+				logger.Warn("TestSimulateWebSocketSearch: sample data missing a second WorkGroup — aborting");
 				sample.Dispose();
 				return;
 			}
@@ -1520,7 +1534,7 @@ public partial class StartHomePage : ContentPage
 			// A canned "searched" train derived from a sample train, with a distinct number.
 			var searchedTrain = baseTrain with { Id = "uitest-searched-9999", TrainNumber = "9999" };
 			var summary = new NetworkSyncService.TrainSearchResult(
-				wg.Id, work.Id, searchedTrain.Id, "9999", "検索行路", 1,
+				searchWg.Id, searchWork.Id, searchedTrain.Id, "9999", searchWork.Name, 1,
 				"始発駅", "09:00", "終着駅", "10:00");
 			service.SeedTrainSearchForTesting(new[] { (summary, searchedTrain) });
 			sample.Dispose();

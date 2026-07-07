@@ -64,8 +64,6 @@
   <data name="Common_No" xml:space="preserve"><value>No</value></data>
   <data name="QuickSwitch_Tab_Search" xml:space="preserve"><value>Search</value></data>
   <data name="QuickSwitch_Search_NumberPlaceholder" xml:space="preserve"><value>Train no.</value></data>
-  <data name="QuickSwitch_Search_Button" xml:space="preserve"><value>Search</value></data>
-  <data name="QuickSwitch_Search_ReturnToScheduled" xml:space="preserve"><value>Back to scheduled train</value></data>
   <data name="QuickSwitch_Search_Searching" xml:space="preserve"><value>Searching...</value></data>
   <data name="QuickSwitch_Search_NoResults" xml:space="preserve"><value>No matching train found.</value></data>
   <data name="QuickSwitch_Search_Timeout" xml:space="preserve"><value>The server did not respond. Please try again.</value></data>

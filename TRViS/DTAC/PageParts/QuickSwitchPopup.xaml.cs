@@ -52,24 +52,19 @@ public partial class QuickSwitchPopup : ContentView
 
 		// Localized text for the search UI
 		SearchTabButton.ButtonText = AppResources.QuickSwitch_Tab_Search;
-		SearchButton.Text = AppResources.QuickSwitch_Search_Button;
 		TrainNumberEntry.Placeholder = AppResources.QuickSwitch_Search_NumberPlaceholder;
-		ReturnToScheduledButton.Text = AppResources.QuickSwitch_Search_ReturnToScheduled;
 
 		// The search tab is available only when connected to a WebSocket server that
-		// advertises the TrainSearch feature (ServerInfo.Features).
-		bool searchAvailable = ViewModel.IsTrainSearchAvailable;
-		SearchTabButton.IsVisible = searchAvailable;
-		ReturnToScheduledButton.IsVisible = ViewModel.IsDisplayingSearchedTrain;
+		// advertises the TrainSearch feature (ServerInfo.Features) — this also covers
+		// offline (disconnected/reconnecting), since IsTrainSearchAvailable requires an
+		// active connection.
+		SearchTabButton.IsVisible = ViewModel.IsTrainSearchAvailable;
 
 		// Set up tab buttons
 		WorkGroupTabButton.Tapped += WorkGroupTab_Tapped;
 		WorkTabButton.Tapped += WorkTab_Tapped;
 		SearchTabButton.Tapped += SearchTab_Tapped;
 
-		// If a searched train is currently displayed, open on the search tab so the
-		// "return to scheduled train" button is immediately reachable.
-		_currentTab = searchAvailable && ViewModel.IsDisplayingSearchedTrain ? Tab.Search : Tab.WorkGroup;
 		UpdateTabStyles();
 
 		logger.Trace("Created");
@@ -176,22 +171,54 @@ public partial class QuickSwitchPopup : ContentView
 	}
 
 	// ================================================================
-	// 列車検索 (Issue #197)
+	// 列車検索 (Issue #197): 入力中にデバウンスしつつ自動検索する。
 	// ================================================================
 
-	private async void SearchButton_Clicked(object? sender, EventArgs e)
+	private const int SearchDebounceMilliseconds = 400;
+
+	private CancellationTokenSource? _searchDebounceCts;
+
+	private void TrainNumberEntry_TextChanged(object? sender, TextChangedEventArgs e)
 	{
-		string number = TrainNumberEntry.Text?.Trim() ?? string.Empty;
+		_searchDebounceCts?.Cancel();
+		_searchDebounceCts?.Dispose();
+
+		string number = e.NewTextValue?.Trim() ?? string.Empty;
 		if (string.IsNullOrEmpty(number))
+		{
+			_searchDebounceCts = null;
+			SearchResultsView.ItemsSource = null;
+			HideSearchStatus();
+			SetSearchLoading(false);
 			return;
+		}
+
+		var cts = new CancellationTokenSource();
+		_searchDebounceCts = cts;
+		_ = RunDebouncedSearchAsync(number, cts.Token);
+	}
+
+	private async Task RunDebouncedSearchAsync(string number, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await Task.Delay(SearchDebounceMilliseconds, cancellationToken);
+		}
+		catch (TaskCanceledException)
+		{
+			return;
+		}
 
 		logger.Info("SearchTrain requested: {0}", number);
 		SearchResultsView.ItemsSource = null;
 		SetSearchStatus(AppResources.QuickSwitch_Search_Searching);
-		SearchButton.IsEnabled = false;
+		SetSearchLoading(true);
 		try
 		{
-			var results = await ViewModel.SearchTrainAsync(number);
+			var results = await ViewModel.SearchTrainAsync(number, cancellationToken);
+			if (cancellationToken.IsCancellationRequested)
+				return;
+
 			if (results.Count == 0)
 			{
 				SetSearchStatus(AppResources.QuickSwitch_Search_NoResults);
@@ -202,19 +229,30 @@ public partial class QuickSwitchPopup : ContentView
 				SearchResultsView.ItemsSource = results;
 			}
 		}
+		catch (OperationCanceledException)
+		{
+			// A newer keystroke superseded this search; stay silent.
+		}
 		catch (TimeoutException)
 		{
-			logger.Warn("SearchTrain timed out");
-			SetSearchStatus(AppResources.QuickSwitch_Search_Timeout);
+			if (!cancellationToken.IsCancellationRequested)
+			{
+				logger.Warn("SearchTrain timed out");
+				SetSearchStatus(AppResources.QuickSwitch_Search_Timeout);
+			}
 		}
 		catch (Exception ex)
 		{
-			logger.Error(ex, "SearchTrain failed");
-			SetSearchStatus(AppResources.QuickSwitch_Search_Error);
+			if (!cancellationToken.IsCancellationRequested)
+			{
+				logger.Error(ex, "SearchTrain failed");
+				SetSearchStatus(AppResources.QuickSwitch_Search_Error);
+			}
 		}
 		finally
 		{
-			SearchButton.IsEnabled = true;
+			if (!cancellationToken.IsCancellationRequested)
+				SetSearchLoading(false);
 		}
 	}
 
@@ -249,7 +287,8 @@ public partial class QuickSwitchPopup : ContentView
 					AppResources.QuickSwitch_Search_FetchError, AppResources.Common_OK);
 				return;
 			}
-			ViewModel.DisplaySearchedTrain(train, selected.WorkGroupId, selected.WorkId, selected.TrainId);
+			// 行路 (WorkGroup/Work) ごと完全に切り替える。ヘッダの行路番号も切り替わる。
+			ViewModel.SwitchToSearchedTrain(selected.WorkGroupId, selected.WorkId, selected.TrainId);
 			await DismissAsync();
 		}
 		catch (TimeoutException)
@@ -268,13 +307,6 @@ public partial class QuickSwitchPopup : ContentView
 		}
 	}
 
-	private async void ReturnToScheduledButton_Clicked(object? sender, EventArgs e)
-	{
-		logger.Info("Return to scheduled train requested");
-		ViewModel.ReturnToScheduledTrain();
-		await DismissAsync();
-	}
-
 	private void SetSearchStatus(string text)
 	{
 		SearchStatusLabel.Text = text;
@@ -283,8 +315,15 @@ public partial class QuickSwitchPopup : ContentView
 
 	private void HideSearchStatus() => SearchStatusLabel.IsVisible = false;
 
+	private void SetSearchLoading(bool loading)
+	{
+		SearchLoadingIndicator.IsRunning = loading;
+		SearchLoadingIndicator.IsVisible = loading;
+	}
+
 	private async Task DismissAsync()
 	{
+		_searchDebounceCts?.Cancel();
 		if (_popover is not null)
 			await _popover.DismissAsync();
 	}
