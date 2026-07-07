@@ -59,13 +59,10 @@ public partial class QuickSwitchPopup : ContentView
 		// Localized text for the search UI
 		SearchTabButton.ButtonText = AppResources.QuickSwitch_Tab_Search;
 		TrainNumberEntry.Placeholder = AppResources.QuickSwitch_Search_NumberPlaceholder;
-		MatchModePicker.ItemsSource = new[]
-		{
-			AppResources.QuickSwitch_Search_MatchMode_Prefix,
-			AppResources.QuickSwitch_Search_MatchMode_Contains,
-			AppResources.QuickSwitch_Search_MatchMode_Exact,
-		};
-		MatchModePicker.SelectedIndex = 0; // TrainSearchMatchMode.Prefix (default)
+		MatchModePrefixLabel.Text = AppResources.QuickSwitch_Search_MatchMode_Prefix;
+		MatchModeContainsLabel.Text = AppResources.QuickSwitch_Search_MatchMode_Contains;
+		MatchModeExactLabel.Text = AppResources.QuickSwitch_Search_MatchMode_Exact;
+		MatchModePrefixRadio.IsChecked = true; // TrainSearchMatchMode.Prefix (default)
 
 		if (useNumericKeypad)
 		{
@@ -204,14 +201,17 @@ public partial class QuickSwitchPopup : ContentView
 	private CancellationTokenSource? _searchDebounceCts;
 	private TrainSearchMatchMode _matchMode = TrainSearchMatchMode.Prefix;
 
-	private void MatchModePicker_SelectedIndexChanged(object? sender, EventArgs e)
+	private void MatchModeRadio_CheckedChanged(object? sender, CheckedChangedEventArgs e)
 	{
-		_matchMode = MatchModePicker.SelectedIndex switch
-		{
-			1 => TrainSearchMatchMode.Contains,
-			2 => TrainSearchMatchMode.Exact,
-			_ => TrainSearchMatchMode.Prefix,
-		};
+		// RadioButton raises this for both the newly-checked button and the
+		// previously-checked one going unchecked; only react to the checked one.
+		if (!e.Value)
+			return;
+
+		_matchMode = ReferenceEquals(sender, MatchModeContainsRadio) ? TrainSearchMatchMode.Contains
+			: ReferenceEquals(sender, MatchModeExactRadio) ? TrainSearchMatchMode.Exact
+			: TrainSearchMatchMode.Prefix;
+
 		// Re-run the current query under the newly selected match mode, if any.
 		TriggerSearch(TrainNumberEntry.Text);
 	}

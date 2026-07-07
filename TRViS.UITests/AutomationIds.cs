@@ -198,6 +198,11 @@ public static class AutomationIds
 			public const string SearchKeypadDigitPrefix = "DTAC.QuickSwitch.SearchKeypadDigit";
 			public const string SearchKeypadBackspace = "DTAC.QuickSwitch.SearchKeypadBackspace";
 			public const string SearchKeypadClear = "DTAC.QuickSwitch.SearchKeypadClear";
+
+			// Match-mode radio buttons (前方一致/中間一致/完全一致).
+			public const string SearchMatchModePrefix = "DTAC.QuickSwitch.SearchMatchModePrefix";
+			public const string SearchMatchModeContains = "DTAC.QuickSwitch.SearchMatchModeContains";
+			public const string SearchMatchModeExact = "DTAC.QuickSwitch.SearchMatchModeExact";
 		}
 
 		public const string StartEndRunButton = "DTAC.StartEndRunButton";

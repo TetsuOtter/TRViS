@@ -503,7 +503,7 @@ public partial class ViewHost : ContentPage
 
 			var options = new PopoverOptions
 			{
-				PreferredWidth = useNumericKeypad ? 360 : 320,
+				PreferredWidth = useNumericKeypad ? 420 : 320,
 				PreferredHeight = 400,
 				DismissOnTapOutside = true
 			};

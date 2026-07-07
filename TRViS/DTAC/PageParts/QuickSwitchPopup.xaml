@@ -137,15 +137,70 @@
 				</Grid>
 
 				<!-- Match mode: 前方一致 (Prefix, default) / 中間一致 (Contains) / 完全一致 (Exact).
-				     Changing it re-runs the current query immediately. -->
-				<Picker
-					x:Name="MatchModePicker"
-					AutomationId="DTAC.QuickSwitch.SearchMatchMode"
+				     Radio buttons (not a dropdown/Picker — worse to operate for a 3-way choice),
+				     laid out horizontally with an icon per mode. Selecting one re-runs the
+				     current query immediately. -->
+				<HorizontalStackLayout
 					Grid.Row="1"
 					Grid.Column="0"
 					Grid.ColumnSpan="2"
 					Margin="0,0,0,8"
-					SelectedIndexChanged="MatchModePicker_SelectedIndexChanged"/>
+					Spacing="12">
+					<RadioButton
+						x:Name="MatchModePrefixRadio"
+						AutomationId="DTAC.QuickSwitch.SearchMatchModePrefix"
+						GroupName="QuickSwitchSearchMatchMode"
+						CheckedChanged="MatchModeRadio_CheckedChanged">
+						<RadioButton.Content>
+							<HorizontalStackLayout Spacing="4">
+								<Label
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									Text="&#xE5DC;"
+									VerticalTextAlignment="Center"/>
+								<Label
+									x:Name="MatchModePrefixLabel"
+									VerticalTextAlignment="Center"/>
+							</HorizontalStackLayout>
+						</RadioButton.Content>
+					</RadioButton>
+					<RadioButton
+						x:Name="MatchModeContainsRadio"
+						AutomationId="DTAC.QuickSwitch.SearchMatchModeContains"
+						GroupName="QuickSwitchSearchMatchMode"
+						CheckedChanged="MatchModeRadio_CheckedChanged">
+						<RadioButton.Content>
+							<HorizontalStackLayout Spacing="4">
+								<Label
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									Text="&#xE8B6;"
+									VerticalTextAlignment="Center"/>
+								<Label
+									x:Name="MatchModeContainsLabel"
+									VerticalTextAlignment="Center"/>
+							</HorizontalStackLayout>
+						</RadioButton.Content>
+					</RadioButton>
+					<RadioButton
+						x:Name="MatchModeExactRadio"
+						AutomationId="DTAC.QuickSwitch.SearchMatchModeExact"
+						GroupName="QuickSwitchSearchMatchMode"
+						CheckedChanged="MatchModeRadio_CheckedChanged">
+						<RadioButton.Content>
+							<HorizontalStackLayout Spacing="4">
+								<Label
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									Text="&#xE5CA;"
+									VerticalTextAlignment="Center"/>
+								<Label
+									x:Name="MatchModeExactLabel"
+									VerticalTextAlignment="Center"/>
+							</HorizontalStackLayout>
+						</RadioButton.Content>
+					</RadioButton>
+				</HorizontalStackLayout>
 
 				<Label
 					x:Name="SearchStatusLabel"
@@ -197,15 +252,15 @@
 					ColumnSpacing="4"
 					VerticalOptions="Start">
 					<Grid.RowDefinitions>
-						<RowDefinition Height="40"/>
-						<RowDefinition Height="40"/>
-						<RowDefinition Height="40"/>
-						<RowDefinition Height="40"/>
+						<RowDefinition Height="52"/>
+						<RowDefinition Height="52"/>
+						<RowDefinition Height="52"/>
+						<RowDefinition Height="52"/>
 					</Grid.RowDefinitions>
 					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="40"/>
-						<ColumnDefinition Width="40"/>
-						<ColumnDefinition Width="40"/>
+						<ColumnDefinition Width="52"/>
+						<ColumnDefinition Width="52"/>
+						<ColumnDefinition Width="52"/>
 					</Grid.ColumnDefinitions>
 
 					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit1" Grid.Row="0" Grid.Column="0" Text="1" Clicked="KeypadDigit_Clicked"/>
