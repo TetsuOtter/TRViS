@@ -165,7 +165,8 @@ its search UI only when that feature is present.
 {
   "MessageType": "SearchTrain",
   "RequestId": "3f2a...unique...",   // client-generated correlation id (required)
-  "TrainNumber": "1234"              // the train number to search for
+  "TrainNumber": "1234",             // the train number to search for
+  "MatchMode": "Prefix"              // optional; "Prefix" | "Contains" | "Exact" (default "Prefix")
 }
 ```
 
@@ -173,11 +174,14 @@ its search UI only when that feature is present.
 |---|---|---|
 | `RequestId` | string | Client-generated correlation id. Required — the server echoes it in the response. |
 | `TrainNumber` | string | The train number to search for. |
+| `MatchMode` | string | Optional. How `TrainNumber` should be matched against a candidate's train number: `"Prefix"` (candidate starts with `TrainNumber`), `"Contains"` (candidate contains `TrainNumber` as a substring), or `"Exact"` (candidate equals `TrainNumber`). Omitted or an unrecognized value **must** be treated as `"Prefix"`. |
 
 - The server **must** reply with a
   [`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse)
   echoing the same `RequestId`.
-- Matching semantics (exact vs partial match) are **server-defined**.
+- Match comparisons are case-insensitive; beyond that, servers are free to
+  apply additional normalization, but `MatchMode` semantics themselves are
+  not server-defined — a compliant server implements all three modes.
 - A server that supports the feature **must always respond — even with
   zero results** (an empty `Results` array) — so the client can
   distinguish "no results" from "no/failed response".
@@ -189,7 +193,7 @@ its search UI only when that feature is present.
 sequenceDiagram
     participant C as TRViS
     participant S as External server
-    C->>S: {"MessageType":"SearchTrain","RequestId":"3f2a...","TrainNumber":"1234"}
+    C->>S: {"MessageType":"SearchTrain","RequestId":"3f2a...","TrainNumber":"1234","MatchMode":"Prefix"}
     Note over C: waits up to 10s
     S-->>C: {"MessageType":"SearchTrainResponse","RequestId":"3f2a...","Results":[...]}
     Note over S: must respond even with an empty Results array

@@ -1,6 +1,21 @@
 namespace TRViS.NetworkSyncService;
 
 /// <summary>
+/// <c>SearchTrain</c> の列番一致方式。ワイヤー上は <c>MatchMode</c> フィールドの文字列
+/// (この enum 名と同じ表記: "Prefix" / "Contains" / "Exact") としてやり取りする。
+/// 省略時のサーバー既定は <see cref="Prefix"/> (docs/network-sync-service 参照)。
+/// </summary>
+public enum TrainSearchMatchMode
+{
+	/// <summary>前方一致: 列番が検索文字列で始まるものにマッチ。既定値。</summary>
+	Prefix,
+	/// <summary>中間一致: 列番が検索文字列を含むものにマッチ。</summary>
+	Contains,
+	/// <summary>完全一致: 列番が検索文字列と完全に一致するものにマッチ。</summary>
+	Exact,
+}
+
+/// <summary>
 /// 列番検索 (<c>SearchTrain</c>) の候補 1 件を表すサマリ。
 /// 確認ダイアログの表示 (列番・行路名・始発/終着駅・時刻) と、
 /// 確定時の時刻表取得 (<c>RequestTrainTimetable</c>) に必要な ID を保持する。

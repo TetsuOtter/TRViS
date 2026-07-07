@@ -369,7 +369,9 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
   しなければなりません。そうすることでクライアントは「該当なし」と
   「無応答／応答失敗」を区別できます（何も届かないとクライアントは
   10 秒でタイムアウトしエラーを報告します）。
-- 一致判定（完全一致か部分一致か）はサーバー任意です。
+- 一致判定はリクエストの `MatchMode`
+  （[`SearchTrain`](client-to-server-messages.md#4-searchtrain) 参照）
+  — `Prefix`（既定）/ `Contains` / `Exact` — によって決まり、サーバー任意ではありません。
 
 ---
 

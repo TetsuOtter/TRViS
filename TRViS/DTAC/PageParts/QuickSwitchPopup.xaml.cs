@@ -30,7 +30,13 @@ public partial class QuickSwitchPopup : ContentView
 		}
 	}
 
-	public QuickSwitchPopup()
+	/// <param name="useNumericKeypad">
+	/// True to show the software numeric keypad next to the search results (wide
+	/// screens: tablet, landscape, desktop) and make TrainNumberEntry read-only.
+	/// False to fall back to the OS keyboard (narrow screens, e.g. iPhone portrait,
+	/// where there isn't room for a list + keypad side by side) and hide the keypad.
+	/// </param>
+	public QuickSwitchPopup(bool useNumericKeypad = true)
 	{
 		logger.Trace("Creating...");
 
@@ -53,6 +59,25 @@ public partial class QuickSwitchPopup : ContentView
 		// Localized text for the search UI
 		SearchTabButton.ButtonText = AppResources.QuickSwitch_Tab_Search;
 		TrainNumberEntry.Placeholder = AppResources.QuickSwitch_Search_NumberPlaceholder;
+		MatchModePicker.ItemsSource = new[]
+		{
+			AppResources.QuickSwitch_Search_MatchMode_Prefix,
+			AppResources.QuickSwitch_Search_MatchMode_Contains,
+			AppResources.QuickSwitch_Search_MatchMode_Exact,
+		};
+		MatchModePicker.SelectedIndex = 0; // TrainSearchMatchMode.Prefix (default)
+
+		if (useNumericKeypad)
+		{
+			TrainNumberEntry.IsReadOnly = true;
+		}
+		else
+		{
+			NumericKeypad.IsVisible = false;
+			SearchContainer.ColumnSpacing = 0;
+			TrainNumberEntry.IsReadOnly = false;
+			TrainNumberEntry.Keyboard = Keyboard.Numeric;
+		}
 
 		// The search tab is available only when connected to a WebSocket server that
 		// advertises the TrainSearch feature (ServerInfo.Features) — this also covers
@@ -177,13 +202,51 @@ public partial class QuickSwitchPopup : ContentView
 	private const int SearchDebounceMilliseconds = 400;
 
 	private CancellationTokenSource? _searchDebounceCts;
+	private TrainSearchMatchMode _matchMode = TrainSearchMatchMode.Prefix;
+
+	private void MatchModePicker_SelectedIndexChanged(object? sender, EventArgs e)
+	{
+		_matchMode = MatchModePicker.SelectedIndex switch
+		{
+			1 => TrainSearchMatchMode.Contains,
+			2 => TrainSearchMatchMode.Exact,
+			_ => TrainSearchMatchMode.Prefix,
+		};
+		// Re-run the current query under the newly selected match mode, if any.
+		TriggerSearch(TrainNumberEntry.Text);
+	}
+
+	// Software numeric keypad: TrainNumberEntry is IsReadOnly (no OS keyboard), so digits
+	// are appended/removed here. Assigning Entry.Text fires TextChanged the same as typing,
+	// so this reuses the existing debounced-search path unchanged.
+	private void KeypadDigit_Clicked(object? sender, EventArgs e)
+	{
+		if (sender is not Button button)
+			return;
+		TrainNumberEntry.Text = (TrainNumberEntry.Text ?? string.Empty) + button.Text;
+	}
+
+	private void KeypadBackspace_Clicked(object? sender, EventArgs e)
+	{
+		string current = TrainNumberEntry.Text ?? string.Empty;
+		if (current.Length > 0)
+			TrainNumberEntry.Text = current[..^1];
+	}
+
+	private void KeypadClear_Clicked(object? sender, EventArgs e)
+	{
+		TrainNumberEntry.Text = string.Empty;
+	}
 
 	private void TrainNumberEntry_TextChanged(object? sender, TextChangedEventArgs e)
+		=> TriggerSearch(e.NewTextValue);
+
+	private void TriggerSearch(string? text)
 	{
 		_searchDebounceCts?.Cancel();
 		_searchDebounceCts?.Dispose();
 
-		string number = e.NewTextValue?.Trim() ?? string.Empty;
+		string number = text?.Trim() ?? string.Empty;
 		if (string.IsNullOrEmpty(number))
 		{
 			_searchDebounceCts = null;
@@ -215,7 +278,7 @@ public partial class QuickSwitchPopup : ContentView
 		SetSearchLoading(true);
 		try
 		{
-			var results = await ViewModel.SearchTrainAsync(number, cancellationToken);
+			var results = await ViewModel.SearchTrainAsync(number, _matchMode, cancellationToken);
 			if (cancellationToken.IsCancellationRequested)
 				return;
 

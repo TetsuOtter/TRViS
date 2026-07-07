@@ -446,8 +446,25 @@ public class DTACViewHostPageObject : PageObject
 		Thread.Sleep(200);
 	}
 
+	/// <summary>
+	/// Types a train number. On wide screens QuickSwitchPopup shows a software numeric
+	/// keypad and makes TrainNumberEntry read-only (no OS keyboard); on narrow screens
+	/// (e.g. Android phone portrait in CI) it falls back to the OS keyboard instead, so
+	/// this checks which mode is active and drives whichever is present.
+	/// </summary>
 	public void EnterTrainNumber(string number)
 	{
+		if (PollDisplayed(AutomationIds.DTAC.QuickSwitch.SearchKeypadDigitPrefix + number[0], timeoutSeconds: 1))
+		{
+			foreach (char c in number)
+			{
+				if (!char.IsDigit(c))
+					continue;
+				FindByAutomationId(AutomationIds.DTAC.QuickSwitch.SearchKeypadDigitPrefix + c).Click();
+			}
+			return;
+		}
+
 		var entry = WaitForElement(AutomationIds.DTAC.QuickSwitch.SearchEntry);
 		try { entry.Clear(); } catch { /* some platforms disallow Clear on empty */ }
 		entry.SendKeys(number);

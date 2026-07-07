@@ -193,11 +193,11 @@ public partial class AppViewModel : ObservableObject
 	/// 列番でサーバーに列車を検索する。<see cref="IsTrainSearchAvailable"/> が true のときのみ有効。
 	/// </summary>
 	public Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
-		string trainNumber, System.Threading.CancellationToken cancellationToken = default)
+		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, System.Threading.CancellationToken cancellationToken = default)
 	{
 		if (Loader is not WebSocketNetworkSyncService ws)
 			throw new InvalidOperationException("Train search requires a WebSocket connection.");
-		return ws.SearchTrainAsync(trainNumber, cancellationToken);
+		return ws.SearchTrainAsync(trainNumber, matchMode, cancellationToken);
 	}
 
 	/// <summary>

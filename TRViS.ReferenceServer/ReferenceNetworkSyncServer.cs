@@ -698,10 +698,22 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 	}
 
 	/// <summary>
+	/// <paramref name="matchMode"/> ("Prefix" / "Contains" / "Exact"; 省略・未知の値は
+	/// "Prefix" 扱い) に従って列番が一致するかを判定する。
+	/// </summary>
+	private static bool MatchesTrainNumber(string trainNumber, string query, string? matchMode)
+		=> matchMode switch
+		{
+			"Contains" => trainNumber.Contains(query, StringComparison.OrdinalIgnoreCase),
+			"Exact" => string.Equals(trainNumber, query, StringComparison.OrdinalIgnoreCase),
+			_ => trainNumber.StartsWith(query, StringComparison.OrdinalIgnoreCase),
+		};
+
+	/// <summary>
 	/// 列番に一致する検索候補の <c>SearchTrainResponse</c> を構築する。
 	/// 一致が無くても空 Results で必ず応答する (結果0件とタイムアウトの区別のため)。
 	/// </summary>
-	private string BuildSearchTrainResponse(string requestId, string? trainNumber)
+	private string BuildSearchTrainResponse(string requestId, string? trainNumber, string? matchMode)
 	{
 		List<SearchableTrain> matches;
 		lock (_searchLock)
@@ -709,7 +721,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			matches = string.IsNullOrEmpty(trainNumber)
 				? new List<SearchableTrain>()
 				: _searchableTrains
-					.Where(t => string.Equals(t.TrainNumber, trainNumber, StringComparison.OrdinalIgnoreCase))
+					.Where(t => MatchesTrainNumber(t.TrainNumber, trainNumber, matchMode))
 					.ToList();
 		}
 		return JsonSerializer.Serialize(new
@@ -908,16 +920,18 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 						{
 							string? requestId = TryGetString(root, "RequestId");
 							string? trainNumber = TryGetString(root, "TrainNumber");
+							string? matchMode = TryGetString(root, "MatchMode");
 							_receivedRequests.Enqueue(new ReceivedRequestDto(
 								ConnectionId: client.ConnectionId,
 								MessageType: messageType,
 								DiagramId: null,
 								ReceivedAt: DateTime.UtcNow,
-								TrainNumber: trainNumber));
+								TrainNumber: trainNumber,
+								MatchMode: matchMode));
 							// TrainSearch 機能が無効な場合は応答しない (クライアントはタイムアウトする)。
 							if (!IsTrainSearchEnabled() || requestId is null)
 								return;
-							await TrySendAsync(client.Connection, BuildSearchTrainResponse(requestId, trainNumber));
+							await TrySendAsync(client.Connection, BuildSearchTrainResponse(requestId, trainNumber, matchMode));
 							return;
 						}
 					case "RequestTrainTimetable":
@@ -1112,5 +1126,6 @@ public sealed record ReceivedRequestDto(
 	string? DiagramId,
 	DateTime ReceivedAt,
 	string? TrainNumber = null,
-	string? TrainId = null
+	string? TrainId = null,
+	string? MatchMode = null
 );

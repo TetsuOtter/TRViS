@@ -192,6 +192,12 @@ public static class AutomationIds
 			public const string SearchLoading = "DTAC.QuickSwitch.SearchLoading";
 			public const string SearchStatus = "DTAC.QuickSwitch.SearchStatus";
 			public const string SearchResults = "DTAC.QuickSwitch.SearchResults";
+
+			// TrainNumberEntry is IsReadOnly (no OS keyboard); digits are entered via
+			// this software keypad instead (see QuickSwitchPopup.xaml NumericKeypad).
+			public const string SearchKeypadDigitPrefix = "DTAC.QuickSwitch.SearchKeypadDigit";
+			public const string SearchKeypadBackspace = "DTAC.QuickSwitch.SearchKeypadBackspace";
+			public const string SearchKeypadClear = "DTAC.QuickSwitch.SearchKeypadClear";
 		}
 
 		public const string StartEndRunButton = "DTAC.StartEndRunButton";
