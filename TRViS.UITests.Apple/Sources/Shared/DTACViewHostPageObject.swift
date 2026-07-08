@@ -60,22 +60,32 @@ class DTACViewHostPageObject {
     /// Mirrors C# SwitchToTimetableTab() — 60 s timeout for iPad layout latency.
     @discardableResult
     func switchToTimetableTab() -> DTACViewHostPageObject {
-        guard let tab = base.waitForElement(
-            id: AutomationIds.DTAC.tabTimetable, timeout: 30
-        ) else {
-            XCTFail("TabTimetable not found within 30 s")
-            return self
+        let deadline = Date().addingTimeInterval(75)
+        var lastTapAttempt = Date.distantPast
+
+        while Date() < deadline {
+            if base.waitForElement(
+                id: AutomationIds.DTAC.timetableScrollView,
+                timeout: 1
+            ) != nil {
+                return self
+            }
+
+            if Date().timeIntervalSince(lastTapAttempt) >= 3 {
+                guard let tab = base.waitForElement(
+                    id: AutomationIds.DTAC.tabTimetable, timeout: 10
+                ) else {
+                    XCTFail("TabTimetable not found while switching to timetable tab")
+                    return self
+                }
+                tab.tap()
+                lastTapAttempt = Date()
+            }
+
+            Thread.sleep(forTimeInterval: 0.3)
         }
-        tab.tap()
-        Thread.sleep(forTimeInterval: 0.3)
-        // Wait for the surrounding ScrollView — VerticalTimetableView may not
-        // surface reliably as an accessibility element on iOS.
-        guard let _ = base.waitForElement(
-            id: AutomationIds.DTAC.timetableScrollView, timeout: 60
-        ) else {
-            XCTFail("TimetableScrollView not found within 60 s after tab tap")
-            return self
-        }
+
+        XCTFail("TimetableScrollView not found within 75 s after repeated tab taps")
         return self
     }
 

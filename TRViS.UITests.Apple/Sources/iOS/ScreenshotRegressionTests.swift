@@ -184,7 +184,11 @@ class ScreenshotRegressionTests: BaseUITestCase {
 
         // 5. Third-party licenses modal
         let tpl = start.openThirdPartyLicenses()
-        settle()
+        XCTAssertTrue(
+            tpl.waitForLoadedContent(timeout: 30),
+            "Third-party license list did not finish loading before screenshot capture."
+        )
+        settleUntilVisuallyStable()
         capture(screen: "thirdPartyLicenses", theme: theme, lang: lang, failures: &failures)
         _ = tpl.closeModal()
 

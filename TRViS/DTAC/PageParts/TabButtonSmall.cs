@@ -72,6 +72,7 @@ public class TabButtonSmall : Grid
 		ButtonLabel.FontAttributes = FontAttributes.Bold;
 		ButtonLabel.HorizontalOptions = LayoutOptions.Center;
 		ButtonLabel.VerticalOptions = LayoutOptions.Center;
+		ButtonLabel.LineBreakMode = LineBreakMode.NoWrap;
 		ButtonLabel.Margin = new Thickness(0, BUTTON_MARGIN_TB, 0, BOTTOM_LINE_HEIGHT + BUTTON_MARGIN_TB);
 		DTACElementStyles.TimetableTextColor.Apply(ButtonLabel, Label.TextColorProperty);
 

@@ -337,16 +337,9 @@ public class DTACViewHostPageObject : PageObject
 		return FindByAutomationId(automationId);
 	}
 
-	public bool IsDisplayed()
+	public bool IsDisplayed(double timeoutSeconds = 60)
 	{
-		try
-		{
-			return MenuButton.Displayed;
-		}
-		catch (NoSuchElementException)
-		{
-			return false;
-		}
+		return PollDisplayed(AutomationIds.DTAC.MenuButton, timeoutSeconds);
 	}
 
 	public DTACViewHostPageObject SwitchToTimetableTab()
@@ -426,4 +419,105 @@ public class DTACViewHostPageObject : PageObject
 		}
 		return false;
 	}
+
+	// ---------- Train search (Issue #197) ----------
+
+	/// <summary>Taps the AppBar title to open the QuickSwitchPopup.</summary>
+	public void OpenQuickSwitch()
+	{
+		TitleLabel.Click();
+		Thread.Sleep(300);
+	}
+
+	/// <summary>
+	/// Dismisses an open QuickSwitchPopup by tapping outside its bounds
+	/// (ViewHost.xaml.cs sets DismissOnTapOutside = true). Callers MUST leave
+	/// QuickSwitch closed before the test ends: TrainSearchTests previously
+	/// left it open after its final assertion, and the next fixture's shared-
+	/// session recovery (AppShellPage.NavigateToHome) couldn't dismiss it,
+	/// so its 5 s seam probe and fallback flyout tap both missed, cascading
+	/// into a 30 s WaitForFlyoutItem timeout (CI run 28886535334).
+	/// </summary>
+	public void CloseQuickSwitch()
+	{
+		var size = Driver.Manage().Window.Size;
+		int x = size.Width / 2;
+		int y = (int)(size.Height * 0.95);
+
+		var touch = new PointerInputDevice(PointerKind.Touch, "finger");
+		var seq = new ActionSequence(touch);
+		seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, y, TimeSpan.Zero));
+		seq.AddAction(touch.CreatePointerDown(MouseButton.Left));
+		seq.AddAction(touch.CreatePointerUp(MouseButton.Left));
+		Driver.PerformActions(new List<ActionSequence> { seq });
+		Thread.Sleep(300);
+	}
+
+	/// <summary>True when the QuickSwitch Search tab is present (server advertises TrainSearch).</summary>
+	public bool IsSearchTabPresent(double timeoutSeconds = 5)
+		=> PollDisplayed(AutomationIds.DTAC.QuickSwitch.SearchTab, timeoutSeconds);
+
+	public void TapSearchTab()
+	{
+		FindByAutomationId(AutomationIds.DTAC.QuickSwitch.SearchTab).Click();
+		Thread.Sleep(200);
+	}
+
+	/// <summary>
+	/// Types a train number. On wide screens QuickSwitchPopup shows a software numeric
+	/// keypad and makes TrainNumberEntry read-only (no OS keyboard); on narrow screens
+	/// (e.g. Android phone portrait in CI) it falls back to the OS keyboard instead, so
+	/// this checks which mode is active and drives whichever is present.
+	/// </summary>
+	public void EnterTrainNumber(string number)
+	{
+		if (PollDisplayed(AutomationIds.DTAC.QuickSwitch.SearchKeypadDigitPrefix + number[0], timeoutSeconds: 1))
+		{
+			foreach (char c in number)
+			{
+				if (!char.IsDigit(c))
+					continue;
+				FindByAutomationId(AutomationIds.DTAC.QuickSwitch.SearchKeypadDigitPrefix + c).Click();
+			}
+			return;
+		}
+
+		var entry = WaitForElement(AutomationIds.DTAC.QuickSwitch.SearchEntry);
+		try { entry.Clear(); } catch { /* some platforms disallow Clear on empty */ }
+		entry.SendKeys(number);
+	}
+
+	/// <summary>Waits for a search result row (its AutomationId is the candidate's TrainId).
+	/// Search runs automatically (debounced) as the train number is typed — there is no
+	/// search button to tap.</summary>
+	public bool WaitForSearchResult(string trainId, double timeoutSeconds = 5)
+		=> PollDisplayed(trainId, timeoutSeconds);
+
+	public void TapSearchResult(string trainId) => FindByAutomationId(trainId).Click();
+
+	/// <summary>Accepts the native confirmation alert (OK). Cross-platform.</summary>
+	public void AcceptConfirmDialog()
+	{
+		Thread.Sleep(300);
+		try
+		{
+			Driver.SwitchTo().Alert().Accept();
+			return;
+		}
+		catch (NoAlertPresentException) { }
+		catch { /* fall through to element-based tap */ }
+
+		try
+		{
+			Driver.FindElement(By.XPath(
+				"//XCUIElementTypeAlert//XCUIElementTypeButton[@label='OK']" +
+				" | //android.widget.Button[@text='OK']" +
+				" | //*[@text='OK']")).Click();
+		}
+		catch { /* no alert surfaced */ }
+	}
+
+	/// <summary>True when the ハコ tab is present.</summary>
+	public bool IsHakoTabPresent(double timeoutSeconds = 3)
+		=> PollDisplayed(AutomationIds.DTAC.TabHako, timeoutSeconds);
 }
