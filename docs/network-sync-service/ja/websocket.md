@@ -88,12 +88,26 @@ sequenceDiagram
 
 | 種別 | 判別 | 内容 |
 |---|---|---|
-| 要求メッセージ | `MessageType` を**持つ** | `RequestServerInfo` / `RequestDiagramInfo` |
+| 要求メッセージ | `MessageType` を**持つ** | `RequestServerInfo` / `RequestDiagramInfo` / `SearchTrain` / `RequestTrainTimetable` |
 | ID 更新メッセージ | `MessageType` を**持たない** | `WorkGroupId`/`WorkId`/`TrainId` を含む（後方互換仕様） |
 
 サーバーは「`MessageType` を持たず、`WorkGroupId`/`WorkId`/`TrainId` の
 いずれかを含む JSON」を ID 更新として解釈してください。詳細は
 [client-to-server-messages.md](client-to-server-messages.md)。
+
+v1.1 の列車検索要求 `SearchTrain` と `RequestTrainTimetable` は応答
+対応付け用のクライアント生成 **`RequestId`** を持ち、クライアントは
+各要求にクライアント側タイムアウトを設けます。
+
+| 要求 | 応答 | 対応付け | タイムアウト（既定） |
+|---|---|---|---|
+| `SearchTrain` | `SearchTrainResponse` | エコーされた `RequestId` | 10 秒 |
+| `RequestTrainTimetable` | 通常の `Timetable`（Train スコープ） | 配信された Timetable の `TrainId` | 15 秒 |
+
+これらはサーバーが `TrainSearch`
+[機能](server-to-client-messages.md#3-serverinfo)を広告している場合のみ
+意味を持ちます。広告していない場合は応答されず、クライアントは
+タイムアウトします。
 
 ## 4. キープアライブ
 
@@ -167,6 +181,7 @@ TRViS 側がアプリ終了や設定変更で明示的に切断する場合、�
 - [ ] テキストフレーム・UTF-8・ルートオブジェクトの JSON で送る
 - [ ] `MessageType` を持たない受信 JSON を ID 更新として処理する
 - [ ] `RequestServerInfo` / `RequestDiagramInfo` 要求に応答する
+- [ ] （`TrainSearch` に対応する場合）`ServerInfo.Features` で広告し、`SearchTrain` には `RequestId` をエコーした `SearchTrainResponse` で必ず応答し、`RequestTrainTimetable` には Train スコープの `Timetable` で応答する
 - [ ] WebSocket Ping/Pong（制御フレーム）に標準どおり応答する
 - [ ] 切断直後の即時再接続を許容する
 - [ ] 再接続クライアントが再送する ID 更新を処理し配信を再開する

@@ -19,6 +19,11 @@ public partial class ViewHost : ContentPage
 
 	public static readonly string NameOfThisClass = nameof(ViewHost);
 
+	// Below this page width, QuickSwitchPopup falls back to the OS keyboard for train
+	// search instead of the software numeric keypad (no room for keypad + results list
+	// side by side) — covers iPhone portrait; tablets/landscape/desktop clear it easily.
+	private const double NumericKeypadMinWidth = 500;
+
 	DTACViewHostViewModel ViewModel { get; }
 
 	private readonly ViewHostPresenter _presenter;
@@ -487,12 +492,18 @@ public partial class ViewHost : ContentPage
 		{
 			logger.Info("TitleLabel tapped - showing QuickSwitchPopup");
 
-			QuickSwitchPopup popup = new();
+			// Narrow screens (e.g. iPhone portrait) don't have room for a search-results
+			// list plus a numeric keypad side by side, so fall back to the OS keyboard
+			// there; wider screens (tablet, landscape, desktop) get the keypad.
+			bool useNumericKeypad = Width >= NumericKeypadMinWidth;
+			QuickSwitchPopup popup = new(useNumericKeypad);
 			var popover = AnchorPopover.Create();
+			// 検索結果確定時にポップオーバー自身を閉じられるよう参照を渡す。
+			popup.SetPopover(popover);
 
 			var options = new PopoverOptions
 			{
-				PreferredWidth = 280,
+				PreferredWidth = useNumericKeypad ? 420 : 320,
 				PreferredHeight = 400,
 				DismissOnTapOutside = true
 			};

@@ -1,6 +1,6 @@
 # NetworkSyncService 外部システム連携仕様（日本語）
 
-> 対応プロトコルバージョン: **1.0**
+> 対応プロトコルバージョン: **1.1**
 > 対象読者: TRViS と連携する外部サーバーを実装する開発者
 > English: [../en/README.md](../en/README.md)
 
@@ -55,6 +55,7 @@ HTTP は WebSocket の **厳密なサブセット** です。HTTP では同期�
 | ヘッダ色変更（HeaderColor） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | 通告（Notification） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | 時刻表示書式（TimeFormat） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
+| 列車検索（SearchTrain） | ❌ | ✅ ※4 | [client-to-server-messages](client-to-server-messages.md#4-searchtrain) |
 | クライアント→サーバーの ID 通知 | ✅ ※2 | ✅ | 各トランスポート文書 |
 
 - ※1: HTTP クライアントは応答 JSON に緯度経度が含まれていても **無視** します
@@ -63,6 +64,15 @@ HTTP は WebSocket の **厳密なサブセット** です。HTTP では同期�
 - ※3: `CanStart` は `CanUseService` と同値。**自動運行開始は WebSocket
   接続時のみ**で、HTTP では `CanStart` が `true` でも自動的に運行は
   開始しません（[common-data-model §4](common-data-model.md#4-canstart-の意味)）。
+- ※4: 列車検索は
+  [`ServerInfo`](server-to-client-messages.md#3-serverinfo) の `Features`
+  配列でネゴシエーションされる **任意** 機能です。サーバーが
+  `"TrainSearch"` を広告すると有効になります。プロトコルバージョン番号
+  には紐づかず、後方互換です（機能を広告しないサーバーには要求が
+  行われないだけ）。詳細は
+  [`SearchTrain`](client-to-server-messages.md#4-searchtrain) ／
+  [`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse) ／
+  [`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable)。
 
 ## 4. セキュリティ（重要）
 
@@ -84,7 +94,18 @@ TRViS は配信されたコマンド（`SelectTrain` / `OperationCommand` /
 ## 5. プロトコルバージョン
 
 `ServerInfo` メッセージの `ProtocolVersion` フィールドが、プロトコル
-互換性を示す唯一のハンドシェイク的シグナルです。本ドキュメントが対象と
-するプロトコルは **`"1.0"`** です。クライアントは現状この値で接続を
+互換性を示すハンドシェイク的シグナルです。本ドキュメントが対象と
+するプロトコルは **`"1.1"`** です。クライアントは現状この値で接続を
 拒否することはありませんが、将来の互換性判定のために正しい値を返すことを
 推奨します。
+
+**1.1 での変更点。** 1.1 では任意機能である **列車検索**
+（[`SearchTrain`](client-to-server-messages.md#4-searchtrain) →
+[`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse)、
+続いて [`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable)）
+が追加されました。追加分はすべて **後方互換** です。未知の
+`MessageType` や任意フィールドは既存の規則どおり無視されるため、1.0
+サーバーはそのまま動作します。機能の利用可否は
+**`ServerInfo` の [`Features`](server-to-client-messages.md#3-serverinfo)
+配列でネゴシエーション**され（`"TrainSearch"` を広告）、バージョン番号
+では判定されません（バージョンの更新は情報提供の意味合いです）。

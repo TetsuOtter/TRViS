@@ -71,13 +71,24 @@ class StartHomePageObject {
     func acceptPrivacyPolicyIfNeeded() {
         guard isPrivacyReconfirmBannerVisible(timeout: 5) else { return }
 
-        guard let privacyButton = base.waitForElement(
-            id: AutomationIds.StartHome.privacyPolicyButton, timeout: 30
-        ) else {
-            XCTFail("PrivacyPolicyButton not found within 30 s")
+        let opener = base.waitForElement(
+            id: AutomationIds.StartHome.privacyReconfirmBanner,
+            timeout: 5,
+            types: [.other, .any]
+        ) ?? base.waitForElement(
+            id: AutomationIds.StartHome.privacyReconfirmText,
+            timeout: 5,
+            types: [.staticText, .any]
+        ) ?? base.waitForElement(
+            id: AutomationIds.StartHome.privacyPolicyButton,
+            timeout: 30
+        )
+
+        guard let opener else {
+            XCTFail("Privacy policy opener not found within 30 s")
             return
         }
-        privacyButton.tap()
+        opener.tap()
 
         guard let saveButton = base.waitForElement(
             id: AutomationIds.PrivacyDialog.saveButton, timeout: 60
@@ -275,6 +286,10 @@ class StartHomePageObject {
     /// both the accepted state and the flyout via the real Save path.
     func clearPrivacyPolicyAcceptanceForTesting() {
         base.tapSeam(id: AutomationIds.StartHome.testClearPrivacyPolicyButton)
+        guard isPrivacyReconfirmBannerVisible(timeout: 10) else {
+            XCTFail("Privacy reconfirm banner did not reappear after clearing acceptance")
+            return
+        }
     }
 
     // MARK: — Privacy Policy dialog (used by ScreenshotRegressionTests)
