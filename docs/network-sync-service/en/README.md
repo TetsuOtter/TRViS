@@ -1,6 +1,6 @@
 # NetworkSyncService — External System Integration (English)
 
-> Supported protocol version: **1.0**
+> Supported protocol version: **1.1**
 > Audience: developers implementing an external server that integrates with TRViS
 > 日本語: [../ja/README.md](../ja/README.md)
 
@@ -56,6 +56,7 @@ or remote commands you must implement WebSocket.
 | Header color (HeaderColor) | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | Notification | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | Time format (TimeFormat) | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
+| Train search (SearchTrain) | ❌ | ✅ ※4 | [client-to-server-messages](client-to-server-messages.md#4-searchtrain) |
 | Client→server ID notification | ✅ ※2 | ✅ | per-transport docs |
 
 - ※1: The HTTP client **ignores** lat/lon even if present in the
@@ -65,6 +66,15 @@ or remote commands you must implement WebSocket.
   operation happens only over WebSocket**; over HTTP, even `CanStart`
   `true` does not auto-start operation
   ([common-data-model §4](common-data-model.md#4-meaning-of-canstart)).
+- ※4: Train search is an **optional** capability negotiated via the
+  `Features` array of
+  [`ServerInfo`](server-to-client-messages.md#3-serverinfo): a server
+  advertises `"TrainSearch"` to enable it. It is not tied to the protocol
+  version number and is backward-compatible (a server that does not
+  advertise the feature is simply not asked). See
+  [`SearchTrain`](client-to-server-messages.md#4-searchtrain) /
+  [`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse) /
+  [`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable).
 
 ## 4. Security (important)
 
@@ -85,8 +95,19 @@ protection is mandatory.
 
 ## 5. Protocol version
 
-The `ProtocolVersion` field of the `ServerInfo` message is the only
+The `ProtocolVersion` field of the `ServerInfo` message is the
 handshake-level signal of protocol compatibility. The protocol this
-document set targets is **`"1.0"`**. The client currently does not reject
+document set targets is **`"1.1"`**. The client currently does not reject
 connections based on this value, but returning a correct value is
 recommended for future compatibility negotiation.
+
+**What changed in 1.1.** 1.1 adds the optional **train-search** feature
+([`SearchTrain`](client-to-server-messages.md#4-searchtrain) →
+[`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse),
+then [`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable)).
+All additions are **backward-compatible**: unknown `MessageType` values
+and optional fields are ignored per the existing rules, so a 1.0 server
+keeps working unchanged. Availability of the feature is **negotiated via
+the [`Features`](server-to-client-messages.md#3-serverinfo) array on
+`ServerInfo`** (advertise `"TrainSearch"`), **not** via the version
+number — the version bump is informational.

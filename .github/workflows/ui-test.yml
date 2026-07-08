@@ -885,14 +885,36 @@ jobs:
 
       - name: Run XCUITest (iOS Simulator)
         run: |
-          xcodebuild test \
-            -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
-            -scheme TRViSUITests_iOS \
-            -destination "id=$SIM_UDID" \
-            -skip-testing TRViSUITests_iOS/ScreenshotRegressionTests \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          set -euo pipefail
+          LOG_FILE="/tmp/xcuitest-ios.log"
+
+          for attempt in 1 2; do
+            set +e
+            xcodebuild test \
+              -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
+              -scheme TRViSUITests_iOS \
+              -destination "id=$SIM_UDID" \
+              -skip-testing TRViSUITests_iOS/ScreenshotRegressionTests \
+              CODE_SIGN_IDENTITY="-" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              2>&1 | tee "$LOG_FILE"
+            status=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 1 ] && grep -q "Timed out attempting to launch app" "$LOG_FILE"; then
+              echo "XCUITest app launch timed out; retrying once with the same simulator."
+              xcrun simctl terminate "$SIM_UDID" "${{ env.APP_PACKAGE }}" || true
+              sleep 5
+              continue
+            fi
+
+            exit "$status"
+          done
 
       - name: Upload XCUITest logs
         if: always()

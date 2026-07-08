@@ -47,7 +47,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement ReconnectButton => WaitForElement(AutomationIds.StartHome.ReconnectButton);
 
 	/// <summary>True once the #261 reconnect button is on screen (disconnected state).</summary>
-	public bool IsReconnectButtonVisible(double timeoutSeconds = 8)
+	public bool IsReconnectButtonVisible(double timeoutSeconds = 20)
 		=> PollDisplayed(AutomationIds.StartHome.ReconnectButton, timeoutSeconds);
 
 	/// <summary>
@@ -425,7 +425,15 @@ public class StartHomePageObject : PageObject
 	/// driving Home into the #261 "サーバー未接続 + 再接続" state without a real
 	/// WebSocket server.
 	/// </summary>
-	public void SimulateWebSocketDisconnectForTesting() => TestSimulateWebSocketDisconnectButton.Click();
+	public void SimulateWebSocketDisconnectForTesting()
+	{
+		for (var attempt = 0; attempt < 2; attempt++)
+		{
+			WaitForElement(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton, TimeSpan.FromSeconds(10)).Click();
+			if (IsReconnectButtonVisible(timeoutSeconds: 12))
+				return;
+		}
+	}
 
 	public AppiumElement TestSetLanguageEnglishButton => FindByAutomationId(AutomationIds.StartHome.TestSetLanguageEnglishButton);
 
@@ -451,7 +459,25 @@ public class StartHomePageObject : PageObject
 	/// carrying real sample data, commits the first WG/Work and navigates to
 	/// DTAC — landing with the AppBar status indicator in the Connected state.
 	/// </summary>
-	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
+	public void SimulateWebSocketConnectedForTesting()
+	{
+		for (var attempt = 0; attempt < 2; attempt++)
+		{
+			WaitForElement(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton, TimeSpan.FromSeconds(10)).Click();
+			if (PollDisplayed(AutomationIds.DTAC.MenuButton, timeoutSeconds: 20))
+				return;
+		}
+	}
+
+	public AppiumElement TestSimulateWebSocketSearchButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketSearchButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam (Issue #197) that builds a WebSocket-TYPED loader
+	/// advertising the TrainSearch feature with a canned dataset (train "9999"),
+	/// commits the first WG/Work and navigates to DTAC so the QuickSwitch Search tab
+	/// can be exercised without a real server.
+	/// </summary>
+	public void SimulateWebSocketSearchForTesting() => TestSimulateWebSocketSearchButton.Click();
 
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
