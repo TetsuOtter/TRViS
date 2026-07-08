@@ -171,7 +171,7 @@ public partial class HomeGridView : Grid
 			LoaderInfoTitleLabel.Text = AppResources.Home_LoadedData;
 			LoaderInfoDetailLabel.Text = "";
 			LoaderInfoGlyphLabel.Text = MaterialIcons.Description;
-			ReconnectButton.IsVisible = false;
+			SetReconnectButtonVisible(false);
 			return;
 		}
 
@@ -195,7 +195,15 @@ public partial class HomeGridView : Grid
 		LoaderInfoTitleLabel.Text = title;
 		LoaderInfoGlyphLabel.Text = glyph;
 		LoaderInfoDetailLabel.Text = viewModel.LoaderSourceLabel ?? string.Empty;
-		ReconnectButton.IsVisible = wsConnectionLost;
+		SetReconnectButtonVisible(wsConnectionLost);
+	}
+
+	void SetReconnectButtonVisible(bool visible)
+	{
+		ReconnectButton.Opacity = visible ? 1 : 0;
+		ReconnectButton.IsEnabled = visible;
+		ReconnectButton.InputTransparent = !visible;
+		ReconnectButton.Padding = visible ? new Thickness(14, 0) : new Thickness(0);
 	}
 
 	/// <summary>

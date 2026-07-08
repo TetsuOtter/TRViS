@@ -22,6 +22,7 @@ must carry a `MessageType` field (exact case). Unknown/missing
 | `TimeFormat` | Time display format | [§9](#9-timeformat) |
 | `NavigateToHome` | Navigate to home screen | [§10](#10-navigatetohome) |
 | `OpenTimetable` | Open timetable view for a specified train | [§11](#11-opentimetable) |
+| `SearchTrainResponse` | Result of a train-search request | [§12](#12-searchtrainresponse) |
 
 > Notation: "Required" means a field the server effectively needs to
 > produce meaningful behavior. "Optional" may be omitted. A type
@@ -103,7 +104,8 @@ server-initiated broadcast.
   "Name": "My Sync Server",     // string | null
   "Admin": "admin@example.com", // string | null
   "Version": "1.2.3",           // string | null
-  "ProtocolVersion": "1.0"      // string | null
+  "ProtocolVersion": "1.1",     // string | null
+  "Features": ["TrainSearch"]   // string[] | null. Optional. Omitted/null = no extended features.
 }
 ```
 
@@ -112,11 +114,26 @@ server-initiated broadcast.
 | `Name` | string | Server name. |
 | `Admin` | string | Admin / contact. |
 | `Version` | string | Server implementation version. |
-| `ProtocolVersion` | string | Supported protocol version. Currently `"1.0"`. |
+| `ProtocolVersion` | string | Supported protocol version. Currently `"1.1"`. |
+| `Features` | string[] | Optional. Feature-id strings the server supports. Only string elements are kept; non-string elements are ignored. Absent/`null` means the server advertises no extended features. |
 
 Each field `null` or missing means "unset". `ProtocolVersion` is the
-only signal of protocol compatibility, so returning a correct value is
-recommended.
+handshake-level signal of protocol compatibility (optional capabilities
+are negotiated separately via `Features`, below), so returning a correct
+value is recommended.
+
+**Feature negotiation.** `Features` advertises optional capabilities
+that are negotiated independently of the version number. Known feature
+ids so far:
+
+| Feature id | Meaning |
+|---|---|
+| `"TrainSearch"` | The server supports the train-search request/response pair ([`SearchTrain`](client-to-server-messages.md#4-searchtrain) → [`SearchTrainResponse`](#12-searchtrainresponse)) and the follow-up [`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable). |
+
+The client sends [`RequestServerInfo`](client-to-server-messages.md#2-requestserverinfo)
+automatically right after the WebSocket connection opens, so it learns
+`Features` without any extra action, and uses it to decide whether to
+show its train-search UI.
 
 ## 4. DiagramInfo
 
@@ -302,6 +319,70 @@ unchanged.
 
 ---
 
+## 12. SearchTrainResponse
+
+Reply to a client [`SearchTrain`](client-to-server-messages.md#4-searchtrain)
+request. Available only when the server advertises the `TrainSearch`
+[feature](#3-serverinfo). The message echoes the request's `RequestId`
+so the client can correlate it with the request it sent.
+
+```jsonc
+{
+  "MessageType": "SearchTrainResponse",
+  "RequestId": "3f2a...unique...",   // echoes the SearchTrain RequestId (required for correlation)
+  "Results": [
+    {
+      "WorkGroupId": "wg-1",
+      "WorkId": "w-1",
+      "TrainId": "t-1",
+      "TrainNumber": "1234",
+      "WorkName": "1行路",
+      "Direction": 1,                 // integer | null. -1 = Inbound, 1 = Outbound
+      "StartStationName": "東京",
+      "StartTime": "09:00",
+      "EndStationName": "大阪",
+      "EndTime": "12:30"
+    }
+    // ... zero or more candidates. The same train number may yield
+    //     multiple candidates (different works/trains).
+  ]
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `RequestId` | string | Echo of the [`SearchTrain.RequestId`](client-to-server-messages.md#4-searchtrain). Required — the client correlates the response by this value. |
+| `Results` | object[] | Always present. Array of matching candidates. An **empty array means "no matching train"** (a successful response, not a timeout). |
+
+Each element of `Results` is a summary used to (a) render the candidate
+list and (b) show a confirmation dialog. It does **not** include the full
+timetable rows — those are fetched separately via
+[`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable).
+
+| Result field | Type | Description |
+|---|---|---|
+| `WorkGroupId` | string | Id needed to fetch & display the train. |
+| `WorkId` | string | Id needed to fetch & display the train. |
+| `TrainId` | string | Id needed to fetch & display the train. |
+| `TrainNumber` | string | The train number. |
+| `WorkName` | string | Name of the work this train belongs to. |
+| `Direction` | integer \| null | `-1` = Inbound, `1` = Outbound. |
+| `StartStationName` | string | Start station name. |
+| `StartTime` | string | Start time as a display string (e.g. `"09:00"`). |
+| `EndStationName` | string | End station name. |
+| `EndTime` | string | End time as a display string (e.g. `"12:30"`). |
+
+- `Results` is **always present**; an empty array is a valid, successful
+  "no results" reply. A server that advertises `TrainSearch` **must
+  always respond** — even with zero results — so the client can
+  distinguish "no results" from "no/failed response" (the client times
+  out after 10s and reports an error when nothing arrives).
+- Matching semantics are driven by the request's `MatchMode`
+  (see [`SearchTrain`](client-to-server-messages.md#4-searchtrain)) —
+  `Prefix` (default), `Contains`, or `Exact` — not server-defined.
+
+---
+
 ## Appendix: parsing behavior summary
 
 Common pitfalls for external implementers:
@@ -322,5 +403,8 @@ Common pitfalls for external implementers:
 - `OperationCommand.Action` is **required** and only known values are
   valid (case-insensitive).
 - `Notification.IssuedAt` is **ISO 8601** only.
+- `ServerInfo.Features` is a **JSON array**; only string elements are
+  kept and non-string elements are ignored (absent/`null` = no extended
+  features).
 - Unknown `MessageType`, missing `MessageType`, invalid JSON are
   **silently ignored**.

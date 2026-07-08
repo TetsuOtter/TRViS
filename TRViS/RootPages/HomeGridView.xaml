@@ -93,10 +93,13 @@
 				FontSize="13"
 				FontAttributes="Bold"
 				HeightRequest="36"
-				Padding="14,0"
+				Padding="0"
 				CornerRadius="8"
 				VerticalOptions="Center"
-				IsVisible="False"
+				IsVisible="True"
+				IsEnabled="False"
+				InputTransparent="True"
+				Opacity="0"
 				Clicked="OnReconnectClicked"/>
 		</Grid>
 	</Border>

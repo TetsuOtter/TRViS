@@ -87,12 +87,25 @@ Client messages fall into two families.
 
 | Kind | Discriminator | Content |
 |---|---|---|
-| Request message | **has** `MessageType` | `RequestServerInfo` / `RequestDiagramInfo` |
+| Request message | **has** `MessageType` | `RequestServerInfo` / `RequestDiagramInfo` / `SearchTrain` / `RequestTrainTimetable` |
 | ID-update message | **no** `MessageType` | contains `WorkGroupId`/`WorkId`/`TrainId` (backward-compat) |
 
 The server should interpret "JSON without a `MessageType` that contains
 any of `WorkGroupId`/`WorkId`/`TrainId`" as an ID update. Detail in
 [client-to-server-messages.md](client-to-server-messages.md).
+
+The v1.1 train-search requests `SearchTrain` and `RequestTrainTimetable`
+carry a client-generated **`RequestId`** for response correlation, and
+the client applies a client-side timeout to each:
+
+| Request | Response | Correlated by | Timeout (default) |
+|---|---|---|---|
+| `SearchTrain` | `SearchTrainResponse` | echoed `RequestId` | 10s |
+| `RequestTrainTimetable` | normal `Timetable` (Train scope) | delivered Timetable's `TrainId` | 15s |
+
+These are only meaningful when the server advertises the `TrainSearch`
+[feature](server-to-client-messages.md#3-serverinfo). If it does not, it
+simply does not respond and the client times out.
 
 ## 4. Keep-alive
 
@@ -171,6 +184,7 @@ that connection.
 - [ ] Send text frames, UTF-8, root-object JSON
 - [ ] Treat received JSON without `MessageType` as an ID update
 - [ ] Respond to `RequestServerInfo` / `RequestDiagramInfo` requests
+- [ ] (If supporting `TrainSearch`) advertise it in `ServerInfo.Features`, always reply to `SearchTrain` with a `SearchTrainResponse` echoing `RequestId`, and reply to `RequestTrainTimetable` with a Train-scope `Timetable`
 - [ ] Respond to WebSocket Ping/Pong (control frames) per the standard
 - [ ] Tolerate immediate reconnection right after a disconnect
 - [ ] Handle the ID update re-sent by a reconnecting client and resume delivery

@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using NLog;
 
+using TRViS.IO.Models;
 using TRViS.LocationService.Abstractions;
 using TRViS.NetworkSyncService.Internals;
 
@@ -235,6 +238,46 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	/// <remarks>結果は <see cref="DiagramInfoUpdated"/> イベントで通知される。</remarks>
 	public virtual Task RequestDiagramInfoAsync(string? diagramId = null, CancellationToken cancellationToken = default)
 		=> Task.CompletedTask;
+
+	/// <summary>
+	/// サーバーが対応する拡張機能の一覧 (機能ネゴシエーション)。
+	/// <c>ServerInfo</c> メッセージの <c>Features</c> フィールドから設定される。
+	/// 未取得 / 非対応サーバーでは空。
+	/// </summary>
+	public IReadOnlyList<string> ServerFeatures { get; protected set; } = Array.Empty<string>();
+
+	/// <summary>
+	/// 指定した機能 ID (<see cref="ServerFeatureIds"/>) にサーバーが対応しているかを返す。
+	/// </summary>
+	public bool IsFeatureSupported(string featureId)
+		=> !string.IsNullOrEmpty(featureId)
+			&& ServerFeatures.Contains(featureId, StringComparer.Ordinal);
+
+	/// <summary>
+	/// 列番でサーバーに列車を検索する (<c>SearchTrain</c>)。応答は相関 ID で対応付けられ、
+	/// 一定時間内に応答が無ければ <see cref="TimeoutException"/> を投げる。
+	/// WebSocket のみ対応。それ以外の実装では <see cref="NotSupportedException"/> を投げる。
+	/// </summary>
+	/// <param name="trainNumber">検索する列番。</param>
+	/// <param name="matchMode">一致方式 (前方一致 / 中間一致 / 完全一致)。既定は前方一致。</param>
+	/// <param name="cancellationToken">キャンセルトークン。</param>
+	/// <returns>候補一覧 (0 件の場合は空)。</returns>
+	public virtual Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
+		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, CancellationToken cancellationToken = default)
+		=> throw new NotSupportedException("Train search is only supported over WebSocket.");
+
+	/// <summary>
+	/// 検索結果 (<see cref="TrainSearchResult"/>) の列車の完全な時刻表を取得する
+	/// (<c>RequestTrainTimetable</c>)。取得した時刻表は <c>Timetable</c> (Train スコープ)
+	/// として通常の受信パイプラインでキャッシュされ、対応する <see cref="TrainData"/> を返す。
+	/// WebSocket のみ対応。それ以外の実装では <see cref="NotSupportedException"/> を投げる。
+	/// </summary>
+	/// <param name="result">確定した検索候補。</param>
+	/// <param name="cancellationToken">キャンセルトークン。</param>
+	/// <returns>取得した <see cref="TrainData"/>。取得できなければ <see cref="TimeoutException"/>。</returns>
+	public virtual Task<TrainData?> FetchSearchedTrainTimetableAsync(
+		TrainSearchResult result, CancellationToken cancellationToken = default)
+		=> throw new NotSupportedException("Train timetable fetch is only supported over WebSocket.");
 
 	/// <summary>
 	/// Called when WorkGroupId property changes
