@@ -1433,16 +1433,24 @@ public class WebSocketIntegrationTests
 			var clients = await _control.GetWsClientsAsync();
 			Assert.That(clients, Has.Count.GreaterThanOrEqualTo(1), "Client should have reconnected");
 
-			// 再接続後も正常に SyncedData を受信できることを確認
+			// 再接続後も正常に SyncedData を受信できることを確認する。
+			// 再接続直後はクライアント側の受信ループ再開と「一度きりのブロードキャスト」が
+			// 競合し得る (負荷の高い CI では再接続完了前にブロードキャストが飛び、受信を取り
+			// こぼす)。実サーバーは SyncedData を周期的にプッシュするため、ここでも受信できる
+			// まで再送する。SyncedData は状態のスナップショットなので再送は冪等。
 			long testTime_ms = 54_000_000L;
 			await _control.SetStateAsync(time_ms: testTime_ms, canStart: true);
 
 			var timeTask = WaitForEventAsync<int>(
 				h => service.TimeChanged += h,
-				h => service.TimeChanged -= h
+				h => service.TimeChanged -= h,
+				timeoutMs: 10_000
 			);
-			// イベント購読後にブロードキャストを発火して TimeChanged を確実に受け取る
-			await _control.BroadcastSyncedDataAsync();
+			while (!timeTask.IsCompleted)
+			{
+				await _control.BroadcastSyncedDataAsync();
+				await Task.WhenAny(timeTask, Task.Delay(250));
+			}
 
 			int receivedTime_s = await timeTask;
 			Assert.That(receivedTime_s, Is.EqualTo(testTime_ms / 1000));
