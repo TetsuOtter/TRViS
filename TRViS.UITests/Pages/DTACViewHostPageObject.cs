@@ -436,6 +436,30 @@ public class DTACViewHostPageObject : PageObject
 		Thread.Sleep(300);
 	}
 
+	/// <summary>
+	/// Dismisses an open QuickSwitchPopup by tapping outside its bounds
+	/// (ViewHost.xaml.cs sets DismissOnTapOutside = true). Callers MUST leave
+	/// QuickSwitch closed before the test ends: TrainSearchTests previously
+	/// left it open after its final assertion, and the next fixture's shared-
+	/// session recovery (AppShellPage.NavigateToHome) couldn't dismiss it,
+	/// so its 5 s seam probe and fallback flyout tap both missed, cascading
+	/// into a 30 s WaitForFlyoutItem timeout (CI run 28886535334).
+	/// </summary>
+	public void CloseQuickSwitch()
+	{
+		var size = Driver.Manage().Window.Size;
+		int x = size.Width / 2;
+		int y = (int)(size.Height * 0.95);
+
+		var touch = new PointerInputDevice(PointerKind.Touch, "finger");
+		var seq = new ActionSequence(touch);
+		seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, y, TimeSpan.Zero));
+		seq.AddAction(touch.CreatePointerDown(MouseButton.Left));
+		seq.AddAction(touch.CreatePointerUp(MouseButton.Left));
+		Driver.PerformActions(new List<ActionSequence> { seq });
+		Thread.Sleep(300);
+	}
+
 	/// <summary>True when the QuickSwitch Search tab is present (server advertises TrainSearch).</summary>
 	public bool IsSearchTabPresent(double timeoutSeconds = 5)
 		=> PollDisplayed(AutomationIds.DTAC.QuickSwitch.SearchTab, timeoutSeconds);

@@ -100,5 +100,12 @@ public class TrainSearchTests : BaseUITest
 		// There is no "return to previous train" affordance any more.
 		dtac.OpenQuickSwitch();
 		Assert.That(dtac.IsSearchTabPresent(), Is.True);
+
+		// Leave QuickSwitch closed: this fixture shares its Appium session with
+		// later fixtures, and an open popover breaks their SetUp recovery (see
+		// DTACViewHostPageObject.CloseQuickSwitch).
+		dtac.CloseQuickSwitch();
+		Assert.That(dtac.IsSearchTabPresent(timeoutSeconds: 2), Is.False,
+			"QuickSwitch must be closed at the end of the test so it doesn't leak into the next fixture's shared session.");
 	}
 }
