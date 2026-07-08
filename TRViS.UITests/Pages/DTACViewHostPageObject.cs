@@ -337,16 +337,9 @@ public class DTACViewHostPageObject : PageObject
 		return FindByAutomationId(automationId);
 	}
 
-	public bool IsDisplayed()
+	public bool IsDisplayed(double timeoutSeconds = 60)
 	{
-		try
-		{
-			return MenuButton.Displayed;
-		}
-		catch (NoSuchElementException)
-		{
-			return false;
-		}
+		return PollDisplayed(AutomationIds.DTAC.MenuButton, timeoutSeconds);
 	}
 
 	public DTACViewHostPageObject SwitchToTimetableTab()

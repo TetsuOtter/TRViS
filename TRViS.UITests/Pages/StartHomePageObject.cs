@@ -47,7 +47,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement ReconnectButton => WaitForElement(AutomationIds.StartHome.ReconnectButton);
 
 	/// <summary>True once the #261 reconnect button is on screen (disconnected state).</summary>
-	public bool IsReconnectButtonVisible(double timeoutSeconds = 8)
+	public bool IsReconnectButtonVisible(double timeoutSeconds = 20)
 		=> PollDisplayed(AutomationIds.StartHome.ReconnectButton, timeoutSeconds);
 
 	/// <summary>

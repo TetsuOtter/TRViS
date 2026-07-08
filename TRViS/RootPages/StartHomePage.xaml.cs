@@ -1476,8 +1476,9 @@ public partial class StartHomePage : ContentPage
 	// swap). On DTAC the QuickSwitch popup shows the Search tab; the E2E types "9999",
 	// picks the result, confirms, and verifies the header/行路 switched. Network-free.
 	//
-	// Placed in the proven-visible seam band (y=312) in a third clear column
-	// (left=60), matching the off-screen-iPhone-safe placement of the sibling seams.
+	// Placed in the proven-visible seam band (y=312) in a fourth clear column
+	// (left=90). The third column at (60,312) is already owned by the Scan-QR
+	// open seam; sharing exact bounds lets the later-added button swallow taps.
 	private void AddTestSimulateWebSocketSearchSeam()
 	{
 		var seam = new Button
@@ -1487,7 +1488,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(60, 312, 0, 0),
+			Margin = new Thickness(90, 312, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
