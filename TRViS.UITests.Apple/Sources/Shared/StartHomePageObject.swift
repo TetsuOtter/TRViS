@@ -286,6 +286,10 @@ class StartHomePageObject {
     /// both the accepted state and the flyout via the real Save path.
     func clearPrivacyPolicyAcceptanceForTesting() {
         base.tapSeam(id: AutomationIds.StartHome.testClearPrivacyPolicyButton)
+        guard isPrivacyReconfirmBannerVisible(timeout: 10) else {
+            XCTFail("Privacy reconfirm banner did not reappear after clearing acceptance")
+            return
+        }
     }
 
     // MARK: — Privacy Policy dialog (used by ScreenshotRegressionTests)

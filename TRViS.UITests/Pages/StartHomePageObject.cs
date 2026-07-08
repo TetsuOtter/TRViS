@@ -425,7 +425,15 @@ public class StartHomePageObject : PageObject
 	/// driving Home into the #261 "サーバー未接続 + 再接続" state without a real
 	/// WebSocket server.
 	/// </summary>
-	public void SimulateWebSocketDisconnectForTesting() => TestSimulateWebSocketDisconnectButton.Click();
+	public void SimulateWebSocketDisconnectForTesting()
+	{
+		for (var attempt = 0; attempt < 2; attempt++)
+		{
+			WaitForElement(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton, TimeSpan.FromSeconds(10)).Click();
+			if (IsReconnectButtonVisible(timeoutSeconds: 12))
+				return;
+		}
+	}
 
 	public AppiumElement TestSetLanguageEnglishButton => FindByAutomationId(AutomationIds.StartHome.TestSetLanguageEnglishButton);
 
@@ -451,7 +459,15 @@ public class StartHomePageObject : PageObject
 	/// carrying real sample data, commits the first WG/Work and navigates to
 	/// DTAC — landing with the AppBar status indicator in the Connected state.
 	/// </summary>
-	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
+	public void SimulateWebSocketConnectedForTesting()
+	{
+		for (var attempt = 0; attempt < 2; attempt++)
+		{
+			WaitForElement(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton, TimeSpan.FromSeconds(10)).Click();
+			if (PollDisplayed(AutomationIds.DTAC.MenuButton, timeoutSeconds: 20))
+				return;
+		}
+	}
 
 	public AppiumElement TestSimulateWebSocketSearchButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketSearchButton);
 
