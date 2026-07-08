@@ -22,6 +22,7 @@ JSON オブジェクトで、必ず `MessageType` フィールド（正確なケ
 | `TimeFormat` | 時刻表示書式 | [§9](#9-timeformat) |
 | `NavigateToHome` | ホーム画面へ遷移 | [§10](#10-navigatetohome) |
 | `OpenTimetable` | 指定列車の時刻表ビューを開く | [§11](#11-opentimetable) |
+| `SearchTrainResponse` | 列車検索要求への結果応答 | [§12](#12-searchtrainresponse) |
 
 > 表記規約: 「必須」はサーバーが意味のある動作をさせるために事実上
 > 必要なフィールド。「任意」は省略可能。型不一致はおおむね「無視
@@ -101,7 +102,8 @@ WebSocket では受信のたびに即座に処理されます（バッファリ�
   "Name": "My Sync Server",     // string | null
   "Admin": "admin@example.com", // string | null
   "Version": "1.2.3",           // string | null
-  "ProtocolVersion": "1.0"      // string | null
+  "ProtocolVersion": "1.1",     // string | null
+  "Features": ["TrainSearch"]   // string[] | null。任意。省略/null で拡張機能なし。
 }
 ```
 
@@ -110,10 +112,25 @@ WebSocket では受信のたびに即座に処理されます（バッファリ�
 | `Name` | string | サーバー名。 |
 | `Admin` | string | 管理者・連絡先。 |
 | `Version` | string | サーバー実装バージョン。 |
-| `ProtocolVersion` | string | 対応プロトコルバージョン。現行は `"1.0"`。 |
+| `ProtocolVersion` | string | 対応プロトコルバージョン。現行は `"1.1"`。 |
+| `Features` | string[] | 任意。サーバーが対応する機能 ID 文字列。文字列要素のみ採用し、文字列以外は無視。欠落／`null` は拡張機能を提供しないことを意味する。 |
 
 各フィールドは `null` または欠落で「未設定」扱い。`ProtocolVersion` は
-プロトコル互換性を示す唯一のシグナルなので、正しい値を返すことを推奨します。
+プロトコル互換性を示すハンドシェイク的シグナルであり（任意機能は下記の
+`Features` で別途ネゴシエーションされます）、正しい値を返すことを推奨します。
+
+**機能ネゴシエーション。** `Features` はバージョン番号とは独立に
+ネゴシエーションされる任意機能を広告します。現在既知の機能 ID は
+次のとおりです。
+
+| 機能 ID | 意味 |
+|---|---|
+| `"TrainSearch"` | サーバーが列車検索の要求/応答ペア（[`SearchTrain`](client-to-server-messages.md#4-searchtrain) → [`SearchTrainResponse`](#12-searchtrainresponse)）および後続の [`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable) に対応する。 |
+
+クライアントは WebSocket 接続確立直後に
+[`RequestServerInfo`](client-to-server-messages.md#2-requestserverinfo)
+を自動送信するため、追加操作なしで `Features` を取得でき、これをもとに
+列車検索 UI を表示するかどうかを判断します。
 
 ## 4. DiagramInfo
 
@@ -294,6 +311,70 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 
 ---
 
+## 12. SearchTrainResponse
+
+クライアントの [`SearchTrain`](client-to-server-messages.md#4-searchtrain)
+要求への応答。サーバーが `TrainSearch` [機能](#3-serverinfo)を広告して
+いる場合のみ提供されます。このメッセージは要求の `RequestId` を
+エコーバックし、クライアントは送信した要求と応答を対応付けます。
+
+```jsonc
+{
+  "MessageType": "SearchTrainResponse",
+  "RequestId": "3f2a...unique...",   // SearchTrain の RequestId をエコー（対応付けに必須）
+  "Results": [
+    {
+      "WorkGroupId": "wg-1",
+      "WorkId": "w-1",
+      "TrainId": "t-1",
+      "TrainNumber": "1234",
+      "WorkName": "1行路",
+      "Direction": 1,                 // integer | null。-1 = Inbound, 1 = Outbound
+      "StartStationName": "東京",
+      "StartTime": "09:00",
+      "EndStationName": "大阪",
+      "EndTime": "12:30"
+    }
+    // ... 0 件以上の候補。同じ列車番号でも複数の候補
+    //     （異なる行路／列車）が返ることがある。
+  ]
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `RequestId` | string | [`SearchTrain.RequestId`](client-to-server-messages.md#4-searchtrain) のエコー。必須 — クライアントはこの値で応答を対応付ける。 |
+| `Results` | object[] | 常に存在。該当候補の配列。**空配列は「該当列車なし」を意味**する（タイムアウトではなく成功応答）。 |
+
+`Results` の各要素は、(a) 候補一覧の表示と (b) 確認ダイアログの表示に
+使われるサマリです。時刻表本体の行は **含まれません** — それは
+[`RequestTrainTimetable`](client-to-server-messages.md#5-requesttraintimetable)
+で別途取得します。
+
+| 結果フィールド | 型 | 説明 |
+|---|---|---|
+| `WorkGroupId` | string | 列車の取得・表示に必要な ID。 |
+| `WorkId` | string | 列車の取得・表示に必要な ID。 |
+| `TrainId` | string | 列車の取得・表示に必要な ID。 |
+| `TrainNumber` | string | 列車番号。 |
+| `WorkName` | string | この列車が属する行路の名称。 |
+| `Direction` | integer \| null | `-1` = Inbound, `1` = Outbound。 |
+| `StartStationName` | string | 始発駅名。 |
+| `StartTime` | string | 始発時刻の表示用文字列（例 `"09:00"`）。 |
+| `EndStationName` | string | 終着駅名。 |
+| `EndTime` | string | 終着時刻の表示用文字列（例 `"12:30"`）。 |
+
+- `Results` は **常に存在**し、空配列は正常な「該当なし」応答です。
+  `TrainSearch` を広告するサーバーは、たとえ 0 件でも **必ず応答**
+  しなければなりません。そうすることでクライアントは「該当なし」と
+  「無応答／応答失敗」を区別できます（何も届かないとクライアントは
+  10 秒でタイムアウトしエラーを報告します）。
+- 一致判定はリクエストの `MatchMode`
+  （[`SearchTrain`](client-to-server-messages.md#4-searchtrain) 参照）
+  — `Prefix`（既定）/ `Contains` / `Exact` — によって決まり、サーバー任意ではありません。
+
+---
+
 ## 付録: パース挙動の要点
 
 外部実装者が誤りやすい点のまとめです。
@@ -310,4 +391,6 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 - `SelectTrain` の各 ID は **JSON string 型必須**。
 - `OperationCommand.Action` は**必須**かつ既知の値のみ有効（大小無視）。
 - `Notification.IssuedAt` は **ISO 8601** のみ。
+- `ServerInfo.Features` は **JSON 配列**で、文字列要素のみ採用し文字列
+  以外は無視（欠落／`null` は拡張機能なし）。
 - 未知の `MessageType`・`MessageType` 欠落・不正 JSON は **黙って無視**。

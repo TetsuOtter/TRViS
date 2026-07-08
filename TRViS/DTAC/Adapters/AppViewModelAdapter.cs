@@ -1,5 +1,7 @@
 using System.ComponentModel;
 
+using Microsoft.Maui.ApplicationModel;
+
 using TRViS.DTAC.Logic.Abstractions;
 using TRViS.ViewModels;
 
@@ -20,7 +22,13 @@ internal class AppViewModelAdapter : IAppViewModelProvider
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        PropertyChanged?.Invoke(this, e);
+        if (MainThread.IsMainThread)
+        {
+            PropertyChanged?.Invoke(this, e);
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() => PropertyChanged?.Invoke(this, e));
     }
 
     public TRViS.IO.Models.WorkGroup? SelectedWorkGroup => _viewModel.SelectedWorkGroup;
