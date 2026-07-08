@@ -158,6 +158,7 @@ public sealed class ReferenceServerClient : IDisposable
 		string? admin = null,
 		string? version = null,
 		string? protocolVersion = null,
+		string[]? features = null,
 		CancellationToken ct = default)
 	{
 		var payload = new
@@ -166,10 +167,44 @@ public sealed class ReferenceServerClient : IDisposable
 			Admin = admin,
 			Version = version,
 			ProtocolVersion = protocolVersion,
+			Features = features,
 		};
 		var content = new StringContent(
 			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
 		var resp = await _http.PostAsync("/control/server-info", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	// ================================================================
+	// 列車検索データセット
+	// ================================================================
+
+	/// <summary>
+	/// 検索可能列車データセットを差し替える。各 <see cref="SearchTrainSeed"/> の
+	/// <c>DataJson</c> は Train スコープの TrainData JSON 文字列。
+	/// </summary>
+	public async Task SetSearchTrainsAsync(IEnumerable<SearchTrainSeed> trains, CancellationToken ct = default)
+	{
+		var payload = new
+		{
+			Trains = trains.Select(t => new
+			{
+				t.WorkGroupId,
+				t.WorkId,
+				t.TrainId,
+				t.TrainNumber,
+				t.WorkName,
+				t.Direction,
+				t.StartStationName,
+				t.StartTime,
+				t.EndStationName,
+				t.EndTime,
+				Data = t.DataJson,
+			}),
+		};
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/search-trains", content, ct);
 		resp.EnsureSuccessStatusCode();
 	}
 
@@ -373,7 +408,25 @@ public sealed record ServerInfoDto(
 	[property: JsonPropertyName("Name")] string? Name,
 	[property: JsonPropertyName("Admin")] string? Admin,
 	[property: JsonPropertyName("Version")] string? Version,
-	[property: JsonPropertyName("ProtocolVersion")] string? ProtocolVersion
+	[property: JsonPropertyName("ProtocolVersion")] string? ProtocolVersion,
+	[property: JsonPropertyName("Features")] string[]? Features = null
+);
+
+/// <summary>
+/// <see cref="ReferenceServerClient.SetSearchTrainsAsync"/> に渡す検索可能列車のシード。
+/// </summary>
+public sealed record SearchTrainSeed(
+	string WorkGroupId,
+	string WorkId,
+	string TrainId,
+	string TrainNumber,
+	string DataJson,
+	string? WorkName = null,
+	int? Direction = null,
+	string? StartStationName = null,
+	string? StartTime = null,
+	string? EndStationName = null,
+	string? EndTime = null
 );
 
 public sealed record DiagramListDto(

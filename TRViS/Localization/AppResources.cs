@@ -22,6 +22,20 @@ public static class AppResources
 	public static string Common_Error => Get(nameof(Common_Error));
 	public static string Common_Success => Get(nameof(Common_Success));
 
+	public static string QuickSwitch_Tab_Search => Get(nameof(QuickSwitch_Tab_Search));
+	public static string QuickSwitch_Search_NumberPlaceholder => Get(nameof(QuickSwitch_Search_NumberPlaceholder));
+	public static string QuickSwitch_Search_MatchMode_Prefix => Get(nameof(QuickSwitch_Search_MatchMode_Prefix));
+	public static string QuickSwitch_Search_MatchMode_Contains => Get(nameof(QuickSwitch_Search_MatchMode_Contains));
+	public static string QuickSwitch_Search_MatchMode_Exact => Get(nameof(QuickSwitch_Search_MatchMode_Exact));
+	public static string QuickSwitch_Search_Searching => Get(nameof(QuickSwitch_Search_Searching));
+	public static string QuickSwitch_Search_NoResults => Get(nameof(QuickSwitch_Search_NoResults));
+	public static string QuickSwitch_Search_Timeout => Get(nameof(QuickSwitch_Search_Timeout));
+	public static string QuickSwitch_Search_Error => Get(nameof(QuickSwitch_Search_Error));
+	public static string QuickSwitch_Search_FetchError => Get(nameof(QuickSwitch_Search_FetchError));
+	public static string QuickSwitch_Search_ErrorTitle => Get(nameof(QuickSwitch_Search_ErrorTitle));
+	public static string QuickSwitch_Search_ConfirmTitle => Get(nameof(QuickSwitch_Search_ConfirmTitle));
+	public static string QuickSwitch_Search_ConfirmBodyFormat => Get(nameof(QuickSwitch_Search_ConfirmBodyFormat));
+
 	public static string Shell_Home => Get(nameof(Shell_Home));
 	public static string Shell_ThirdPartyLicenses => Get(nameof(Shell_ThirdPartyLicenses));
 	public static string Shell_Settings => Get(nameof(Shell_Settings));
