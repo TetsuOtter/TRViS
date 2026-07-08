@@ -1441,25 +1441,28 @@ public partial class StartHomePage : ContentPage
 			service.SeedCachesFromLoaderForTesting(sample);
 			sample.Dispose();
 
-			var previous = viewModel.Loader;
-			viewModel.SetLoader(service, "ws://uitest.invalid/");
-			previous?.Dispose();
-
-			var firstGroup = viewModel.WorkGroupList?.FirstOrDefault();
-			if (firstGroup is null)
+			await MainThread.InvokeOnMainThreadAsync(async () =>
 			{
-				logger.Warn("TestSimulateWebSocketConnected: no WorkGroup in sample data — ignoring");
-				return;
-			}
-			var firstWork = service.GetWorkList(firstGroup.Id)?.FirstOrDefault();
-			if (firstWork is null)
-			{
-				logger.Warn("TestSimulateWebSocketConnected: first WorkGroup has no Work — aborting");
-				return;
-			}
+				var previous = viewModel.Loader;
+				viewModel.SetLoader(service, "ws://uitest.invalid/");
+				previous?.Dispose();
 
-			HomeGrid.CommitPendingSelection(firstGroup, firstWork);
-			await HomeGridView.NavigateToDTACAsync();
+				var firstGroup = viewModel.WorkGroupList?.FirstOrDefault();
+				if (firstGroup is null)
+				{
+					logger.Warn("TestSimulateWebSocketConnected: no WorkGroup in sample data — ignoring");
+					return;
+				}
+				var firstWork = service.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+				if (firstWork is null)
+				{
+					logger.Warn("TestSimulateWebSocketConnected: first WorkGroup has no Work — aborting");
+					return;
+				}
+
+				HomeGrid.CommitPendingSelection(firstGroup, firstWork);
+				await HomeGridView.NavigateToDTACAsync();
+			});
 		}
 		catch (Exception ex)
 		{
@@ -1540,12 +1543,15 @@ public partial class StartHomePage : ContentPage
 			service.SeedTrainSearchForTesting(new[] { (summary, searchedTrain) });
 			sample.Dispose();
 
-			var previous = viewModel.Loader;
-			viewModel.SetLoader(service, "ws://uitest.invalid/");
-			previous?.Dispose();
+			await MainThread.InvokeOnMainThreadAsync(async () =>
+			{
+				var previous = viewModel.Loader;
+				viewModel.SetLoader(service, "ws://uitest.invalid/");
+				previous?.Dispose();
 
-			HomeGrid.CommitPendingSelection(wg, work);
-			await HomeGridView.NavigateToDTACAsync();
+				HomeGrid.CommitPendingSelection(wg, work);
+				await HomeGridView.NavigateToDTACAsync();
+			});
 		}
 		catch (Exception ex)
 		{
