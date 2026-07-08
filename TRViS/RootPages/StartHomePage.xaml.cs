@@ -1313,7 +1313,7 @@ public partial class StartHomePage : ContentPage
 	// disconnected status + reveals the 再接続 button. No _lastWebSocketAppLinkInfo
 	// is stored, so a subsequent 再接続 tap is a deterministic no-op
 	// (ReconnectWebSocketAsync returns false) — keeps the test network-free.
-	void TestSimulateWebSocketDisconnectButton_Clicked(object? sender, EventArgs e)
+	async void TestSimulateWebSocketDisconnectButton_Clicked(object? sender, EventArgs e)
 	{
 		logger.Info("TestSimulateWebSocketDisconnectButton clicked: simulating WS connection-lost state");
 		try
@@ -1321,10 +1321,17 @@ public partial class StartHomePage : ContentPage
 			var service = new WebSocketNetworkSyncService(
 				new Uri("ws://uitest.invalid/"),
 				new System.Net.WebSockets.ClientWebSocket());
-			var previous = viewModel.Loader;
-			viewModel.SetLoader(service, "ws://uitest.invalid/");
-			previous?.Dispose();
-			viewModel.IsServerConnectionLost = true;
+			await MainThread.InvokeOnMainThreadAsync(async () =>
+			{
+				var previous = viewModel.Loader;
+				viewModel.SetLoader(service, "ws://uitest.invalid/");
+				previous?.Dispose();
+				viewModel.IsServerConnectionLost = true;
+
+				await ApplyModeForCurrentLoaderAsync();
+				HomeGrid.UpdateLoaderInfoLabels();
+				RefreshLoaderInfoRowHeight();
+			});
 		}
 		catch (Exception ex)
 		{
