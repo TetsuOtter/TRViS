@@ -129,6 +129,12 @@ public static class AutomationIds
 		// states can be E2E-verified without a real WebSocket server.
 		public const string TestSimulateWebSocketConnectedButton = "StartHome.TestSimulateWebSocketConnectedButton";
 
+		// Like TestSimulateWebSocketConnectedButton, but the WebSocket-typed loader
+		// also advertises the TrainSearch feature and serves a canned search dataset
+		// (train "9999"). Lands on DTAC so the QuickSwitch Search tab (Issue #197)
+		// can be E2E-verified without a real server.
+		public const string TestSimulateWebSocketSearchButton = "StartHome.TestSimulateWebSocketSearchButton";
+
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
 		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against
 		// MAUI's PrimaryActionButton-styled Button silently fails to dispatch
@@ -176,6 +182,28 @@ public static class AutomationIds
 		public const string TabHako = "DTAC.TabHako";
 		public const string TabTimetable = "DTAC.TabTimetable";
 		public const string TabWorkAffix = "DTAC.TabWorkAffix";
+
+		// QuickSwitchPopup train-search (Issue #197). Shown only when connected to a
+		// WebSocket server advertising the TrainSearch feature.
+		public static class QuickSwitch
+		{
+			public const string SearchTab = "DTAC.QuickSwitch.SearchTab";
+			public const string SearchEntry = "DTAC.QuickSwitch.SearchEntry";
+			public const string SearchLoading = "DTAC.QuickSwitch.SearchLoading";
+			public const string SearchStatus = "DTAC.QuickSwitch.SearchStatus";
+			public const string SearchResults = "DTAC.QuickSwitch.SearchResults";
+
+			// TrainNumberEntry is IsReadOnly (no OS keyboard); digits are entered via
+			// this software keypad instead (see QuickSwitchPopup.xaml NumericKeypad).
+			public const string SearchKeypadDigitPrefix = "DTAC.QuickSwitch.SearchKeypadDigit";
+			public const string SearchKeypadBackspace = "DTAC.QuickSwitch.SearchKeypadBackspace";
+			public const string SearchKeypadClear = "DTAC.QuickSwitch.SearchKeypadClear";
+
+			// Match-mode radio buttons (前方一致/中間一致/完全一致).
+			public const string SearchMatchModePrefix = "DTAC.QuickSwitch.SearchMatchModePrefix";
+			public const string SearchMatchModeContains = "DTAC.QuickSwitch.SearchMatchModeContains";
+			public const string SearchMatchModeExact = "DTAC.QuickSwitch.SearchMatchModeExact";
+		}
 
 		public const string StartEndRunButton = "DTAC.StartEndRunButton";
 		public const string LocationServiceButton = "DTAC.LocationServiceButton";
