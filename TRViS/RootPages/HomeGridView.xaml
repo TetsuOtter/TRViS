@@ -100,7 +100,6 @@
 				IsEnabled="False"
 				InputTransparent="True"
 				Opacity="0"
-				WidthRequest="0"
 				Clicked="OnReconnectClicked"/>
 		</Grid>
 	</Border>

@@ -203,7 +203,6 @@ public partial class HomeGridView : Grid
 		ReconnectButton.Opacity = visible ? 1 : 0;
 		ReconnectButton.IsEnabled = visible;
 		ReconnectButton.InputTransparent = !visible;
-		ReconnectButton.WidthRequest = visible ? -1 : 0;
 		ReconnectButton.Padding = visible ? new Thickness(14, 0) : new Thickness(0);
 	}
 
