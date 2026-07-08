@@ -83,6 +83,12 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestClearLoaderButton => FindByAutomationId(AutomationIds.StartHome.TestClearLoaderButton);
 	public AppiumElement TestSimulateWebSocketDisconnectButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton);
 
+	AppiumElement? TryFindAutomationId(string automationId)
+	{
+		var elements = Driver.FindElements(AutomationIdLocator(automationId));
+		return elements.Count > 0 ? elements[0] : null;
+	}
+
 	public bool IsDisplayed()
 	{
 		try
@@ -429,7 +435,17 @@ public class StartHomePageObject : PageObject
 	{
 		for (var attempt = 0; attempt < 2; attempt++)
 		{
-			WaitForElement(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton, TimeSpan.FromSeconds(10)).Click();
+			var deadline = DateTime.UtcNow.AddSeconds(10);
+			while (DateTime.UtcNow < deadline)
+			{
+				var button = TryFindAutomationId(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton);
+				if (button is not null)
+				{
+					button.Click();
+					break;
+				}
+				Thread.Sleep(200);
+			}
 			if (IsReconnectButtonVisible(timeoutSeconds: 12))
 				return;
 		}
@@ -463,7 +479,17 @@ public class StartHomePageObject : PageObject
 	{
 		for (var attempt = 0; attempt < 2; attempt++)
 		{
-			WaitForElement(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton, TimeSpan.FromSeconds(10)).Click();
+			var deadline = DateTime.UtcNow.AddSeconds(10);
+			while (DateTime.UtcNow < deadline)
+			{
+				var button = TryFindAutomationId(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton);
+				if (button is not null)
+				{
+					button.Click();
+					break;
+				}
+				Thread.Sleep(200);
+			}
 			if (PollDisplayed(AutomationIds.DTAC.MenuButton, timeoutSeconds: 20))
 				return;
 		}
