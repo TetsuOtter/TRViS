@@ -239,7 +239,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
 
         // Step 3: Switch to 時刻表 tab (試単9091 data, Remarks closed)
         dtac.switchToTimetableTab()
-        settle()
+        settleUntilVisuallyStable(maxWait: 15.0)
         capture(screen: "dtac-timetable-shiken9091", theme: theme, lang: lang, failures: &failures)
 
         // Step 4: Open the Remarks panel in 時刻表 tab
