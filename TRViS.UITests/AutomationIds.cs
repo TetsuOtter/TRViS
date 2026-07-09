@@ -367,6 +367,20 @@ public static class AutomationIds
 		public const string AcknowledgeButton = "Notification.AcknowledgeButton";
 		public const string DismissButton = "Notification.DismissButton";
 		public const string CloseButton = "Notification.CloseButton";
+
+		/// <summary>
+		/// Small non-modal banner overlaid on the DTAC ViewHost's content area.
+		/// Shown for the initial 受領必須 compact display (CompactDisplay=true) and for
+		/// the acknowledged/区間連動 redisplay (no 受領 button in that case). Tapping it
+		/// expands to the large <see cref="Popup"/>.
+		/// </summary>
+		public static class Banner
+		{
+			public const string Root = "Notification.Banner";
+			public const string Summary = "Notification.Banner.Summary";
+			public const string AcknowledgeButton = "Notification.Banner.AcknowledgeButton";
+			public const string Chevron = "Notification.Banner.Chevron";
+		}
 	}
 
 	/// <summary>

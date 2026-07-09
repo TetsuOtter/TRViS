@@ -632,10 +632,16 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			Sender = TryGetStringProperty(root, "Sender"),
 			IconText = TryGetStringProperty(root, "IconText"),
 			IconImageBase64 = TryGetStringProperty(root, "IconImageBase64"),
+			SectionStartStation = TryGetStringProperty(root, "SectionStartStation"),
+			SectionEndStation = TryGetStringProperty(root, "SectionEndStation"),
 		};
 		if (root.TryGetProperty("Priority", out var p) && p.ValueKind == JsonValueKind.Number
 			&& p.TryGetInt32(out int prio))
 			n.Priority = prio;
+		// StationsBefore は省略/不正値のときモデル既定値 (1) を維持する。
+		if (root.TryGetProperty("StationsBefore", out var sb) && sb.ValueKind == JsonValueKind.Number
+			&& sb.TryGetInt32(out int stationsBefore))
+			n.StationsBefore = stationsBefore;
 		if (root.TryGetProperty("IconColor_RGB", out var ic))
 		{
 			// 数値 (0xRRGGBB の 10 進表記) と "#RRGGBB" 形式の文字列の両方を受け付ける。
@@ -656,6 +662,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		// Acknowledged は JSON の true のときのみ受領済み扱い (それ以外/欠落は false)。
 		if (root.TryGetProperty("Acknowledged", out var ack))
 			n.Acknowledged = ack.ValueKind == JsonValueKind.True;
+		// CompactDisplay も同様に true のときのみ有効 (それ以外/欠落は false)。
+		if (root.TryGetProperty("CompactDisplay", out var cd))
+			n.CompactDisplay = cd.ValueKind == JsonValueKind.True;
 		RaiseNotificationReceived(n);
 	}
 

@@ -303,6 +303,9 @@ public partial class AppViewModel : ObservableObject
 	public AppViewModel()
 	{
 		SelectionManager.PropertyChanged += (_, e) => OnPropertyChanged(e.PropertyName);
+		SelectionManager.PropertyChanged += OnSelectionManagerPropertyChangedForNotificationCenter;
+		// 起動時点で既に選択済みの列車があれば (通常は無いが) 反映しておく。
+		PushSelectedTrainStationsToNotificationCenter();
 
 		if (Application.Current is not null)
 		{
@@ -360,6 +363,34 @@ public partial class AppViewModel : ObservableObject
 		if (!OpenTimetableTabSwitchPending) return false;
 		OpenTimetableTabSwitchPending = false;
 		return true;
+	}
+
+	/// <summary>
+	/// 選択列車が切り替わったときに、その駅順を <see cref="NotificationCenter"/> へ反映する。
+	/// <see cref="SelectionManager"/> は選択列車が変わると <see cref="SelectionManager.SelectedTrainData"/>
+	/// で PropertyChanged を発火するので、それをフィルタして拾う。
+	/// </summary>
+	void OnSelectionManagerPropertyChangedForNotificationCenter(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(SelectedTrainData))
+			PushSelectedTrainStationsToNotificationCenter();
+	}
+
+	/// <summary>
+	/// 現在の <see cref="SelectedTrainData"/> の駅順 (info-row 除外済み) を
+	/// <see cref="NotificationCenterViewModel.SetCurrentTrainStations"/> へ渡す。
+	/// LocationService が組み立てる駅位置情報の配列 (info-row 除外) と同じインデックス空間に
+	/// なるよう、ここでも同じフィルタ (IsInfoRow 除外) を適用する。
+	/// </summary>
+	void PushSelectedTrainStationsToNotificationCenter()
+	{
+		var rows = SelectedTrainData?.Rows;
+		var stations = rows is null
+			? System.Array.Empty<StationRef>()
+			: rows.Where(r => !r.IsInfoRow)
+				.Select(r => new StationRef(r.StationId, r.StationName))
+				.ToArray();
+		NotificationCenter.SetCurrentTrainStations(stations);
 	}
 
 	internal void SubscribeToLocationService(TRViS.Services.LocationService locationService)

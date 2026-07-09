@@ -97,6 +97,39 @@ public class NotificationData
 	public bool Acknowledged { get; set; }
 
 	/// <summary>
+	/// 初回表示を小型 (画面上部の 1 行バナー) で行うか。true のとき、大型の中央ポップアップ
+	/// ではなく小型バナーで表示する。未指定/false は大型表示。小型でも受領ボタンは表示され、
+	/// 受領必須の通告 (Id あり) は受領するまで消えない。
+	/// </summary>
+	public bool CompactDisplay { get; set; }
+
+	/// <summary>
+	/// この通告が対象とする区間・駅の開始側。<b>駅名または駅 ID</b> の文字列で指定する
+	/// (照合は ID 一致 → 駅名一致の順)。<see cref="SectionEndStation"/> と併せて区間を表す。
+	/// <see cref="SectionEndStation"/> が未指定の場合は単駅指定 (この駅のみ) とみなす。
+	/// <para>
+	/// 受領後、通告は非表示になるが、この区間の
+	/// <see cref="StationsBefore"/> 駅手前に到達したタイミングで受領済み状態の小型バナーとして
+	/// 自動的に再表示され、区間を抜けると自動的に非表示になる。経路 (現在列車) に該当駅が
+	/// 無い場合は再表示しない。
+	/// </para>
+	/// </summary>
+	public string? SectionStartStation { get; set; }
+
+	/// <summary>
+	/// この通告が対象とする区間の終了側。<b>駅名または駅 ID</b> の文字列で指定する。
+	/// 未指定のとき <see cref="SectionStartStation"/> と同一 (単駅) 扱い。区間の向き
+	/// (開始/終了の前後) は問わない (経路上のインデックスで正規化する)。
+	/// </summary>
+	public string? SectionEndStation { get; set; }
+
+	/// <summary>
+	/// 区間開始の何駅手前から再表示を開始するか。既定 1 (1 駅前)。0 以下は 0 として扱い、
+	/// 区間開始駅から表示する。
+	/// </summary>
+	public int StationsBefore { get; set; } = 1;
+
+	/// <summary>
 	/// <see cref="IconColor_RGB"/> を文字列表現からパースする。JSON では数値
 	/// (0xRRGGBB の 10 進表記) が本来の形式だが、<c>"#RRGGBB"</c> 形式の 16 進文字列も
 	/// 受け付ける (先頭の <c>#</c> は省略可)。UI_TEST の deeplink クエリパラメータ経由での

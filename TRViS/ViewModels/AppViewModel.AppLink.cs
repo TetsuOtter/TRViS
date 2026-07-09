@@ -160,11 +160,22 @@ public partial class AppViewModel
 		// exercise the receive→popup→受領 flow without a real WebSocket server.
 		// Format: trvis://_test/notification?id=<id>&title=<t>&body=<bbcode>&priority=<n>&acknowledged=<bool>&reset=<bool>
 		//   &ordernumber=<n>&sender=<s>&receiver=<s>&icontext=<s>&iconcolor=<0xRRGGBB or %23RRGGBB>&iconimage=<base64>
+		//   &compact=<bool>&sectionstart=<station>&sectionend=<station>&stationsbefore=<n>
 		// reset=true clears the notification store before injecting (clean slate for shared-session retries).
 		const string TestNotificationPrefix = "trvis://_test/notification";
 		if (uri.StartsWith(TestNotificationPrefix, StringComparison.OrdinalIgnoreCase))
 		{
 			HandleTestInjectNotification(uri);
+			return true;
+		}
+
+		// Test-only: force the current station index in LocationService so UI tests
+		// can exercise location-based re-display without real GPS/CoreLocation.
+		// Format: trvis://_test/location?row=<info-row-filtered station index>[&running=<bool>]
+		const string TestLocationPrefix = "trvis://_test/location";
+		if (uri.StartsWith(TestLocationPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestSetStation(uri);
 			return true;
 		}
 #endif
@@ -764,6 +775,49 @@ public partial class AppViewModel
 	}
 
 	/// <summary>
+	/// Test-only: force LocationService's current station index so UI tests can
+	/// exercise location-based re-display (通告の区間再表示) without CoreLocation
+	/// or a real GPS fix.
+	/// </summary>
+	private void HandleTestSetStation(string uri)
+	{
+		logger.Info("Test set station invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		if (qIndex < 0)
+		{
+			logger.Warn("Test set station: no query string");
+			return;
+		}
+
+		var query = HttpUtility.ParseQueryString(uri.Substring(qIndex + 1));
+		string? rowStr = query["row"];
+		if (!int.TryParse(rowStr, System.Globalization.CultureInfo.InvariantCulture, out int row))
+		{
+			logger.Warn("Test set station: invalid/missing 'row' ('{0}')", rowStr);
+			return;
+		}
+
+		bool isRunningToNextStation = string.Equals(query["running"], "true", StringComparison.OrdinalIgnoreCase);
+
+		// Switch to LonLatLocationService (same as HandleTestSetGpsLocation) so StaLocationInfo
+		// carried over from the current timetable is preserved. LocationService.ForceSetLocationInfo
+		// early-returns unless LocationService.IsEnabled is true, but flipping that through
+		// LocationService.IsEnabled's own setter fires IsEnabledChanged, which
+		// LocationServiceGpsAdapter observes and turns into a real
+		// Geolocation.StartListeningForegroundAsync call (CoreLocation permission prompt on iOS —
+		// the exact thing HandleTestSetGpsLocation above avoids). Setting CurrentService.IsEnabled
+		// directly satisfies the same gate without going through that event.
+		var locationService = InstanceManager.LocationService;
+		locationService.SetLonLatLocationService();
+		if (locationService.CurrentService is not null)
+			locationService.CurrentService.IsEnabled = true;
+
+		locationService.ForceSetLocationInfo(row, isRunningToNextStation);
+		logger.Info("Test set station: dispatched (row={0}, running={1})", row, isRunningToNextStation);
+	}
+
+	/// <summary>
 	/// Test-only: inject a <see cref="TRViS.NetworkSyncService.NotificationData"/> into
 	/// <see cref="NotificationCenter"/> via the same path a real server-pushed
 	/// Notification takes, so UI tests can exercise the popup + 受領 flow.
@@ -794,6 +848,8 @@ public partial class AppViewModel
 		if (TRViS.NetworkSyncService.NotificationData.TryParseIconColor(query["iconcolor"], out int parsedIconColor))
 			iconColor = parsedIconColor;
 
+		bool compactDisplay = string.Equals(query["compact"], "true", StringComparison.OrdinalIgnoreCase);
+
 		var n = new TRViS.NetworkSyncService.NotificationData
 		{
 			Id = query["id"],
@@ -807,7 +863,13 @@ public partial class AppViewModel
 			IconText = query["icontext"],
 			IconColor_RGB = iconColor,
 			IconImageBase64 = query["iconimage"],
+			CompactDisplay = compactDisplay,
+			SectionStartStation = query["sectionstart"],
+			SectionEndStation = query["sectionend"],
 		};
+		// stationsbefore は未指定時、モデル既定値 (1) を維持するためパース成功時のみ上書きする。
+		if (int.TryParse(query["stationsbefore"], System.Globalization.CultureInfo.InvariantCulture, out int stationsBefore))
+			n.StationsBefore = stationsBefore;
 		// この deeplink を仲介した ConnectServerDialog は、TryLoadAsync が true を返した
 		// 直後に自分自身を Navigation.PopModalAsync() で閉じる。PopModalAsync() は「最上段の
 		// モーダル」を pop するため、ここで同期注入すると通告ポップアップが先に push され、

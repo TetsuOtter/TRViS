@@ -24,8 +24,9 @@ public partial class NotificationPopupPage : ContentPage
 	private readonly NotificationCenterViewModel _viewModel;
 	private readonly NotificationStore.Entry _entry;
 
-	// Id を持つ通告 (受領可能) は「受領」でしか閉じられないようにする。
+	// Id を持ち、かつ未受領の通告は「受領」でしか閉じられないようにする。
 	// このとき「閉じる」ボタン・ヘッダーの×・端末の戻る操作による dismiss を無効化する。
+	// 既に受領済みの通告 (バナー等からの再表示) は通常の閉じられるポップアップとして扱う。
 	private readonly bool _requireAcknowledge;
 
 	// 受領/閉じるの二重発火 (連打・受領直後の閉じる等) で PopModalAsync が
@@ -36,18 +37,15 @@ public partial class NotificationPopupPage : ContentPage
 	{
 		_entry = entry;
 		_viewModel = viewModel;
-		_requireAcknowledge = entry.CanAcknowledge;
+		// 受領済み (再表示された既読の通告) は受領を要求しない。バナー等からの
+		// 再表示は通常の閉じられるポップアップとして開く。
+		_requireAcknowledge = entry.CanAcknowledge && !entry.IsRead;
 
 		InitializeComponent();
 
-		// 受領必須 (Id あり) の通告は FullScreen で表示する。FullScreen モーダルは
-		// スワイプで dismiss できないため、iOS でも「受領」以外で閉じられない。
-		// 受領不可 (Id 無し) のお知らせは数行が全画面を占有しないよう FormSheet で
-		// 中央表示する (スワイプで閉じられてもよい)。
-		// iPhone は compact 幅で UIKit が FormSheet を自動的に全画面へフォールバックする。
 		IOSPage.SetModalPresentationStyle(
 			this.On<iOS>(),
-			_requireAcknowledge ? UIModalPresentationStyle.FullScreen : UIModalPresentationStyle.FormSheet);
+			UIModalPresentationStyle.OverFullScreen);
 
 		ApplyEntry(entry);
 	}
@@ -110,17 +108,17 @@ public partial class NotificationPopupPage : ContentPage
 		if (entry.IssuedAt is System.DateTimeOffset issuedAt)
 		{
 			var displayDateTime = entry.IssuedAtIsUnspecifiedTimeZone ? issuedAt.DateTime : issuedAt.LocalDateTime;
-			IssuedAtLabel.Text = displayDateTime.ToString("yyyy/MM/dd HH:mm");
+			IssuedAtLabel.Text = string.Format(TRViS.Localization.AppResources.Notification_IssuedAtFormat, displayDateTime.ToString("yyyy/MM/dd HH:mm"));
 			IssuedAtLabel.IsVisible = true;
 		}
 
-		// Id を持つ通告 (受領可能) は「受領」を必須とし、「受領」ボタンでしか閉じられないようにする。
+		// Id を持ち未受領の通告は「受領」を必須とし、「受領」ボタンでしか閉じられないようにする。
 		// ヘッダーの× と「閉じる」ボタンは隠す (鉄道の通告受領の意図に沿う)。
-		// Id 無しの通告 (受領不可なお知らせ) はサーバーへ受領できないため
-		// 「受領」を隠し、「閉じる」/× のみで閉じられるようにする。
-		AcknowledgeButton.IsVisible = entry.CanAcknowledge;
-		DismissButton.IsVisible = !entry.CanAcknowledge;
-		CloseButton.IsVisible = !entry.CanAcknowledge;
+		// Id 無しの通告 (受領不可なお知らせ)、および既に受領済みの通告 (バナー等からの
+		// 再表示) は「受領」を隠し、「閉じる」/× のみで閉じられる通常のポップアップにする。
+		AcknowledgeButton.IsVisible = _requireAcknowledge;
+		DismissButton.IsVisible = !_requireAcknowledge;
+		CloseButton.IsVisible = !_requireAcknowledge;
 	}
 
 	/// <summary>
