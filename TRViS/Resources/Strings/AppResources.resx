@@ -62,6 +62,21 @@
   <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common_Yes" xml:space="preserve"><value>Yes</value></data>
   <data name="Common_No" xml:space="preserve"><value>No</value></data>
+  <data name="QuickSwitch_Tab_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="QuickSwitch_Search_NumberPlaceholder" xml:space="preserve"><value>Train no.</value></data>
+  <data name="QuickSwitch_Search_Button" xml:space="preserve"><value>Search</value></data>
+  <data name="QuickSwitch_Search_ReturnToScheduled" xml:space="preserve"><value>Back to scheduled train</value></data>
+  <data name="QuickSwitch_Search_Searching" xml:space="preserve"><value>Searching...</value></data>
+  <data name="QuickSwitch_Search_NoResults" xml:space="preserve"><value>No matching train found.</value></data>
+  <data name="QuickSwitch_Search_Timeout" xml:space="preserve"><value>The server did not respond. Please try again.</value></data>
+  <data name="QuickSwitch_Search_Error" xml:space="preserve"><value>Train search failed.</value></data>
+  <data name="QuickSwitch_Search_FetchError" xml:space="preserve"><value>Failed to load the timetable for the selected train.</value></data>
+  <data name="QuickSwitch_Search_ErrorTitle" xml:space="preserve"><value>Train search</value></data>
+  <data name="QuickSwitch_Search_ConfirmTitle" xml:space="preserve"><value>Display this train?</value></data>
+  <data name="QuickSwitch_Search_ConfirmBodyFormat" xml:space="preserve"><value>Train no.: {0}
+Work: {1}
+From: {2} {3}
+To: {4} {5}</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Common_Continue" xml:space="preserve"><value>Continue</value></data>
   <data name="Common_Stop" xml:space="preserve"><value>Stop</value></data>
