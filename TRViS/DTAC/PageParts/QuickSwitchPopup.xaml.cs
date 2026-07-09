@@ -30,7 +30,13 @@ public partial class QuickSwitchPopup : ContentView
 		}
 	}
 
-	public QuickSwitchPopup()
+	/// <param name="useNumericKeypad">
+	/// True to show the software numeric keypad next to the search results (wide
+	/// screens: tablet, landscape, desktop) and make TrainNumberEntry read-only.
+	/// False to fall back to the OS keyboard (narrow screens, e.g. iPhone portrait,
+	/// where there isn't room for a list + keypad side by side) and hide the keypad.
+	/// </param>
+	public QuickSwitchPopup(bool useNumericKeypad = true)
 	{
 		logger.Trace("Creating...");
 
@@ -52,24 +58,35 @@ public partial class QuickSwitchPopup : ContentView
 
 		// Localized text for the search UI
 		SearchTabButton.ButtonText = AppResources.QuickSwitch_Tab_Search;
-		SearchButton.Text = AppResources.QuickSwitch_Search_Button;
 		TrainNumberEntry.Placeholder = AppResources.QuickSwitch_Search_NumberPlaceholder;
-		ReturnToScheduledButton.Text = AppResources.QuickSwitch_Search_ReturnToScheduled;
+		MatchModePrefixLabel.Text = AppResources.QuickSwitch_Search_MatchMode_Prefix;
+		MatchModeContainsLabel.Text = AppResources.QuickSwitch_Search_MatchMode_Contains;
+		MatchModeExactLabel.Text = AppResources.QuickSwitch_Search_MatchMode_Exact;
+		MatchModePrefixRadio.IsChecked = true; // TrainSearchMatchMode.Prefix (default)
+
+		if (useNumericKeypad)
+		{
+			TrainNumberEntry.IsReadOnly = true;
+		}
+		else
+		{
+			NumericKeypad.IsVisible = false;
+			SearchContainer.ColumnSpacing = 0;
+			TrainNumberEntry.IsReadOnly = false;
+			TrainNumberEntry.Keyboard = Keyboard.Numeric;
+		}
 
 		// The search tab is available only when connected to a WebSocket server that
-		// advertises the TrainSearch feature (ServerInfo.Features).
-		bool searchAvailable = ViewModel.IsTrainSearchAvailable;
-		SearchTabButton.IsVisible = searchAvailable;
-		ReturnToScheduledButton.IsVisible = ViewModel.IsDisplayingSearchedTrain;
+		// advertises the TrainSearch feature (ServerInfo.Features) — this also covers
+		// offline (disconnected/reconnecting), since IsTrainSearchAvailable requires an
+		// active connection.
+		SearchTabButton.IsVisible = ViewModel.IsTrainSearchAvailable;
 
 		// Set up tab buttons
 		WorkGroupTabButton.Tapped += WorkGroupTab_Tapped;
 		WorkTabButton.Tapped += WorkTab_Tapped;
 		SearchTabButton.Tapped += SearchTab_Tapped;
 
-		// If a searched train is currently displayed, open on the search tab so the
-		// "return to scheduled train" button is immediately reachable.
-		_currentTab = searchAvailable && ViewModel.IsDisplayingSearchedTrain ? Tab.Search : Tab.WorkGroup;
 		UpdateTabStyles();
 
 		logger.Trace("Created");
@@ -176,22 +193,95 @@ public partial class QuickSwitchPopup : ContentView
 	}
 
 	// ================================================================
-	// 列車検索 (Issue #197)
+	// 列車検索 (Issue #197): 入力中にデバウンスしつつ自動検索する。
 	// ================================================================
 
-	private async void SearchButton_Clicked(object? sender, EventArgs e)
+	private const int SearchDebounceMilliseconds = 400;
+
+	private CancellationTokenSource? _searchDebounceCts;
+	private TrainSearchMatchMode _matchMode = TrainSearchMatchMode.Prefix;
+
+	private void MatchModeRadio_CheckedChanged(object? sender, CheckedChangedEventArgs e)
 	{
-		string number = TrainNumberEntry.Text?.Trim() ?? string.Empty;
-		if (string.IsNullOrEmpty(number))
+		// RadioButton raises this for both the newly-checked button and the
+		// previously-checked one going unchecked; only react to the checked one.
+		if (!e.Value)
 			return;
+
+		_matchMode = ReferenceEquals(sender, MatchModeContainsRadio) ? TrainSearchMatchMode.Contains
+			: ReferenceEquals(sender, MatchModeExactRadio) ? TrainSearchMatchMode.Exact
+			: TrainSearchMatchMode.Prefix;
+
+		// Re-run the current query under the newly selected match mode, if any.
+		TriggerSearch(TrainNumberEntry.Text);
+	}
+
+	// Software numeric keypad: TrainNumberEntry is IsReadOnly (no OS keyboard), so digits
+	// are appended/removed here. Assigning Entry.Text fires TextChanged the same as typing,
+	// so this reuses the existing debounced-search path unchanged.
+	private void KeypadDigit_Clicked(object? sender, EventArgs e)
+	{
+		if (sender is not Button button)
+			return;
+		TrainNumberEntry.Text = (TrainNumberEntry.Text ?? string.Empty) + button.Text;
+	}
+
+	private void KeypadBackspace_Clicked(object? sender, EventArgs e)
+	{
+		string current = TrainNumberEntry.Text ?? string.Empty;
+		if (current.Length > 0)
+			TrainNumberEntry.Text = current[..^1];
+	}
+
+	private void KeypadClear_Clicked(object? sender, EventArgs e)
+	{
+		TrainNumberEntry.Text = string.Empty;
+	}
+
+	private void TrainNumberEntry_TextChanged(object? sender, TextChangedEventArgs e)
+		=> TriggerSearch(e.NewTextValue);
+
+	private void TriggerSearch(string? text)
+	{
+		_searchDebounceCts?.Cancel();
+		_searchDebounceCts?.Dispose();
+
+		string number = text?.Trim() ?? string.Empty;
+		if (string.IsNullOrEmpty(number))
+		{
+			_searchDebounceCts = null;
+			SearchResultsView.ItemsSource = null;
+			HideSearchStatus();
+			SetSearchLoading(false);
+			return;
+		}
+
+		var cts = new CancellationTokenSource();
+		_searchDebounceCts = cts;
+		_ = RunDebouncedSearchAsync(number, cts.Token);
+	}
+
+	private async Task RunDebouncedSearchAsync(string number, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await Task.Delay(SearchDebounceMilliseconds, cancellationToken);
+		}
+		catch (TaskCanceledException)
+		{
+			return;
+		}
 
 		logger.Info("SearchTrain requested: {0}", number);
 		SearchResultsView.ItemsSource = null;
 		SetSearchStatus(AppResources.QuickSwitch_Search_Searching);
-		SearchButton.IsEnabled = false;
+		SetSearchLoading(true);
 		try
 		{
-			var results = await ViewModel.SearchTrainAsync(number);
+			var results = await ViewModel.SearchTrainAsync(number, _matchMode, cancellationToken);
+			if (cancellationToken.IsCancellationRequested)
+				return;
+
 			if (results.Count == 0)
 			{
 				SetSearchStatus(AppResources.QuickSwitch_Search_NoResults);
@@ -202,19 +292,30 @@ public partial class QuickSwitchPopup : ContentView
 				SearchResultsView.ItemsSource = results;
 			}
 		}
+		catch (OperationCanceledException)
+		{
+			// A newer keystroke superseded this search; stay silent.
+		}
 		catch (TimeoutException)
 		{
-			logger.Warn("SearchTrain timed out");
-			SetSearchStatus(AppResources.QuickSwitch_Search_Timeout);
+			if (!cancellationToken.IsCancellationRequested)
+			{
+				logger.Warn("SearchTrain timed out");
+				SetSearchStatus(AppResources.QuickSwitch_Search_Timeout);
+			}
 		}
 		catch (Exception ex)
 		{
-			logger.Error(ex, "SearchTrain failed");
-			SetSearchStatus(AppResources.QuickSwitch_Search_Error);
+			if (!cancellationToken.IsCancellationRequested)
+			{
+				logger.Error(ex, "SearchTrain failed");
+				SetSearchStatus(AppResources.QuickSwitch_Search_Error);
+			}
 		}
 		finally
 		{
-			SearchButton.IsEnabled = true;
+			if (!cancellationToken.IsCancellationRequested)
+				SetSearchLoading(false);
 		}
 	}
 
@@ -249,7 +350,8 @@ public partial class QuickSwitchPopup : ContentView
 					AppResources.QuickSwitch_Search_FetchError, AppResources.Common_OK);
 				return;
 			}
-			ViewModel.DisplaySearchedTrain(train, selected.WorkGroupId, selected.WorkId, selected.TrainId);
+			// 行路 (WorkGroup/Work) ごと完全に切り替える。ヘッダの行路番号も切り替わる。
+			ViewModel.SwitchToSearchedTrain(selected.WorkGroupId, selected.WorkId, selected.TrainId);
 			await DismissAsync();
 		}
 		catch (TimeoutException)
@@ -268,13 +370,6 @@ public partial class QuickSwitchPopup : ContentView
 		}
 	}
 
-	private async void ReturnToScheduledButton_Clicked(object? sender, EventArgs e)
-	{
-		logger.Info("Return to scheduled train requested");
-		ViewModel.ReturnToScheduledTrain();
-		await DismissAsync();
-	}
-
 	private void SetSearchStatus(string text)
 	{
 		SearchStatusLabel.Text = text;
@@ -283,8 +378,15 @@ public partial class QuickSwitchPopup : ContentView
 
 	private void HideSearchStatus() => SearchStatusLabel.IsVisible = false;
 
+	private void SetSearchLoading(bool loading)
+	{
+		SearchLoadingIndicator.IsRunning = loading;
+		SearchLoadingIndicator.IsVisible = loading;
+	}
+
 	private async Task DismissAsync()
 	{
+		_searchDebounceCts?.Cancel();
 		if (_popover is not null)
 			await _popover.DismissAsync();
 	}

@@ -93,50 +93,121 @@
 			<!-- Train Search -->
 			<Grid
 				x:Name="SearchContainer"
-				IsVisible="False">
+				IsVisible="False"
+				ColumnSpacing="8">
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
-
-				<Button
-					x:Name="ReturnToScheduledButton"
-					AutomationId="DTAC.QuickSwitch.ReturnToScheduled"
-					Grid.Row="0"
-					Margin="0,0,0,8"
-					IsVisible="False"
-					Clicked="ReturnToScheduledButton_Clicked"/>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
 
 				<Grid
-					Grid.Row="1"
+					Grid.Row="0"
+					Grid.Column="0"
+					Grid.ColumnSpan="2"
 					Margin="0,0,0,8">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="4"/>
 						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
 
+					<!-- IsReadOnly / Keyboard set in code-behind depending on screen width:
+					     wide screens get the numeric keypad (read-only, no OS keyboard);
+					     narrow screens (e.g. iPhone portrait) fall back to the OS keyboard. -->
 					<Entry
 						x:Name="TrainNumberEntry"
 						AutomationId="DTAC.QuickSwitch.SearchEntry"
 						Grid.Column="0"
-						Keyboard="Numeric"
-						ReturnType="Search"
-						Completed="SearchButton_Clicked"/>
+						TextChanged="TrainNumberEntry_TextChanged"/>
 
-					<Button
-						x:Name="SearchButton"
-						AutomationId="DTAC.QuickSwitch.SearchButton"
-						Grid.Column="2"
-						Clicked="SearchButton_Clicked"/>
+					<ActivityIndicator
+						x:Name="SearchLoadingIndicator"
+						AutomationId="DTAC.QuickSwitch.SearchLoading"
+						Grid.Column="1"
+						WidthRequest="24"
+						HeightRequest="24"
+						Margin="8,0,0,0"
+						IsRunning="False"
+						IsVisible="False"/>
 				</Grid>
+
+				<!-- Match mode: 前方一致 (Prefix, default) / 中間一致 (Contains) / 完全一致 (Exact).
+				     Radio buttons (not a dropdown/Picker — worse to operate for a 3-way choice),
+				     laid out horizontally with an icon per mode. Selecting one re-runs the
+				     current query immediately. -->
+				<HorizontalStackLayout
+					Grid.Row="1"
+					Grid.Column="0"
+					Grid.ColumnSpan="2"
+					Margin="0,0,0,8"
+					Spacing="12">
+					<RadioButton
+						x:Name="MatchModePrefixRadio"
+						AutomationId="DTAC.QuickSwitch.SearchMatchModePrefix"
+						GroupName="QuickSwitchSearchMatchMode"
+						CheckedChanged="MatchModeRadio_CheckedChanged">
+						<RadioButton.Content>
+							<HorizontalStackLayout Spacing="4">
+								<Label
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									Text="&#xE5DC;"
+									VerticalTextAlignment="Center"/>
+								<Label
+									x:Name="MatchModePrefixLabel"
+									VerticalTextAlignment="Center"/>
+							</HorizontalStackLayout>
+						</RadioButton.Content>
+					</RadioButton>
+					<RadioButton
+						x:Name="MatchModeContainsRadio"
+						AutomationId="DTAC.QuickSwitch.SearchMatchModeContains"
+						GroupName="QuickSwitchSearchMatchMode"
+						CheckedChanged="MatchModeRadio_CheckedChanged">
+						<RadioButton.Content>
+							<HorizontalStackLayout Spacing="4">
+								<Label
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									Text="&#xE8B6;"
+									VerticalTextAlignment="Center"/>
+								<Label
+									x:Name="MatchModeContainsLabel"
+									VerticalTextAlignment="Center"/>
+							</HorizontalStackLayout>
+						</RadioButton.Content>
+					</RadioButton>
+					<RadioButton
+						x:Name="MatchModeExactRadio"
+						AutomationId="DTAC.QuickSwitch.SearchMatchModeExact"
+						GroupName="QuickSwitchSearchMatchMode"
+						CheckedChanged="MatchModeRadio_CheckedChanged">
+						<RadioButton.Content>
+							<HorizontalStackLayout Spacing="4">
+								<Label
+									FontFamily="MaterialIconsRegular"
+									FontSize="18"
+									Text="&#xE5CA;"
+									VerticalTextAlignment="Center"/>
+								<Label
+									x:Name="MatchModeExactLabel"
+									VerticalTextAlignment="Center"/>
+							</HorizontalStackLayout>
+						</RadioButton.Content>
+					</RadioButton>
+				</HorizontalStackLayout>
 
 				<Label
 					x:Name="SearchStatusLabel"
 					AutomationId="DTAC.QuickSwitch.SearchStatus"
 					Grid.Row="2"
+					Grid.Column="0"
+					Grid.ColumnSpan="2"
 					Margin="4,0,4,8"
 					IsVisible="False"
 					FontSize="13"/>
@@ -145,6 +216,7 @@
 					x:Name="SearchResultsView"
 					AutomationId="DTAC.QuickSwitch.SearchResults"
 					Grid.Row="3"
+					Grid.Column="0"
 					SelectionMode="Single"
 					SelectionChanged="SearchResultsView_SelectionChanged">
 					<CollectionView.ItemTemplate>
@@ -168,6 +240,42 @@
 						</DataTemplate>
 					</CollectionView.ItemTemplate>
 				</CollectionView>
+
+				<!-- Software numeric keypad (to the right of the results list): typing a
+				     train number with the OS keyboard is awkward in this narrow popup, so
+				     digits are entered via dedicated on-screen buttons instead. -->
+				<Grid
+					x:Name="NumericKeypad"
+					Grid.Row="3"
+					Grid.Column="1"
+					RowSpacing="4"
+					ColumnSpacing="4"
+					VerticalOptions="Start">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="52"/>
+						<RowDefinition Height="52"/>
+						<RowDefinition Height="52"/>
+						<RowDefinition Height="52"/>
+					</Grid.RowDefinitions>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="52"/>
+						<ColumnDefinition Width="52"/>
+						<ColumnDefinition Width="52"/>
+					</Grid.ColumnDefinitions>
+
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit1" Grid.Row="0" Grid.Column="0" Text="1" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit2" Grid.Row="0" Grid.Column="1" Text="2" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit3" Grid.Row="0" Grid.Column="2" Text="3" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit4" Grid.Row="1" Grid.Column="0" Text="4" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit5" Grid.Row="1" Grid.Column="1" Text="5" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit6" Grid.Row="1" Grid.Column="2" Text="6" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit7" Grid.Row="2" Grid.Column="0" Text="7" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit8" Grid.Row="2" Grid.Column="1" Text="8" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit9" Grid.Row="2" Grid.Column="2" Text="9" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadBackspace" Grid.Row="3" Grid.Column="0" Text="⌫" Clicked="KeypadBackspace_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadDigit0" Grid.Row="3" Grid.Column="1" Text="0" Clicked="KeypadDigit_Clicked"/>
+					<Button AutomationId="DTAC.QuickSwitch.SearchKeypadClear" Grid.Row="3" Grid.Column="2" Text="C" Clicked="KeypadClear_Clicked"/>
+				</Grid>
 			</Grid>
 		</Grid>
 	</Grid>

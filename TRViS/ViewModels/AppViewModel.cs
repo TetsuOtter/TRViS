@@ -104,10 +104,16 @@ public partial class AppViewModel : ObservableObject
 	}
 
 	partial void OnIsServerConnectionLostChanged(bool value)
-		=> OnPropertyChanged(nameof(ServerConnectionStatus));
+	{
+		OnPropertyChanged(nameof(ServerConnectionStatus));
+		OnPropertyChanged(nameof(IsTrainSearchAvailable));
+	}
 
 	partial void OnIsServerReconnectingChanged(bool value)
-		=> OnPropertyChanged(nameof(ServerConnectionStatus));
+	{
+		OnPropertyChanged(nameof(ServerConnectionStatus));
+		OnPropertyChanged(nameof(IsTrainSearchAvailable));
+	}
 
 	/// <summary>
 	/// Raised after a server-driven load (HTTP / WebSocket TRViS.LocalServers
@@ -167,57 +173,36 @@ public partial class AppViewModel : ObservableObject
 	}
 
 	// ================================================================
-	// 列車検索 (Issue #197): 検索した列車を「所定列車」に影響させずに表示する。
-	// SelectionManager の所定選択 (WG/W/T) は一切変更しないため、所定復帰は
-	// override をクリアするだけで済む。表示パイプラインは AppViewModelAdapter が
-	// SelectedTrainData の代わりに EffectiveTrainData を読むことで切り替わる。
+	// 列車検索 (Issue #197): 検索して選択した列車の行路 (WorkGroup/Work) へ
+	// 完全に切り替える。ヘッダの行路番号も含め、通常の行路選択と同じ扱いになる
+	// (サーバー起点の SelectTrain コマンドと同じ ID ルックアップパターン、
+	// OnTrainSelectionRequested 参照)。
 	// ================================================================
-
-	private TrainData? _searchedTrainData;
-	private string? _searchedWorkGroupId;
-	private string? _searchedWorkId;
-	private string? _searchedTrainId;
-	private bool _isDisplayingSearchedTrain;
-
-	/// <summary>検索した列車を表示中かどうか。true の間は「ハコ」タブが非表示になる。</summary>
-	public bool IsDisplayingSearchedTrain => _isDisplayingSearchedTrain;
-
-	/// <summary>検索表示中の列車の WorkGroupId (サーバーへの ID 通知に使用)。</summary>
-	public string? SearchedWorkGroupId => _searchedWorkGroupId;
-	/// <summary>検索表示中の列車の WorkId。</summary>
-	public string? SearchedWorkId => _searchedWorkId;
-	/// <summary>検索表示中の列車の TrainId。</summary>
-	public string? SearchedTrainId => _searchedTrainId;
-
-	/// <summary>
-	/// 表示に使う実効的な列車データ。検索表示中は検索列車、それ以外は所定の選択列車。
-	/// <see cref="TRViS.DTAC.Adapters.AppViewModelAdapter"/> がこの値を Presenter に渡す。
-	/// </summary>
-	public TrainData? EffectiveTrainData
-		=> _isDisplayingSearchedTrain && _searchedTrainData is not null
-			? _searchedTrainData
-			: SelectedTrainData;
 
 	/// <summary>
 	/// サーバーが列車検索に対応し、かつ WebSocket 接続中かどうか。QuickSwitchPopup の
-	/// 検索タブの表示可否に使う。
+	/// 検索タブの表示可否に使う。オフライン (接続断/再接続中) の間は検索できないため
+	/// 併せて非表示にする。
 	/// </summary>
 	public bool IsTrainSearchAvailable
-		=> Loader is WebSocketNetworkSyncService ws && ws.IsFeatureSupported(ServerFeatureIds.TrainSearch);
+		=> Loader is WebSocketNetworkSyncService ws
+			&& ws.IsFeatureSupported(ServerFeatureIds.TrainSearch)
+			&& ServerConnectionStatus == ServerConnectionStatus.Connected;
 
 	/// <summary>
 	/// 列番でサーバーに列車を検索する。<see cref="IsTrainSearchAvailable"/> が true のときのみ有効。
 	/// </summary>
 	public Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
-		string trainNumber, System.Threading.CancellationToken cancellationToken = default)
+		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, System.Threading.CancellationToken cancellationToken = default)
 	{
 		if (Loader is not WebSocketNetworkSyncService ws)
 			throw new InvalidOperationException("Train search requires a WebSocket connection.");
-		return ws.SearchTrainAsync(trainNumber, cancellationToken);
+		return ws.SearchTrainAsync(trainNumber, matchMode, cancellationToken);
 	}
 
 	/// <summary>
-	/// 検索候補の完全な時刻表を取得する (2 段階目)。
+	/// 検索候補の完全な時刻表を取得する (2 段階目)。切替先の行路の列車データを
+	/// キャッシュへ確実に反映させるため、<see cref="SwitchToSearchedTrain"/> の前に呼ぶ。
 	/// </summary>
 	public Task<TrainData?> FetchSearchedTrainTimetableAsync(
 		TrainSearchResult result, System.Threading.CancellationToken cancellationToken = default)
@@ -228,38 +213,33 @@ public partial class AppViewModel : ObservableObject
 	}
 
 	/// <summary>
-	/// 検索して取得した列車を表示する。所定の選択 (SelectionManager) は変更しないため、
-	/// <see cref="ReturnToScheduledTrain"/> で元の行路の列車へ即座に戻れる。
+	/// 検索して選択した列車の行路へ完全に切り替える。WorkGroupId/WorkId/TrainId を
+	/// 既存のリストから ID で解決し、SelectionManager の選択を差し替える。
+	/// 該当 ID が (まだ) キャッシュに存在しない場合は該当階層の切替をスキップする
+	/// (OnTrainSelectionRequested と同じ挙動)。
 	/// </summary>
-	public void DisplaySearchedTrain(TrainData trainData, string? workGroupId, string? workId, string? trainId)
+	public void SwitchToSearchedTrain(string? workGroupId, string? workId, string? trainId)
 	{
-		ArgumentNullException.ThrowIfNull(trainData);
-		_searchedTrainData = trainData;
-		_searchedWorkGroupId = workGroupId;
-		_searchedWorkId = workId;
-		_searchedTrainId = trainId ?? trainData.Id;
-		_isDisplayingSearchedTrain = true;
-		OnPropertyChanged(nameof(IsDisplayingSearchedTrain));
-		// Presenter / ID 同期アダプターに実効列車の切替を通知する。
-		OnPropertyChanged(nameof(EffectiveTrainData));
-		OnPropertyChanged(nameof(SelectedTrainData));
-	}
+		if (workGroupId is not null)
+		{
+			var wg = SelectionManager.WorkGroupList?.FirstOrDefault(w => w.Id == workGroupId);
+			if (wg is not null && SelectionManager.SelectedWorkGroup?.Id != wg.Id)
+				SelectionManager.SelectedWorkGroup = wg;
+		}
 
-	/// <summary>
-	/// 所定 (行路) の列車表示へ戻る。検索 override をクリアするのみ。
-	/// </summary>
-	public void ReturnToScheduledTrain()
-	{
-		if (!_isDisplayingSearchedTrain)
-			return;
-		_isDisplayingSearchedTrain = false;
-		_searchedTrainData = null;
-		_searchedWorkGroupId = null;
-		_searchedWorkId = null;
-		_searchedTrainId = null;
-		OnPropertyChanged(nameof(IsDisplayingSearchedTrain));
-		OnPropertyChanged(nameof(EffectiveTrainData));
-		OnPropertyChanged(nameof(SelectedTrainData));
+		if (workId is not null)
+		{
+			var work = SelectionManager.WorkList?.FirstOrDefault(w => w.Id == workId);
+			if (work is not null && SelectionManager.SelectedWork?.Id != work.Id)
+				SelectionManager.SelectedWork = work;
+		}
+
+		if (trainId is not null)
+		{
+			var train = SelectionManager.OrderedTrainDataList?.FirstOrDefault(t => t.Id == trainId);
+			if (train is not null && SelectionManager.SelectedTrainData?.Id != train.Id)
+				SelectionManager.SelectedTrainData = train;
+		}
 	}
 
 	bool _IsBgAppIconVisible = true;
@@ -315,14 +295,7 @@ public partial class AppViewModel : ObservableObject
 
 	public AppViewModel()
 	{
-		SelectionManager.PropertyChanged += (_, e) =>
-		{
-			OnPropertyChanged(e.PropertyName);
-			// 所定列車の切替時も EffectiveTrainData の変化として通知する
-			// (検索表示中でなければ EffectiveTrainData == SelectedTrainData)。
-			if (e.PropertyName == nameof(SelectedTrainData))
-				OnPropertyChanged(nameof(EffectiveTrainData));
-		};
+		SelectionManager.PropertyChanged += (_, e) => OnPropertyChanged(e.PropertyName);
 
 		if (Application.Current is not null)
 		{
@@ -468,6 +441,7 @@ public partial class AppViewModel : ObservableObject
 
 		// Loader 型が変わると ServerConnectionStatus の None 判定が変わる (#266)。
 		OnPropertyChanged(nameof(ServerConnectionStatus));
+		OnPropertyChanged(nameof(IsTrainSearchAvailable));
 	}
 
 	void OnTimetableUpdated(object? sender, TimetableData timetableData)
