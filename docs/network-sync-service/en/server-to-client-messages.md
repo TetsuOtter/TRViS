@@ -248,7 +248,11 @@ A notification (arbitrary announcement). Delivered as a received event
   "IconText": "D",                        // string | null (icon glyph; used only if IconImageBase64 is unset)
   "IconColor_RGB": "#C62828",              // integer (0xRRGGBB) | string ("#RRGGBB") | omitted (icon background color; has a default)
   "IconImageBase64": null,                // string | null (icon image; takes priority over IconText when set)
-  "Acknowledged": false                   // boolean (optional). true if already acknowledged
+  "Acknowledged": false,                  // boolean (optional). true if already acknowledged
+  "CompactDisplay": false,                // boolean (optional). true = show initially as a small top banner
+  "SectionStartStation": "Ishikawa",      // string | null (section start; station name or station ID)
+  "SectionEndStation": "Kawabe",          // string | null (section end; station name or ID. single station if omitted)
+  "StationsBefore": 1                     // integer (optional, default 1). how many stations before the section to re-display
 }
 ```
 
@@ -266,6 +270,14 @@ A notification (arbitrary announcement). Delivered as a received event
 | `IconColor_RGB` | integer \| string | Background color for `IconText`. Accepted either as a **JSON number** (`0xRRGGBB` in decimal, readable as a 32-bit integer) or as a **`"#RRGGBB"` string** (leading `#` required, case-insensitive). Unset (default color) if neither form parses. A client default is used when omitted. |
 | `IconImageBase64` | string | Base64-encoded icon image binary (may include a data URI prefix such as `data:image/png;base64,...`). Takes priority over `IconText`/`IconColor_RGB` when set. |
 | `Acknowledged` | boolean | Optional. Indicates whether the server considers this client to have already acknowledged this notification. Treated as acknowledged only on JSON `true`; otherwise (`false`/missing) unacknowledged. Used when re-delivering notifications (e.g. after reconnect) so already-acknowledged ones are marked read (the client does not re-popup a read notification). |
+| `CompactDisplay` | boolean | Optional. Only on JSON `true`, the initial display is a small banner at the top of the screen (otherwise/missing: the large centered popup). The acknowledge button is still shown on the small banner, and an acknowledge-required notification (has `Id`) stays until acknowledged. |
+| `SectionStartStation` | string | Optional. The start of the section/station this notification targets, given as a **station name or station ID** (resolved by station-ID match, then station-name match; case-sensitive). After it is acknowledged and hidden, the notification is automatically re-shown (as an acknowledged small banner) once the train reaches `StationsBefore` stations before this section, and auto-hidden after leaving the section. Not re-shown if no matching station exists on the current train's route. |
+| `SectionEndStation` | string | Optional. The end of the section, given as a **station name or station ID**. When omitted, treated as the same single station as `SectionStartStation`. Section direction (which end comes first) does not matter (normalized by route index). |
+| `StationsBefore` | integer | Optional, default `1`. How many stations before the section start to begin re-display. Accepted only as a JSON number readable as a 32-bit integer. Values ≤ 0 are treated as 0 (shown from the section start station). |
+
+**Section/station-linked re-display:**
+- A notification with `SectionStartStation` (and optionally `SectionEndStation`) is hidden once acknowledged, but is re-shown as an acknowledged small banner when the train reaches `StationsBefore` stations before the target section (or single station), and auto-hidden after leaving it.
+- Stations may be given by **name or ID**. The station ID is the normalized station ID in the SQLite format, or each row's `Id` in the JSON format (a per-row Id suffices since resolution is within the current train's route). Either format can fall back to station-name matching.
 
 **How TZ presence in `IssuedAt` affects display:**
 - With a TZ offset (e.g. `2024-03-01T09:00:00+09:00` or `...Z`): the client converts and displays the time **accounting for the device's current TZ**.
@@ -419,8 +431,8 @@ Common pitfalls for external implementers:
   WS `true` auto-starts operation**. To avoid unintentionally starting
   operation, send an explicit `false`
   ([common-data-model §4](common-data-model.md#4-meaning-of-canstart)).
-- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority`
-  **must be JSON number type** (strings are invalid).
+- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority`/`Notification.StationsBefore`
+  **must be JSON number type** (strings are invalid). `StationsBefore` defaults to `1` when missing.
 - Each ID in `SelectTrain` **must be JSON string type**.
 - `OperationCommand.Action` is **required** and only known values are
   valid (case-insensitive).

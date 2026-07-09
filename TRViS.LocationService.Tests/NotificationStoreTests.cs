@@ -1,3 +1,5 @@
+using System.Linq;
+
 using TRViS.NetworkSyncService;
 using TRViS.Services;
 
@@ -14,7 +16,11 @@ public class NotificationStoreTests
 		string? title = "タイトル",
 		string? body = "本文",
 		int priority = 0,
-		bool acknowledged = false)
+		bool acknowledged = false,
+		bool compactDisplay = false,
+		string? sectionStart = null,
+		string? sectionEnd = null,
+		int stationsBefore = 1)
 		=> new()
 		{
 			Id = id,
@@ -22,6 +28,10 @@ public class NotificationStoreTests
 			Body = body,
 			Priority = priority,
 			Acknowledged = acknowledged,
+			CompactDisplay = compactDisplay,
+			SectionStartStation = sectionStart,
+			SectionEndStation = sectionEnd,
+			StationsBefore = stationsBefore,
 		};
 
 	[Test]
@@ -40,6 +50,10 @@ public class NotificationStoreTests
 			IconColor_RGB = 0xC62828,
 			IconImageBase64 = "AAA=",
 			IssuedAtIsUnspecifiedTimeZone = true,
+			CompactDisplay = true,
+			SectionStartStation = "東京",
+			SectionEndStation = "品川",
+			StationsBefore = 2,
 		};
 
 		var result = store.Add(data);
@@ -53,7 +67,60 @@ public class NotificationStoreTests
 			Assert.That(result.Entry.IconColor_RGB, Is.EqualTo(0xC62828));
 			Assert.That(result.Entry.IconImageBase64, Is.EqualTo("AAA="));
 			Assert.That(result.Entry.IssuedAtIsUnspecifiedTimeZone, Is.True);
+			Assert.That(result.Entry.CompactDisplay, Is.True);
+			Assert.That(result.Entry.SectionStartStation, Is.EqualTo("東京"));
+			Assert.That(result.Entry.SectionEndStation, Is.EqualTo("品川"));
+			Assert.That(result.Entry.StationsBefore, Is.EqualTo(2));
 		});
+	}
+
+	[Test]
+	public void HasRedisplayTarget_TrueWhenSectionStartSet()
+	{
+		var store = new NotificationStore();
+
+		var result = store.Add(Make(id: "n-1", sectionStart: "東京"));
+
+		Assert.That(result.Entry.HasRedisplayTarget, Is.True);
+	}
+
+	[TestCase(null)]
+	[TestCase("")]
+	public void HasRedisplayTarget_FalseWhenSectionStartMissing(string? sectionStart)
+	{
+		var store = new NotificationStore();
+
+		var result = store.Add(Make(id: "n-1", sectionStart: sectionStart));
+
+		Assert.That(result.Entry.HasRedisplayTarget, Is.False);
+	}
+
+	[Test]
+	public void GetRedisplayCandidates_OnlyReadWithRedisplayTarget()
+	{
+		var store = new NotificationStore();
+		// 既読 & 再表示対象あり → 候補
+		store.Add(Make(id: "n-read-target", acknowledged: true, sectionStart: "東京"));
+		// 未読 & 再表示対象あり → 対象外
+		store.Add(Make(id: "n-unread-target", acknowledged: false, sectionStart: "品川"));
+		// 既読 & 再表示対象なし → 対象外
+		store.Add(Make(id: "n-read-no-target", acknowledged: true, sectionStart: null));
+
+		var candidates = store.GetRedisplayCandidates();
+
+		Assert.That(candidates.Select(e => e.Id), Is.EquivalentTo(new[] { "n-read-target" }));
+	}
+
+	[Test]
+	public void GetRedisplayCandidates_EmptyWhenNoneQualify()
+	{
+		var store = new NotificationStore();
+		store.Add(Make(id: "n-1", acknowledged: false, sectionStart: "東京"));
+		store.Add(Make(id: "n-2", acknowledged: true, sectionStart: null));
+
+		var candidates = store.GetRedisplayCandidates();
+
+		Assert.That(candidates, Is.Empty);
 	}
 
 	[Test]

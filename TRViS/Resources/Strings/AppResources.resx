@@ -145,6 +145,7 @@ To: {4} {5}</value></data>
   <data name="Notification_Acknowledge" xml:space="preserve"><value>Acknowledge</value></data>
   <data name="Notification_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Notification_OrderNumberFormat" xml:space="preserve"><value>Order No.: {0}</value></data>
+  <data name="Notification_IssuedAtFormat" xml:space="preserve"><value>Issued: {0}</value></data>
   <data name="Notification_SenderFormat" xml:space="preserve"><value>From: {0}</value></data>
   <data name="Notification_ReceiverFormat" xml:space="preserve"><value>To: {0}</value></data>
   <data name="SelectFile_Title" xml:space="preserve"><value>Select File</value></data>
