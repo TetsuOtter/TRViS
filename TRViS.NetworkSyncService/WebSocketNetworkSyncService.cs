@@ -60,6 +60,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_REQUEST_TRAIN_TIMETABLE = "RequestTrainTimetable";
 	private const string REQUEST_ID_JSON_KEY = "RequestId";
 	private const string TRAIN_NUMBER_JSON_KEY = "TrainNumber";
+	private const string MATCH_MODE_JSON_KEY = "MatchMode";
 	private const string SEARCH_RESULTS_JSON_KEY = "Results";
 	private const string SERVER_FEATURES_JSON_KEY = "Features";
 	private const string WORK_NAME_JSON_KEY = "WorkName";
@@ -962,17 +963,34 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	}
 
 	/// <summary>
+	/// <paramref name="matchMode"/> に従って <paramref name="candidateTrainNumber"/> が
+	/// <paramref name="query"/> に一致するかを判定する (UI_TEST の缶詰データ用。実サーバーでの
+	/// 一致判定は <c>ReferenceNetworkSyncServer</c> 側の同名ロジックを参照)。
+	/// </summary>
+	internal static bool MatchesTrainNumber(string? candidateTrainNumber, string query, TrainSearchMatchMode matchMode)
+	{
+		if (candidateTrainNumber is null)
+			return false;
+		return matchMode switch
+		{
+			TrainSearchMatchMode.Contains => candidateTrainNumber.Contains(query, StringComparison.OrdinalIgnoreCase),
+			TrainSearchMatchMode.Exact => string.Equals(candidateTrainNumber, query, StringComparison.OrdinalIgnoreCase),
+			_ => candidateTrainNumber.StartsWith(query, StringComparison.OrdinalIgnoreCase),
+		};
+	}
+
+	/// <summary>
 	/// 列番でサーバーに列車を検索する (<c>SearchTrain</c>)。RequestId で応答を相関させ、
 	/// <see cref="SearchTrainTimeoutMs"/> 以内に応答が無ければ <see cref="TimeoutException"/>。
 	/// </summary>
 	public override async Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
-		string trainNumber, CancellationToken cancellationToken = default)
+		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, CancellationToken cancellationToken = default)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(trainNumber);
 #if UI_TEST
 		if (_uiTestSearchEnabled)
 			return _uiTestSearchResults
-				.Where(r => string.Equals(r.TrainNumber, trainNumber, StringComparison.OrdinalIgnoreCase))
+				.Where(r => MatchesTrainNumber(r.TrainNumber, trainNumber, matchMode))
 				.ToList();
 #endif
 		if (_WebSocket.State != WebSocketState.Open)
@@ -989,6 +1007,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			{
 				[REQUEST_ID_JSON_KEY] = requestId,
 				[TRAIN_NUMBER_JSON_KEY] = trainNumber,
+				[MATCH_MODE_JSON_KEY] = matchMode.ToString(),
 			};
 			await SendRequestMessageAsync(MESSAGE_TYPE_SEARCH_TRAIN, additional, cancellationToken);
 			return await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(SearchTrainTimeoutMs), cancellationToken);

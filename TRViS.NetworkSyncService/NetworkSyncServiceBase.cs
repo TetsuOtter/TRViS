@@ -259,10 +259,11 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	/// WebSocket のみ対応。それ以外の実装では <see cref="NotSupportedException"/> を投げる。
 	/// </summary>
 	/// <param name="trainNumber">検索する列番。</param>
+	/// <param name="matchMode">一致方式 (前方一致 / 中間一致 / 完全一致)。既定は前方一致。</param>
 	/// <param name="cancellationToken">キャンセルトークン。</param>
 	/// <returns>候補一覧 (0 件の場合は空)。</returns>
 	public virtual Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
-		string trainNumber, CancellationToken cancellationToken = default)
+		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, CancellationToken cancellationToken = default)
 		=> throw new NotSupportedException("Train search is only supported over WebSocket.");
 
 	/// <summary>

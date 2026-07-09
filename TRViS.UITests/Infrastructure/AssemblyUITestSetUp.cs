@@ -10,8 +10,13 @@ using TRViS.UITests.Infrastructure;
 
 /// <summary>
 /// Assembly-scoped lifecycle for the UI-test suite: creates the Appium
-/// session once at the start of the run and tears it down once at the end,
-/// so the app process is reused across every fixture. Without this, each
+/// session once at the start of the run and tears it down once at the end
+/// on the Apple / Windows lanes, so the app process is reused across every
+/// fixture. Android keeps per-fixture sessions because the long-lived
+/// assembly session has been observed accumulating state until UiAutomator2
+/// crashes mid-run.
+///
+/// Without this, each
 /// <see cref="BaseUITest"/>-derived fixture's OneTimeSetUp would
 /// ResetAppState + create its own session — paying the session-attach
 /// cost (~17 s on mac2, ~10-15 s on XCUITest, ~5 s on UiAutomator2) for
@@ -32,12 +37,16 @@ public class AssemblyUITestSetUp
 	[OneTimeSetUp]
 	public void GlobalSetUp()
 	{
+		if (Environment.GetEnvironmentVariable("UITEST_PLATFORM")?.Equals("android", StringComparison.OrdinalIgnoreCase) == true)
+			return;
 		BaseUITest.InitGlobalSession();
 	}
 
 	[OneTimeTearDown]
 	public void GlobalTearDown()
 	{
+		if (Environment.GetEnvironmentVariable("UITEST_PLATFORM")?.Equals("android", StringComparison.OrdinalIgnoreCase) == true)
+			return;
 		BaseUITest.QuitGlobalSession();
 	}
 }

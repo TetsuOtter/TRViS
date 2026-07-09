@@ -19,6 +19,11 @@ public partial class ViewHost : ContentPage
 
 	public static readonly string NameOfThisClass = nameof(ViewHost);
 
+	// Below this page width, QuickSwitchPopup falls back to the OS keyboard for train
+	// search instead of the software numeric keypad (no room for keypad + results list
+	// side by side) — covers iPhone portrait; tablets/landscape/desktop clear it easily.
+	private const double NumericKeypadMinWidth = 500;
+
 	DTACViewHostViewModel ViewModel { get; }
 
 	private readonly ViewHostPresenter _presenter;
@@ -58,9 +63,6 @@ public partial class ViewHost : ContentPage
 		// HorizontalTimetablePage uses the same factory and is always RegisterRoute'd
 		// (fresh per visit on all platforms), so its Unloaded+Dispose is unconditional.
 		_appViewModel.OpenTimetableViewRequested += OnOpenTimetableViewRequested;
-		// 検索列車の表示状態に応じて「ハコ」タブの表示可否を切り替える (Issue #197)。
-		_appViewModel.PropertyChanged += OnAppViewModelPropertyChanged;
-		ApplySearchedTrainState();
 
 #if ANDROID
 		Unloaded += (_, _) =>
@@ -68,7 +70,6 @@ public partial class ViewHost : ContentPage
 			Shell.Current.Navigated -= OnShellNavigated;
 			_dtacViewModel.PropertyChanged -= OnDtacViewModelPropertyChanged;
 			_appViewModel.OpenTimetableViewRequested -= OnOpenTimetableViewRequested;
-			_appViewModel.PropertyChanged -= OnAppViewModelPropertyChanged;
 			if (Shell.Current is AppShell appShellForCleanup)
 				appShellForCleanup.SafeAreaMarginChanged -= AppShell_SafeAreaMarginChanged;
 			_presenter.Dispose();
@@ -94,7 +95,7 @@ public partial class ViewHost : ContentPage
 		_dtacViewModel.PropertyChanged += OnDtacViewModelPropertyChanged;
 
 		HakoRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedWork, source: vm));
-		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.EffectiveTrainData, source: vm));
+		VerticalStylePageRemarksView.SetBinding(WithRemarksView.RemarksDataProperty, BindingBase.Create(static (AppViewModel vm) => vm.SelectedTrainData, source: vm));
 
 		ApplyTabVisibility();
 
@@ -350,7 +351,7 @@ public partial class ViewHost : ContentPage
 		bool isCurrentPage = Shell.Current.CurrentPage is ViewHost;
 		_dtacViewModel.IsViewHostVisible = isCurrentPage;
 		if (isCurrentPage && _dtacViewModel.IsVerticalViewMode)
-			VerticalStylePageView.OnViewBecameActive();
+			MainThread.BeginInvokeOnMainThread(VerticalStylePageView.OnViewBecameActive);
 	}
 
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
@@ -362,25 +363,6 @@ public partial class ViewHost : ContentPage
 	{
 		Shell.Current.FlyoutIsPresented = !Shell.Current.FlyoutIsPresented;
 		logger.Debug("FlyoutIsPresented is changed to {0}", Shell.Current.FlyoutIsPresented);
-	}
-
-	// ---------- Searched-train state (Issue #197) ----------
-
-	private void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-	{
-		if (e.PropertyName == nameof(AppViewModel.IsDisplayingSearchedTrain))
-			MainThread.BeginInvokeOnMainThread(ApplySearchedTrainState);
-	}
-
-	/// <summary>
-	/// 検索列車の表示中は「ハコ」タブを隠し、時刻表タブへ強制する。所定へ戻ると「ハコ」タブを復帰する。
-	/// </summary>
-	private void ApplySearchedTrainState()
-	{
-		bool searching = _appViewModel.IsDisplayingSearchedTrain;
-		_dtacViewModel.IsHakoTabVisible = !searching;
-		if (searching && _dtacViewModel.TabMode == DTACViewHostViewModel.Mode.Hako)
-			_dtacViewModel.TabMode = DTACViewHostViewModel.Mode.VerticalView;
 	}
 
 	// ---------- DTACViewModel event handling (tab visibility, orientation) ----------
@@ -397,7 +379,7 @@ public partial class ViewHost : ContentPage
 			case nameof(DTACViewHostViewModel.TabMode):
 				MainThread.BeginInvokeOnMainThread(UpdateOrientation);
 				if (_dtacViewModel.IsVerticalViewMode)
-					VerticalStylePageView.OnViewBecameActive();
+					MainThread.BeginInvokeOnMainThread(VerticalStylePageView.OnViewBecameActive);
 				break;
 		}
 	}
@@ -510,14 +492,18 @@ public partial class ViewHost : ContentPage
 		{
 			logger.Info("TitleLabel tapped - showing QuickSwitchPopup");
 
-			QuickSwitchPopup popup = new();
+			// Narrow screens (e.g. iPhone portrait) don't have room for a search-results
+			// list plus a numeric keypad side by side, so fall back to the OS keyboard
+			// there; wider screens (tablet, landscape, desktop) get the keypad.
+			bool useNumericKeypad = Width >= NumericKeypadMinWidth;
+			QuickSwitchPopup popup = new(useNumericKeypad);
 			var popover = AnchorPopover.Create();
-			// 検索確定 / 所定復帰時にポップオーバー自身を閉じられるよう参照を渡す。
+			// 検索結果確定時にポップオーバー自身を閉じられるよう参照を渡す。
 			popup.SetPopover(popover);
 
 			var options = new PopoverOptions
 			{
-				PreferredWidth = 280,
+				PreferredWidth = useNumericKeypad ? 420 : 320,
 				PreferredHeight = 400,
 				DismissOnTapOutside = true
 			};

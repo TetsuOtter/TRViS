@@ -189,10 +189,20 @@ public static class AutomationIds
 		{
 			public const string SearchTab = "DTAC.QuickSwitch.SearchTab";
 			public const string SearchEntry = "DTAC.QuickSwitch.SearchEntry";
-			public const string SearchButton = "DTAC.QuickSwitch.SearchButton";
+			public const string SearchLoading = "DTAC.QuickSwitch.SearchLoading";
 			public const string SearchStatus = "DTAC.QuickSwitch.SearchStatus";
 			public const string SearchResults = "DTAC.QuickSwitch.SearchResults";
-			public const string ReturnToScheduled = "DTAC.QuickSwitch.ReturnToScheduled";
+
+			// TrainNumberEntry is IsReadOnly (no OS keyboard); digits are entered via
+			// this software keypad instead (see QuickSwitchPopup.xaml NumericKeypad).
+			public const string SearchKeypadDigitPrefix = "DTAC.QuickSwitch.SearchKeypadDigit";
+			public const string SearchKeypadBackspace = "DTAC.QuickSwitch.SearchKeypadBackspace";
+			public const string SearchKeypadClear = "DTAC.QuickSwitch.SearchKeypadClear";
+
+			// Match-mode radio buttons (前方一致/中間一致/完全一致).
+			public const string SearchMatchModePrefix = "DTAC.QuickSwitch.SearchMatchModePrefix";
+			public const string SearchMatchModeContains = "DTAC.QuickSwitch.SearchMatchModeContains";
+			public const string SearchMatchModeExact = "DTAC.QuickSwitch.SearchMatchModeExact";
 		}
 
 		public const string StartEndRunButton = "DTAC.StartEndRunButton";

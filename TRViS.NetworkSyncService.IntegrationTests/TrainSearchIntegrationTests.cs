@@ -95,6 +95,50 @@ public class TrainSearchIntegrationTests
 	}
 
 	[Test]
+	public async Task SearchTrain_PrefixMatchMode_MatchesByStartsWith()
+	{
+		// 既定 (Prefix): 列番が検索文字列で始まるものにマッチ。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			var results = await service.SearchTrainAsync("12", TrainSearchMatchMode.Prefix);
+			Assert.That(results, Has.Count.EqualTo(2));
+			Assert.That(results.All(r => r.TrainNumber == "1234"), Is.True);
+		}
+		finally { await DisconnectAsync(service); }
+	}
+
+	[Test]
+	public async Task SearchTrain_ContainsMatchMode_MatchesBySubstring()
+	{
+		// Contains: 前方一致では拾えない中間の部分文字列でもマッチする。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			var results = await service.SearchTrainAsync("34", TrainSearchMatchMode.Contains);
+			Assert.That(results, Has.Count.EqualTo(2));
+			Assert.That(results.All(r => r.TrainNumber == "1234"), Is.True);
+		}
+		finally { await DisconnectAsync(service); }
+	}
+
+	[Test]
+	public async Task SearchTrain_ExactMatchMode_RejectsPartialMatch()
+	{
+		// Exact: 部分一致では拾わない (Prefix/Contains なら "1234" にマッチする "12" でも 0 件)。
+		var service = await ConnectServiceAsync();
+		try
+		{
+			var partial = await service.SearchTrainAsync("12", TrainSearchMatchMode.Exact);
+			Assert.That(partial, Is.Empty);
+
+			var exact = await service.SearchTrainAsync("1234", TrainSearchMatchMode.Exact);
+			Assert.That(exact, Has.Count.EqualTo(2));
+		}
+		finally { await DisconnectAsync(service); }
+	}
+
+	[Test]
 	public async Task SearchTrain_NoMatch_ReturnsEmptyNotTimeout()
 	{
 		var service = await ConnectServiceAsync();

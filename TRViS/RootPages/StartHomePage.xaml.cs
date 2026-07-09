@@ -1313,7 +1313,7 @@ public partial class StartHomePage : ContentPage
 	// disconnected status + reveals the 再接続 button. No _lastWebSocketAppLinkInfo
 	// is stored, so a subsequent 再接続 tap is a deterministic no-op
 	// (ReconnectWebSocketAsync returns false) — keeps the test network-free.
-	void TestSimulateWebSocketDisconnectButton_Clicked(object? sender, EventArgs e)
+	async void TestSimulateWebSocketDisconnectButton_Clicked(object? sender, EventArgs e)
 	{
 		logger.Info("TestSimulateWebSocketDisconnectButton clicked: simulating WS connection-lost state");
 		try
@@ -1321,10 +1321,17 @@ public partial class StartHomePage : ContentPage
 			var service = new WebSocketNetworkSyncService(
 				new Uri("ws://uitest.invalid/"),
 				new System.Net.WebSockets.ClientWebSocket());
-			var previous = viewModel.Loader;
-			viewModel.SetLoader(service, "ws://uitest.invalid/");
-			previous?.Dispose();
-			viewModel.IsServerConnectionLost = true;
+			await MainThread.InvokeOnMainThreadAsync(async () =>
+			{
+				var previous = viewModel.Loader;
+				viewModel.SetLoader(service, "ws://uitest.invalid/");
+				previous?.Dispose();
+				viewModel.IsServerConnectionLost = true;
+
+				await ApplyModeForCurrentLoaderAsync();
+				HomeGrid.UpdateLoaderInfoLabels();
+				RefreshLoaderInfoRowHeight();
+			});
 		}
 		catch (Exception ex)
 		{
@@ -1441,25 +1448,29 @@ public partial class StartHomePage : ContentPage
 			service.SeedCachesFromLoaderForTesting(sample);
 			sample.Dispose();
 
-			var previous = viewModel.Loader;
-			viewModel.SetLoader(service, "ws://uitest.invalid/");
-			previous?.Dispose();
-
-			var firstGroup = viewModel.WorkGroupList?.FirstOrDefault();
-			if (firstGroup is null)
+			await MainThread.InvokeOnMainThreadAsync(async () =>
 			{
-				logger.Warn("TestSimulateWebSocketConnected: no WorkGroup in sample data — ignoring");
-				return;
-			}
-			var firstWork = service.GetWorkList(firstGroup.Id)?.FirstOrDefault();
-			if (firstWork is null)
-			{
-				logger.Warn("TestSimulateWebSocketConnected: first WorkGroup has no Work — aborting");
-				return;
-			}
+				var previous = viewModel.Loader;
+				viewModel.SetLoader(service, "ws://uitest.invalid/");
+				previous?.Dispose();
+				await ApplyModeForCurrentLoaderAsync();
 
-			HomeGrid.CommitPendingSelection(firstGroup, firstWork);
-			await HomeGridView.NavigateToDTACAsync();
+				var firstGroup = viewModel.WorkGroupList?.FirstOrDefault();
+				if (firstGroup is null)
+				{
+					logger.Warn("TestSimulateWebSocketConnected: no WorkGroup in sample data — ignoring");
+					return;
+				}
+				var firstWork = service.GetWorkList(firstGroup.Id)?.FirstOrDefault();
+				if (firstWork is null)
+				{
+					logger.Warn("TestSimulateWebSocketConnected: first WorkGroup has no Work — aborting");
+					return;
+				}
+
+				HomeGrid.CommitPendingSelection(firstGroup, firstWork);
+				await HomeGridView.NavigateToDTACAsync();
+			});
 		}
 		catch (Exception ex)
 		{
@@ -1471,12 +1482,14 @@ public partial class StartHomePage : ContentPage
 
 	// UI_TEST-only seam (Issue #197): builds a WebSocket-TYPED loader with sample
 	// data AND a canned train-search dataset (feature TrainSearch enabled), commits
-	// the first WG/Work and navigates to DTAC. On DTAC the QuickSwitch popup then
-	// shows the Search tab; the E2E searches "9999", picks the result, confirms and
-	// verifies the searched train is displayed with the ハコ tab hidden. Network-free.
+	// the first WG/Work and navigates to DTAC. The canned search result belongs to a
+	// DIFFERENT WG/Work so the E2E can verify a full duty switch (not just a train
+	// swap). On DTAC the QuickSwitch popup shows the Search tab; the E2E types "9999",
+	// picks the result, confirms, and verifies the header/行路 switched. Network-free.
 	//
-	// Placed in the proven-visible seam band (y=312) in a third clear column
-	// (left=60), matching the off-screen-iPhone-safe placement of the sibling seams.
+	// Placed in the proven-visible seam band (y=312) in a fourth clear column
+	// (left=90). The third column at (60,312) is already owned by the Scan-QR
+	// open seam; sharing exact bounds lets the later-added button swallow taps.
 	private void AddTestSimulateWebSocketSearchSeam()
 	{
 		var seam = new Button
@@ -1486,7 +1499,7 @@ public partial class StartHomePage : ContentPage
 			VerticalOptions = LayoutOptions.Start,
 			WidthRequest = 24,
 			HeightRequest = 24,
-			Margin = new Thickness(60, 312, 0, 0),
+			Margin = new Thickness(90, 312, 0, 0),
 			BackgroundColor = Colors.Transparent,
 			BorderColor = Colors.Transparent,
 			Padding = 0,
@@ -1507,12 +1520,25 @@ public partial class StartHomePage : ContentPage
 				new System.Net.WebSockets.ClientWebSocket());
 			service.SeedCachesFromLoaderForTesting(sample);
 
+			// Committed selection: the first WorkGroup/Work in the sample data.
 			var wg = sample.GetWorkGroupList().FirstOrDefault();
 			var work = wg is null ? null : service.GetWorkList(wg.Id)?.FirstOrDefault();
-			var baseTrain = work is null ? null : service.GetTrainDataList(work.Id)?.FirstOrDefault();
-			if (wg is null || work is null || baseTrain is null)
+			if (wg is null || work is null)
 			{
 				logger.Warn("TestSimulateWebSocketSearch: sample data missing — aborting");
+				sample.Dispose();
+				return;
+			}
+
+			// The searched train belongs to a DIFFERENT WorkGroup/Work than the committed
+			// selection, so the E2E can verify the search-driven switch changes the whole
+			// duty (including the header's 行路番号), not just the displayed train.
+			var searchWg = sample.GetWorkGroupList().Skip(1).FirstOrDefault();
+			var searchWork = searchWg is null ? null : service.GetWorkList(searchWg.Id)?.FirstOrDefault();
+			var baseTrain = searchWork is null ? null : service.GetTrainDataList(searchWork.Id)?.FirstOrDefault();
+			if (searchWg is null || searchWork is null || baseTrain is null)
+			{
+				logger.Warn("TestSimulateWebSocketSearch: sample data missing a second WorkGroup — aborting");
 				sample.Dispose();
 				return;
 			}
@@ -1520,17 +1546,21 @@ public partial class StartHomePage : ContentPage
 			// A canned "searched" train derived from a sample train, with a distinct number.
 			var searchedTrain = baseTrain with { Id = "uitest-searched-9999", TrainNumber = "9999" };
 			var summary = new NetworkSyncService.TrainSearchResult(
-				wg.Id, work.Id, searchedTrain.Id, "9999", "検索行路", 1,
+				searchWg.Id, searchWork.Id, searchedTrain.Id, "9999", searchWork.Name, 1,
 				"始発駅", "09:00", "終着駅", "10:00");
 			service.SeedTrainSearchForTesting(new[] { (summary, searchedTrain) });
 			sample.Dispose();
 
-			var previous = viewModel.Loader;
-			viewModel.SetLoader(service, "ws://uitest.invalid/");
-			previous?.Dispose();
+			await MainThread.InvokeOnMainThreadAsync(async () =>
+			{
+				var previous = viewModel.Loader;
+				viewModel.SetLoader(service, "ws://uitest.invalid/");
+				previous?.Dispose();
+				await ApplyModeForCurrentLoaderAsync();
 
-			HomeGrid.CommitPendingSelection(wg, work);
-			await HomeGridView.NavigateToDTACAsync();
+				HomeGrid.CommitPendingSelection(wg, work);
+				await HomeGridView.NavigateToDTACAsync();
+			});
 		}
 		catch (Exception ex)
 		{

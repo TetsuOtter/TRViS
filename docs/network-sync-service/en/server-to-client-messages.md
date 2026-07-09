@@ -377,7 +377,9 @@ timetable rows — those are fetched separately via
   always respond** — even with zero results — so the client can
   distinguish "no results" from "no/failed response" (the client times
   out after 10s and reports an error when nothing arrives).
-- Matching semantics (exact vs partial match) are server-defined.
+- Matching semantics are driven by the request's `MatchMode`
+  (see [`SearchTrain`](client-to-server-messages.md#4-searchtrain)) —
+  `Prefix` (default), `Contains`, or `Exact` — not server-defined.
 
 ---
 

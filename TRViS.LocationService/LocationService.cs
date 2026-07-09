@@ -89,11 +89,11 @@ public partial class LocationService : IDisposable
 	/// 列番でサーバーに列車を検索する。WebSocket 接続時のみ有効。
 	/// </summary>
 	public Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
-		string trainNumber, CancellationToken cancellationToken = default)
+		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, CancellationToken cancellationToken = default)
 	{
 		if (_CurrentService is not NetworkSyncServiceBase networkSyncService)
 			throw new InvalidOperationException("Train search requires a WebSocket network sync connection.");
-		return networkSyncService.SearchTrainAsync(trainNumber, cancellationToken);
+		return networkSyncService.SearchTrainAsync(trainNumber, matchMode, cancellationToken);
 	}
 
 	/// <summary>

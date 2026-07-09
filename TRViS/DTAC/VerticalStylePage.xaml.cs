@@ -207,7 +207,16 @@ public partial class VerticalStylePage : ContentView
 		appVm.PropertyChanged += (_, e) =>
 		{
 			if (e.PropertyName == nameof(TRViS.ViewModels.AppViewModel.SelectedWork))
-				UpdateHasHorizontalTimetable(appVm.SelectedWork);
+			{
+				var selectedWork = appVm.SelectedWork;
+				if (MainThread.IsMainThread)
+				{
+					UpdateHasHorizontalTimetable(selectedWork);
+					return;
+				}
+
+				MainThread.BeginInvokeOnMainThread(() => UpdateHasHorizontalTimetable(selectedWork));
+			}
 		};
 		UpdateHasHorizontalTimetable(appVm.SelectedWork);
 

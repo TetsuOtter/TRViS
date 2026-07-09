@@ -164,7 +164,8 @@ sequenceDiagram
 {
   "MessageType": "SearchTrain",
   "RequestId": "3f2a...unique...",   // クライアント生成の対応付け ID（必須）
-  "TrainNumber": "1234"              // 検索する列車番号
+  "TrainNumber": "1234",             // 検索する列車番号
+  "MatchMode": "Prefix"              // 省略可; "Prefix" | "Contains" | "Exact" (既定 "Prefix")
 }
 ```
 
@@ -172,11 +173,14 @@ sequenceDiagram
 |---|---|---|
 | `RequestId` | string | クライアント生成の対応付け ID。必須 — サーバーは応答でこれをエコーする。 |
 | `TrainNumber` | string | 検索する列車番号。 |
+| `MatchMode` | string | 省略可。`TrainNumber` を候補の列車番号にどう一致させるか: `"Prefix"`（候補が `TrainNumber` で始まる = 前方一致）、`"Contains"`（候補が `TrainNumber` を部分文字列として含む = 中間一致）、`"Exact"`（候補が `TrainNumber` と完全に一致 = 完全一致）。省略時・未知の値は `"Prefix"` として扱わなければなりません。 |
 
 - サーバーは同じ `RequestId` をエコーした
   [`SearchTrainResponse`](server-to-client-messages.md#12-searchtrainresponse)
   で **必ず**応答しなければなりません。
-- 一致判定（完全一致か部分一致か）は **サーバー任意**です。
+- 一致判定は大文字小文字を区別しません。それ以外の正規化はサーバー任意
+  ですが、`MatchMode` 自体の意味論は **サーバー任意ではありません** —
+  準拠サーバーは 3 種類すべてを実装します。
 - 機能に対応するサーバーは、たとえ 0 件でも（空の `Results` 配列でも）
   **必ず応答**しなければなりません。そうすることでクライアントは
   「該当なし」と「無応答／応答失敗」を区別できます。
@@ -188,7 +192,7 @@ sequenceDiagram
 sequenceDiagram
     participant C as TRViS
     participant S as 外部サーバー
-    C->>S: {"MessageType":"SearchTrain","RequestId":"3f2a...","TrainNumber":"1234"}
+    C->>S: {"MessageType":"SearchTrain","RequestId":"3f2a...","TrainNumber":"1234","MatchMode":"Prefix"}
     Note over C: 最大 10 秒待機
     S-->>C: {"MessageType":"SearchTrainResponse","RequestId":"3f2a...","Results":[...]}
     Note over S: 空の Results 配列でも必ず応答する
