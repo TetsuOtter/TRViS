@@ -33,6 +33,8 @@ public class AppShellPage : PageObject
 
 	public void OpenFlyout()
 	{
+		DismissAndroidImmersiveOverlayIfPresent();
+
 		// Suppress implicit wait for all fast probes in this method so we don't
 		// block for 10 s on platforms that don't have a particular button.
 		// Note: reading ImplicitWait via GET /session/.../timeouts is not implemented
@@ -223,6 +225,48 @@ public class AppShellPage : PageObject
 		});
 	}
 
+	private void DismissAndroidImmersiveOverlayIfPresent()
+	{
+		if (!IsAndroid)
+			return;
+
+		var prevWait = TimeSpan.FromSeconds(10);
+		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
+		try
+		{
+			var locators = new[]
+			{
+				By.Id("android:id/ok"),
+				MobileBy.Name("Got it"),
+				By.XPath("//*[@text='Got it']"),
+				By.XPath("//*[@Name='Got it']"),
+			};
+
+			foreach (var locator in locators)
+			{
+				try
+				{
+					var elements = Driver.FindElements(locator);
+					if (elements.Count == 0)
+						continue;
+
+					var button = elements[0];
+					if (button.Displayed)
+					{
+						button.Click();
+						Thread.Sleep(250);
+						return;
+					}
+				}
+				catch { }
+			}
+		}
+		finally
+		{
+			Driver.Manage().Timeouts().ImplicitWait = prevWait;
+		}
+	}
+
 	// Virtual key codes for keyboard navigation
 	private const int VK_TAB = 0x09;
 	private const int VK_DOWN = 0x28;
@@ -284,6 +328,7 @@ public class AppShellPage : PageObject
 
 	public DTACViewHostPageObject NavigateToDTAC()
 	{
+		DismissAndroidImmersiveOverlayIfPresent();
 		if (_isWindows)
 			NavigateViaKeyboard("D-TAC");
 		else
@@ -323,6 +368,15 @@ public class AppShellPage : PageObject
 	/// </summary>
 	public StartHomePageObject NavigateToHome()
 	{
+		DismissAndroidImmersiveOverlayIfPresent();
+
+		// On Android cold starts the app can already be on StartHome by the time
+		// recovery code gets here, but the first few probes still see a transient
+		// "not yet displayed" state. Treat a soon-to-appear StartHome as a
+		// successful recovery instead of falling through to the flyout path.
+		if (PollDisplayed(AutomationIds.StartHome.Title, timeoutSeconds: 10))
+			return new StartHomePageObject(Driver);
+
 		var seamLocator = AutomationIdLocator(AutomationIds.DTAC.TestNavigateHomeButton);
 		Driver.Manage().Timeouts().ImplicitWait = TimeSpan.Zero;
 		try
@@ -373,6 +427,7 @@ public class AppShellPage : PageObject
 
 	public EasterEggPageObject NavigateToSettings()
 	{
+		DismissAndroidImmersiveOverlayIfPresent();
 		if (_isWindows)
 			NavigateViaKeyboard("Settings");
 		else

@@ -184,7 +184,11 @@ class ScreenshotRegressionTests: BaseUITestCase {
 
         // 5. Third-party licenses modal
         let tpl = start.openThirdPartyLicenses()
-        settle()
+        XCTAssertTrue(
+            tpl.waitForLoadedContent(timeout: 30),
+            "Third-party license list did not finish loading before screenshot capture."
+        )
+        settleUntilVisuallyStable()
         capture(screen: "thirdPartyLicenses", theme: theme, lang: lang, failures: &failures)
         _ = tpl.closeModal()
 
@@ -197,7 +201,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
         // 7-9. DTAC (use HT seam so the horizontal-timetable button is present)
         let dtac = start.seedHorizontalTimetableAndOpenForTesting()
         dtac.switchToTimetableTab()
-        settle()
+        settleUntilVisuallyStable(maxWait: 15.0)
         capture(screen: "dtac-timetable", theme: theme, lang: lang, failures: &failures)
 
         // Hako tab — tap and wait 500 ms for the tab content to render
@@ -235,7 +239,7 @@ class ScreenshotRegressionTests: BaseUITestCase {
 
         // Step 3: Switch to 時刻表 tab (試単9091 data, Remarks closed)
         dtac.switchToTimetableTab()
-        settle()
+        settleUntilVisuallyStable(maxWait: 15.0)
         capture(screen: "dtac-timetable-shiken9091", theme: theme, lang: lang, failures: &failures)
 
         // Step 4: Open the Remarks panel in 時刻表 tab

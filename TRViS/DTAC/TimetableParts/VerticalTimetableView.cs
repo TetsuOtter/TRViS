@@ -218,6 +218,12 @@ public partial class VerticalTimetableView : Grid
 
 	private async void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
+		if (!MainThread.IsMainThread)
+		{
+			MainThread.BeginInvokeOnMainThread(() => OnViewModelPropertyChanged(sender, e));
+			return;
+		}
+
 		switch (e.PropertyName)
 		{
 			case nameof(ViewModel.CurrentRows):

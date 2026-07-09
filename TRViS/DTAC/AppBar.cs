@@ -1,5 +1,6 @@
 using System.ComponentModel;
 
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Services;
@@ -440,8 +441,16 @@ public class AppBar : Grid
 
 	private void AppViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(AppViewModel.ServerConnectionStatus))
+		if (e.PropertyName != nameof(AppViewModel.ServerConnectionStatus))
+			return;
+
+		if (MainThread.IsMainThread)
+		{
 			UpdateConnectionStatus();
+			return;
+		}
+
+		MainThread.BeginInvokeOnMainThread(UpdateConnectionStatus);
 	}
 
 	void UpdateConnectionStatus()
