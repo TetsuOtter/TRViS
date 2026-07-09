@@ -808,8 +808,38 @@ public partial class AppViewModel
 			IconColor_RGB = iconColor,
 			IconImageBase64 = query["iconimage"],
 		};
-		NotificationCenter.InjectNotificationForTesting(n, fakeAck);
-		logger.Info("Test inject notification: dispatched (id={0}, priority={1}, acknowledged={2}, fakeAck={3})", n.Id, n.Priority, n.Acknowledged, fakeAck);
+		// この deeplink を仲介した ConnectServerDialog は、TryLoadAsync が true を返した
+		// 直後に自分自身を Navigation.PopModalAsync() で閉じる。PopModalAsync() は「最上段の
+		// モーダル」を pop するため、ここで同期注入すると通告ポップアップが先に push され、
+		// その直後にダイアログの自己クローズがそのポップアップを掴んで閉じてしまう
+		// (ポップアップは一瞬で消え、ダイアログだけが残る)。共有 Appium セッションでは
+		// これが後続テストまで巻き込んで壊す。仲介ダイアログが閉じ切ってから注入し、
+		// ポップアップをクリーンなモーダルスタックに載せる。
+		MainThread.BeginInvokeOnMainThread(async () =>
+		{
+			await WaitForRoutingModalDismissedAsync();
+			NotificationCenter.InjectNotificationForTesting(n, fakeAck);
+			logger.Info("Test inject notification: dispatched (id={0}, priority={1}, acknowledged={2}, fakeAck={3})", n.Id, n.Priority, n.Acknowledged, fakeAck);
+		});
+	}
+
+	/// <summary>
+	/// UI_TEST 専用: テスト deeplink を仲介した <see cref="RootPages.ConnectServerDialog"/> が
+	/// モーダルスタックから消えるまで (最大 5 秒) 待機する。固定 delay ではなく poll で、
+	/// 閉じた瞬間に進む。仲介ダイアログ以外の経路 (実 AppLink など) では即座に返る。
+	/// </summary>
+	private static async Task WaitForRoutingModalDismissedAsync()
+	{
+		DateTime deadline = DateTime.UtcNow.AddSeconds(5);
+		while (DateTime.UtcNow < deadline)
+		{
+			var modalStack = Shell.Current?.Navigation?.ModalStack;
+			bool dialogPresent = modalStack is not null
+				&& modalStack.Any(static p => p is RootPages.ConnectServerDialog);
+			if (!dialogPresent)
+				return;
+			await Task.Delay(50);
+		}
 	}
 #endif
 
