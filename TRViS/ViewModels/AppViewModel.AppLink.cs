@@ -155,6 +155,18 @@ public partial class AppViewModel
 			HandleTestSetGpsLocation(uri);
 			return true;
 		}
+
+		// Test-only: inject a Notification into NotificationCenter so UI tests can
+		// exercise the receive→popup→受領 flow without a real WebSocket server.
+		// Format: trvis://_test/notification?id=<id>&title=<t>&body=<bbcode>&priority=<n>&acknowledged=<bool>&reset=<bool>
+		//   &ordernumber=<n>&sender=<s>&receiver=<s>&icontext=<s>&iconcolor=<0xRRGGBB or %23RRGGBB>&iconimage=<base64>
+		// reset=true clears the notification store before injecting (clean slate for shared-session retries).
+		const string TestNotificationPrefix = "trvis://_test/notification";
+		if (uri.StartsWith(TestNotificationPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestInjectNotification(uri);
+			return true;
+		}
 #endif
 
 		AppLinkInfo appLinkInfo;
@@ -749,6 +761,85 @@ public partial class AppViewModel
 		locationService.SetLonLatLocationService();
 		locationService.SetGpsLocation(lon, lat, acc, useAverageDistance: false);
 		logger.Info("Test set GPS location: dispatched (lon={0}, lat={1}, acc={2})", lon, lat, acc);
+	}
+
+	/// <summary>
+	/// Test-only: inject a <see cref="TRViS.NetworkSyncService.NotificationData"/> into
+	/// <see cref="NotificationCenter"/> via the same path a real server-pushed
+	/// Notification takes, so UI tests can exercise the popup + 受領 flow.
+	/// </summary>
+	private void HandleTestInjectNotification(string uri)
+	{
+		logger.Info("Test inject notification invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		var query = qIndex >= 0
+			? HttpUtility.ParseQueryString(uri.Substring(qIndex + 1))
+			: new System.Collections.Specialized.NameValueCollection();
+
+		int priority = 0;
+		int.TryParse(query["priority"], System.Globalization.CultureInfo.InvariantCulture, out priority);
+		bool acknowledged = string.Equals(query["acknowledged"], "true", StringComparison.OrdinalIgnoreCase);
+		// fakeack=false: 受領を実経路 (未接続なら送信失敗) で通す。受領失敗時にポップアップが
+		// 閉じない異常系の検証用。既定は true (受領を成功扱いにして正常系を検証)。
+		bool fakeAck = !string.Equals(query["fakeack"], "false", StringComparison.OrdinalIgnoreCase);
+
+		// reset=true: 注入前に保持中の通告・既読状態を破棄し、クリーンな状態にする。
+		// セッション共有下でリトライが「受信済み → 再表示されない」で失敗するのを防ぐ。
+		if (string.Equals(query["reset"], "true", StringComparison.OrdinalIgnoreCase))
+			NotificationCenter.ResetForTesting();
+
+		// 10 進整数 (0xRRGGBB) と "#RRGGBB" 形式の文字列の両方を受け付ける。
+		int? iconColor = null;
+		if (TRViS.NetworkSyncService.NotificationData.TryParseIconColor(query["iconcolor"], out int parsedIconColor))
+			iconColor = parsedIconColor;
+
+		var n = new TRViS.NetworkSyncService.NotificationData
+		{
+			Id = query["id"],
+			OrderNumber = query["ordernumber"],
+			Title = query["title"],
+			Body = query["body"],
+			Priority = priority,
+			Acknowledged = acknowledged,
+			Sender = query["sender"],
+			Receiver = query["receiver"],
+			IconText = query["icontext"],
+			IconColor_RGB = iconColor,
+			IconImageBase64 = query["iconimage"],
+		};
+		// この deeplink を仲介した ConnectServerDialog は、TryLoadAsync が true を返した
+		// 直後に自分自身を Navigation.PopModalAsync() で閉じる。PopModalAsync() は「最上段の
+		// モーダル」を pop するため、ここで同期注入すると通告ポップアップが先に push され、
+		// その直後にダイアログの自己クローズがそのポップアップを掴んで閉じてしまう
+		// (ポップアップは一瞬で消え、ダイアログだけが残る)。共有 Appium セッションでは
+		// これが後続テストまで巻き込んで壊す。仲介ダイアログが閉じ切ってから注入し、
+		// ポップアップをクリーンなモーダルスタックに載せる。
+		MainThread.BeginInvokeOnMainThread(async () =>
+		{
+			await WaitForRoutingModalDismissedAsync();
+			NotificationCenter.InjectNotificationForTesting(n, fakeAck);
+			logger.Info("Test inject notification: dispatched (id={0}, priority={1}, acknowledged={2}, fakeAck={3})", n.Id, n.Priority, n.Acknowledged, fakeAck);
+		});
+	}
+
+	/// <summary>
+	/// UI_TEST 専用: テスト deeplink を仲介した <see cref="RootPages.ConnectServerDialog"/> が
+	/// モーダルスタックから消えるまで (最大 5 秒) 待機する。固定 delay ではなく poll で、
+	/// 閉じた瞬間に進む。仲介ダイアログ以外の経路 (実 AppLink など) では即座に返る。
+	/// </summary>
+	private static async Task WaitForRoutingModalDismissedAsync()
+	{
+		DateTime deadline = DateTime.UtcNow.AddSeconds(5);
+		while (DateTime.UtcNow < deadline)
+		{
+			var modalStack = Shell.Current?.Navigation?.ModalStack;
+			bool dialogPresent = modalStack is not null
+				&& modalStack.Any(static p => p is RootPages.ConnectServerDialog);
+			if (!dialogPresent)
+				return;
+			await Task.Delay(50);
+		}
 	}
 #endif
 

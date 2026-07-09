@@ -2281,18 +2281,220 @@ public class WebSocketIntegrationTests
 				title: "通告タイトル",
 				body: "本文です",
 				priority: 1,
-				issuedAt: "2026-05-08T12:34:56+09:00"
+				issuedAt: "2026-05-08T12:34:56+09:00",
+				orderNumber: "ORD-001",
+				receiver: "乗務員A",
+				sender: "指令所",
+				iconText: "指",
+				iconColor_RGB: 0xC62828
 			);
 			var n = await task;
 
 			Assert.Multiple(() =>
 			{
 				Assert.That(n.Id, Is.EqualTo("n-1"));
+				Assert.That(n.OrderNumber, Is.EqualTo("ORD-001"));
 				Assert.That(n.Title, Is.EqualTo("通告タイトル"));
 				Assert.That(n.Body, Is.EqualTo("本文です"));
 				Assert.That(n.Priority, Is.EqualTo(1));
 				Assert.That(n.IssuedAt, Is.Not.Null);
+				Assert.That(n.IssuedAtIsUnspecifiedTimeZone, Is.False, "オフセット付き ISO 8601 は TZ 指定ありと解釈する");
+				Assert.That(n.Receiver, Is.EqualTo("乗務員A"));
+				Assert.That(n.Sender, Is.EqualTo("指令所"));
+				Assert.That(n.IconText, Is.EqualTo("指"));
+				Assert.That(n.IconColor_RGB, Is.EqualTo(0xC62828));
+				Assert.That(n.Acknowledged, Is.False, "Acknowledged 未指定は false");
 			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_IssuedAtWithoutOffset_ClientMarksUnspecifiedTimeZone()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-no-tz",
+				title: "TZ無し通告",
+				issuedAt: "2026-05-08T12:34:56"
+			);
+			var n = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(n.IssuedAt, Is.Not.Null);
+				Assert.That(n.IssuedAtIsUnspecifiedTimeZone, Is.True, "オフセット無し ISO 8601 は TZ 指定無しと解釈する");
+				Assert.That(n.IssuedAt!.Value.DateTime, Is.EqualTo(new DateTime(2026, 5, 8, 12, 34, 56)),
+					"TZ 指定無しの場合、値をそのまま (変換せず) 保持する");
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_IconColorAsHexString_ClientParsesToRgbInt()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-hex-color",
+				title: "16進アイコン色通告",
+				iconText: "D",
+				iconColorHex: "#C62828"
+			);
+			var n = await task;
+
+			Assert.That(n.IconColor_RGB, Is.EqualTo(0xC62828),
+				"\"#RRGGBB\" 形式の文字列も 0xRRGGBB の整数として解釈する");
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_IssuedAtDateOnly_ClientMarksUnspecifiedTimeZone()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-date-only",
+				title: "日付のみ通告",
+				issuedAt: "2026-05-08"
+			);
+			var n = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(n.IssuedAt, Is.Not.Null);
+				Assert.That(n.IssuedAtIsUnspecifiedTimeZone, Is.True,
+					"'T' を含まない日付のみの文字列は ISO 8601 の日時形式ではないため TZ 指定無しと解釈する (日付部分の '-' をオフセットと誤認しない)");
+				Assert.That(n.IssuedAt!.Value.DateTime, Is.EqualTo(new DateTime(2026, 5, 8, 0, 0, 0)));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_IssuedAtSpaceSeparated_ClientMarksUnspecifiedTimeZone()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-space-separated",
+				title: "空白区切り通告",
+				issuedAt: "2026-05-08 12:34:56"
+			);
+			var n = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(n.IssuedAt, Is.Not.Null);
+				Assert.That(n.IssuedAtIsUnspecifiedTimeZone, Is.True,
+					"'T' を含まない空白区切りの文字列は ISO 8601 の日時形式ではないため TZ 指定無しと解釈する");
+				Assert.That(n.IssuedAt!.Value.DateTime, Is.EqualTo(new DateTime(2026, 5, 8, 12, 34, 56)));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_ServerMarkedAcknowledged_ClientParsesFlag()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-ack",
+				title: "受領済み通告",
+				body: "本文",
+				priority: 0,
+				acknowledged: true
+			);
+			var n = await task;
+
+			Assert.That(n.Acknowledged, Is.True, "サーバーが Acknowledged=true で配信したら受領済みとして解釈する");
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task AcknowledgeNotification_ClientSendsAck_ServerReceivesId()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+			await _control.ClearReceivedRequestsAsync();
+
+			await service.AcknowledgeNotificationAsync("n-1");
+
+			await ReferenceServerClient.WaitForConditionAsync(
+				async () => (await _control.GetReceivedRequestsAsync())
+					.Any(r => r.MessageType == "AcknowledgeNotification"),
+				timeoutMs: 3000
+			);
+
+			var requests = await _control.GetReceivedRequestsAsync();
+			var ack = requests.FirstOrDefault(r => r.MessageType == "AcknowledgeNotification");
+			Assert.That(ack, Is.Not.Null, "サーバーが AcknowledgeNotification を受信しているはず");
+			Assert.That(ack!.NotificationId, Is.EqualTo("n-1"), "受領した通告の Id が届いているはず");
 		}
 		finally
 		{

@@ -238,20 +238,42 @@ A notification (arbitrary announcement). Delivered as a received event
 {
   "MessageType": "Notification",
   "Id": "n-001",                          // string | null
+  "OrderNumber": "Order No. 3",           // string | null (dispatch/order number)
   "Title": "Service suspended",           // string | null
-  "Body": "Due to strong winds...",       // string | null
+  "Body": "Due to strong winds...",       // string | null (BBCode allowed)
   "Priority": 1,                          // integer (0=normal,1=important, server-defined)
-  "IssuedAt": "2024-03-01T09:00:00+09:00" // string (ISO 8601) | null
+  "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601, TZ offset optional) | null
+  "Receiver": "Crew of Train XX",         // string | null (recipient)
+  "Sender": "Dispatch Center",            // string | null (sender/dispatcher)
+  "IconText": "D",                        // string | null (icon glyph; used only if IconImageBase64 is unset)
+  "IconColor_RGB": "#C62828",              // integer (0xRRGGBB) | string ("#RRGGBB") | omitted (icon background color; has a default)
+  "IconImageBase64": null,                // string | null (icon image; takes priority over IconText when set)
+  "Acknowledged": false                   // boolean (optional). true if already acknowledged
 }
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `Id` | string | Notification identifier. |
+| `Id` | string | Notification identifier. Serves as the key for acknowledgement ([`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification)). |
+| `OrderNumber` | string | Dispatch/order number. Display only (an operational management number owned by the server/dispatcher). |
 | `Title` | string | Heading. |
-| `Body` | string | Body text. |
+| `Body` | string | Body text. **BBCode** (`[b]…[/b]`, etc.) may be used. Rendering is up to the client implementation. |
 | `Priority` | integer | Importance. Accepted only as a JSON number readable as a 32-bit integer, default `0`. Meaning is server-defined. |
-| `IssuedAt` | string | Issue time. **ISO 8601** (round-trippable form, e.g. `2024-03-01T09:00:00+09:00`). Unset if unparseable. |
+| `IssuedAt` | string | Issue time. **ISO 8601** (round-trippable form). Whether a TZ offset (`Z` or `+HH:mm`/`-HH:mm`) is present changes interpretation (see below). Unset if unparseable. |
+| `Receiver` | string | Recipient. Display only. |
+| `Sender` | string | Sender/dispatcher. Display only. |
+| `IconText` | string | A short (1-2 character) glyph shown as the icon. Ignored when `IconImageBase64` is set. |
+| `IconColor_RGB` | integer \| string | Background color for `IconText`. Accepted either as a **JSON number** (`0xRRGGBB` in decimal, readable as a 32-bit integer) or as a **`"#RRGGBB"` string** (leading `#` required, case-insensitive). Unset (default color) if neither form parses. A client default is used when omitted. |
+| `IconImageBase64` | string | Base64-encoded icon image binary (may include a data URI prefix such as `data:image/png;base64,...`). Takes priority over `IconText`/`IconColor_RGB` when set. |
+| `Acknowledged` | boolean | Optional. Indicates whether the server considers this client to have already acknowledged this notification. Treated as acknowledged only on JSON `true`; otherwise (`false`/missing) unacknowledged. Used when re-delivering notifications (e.g. after reconnect) so already-acknowledged ones are marked read (the client does not re-popup a read notification). |
+
+**How TZ presence in `IssuedAt` affects display:**
+- With a TZ offset (e.g. `2024-03-01T09:00:00+09:00` or `...Z`): the client converts and displays the time **accounting for the device's current TZ**.
+- Without a TZ offset (e.g. `2024-03-01T09:00:00`): the client displays the time **as-is**, with no TZ conversion.
+- A string without the `T` date-time separator (e.g. a date-only `2024-03-01`, or a space-separated `2024-03-01 09:00:00`) is **not ISO 8601 datetime form**, and is always treated as having no TZ (displayed as-is).
+
+For acknowledgement (client → server), see
+[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification).
 
 ## 9. TimeFormat
 
@@ -402,7 +424,7 @@ Common pitfalls for external implementers:
 - Each ID in `SelectTrain` **must be JSON string type**.
 - `OperationCommand.Action` is **required** and only known values are
   valid (case-insensitive).
-- `Notification.IssuedAt` is **ISO 8601** only.
+- `Notification.IssuedAt` is **ISO 8601** only. Whether a TZ offset is present changes whether the display converts it (see [§8](#8-notification)).
 - `ServerInfo.Features` is a **JSON array**; only string elements are
   kept and non-string elements are ignored (absent/`null` = no extended
   features).
