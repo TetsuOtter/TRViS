@@ -27,6 +27,18 @@ class ThirdPartyLicensesPageObject {
         return el.exists
     }
 
+    func waitForLoadedContent(timeout: TimeInterval = 30) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let firstLicense = app.staticTexts["material-design-icons"]
+            if firstLicense.exists {
+                return true
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return false
+    }
+
     // MARK: — Modal close
 
     /// Taps the modal close (X) icon and waits until the license list is gone,

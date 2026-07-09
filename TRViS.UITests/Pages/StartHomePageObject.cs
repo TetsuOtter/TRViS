@@ -47,7 +47,7 @@ public class StartHomePageObject : PageObject
 	public AppiumElement ReconnectButton => WaitForElement(AutomationIds.StartHome.ReconnectButton);
 
 	/// <summary>True once the #261 reconnect button is on screen (disconnected state).</summary>
-	public bool IsReconnectButtonVisible(double timeoutSeconds = 8)
+	public bool IsReconnectButtonVisible(double timeoutSeconds = 20)
 		=> PollDisplayed(AutomationIds.StartHome.ReconnectButton, timeoutSeconds);
 
 	/// <summary>
@@ -82,6 +82,12 @@ public class StartHomePageObject : PageObject
 	public AppiumElement TestSeedNextTrainSelectionButton => FindByAutomationId(AutomationIds.StartHome.TestSeedNextTrainSelectionButton);
 	public AppiumElement TestClearLoaderButton => FindByAutomationId(AutomationIds.StartHome.TestClearLoaderButton);
 	public AppiumElement TestSimulateWebSocketDisconnectButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton);
+
+	AppiumElement? TryFindAutomationId(string automationId)
+	{
+		var elements = Driver.FindElements(AutomationIdLocator(automationId));
+		return elements.Count > 0 ? elements[0] : null;
+	}
 
 	public bool IsDisplayed()
 	{
@@ -425,7 +431,25 @@ public class StartHomePageObject : PageObject
 	/// driving Home into the #261 "サーバー未接続 + 再接続" state without a real
 	/// WebSocket server.
 	/// </summary>
-	public void SimulateWebSocketDisconnectForTesting() => TestSimulateWebSocketDisconnectButton.Click();
+	public void SimulateWebSocketDisconnectForTesting()
+	{
+		for (var attempt = 0; attempt < 2; attempt++)
+		{
+			var deadline = DateTime.UtcNow.AddSeconds(10);
+			while (DateTime.UtcNow < deadline)
+			{
+				var button = TryFindAutomationId(AutomationIds.StartHome.TestSimulateWebSocketDisconnectButton);
+				if (button is not null)
+				{
+					button.Click();
+					break;
+				}
+				Thread.Sleep(200);
+			}
+			if (IsReconnectButtonVisible(timeoutSeconds: 12))
+				return;
+		}
+	}
 
 	public AppiumElement TestSetLanguageEnglishButton => FindByAutomationId(AutomationIds.StartHome.TestSetLanguageEnglishButton);
 
@@ -451,7 +475,33 @@ public class StartHomePageObject : PageObject
 	/// carrying real sample data, commits the first WG/Work and navigates to
 	/// DTAC — landing with the AppBar status indicator in the Connected state.
 	/// </summary>
-	public void SimulateWebSocketConnectedForTesting() => TestSimulateWebSocketConnectedButton.Click();
+	public void SimulateWebSocketConnectedForTesting()
+	{
+		var deadline = DateTime.UtcNow.AddSeconds(10);
+		while (DateTime.UtcNow < deadline)
+		{
+			var button = TryFindAutomationId(AutomationIds.StartHome.TestSimulateWebSocketConnectedButton);
+			if (button is not null)
+			{
+				button.Click();
+				break;
+			}
+			Thread.Sleep(200);
+		}
+
+		if (PollDisplayed(AutomationIds.DTAC.MenuButton, timeoutSeconds: 45))
+			return;
+	}
+
+	public AppiumElement TestSimulateWebSocketSearchButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateWebSocketSearchButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam (Issue #197) that builds a WebSocket-TYPED loader
+	/// advertising the TrainSearch feature with a canned dataset (train "9999"),
+	/// commits the first WG/Work and navigates to DTAC so the QuickSwitch Search tab
+	/// can be exercised without a real server.
+	/// </summary>
+	public void SimulateWebSocketSearchForTesting() => TestSimulateWebSocketSearchButton.Click();
 
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the

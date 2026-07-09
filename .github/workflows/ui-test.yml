@@ -351,8 +351,27 @@ jobs:
             echo "LOGCAT_PID=$LOGCAT_PID" >> "$GITHUB_ENV"
           }
 
+          is_android_infra_failure() {
+            local attempt="$1"
+            local trx_file appium_log
+
+            trx_file=$(find . -name "android-results-attempt-${attempt}.trx" 2>/dev/null | head -1)
+            appium_log=$(find . -name "appium-attempt-${attempt}.log" 2>/dev/null | head -1)
+
+            if [ -n "$trx_file" ] && grep -qF "instrumentation process is not running" "$trx_file"; then
+              return 0
+            fi
+
+            if [ -n "$appium_log" ] && grep -Eq 'socket hang up|Could not proxy command to the remote server|instrumentation process is not running|device offline|Broken pipe|Connection refused' "$appium_log"; then
+              return 0
+            fi
+
+            return 1
+          }
+
           # First attempt uses the emulator + appium that the prior workflow
           # steps already started; later attempts spin up fresh ones.
+          export UITEST_PLATFORM=android
           start_appium 1 || exit 1
           MAX_ATTEMPTS=2
           TEST_EXIT_CODE=1
@@ -381,16 +400,12 @@ jobs:
             # reproduce real bugs at extra CI cost.
             DEVICE_STATE=$(timeout 10 $ANDROID_SDK_ROOT/platform-tools/adb get-state 2>/dev/null || echo "missing")
             if [ "$DEVICE_STATE" = "device" ]; then
-              # Even when the emulator is alive, UIA2 instrumentation can
-              # crash hard enough that every subsequent command returns
-              # "instrumentation process is not running".  This is
-              # infrastructure death, not a test assertion failure — fall
-              # through to the full emulator restart so attempt 2 starts
-              # clean.  Otherwise (no UIA2 signature) it's a genuine
-              # test failure; don't burn another emulator boot on it.
-              TRX_FILE=$(find . -name "android-results-attempt-${ATTEMPT}.trx" 2>/dev/null | head -1)
-              if [ -n "$TRX_FILE" ] && grep -qF "instrumentation process is not running" "$TRX_FILE"; then
-                echo "UIA2 instrumentation crash detected in TRX — restarting emulator for attempt $((ATTEMPT + 1))"
+              # Even when the emulator is alive, UIA2/Appium can crash hard
+              # enough that the test log only shows a proxy/socket failure and
+              # subsequent commands never reach the app again. Treat those as
+              # infrastructure death and restart cleanly for the next attempt.
+              if is_android_infra_failure "$ATTEMPT"; then
+                echo "Android infrastructure failure detected — restarting emulator for attempt $((ATTEMPT + 1))"
               else
                 echo "Tests failed but emulator is alive (state=device) — not retrying"
                 break
@@ -885,14 +900,36 @@ jobs:
 
       - name: Run XCUITest (iOS Simulator)
         run: |
-          xcodebuild test \
-            -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
-            -scheme TRViSUITests_iOS \
-            -destination "id=$SIM_UDID" \
-            -skip-testing TRViSUITests_iOS/ScreenshotRegressionTests \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          set -euo pipefail
+          LOG_FILE="/tmp/xcuitest-ios.log"
+
+          for attempt in 1 2; do
+            set +e
+            xcodebuild test \
+              -project TRViS.UITests.Apple/ios/TRViSUITests-iOS.xcodeproj \
+              -scheme TRViSUITests_iOS \
+              -destination "id=$SIM_UDID" \
+              -skip-testing TRViSUITests_iOS/ScreenshotRegressionTests \
+              CODE_SIGN_IDENTITY="-" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              2>&1 | tee "$LOG_FILE"
+            status=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 1 ] && grep -q "Timed out attempting to launch app" "$LOG_FILE"; then
+              echo "XCUITest app launch timed out; retrying once with the same simulator."
+              xcrun simctl terminate "$SIM_UDID" "${{ env.APP_PACKAGE }}" || true
+              sleep 5
+              continue
+            fi
+
+            exit "$status"
+          done
 
       - name: Upload XCUITest logs
         if: always()

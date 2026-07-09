@@ -168,6 +168,12 @@ public class DiagramView : Grid
 
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
+		if (!MainThread.IsMainThread)
+		{
+			MainThread.BeginInvokeOnMainThread(() => OnAppViewModelPropertyChanged(sender, e));
+			return;
+		}
+
 		try
 		{
 			if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork) ||

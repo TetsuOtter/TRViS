@@ -112,6 +112,12 @@ public class SimpleView : Grid
 
 	void OnAppViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
+		if (!MainThread.IsMainThread)
+		{
+			MainThread.BeginInvokeOnMainThread(() => OnAppViewModelPropertyChanged(sender, e));
+			return;
+		}
+
 		if (e.PropertyName == nameof(InstanceManager.AppViewModel.SelectedWork) ||
 				e.PropertyName == nameof(InstanceManager.AppViewModel.OrderedTrainDataList))
 		{
