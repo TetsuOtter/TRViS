@@ -37,6 +37,10 @@ public sealed class NotificationStore
 		public string? IconText => Data.IconText;
 		public int? IconColor_RGB => Data.IconColor_RGB;
 		public string? IconImageBase64 => Data.IconImageBase64;
+		public bool CompactDisplay => Data.CompactDisplay;
+		public string? SectionStartStation => Data.SectionStartStation;
+		public string? SectionEndStation => Data.SectionEndStation;
+		public int StationsBefore => Data.StationsBefore;
 
 		/// <summary>既読 (受領済み) か。</summary>
 		public bool IsRead { get; internal set; }
@@ -48,6 +52,9 @@ public sealed class NotificationStore
 
 		/// <summary>強調表示対象か (Priority 1 以上を重要とみなす)。</summary>
 		public bool IsImportant => Data.Priority >= 1;
+
+		/// <summary>再表示対象 (区間/駅指定) を持つか。区間指定には最低でも開始駅が必要。</summary>
+		public bool HasRedisplayTarget => !string.IsNullOrEmpty(Data.SectionStartStation);
 
 		internal Entry(NotificationData data, bool isRead)
 		{
@@ -135,6 +142,24 @@ public sealed class NotificationStore
 		lock (_lock)
 		{
 			return _byId.TryGetValue(id, out var e) && e.IsRead;
+		}
+	}
+
+	/// <summary>
+	/// 受領済みかつ区間/駅指定を持つ通告 (再表示候補) の一覧をスナップショットで返す。
+	/// 位置情報に応じた小型再表示の判定に用いる。Id を持つ通告のみが対象。
+	/// </summary>
+	public IReadOnlyList<Entry> GetRedisplayCandidates()
+	{
+		lock (_lock)
+		{
+			List<Entry> result = [];
+			foreach (var e in _byId.Values)
+			{
+				if (e.IsRead && e.HasRedisplayTarget)
+					result.Add(e);
+			}
+			return result;
 		}
 	}
 

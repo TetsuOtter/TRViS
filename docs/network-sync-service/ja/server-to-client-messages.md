@@ -243,7 +243,11 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
   "IconText": "指",                       // string | null（アイコン文字。IconImageBase64 未指定時のみ使用）
   "IconColor_RGB": "#C62828",              // integer (0xRRGGBB) | string ("#RRGGBB") | 省略（アイコン背景色。既定色あり）
   "IconImageBase64": null,                // string | null（アイコン画像。指定時は IconText より優先）
-  "Acknowledged": false                   // boolean（省略可）。受領済みなら true
+  "Acknowledged": false,                  // boolean（省略可）。受領済みなら true
+  "CompactDisplay": false,                // boolean（省略可）。true で初回から小型バナー表示
+  "SectionStartStation": "石川",          // string | null（区間開始側。駅名 or 駅ID）
+  "SectionEndStation": "川部",            // string | null（区間終了側。駅名 or 駅ID。省略時は単駅）
+  "StationsBefore": 1                     // integer（省略可、既定 1）。区間の何駅手前から再表示するか
 }
 ```
 
@@ -261,6 +265,14 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 | `IconColor_RGB` | integer \| string | `IconText` の背景色。**JSON 数値**（`0xRRGGBB` の 10 進表記、32bit 整数として読めるもの）または **`"#RRGGBB"` 形式の文字列**（先頭 `#` 必須、大文字小文字不問）のどちらでも指定できる。いずれの形式でも解釈できない場合は未設定（既定色）。未指定時はクライアント既定色。 |
 | `IconImageBase64` | string | アイコン画像の Base64 エンコードされたバイナリ（`data:image/png;base64,...` のような data URI プレフィックスを含んでいてもよい）。指定されている場合、`IconText`/`IconColor_RGB` より優先して表示する。 |
 | `Acknowledged` | boolean | 任意。当該クライアントが既にこの通告を受領済みかをサーバーが示す。JSON の `true` のときのみ受領済み扱いで、それ以外（`false`/欠落）は未受領。再接続後などに通告を再配信する際、受領済みのものを既読として渡すために使う（クライアントは既読の通告を再度ポップアップ表示しない）。 |
+| `CompactDisplay` | boolean | 任意。JSON の `true` のときのみ、初回表示を画面上部の小型バナーで行う（それ以外/欠落は大型の中央ポップアップ）。小型でも受領ボタンは表示され、受領必須（`Id` あり）の通告は受領するまで消えない。 |
+| `SectionStartStation` | string | 任意。この通告が対象とする区間・駅の開始側を**駅名または駅 ID**で指定する（照合は駅 ID 一致 → 駅名一致の順、大文字小文字を区別）。受領後に非表示となった通告は、この区間の `StationsBefore` 駅手前に到達した時点で受領済み状態の小型バナーとして自動再表示され、区間を抜けると自動的に非表示になる。現在列車の経路に該当駅が無い場合は再表示しない。 |
+| `SectionEndStation` | string | 任意。区間の終了側を**駅名または駅 ID**で指定する。未指定のとき `SectionStartStation` と同一（単駅）扱い。区間の向き（開始/終了の前後）は問わない（経路上のインデックスで正規化する）。 |
+| `StationsBefore` | integer | 任意、既定 `1`。区間開始の何駅手前から再表示を開始するか。JSON 数値かつ 32bit 整数のときのみ採用。0 以下は 0 として扱い、区間開始駅から表示する。 |
+
+**区間・駅連動の再表示について:**
+- `SectionStartStation`（＋任意で `SectionEndStation`）を指定した通告は、受領後にいったん非表示になるが、指定区間（または単駅）の `StationsBefore` 駅手前に到達すると受領済み状態の小型バナーとして再表示され、区間を抜けると自動的に非表示になる。
+- 駅の指定は**駅名でも駅 ID でも**よい。駅 ID は SQLite 形式では正規化された駅 ID、JSON 形式では各行の `Id`（現在列車の経路内で解決するため行単位の Id で十分）。いずれの形式でも駅名での照合にフォールバックできる。
 
 **`IssuedAt` の TZ 有無による表示の違い:**
 - TZ オフセットあり（例 `2024-03-01T09:00:00+09:00` や `...Z`）: クライアントは**端末の現在の TZ を考慮**して変換した時刻を表示する。
@@ -408,8 +420,8 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 - `SyncedData.CanStart` は **省略時 `true`**。意味は「サービス利用可否／
   自動運行開始の許可」で **WS では `true` で自動運行開始**。意図せず運行
   させたくない場合は明示的に `false`（[common-data-model §4](common-data-model.md#4-canstart-の意味)）。
-- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority` は
-  **JSON number 型必須**（文字列は無効）。
+- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority`/`Notification.StationsBefore` は
+  **JSON number 型必須**（文字列は無効）。`StationsBefore` は欠落時に既定 `1`。
 - `SelectTrain` の各 ID は **JSON string 型必須**。
 - `OperationCommand.Action` は**必須**かつ既知の値のみ有効（大小無視）。
 - `Notification.IssuedAt` は **ISO 8601** のみ。TZ オフセットの有無で表示の変換有無が変わる（[§8](#8-notification) 参照）。

@@ -603,7 +603,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 
 	/// <summary>
 	/// Notification: { Id?, OrderNumber?, Title?, Body?, Priority?, IssuedAt? (ISO8601),
-	/// Receiver?, Sender?, IconText?, IconColor_RGB?, IconImageBase64?, Acknowledged? }
+	/// Receiver?, Sender?, IconText?, IconColor_RGB?, IconImageBase64?, Acknowledged?,
+	/// CompactDisplay?, SectionStartStation?, SectionEndStation?, StationsBefore? }
 	/// </summary>
 	private async Task<HttpResponse> BroadcastNotificationAsync(HttpRequest request)
 	{
@@ -616,6 +617,11 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			if (root.TryGetProperty("Priority", out var p) && p.ValueKind == JsonValueKind.Number
 				&& p.TryGetInt32(out int prio))
 				priority = prio;
+			// StationsBefore はモデル既定値 (1) に合わせる。
+			int stationsBefore = 1;
+			if (root.TryGetProperty("StationsBefore", out var sb) && sb.ValueKind == JsonValueKind.Number
+				&& sb.TryGetInt32(out int stationsBeforeValue))
+				stationsBefore = stationsBeforeValue;
 			// クライアント側は数値 (0xRRGGBB) と "#RRGGBB" 文字列の両方を受け付けるため、
 			// このリファレンスサーバーは受け取った型 (数値 or 文字列) をそのまま転送する。
 			object? iconColor = null;
@@ -629,6 +635,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			string? issuedAt = TryGetString(root, "IssuedAt");
 			bool acknowledged = root.TryGetProperty("Acknowledged", out var ack)
 				&& ack.ValueKind == JsonValueKind.True;
+			bool compactDisplay = root.TryGetProperty("CompactDisplay", out var cd)
+				&& cd.ValueKind == JsonValueKind.True;
 			var msg = JsonSerializer.Serialize(new
 			{
 				MessageType = "Notification",
@@ -644,6 +652,10 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 				IconColor_RGB = iconColor,
 				IconImageBase64 = TryGetString(root, "IconImageBase64"),
 				Acknowledged = acknowledged,
+				CompactDisplay = compactDisplay,
+				SectionStartStation = TryGetString(root, "SectionStartStation"),
+				SectionEndStation = TryGetString(root, "SectionEndStation"),
+				StationsBefore = stationsBefore,
 			});
 			await BroadcastTextAsync(msg);
 			return OkJson("{\"ok\":true}");

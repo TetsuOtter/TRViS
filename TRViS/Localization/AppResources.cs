@@ -103,6 +103,7 @@ public static class AppResources
 	public static string Notification_Acknowledge => Get(nameof(Notification_Acknowledge));
 	public static string Notification_Close => Get(nameof(Notification_Close));
 	public static string Notification_OrderNumberFormat => Get(nameof(Notification_OrderNumberFormat));
+	public static string Notification_IssuedAtFormat => Get(nameof(Notification_IssuedAtFormat));
 	public static string Notification_SenderFormat => Get(nameof(Notification_SenderFormat));
 	public static string Notification_ReceiverFormat => Get(nameof(Notification_ReceiverFormat));
 
