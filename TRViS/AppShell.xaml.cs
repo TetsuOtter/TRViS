@@ -131,7 +131,6 @@ public partial class AppShell : Shell
 		};
 
 #if IOS
-		_iOSInstance = this;
 		UpdateSafeAreaMargin();
 #endif
 
@@ -222,12 +221,27 @@ public partial class AppShell : Shell
 		}
 	}
 
+	/// <summary>
+	/// Hooked up to <c>Microsoft.Maui.Controls.Window.SizeChanged</c> from
+	/// App.xaml.cs. On iOS, MAUI's WindowHandler already KVO-observes
+	/// UIWindowScene.EffectiveGeometry (in addition to UIWindow.Frame) and raises
+	/// Window.SizeChanged whenever either changes -- this fires reliably for
+	/// Stage Manager tile/float transitions and fullscreen toggles on iPadOS 26,
+	/// unlike windowScene:didUpdateCoordinateSpace:, which requires MAUI's own
+	/// UIWindowSceneDelegate to be active and never gets called because this app
+	/// has no UIApplicationSceneManifest in Info.plist. Re-evaluating here keeps
+	/// the window-control clearance current instead of only being set once at
+	/// launch.
+	/// </summary>
+	public void NotifyWindowGeometryMayHaveChanged()
+	{
 #if IOS
-	// Shell is created exactly once per app run (App.xaml.cs CreateWindow), so a
-	// static back-reference is safe and lets the MauiProgram lifecycle hook below
-	// reach this instance without threading a reference through DI.
-	static AppShell? _iOSInstance;
+		logger.Info("NotifyWindowGeometryMayHaveChanged (Window.SizeChanged)");
+		UpdateSafeAreaMargin();
+#endif
+	}
 
+#if IOS
 	UIKit.UIWindow? UIWindow = null;
 
 	[SupportedOSPlatform("ios13.0")]
@@ -259,16 +273,6 @@ public partial class AppShell : Shell
 		UpdateSafeAreaMargin();
 		base.OnSizeAllocated(width, height);
 	}
-
-	/// <summary>
-	/// Called from the MauiProgram iOS lifecycle hook (WindowSceneDidUpdateCoordinateSpace)
-	/// whenever the window scene reports a geometry change. Stage Manager tiling/floating,
-	/// entering/exiting fullscreen, and drag-resizing all fire this even when they don't
-	/// happen to coincide with a Shell OnSizeAllocated pass, so the iPadOS 26 window-control
-	/// clearance below gets re-evaluated continuously instead of only once at launch.
-	/// </summary>
-	internal static void NotifyPlatformWindowGeometryChanged()
-		=> _iOSInstance?.UpdateSafeAreaMargin();
 
 	private void UpdateSafeAreaMargin()
 	{
@@ -325,8 +329,11 @@ public partial class AppShell : Shell
 				}
 				// TEMP diagnostic for #313 dynamic-update follow-up: remove once
 				// confirmed on-device that this hook fires and these values are sane
-				// across tile/float/fullscreen transitions.
-				logger.Debug(
+				// across tile/float/fullscreen transitions. Info, not Debug/Trace,
+				// because release builds' file logger filters below Info
+				// (LoggerService.cs) and this needs to survive in a release-build
+				// device log.
+				logger.Info(
 					"iOS26 window-control probe: windowSize={0}x{1} screenSize={2}x{3} isTiledOrFloating={4} cornerAwareLeft={5} cornerAwareTop={6}",
 					windowSize.Width, windowSize.Height, screenSize.Width, screenSize.Height, isTiledOrFloating, cornerAwareLeft, cornerAwareTop
 				);
