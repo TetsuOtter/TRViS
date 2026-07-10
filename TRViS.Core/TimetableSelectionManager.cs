@@ -233,7 +233,11 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 	/// そのまま選択を維持する (リアルタイム更新時の挙動)。
 	/// false の場合、常に先頭の列車を選択する。
 	/// </param>
-	private void RefreshTrainDataForWork(Work? work, bool preserveSelection)
+	/// <param name="fallbackToFirstOnMissing">
+	/// 選択していた Id が新リストに存在しないときに先頭の列車へフォールバックするか。
+	/// false の場合は未選択 (null) のままにする (#311: WS再接続時の strict-match 用)。
+	/// </param>
+	private void RefreshTrainDataForWork(Work? work, bool preserveSelection, bool fallbackToFirstOnMissing = true)
 	{
 		if (work is null || _loader is null)
 		{
@@ -258,17 +262,61 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 					SelectedTrainData = matched;
 					return;
 				}
+
+				// strict-match (#311) で新リストがまだ空なら、"消えた" のか
+				// "非同期ローダーの新データがまだ届いていない" のか区別できないため、
+				// 判定を次の Refresh に持ち越す (親の WorkGroup/Work 階層と同じ扱い)。
+				if (!fallbackToFirstOnMissing && orderedList.Count == 0)
+				{
+					_strictIdMatchOnNextRefresh = true;
+					return;
+				}
 			}
 		}
 
-		SelectedTrainData = orderedList.Count > 0 ? orderedList[0] : null;
+		SelectedTrainData = fallbackToFirstOnMissing && orderedList.Count > 0 ? orderedList[0] : null;
 	}
 
 	// ---------- Refresh / Reset ----------
 
+	// #311: WS再接続で Loader インスタンスが差し替わった直後、次の 1 回の
+	// Refresh() だけ strict-match (フォールバックしない) にするための一時フラグ。
+	private bool _strictIdMatchOnNextRefresh;
+
+	/// <summary>
+	/// WS再接続などで Loader インスタンスが新しくなった際に呼ぶ。通常の
+	/// <see cref="Loader"/> セッター (<see cref="OnLoaderChanged"/>) と異なり、
+	/// 現在の選択を直ちにクリアしない。WorkGroupId / WorkId / TrainId が
+	/// 再配信された新データにも全て存在する場合に限り選択を維持し (#311)、
+	/// 途中の階層で Id が見つからなければそこから下を明示的に未選択にする
+	/// (先頭へのフォールバックはしない)。
+	/// 新データ自体は非同期に届くため、実際の照合は次の <see cref="Refresh"/>
+	/// 呼び出し (再配信された TimetableUpdated 経由) で行う。
+	/// </summary>
+	public void ReconnectLoader(ILoader? newLoader)
+	{
+		if (ReferenceEquals(_loader, newLoader))
+			return;
+
+		_loader = newLoader;
+		_strictIdMatchOnNextRefresh = true;
+	}
+
+	/// <summary>
+	/// true の間は、<see cref="ReconnectLoader"/> 後の strict-match 判定がまだ
+	/// 確定していない (新データがまだ届いておらず、Refresh() が「持ち越し」で
+	/// 早期 return した状態)。呼び出し側 (#311: 位置情報 ON/OFF の復元判定) は、
+	/// このフラグが false に落ちる ( = 実データで判定が確定した) まで、選択 Id
+	/// の一致を「本物の一致」として扱ってはならない — true の間の一致は単に
+	/// 古い選択オブジェクトがまだ残っているだけで、実データ未着の可能性がある。
+	/// </summary>
+	public bool IsAwaitingReconnectData => _strictIdMatchOnNextRefresh;
+
 	/// <summary>
 	/// Re-reads lists from the current Loader, preserving valid current selections.
-	/// Falls back to the first item when the current selection is no longer present.
+	/// Falls back to the first item when the current selection is no longer present
+	/// (unless this call follows <see cref="ReconnectLoader"/>, in which case a
+	/// missing Id clears the selection instead of falling back — #311).
 	/// </summary>
 	/// <remarks>
 	/// リアルタイム編集対応: 各階層で現在の選択 Id がまだ存在すれば保持し、
@@ -279,6 +327,9 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 	{
 		if (_loader is null)
 			return;
+
+		bool strictIdMatch = _strictIdMatchOnNextRefresh;
+		_strictIdMatchOnNextRefresh = false;
 
 		var newWorkGroupList = _loader.GetWorkGroupList();
 		WorkGroupList = newWorkGroupList;
@@ -302,8 +353,19 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 		if (matchedWorkGroup is null)
 		{
-			// 既存選択が消えた → 先頭にフォールバック (cascade で配下も再構築される)
-			var fallback = newWorkGroupList.FirstOrDefault();
+			// strict-match (再接続直後) かつ新リストがまだ空の場合、"ID が消えた" のか
+			// "非同期ローダーの新データがまだ届いていない" のか区別できない。誤って
+			// 選択を消してしまわないよう、フラグを持ち越して次の Refresh を待つ
+			// (#311; 空でないのに Id が無ければ本当に消えたとみなし下のロジックへ進む)。
+			if (strictIdMatch && newWorkGroupList.Count == 0)
+			{
+				_strictIdMatchOnNextRefresh = true;
+				return;
+			}
+
+			// 既存選択が消えた → 通常は先頭にフォールバック (cascade で配下も再構築される)。
+			// strict-match (再接続直後) では先頭を選ばず未選択のままにする。
+			var fallback = strictIdMatch ? null : newWorkGroupList.FirstOrDefault();
 			SelectedWorkGroup = fallback;
 			// WorkGroup が空ならば、setter の早期 return で配下が初期化されないため明示的に空にする
 			if (fallback is null)
@@ -331,7 +393,14 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 
 		if (matchedWork is null)
 		{
-			var fallback = newWorkList.FirstOrDefault();
+			// WorkGroup 側と同じ理由: strict-match で新リストがまだ空なら判定を持ち越す。
+			if (strictIdMatch && newWorkList.Count == 0)
+			{
+				_strictIdMatchOnNextRefresh = true;
+				return;
+			}
+
+			var fallback = strictIdMatch ? null : newWorkList.FirstOrDefault();
 			SelectedWork = fallback;
 			// Work が空ならば、配下の Train も明示的に空にする
 			if (fallback is null)
@@ -347,7 +416,7 @@ public class TimetableSelectionManager : INotifyPropertyChanged
 		}
 
 		// Train リストは再構築しつつ、Id が一致すれば選択を保持する。
-		RefreshTrainDataForWork(matchedWork, preserveSelection: true);
+		RefreshTrainDataForWork(matchedWork, preserveSelection: true, fallbackToFirstOnMissing: !strictIdMatch);
 	}
 
 	// ---------- Helpers ----------
