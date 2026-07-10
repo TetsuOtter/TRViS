@@ -74,6 +74,8 @@ public partial class ViewHost : ContentPage
 		// ここで購読する。同一シングルトンを AppShell も参照している。
 		_appViewModel.NotificationCenter.BannerRequested += OnNotificationBannerRequested;
 		_appViewModel.NotificationCenter.BannerDismissed += OnNotificationBannerDismissed;
+		// 大型ポップアップ表示中は、小型バナーの受領ボタンの点滅を一時停止する。
+		_appViewModel.NotificationCenter.PopupVisibilityChanged += OnNotificationPopupVisibilityChanged;
 
 #if ANDROID
 		Unloaded += (_, _) =>
@@ -83,6 +85,7 @@ public partial class ViewHost : ContentPage
 			_appViewModel.OpenTimetableViewRequested -= OnOpenTimetableViewRequested;
 			_appViewModel.NotificationCenter.BannerRequested -= OnNotificationBannerRequested;
 			_appViewModel.NotificationCenter.BannerDismissed -= OnNotificationBannerDismissed;
+			_appViewModel.NotificationCenter.PopupVisibilityChanged -= OnNotificationPopupVisibilityChanged;
 			NotificationBanner.Tapped -= OnNotificationBannerTapped;
 			NotificationBanner.AcknowledgeClicked -= OnNotificationBannerAcknowledgeClicked;
 			if (Shell.Current is AppShell appShellForCleanup)
@@ -498,6 +501,15 @@ public partial class ViewHost : ContentPage
 		{
 			NotificationBanner.IsVisible = false;
 		}
+
+		// 購読が途切れていた間の PopupVisibilityChanged 取りこぼしにも備え、現在の状態を
+		// 都度取り直して点滅の一時停止/再開を復元する。
+		NotificationBanner.SetAcknowledgeBlinkPaused(_appViewModel.NotificationCenter.IsPopupVisible);
+	}
+
+	private void OnNotificationPopupVisibilityChanged(object? sender, bool isVisible)
+	{
+		MainThread.BeginInvokeOnMainThread(() => NotificationBanner.SetAcknowledgeBlinkPaused(isVisible));
 	}
 
 	private async void OnNotificationBannerTapped(object? sender, NotificationStore.Entry entry)

@@ -17,6 +17,20 @@ public partial class NotificationBannerView : ContentView
 
 	private NotificationStore.Entry? _entry;
 
+	// アイコンバッジの文字サイズ。1 文字なら 24pt (アイコン 56x56 に対して見栄えの良い比率)、
+	// 2 文字を表示する場合は 56 幅に収まるようやや縮小する。
+	private const double IconBadgeFontSizeSingleChar = 24;
+	private const double IconBadgeFontSizeTwoChars = 16;
+
+	// 受領ボタンの点滅 (緑⇔白背景/黒文字、500ms間隔) — 受領を促す。大型ポップアップ表示中は
+	// SetAcknowledgeBlinkPaused(true) で一時停止し、緑固定にする (ViewHost が
+	// NotificationCenterViewModel.PopupVisibilityChanged を購読して呼ぶ)。
+	private static readonly TimeSpan AcknowledgeBlinkInterval = TimeSpan.FromMilliseconds(500);
+	private IDispatcherTimer? _acknowledgeBlinkTimer;
+	private Brush? _acknowledgeGreenBackground;
+	private bool _acknowledgeBlinkGreenPhase = true;
+	private bool _acknowledgeBlinkPaused;
+
 	/// <summary>現在表示している通告の Id (Id 無し通告なら null)。</summary>
 	public string? CurrentId => _entry?.Id;
 
@@ -29,6 +43,19 @@ public partial class NotificationBannerView : ContentView
 	public NotificationBannerView()
 	{
 		InitializeComponent();
+		_acknowledgeGreenBackground = AcknowledgeButton.Background;
+		Unloaded += (_, _) => StopAcknowledgeBlink(forceGreen: false);
+	}
+
+	/// <summary>
+	/// 大型ポップアップ (拡大表示) が表示中かどうかを反映する。true の間は点滅を止めて緑固定に
+	/// する — ポップアップ側で既に受領を促しているため、背後のバナーが点滅し続ける必要はない。
+	/// false に戻ったとき (最小化/閉じた) は、受領ボタンが表示中であれば点滅を再開する。
+	/// </summary>
+	public void SetAcknowledgeBlinkPaused(bool paused)
+	{
+		_acknowledgeBlinkPaused = paused;
+		UpdateAcknowledgeBlinkState();
 	}
 
 	/// <summary>
@@ -51,6 +78,9 @@ public partial class NotificationBannerView : ContentView
 		else if (!string.IsNullOrEmpty(entry.IconText))
 		{
 			IconBadgeLabel.Text = entry.IconText;
+			IconBadgeLabel.FontSize = entry.IconText.Length >= 2
+				? IconBadgeFontSizeTwoChars
+				: IconBadgeFontSizeSingleChar;
 			if (entry.IconColor_RGB is int rgb)
 				IconBadge.BackgroundColor = Color.FromRgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
 			else
@@ -66,14 +96,77 @@ public partial class NotificationBannerView : ContentView
 			IconHost.IsVisible = false;
 		}
 
-		// タイトル (未設定ならページタイトル = "通告" にフォールバック)。本文は展開先の
-		// ポップアップでのみ表示するため、ここでは 1 行のプレーンテキストに留める。
-		SummaryLabel.Text = string.IsNullOrEmpty(entry.Title)
-			? TRViS.Localization.AppResources.Notification_Title
-			: entry.Title;
+		// 要約 (Summary)。未指定/空文字なら Title、Title も無ければページタイトル = "通告"
+		// にフォールバックする。本文は展開先のポップアップでのみ表示するため、ここでは
+		// プレーンテキストに留める。改行を含む場合のみ 2 行まで表示を許可し (それでも収まらない
+		// 分は TailTruncation で "…" 省略)、改行を含まない場合は従来通り 1 行に制限する。
+		string summaryText = !string.IsNullOrEmpty(entry.Summary)
+			? entry.Summary
+			: string.IsNullOrEmpty(entry.Title)
+				? TRViS.Localization.AppResources.Notification_Title
+				: entry.Title;
+		SummaryLabel.Text = summaryText;
+		SummaryLabel.MaxLines = summaryText.Contains('\n') ? 2 : 1;
 
 		// 受領ボタンは「未受領かつ受領可能」のときのみ表示する。
 		AcknowledgeButton.IsVisible = !entry.IsRead && entry.CanAcknowledge;
+		UpdateAcknowledgeBlinkState();
+	}
+
+	private void UpdateAcknowledgeBlinkState()
+	{
+		if (AcknowledgeButton.IsVisible && !_acknowledgeBlinkPaused)
+			StartAcknowledgeBlink();
+		else
+			StopAcknowledgeBlink(forceGreen: true);
+	}
+
+	private void StartAcknowledgeBlink()
+	{
+		if (_acknowledgeBlinkTimer is not null)
+			return;
+
+		_acknowledgeBlinkGreenPhase = true;
+		ApplyAcknowledgeBlinkPhase(green: true);
+
+		_acknowledgeBlinkTimer = Dispatcher.CreateTimer();
+		_acknowledgeBlinkTimer.Interval = AcknowledgeBlinkInterval;
+		_acknowledgeBlinkTimer.Tick += OnAcknowledgeBlinkTick;
+		_acknowledgeBlinkTimer.Start();
+	}
+
+	private void StopAcknowledgeBlink(bool forceGreen)
+	{
+		if (_acknowledgeBlinkTimer is not null)
+		{
+			_acknowledgeBlinkTimer.Stop();
+			_acknowledgeBlinkTimer.Tick -= OnAcknowledgeBlinkTick;
+			_acknowledgeBlinkTimer = null;
+		}
+		if (forceGreen)
+			ApplyAcknowledgeBlinkPhase(green: true);
+	}
+
+	private void OnAcknowledgeBlinkTick(object? sender, EventArgs e)
+	{
+		_acknowledgeBlinkGreenPhase = !_acknowledgeBlinkGreenPhase;
+		ApplyAcknowledgeBlinkPhase(_acknowledgeBlinkGreenPhase);
+	}
+
+	private void ApplyAcknowledgeBlinkPhase(bool green)
+	{
+		if (green)
+		{
+			AcknowledgeButton.BackgroundColor = Colors.Transparent;
+			AcknowledgeButton.Background = _acknowledgeGreenBackground;
+			AcknowledgeButton.TextColor = Colors.White;
+		}
+		else
+		{
+			AcknowledgeButton.Background = null;
+			AcknowledgeButton.BackgroundColor = Colors.White;
+			AcknowledgeButton.TextColor = Colors.Black;
+		}
 	}
 
 	/// <summary>

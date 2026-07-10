@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -627,6 +628,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			Id = TryGetStringProperty(root, "Id"),
 			OrderNumber = TryGetStringProperty(root, "OrderNumber"),
 			Title = TryGetStringProperty(root, "Title"),
+			Summary = TryGetStringProperty(root, "Summary"),
 			Body = TryGetStringProperty(root, "Body"),
 			Receiver = TryGetStringProperty(root, "Receiver"),
 			Sender = TryGetStringProperty(root, "Sender"),
@@ -653,10 +655,19 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		if (root.TryGetProperty("IssuedAt", out var t) && t.ValueKind == JsonValueKind.String)
 		{
 			string? s = t.GetString();
-			if (s is not null && TryParseIssuedAt(s, out var dto, out bool isUnspecifiedTimeZone))
+			if (s is not null)
 			{
-				n.IssuedAt = dto;
-				n.IssuedAtIsUnspecifiedTimeZone = isUnspecifiedTimeZone;
+				if (TryParseIssuedAt(s, out var dto, out bool isUnspecifiedTimeZone))
+				{
+					n.IssuedAt = dto;
+					n.IssuedAtIsUnspecifiedTimeZone = isUnspecifiedTimeZone;
+				}
+				else
+				{
+					// ISO 8601 (日付部分あり) として解釈できない入力は、日時としてパースせず
+					// 生の文字列をそのまま表示側に渡す。
+					n.IssuedAtRawText = s;
+				}
 			}
 		}
 		// Acknowledged は JSON の true のときのみ受領済み扱い (それ以外/欠落は false)。
@@ -669,17 +680,27 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	}
 
 	/// <summary>
-	/// <c>Notification.IssuedAt</c> の ISO 8601 文字列をパースする。オフセット
-	/// (<c>Z</c> または <c>+HH:mm</c>/<c>-HH:mm</c>) を含む文字列は TZ 指定ありと判断し、
-	/// 表示側で端末の現在 TZ に変換する (<see cref="DateTimeOffset.LocalDateTime"/>) ことを
-	/// 前提に <paramref name="value"/> をそのまま返す。オフセットを含まない文字列は
-	/// 「その時刻をそのまま表示する」ため、日時部分だけを Offset=0 の
-	/// <see cref="DateTimeOffset"/> に詰めて返し (<see cref="DateTimeOffset.DateTime"/> が
-	/// 元の文字列の値と一致する)、<paramref name="isUnspecifiedTimeZone"/> を true にする。
+	/// ISO 8601 の日付部分 (<c>yyyy-MM-dd</c>) を必須とし、時刻・オフセットを任意で許容する
+	/// 厳密な形式のみを ISO 8601 と認める。空白区切り (<c>2024-03-01 09:00:00</c>) や
+	/// 日付部分の無い時刻のみの文字列 (<c>09:00:00</c>) はここでは一致しない
+	/// (<see cref="TryParseIssuedAt"/> がそのまま生文字列表示にフォールバックする)。
+	/// </summary>
+	private static readonly Regex Iso8601DateRegex = new(
+		@"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$",
+		RegexOptions.Compiled);
+
+	/// <summary>
+	/// <c>Notification.IssuedAt</c> の文字列をパースする。<see cref="Iso8601DateRegex"/> に
+	/// 一致しない (= ISO 8601 の日付部分を持たない) 入力は常に false を返し、呼び出し側は
+	/// 生の文字列をそのまま表示する (<see cref="NotificationData.IssuedAtRawText"/>)。
 	/// <para>
-	/// 日付のみ (例 <c>2024-03-01</c>) や空白区切り (例 <c>2024-03-01 09:00:00</c>) など、
-	/// ISO 8601 の日時区切り <c>T</c> を含まない文字列は常に TZ 指定無し扱いとする
-	/// (日付部分の <c>-</c> をオフセット記号と誤認しないため)。
+	/// マッチした場合、オフセット (<c>Z</c> または <c>+HH:mm</c>/<c>-HH:mm</c>) を含む文字列は
+	/// TZ 指定ありと判断し、表示側で端末の現在 TZ に変換する
+	/// (<see cref="DateTimeOffset.LocalDateTime"/>) ことを前提に <paramref name="value"/> を
+	/// そのまま返す。オフセットを含まない文字列は「その時刻をそのまま表示する」ため、日時部分
+	/// だけを Offset=0 の <see cref="DateTimeOffset"/> に詰めて返し
+	/// (<see cref="DateTimeOffset.DateTime"/> が元の文字列の値と一致する)、
+	/// <paramref name="isUnspecifiedTimeZone"/> を true にする。
 	/// </para>
 	/// </summary>
 	private static bool TryParseIssuedAt(string s, out DateTimeOffset value, out bool isUnspecifiedTimeZone)
@@ -687,8 +708,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		value = default;
 		isUnspecifiedTimeZone = false;
 
-		// 'T' (ISO 8601 の日時区切り) が無い文字列は ISO 8601 形式ではないため、
-		// 日付部分の '-' をオフセット記号と誤認しないよう常に TZ 指定無し扱いにする。
+		if (!Iso8601DateRegex.IsMatch(s))
+			return false;
+
 		int tIndex = s.IndexOf('T');
 		bool hasOffset = tIndex >= 0
 			&& (s[tIndex..].Contains('Z') || s[tIndex..].Contains('+') || s[tIndex..].Contains('-'));

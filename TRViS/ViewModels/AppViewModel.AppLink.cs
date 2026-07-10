@@ -158,7 +158,7 @@ public partial class AppViewModel
 
 		// Test-only: inject a Notification into NotificationCenter so UI tests can
 		// exercise the receive→popup→受領 flow without a real WebSocket server.
-		// Format: trvis://_test/notification?id=<id>&title=<t>&body=<bbcode>&priority=<n>&acknowledged=<bool>&reset=<bool>
+		// Format: trvis://_test/notification?id=<id>&title=<t>&summary=<s>&body=<bbcode>&priority=<n>&acknowledged=<bool>&reset=<bool>
 		//   &ordernumber=<n>&sender=<s>&receiver=<s>&icontext=<s>&iconcolor=<0xRRGGBB or %23RRGGBB>&iconimage=<base64>
 		//   &compact=<bool>&sectionstart=<station>&sectionend=<station>&stationsbefore=<n>
 		// reset=true clears the notification store before injecting (clean slate for shared-session retries).
@@ -855,6 +855,7 @@ public partial class AppViewModel
 			Id = query["id"],
 			OrderNumber = query["ordernumber"],
 			Title = query["title"],
+			Summary = query["summary"],
 			Body = query["body"],
 			Priority = priority,
 			Acknowledged = acknowledged,

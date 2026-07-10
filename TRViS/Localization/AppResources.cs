@@ -102,10 +102,10 @@ public static class AppResources
 	public static string Notification_Important => Get(nameof(Notification_Important));
 	public static string Notification_Acknowledge => Get(nameof(Notification_Acknowledge));
 	public static string Notification_Close => Get(nameof(Notification_Close));
-	public static string Notification_OrderNumberFormat => Get(nameof(Notification_OrderNumberFormat));
-	public static string Notification_IssuedAtFormat => Get(nameof(Notification_IssuedAtFormat));
-	public static string Notification_SenderFormat => Get(nameof(Notification_SenderFormat));
-	public static string Notification_ReceiverFormat => Get(nameof(Notification_ReceiverFormat));
+	public static string Notification_OrderNumberLabel => Get(nameof(Notification_OrderNumberLabel));
+	public static string Notification_IssuedAtLabel => Get(nameof(Notification_IssuedAtLabel));
+	public static string Notification_SenderLabel => Get(nameof(Notification_SenderLabel));
+	public static string Notification_ReceiverLabel => Get(nameof(Notification_ReceiverLabel));
 
 	public static string SelectFile_Title => Get(nameof(SelectFile_Title));
 	public static string SelectFile_FileListHint => Get(nameof(SelectFile_FileListHint));
