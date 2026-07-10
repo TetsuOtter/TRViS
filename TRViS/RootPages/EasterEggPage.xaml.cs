@@ -12,6 +12,14 @@ public partial class EasterEggPage : ContentPage
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 	EasterEggPageViewModel ViewModel { get; }
 
+#if UI_TEST
+	const string HeaderColorSeamPrefix = "H:";
+	readonly Label HeaderColorSeamLabel;
+
+	static string ColorToHex(Color c)
+		=> $"#{(byte)Math.Round(c.Red * 255):X2}{(byte)Math.Round(c.Green * 255):X2}{(byte)Math.Round(c.Blue * 255):X2}";
+#endif
+
 	public EasterEggPage()
 	{
 		logger.Trace("EasterEggPage Creating");
@@ -30,6 +38,42 @@ public partial class EasterEggPage : ContentPage
 		// screen deterministic (no screenshot mask needed). Production builds
 		// compile this out entirely and show the real path.
 		LogFilePathLabel.Text = "/UITEST/TRViS.InternalFiles/logs";
+
+		// UI_TEST-only invisible mirror Label reflecting
+		// ViewModel.EffectiveShellBackgroundColor as "#RRGGBB" text (#310).
+		// The Settings screen's actual title bar color comes from the native
+		// Shell chrome (AppShell.BackgroundColor binding), which Appium cannot
+		// read reliably; this mirrors the same value DTAC's
+		// AppBar.HeaderColorSeam exposes so an E2E can assert the two screens
+		// always show the same color.
+		//
+		// Wraps the existing ScrollView Content in a Grid overlay instead of
+		// inserting into the VerticalStackLayout: a stack-layout child reserves
+		// real vertical space and would shift every settings row down by 24px,
+		// breaking the Settings screenshot baseline
+		// (TRViS.UITests.Apple/ScreenshotRegressionTests). The DTAC AppBar's
+		// equivalent seam avoids this the same way — Grid.SetRow overlay, not
+		// stack-layout flow.
+		var existingContent = Content;
+		var seamOverlay = new Grid();
+		seamOverlay.Children.Add(existingContent);
+		HeaderColorSeamLabel = new Label
+		{
+			AutomationId = "Settings.HeaderColorSeam",
+			Text = HeaderColorSeamPrefix + ColorToHex(ViewModel.EffectiveShellBackgroundColor),
+			TextColor = Colors.Transparent,
+			BackgroundColor = Colors.Transparent,
+			InputTransparent = true,
+			FontSize = 8,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = 0,
+			Padding = 0,
+		};
+		seamOverlay.Children.Add(HeaderColorSeamLabel);
+		Content = seamOverlay;
 #else
 		LogFilePathLabel.Text = DirectoryPathProvider.GeneralLogFileDirectory.FullName;
 #endif
@@ -69,6 +113,12 @@ public partial class EasterEggPage : ContentPage
 			{
 				UpdateLanguagePickerSelection();
 			}
+#if UI_TEST
+			else if (e.PropertyName == nameof(EasterEggPageViewModel.EffectiveShellBackgroundColor))
+			{
+				HeaderColorSeamLabel.Text = HeaderColorSeamPrefix + ColorToHex(ViewModel.EffectiveShellBackgroundColor);
+			}
+#endif
 		};
 
 #if IOS || MACCATALYST

@@ -163,6 +163,13 @@ public static class AutomationIds
 		// dozens of later fixtures sharing the assembly-wide iOS session.
 		public const string TestUnfreezeClockButton = "StartHome.TestUnfreezeClockButton";
 		public const string TestResetThemeButton = "StartHome.TestResetThemeButton";
+
+		// UI_TEST seam (#310): drives AppViewModel.HeaderColorOverride_RGB
+		// directly (no WebSocket server needed) so the E2E can verify the
+		// Settings screen and DTAC's AppBar stay in sync when a server
+		// HeaderColor override is applied / reset.
+		public const string TestSetHeaderColorOverrideButton = "StartHome.TestSetHeaderColorOverrideButton";
+		public const string TestResetHeaderColorOverrideButton = "StartHome.TestResetHeaderColorOverrideButton";
 	}
 
 	public static class PrivacyDialog
@@ -289,6 +296,15 @@ public static class AutomationIds
 		// confirm reconnect (#266). Not UI_TEST-gated — it's a real
 		// interactive control.
 		public const string ConnectionStatusButton = "AppBar.ConnectionStatusButton";
+
+		// UI_TEST-only invisible mirror Label reflecting
+		// EasterEggPageViewModel.EffectiveShellBackgroundColor as a "#RRGGBB"
+		// hex string (#310). Reading a real BoxView's Color via Appium is not
+		// reliable, so the color is mirrored as always-non-empty prefixed text,
+		// same pattern as ConnectionStatus above. Strip the prefix before
+		// comparing.
+		public const string HeaderColorSeam = "AppBar.HeaderColorSeam";
+		public const string HeaderColorSeamPrefix = "H:";
 	}
 
 	/// <summary>
@@ -387,6 +403,14 @@ public static class AutomationIds
 	{
 		public const string ReloadSavedButton = "Settings.ReloadSavedButton";
 		public const string SaveButton = "Settings.SaveButton";
+
+		// UI_TEST-only invisible mirror Label reflecting
+		// EasterEggPageViewModel.EffectiveShellBackgroundColor as a "#RRGGBB"
+		// hex string (#310), same mirror-label pattern as AppBar.HeaderColorSeam.
+		// This is the Settings-screen side of the pair used to assert the
+		// native title bar and DTAC's AppBar always show the same color.
+		public const string HeaderColorSeam = "Settings.HeaderColorSeam";
+		public const string HeaderColorSeamPrefix = "H:";
 	}
 
 	public static class ThirdParty

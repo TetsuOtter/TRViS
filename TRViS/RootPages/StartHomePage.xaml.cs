@@ -1138,6 +1138,13 @@ public partial class StartHomePage : ContentPage
 		// row/column slot rather than growing host's RowDefinitions — see the
 		// "13th XAML row" hang note above TestOpenSelectFileDialogButton.
 		AddSeamButton(host, 6, 1, "StartHome.TestSeedHakoDiagramButton", TestSeedHakoDiagramButton_Clicked);
+		// Rows 7..8 of the second column (previously unused; column 0 already
+		// proves rows 0..11 tappable, see the y=336 seam-column ceiling note
+		// above). Drives AppViewModel.HeaderColorOverride_RGB directly so the
+		// #310 E2E can simulate a server HeaderColor override without a real
+		// WebSocket server.
+		AddSeamButton(host, 7, 1, "StartHome.TestSetHeaderColorOverrideButton", TestSetHeaderColorOverrideButton_Clicked);
+		AddSeamButton(host, 8, 1, "StartHome.TestResetHeaderColorOverrideButton", TestResetHeaderColorOverrideButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1946,6 +1953,41 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestResetThemeButton clicked: resetting app-wide theme to Unspecified");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Unspecified;
+	}
+
+	// UI_TEST-only seam (#310). Fixed test color (0x336699), distinct from the
+	// default 0x558833 title color and from any color a test might set via the
+	// RGB sliders, so a test can unambiguously tell "override applied" apart
+	// from "user-picked color". Mirrors a real server HeaderColor{ResetToDefault:
+	// false, Color_RGB:0x336699} command by setting the same ViewModel property
+	// AppViewModel.OnHeaderColorChangeRequested would.
+	internal const int UiTestHeaderColorOverrideRgb = 0x336699;
+
+	void TestSetHeaderColorOverrideButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSetHeaderColorOverrideButton clicked: simulating HeaderColor override");
+		try
+		{
+			InstanceManager.AppViewModel.HeaderColorOverride_RGB = UiTestHeaderColorOverrideRgb;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSetHeaderColorOverrideButton failed");
+		}
+	}
+
+	void TestResetHeaderColorOverrideButton_Clicked(object? sender, EventArgs e)
+	{
+		// Mirrors a real server HeaderColor{ResetToDefault:true} command.
+		logger.Info("TestResetHeaderColorOverrideButton clicked: resetting HeaderColor override");
+		try
+		{
+			InstanceManager.AppViewModel.HeaderColorOverride_RGB = null;
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestResetHeaderColorOverrideButton failed");
+		}
 	}
 
 	void TestClearPrivacyPolicyButton_Clicked(object? sender, EventArgs e)

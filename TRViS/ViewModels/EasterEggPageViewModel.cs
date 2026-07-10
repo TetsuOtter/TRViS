@@ -22,18 +22,41 @@ public partial class EasterEggPageViewModel : ObservableObject
 		set
 		{
 			if (SetProperty(ref _ShellBackgroundColor, value))
-			{
-				SetTitleTextColor();
-			}
+				RecomputeEffectiveShellColors();
 		}
 	}
 
-	Color _ShellTitleTextColor = Colors.White;
-	public Color ShellTitleTextColor
+	// AppShell (設定画面のネイティブタイトルバー) と DTAC の AppBar は、この
+	// EffectiveShellBackgroundColor/EffectiveShellTitleTextColor を共通の色源として
+	// 参照する。HeaderColorOverride_RGB (サーバーからの HeaderColor コマンド) が
+	// 設定されていればそれを優先し、なければユーザー設定の ShellBackgroundColor に
+	// フォールバックする。ここで一本化することで、どちらの画面でも常に同じ色が
+	// 表示される (#310)。
+	int? _HeaderColorOverride_RGB;
+
+	Color _EffectiveShellBackgroundColor = Color.FromRgb(0x55, 0x88, 0x33);
+	public Color EffectiveShellBackgroundColor
 	{
-		// コード生成するとCompiled Bindingが上手く働かないため、手書き。
-		get => _ShellTitleTextColor;
-		set => SetProperty(ref _ShellTitleTextColor, value);
+		get => _EffectiveShellBackgroundColor;
+		private set
+		{
+			if (SetProperty(ref _EffectiveShellBackgroundColor, value))
+				EffectiveShellTitleTextColor = Util.GetTextColorFromBGColor(value);
+		}
+	}
+
+	Color _EffectiveShellTitleTextColor = Colors.White;
+	public Color EffectiveShellTitleTextColor
+	{
+		get => _EffectiveShellTitleTextColor;
+		private set => SetProperty(ref _EffectiveShellTitleTextColor, value);
+	}
+
+	void RecomputeEffectiveShellColors()
+	{
+		EffectiveShellBackgroundColor = _HeaderColorOverride_RGB is int rgb
+			? Color.FromRgb((byte)((rgb >> 16) & 0xff), (byte)((rgb >> 8) & 0xff), (byte)(rgb & 0xff))
+			: ShellBackgroundColor;
 	}
 
 	[ObservableProperty]
@@ -127,6 +150,23 @@ public partial class EasterEggPageViewModel : ObservableObject
 		logger.Trace("EasterEggPageViewModel Creating (with Task.Run)");
 
 		MarkerViewModel = InstanceManager.DTACMarkerViewModel;
+
+		var appViewModel = InstanceManager.AppViewModel;
+		_HeaderColorOverride_RGB = appViewModel.HeaderColorOverride_RGB;
+		RecomputeEffectiveShellColors();
+		// PropertyChanged は WebSocket 受信スレッドから発火しうるため、UI 操作は
+		// 必ず MainThread に dispatch する。
+		appViewModel.PropertyChanged += (_, e) =>
+		{
+			if (e.PropertyName != nameof(AppViewModel.HeaderColorOverride_RGB))
+				return;
+
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				_HeaderColorOverride_RGB = appViewModel.HeaderColorOverride_RGB;
+				RecomputeEffectiveShellColors();
+			});
+		};
 
 		Task.Run(LoadFromFileAsync);
 	}
@@ -230,8 +270,6 @@ public partial class EasterEggPageViewModel : ObservableObject
 
 		MarkerViewModel?.UpdateList(settingFile);
 
-		SetTitleTextColor();
-
 		if (settingFile.InitialTheme is AppTheme theme and not AppTheme.Unspecified)
 		{
 			InstanceManager.AppViewModel.CurrentAppTheme = theme;
@@ -266,12 +304,6 @@ public partial class EasterEggPageViewModel : ObservableObject
 		MarkerViewModel?.SetToSettings(settingFile);
 
 		await settingFile.SaveToJsonFileAsync();
-	}
-
-	void SetTitleTextColor()
-	{
-		// ref: http://www.asahi-net.or.jp/~gx4s-kmgi/page04.html
-		ShellTitleTextColor = Util.GetTextColorFromBGColor(Color_Red, Color_Green, Color_Blue);
 	}
 
 	partial void OnColor_RedChanged(int value)
