@@ -425,6 +425,23 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void ResetThemeForTesting() => TestResetThemeButton.Click();
 
+	public AppiumElement TestSetHeaderColorOverrideButton => FindByAutomationId(AutomationIds.StartHome.TestSetHeaderColorOverrideButton);
+	public AppiumElement TestResetHeaderColorOverrideButton => FindByAutomationId(AutomationIds.StartHome.TestResetHeaderColorOverrideButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam (#310) that sets
+	/// AppViewModel.HeaderColorOverride_RGB directly to a fixed test color
+	/// (0x336699), simulating a server HeaderColor{ResetToDefault:false}
+	/// command without a real WebSocket server.
+	/// </summary>
+	public void SetHeaderColorOverrideForTesting() => TestSetHeaderColorOverrideButton.Click();
+
+	/// <summary>
+	/// Inverse of <see cref="SetHeaderColorOverrideForTesting"/>: clears the
+	/// override, simulating a server HeaderColor{ResetToDefault:true} command.
+	/// </summary>
+	public void ResetHeaderColorOverrideForTesting() => TestResetHeaderColorOverrideButton.Click();
+
 	/// <summary>
 	/// Taps the UI_TEST-only seam that sets a non-connected
 	/// WebSocketNetworkSyncService loader and flips IsServerConnectionLost=true,

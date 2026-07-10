@@ -22,7 +22,7 @@ public class AppBar : Grid
 	public const string CHANGE_THEME_BUTTON_TEXT_TO_DARK = "\uE51C";
 
 	// WebSocket \u63A5\u7D9A\u30B9\u30C6\u30FC\u30BF\u30B9\u8868\u793A (#266) \u306E\u56FA\u5B9A\u8272\u3002\u80CC\u666F\u8272\u306B\u5DE6\u53F3\u3055\u308C\u306A\u3044\u3088\u3046
-	// \u7E01\u53D6\u308A (StatusDot.Stroke) \u306F ShellTitleTextColor \u3092\u4F7F\u3046\u304C\u3001\u5857\u308A (\u7DD1/\u8D64) \u306F
+	// \u7E01\u53D6\u308A (StatusDot.Stroke) \u306F EffectiveShellTitleTextColor \u3092\u4F7F\u3046\u304C\u3001\u5857\u308A (\u7DD1/\u8D64) \u306F
 	// \u72B6\u614B\u304C\u4E00\u76EE\u3067\u5206\u304B\u308B\u3088\u3046\u56FA\u5B9A\u306E\u9BAE\u3084\u304B\u306A\u8272\u306B\u3059\u308B\u3002
 	static readonly Color StatusConnectedColor = Color.FromRgb(0x2E, 0x7D, 0x32);
 	static readonly Color StatusDisconnectedColor = Color.FromRgb(0xC6, 0x28, 0x28);
@@ -63,6 +63,15 @@ public class AppBar : Grid
 	const string StatusSeamAutomationId = "AppBar.ConnectionStatus";
 	const string StatusSeamPrefix = "S:";
 	readonly Label StatusSeamLabel;
+
+	// #310: 実際に描画される TitleBGBoxView.Color (EffectiveShellBackgroundColor)
+	// を "#RRGGBB" 文字列としてミラーする。BoxView の Color は Appium からは
+	// 確実に読み取れないため、上の StatusSeamLabel と同じ「常に非空のミラー
+	// Label」方式で公開する。設定画面側にも同じ値をミラーする対の Label
+	// (EasterEggPage) があり、E2E は両方を読んで一致を検証する。
+	const string HeaderColorSeamAutomationId = "AppBar.HeaderColorSeam";
+	const string HeaderColorSeamPrefix = "H:";
+	readonly Label HeaderColorSeamLabel;
 #endif
 
 	readonly GradientStop TitleBG_Top = new(Colors.White.WithAlpha(0.8f), 0);
@@ -194,7 +203,7 @@ public class AppBar : Grid
 		{
 			Margin = new Thickness(-100, -100, -100, 0)
 		};
-		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor, source: _eevm));
+		TitleBGBoxView.SetBinding(BoxView.ColorProperty, BindingBase.Create(static (EasterEggPageViewModel vm) => vm.EffectiveShellBackgroundColor, source: _eevm));
 		Grid.SetRow((BindableObject)TitleBGBoxView, 0);
 		Grid.SetRowSpan((BindableObject)TitleBGBoxView, 2);
 		Children.Add(TitleBGBoxView);
@@ -229,7 +238,7 @@ public class AppBar : Grid
 			FontSize = 36,
 			FontAutoScalingEnabled = false,
 			BackgroundColor = Colors.Transparent,
-			TextColor = _eevm.ShellTitleTextColor
+			TextColor = _eevm.EffectiveShellTitleTextColor
 		};
 		Grid.SetRow((BindableObject)LeftButton, 1);
 		Children.Add(LeftButton);
@@ -243,7 +252,7 @@ public class AppBar : Grid
 			FontAutoScalingEnabled = false,
 			FontAttributes = FontAttributes.Bold,
 			FontSize = 20,
-			TextColor = _eevm.ShellTitleTextColor
+			TextColor = _eevm.EffectiveShellTitleTextColor
 		};
 		Grid.SetRow((BindableObject)TitleLabel, 1);
 		Children.Add(TitleLabel);
@@ -275,7 +284,7 @@ public class AppBar : Grid
 			HorizontalOptions = LayoutOptions.Center,
 			VerticalOptions = LayoutOptions.End,
 			BackgroundColor = Colors.Transparent,
-			TextColor = _eevm.ShellTitleTextColor,
+			TextColor = _eevm.EffectiveShellTitleTextColor,
 			IsVisible = false,
 		};
 		ThemeButton.Clicked += OnThemeButtonClicked;
@@ -292,7 +301,7 @@ public class AppBar : Grid
 			FontAutoScalingEnabled = false,
 			FontAttributes = FontAttributes.Bold,
 			FontSize = 40,
-			TextColor = _eevm.ShellTitleTextColor,
+			TextColor = _eevm.EffectiveShellTitleTextColor,
 			IsVisible = false,
 		};
 
@@ -301,7 +310,7 @@ public class AppBar : Grid
 			WidthRequest = STATUS_DOT_SIZE,
 			HeightRequest = STATUS_DOT_SIZE,
 			StrokeThickness = 1.5,
-			Stroke = new SolidColorBrush(_eevm.ShellTitleTextColor),
+			Stroke = new SolidColorBrush(_eevm.EffectiveShellTitleTextColor),
 			Fill = new SolidColorBrush(StatusConnectedColor),
 			HorizontalOptions = LayoutOptions.Center,
 			VerticalOptions = LayoutOptions.Center,
@@ -311,7 +320,7 @@ public class AppBar : Grid
 		{
 			WidthRequest = STATUS_DOT_SIZE - 4,
 			HeightRequest = STATUS_DOT_SIZE - 4,
-			Color = _eevm.ShellTitleTextColor,
+			Color = _eevm.EffectiveShellTitleTextColor,
 			HorizontalOptions = LayoutOptions.Center,
 			VerticalOptions = LayoutOptions.Center,
 			IsVisible = false,
@@ -381,6 +390,24 @@ public class AppBar : Grid
 		};
 		Grid.SetRow((BindableObject)StatusSeamLabel, 1);
 		Children.Add(StatusSeamLabel);
+
+		HeaderColorSeamLabel = new Label
+		{
+			AutomationId = HeaderColorSeamAutomationId,
+			Text = HeaderColorSeamPrefix + ColorToHex(_eevm.EffectiveShellBackgroundColor),
+			TextColor = Colors.Transparent,
+			BackgroundColor = Colors.Transparent,
+			InputTransparent = true,
+			FontSize = 8,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(24, 0, 0, 0),
+			Padding = 0,
+		};
+		Grid.SetRow((BindableObject)HeaderColorSeamLabel, 1);
+		Children.Add(HeaderColorSeamLabel);
 #endif
 
 		_appViewModel.CurrentAppThemeChanged += OnAppThemeChanged;
@@ -425,19 +452,29 @@ public class AppBar : Grid
 
 		switch (e.PropertyName)
 		{
-			case nameof(EasterEggPageViewModel.ShellTitleTextColor):
-				logger.Trace("ShellTitleTextColor is changed to {0}", vm.ShellTitleTextColor);
-				TitleLabel.TextColor = vm.ShellTitleTextColor;
-				LeftButton.TextColor = vm.ShellTitleTextColor;
-				ThemeButton.TextColor = vm.ShellTitleTextColor;
-				TimeLabel.TextColor = vm.ShellTitleTextColor;
+			case nameof(EasterEggPageViewModel.EffectiveShellTitleTextColor):
+				logger.Trace("EffectiveShellTitleTextColor is changed to {0}", vm.EffectiveShellTitleTextColor);
+				TitleLabel.TextColor = vm.EffectiveShellTitleTextColor;
+				LeftButton.TextColor = vm.EffectiveShellTitleTextColor;
+				ThemeButton.TextColor = vm.EffectiveShellTitleTextColor;
+				TimeLabel.TextColor = vm.EffectiveShellTitleTextColor;
 				// ステータス表示の縁取り/ぐるぐるはタイトル文字色に追従させる
 				// (ヘッダ背景に対し常に視認できる色になる #266)。
-				StatusDot.Stroke = new SolidColorBrush(vm.ShellTitleTextColor);
-				StatusSpinner.Color = vm.ShellTitleTextColor;
+				StatusDot.Stroke = new SolidColorBrush(vm.EffectiveShellTitleTextColor);
+				StatusSpinner.Color = vm.EffectiveShellTitleTextColor;
 				break;
+#if UI_TEST
+			case nameof(EasterEggPageViewModel.EffectiveShellBackgroundColor):
+				HeaderColorSeamLabel.Text = HeaderColorSeamPrefix + ColorToHex(vm.EffectiveShellBackgroundColor);
+				break;
+#endif
 		}
 	}
+
+#if UI_TEST
+	static string ColorToHex(Color c)
+		=> $"#{(byte)Math.Round(c.Red * 255):X2}{(byte)Math.Round(c.Green * 255):X2}{(byte)Math.Round(c.Blue * 255):X2}";
+#endif
 
 	private void AppViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
