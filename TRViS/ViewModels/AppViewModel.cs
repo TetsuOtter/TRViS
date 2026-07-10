@@ -365,8 +365,10 @@ public partial class AppViewModel : ObservableObject
 		locationService.NavigateToHomeRequested += OnNavigateToHomeRequested;
 		locationService.OpenTimetableRequested += OnOpenTimetableRequested;
 		// NotificationReceived / OperationCommandReceived / ServerInfo は
-		// LocationService 側で受信される。OperationCommand の動作 (位置情報 ON/OFF) は
-		// LocationService が直接適用する。Notification / ServerInfo の UI 表示は
+		// LocationService 側で受信される。OperationCommand のうち位置情報 ON/OFF は
+		// LocationService が直接適用し、運行開始/終了そのものは
+		// LocationService.OperationStartRequested 経由で DTAC.Adapters.LocationServiceAdapter
+		// → VerticalStylePagePresenter に委譲される。Notification / ServerInfo の UI 表示は
 		// 個別画面側で必要に応じて購読する。
 	}
 

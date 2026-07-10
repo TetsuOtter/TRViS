@@ -37,6 +37,12 @@ public class VerticalStylePagePresenterTests
 		public event EventHandler<GpsLocationUpdate>? GpsLocationUpdated;
 		public event EventHandler<Exception>? ExceptionThrown;
 		public event EventHandler<bool>? IsEnabledChanged;
+		public event EventHandler<bool>? OperationStartRequested;
+
+		public void RaiseOperationStartRequested(bool start)
+		{
+			OperationStartRequested?.Invoke(this, start);
+		}
 
 		public void RaiseCanUseServiceChanged(bool value)
 		{
@@ -881,6 +887,42 @@ public class VerticalStylePagePresenterTests
 		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning,
 			"non-network-driven enable must NOT auto-start the run");
 		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// 回帰テスト (#309): OperationCommand "StartOperation" を受信しても
+	// NetworkSyncServiceCanStart が false (=SyncedData で CanStart が来ていない)
+	// だと、位置情報が ON になるだけで運行 (IsRunning) が開始しなかった不具合の防止。
+	// StartOperation は NetworkSyncServiceCanStart に関係なく運行を開始する必要がある。
+	[Fact]
+	public void OperationStartRequested_StartsRun_RegardlessOfNetworkSyncCanStart()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+		locationService.NetworkSyncServiceCanStart = false;
+
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		locationService.RaiseOperationStartRequested(true);
+
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning,
+			"StartOperation command must start the run even when NetworkSyncServiceCanStart is false");
+		Assert.True(presenter.CurrentState.TimetableViewState.IsRunStarted);
+		Assert.True(presenter.CurrentState.TimetableViewState.IsLocationServiceEnabled);
+	}
+
+	// 回帰テスト (#309): OperationCommand "EndOperation" で運行が終了すること。
+	[Fact]
+	public void OperationStartRequested_False_EndsRun()
+	{
+		var (presenter, locationService, _, _, appVm) = CreatePresenter();
+		appVm.SelectedTrainData = CreateTrainData(rowCount: 3);
+		locationService.RaiseOperationStartRequested(true);
+		Assert.True(presenter.CurrentState.PageHeaderState.IsRunning);
+
+		locationService.RaiseOperationStartRequested(false);
+
+		Assert.False(presenter.CurrentState.PageHeaderState.IsRunning);
+		Assert.False(presenter.CurrentState.TimetableViewState.IsRunStarted);
 	}
 
 	// 回帰テスト: サーバ駆動の自動 ON は presenter 生成前に発火する

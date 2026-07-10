@@ -41,4 +41,13 @@ public interface IDtacLocationServiceController : ILocationService
 	/// position-marker gate opens for server-driven enablement.
 	/// </summary>
 	event EventHandler<bool>? IsEnabledChanged;
+
+	/// <summary>
+	/// Fired when a server-driven StartOperation/EndOperation command is
+	/// received. The argument is true for StartOperation (運行開始), false
+	/// for EndOperation (運行終了). Distinct from <see cref="IsEnabledChanged"/>
+	/// because EnableLocationService/DisableLocationService commands only
+	/// toggle GPS tracking and must not start/stop the run.
+	/// </summary>
+	event EventHandler<bool>? OperationStartRequested;
 }

@@ -49,6 +49,7 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		_locationService.LocationStateChanged += OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated += OnGpsLocationUpdated_Internal;
 		_locationService.IsEnabledChanged += OnLocationServiceIsEnabledChanged_Internal;
+		_locationService.OperationStartRequested += OnOperationStartRequested;
 		_appViewModelProvider.PropertyChanged += OnAppViewModelPropertyChanged;
 
 		// Sync initial train: PropertyChanged may have fired before this presenter subscribed.
@@ -393,6 +394,32 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		}
 	}
 
+	/// <summary>
+	/// Called when a server-driven StartOperation/EndOperation command is
+	/// received. Unlike EnableLocationService/DisableLocationService (which
+	/// only flip <see cref="OnLocationServiceIsEnabledChanged_Internal"/>'s
+	/// gated auto-start), this explicitly starts/stops the run regardless of
+	/// <see cref="IDtacLocationServiceController.NetworkSyncServiceCanStart"/>.
+	/// </summary>
+	private void OnOperationStartRequested(object? sender, bool start)
+	{
+		if (start)
+		{
+			if (!_currentState.PageHeaderState.IsRunning)
+			{
+				SetIsRunning(true);
+			}
+			if (!_currentState.TimetableViewState.IsLocationServiceEnabled)
+			{
+				SetLocationServiceEnabled(true);
+			}
+		}
+		else if (_currentState.PageHeaderState.IsRunning)
+		{
+			SetIsRunning(false);
+		}
+	}
+
 	private void OnLocationServiceCanUseChanged(object? sender, bool canUse)
 	{
 		_currentState.PageHeaderState.CanUseLocationService = canUse;
@@ -429,6 +456,7 @@ public sealed class VerticalStylePagePresenter : ILocationMarkerStateSource, IDi
 		_locationService.LocationStateChanged -= OnLocationStateChanged_Internal;
 		_locationService.GpsLocationUpdated -= OnGpsLocationUpdated_Internal;
 		_locationService.IsEnabledChanged -= OnLocationServiceIsEnabledChanged_Internal;
+		_locationService.OperationStartRequested -= OnOperationStartRequested;
 		_appViewModelProvider.PropertyChanged -= OnAppViewModelPropertyChanged;
 	}
 }

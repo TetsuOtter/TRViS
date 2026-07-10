@@ -48,6 +48,12 @@ public partial class LocationService : IDisposable
 	public event EventHandler<DiagramInfo>? DiagramInfoUpdated;
 	public event EventHandler<SelectTrainCommand>? TrainSelectionRequested;
 	public event EventHandler<OperationCommand>? OperationCommandReceived;
+	/// <summary>
+	/// StartOperation/EndOperation コマンドを受信したときに発火する。
+	/// true=StartOperation(運行開始), false=EndOperation(運行終了)。
+	/// EnableLocationService/DisableLocationService (位置情報 ON/OFF のみ) では発火しない。
+	/// </summary>
+	public event EventHandler<bool>? OperationStartRequested;
 	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
 	public event EventHandler<NotificationData>? NotificationReceived;
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
@@ -200,7 +206,9 @@ void OnIsEnabledChanged(bool value)
 
 	/// <summary>
 	/// 運行操作コマンドを受信したときの処理。
-	/// 位置情報サービスの有効/無効はここで適用し、運行開始/終了は AppViewModel 側に委譲する。
+	/// 位置情報サービスの有効/無効はここで適用する。運行開始/終了そのもの
+	/// (PageHeaderState.IsRunning 等) は <see cref="OperationStartRequested"/>
+	/// 経由で Presenter 側に委譲する。
 	/// </summary>
 	void OnOperationCommandReceived(object? sender, OperationCommand cmd)
 	{
@@ -208,13 +216,19 @@ void OnIsEnabledChanged(bool value)
 		switch (cmd.Action)
 		{
 			case OperationCommandType.EnableLocationService:
-			case OperationCommandType.StartOperation:
-				// StartOperation は位置情報サービスを ON にすることで運行を開始する
 				IsEnabled = true;
 				break;
+			case OperationCommandType.StartOperation:
+				// StartOperation は位置情報サービス ON に加えて運行開始そのものも要求する
+				IsEnabled = true;
+				OperationStartRequested?.Invoke(sender, true);
+				break;
 			case OperationCommandType.DisableLocationService:
+				IsEnabled = false;
+				break;
 			case OperationCommandType.EndOperation:
 				IsEnabled = false;
+				OperationStartRequested?.Invoke(sender, false);
 				break;
 		}
 		OperationCommandReceived?.Invoke(sender, cmd);
