@@ -65,6 +65,33 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	/// </summary>
 	public event EventHandler<string>? BannerDismissed;
 
+	// 現在表示中の通告ポップアップ (拡大表示) の数。AppShell のキュー直列化により通常は
+	// 同時に 1 つだが、close→次表示の切り替わりの一瞬だけ増減が重なる可能性に備えてカウンタに
+	// している。UI スレッド専有。
+	private int _popupVisibleCount;
+
+	/// <summary>
+	/// 通告ポップアップ (拡大表示) が現在表示中かどうか。ViewHost が
+	/// (再生成後の) 初期状態を復元する際に参照する。
+	/// </summary>
+	public bool IsPopupVisible => _popupVisibleCount > 0;
+
+	/// <summary>
+	/// <see cref="IsPopupVisible"/> が変化したときに発火する。ViewHost が購読し、ポップアップ
+	/// 表示中は小型バナーの受領ボタンの点滅を一時停止する (最小化/閉じたら再開)。
+	/// UI スレッド上で発火する。
+	/// </summary>
+	public event EventHandler<bool>? PopupVisibilityChanged;
+
+	/// <summary>
+	/// <see cref="NotificationPopupPage"/> が自身の表示/非表示を通知する。
+	/// </summary>
+	public void NotifyPopupVisibilityChanged(bool isVisible)
+	{
+		_popupVisibleCount = Math.Max(0, _popupVisibleCount + (isVisible ? 1 : -1));
+		PopupVisibilityChanged?.Invoke(this, IsPopupVisible);
+	}
+
 	/// <summary>
 	/// <see cref="LocationService"/> の通告受信イベント・位置変化イベントを購読する。
 	/// InstanceManager から一度だけ呼ばれる。
@@ -75,11 +102,46 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		{
 			_locationService.NotificationReceived -= OnNotificationReceived;
 			_locationService.LocationStateChanged -= OnLocationStateChanged;
+			_locationService.NetworkConnectionLost -= OnNetworkConnectionLost;
 		}
 		_locationService = locationService;
 		_locationService.NotificationReceived += OnNotificationReceived;
 		_locationService.LocationStateChanged += OnLocationStateChanged;
+		_locationService.NetworkConnectionLost += OnNetworkConnectionLost;
 	}
+
+	// WebSocket/HTTP 接続が切断されると、未受領のまま残った通告はサーバーとの整合性が
+	// 取れなくなる (受領しても届かない、再配信されるかも不明) ため、保持している通告を
+	// すべて破棄する。再接続後にサーバーが再配信すれば通常のフローで復元される。
+	private void OnNetworkConnectionLost(object? sender, EventArgs e)
+		=> MainThread.BeginInvokeOnMainThread(ClearAll);
+
+	/// <summary>
+	/// 保持しているすべての通告 (未受領・既読・バナー表示中を問わず) を破棄する。
+	/// 表示中の小型バナーは <see cref="BannerDismissed"/> の通常経路で個別に消え、開いている
+	/// 大型ポップアップ (<see cref="RootPages.NotificationPopupPage"/>) は <see cref="Cleared"/>
+	/// を購読して自分で閉じる。AppShell が持つ未表示の表示待ちキューも
+	/// <see cref="Cleared"/> を購読して空にする。UI スレッド上でのみ呼ぶこと。
+	/// </summary>
+	public void ClearAll()
+	{
+		_store.Clear();
+		_pendingCompactKeys.Clear();
+		_entriesById.Clear();
+
+		foreach (var key in _shownBannerKeys.ToArray())
+			BannerDismissed?.Invoke(this, key);
+		_shownBannerKeys.Clear();
+
+		Cleared?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>
+	/// <see cref="ClearAll"/> で保持中の通告がすべて破棄されたときに発火する。開いている
+	/// 大型ポップアップの自己クローズ、AppShell の表示待ちキューのクリアに使う。
+	/// UI スレッド上で発火する。
+	/// </summary>
+	public event EventHandler? Cleared;
 
 	private void OnNotificationReceived(object? sender, NotificationData n)
 	{
@@ -221,6 +283,30 @@ public sealed class NotificationCenterViewModel : ObservableObject
 				result.Add(entry);
 		}
 		return result;
+	}
+
+	/// <summary>
+	/// 大型ポップアップの「最小化」から呼ばれる。指定の通告を小型バナー表示に切り替える。
+	/// Id を持つ通告は (受領済みかどうかに関わらず) <see cref="_pendingCompactKeys"/> 経由で
+	/// 通常のバナーライフサイクル (<see cref="RefreshRedisplay"/> による受領後・区間退出時の
+	/// 自動非表示) に乗せる。既に区間連動等で表示中の場合は冪等 (状態変化なし)。
+	/// Id 無し (受領不可) の通告は追跡できないため、<see cref="OnNotificationReceived"/> の
+	/// Id 無し分岐と同様に <see cref="BannerRequested"/> を直接発火するだけに留める。
+	/// UI スレッド上でのみ呼ぶこと。
+	/// </summary>
+	public void RequestBannerDisplay(NotificationStore.Entry entry)
+	{
+		if (entry.Id is string id && !string.IsNullOrEmpty(id))
+		{
+			_entriesById[id] = entry;
+			if (!entry.IsRead)
+				_pendingCompactKeys.Add(id);
+			RefreshRedisplay();
+		}
+		else
+		{
+			BannerRequested?.Invoke(this, entry);
+		}
 	}
 
 	/// <summary>

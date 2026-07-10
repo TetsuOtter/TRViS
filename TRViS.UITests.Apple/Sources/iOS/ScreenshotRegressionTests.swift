@@ -315,6 +315,37 @@ class ScreenshotRegressionTests: BaseUITestCase {
         settleUntilVisuallyStable(maxWait: 15.0)
         capture(screen: "dtac-hako-diagram", theme: theme, lang: lang, failures: &failures)
 
+        // 13. Notification (通告) banner + popup — self-contained like the Hako
+        // diagram step above: return home, inject a 受領必須 compact notification
+        // via the UI_TEST connect-dialog deeplink seam, load the sample data and
+        // enter D-TAC. ViewHost.OnAppearing() backfills the banner from the
+        // NotificationCenter snapshot, so it's showing by the time D-TAC settles.
+        _ = shell.navigateToHome()
+        start.clearLoaderForTesting()
+        start.injectNotificationForTesting(deeplink: Self.notificationDeeplink)
+        start.loadSample()
+        _ = start.waitForWorkGroupList(timeout: 30)
+        let notifDtac = start.autoOpenForTesting()
+        _ = notifDtac.switchToTimetableTab()
+        settleUntilVisuallyStable(maxWait: 15.0)
+
+        let banner = NotificationBannerPageObject(app: app, base: self)
+        if banner.isShown(timeout: 10) {
+            capture(screen: "notification-banner", theme: theme, lang: lang, failures: &failures)
+
+            let popup = banner.tapToExpand()
+            if popup.isDisplayed(timeout: 10) {
+                settle()
+                capture(screen: "notification-popup", theme: theme, lang: lang, failures: &failures)
+                popup.acknowledge()
+                _ = popup.waitUntilDismissed()
+            } else {
+                XCTFail("Notification popup did not appear after tapping the banner.")
+            }
+        } else {
+            XCTFail("Notification banner did not appear on D-TAC after inject.")
+        }
+
         // Leave the app in a recoverable state for the next combo
         _ = shell.navigateToHome()
 
@@ -420,6 +451,21 @@ class ScreenshotRegressionTests: BaseUITestCase {
             Thread.sleep(forTimeInterval: probeInterval)
         }
     }
+
+    // MARK: — Notification fixture
+
+    /// A 受領必須 compact notification carrying order/sender/receiver, an icon
+    /// badge, and a Priority>=1 (importance badge) — exercises every optional
+    /// field row in one capture. ASCII-only (see NotificationBannerTests.cs):
+    /// deeplink values pass through HttpUtility.ParseQueryString, so kept simple
+    /// to avoid non-ASCII percent-encoding pitfalls. compact=true shows the small
+    /// banner first; tapping it expands to the large popup. reset=true clears
+    /// any notification state left by a prior combo iteration.
+    private static let notificationDeeplink =
+        "trvis://_test/notification?id=vrt-notice-1&title=VRT%20Notice"
+        + "&body=%5Bb%5DSection%20Notice%5B%2Fb%5D%3A%20Reduce%20speed%20to%2025km%2Fh."
+        + "&priority=1&ordernumber=NX-042&sender=Dispatcher&receiver=Crew"
+        + "&icontext=%21&iconcolor=%23FFC107&compact=true&reset=true"
 }
 
 #endif
