@@ -235,6 +235,7 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
   "Id": "n-001",                          // string | null
   "OrderNumber": "指令003号",             // string | null（指令番号）
   "Title": "運転見合わせ",                // string | null
+  "Summary": "運転見合わせ",              // string | null（小型バナー用の要約）
   "Body": "強風のため…",                  // string | null（BBCode 可）
   "Priority": 1,                          // integer（0=通常,1=重要 等。サーバ任意）
   "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601、TZ オフセット任意) | null
@@ -253,12 +254,13 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| `Id` | string | 通告識別子。受領（[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification)）の対象キーになる。 |
+| `Id` | string | 通告識別子。受領（[`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification)）の対象キーになる。 |
 | `OrderNumber` | string | 指令番号。表示のみに用いる（サーバー・現場運用側の管理番号）。 |
-| `Title` | string | 見出し。 |
+| `Title` | string | 見出し。大型ポップアップで使用する。 |
+| `Summary` | string | 任意。小型バナー用の要約。未指定または空文字の場合は `Title` にフォールバックし、大型ポップアップでは常に `Title` を使用する。 |
 | `Body` | string | 本文。**BBCode**（`[b]…[/b]` 等）を使用できる。表示側の解釈はクライアント実装に依存。 |
 | `Priority` | integer | 重要度。JSON 数値かつ 32bit 整数のときのみ採用、既定 `0`。意味づけはサーバー任意。 |
-| `IssuedAt` | string | 発行時刻。**ISO 8601**（往復可能形式）。TZ オフセット（`Z` または `+HH:mm`/`-HH:mm`）の有無で解釈が変わる（下記参照）。解釈できない場合は未設定。 |
+| `IssuedAt` | string | 発行時刻。日付（`yyyy-MM-dd`）と任意の ISO 8601 時刻・オフセットを持つ文字列を日時として解釈する。TZ オフセット（`Z` または `+HH:mm`/`-HH:mm`）の有無で解釈が変わる（下記参照）。この形式で解釈できない場合は日時として扱わず、元の文字列をそのまま表示する。 |
 | `Receiver` | string | 受信者。表示のみに用いる。 |
 | `Sender` | string | 指令者（発信者）。表示のみに用いる。 |
 | `IconText` | string | アイコンとして表示する文字（1〜2 文字程度を想定）。`IconImageBase64` が指定されている場合は使用されない。 |
@@ -277,10 +279,11 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 **`IssuedAt` の TZ 有無による表示の違い:**
 - TZ オフセットあり（例 `2024-03-01T09:00:00+09:00` や `...Z`）: クライアントは**端末の現在の TZ を考慮**して変換した時刻を表示する。
 - TZ オフセットなし（例 `2024-03-01T09:00:00`）: クライアントは**その時刻をそのまま**（TZ 変換せずに）表示する。
-- 日時区切りの `T` を含まない文字列（例 `2024-03-01` のような日付のみ、`2024-03-01 09:00:00` のような空白区切り）は **ISO 8601 の日時形式ではない**ため、常に TZ 指定なし扱い（そのまま表示）になる。
+- `2024-03-01` のような日付のみの文字列は受け付け、TZ 変換せずそのまま表示する。
+- 日付のみではなく日時区切りの `T` を含まない文字列（例 `2024-03-01 09:00:00`）は日時として解釈せず、元の文字列をそのまま表示する。その他の任意／解釈不能な文字列も同様に扱う。
 
 受領（クライアント → サーバー）については
-[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification) を参照。
+[`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification) を参照。
 
 ## 9. TimeFormat
 
@@ -424,7 +427,7 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
   **JSON number 型必須**（文字列は無効）。`StationsBefore` は欠落時に既定 `1`。
 - `SelectTrain` の各 ID は **JSON string 型必須**。
 - `OperationCommand.Action` は**必須**かつ既知の値のみ有効（大小無視）。
-- `Notification.IssuedAt` は **ISO 8601** のみ。TZ オフセットの有無で表示の変換有無が変わる（[§8](#8-notification) 参照）。
+- `Notification.IssuedAt` は `yyyy-MM-dd` の日付と任意の ISO 8601 時刻・オフセットを持つ場合に日時として解釈する。無効／日付でない文字列はそのまま表示し、解釈した値は TZ オフセットの有無で表示の変換有無が変わる（[§8](#8-notification) 参照）。
 - `ServerInfo.Features` は **JSON 配列**で、文字列要素のみ採用し文字列
   以外は無視（欠落／`null` は拡張機能なし）。
 - 未知の `MessageType`・`MessageType` 欠落・不正 JSON は **黙って無視**。
