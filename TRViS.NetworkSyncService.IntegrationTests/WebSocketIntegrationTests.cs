@@ -227,6 +227,46 @@ public class WebSocketIntegrationTests
 		}
 	}
 
+	/// <summary>
+	/// #308: サーバーが Time_ms を JSON null で送ってきても (シナリオ未読込等)、
+	/// 受信ループが例外で落ちず、端末時刻へフォールバックして TimeChanged が
+	/// 発火し続けることを確認する。修正前は JsonElement.GetInt64() が
+	/// InvalidOperationException を投げ、以後の SyncedData が一切処理されなく
+	/// なり時計が固まっていた。
+	/// </summary>
+	[Test]
+	public async Task SyncedData_NullTimeMs_FallsBackToLocalTime_TimeChangedKeepsFiring()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var receivedTimes = new List<int>();
+			service.TimeChanged += (_, t) => receivedTimes.Add(t);
+
+			// Time_ms を明示的に null にしてブロードキャスト。例外で受信ループが
+			// 落ちていれば、以後 SyncedData を送っても TimeChanged は二度と発火しない。
+			await _control.SetStateTimeMsNullAsync();
+			await _control.BroadcastSyncedDataAsync();
+			await Task.Delay(200);
+
+			await _control.SetStateAsync(time_ms: 3_600_000, canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+
+			await ReferenceServerClient.WaitForConditionAsync(
+				() => Task.FromResult(receivedTimes.Count >= 1),
+				timeoutMs: 5000
+			);
+			Assert.That(receivedTimes, Is.Not.Empty,
+				"TimeChanged should keep firing after a null Time_ms SyncedData message instead of the receive loop dying silently");
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
 	[Test]
 	public async Task SyncedData_CanStart_PropagatedCorrectly()
 	{
@@ -2342,6 +2382,52 @@ public class WebSocketIntegrationTests
 
 			// Format=null は端末既定にリセット
 			Assert.That(cmd.Format, Is.Null);
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	/// <summary>
+	/// #308: TimeFormat コマンド受信後も SyncedData による TimeChanged (時計) が
+	/// 止まらないことを確認する。TimeFormat 処理で受信ループが例外を投げて
+	/// 落ちていないか (接続断/再接続に迂回していないか) を検証する。
+	/// </summary>
+	[Test]
+	public async Task TimeFormat_ThenSyncedData_TimeChangedKeepsFiring()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var receivedTimes = new List<int>();
+			service.TimeChanged += (_, t) => receivedTimes.Add(t);
+
+			await _control.SetStateAsync(time_ms: 36_000_000, canStart: true);
+			await _control.BroadcastSyncedDataAsync();
+			await ReferenceServerClient.WaitForConditionAsync(
+				() => Task.FromResult(receivedTimes.Count >= 1),
+				timeoutMs: 5000
+			);
+
+			await _control.BroadcastTimeFormatAsync(format: "HH:mm");
+
+			for (int i = 0; i < 3; i++)
+			{
+				long time_ms = (36_000L + (i + 1) * 60_000L) * 1000;
+				await _control.SetStateAsync(time_ms: time_ms, canStart: true);
+				await _control.BroadcastSyncedDataAsync();
+				await Task.Delay(100);
+			}
+
+			await ReferenceServerClient.WaitForConditionAsync(
+				() => Task.FromResult(receivedTimes.Count >= 4),
+				timeoutMs: 5000
+			);
+			Assert.That(receivedTimes, Has.Count.GreaterThanOrEqualTo(4),
+				"TimeChanged should keep firing for SyncedData ticks received after a TimeFormat command");
 		}
 		finally
 		{

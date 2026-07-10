@@ -360,13 +360,22 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		catch (KeyNotFoundException) { }
 		catch (FormatException) { }
 
-		long time_ms = 0;
+		// サーバーがまだ時刻を確定できない間 (シナリオ未読込等) は Time_ms が
+		// null または欠落して届くことがある。JsonElement.GetInt64() は Null に対して
+		// InvalidOperationException を投げ、これが未捕捉のまま WebSocket 受信ループを
+		// 抜けてしまうと、以後の SyncedData が一切処理されず時計が固まる (#308)。
+		// HTTP 実装 (GetSyncedDataAsync の 204/空ボディ処理) と同様に端末時刻で
+		// 代替し、クライアント側の時計を止めない。
+		long time_ms = (long)DateTime.Now.TimeOfDay.TotalMilliseconds;
 		try
 		{
-			time_ms = root.GetProperty(TIME_MS_JSON_KEY).GetInt64();
+			JsonElement time_ms_element = root.GetProperty(TIME_MS_JSON_KEY);
+			if (time_ms_element.ValueKind != JsonValueKind.Null)
+				time_ms = time_ms_element.GetInt64();
 		}
 		catch (KeyNotFoundException) { }
 		catch (FormatException) { }
+		catch (InvalidOperationException) { }
 
 		bool canStart = true;
 		try
