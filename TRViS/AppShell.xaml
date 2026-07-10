@@ -17,6 +17,15 @@
 			Size="36"/>
 	</Shell.FlyoutIcon>
 
+	<Shell.FlyoutHeader>
+		<!-- Height nudged up on iPadOS 26 while the window is tiled/floating, so the
+		     "Home" item doesn't sit under the macOS-style window controls. -->
+		<BoxView
+			x:Name="FlyoutTopSpacer"
+			Color="Transparent"
+			HeightRequest="0"/>
+	</Shell.FlyoutHeader>
+
 	<Shell.FlyoutFooter>
 		<VerticalStackLayout
 			Margin="4">

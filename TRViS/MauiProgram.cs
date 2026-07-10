@@ -73,7 +73,11 @@ public static class MauiProgram
 				fonts.AddFont("NotoSansJP-Regular.ttf", "NotoSansJPRegular");
 				fonts.AddFont("NotoSansJP-Bold.ttf", "NotoSansJPBold");
 			})
-			.ConfigureFirebase();
+			.ConfigureFirebase()
+#if IOS
+			.ConfigureWindowGeometryTracking()
+#endif
+			;
 
 #if ANDROID
 		// Android's scanner handler is safe to register during startup.
@@ -127,6 +131,36 @@ public static class MauiProgram
 
 		return builder;
 	}
+
+#if IOS
+	private static MauiAppBuilder ConfigureWindowGeometryTracking(this MauiAppBuilder builder)
+	{
+		// WindowSceneDidUpdateCoordinateSpace requires iOS/Mac Catalyst 13+; the app
+		// still supports iOS 12.2, and the corner-adaptation clearance it drives is
+		// iOS 26+ only anyway, so skip registration below 13 entirely.
+		if (!OperatingSystem.IsIOSVersionAtLeast(13))
+			return builder;
+
+		builder.ConfigureLifecycleEvents(events =>
+		{
+			events.AddiOS(iOS => iOS.WindowSceneDidUpdateCoordinateSpace((_, _, _, _) =>
+			{
+				// windowScene:didUpdateCoordinateSpace:... is obsoleted on iOS/Mac
+				// Catalyst 26 in favor of DidUpdateEffectiveGeometry, but MAUI's own
+				// scene delegate (MauiUISceneDelegate) does not implement the new
+				// method yet, and UIKit still calls this one for compatibility.
+				// It fires on every window-scene geometry change (Stage Manager
+				// tile/float, fullscreen toggle, drag-resize), which is exactly what's
+				// needed to re-evaluate the iPadOS 26 window-control clearance whenever
+				// it actually changes, instead of only once at launch.
+				logger.Trace("WindowSceneDidUpdateCoordinateSpace fired");
+				AppShell.NotifyPlatformWindowGeometryChanged();
+			}));
+		});
+
+		return builder;
+	}
+#endif
 
 	private static bool IsFirebaseConfigured = false;
 	public static void ConfigureFirebase()
