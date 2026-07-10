@@ -53,6 +53,13 @@ public partial class LocationService : IDisposable
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? NavigateToHomeRequested;
 	public event EventHandler<OpenTimetableCommand>? OpenTimetableRequested;
+	/// <summary>
+	/// WebSocket/HTTP のネットワーク同期サービスへの接続が切断された (ConnectionClosed /
+	/// ConnectionFailed のいずれか) ときに発火する。未受領のまま残った通告は、切断後は
+	/// サーバーとの整合性が取れなくなるため、購読側 (NotificationCenterViewModel) が
+	/// これを機にすべてクリアする。GPS (LonLatLocationService) には該当しない。
+	/// </summary>
+	public event EventHandler? NetworkConnectionLost;
 
 	/// <summary>
 	/// GPS位置情報が更新された際に発生するイベント。
@@ -265,6 +272,7 @@ void OnIsEnabledChanged(bool value)
 			"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
 			"OK"
 		));
+		NetworkConnectionLost?.Invoke(this, EventArgs.Empty);
 		SetLonLatLocationService();
 	}
 
@@ -276,6 +284,7 @@ void OnIsEnabledChanged(bool value)
 			"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
 			"OK"
 		));
+		NetworkConnectionLost?.Invoke(this, EventArgs.Empty);
 		logger.Info("NetworkSyncService connection failed -> switching to LonLatLocationService");
 		SetLonLatLocationService();
 	}
@@ -545,6 +554,26 @@ void OnIsEnabledChanged(bool value)
 		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
 			return networkSyncService.RequestDiagramInfoAsync(diagramId, token);
 		return Task.CompletedTask;
+	}
+
+	/// <summary>
+	/// 通告の受領をサーバーへ通知する。NetworkSyncService (WebSocket) 接続時のみ有効。
+	/// 乗務員が通告を受け取ったことをサーバーへ返す「受領」処理。
+	/// <para>
+	/// NetworkSyncService に接続していない場合は受領を送信できないため
+	/// <see cref="InvalidOperationException"/> を投げる。呼び出し側はこれを「受領を送信できなかった」
+	/// として扱い、既読化やポップアップのクローズを行ってはならない (サイレントな取りこぼし防止)。
+	/// </para>
+	/// </summary>
+	/// <param name="id">受領する通告の Id</param>
+	/// <param name="token">キャンセルトークン</param>
+	/// <exception cref="InvalidOperationException">NetworkSyncService に未接続の場合</exception>
+	public Task AcknowledgeNotificationAsync(string id, CancellationToken token = default)
+	{
+		if (_CurrentService is NetworkSyncServiceBase networkSyncService)
+			return networkSyncService.AcknowledgeNotificationAsync(id, token);
+		throw new InvalidOperationException(
+			"Cannot acknowledge notification: no active NetworkSyncService connection.");
 	}
 
 	/// <summary>

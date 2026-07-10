@@ -18,5 +18,6 @@ public record TimetableRow(
 	string? Remarks,
 	bool IsInfoRow = false,
 	int? DefaultMarkerColor_RGB = null,
-	string? DefaultMarkerText = null
+	string? DefaultMarkerText = null,
+	string? StationId = null
 );

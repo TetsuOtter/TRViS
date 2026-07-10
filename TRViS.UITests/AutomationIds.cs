@@ -348,6 +348,42 @@ public static class AutomationIds
 	}
 
 	/// <summary>
+	/// Notification popup (通告). Shown when a server-pushed Notification is
+	/// received and judged unread. Has Title / BBCode body, an importance badge
+	/// (Priority ≥ 1), a 受領 (Acknowledge) button and a 閉じる (Close) button.
+	/// </summary>
+	public static class Notification
+	{
+		public const string Popup = "Notification.Popup";
+		public const string OrderNumber = "Notification.OrderNumber";
+		public const string Sender = "Notification.Sender";
+		public const string Receiver = "Notification.Receiver";
+		public const string IconBadge = "Notification.IconBadge";
+		public const string IconImage = "Notification.IconImage";
+		public const string Title = "Notification.Title";
+		public const string Body = "Notification.Body";
+		public const string ImportantBadge = "Notification.ImportantBadge";
+		public const string IssuedAt = "Notification.IssuedAt";
+		public const string AcknowledgeButton = "Notification.AcknowledgeButton";
+		public const string DismissButton = "Notification.DismissButton";
+		public const string MinimizeButton = "Notification.MinimizeButton";
+
+		/// <summary>
+		/// Small non-modal banner overlaid on the DTAC ViewHost's content area.
+		/// Shown for the initial 受領必須 compact display (CompactDisplay=true) and for
+		/// the acknowledged/区間連動 redisplay (no 受領 button in that case). Tapping it
+		/// expands to the large <see cref="Popup"/>.
+		/// </summary>
+		public static class Banner
+		{
+			public const string Root = "Notification.Banner";
+			public const string Summary = "Notification.Banner.Summary";
+			public const string AcknowledgeButton = "Notification.Banner.AcknowledgeButton";
+			public const string Chevron = "Notification.Banner.Chevron";
+		}
+	}
+
+	/// <summary>
 	/// Select-File modal dialog (replaces the direct OS FilePicker behaviour).
 	/// Lists JSON/SQLite files from the app documents folder as rich cards plus
 	/// a "他の場所からファイルを開く" button that falls back to the OS picker.
