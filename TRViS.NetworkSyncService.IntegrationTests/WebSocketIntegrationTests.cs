@@ -2451,7 +2451,7 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
-	public async Task Notification_IssuedAtSpaceSeparated_ClientMarksUnspecifiedTimeZone()
+	public async Task Notification_IssuedAtSpaceSeparated_ClientFallsBackToRawText()
 	{
 		var service = await ConnectServiceAsync();
 		try
@@ -2472,10 +2472,44 @@ public class WebSocketIntegrationTests
 
 			Assert.Multiple(() =>
 			{
-				Assert.That(n.IssuedAt, Is.Not.Null);
-				Assert.That(n.IssuedAtIsUnspecifiedTimeZone, Is.True,
-					"'T' を含まない空白区切りの文字列は ISO 8601 の日時形式ではないため TZ 指定無しと解釈する");
-				Assert.That(n.IssuedAt!.Value.DateTime, Is.EqualTo(new DateTime(2026, 5, 8, 12, 34, 56)));
+				Assert.That(n.IssuedAt, Is.Null,
+					"'T' 区切りでない空白区切りの文字列は厳密な ISO 8601 として認めない");
+				Assert.That(n.IssuedAtRawText, Is.EqualTo("2026-05-08 12:34:56"),
+					"ISO 8601 として解釈できない入力は、日時としてパースせず生の文字列をそのまま渡す");
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task Notification_IssuedAtArbitraryText_ClientFallsBackToRawText()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-arbitrary-text",
+				title: "任意文字列の発信日時",
+				issuedAt: "2026年5月8日 昼頃"
+			);
+			var n = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(n.IssuedAt, Is.Null,
+					"ISO 8601 (日付部分あり) と解釈できない入力は日時としてパースしない");
+				Assert.That(n.IssuedAtRawText, Is.EqualTo("2026年5月8日 昼頃"),
+					"ISO 8601 として解釈できない入力は、日時としてパースせず生の文字列をそのまま渡す");
 			});
 		}
 		finally

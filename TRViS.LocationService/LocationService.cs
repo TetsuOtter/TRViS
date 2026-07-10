@@ -59,6 +59,13 @@ public partial class LocationService : IDisposable
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? NavigateToHomeRequested;
 	public event EventHandler<OpenTimetableCommand>? OpenTimetableRequested;
+	/// <summary>
+	/// WebSocket/HTTP のネットワーク同期サービスへの接続が切断された (ConnectionClosed /
+	/// ConnectionFailed のいずれか) ときに発火する。未受領のまま残った通告は、切断後は
+	/// サーバーとの整合性が取れなくなるため、購読側 (NotificationCenterViewModel) が
+	/// これを機にすべてクリアする。GPS (LonLatLocationService) には該当しない。
+	/// </summary>
+	public event EventHandler? NetworkConnectionLost;
 
 	/// <summary>
 	/// GPS位置情報が更新された際に発生するイベント。
@@ -279,6 +286,7 @@ void OnIsEnabledChanged(bool value)
 			"ネットワークサービスとの接続が切断されました。GPS測位モードに切り替えます。",
 			"OK"
 		));
+		NetworkConnectionLost?.Invoke(this, EventArgs.Empty);
 		SetLonLatLocationService();
 	}
 
@@ -290,6 +298,7 @@ void OnIsEnabledChanged(bool value)
 			"ネットワークサービスへの接続に失敗しました。GPS測位モードに切り替えます。",
 			"OK"
 		));
+		NetworkConnectionLost?.Invoke(this, EventArgs.Empty);
 		logger.Info("NetworkSyncService connection failed -> switching to LonLatLocationService");
 		SetLonLatLocationService();
 	}

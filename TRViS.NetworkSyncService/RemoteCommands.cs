@@ -58,6 +58,11 @@ public class NotificationData
 	/// <summary>指令番号。サーバー・現場運用側の管理番号で、表示のみに用いる。</summary>
 	public string? OrderNumber { get; set; }
 	public string? Title { get; set; }
+	/// <summary>
+	/// 小型バナー表示用の要約。未指定/空文字のときは <see cref="Title"/> をそのまま使う。
+	/// 大型ポップアップでは常に <see cref="Title"/> を表示する (Summary は使わない)。
+	/// </summary>
+	public string? Summary { get; set; }
 	public string? Body { get; set; }
 	/// <summary>0=通常, 1=重要 等。サーバ任意。</summary>
 	public int Priority { get; set; }
@@ -73,6 +78,12 @@ public class NotificationData
 	/// true の場合、表示側は <see cref="IssuedAt"/> の値をそのまま (TZ 変換せず) 表示する。
 	/// </summary>
 	public bool IssuedAtIsUnspecifiedTimeZone { get; set; }
+	/// <summary>
+	/// <see cref="IssuedAt"/> が ISO 8601 (日付部分あり) としてパースできなかったときの
+	/// 生の入力文字列。表示側はこれを (日時として解釈せず) そのまま表示する。
+	/// <see cref="IssuedAt"/> が設定されているときは常に null。
+	/// </summary>
+	public string? IssuedAtRawText { get; set; }
 	/// <summary>受信者。表示のみに用いる。</summary>
 	public string? Receiver { get; set; }
 	/// <summary>指令者 (発信者)。表示のみに用いる。</summary>

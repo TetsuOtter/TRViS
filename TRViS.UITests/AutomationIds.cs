@@ -382,7 +382,7 @@ public static class AutomationIds
 		public const string IssuedAt = "Notification.IssuedAt";
 		public const string AcknowledgeButton = "Notification.AcknowledgeButton";
 		public const string DismissButton = "Notification.DismissButton";
-		public const string CloseButton = "Notification.CloseButton";
+		public const string MinimizeButton = "Notification.MinimizeButton";
 
 		/// <summary>
 		/// Small non-modal banner overlaid on the DTAC ViewHost's content area.
