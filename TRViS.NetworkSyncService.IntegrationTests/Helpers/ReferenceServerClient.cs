@@ -63,6 +63,19 @@ public sealed class ReferenceServerClient : IDisposable
 		resp.EnsureSuccessStatusCode();
 	}
 
+	/// <summary>
+	/// Time_ms を明示的に JSON null にリセットする (#308 回帰テスト用)。
+	/// <see cref="SetStateAsync"/> は <see cref="JsonIgnoreCondition.WhenWritingNull"/> により
+	/// null 引数のプロパティを送信 JSON から除外してしまうため、"未指定" と "明示的な null" を
+	/// 区別できない。このメソッドはリテラル null を送るための専用ヘルパー。
+	/// </summary>
+	public async Task SetStateTimeMsNullAsync(CancellationToken ct = default)
+	{
+		var content = new StringContent("{\"Time_ms\":null}", Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/state", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
 	public async Task ResetAsync(CancellationToken ct = default)
 	{
 		var resp = await _http.PostAsync("/control/reset", null, ct);
@@ -396,7 +409,7 @@ public sealed class ReferenceServerClient : IDisposable
 // ================================================================
 
 public sealed record ServerStateDto(
-	[property: JsonPropertyName("Time_ms")] long Time_ms,
+	[property: JsonPropertyName("Time_ms")] long? Time_ms,
 	[property: JsonPropertyName("Location_m")] double? Location_m,
 	[property: JsonPropertyName("CanStart")] bool CanStart,
 	[property: JsonPropertyName("Latitude_deg")] double? Latitude_deg = null,
