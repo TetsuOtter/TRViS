@@ -240,6 +240,7 @@ A notification (arbitrary announcement). Delivered as a received event
   "Id": "n-001",                          // string | null
   "OrderNumber": "Order No. 3",           // string | null (dispatch/order number)
   "Title": "Service suspended",           // string | null
+  "Summary": "Service suspended",         // string | null (compact-banner summary)
   "Body": "Due to strong winds...",       // string | null (BBCode allowed)
   "Priority": 1,                          // integer (0=normal,1=important, server-defined)
   "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601, TZ offset optional) | null
@@ -258,12 +259,13 @@ A notification (arbitrary announcement). Delivered as a received event
 
 | Field | Type | Description |
 |---|---|---|
-| `Id` | string | Notification identifier. Serves as the key for acknowledgement ([`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification)). |
+| `Id` | string | Notification identifier. Serves as the key for acknowledgement ([`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification)). |
 | `OrderNumber` | string | Dispatch/order number. Display only (an operational management number owned by the server/dispatcher). |
-| `Title` | string | Heading. |
+| `Title` | string | Heading. Used by the large popup. |
+| `Summary` | string | Optional summary for the compact banner. When omitted or empty, the client falls back to `Title`; the large popup always uses `Title`. |
 | `Body` | string | Body text. **BBCode** (`[b]…[/b]`, etc.) may be used. Rendering is up to the client implementation. |
 | `Priority` | integer | Importance. Accepted only as a JSON number readable as a 32-bit integer, default `0`. Meaning is server-defined. |
-| `IssuedAt` | string | Issue time. **ISO 8601** (round-trippable form). Whether a TZ offset (`Z` or `+HH:mm`/`-HH:mm`) is present changes interpretation (see below). Unset if unparseable. |
+| `IssuedAt` | string | Issue time. A string with a date (`yyyy-MM-dd`) and optional ISO 8601 time/offset is parsed as a date/time. Whether a TZ offset (`Z` or `+HH:mm`/`-HH:mm`) is present changes interpretation (see below). If it cannot be parsed in this form, the client keeps the original string for display instead of interpreting it as a date/time. |
 | `Receiver` | string | Recipient. Display only. |
 | `Sender` | string | Sender/dispatcher. Display only. |
 | `IconText` | string | A short (1-2 character) glyph shown as the icon. Ignored when `IconImageBase64` is set. |
@@ -282,10 +284,13 @@ A notification (arbitrary announcement). Delivered as a received event
 **How TZ presence in `IssuedAt` affects display:**
 - With a TZ offset (e.g. `2024-03-01T09:00:00+09:00` or `...Z`): the client converts and displays the time **accounting for the device's current TZ**.
 - Without a TZ offset (e.g. `2024-03-01T09:00:00`): the client displays the time **as-is**, with no TZ conversion.
-- A string without the `T` date-time separator (e.g. a date-only `2024-03-01`, or a space-separated `2024-03-01 09:00:00`) is **not ISO 8601 datetime form**, and is always treated as having no TZ (displayed as-is).
+- A date-only string such as `2024-03-01` is accepted and displayed as-is (no TZ conversion).
+- A string without the `T` date-time separator that is not date-only (for example,
+  `2024-03-01 09:00:00`) is not parsed as a date/time; the original string is
+  displayed as-is. Other arbitrary/unparseable strings behave the same way.
 
 For acknowledgement (client → server), see
-[`AcknowledgeNotification`](client-to-server-messages.md#4-acknowledgenotification).
+[`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification).
 
 ## 9. TimeFormat
 
@@ -436,7 +441,7 @@ Common pitfalls for external implementers:
 - Each ID in `SelectTrain` **must be JSON string type**.
 - `OperationCommand.Action` is **required** and only known values are
   valid (case-insensitive).
-- `Notification.IssuedAt` is **ISO 8601** only. Whether a TZ offset is present changes whether the display converts it (see [§8](#8-notification)).
+- `Notification.IssuedAt` is parsed when it has a `yyyy-MM-dd` date and an optional ISO 8601 time/offset. Invalid or non-date strings are displayed unchanged; a TZ offset changes whether the parsed value is converted (see [§8](#8-notification)).
 - `ServerInfo.Features` is a **JSON array**; only string elements are
   kept and non-string elements are ignored (absent/`null` = no extended
   features).
