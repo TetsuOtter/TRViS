@@ -77,6 +77,8 @@ internal class FakeNetworkSyncService : NetworkSyncServiceBase
 
 	public void SimulateProcessSyncedData(SyncedData syncedData) => ProcessSyncedData(syncedData);
 
+	public new void RaiseOperationCommandReceived(OperationCommand command) => base.RaiseOperationCommandReceived(command);
+
 	protected override Task<SyncedData> GetSyncedDataAsync(CancellationToken token)
 	{
 		OnGetSyncedData?.Invoke();
@@ -734,5 +736,76 @@ public class LocationServiceIntegrationTests
 		Assert.That(_locationService.CurrentService!.CurrentStationIndex,
 			Is.InRange(0, finalStations.Length - 1),
 			"CurrentStationIndex must stay within the bounds of whichever station array ended up current");
+	}
+
+	// -------------------------------------------------------
+	// 21. 回帰テスト (#309): OperationCommand "StartOperation" は
+	//     IsEnabled=true にするだけでなく、OperationStartRequested(true) も
+	//     発火しなければならない。これが無いと、CanStart が来ていない
+	//     (SyncedData 未受信の) 状態では運行 (IsRunning) が開始しない。
+	// -------------------------------------------------------
+	[Test]
+	public void OperationCommand_StartOperation_EnablesLocationAndRaisesOperationStartRequested()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		bool? raisedStart = null;
+		_locationService.OperationStartRequested += (_, start) => raisedStart = start;
+
+		fakeNs.RaiseOperationCommandReceived(new OperationCommand { Action = OperationCommandType.StartOperation });
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(_locationService.IsEnabled, Is.True);
+			Assert.That(raisedStart, Is.True);
+		});
+	}
+
+	// -------------------------------------------------------
+	// 22. 回帰テスト (#309): OperationCommand "EndOperation" は
+	//     IsEnabled=false にするだけでなく、OperationStartRequested(false) も
+	//     発火しなければならない。
+	// -------------------------------------------------------
+	[Test]
+	public void OperationCommand_EndOperation_DisablesLocationAndRaisesOperationStartRequested()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+		fakeNs.RaiseOperationCommandReceived(new OperationCommand { Action = OperationCommandType.StartOperation });
+
+		bool? raisedStart = null;
+		_locationService.OperationStartRequested += (_, start) => raisedStart = start;
+
+		fakeNs.RaiseOperationCommandReceived(new OperationCommand { Action = OperationCommandType.EndOperation });
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(_locationService.IsEnabled, Is.False);
+			Assert.That(raisedStart, Is.False);
+		});
+	}
+
+	// -------------------------------------------------------
+	// 23. EnableLocationService / DisableLocationService は位置情報のみを
+	//     切り替え、OperationStartRequested は発火しないこと
+	//     (運行の開始/終了と GPS on/off の切り替えは別物であるべき)。
+	// -------------------------------------------------------
+	[Test]
+	public void OperationCommand_EnableDisableLocationService_DoesNotRaiseOperationStartRequested()
+	{
+		var fakeNs = new FakeNetworkSyncService();
+		_locationService.SetNetworkSyncService(fakeNs);
+
+		bool raised = false;
+		_locationService.OperationStartRequested += (_, _) => raised = true;
+
+		fakeNs.RaiseOperationCommandReceived(new OperationCommand { Action = OperationCommandType.EnableLocationService });
+		Assert.That(_locationService.IsEnabled, Is.True);
+
+		fakeNs.RaiseOperationCommandReceived(new OperationCommand { Action = OperationCommandType.DisableLocationService });
+		Assert.That(_locationService.IsEnabled, Is.False);
+
+		Assert.That(raised, Is.False);
 	}
 }

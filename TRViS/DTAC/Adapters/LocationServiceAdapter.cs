@@ -77,6 +77,12 @@ internal class LocationServiceAdapter : IDtacLocationServiceController
 
 	public event EventHandler<bool>? IsEnabledChanged;
 
+	public event EventHandler<bool>? OperationStartRequested
+	{
+		add => _locationService.OperationStartRequested += value;
+		remove => _locationService.OperationStartRequested -= value;
+	}
+
 	public event EventHandler<Exception>? ExceptionThrown
 	{
 		add => _locationService.ExceptionThrown += value;
