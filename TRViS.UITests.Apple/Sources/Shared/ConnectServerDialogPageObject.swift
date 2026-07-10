@@ -82,6 +82,15 @@ class ConnectServerDialogPageObject {
         newConnectionButton.tap()
     }
 
+    /// Types `text` into the URL Entry of the new-connection form. Used to feed
+    /// UI_TEST-only trvis://_test/... seam deeplinks (e.g. notification inject)
+    /// the same way a real server URL would be entered.
+    func typeUrl(_ text: String) {
+        let field = urlInput
+        field.tap()
+        field.typeText(text)
+    }
+
     /// Returns from the new-connection form to the history list.
     func goBackToHistory() {
         backToHistoryButton.tap()

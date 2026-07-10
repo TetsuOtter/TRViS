@@ -21,12 +21,14 @@
 			<ColumnDefinition Width="1*"/>
 		</Grid.ColumnDefinitions>
 
+		<!-- MaximumHeightRequest は XAML の固定 pt ではなく、コードビハインドで
+		     BaseFontSize(18pt) の 25em として計算して設定する (コンストラクタ参照)。 -->
 		<Border
+			x:Name="CardBorder"
 			Grid.Row="1"
 			Grid.Column="1"
 			HorizontalOptions="Fill"
 			VerticalOptions="Center"
-			MaximumHeightRequest="450"
 			Padding="18"
 			Stroke="{x:Static local:RootStyles.BorderStrokeColor}"
 			StrokeThickness="1"
@@ -40,47 +42,60 @@
 
 			<Grid>
 
-				<Grid RowDefinitions="108,*">
+				<Grid RowDefinitions="Auto,Auto,*">
 
+					<!-- 指令番号/発信日時/受信者+指令者。ラベル列は3項目とも同じ固定幅
+					     (全角4文字分=18pt*4=72) を確保して左寄せすることで、値の長さに関わらず
+					     コロンの位置を揃える。受信者/指令者は上段を左右半分に区切り、それぞれの
+					     半分の中で同じ規則 (ラベル列固定幅+左寄せ) を適用する。
+					     FontAutoScalingEnabled="False" (StartEndRunButton と同じ方針): 固定幅
+					     レイアウトなので、OS のフォントサイズ設定で拡大されると 72 の幅に収まらず
+					     折り返される。値ラベルは TailTruncation で長い値を "…" 省略する。 -->
 					<VerticalStackLayout
 						Grid.Row="0"
 						VerticalOptions="Center"
-						Spacing="2">
-						<Label
-							x:Name="OrderNumberLabel"
-							AutomationId="Notification.OrderNumber"
-							IsVisible="False"
-							FontSize="12"
-							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-						<Label
-							x:Name="IssuedAtLabel"
-							AutomationId="Notification.IssuedAt"
-							IsVisible="False"
-							FontSize="12"
-							TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-						<Grid ColumnDefinitions="*,*" Margin="0,0,32,0">
-							<Label
-								x:Name="ReceiverLabel"
-								AutomationId="Notification.Receiver"
-								Grid.Column="0"
-								IsVisible="False"
-								HorizontalOptions="Start"
-								FontSize="12"
-								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
-							<Label
-								x:Name="SenderLabel"
-								AutomationId="Notification.Sender"
-								Grid.Column="1"
-								IsVisible="False"
-								HorizontalOptions="End"
-								FontSize="12"
-								TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+						Spacing="4">
+
+						<Grid x:Name="OrderNumberRow" ColumnDefinitions="72,Auto,*" IsVisible="False">
+							<Label Grid.Column="0" Text="{loc:Translate Notification_OrderNumberLabel}" FontSize="18" FontAutoScalingEnabled="False" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							<Label x:Name="OrderNumberLabel" AutomationId="Notification.OrderNumber" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+						</Grid>
+
+						<Grid x:Name="IssuedAtRow" ColumnDefinitions="72,Auto,*" IsVisible="False">
+							<Label Grid.Column="0" Text="{loc:Translate Notification_IssuedAtLabel}" FontSize="18" FontAutoScalingEnabled="False" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							<Label x:Name="IssuedAtLabel" AutomationId="Notification.IssuedAt" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+						</Grid>
+
+						<Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,0,32,0">
+							<Grid x:Name="ReceiverRow" Grid.Column="0" ColumnDefinitions="72,Auto,*" IsVisible="False">
+								<Label Grid.Column="0" Text="{loc:Translate Notification_ReceiverLabel}" FontSize="18" FontAutoScalingEnabled="False" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label x:Name="ReceiverLabel" AutomationId="Notification.Receiver" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							</Grid>
+							<Grid x:Name="SenderRow" Grid.Column="1" ColumnDefinitions="72,Auto,*" IsVisible="False">
+								<Label Grid.Column="0" Text="{loc:Translate Notification_SenderLabel}" FontSize="18" FontAutoScalingEnabled="False" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label x:Name="SenderLabel" AutomationId="Notification.Sender" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							</Grid>
 						</Grid>
 					</VerticalStackLayout>
 
-					<ScrollView Grid.Row="1">
+					<!-- 受信者/指令者の行と本文エリアの区切り線。左右いっぱい (Border.Padding=18 の
+					     内側で、さらに左右16pt分の余白を残す) に表示し、下に24ptの余白を空けて
+					     本文エリア (アイコン/タイトル) を開始させる。 -->
+					<BoxView
+						Grid.Row="1"
+						HeightRequest="1"
+						Margin="16,0,16,24"
+						Color="{x:Static local:RootStyles.BorderStrokeColor}"/>
+
+					<ScrollView Grid.Row="2">
 						<VerticalStackLayout Spacing="0">
 
+							<!-- アイコン(72x72)とタイトル(+重要バッジ)は同じ row。アイコンは
+							     タイトル/重要バッジ列と上下中央揃え。 -->
 							<Grid ColumnDefinitions="Auto,*" Margin="0,0,0,12">
 								<Border
 									x:Name="IconBadge"
@@ -88,11 +103,11 @@
 									IsVisible="False"
 									StrokeThickness="0"
 									BackgroundColor="{x:Static local:RootStyles.TableDetailColor}"
-									WidthRequest="48"
-									HeightRequest="48"
+									WidthRequest="72"
+									HeightRequest="72"
 									Padding="0"
 									Margin="0,0,12,0"
-									VerticalOptions="Start">
+									VerticalOptions="Center">
 									<Border.StrokeShape>
 										<Rectangle/>
 									</Border.StrokeShape>
@@ -100,7 +115,8 @@
 										x:Name="IconBadgeLabel"
 										AutomationId="Notification.IconBadge"
 										TextColor="White"
-										FontSize="22"
+										FontSize="48"
+										FontAutoScalingEnabled="False"
 										FontAttributes="Bold"
 										HorizontalTextAlignment="Center"
 										VerticalTextAlignment="Center"/>
@@ -110,11 +126,11 @@
 									AutomationId="Notification.IconImage"
 									Grid.Column="0"
 									IsVisible="False"
-									WidthRequest="48"
-									HeightRequest="48"
+									WidthRequest="72"
+									HeightRequest="72"
 									Margin="0,0,12,0"
 									Aspect="AspectFit"
-									VerticalOptions="Start"/>
+									VerticalOptions="Center"/>
 
 								<VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
 									<Label
@@ -144,19 +160,28 @@
 								</VerticalStackLayout>
 							</Grid>
 
-							<!-- Body (BBCode) — content is a BBCodeLabel injected from code-behind -->
-							<ContentView x:Name="BodyContainer" Margin="0,0,0,12"/>
+							<!-- 本文 (BBCode、コードビハインドから注入)。アイコン分 (72+12=84) だけ左に
+							     インデントし、タイトルと同じ位置から始まるようにする。 -->
+							<ContentView x:Name="BodyContainer" Margin="84,0,0,12"/>
 
 							<VerticalStackLayout Spacing="8">
 								<Button
 									x:Name="AcknowledgeButton"
 									AutomationId="Notification.AcknowledgeButton"
 									Text="{loc:Translate Notification_Acknowledge}"
-									HeightRequest="56"
+									HeightRequest="64"
 									CornerRadius="8"
 									FontAttributes="Bold"
-									FontSize="16"
-									Clicked="OnAcknowledgeClicked"/>
+									FontSize="20"
+									TextColor="{AppThemeBinding Light=White, Dark=#E0E0E0}"
+									Clicked="OnAcknowledgeClicked">
+									<Button.Background>
+										<LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+											<GradientStop Offset="0.1" Color="{AppThemeBinding Light=#0D8C0D, Dark=#0C7C0C}"/>
+											<GradientStop Offset="1.0" Color="{AppThemeBinding Light=#007300, Dark=#005F00}"/>
+										</LinearGradientBrush>
+									</Button.Background>
+								</Button>
 								<Button
 									x:Name="DismissButton"
 									AutomationId="Notification.DismissButton"
@@ -165,7 +190,7 @@
 									CornerRadius="8"
 									BackgroundColor="Transparent"
 									TextColor="{x:Static local:RootStyles.TableTextColor}"
-									Clicked="OnCloseClicked"/>
+									Clicked="OnMinimizeClicked"/>
 							</VerticalStackLayout>
 
 						</VerticalStackLayout>
@@ -174,11 +199,11 @@
 				</Grid>
 
 				<Button
-					x:Name="CloseButton"
-					AutomationId="Notification.CloseButton"
+					x:Name="MinimizeButton"
+					AutomationId="Notification.MinimizeButton"
 					HorizontalOptions="End"
 					VerticalOptions="Start"
-					Text="&#xe5cd;"
+					Text="&#xe931;"
 					FontFamily="MaterialIconsRegular"
 					FontSize="22"
 					WidthRequest="40"
@@ -186,7 +211,7 @@
 					Padding="0"
 					BackgroundColor="Transparent"
 					TextColor="{x:Static local:RootStyles.TableTextColor}"
-					Clicked="OnCloseClicked"/>
+					Clicked="OnMinimizeClicked"/>
 
 			</Grid>
 		</Border>

@@ -27,11 +27,21 @@ public sealed class NotificationStore
 		public string? Id => Data.Id;
 		public string? OrderNumber => Data.OrderNumber;
 		public string? Title => Data.Title;
+		/// <summary>
+		/// 小型バナー表示用の要約。未指定/空文字のときは表示側が <see cref="Title"/> に
+		/// フォールバックする (大型ポップアップは常に <see cref="Title"/> を使う)。
+		/// </summary>
+		public string? Summary => Data.Summary;
 		public string? Body => Data.Body;
 		public int Priority => Data.Priority;
 		public System.DateTimeOffset? IssuedAt => Data.IssuedAt;
 		/// <summary>true のとき <see cref="IssuedAt"/> は TZ 指定無し。表示側は値をそのまま (TZ 変換せず) 表示する。</summary>
 		public bool IssuedAtIsUnspecifiedTimeZone => Data.IssuedAtIsUnspecifiedTimeZone;
+		/// <summary>
+		/// <see cref="IssuedAt"/> が ISO 8601 (日付部分あり) としてパースできなかったときの
+		/// 生の入力文字列。<see cref="IssuedAt"/> が設定されているときは常に null。
+		/// </summary>
+		public string? IssuedAtRawText => Data.IssuedAtRawText;
 		public string? Receiver => Data.Receiver;
 		public string? Sender => Data.Sender;
 		public string? IconText => Data.IconText;
