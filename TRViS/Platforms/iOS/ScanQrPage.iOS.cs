@@ -32,6 +32,17 @@ public partial class ScanQrPage
 		{
 			bool granted =
 				await AVCaptureDevice.RequestAccessForMediaTypeAsync(AVAuthorizationMediaType.Video);
+
+			// AVCaptureDevice's completion handler fires on an arbitrary
+			// dispatch queue (Apple's documented behavior, not guaranteed to
+			// be the main queue), so execution can resume here off the main
+			// thread. Everything below this point (GetNativeCameraHostAsync,
+			// Configure()) touches UIView/autolayout state, which UIKit
+			// requires to happen on the main thread -- hop back explicitly
+			// instead of relying on the awaited continuation's thread.
+			if (!MainThread.IsMainThread)
+				await MainThread.InvokeOnMainThreadAsync(() => { });
+
 			if (!granted)
 				return false;
 		}
