@@ -310,6 +310,174 @@ public class TimetableSelectionManagerTests
 		Assert.Null(manager.OrderedTrainDataList);
 	}
 
+	// ----- ReconnectLoader (#311: WS再接続後も行路IDが一致すれば内部状態を維持) -----
+
+	[Fact]
+	public void ReconnectLoader_PreservesSelection_WhenWorkGroupWorkTrainIdsAllStillPresent()
+	{
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
+		manager.SelectedWork = loader.WorkLists["wg-1"][1];
+		manager.SelectedTrainData = loader.TrainListsByWorkId["w-1-1"][1];
+
+		// 再接続: 新しい Loader インスタンス (同じ WorkGroupId/WorkId/TrainId を含む)
+		var reconnectLoader = new FakeLoader();
+		reconnectLoader.Setup(BuildSampleData());
+		manager.ReconnectLoader(reconnectLoader);
+		Assert.True(manager.IsAwaitingReconnectData);
+
+		// この時点ではまだ選択はクリアされていない (新データ到着前)
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id);
+		Assert.Equal("w-1-1", manager.SelectedWork?.Id);
+		Assert.Equal("t-1-1-1", manager.SelectedTrainData?.Id);
+
+		// 時刻表再配信 (TimetableUpdated -> Refresh) を模す
+		manager.Refresh();
+
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id);
+		Assert.Equal("w-1-1", manager.SelectedWork?.Id);
+		Assert.Equal("t-1-1-1", manager.SelectedTrainData?.Id);
+		Assert.False(manager.IsAwaitingReconnectData); // 判定が確定した (呼び出し側はここで復元判定してよい)
+	}
+
+	[Fact]
+	public void ReconnectLoader_ClearsToUnselected_WhenWorkGroupIdMissing_DoesNotFallbackToFirst()
+	{
+		var loader = new FakeLoader();
+		loader.Setup(BuildMultiWgSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+		manager.SelectedWorkGroup = loader.WorkGroups[1]; // wg-2
+
+		// 再接続後、wg-2 が存在しないデータが再配信される
+		var reconnectLoader = new FakeLoader();
+		reconnectLoader.Setup(BuildSampleData()); // wg-1 のみ
+		manager.ReconnectLoader(reconnectLoader);
+		manager.Refresh();
+
+		// 通常の Refresh() (フォールバック挙動) と異なり、先頭 (wg-1) へは
+		// フォールバックせず未選択のままにする。
+		Assert.Null(manager.SelectedWorkGroup);
+		Assert.Null(manager.SelectedWork);
+		Assert.Null(manager.SelectedTrainData);
+	}
+
+	[Fact]
+	public void ReconnectLoader_ClearsToUnselected_WhenWorkIdMissing_DoesNotFallbackToFirst()
+	{
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
+		manager.SelectedWork = loader.WorkLists["wg-1"][1]; // w-1-1
+
+		var data = BuildSampleData();
+		data.WorkLists["wg-1"] = [data.WorkLists["wg-1"][0]]; // w-1-1 を消す
+		data.TrainListsByWorkId.Remove("w-1-1");
+		var reconnectLoader = new FakeLoader();
+		reconnectLoader.Setup(data);
+		manager.ReconnectLoader(reconnectLoader);
+		manager.Refresh();
+
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id); // WorkGroup は維持
+		Assert.Null(manager.SelectedWork); // 先頭 (w-1-0) へはフォールバックしない
+		Assert.Null(manager.SelectedTrainData);
+	}
+
+	[Fact]
+	public void ReconnectLoader_ClearsToUnselected_WhenTrainIdMissing_DoesNotFallbackToFirst()
+	{
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
+		manager.SelectedTrainData = loader.TrainListsByWorkId["w-1-0"][1]; // t-1-0-1
+
+		var data = BuildSampleData();
+		data.TrainListsByWorkId["w-1-0"] = [data.TrainListsByWorkId["w-1-0"][0]]; // t-1-0-1 を消す
+		data.TrainDataById.Remove("t-1-0-1");
+		var reconnectLoader = new FakeLoader();
+		reconnectLoader.Setup(data);
+		manager.ReconnectLoader(reconnectLoader);
+		manager.Refresh();
+
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id); // WorkGroup / Work は維持
+		Assert.Equal("w-1-0", manager.SelectedWork?.Id);
+		Assert.Null(manager.SelectedTrainData); // 先頭 (t-1-0-0) へはフォールバックしない
+	}
+
+	[Fact]
+	public void ReconnectLoader_WaitsForData_WhenNarrowScopeUpdateArrivesBeforeFullRedelivery()
+	{
+		// 再接続直後、サーバーがまだ全体 (Scope.All) を再配信しておらず、
+		// (何らかの理由で) 部分的な更新が先に TimetableUpdated として届き、
+		// Loader からはまだ空リストしか読めない場合。ID が「消えた」と誤判定して
+		// 選択を投げ捨てず、次の Refresh (実データ到着後) まで判定を持ち越す。
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
+		manager.SelectedWork = loader.WorkLists["wg-1"][1];
+		manager.SelectedTrainData = loader.TrainListsByWorkId["w-1-1"][1];
+
+		var reconnectLoader = new FakeLoader();
+		reconnectLoader.Setup(new SampleData()); // まだ何も届いていない (空)
+		manager.ReconnectLoader(reconnectLoader);
+		Assert.True(manager.IsAwaitingReconnectData);
+		manager.Refresh(); // 空データでの最初の Refresh -> 判定を持ち越すだけ、選択は消さない
+
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id);
+		Assert.Equal("w-1-1", manager.SelectedWork?.Id);
+		Assert.Equal("t-1-1-1", manager.SelectedTrainData?.Id);
+		// 呼び出し側 (#311: 運行状態の復元判定) は、このフラグが true の間は
+		// 「一致」を確定として扱ってはならない (実データ未着の可能性があるため)。
+		Assert.True(manager.IsAwaitingReconnectData);
+
+		// 実データが届く
+		reconnectLoader.Setup(BuildSampleData());
+		manager.Refresh();
+
+		Assert.Equal("wg-1", manager.SelectedWorkGroup?.Id);
+		Assert.Equal("w-1-1", manager.SelectedWork?.Id);
+		Assert.Equal("t-1-1-1", manager.SelectedTrainData?.Id);
+		Assert.False(manager.IsAwaitingReconnectData); // 判定が確定した
+	}
+
+	[Fact]
+	public void ReconnectLoader_OnlyAffectsNextSingleRefresh()
+	{
+		// strict-match は再接続直後の1回だけ適用され、以降の Refresh() は
+		// 通常どおり (リアルタイム編集向けの) フォールバック挙動に戻る。
+		var loader = new FakeLoader();
+		loader.Setup(BuildSampleData());
+
+		var manager = new TimetableSelectionManager { Loader = loader };
+		CommitFirstSelection(manager);
+		manager.SelectedTrainData = loader.TrainListsByWorkId["w-1-0"][1]; // t-1-0-1
+
+		var reconnectLoader = new FakeLoader();
+		reconnectLoader.Setup(BuildSampleData());
+		manager.ReconnectLoader(reconnectLoader);
+		manager.Refresh(); // 1st refresh after reconnect: strict match, all ids present -> preserved
+
+		Assert.Equal("t-1-0-1", manager.SelectedTrainData?.Id);
+
+		// 通常のリアルタイム編集で Train が消える -> 通常どおり先頭にフォールバック
+		var data = BuildSampleData();
+		data.TrainListsByWorkId["w-1-0"] = [data.TrainListsByWorkId["w-1-0"][0]];
+		data.TrainDataById.Remove("t-1-0-1");
+		reconnectLoader.Setup(data);
+		manager.Refresh();
+
+		Assert.Equal("t-1-0-0", manager.SelectedTrainData?.Id);
+	}
+
 	// ----- ヘルパー -----
 
 	private static TrainData SimpleTrain(string id) =>
