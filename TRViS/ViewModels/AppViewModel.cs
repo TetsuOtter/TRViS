@@ -54,6 +54,44 @@ public partial class AppViewModel : ObservableObject
 		Loader = loader;
 	}
 
+	// #311: 次の OnLoaderChanged 呼び出し 1 回だけ、選択状態をハードリセットせず
+	// TimetableSelectionManager.ReconnectLoader (Id 一致時の維持) に回すためのフラグ。
+	private bool _preserveSelectionOnNextLoaderChange;
+
+	/// <summary>
+	/// WS再接続 (#311) 用の Loader 差し替え。<see cref="SetLoader"/> と異なり、
+	/// WorkGroup/Work/TrainData の選択状態をハードリセットしない。時刻表が
+	/// 再配信され Id が一致すれば選択は維持され、一致しなければ未選択に戻る
+	/// (<see cref="TimetableSelectionManager.ReconnectLoader"/> 参照)。
+	/// </summary>
+	public void SetLoaderForReconnect(ILoader? loader, string? sourceLabel)
+	{
+		LoaderSourceLabel = sourceLabel;
+		_preserveSelectionOnNextLoaderChange = true;
+		Loader = loader;
+	}
+
+	// #311: WS再接続で Loader を差し替えた際に、直前の運行状態 (位置情報 ON/OFF)
+	// を記憶しておき、再配信された時刻表で WorkGroupId/WorkId/TrainId が全て
+	// 一致したときだけ復元する (OnTimetableUpdated 参照)。
+	private (string? WorkGroupId, string? WorkId, string? TrainId, bool WasLocationEnabled)? _pendingReconnectLocationRestore;
+
+	/// <summary>
+	/// WebSocket 切断検知の直後 (<c>MarkServerConnectionLost</c>、位置情報サービスが
+	/// GPS フォールバックで IsEnabled を強制 OFF する前) に呼び、その時点の選択 Id と
+	/// 位置情報サービスの有効状態を記録する。再接続ボタン押下時点では既に IsEnabled が
+	/// false になっているため、ここより後で捕まえても復元できない。
+	/// </summary>
+	internal void RememberSelectionForReconnect(bool isLocationEnabled)
+	{
+		_pendingReconnectLocationRestore = (
+			SelectionManager.SelectedWorkGroup?.Id,
+			SelectionManager.SelectedWork?.Id,
+			SelectionManager.SelectedTrainData?.Id,
+			isLocationEnabled
+		);
+	}
+
 	/// <summary>
 	/// サーバーから受信した最新のダイヤ情報 (ダイヤ名・説明など)。未受信／非接続時は null。
 	/// 接続情報画面で読み取り専用表示するために購読される。
@@ -421,7 +459,20 @@ public partial class AppViewModel : ObservableObject
 
 	partial void OnLoaderChanged(ILoader? value)
 	{
-		SelectionManager.Loader = value;
+		if (_preserveSelectionOnNextLoaderChange)
+		{
+			_preserveSelectionOnNextLoaderChange = false;
+			SelectionManager.ReconnectLoader(value);
+		}
+		else
+		{
+			SelectionManager.Loader = value;
+			// #311: 再接続以外の経路 (新規ファイルオープン等) でハードリセットされた
+			// 場合、直前の切断時に取っていた位置情報復元スナップショットは無意味な
+			// ので捨てる。残したままだと、後で無関係な TimetableUpdated の Id が
+			// たまたま一致したときに誤って IsEnabled を復元しかねない。
+			_pendingReconnectLocationRestore = null;
+		}
 		// ローダーが切り替わったら以前のダイヤ情報は無効。サーバー接続なら
 		// 接続時に再要求され DiagramInfoUpdated で改めて設定される。SetLoader は
 		// この後に NetworkSyncService を接続するため、ここでのクリアが新しい応答を
@@ -462,6 +513,54 @@ public partial class AppViewModel : ObservableObject
 			logger.Debug("Refreshing selection from Loader cache");
 			SelectionManager.Refresh();
 		}
+
+		// #311: WS再接続直後の再配信であれば、直前の WorkGroupId/WorkId/TrainId が
+		// すべて一致した場合に限り運行状態 (位置情報 ON/OFF) を復元する。
+		// 一致しなかった場合は消費するだけで何もしない (フォールバック先の別の
+		// 列車に対して運行状態を引き継がない)。
+		// SelectionManager.IsAwaitingReconnectData が true の間は、新データがまだ
+		// 届いておらず Refresh() が判定を持ち越した状態 (=選択 Id は古いオブジェクトの
+		// ままで「一致」に見えるだけ) なので、判定が確定するまで消費せず待つ。
+		if (SelectionManager.IsAwaitingReconnectData)
+		{
+			// まだ判定できない: スナップショットを残したまま次の TimetableUpdated を待つ。
+		}
+		else if (_pendingReconnectLocationRestore is { } restore)
+		{
+			_pendingReconnectLocationRestore = null;
+			if (ShouldRestoreLocationEnabled(
+				restore,
+				SelectionManager.SelectedWorkGroup?.Id,
+				SelectionManager.SelectedWork?.Id,
+				SelectionManager.SelectedTrainData?.Id))
+			{
+				logger.Info("Reconnect: selection ids matched -> restoring location service IsEnabled");
+				InstanceManager.LocationService.IsEnabled = true;
+			}
+		}
+	}
+
+	/// <summary>
+	/// #311 の復元条件を切り出した純粋関数: 切断時に記憶した
+	/// WorkGroupId/WorkId/TrainId が、再配信後に確定した現在の選択と
+	/// すべて一致し、かつ切断前に運行中 (位置情報 ON) だった場合にのみ true。
+	/// MAUI/InstanceManager に依存しないため、呼び出し側 (<see cref="OnTimetableUpdated"/>)
+	/// が <see cref="TimetableSelectionManager.IsAwaitingReconnectData"/> で
+	/// 判定確定後であることを保証した上で呼ぶこと。
+	/// </summary>
+	internal static bool ShouldRestoreLocationEnabled(
+		(string? WorkGroupId, string? WorkId, string? TrainId, bool WasLocationEnabled) snapshot,
+		string? currentWorkGroupId,
+		string? currentWorkId,
+		string? currentTrainId)
+	{
+		if (!snapshot.WasLocationEnabled)
+			return false;
+
+		return
+			currentWorkGroupId == snapshot.WorkGroupId &&
+			currentWorkId == snapshot.WorkId &&
+			currentTrainId == snapshot.TrainId;
 	}
 
 	/// <summary>

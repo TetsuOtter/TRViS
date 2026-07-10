@@ -65,6 +65,16 @@ public partial class AppViewModel
 	private void MarkServerConnectionLost()
 	{
 		logger.Info("WebSocket connection lost -> IsServerConnectionLost = true");
+
+		// #311: この時点では LocationService 側の ConnectionClosed ハンドラ (GPSへの
+		// フォールバック + IsEnabled=false 強制) はまだ呼ばれていない — WsConnectionLostWatcher
+		// (この呼び出し元) は SetNetworkSyncService より前、HandleWebSocketAppLinkAsync 内で
+		// 先に Watch() されているため、同一 ConnectionClosed の multicast 呼び出し順で
+		// こちらが先に実行される。運行状態 (位置情報 ON/OFF) を復元したいなら、それが
+		// 強制 OFF される前の「今」の値をここで捕まえる必要がある
+		// (再接続ボタン押下時点で捕まえると、既に false になっていて復元できない)。
+		RememberSelectionForReconnect(InstanceManager.LocationService.IsEnabled);
+
 		RunOnMainThread(() =>
 		{
 			// 再接続試行が終わった (クリーンクローズ or 再接続失敗) 状態。
@@ -118,7 +128,7 @@ public partial class AppViewModel
 		}
 		logger.Info("ReconnectWebSocketAsync: reconnecting to {0}", info.ResourceUri);
 		// addToHistory: false — a reconnect is not a new user-initiated entry.
-		return HandleWebSocketAppLinkAsync(info, _lastWebSocketOriginalAppLink, addToHistory: false, token);
+		return HandleWebSocketAppLinkAsync(info, _lastWebSocketOriginalAppLink, addToHistory: false, token, isReconnect: true);
 	}
 
 	public Task<bool> HandleAppLinkUriAsync(string uri, CancellationToken token)
@@ -383,7 +393,7 @@ public partial class AppViewModel
 		return true;
 	}
 
-	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token)
+	async Task<bool> HandleWebSocketAppLinkAsync(AppLinkInfo appLinkInfo, string? originalAppLink, bool addToHistory, CancellationToken token, bool isReconnect = false)
 	{
 		if (appLinkInfo.ResourceUri is null)
 		{
@@ -415,7 +425,20 @@ public partial class AppViewModel
 			IsServerReconnecting = false;
 
 			ILoader? lastLoader = this.Loader;
-			this.SetLoader(service, originalAppLink ?? appLinkInfo.ResourceUri?.ToString());
+			string? sourceLabel = originalAppLink ?? appLinkInfo.ResourceUri?.ToString();
+			if (isReconnect)
+			{
+				// #311: 再接続では選択状態 (WorkGroup/Work/TrainData) を直ちに捨てない。
+				// 再配信された時刻表で Id が一致すれば維持され、一致しなければ未選択に戻る
+				// (SetLoaderForReconnect / OnTimetableUpdated 参照)。運行状態 (位置情報
+				// ON/OFF) の復元用スナップショットは、強制 OFF される前に
+				// MarkServerConnectionLost 側で既に取得済み。
+				this.SetLoaderForReconnect(service, sourceLabel);
+			}
+			else
+			{
+				this.SetLoader(service, sourceLabel);
+			}
 			logger.Info("Loader Initialized from WebSocket");
 			lastLoader?.Dispose();
 			logger.Debug("Last Loader Disposed");
@@ -427,6 +450,8 @@ public partial class AppViewModel
 			// the selection is best-effort here (SelectionManager.OnLoaderChanged
 			// already auto-committed if a single WorkGroup was present); the
 			// server's SelectTrain push refines it afterwards regardless.
+			// On a reconnect the selection is already non-null (preserved above),
+			// so this intentionally does not override it.
 			if (SelectionManager.SelectedWorkGroup is null)
 				SelectionManager.SelectedWorkGroup = SelectionManager.WorkGroupList?.FirstOrDefault();
 			RequestAutoNavigateToTimetable();
