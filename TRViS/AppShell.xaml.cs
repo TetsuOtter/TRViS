@@ -1,5 +1,6 @@
 #if IOS
 using System.Runtime.Versioning;
+using CoreGraphics;
 #endif
 
 using System.Runtime.CompilerServices;
@@ -268,8 +269,37 @@ public partial class AppShell : Shell
 
 		if (UIWindow is not null)
 		{
+			double left = UIWindow.SafeAreaInsets.Left.Value;
+
+			// iPadOS 26 draws macOS-style window controls (close/fullscreen/minimize) in
+			// the top-left corner of windowed/resizable scenes. UIWindow.SafeAreaInsets
+			// does not grow to avoid them; the horizontal-corner-adaptation variant of the
+			// new UIViewLayoutRegion API does, but it also reports a few points of
+			// clearance even when the scene fills the whole display and no controls are
+			// drawn at all (confirmed on-device: a full-bleed screenshot showed a
+			// perfectly square corner while the API still returned >0). There is no
+			// public API to ask "are the controls currently visible", so only trust the
+			// corner-adaptation inset while the window doesn't fill the screen (i.e. it's
+			// plausibly tiled/floating) to avoid nudging the button in the common
+			// full-screen case. Compare by area, not width/height, since UIScreen.Bounds
+			// does not necessarily rotate with the window's current orientation.
+			// ref: https://developer.apple.com/videos/play/wwdc2025/282 (Make your UIKit app more flexible)
+			if (OperatingSystem.IsIOSVersionAtLeast(26))
+			{
+				CGSize windowSize = UIWindow.Frame.Size;
+				CGSize screenSize = (UIWindow.WindowScene?.Screen ?? UIKit.UIScreen.MainScreen).Bounds.Size;
+				bool isTiledOrFloating = Math.Abs(windowSize.Width * windowSize.Height - screenSize.Width * screenSize.Height) > 1.0;
+				if (isTiledOrFloating)
+				{
+					double cornerAwareLeft = UIWindow.GetEdgeInsets(
+						UIKit.UIViewLayoutRegion.CreateSafeAreaLayoutRegion(UIKit.UIViewLayoutRegionAdaptivityAxis.Horizontal)
+					).Left;
+					left = Math.Max(left, cornerAwareLeft);
+				}
+			}
+
 			SafeAreaMargin = new(
-				UIWindow.SafeAreaInsets.Left.Value,
+				left,
 				UIWindow.SafeAreaInsets.Top.Value,
 				UIWindow.SafeAreaInsets.Right.Value,
 				UIWindow.SafeAreaInsets.Bottom.Value
