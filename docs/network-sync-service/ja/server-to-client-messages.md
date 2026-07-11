@@ -233,20 +233,57 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 {
   "MessageType": "Notification",
   "Id": "n-001",                          // string | null
+  "OrderNumber": "指令003号",             // string | null（指令番号）
   "Title": "運転見合わせ",                // string | null
-  "Body": "強風のため…",                  // string | null
+  "Summary": "運転見合わせ",              // string | null（小型バナー用の要約）
+  "Body": "強風のため…",                  // string | null（BBCode 可）
   "Priority": 1,                          // integer（0=通常,1=重要 等。サーバ任意）
-  "IssuedAt": "2024-03-01T09:00:00+09:00" // string (ISO 8601) | null
+  "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601、TZ オフセット任意) | null
+  "Receiver": "○○列車 乗務員",            // string | null（受信者）
+  "Sender": "指令所",                     // string | null（指令者）
+  "IconText": "指",                       // string | null（アイコン文字。IconImageBase64 未指定時のみ使用）
+  "IconColor_RGB": "#C62828",              // integer (0xRRGGBB) | string ("#RRGGBB") | 省略（アイコン背景色。既定色あり）
+  "IconImageBase64": null,                // string | null（アイコン画像。指定時は IconText より優先）
+  "Acknowledged": false,                  // boolean（省略可）。受領済みなら true
+  "CompactDisplay": false,                // boolean（省略可）。true で初回から小型バナー表示
+  "SectionStartStation": "石川",          // string | null（区間開始側。駅名 or 駅ID）
+  "SectionEndStation": "川部",            // string | null（区間終了側。駅名 or 駅ID。省略時は単駅）
+  "StationsBefore": 1                     // integer（省略可、既定 1）。区間の何駅手前から再表示するか
 }
 ```
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| `Id` | string | 通告識別子。 |
-| `Title` | string | 見出し。 |
-| `Body` | string | 本文。 |
+| `Id` | string | 通告識別子。受領（[`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification)）の対象キーになる。 |
+| `OrderNumber` | string | 指令番号。表示のみに用いる（サーバー・現場運用側の管理番号）。 |
+| `Title` | string | 見出し。大型ポップアップで使用する。 |
+| `Summary` | string | 任意。小型バナー用の要約。未指定または空文字の場合は `Title` にフォールバックし、大型ポップアップでは常に `Title` を使用する。 |
+| `Body` | string | 本文。**BBCode**（`[b]…[/b]` 等）を使用できる。表示側の解釈はクライアント実装に依存。 |
 | `Priority` | integer | 重要度。JSON 数値かつ 32bit 整数のときのみ採用、既定 `0`。意味づけはサーバー任意。 |
-| `IssuedAt` | string | 発行時刻。**ISO 8601**（往復可能形式、例 `2024-03-01T09:00:00+09:00`）。解釈できない場合は未設定。 |
+| `IssuedAt` | string | 発行時刻。日付（`yyyy-MM-dd`）と任意の ISO 8601 時刻・オフセットを持つ文字列を日時として解釈する。TZ オフセット（`Z` または `+HH:mm`/`-HH:mm`）の有無で解釈が変わる（下記参照）。この形式で解釈できない場合は日時として扱わず、元の文字列をそのまま表示する。 |
+| `Receiver` | string | 受信者。表示のみに用いる。 |
+| `Sender` | string | 指令者（発信者）。表示のみに用いる。 |
+| `IconText` | string | アイコンとして表示する文字（1〜2 文字程度を想定）。`IconImageBase64` が指定されている場合は使用されない。 |
+| `IconColor_RGB` | integer \| string | `IconText` の背景色。**JSON 数値**（`0xRRGGBB` の 10 進表記、32bit 整数として読めるもの）または **`"#RRGGBB"` 形式の文字列**（先頭 `#` 必須、大文字小文字不問）のどちらでも指定できる。いずれの形式でも解釈できない場合は未設定（既定色）。未指定時はクライアント既定色。 |
+| `IconImageBase64` | string | アイコン画像の Base64 エンコードされたバイナリ（`data:image/png;base64,...` のような data URI プレフィックスを含んでいてもよい）。指定されている場合、`IconText`/`IconColor_RGB` より優先して表示する。 |
+| `Acknowledged` | boolean | 任意。当該クライアントが既にこの通告を受領済みかをサーバーが示す。JSON の `true` のときのみ受領済み扱いで、それ以外（`false`/欠落）は未受領。再接続後などに通告を再配信する際、受領済みのものを既読として渡すために使う（クライアントは既読の通告を再度ポップアップ表示しない）。 |
+| `CompactDisplay` | boolean | 任意。JSON の `true` のときのみ、初回表示を画面上部の小型バナーで行う（それ以外/欠落は大型の中央ポップアップ）。小型でも受領ボタンは表示され、受領必須（`Id` あり）の通告は受領するまで消えない。 |
+| `SectionStartStation` | string | 任意。この通告が対象とする区間・駅の開始側を**駅名または駅 ID**で指定する（照合は駅 ID 一致 → 駅名一致の順、大文字小文字を区別）。受領後に非表示となった通告は、この区間の `StationsBefore` 駅手前に到達した時点で受領済み状態の小型バナーとして自動再表示され、区間を抜けると自動的に非表示になる。現在列車の経路に該当駅が無い場合は再表示しない。 |
+| `SectionEndStation` | string | 任意。区間の終了側を**駅名または駅 ID**で指定する。未指定のとき `SectionStartStation` と同一（単駅）扱い。区間の向き（開始/終了の前後）は問わない（経路上のインデックスで正規化する）。 |
+| `StationsBefore` | integer | 任意、既定 `1`。区間開始の何駅手前から再表示を開始するか。JSON 数値かつ 32bit 整数のときのみ採用。0 以下は 0 として扱い、区間開始駅から表示する。 |
+
+**区間・駅連動の再表示について:**
+- `SectionStartStation`（＋任意で `SectionEndStation`）を指定した通告は、受領後にいったん非表示になるが、指定区間（または単駅）の `StationsBefore` 駅手前に到達すると受領済み状態の小型バナーとして再表示され、区間を抜けると自動的に非表示になる。
+- 駅の指定は**駅名でも駅 ID でも**よい。駅 ID は SQLite 形式では正規化された駅 ID、JSON 形式では各行の `Id`（現在列車の経路内で解決するため行単位の Id で十分）。いずれの形式でも駅名での照合にフォールバックできる。
+
+**`IssuedAt` の TZ 有無による表示の違い:**
+- TZ オフセットあり（例 `2024-03-01T09:00:00+09:00` や `...Z`）: クライアントは**端末の現在の TZ を考慮**して変換した時刻を表示する。
+- TZ オフセットなし（例 `2024-03-01T09:00:00`）: クライアントは**その時刻をそのまま**（TZ 変換せずに）表示する。
+- `2024-03-01` のような日付のみの文字列は受け付け、TZ 変換せずそのまま表示する。
+- 日付のみではなく日時区切りの `T` を含まない文字列（例 `2024-03-01 09:00:00`）は日時として解釈せず、元の文字列をそのまま表示する。その他の任意／解釈不能な文字列も同様に扱う。
+
+受領（クライアント → サーバー）については
+[`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification) を参照。
 
 ## 9. TimeFormat
 
@@ -386,11 +423,11 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 - `SyncedData.CanStart` は **省略時 `true`**。意味は「サービス利用可否／
   自動運行開始の許可」で **WS では `true` で自動運行開始**。意図せず運行
   させたくない場合は明示的に `false`（[common-data-model §4](common-data-model.md#4-canstart-の意味)）。
-- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority` は
-  **JSON number 型必須**（文字列は無効）。
+- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority`/`Notification.StationsBefore` は
+  **JSON number 型必須**（文字列は無効）。`StationsBefore` は欠落時に既定 `1`。
 - `SelectTrain` の各 ID は **JSON string 型必須**。
 - `OperationCommand.Action` は**必須**かつ既知の値のみ有効（大小無視）。
-- `Notification.IssuedAt` は **ISO 8601** のみ。
+- `Notification.IssuedAt` は `yyyy-MM-dd` の日付と任意の ISO 8601 時刻・オフセットを持つ場合に日時として解釈する。無効／日付でない文字列はそのまま表示し、解釈した値は TZ オフセットの有無で表示の変換有無が変わる（[§8](#8-notification) 参照）。
 - `ServerInfo.Features` は **JSON 配列**で、文字列要素のみ採用し文字列
   以外は無視（欠落／`null` は拡張機能なし）。
 - 未知の `MessageType`・`MessageType` 欠落・不正 JSON は **黙って無視**。

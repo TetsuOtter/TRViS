@@ -29,12 +29,20 @@ public partial class WithRemarksView : Grid
 		set => RemarksView.IsOpen = value;
 	}
 
+	/// <summary>注意事項の展開エリアの高さ (ヘッダーを除く)。展開時に他の要素を追従させる際に使う。</summary>
+	public double RemarksContentAreaHeight => RemarksView.ContentAreaHeight.Value;
+
+	/// <summary>IsOpen (注意事項の開閉) が変化したとき発火する。<see cref="Remarks.IsOpenChanged"/> の中継。</summary>
+	public event EventHandler<bool>? RemarksIsOpenChanged;
+
 	public WithRemarksView()
 	{
 		logger.Trace("Creating...");
 
 		RowDefinitions.Add(new(new(1, GridUnitType.Star)));
 		RowDefinitions.Add(RemarksAreaRowDefinition);
+
+		RemarksView.IsOpenChanged += (_, isOpen) => RemarksIsOpenChanged?.Invoke(this, isOpen);
 
 		SafeAreaEdges = SafeAreaEdges.None;
 		Margin = new(0);

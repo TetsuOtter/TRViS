@@ -34,6 +34,13 @@ public partial class AppViewModel : ObservableObject
 
 	public TimetableSelectionManager SelectionManager { get; } = new();
 
+	/// <summary>
+	/// サーバーから受信した通告 (Notification) の管理・ポップアップ表示要求を担う ViewModel。
+	/// AppShell が <see cref="NotificationCenterViewModel.DisplayRequested"/> を購読して
+	/// ポップアップを表示する。
+	/// </summary>
+	public NotificationCenterViewModel NotificationCenter { get; } = new();
+
 	[ObservableProperty]
 	public partial ILoader? Loader { get; set; }
 
@@ -334,6 +341,9 @@ public partial class AppViewModel : ObservableObject
 	public AppViewModel()
 	{
 		SelectionManager.PropertyChanged += (_, e) => OnPropertyChanged(e.PropertyName);
+		SelectionManager.PropertyChanged += OnSelectionManagerPropertyChangedForNotificationCenter;
+		// 起動時点で既に選択済みの列車があれば (通常は無いが) 反映しておく。
+		PushSelectedTrainStationsToNotificationCenter();
 
 		if (Application.Current is not null)
 		{
@@ -393,6 +403,34 @@ public partial class AppViewModel : ObservableObject
 		return true;
 	}
 
+	/// <summary>
+	/// 選択列車が切り替わったときに、その駅順を <see cref="NotificationCenter"/> へ反映する。
+	/// <see cref="SelectionManager"/> は選択列車が変わると <see cref="SelectionManager.SelectedTrainData"/>
+	/// で PropertyChanged を発火するので、それをフィルタして拾う。
+	/// </summary>
+	void OnSelectionManagerPropertyChangedForNotificationCenter(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(SelectedTrainData))
+			PushSelectedTrainStationsToNotificationCenter();
+	}
+
+	/// <summary>
+	/// 現在の <see cref="SelectedTrainData"/> の駅順 (info-row 除外済み) を
+	/// <see cref="NotificationCenterViewModel.SetCurrentTrainStations"/> へ渡す。
+	/// LocationService が組み立てる駅位置情報の配列 (info-row 除外) と同じインデックス空間に
+	/// なるよう、ここでも同じフィルタ (IsInfoRow 除外) を適用する。
+	/// </summary>
+	void PushSelectedTrainStationsToNotificationCenter()
+	{
+		var rows = SelectedTrainData?.Rows;
+		var stations = rows is null
+			? System.Array.Empty<StationRef>()
+			: rows.Where(r => !r.IsInfoRow)
+				.Select(r => new StationRef(r.StationId, r.StationName))
+				.ToArray();
+		NotificationCenter.SetCurrentTrainStations(stations);
+	}
+
 	internal void SubscribeToLocationService(TRViS.Services.LocationService locationService)
 	{
 		locationService.TimetableUpdated += OnTimetableUpdated;
@@ -402,12 +440,13 @@ public partial class AppViewModel : ObservableObject
 		locationService.DiagramInfoUpdated += OnDiagramInfoUpdated;
 		locationService.NavigateToHomeRequested += OnNavigateToHomeRequested;
 		locationService.OpenTimetableRequested += OnOpenTimetableRequested;
-		// NotificationReceived / OperationCommandReceived / ServerInfo は
+		// 通告 (Notification) は NotificationCenter が購読し、未読をポップアップ表示する
+		// (AppShell が DisplayRequested を購読)。OperationCommandReceived / ServerInfo は
 		// LocationService 側で受信される。OperationCommand のうち位置情報 ON/OFF は
 		// LocationService が直接適用し、運行開始/終了そのものは
 		// LocationService.OperationStartRequested 経由で DTAC.Adapters.LocationServiceAdapter
-		// → VerticalStylePagePresenter に委譲される。Notification / ServerInfo の UI 表示は
-		// 個別画面側で必要に応じて購読する。
+		// → VerticalStylePagePresenter に委譲される。ServerInfo の UI 表示は個別画面側で購読する。
+		NotificationCenter.Subscribe(locationService);
 	}
 
 	void OnNavigateToHomeRequested(object? sender, EventArgs _)

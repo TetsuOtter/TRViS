@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:loc="clr-namespace:TRViS.Localization"
+	xmlns:root="clr-namespace:TRViS"
+	x:Class="TRViS.DTAC.NotificationBannerView">
+
+	<!-- D-TAC 画面上部に重ねて出す、受領必須の初回小型表示・区間連動の再表示の
+	     両方を担う非モーダルバナー。ViewHost が NotificationCenterViewModel の
+	     BannerRequested/BannerDismissed に応じて Configure/表示切替を行う (このビュー自体は
+	     イベントを購読しない、純粋に受け身のビュー)。タップで大きい中央ポップアップへ展開する。 -->
+	<Border
+		AutomationId="Notification.Banner"
+		Stroke="{x:Static root:RootStyles.BorderStrokeColor}"
+		StrokeThickness="1"
+		BackgroundColor="{x:Static root:RootStyles.BackgroundColor}"
+		Padding="24">
+		<Border.StrokeShape>
+			<RoundRectangle CornerRadius="24"/>
+		</Border.StrokeShape>
+		<Border.Shadow>
+			<Shadow Brush="Black" Opacity="0.3" Radius="8" Offset="0,2"/>
+		</Border.Shadow>
+		<Border.GestureRecognizers>
+			<TapGestureRecognizer Tapped="OnBannerTapped"/>
+			<SwipeGestureRecognizer Direction="Up" Swiped="OnBannerSwipedUp"/>
+			<SwipeGestureRecognizer Direction="Down" Swiped="OnBannerSwipedDown"/>
+		</Border.GestureRecognizers>
+
+		<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="16">
+
+			<!-- アイコン: 画像 (Base64) が優先。無ければ背景色+文字のバッジ。どちらも無ければ
+			     IconHost ごと非表示にして Col0 (Auto) を畳む。 -->
+			<Grid
+				x:Name="IconHost"
+				Grid.Column="0"
+				VerticalOptions="Center">
+				<Border
+					x:Name="IconBadge"
+					IsVisible="False"
+					StrokeThickness="0"
+					BackgroundColor="{x:Static root:RootStyles.TableDetailColor}"
+					WidthRequest="56"
+					HeightRequest="56"
+					Padding="0">
+					<Border.StrokeShape>
+						<RoundRectangle CornerRadius="28"/>
+					</Border.StrokeShape>
+					<Label
+						x:Name="IconBadgeLabel"
+						TextColor="White"
+						FontSize="24"
+						FontAutoScalingEnabled="False"
+						FontAttributes="Bold"
+						HorizontalTextAlignment="Center"
+						VerticalTextAlignment="Center"/>
+				</Border>
+				<Image
+					x:Name="IconImage"
+					IsVisible="False"
+					WidthRequest="56"
+					HeightRequest="56"
+					Aspect="AspectFit"/>
+			</Grid>
+
+			<!-- 概要 (タイトル、未設定なら「通告」にフォールバック)。BBCode は展開先の
+			     ポップアップでのみ表示し、ここでは 1 行のプレーンテキストに留める。 -->
+			<Label
+				x:Name="SummaryLabel"
+				AutomationId="Notification.Banner.Summary"
+				Grid.Column="1"
+				FontAttributes="Bold"
+				FontSize="30"
+				LineBreakMode="TailTruncation"
+				VerticalOptions="Center"
+				TextColor="{x:Static root:RootStyles.TableTextColor}"/>
+
+			<!-- 受領ボタン: !entry.IsRead &amp;&amp; entry.CanAcknowledge のときのみ表示 (Configure が制御)。
+			     「運行開始」ボタン (StartEndRunButton) と同じ緑グラデーションのスタイル。 -->
+			<Button
+				x:Name="AcknowledgeButton"
+				AutomationId="Notification.Banner.AcknowledgeButton"
+				Grid.Column="2"
+				Text="{loc:Translate Notification_Acknowledge}"
+				HeightRequest="72"
+				FontSize="26"
+				FontAttributes="Bold"
+				CornerRadius="8"
+				Padding="24,0"
+				TextColor="{AppThemeBinding Light=White, Dark=#E0E0E0}"
+				IsVisible="False"
+				Clicked="OnAcknowledgeButtonClicked">
+				<Button.Background>
+					<LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+						<GradientStop Offset="0.1" Color="{AppThemeBinding Light=#0D8C0D, Dark=#0C7C0C}"/>
+						<GradientStop Offset="1.0" Color="{AppThemeBinding Light=#007300, Dark=#005F00}"/>
+					</LinearGradientBrush>
+				</Button.Background>
+			</Button>
+
+			<!-- タップで展開できることを示すシェブロン。 -->
+			<Label
+				x:Name="ChevronLabel"
+				AutomationId="Notification.Banner.Chevron"
+				Grid.Column="3"
+				Text="&#xe5cc;"
+				FontFamily="MaterialIconsRegular"
+				FontSize="48"
+				VerticalOptions="Center"
+				TextColor="{x:Static root:RootStyles.TableDetailColor}"/>
+
+		</Grid>
+	</Border>
+</ContentView>
