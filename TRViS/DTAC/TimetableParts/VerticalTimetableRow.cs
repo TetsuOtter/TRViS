@@ -158,6 +158,7 @@ public class VerticalTimetableRow : IDisposable
 		switch (e.PropertyName)
 		{
 			case nameof(VerticalTimetableColumnVisibilityState.RunTime):
+			case nameof(VerticalTimetableColumnVisibilityState.IsRunTimeMid):
 				UpdateDriveTime();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.StationName):
@@ -174,6 +175,7 @@ public class VerticalTimetableRow : IDisposable
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.TrackName):
 			case nameof(VerticalTimetableColumnVisibilityState.IsTrackNameNarrow):
+			case nameof(VerticalTimetableColumnVisibilityState.IsTrackNameMid):
 				UpdateTrackName();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.RunInOutLimit):
@@ -481,10 +483,17 @@ public class VerticalTimetableRow : IDisposable
 		if (!string.IsNullOrEmpty(Model.DriveTimeMM) && DriveTimeMMLabel is not null)
 		{
 			DriveTimeMMLabel.Text = DriveTimeFormatter.FormatMinutes(Model.DriveTimeMM);
+			// iPad mini 6 帯 (768pt 未満) では運転時分列が詰まるため、フォントを少し縮める (issue #320)
+			DriveTimeMMLabel.FontSize = VisibilityState.IsRunTimeMid
+				? DTACElementStyles.DriveTimeMMFontSizeMid
+				: DTACElementStyles.DriveTimeMMFontSize;
 		}
 		if (!string.IsNullOrEmpty(Model.DriveTimeSS) && DriveTimeSSLabel is not null)
 		{
 			DriveTimeSSLabel.Text = DriveTimeFormatter.FormatSeconds(Model.DriveTimeSS);
+			DriveTimeSSLabel.FontSize = VisibilityState.IsRunTimeMid
+				? DTACElementStyles.DriveTimeSSFontSizeMid
+				: DTACElementStyles.DriveTimeSSFontSize;
 		}
 		UpdateDriveTimeTextColor();
 	}
@@ -612,12 +621,14 @@ public class VerticalTimetableRow : IDisposable
 
 		var label = EnsureComponent(ref TrackNameLabel, CreateTrackNameComponent, TRACK_NAME_COLUMN);
 		label.Text = Model.TrackName;
-		// issue #41: 狭幅モードでは縮小したベースサイズから算出する。
+		// issue #41/#320: 狭幅モードでは縮小したベースサイズから算出する。
 		// label.FontSize を基準にすると再利用時に縮小が複合してしまうため、
 		// 毎回モードに応じたベースサイズを明示的に渡す。
 		double trackBaseFontSize = VisibilityState.IsTrackNameNarrow
 			? DTACElementStyles.TimetableFontSizeNarrow
-			: DTACElementStyles.TimetableFontSize;
+			: VisibilityState.IsTrackNameMid
+				? DTACElementStyles.TimetableFontSizeMid
+				: DTACElementStyles.TimetableFontSize;
 		label.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(Model.TrackName, trackBaseFontSize);
 	}
 
