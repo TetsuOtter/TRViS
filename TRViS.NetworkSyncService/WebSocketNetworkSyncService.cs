@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,6 +46,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_DIAGRAM_INFO = "DiagramInfo";
 	private const string MESSAGE_TYPE_REQUEST_SERVER_INFO = "RequestServerInfo";
 	private const string MESSAGE_TYPE_REQUEST_DIAGRAM_INFO = "RequestDiagramInfo";
+	private const string MESSAGE_TYPE_ACKNOWLEDGE_NOTIFICATION = "AcknowledgeNotification";
 	private const string MESSAGE_TYPE_SELECT_TRAIN = "SelectTrain";
 	private const string MESSAGE_TYPE_OPERATION_COMMAND = "OperationCommand";
 	private const string MESSAGE_TYPE_HEADER_COLOR = "HeaderColor";
@@ -633,20 +635,110 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		var n = new NotificationData
 		{
 			Id = TryGetStringProperty(root, "Id"),
+			OrderNumber = TryGetStringProperty(root, "OrderNumber"),
 			Title = TryGetStringProperty(root, "Title"),
+			Summary = TryGetStringProperty(root, "Summary"),
 			Body = TryGetStringProperty(root, "Body"),
+			Receiver = TryGetStringProperty(root, "Receiver"),
+			Sender = TryGetStringProperty(root, "Sender"),
+			IconText = TryGetStringProperty(root, "IconText"),
+			IconImageBase64 = TryGetStringProperty(root, "IconImageBase64"),
+			SectionStartStation = TryGetStringProperty(root, "SectionStartStation"),
+			SectionEndStation = TryGetStringProperty(root, "SectionEndStation"),
 		};
 		if (root.TryGetProperty("Priority", out var p) && p.ValueKind == JsonValueKind.Number
 			&& p.TryGetInt32(out int prio))
 			n.Priority = prio;
+		// StationsBefore は省略/不正値のときモデル既定値 (1) を維持する。
+		if (root.TryGetProperty("StationsBefore", out var sb) && sb.ValueKind == JsonValueKind.Number
+			&& sb.TryGetInt32(out int stationsBefore))
+			n.StationsBefore = stationsBefore;
+		if (root.TryGetProperty("IconColor_RGB", out var ic))
+		{
+			// 数値 (0xRRGGBB の 10 進表記) と "#RRGGBB" 形式の文字列の両方を受け付ける。
+			if (ic.ValueKind == JsonValueKind.Number && ic.TryGetInt32(out int iconRgb))
+				n.IconColor_RGB = iconRgb;
+			else if (ic.ValueKind == JsonValueKind.String && NotificationData.TryParseIconColor(ic.GetString(), out int hexIconRgb))
+				n.IconColor_RGB = hexIconRgb;
+		}
 		if (root.TryGetProperty("IssuedAt", out var t) && t.ValueKind == JsonValueKind.String)
 		{
 			string? s = t.GetString();
-			if (s is not null && DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
-				System.Globalization.DateTimeStyles.RoundtripKind, out var dto))
-				n.IssuedAt = dto;
+			if (s is not null)
+			{
+				if (TryParseIssuedAt(s, out var dto, out bool isUnspecifiedTimeZone))
+				{
+					n.IssuedAt = dto;
+					n.IssuedAtIsUnspecifiedTimeZone = isUnspecifiedTimeZone;
+				}
+				else
+				{
+					// ISO 8601 (日付部分あり) として解釈できない入力は、日時としてパースせず
+					// 生の文字列をそのまま表示側に渡す。
+					n.IssuedAtRawText = s;
+				}
+			}
 		}
+		// Acknowledged は JSON の true のときのみ受領済み扱い (それ以外/欠落は false)。
+		if (root.TryGetProperty("Acknowledged", out var ack))
+			n.Acknowledged = ack.ValueKind == JsonValueKind.True;
+		// CompactDisplay も同様に true のときのみ有効 (それ以外/欠落は false)。
+		if (root.TryGetProperty("CompactDisplay", out var cd))
+			n.CompactDisplay = cd.ValueKind == JsonValueKind.True;
 		RaiseNotificationReceived(n);
+	}
+
+	/// <summary>
+	/// ISO 8601 の日付部分 (<c>yyyy-MM-dd</c>) を必須とし、時刻・オフセットを任意で許容する
+	/// 厳密な形式のみを ISO 8601 と認める。空白区切り (<c>2024-03-01 09:00:00</c>) や
+	/// 日付部分の無い時刻のみの文字列 (<c>09:00:00</c>) はここでは一致しない
+	/// (<see cref="TryParseIssuedAt"/> がそのまま生文字列表示にフォールバックする)。
+	/// </summary>
+	private static readonly Regex Iso8601DateRegex = new(
+		@"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$",
+		RegexOptions.Compiled);
+
+	/// <summary>
+	/// <c>Notification.IssuedAt</c> の文字列をパースする。<see cref="Iso8601DateRegex"/> に
+	/// 一致しない (= ISO 8601 の日付部分を持たない) 入力は常に false を返し、呼び出し側は
+	/// 生の文字列をそのまま表示する (<see cref="NotificationData.IssuedAtRawText"/>)。
+	/// <para>
+	/// マッチした場合、オフセット (<c>Z</c> または <c>+HH:mm</c>/<c>-HH:mm</c>) を含む文字列は
+	/// TZ 指定ありと判断し、表示側で端末の現在 TZ に変換する
+	/// (<see cref="DateTimeOffset.LocalDateTime"/>) ことを前提に <paramref name="value"/> を
+	/// そのまま返す。オフセットを含まない文字列は「その時刻をそのまま表示する」ため、日時部分
+	/// だけを Offset=0 の <see cref="DateTimeOffset"/> に詰めて返し
+	/// (<see cref="DateTimeOffset.DateTime"/> が元の文字列の値と一致する)、
+	/// <paramref name="isUnspecifiedTimeZone"/> を true にする。
+	/// </para>
+	/// </summary>
+	private static bool TryParseIssuedAt(string s, out DateTimeOffset value, out bool isUnspecifiedTimeZone)
+	{
+		value = default;
+		isUnspecifiedTimeZone = false;
+
+		if (!Iso8601DateRegex.IsMatch(s))
+			return false;
+
+		int tIndex = s.IndexOf('T');
+		bool hasOffset = tIndex >= 0
+			&& (s[tIndex..].Contains('Z') || s[tIndex..].Contains('+') || s[tIndex..].Contains('-'));
+
+		if (hasOffset)
+		{
+			return DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
+				System.Globalization.DateTimeStyles.RoundtripKind, out value);
+		}
+
+		if (!DateTime.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
+			System.Globalization.DateTimeStyles.NoCurrentDateDefault, out var dt))
+			return false;
+
+		// オフセットは表示側で使わない (isUnspecifiedTimeZone=true のとき DateTime プロパティを
+		// そのまま表示する) ため、TimeSpan.Zero を仮に詰めるだけでよい。
+		value = new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Unspecified), TimeSpan.Zero);
+		isUnspecifiedTimeZone = true;
+		return true;
 	}
 
 	private void ProcessTimeFormatMessage(JsonElement root)
@@ -1094,6 +1186,18 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		}
 
 		return GetTrainData(trainId);
+	}
+
+	/// <summary>
+	/// 通告の受領 (<c>AcknowledgeNotification</c>) をサーバーへ送信する。
+	/// 送信は SendRequestMessageAsync 経由でセマフォ直列化され、ソケットが未接続の
+	/// 場合はベストエフォートで無視される (呼び出し側はローカルの既読状態を維持する)。
+	/// </summary>
+	public override Task AcknowledgeNotificationAsync(string id, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(id);
+		var additional = new Dictionary<string, string?> { ["Id"] = id };
+		return SendRequestMessageAsync(MESSAGE_TYPE_ACKNOWLEDGE_NOTIFICATION, additional, cancellationToken);
 	}
 
 	private async Task SendRequestMessageAsync(
