@@ -86,6 +86,48 @@ public class DTACViewHostPageObject : PageObject
 		return false;
 	}
 
+	// --- AppBar header color (#310) ---
+
+	// Invisible mirror Label reflecting EasterEggPageViewModel.
+	// EffectiveShellBackgroundColor as "#RRGGBB" text. Sentinel-prefixed so it
+	// is always non-empty / findable, same pattern as ConnectionStatusSeam.
+	public AppiumElement HeaderColorSeam => WaitForElement(AutomationIds.AppBar.HeaderColorSeam);
+
+	/// <summary>
+	/// Current AppBar background color ("#RRGGBB") as reflected by the
+	/// UI_TEST mirror Label. Compare against
+	/// <see cref="EasterEggPageObject.ReadHeaderColorViaSeam"/> to assert the
+	/// Settings screen and DTAC's AppBar always show the same color (#310).
+	/// </summary>
+	public string ReadHeaderColorViaSeam() => StripSeamPrefix(
+		HeaderColorSeam.Text ?? string.Empty,
+		AutomationIds.AppBar.HeaderColorSeamPrefix);
+
+	/// <summary>
+	/// Polls the header-color mirror until it equals <paramref name="expected"/>
+	/// (or times out). The seam updates via PropertyChanged after a
+	/// HeaderColor-override seam tap, so a short poll absorbs the cross-process
+	/// dispatch latency.
+	/// </summary>
+	public bool WaitForHeaderColor(string expected, double timeoutSeconds = 8)
+	{
+		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+		do
+		{
+			try
+			{
+				if (ReadHeaderColorViaSeam() == expected)
+					return true;
+			}
+			catch (OpenQA.Selenium.WebDriverException)
+			{
+				// element momentarily not in tree mid-transition — keep polling
+			}
+			Thread.Sleep(200);
+		} while (DateTime.UtcNow < deadline);
+		return false;
+	}
+
 	public void TapWsConnectedSeam()
 		=> FindByAutomationId(AutomationIds.DTAC.TestWsConnectedButton).Click();
 
