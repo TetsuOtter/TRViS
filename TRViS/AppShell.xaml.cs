@@ -89,22 +89,18 @@ public partial class AppShell : Shell
 		FlyoutBehavior = FlyoutBehavior.Flyout;
 
 		this.BindingContext = easterEggPageViewModel;
-		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
-		this.SetBinding(TitleColorProperty, static (EasterEggPageViewModel vm) => vm.ShellTitleTextColor);
+		// EffectiveShellBackgroundColor/EffectiveShellTitleTextColor は、サーバーからの
+		// HeaderColor コマンド (AppViewModel.HeaderColorOverride_RGB) と端末設定
+		// (ShellBackgroundColor) を一本化した色源 (EasterEggPageViewModel 側で計算)。
+		// DTAC の AppBar も同じ色源を参照するため、設定画面 (このネイティブタイトルバー)
+		// と DTAC のヘッダ色は常に一致する (#310)。
+		this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.EffectiveShellBackgroundColor);
+		this.SetBinding(TitleColorProperty, static (EasterEggPageViewModel vm) => vm.EffectiveShellTitleTextColor);
 
 		FlyoutIconImage.BindingContext = easterEggPageViewModel;
-		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, static (EasterEggPageViewModel vm) => vm.ShellTitleTextColor);
+		FlyoutIconImage.SetBinding(FontImageSource.ColorProperty, static (EasterEggPageViewModel vm) => vm.EffectiveShellTitleTextColor);
 
-		// サーバーから HeaderColor コマンドを受信したときに、タイトルバー色を上書きする。
-		// null (= ResetToDefault) の場合は EasterEgg の設定にフォールバックする。
 		var appVm = InstanceManager.AppViewModel;
-		appVm.PropertyChanged += (_, e) =>
-		{
-			if (e.PropertyName == nameof(AppViewModel.HeaderColorOverride_RGB))
-				ApplyHeaderColorOverride(appVm.HeaderColorOverride_RGB, easterEggPageViewModel);
-		};
-		// 起動時の値も反映する (通常は null)
-		ApplyHeaderColorOverride(appVm.HeaderColorOverride_RGB, easterEggPageViewModel);
 
 		// サーバーから NavigateToHome コマンドを受信したときに、ホーム画面へ遷移する。
 		// WebSocket 受信スレッドから呼ばれるため MainThread に dispatch する。
@@ -148,31 +144,6 @@ public partial class AppShell : Shell
 		FlyoutStartHome.Title = AppResources.Shell_Home;
 		FlyoutSettings.Title = AppResources.Shell_Settings;
 		MenuPrivacyPolicyOnline.Text = AppResources.Shell_PrivacyPolicyOnline;
-	}
-
-	/// <summary>
-	/// サーバー指示の色 (0xRRGGBB) でタイトルバーを上書きする。null の場合は
-	/// EasterEgg ベースのバインディングを再有効化して端末設定に戻す。
-	/// WebSocket 受信スレッドから呼ばれうるため、UI 操作は必ず MainThread に dispatch する。
-	/// </summary>
-	void ApplyHeaderColorOverride(int? rgbOrNull, EasterEggPageViewModel easterEggPageViewModel)
-	{
-		MainThread.BeginInvokeOnMainThread(() =>
-		{
-			if (rgbOrNull is int rgb)
-			{
-				byte r = (byte)((rgb >> 16) & 0xff);
-				byte g = (byte)((rgb >> 8) & 0xff);
-				byte b = (byte)(rgb & 0xff);
-				this.RemoveBinding(BackgroundColorProperty);
-				BackgroundColor = Color.FromRgb(r, g, b);
-			}
-			else
-			{
-				// バインディングを再設定して既定挙動に戻す
-				this.SetBinding(BackgroundColorProperty, static (EasterEggPageViewModel vm) => vm.ShellBackgroundColor);
-			}
-		});
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
