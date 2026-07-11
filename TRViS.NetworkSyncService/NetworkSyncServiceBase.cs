@@ -280,6 +280,16 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 		=> throw new NotSupportedException("Train timetable fetch is only supported over WebSocket.");
 
 	/// <summary>
+	/// 通告 (<see cref="NotificationData"/>) の受領をサーバーへ通知する。
+	/// 乗務員が通告を受け取ったことをサーバーへ返す「受領」処理に対応する。
+	/// WebSocket のみ実装し、それ以外 (HTTP 等) では何もしない (送信経路が無いため)。
+	/// </summary>
+	/// <param name="id">受領する通告の <see cref="NotificationData.Id"/></param>
+	/// <param name="cancellationToken">キャンセルトークン</param>
+	public virtual Task AcknowledgeNotificationAsync(string id, CancellationToken cancellationToken = default)
+		=> Task.CompletedTask;
+
+	/// <summary>
 	/// Called when WorkGroupId property changes
 	/// </summary>
 	protected virtual void OnWorkGroupIdChanged(string? value) { }

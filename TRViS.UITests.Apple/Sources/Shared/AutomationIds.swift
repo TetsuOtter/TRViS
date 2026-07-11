@@ -221,4 +221,34 @@ enum AutomationIds {
     enum Settings {
         static let reloadSavedButton = "Settings.ReloadSavedButton"
     }
+
+    /// Notification (通告) popup. Shown when a server-pushed Notification is
+    /// received and judged unread. Has Title / BBCode body, an importance badge
+    /// (Priority >= 1), a 受領 (Acknowledge) button and a 閉じる (Close) button.
+    enum Notification {
+        static let popup             = "Notification.Popup"
+        static let orderNumber       = "Notification.OrderNumber"
+        static let sender            = "Notification.Sender"
+        static let receiver          = "Notification.Receiver"
+        static let iconBadge         = "Notification.IconBadge"
+        static let iconImage         = "Notification.IconImage"
+        static let title             = "Notification.Title"
+        static let body              = "Notification.Body"
+        static let importantBadge    = "Notification.ImportantBadge"
+        static let issuedAt          = "Notification.IssuedAt"
+        static let acknowledgeButton = "Notification.AcknowledgeButton"
+        static let dismissButton     = "Notification.DismissButton"
+        static let closeButton       = "Notification.CloseButton"
+
+        /// Small non-modal banner overlaid on the DTAC ViewHost's content area.
+        /// Shown for the initial 受領必須 compact display (CompactDisplay=true) and
+        /// for the acknowledged/区間連動 redisplay (no 受領 button in that case).
+        /// Tapping it expands to the large Popup.
+        enum Banner {
+            static let root              = "Notification.Banner"
+            static let summary           = "Notification.Banner.Summary"
+            static let acknowledgeButton = "Notification.Banner.AcknowledgeButton"
+            static let chevron           = "Notification.Banner.Chevron"
+        }
+    }
 }

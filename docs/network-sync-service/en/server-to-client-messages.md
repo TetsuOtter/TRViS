@@ -238,20 +238,59 @@ A notification (arbitrary announcement). Delivered as a received event
 {
   "MessageType": "Notification",
   "Id": "n-001",                          // string | null
+  "OrderNumber": "Order No. 3",           // string | null (dispatch/order number)
   "Title": "Service suspended",           // string | null
-  "Body": "Due to strong winds...",       // string | null
+  "Summary": "Service suspended",         // string | null (compact-banner summary)
+  "Body": "Due to strong winds...",       // string | null (BBCode allowed)
   "Priority": 1,                          // integer (0=normal,1=important, server-defined)
-  "IssuedAt": "2024-03-01T09:00:00+09:00" // string (ISO 8601) | null
+  "IssuedAt": "2024-03-01T09:00:00+09:00",// string (ISO 8601, TZ offset optional) | null
+  "Receiver": "Crew of Train XX",         // string | null (recipient)
+  "Sender": "Dispatch Center",            // string | null (sender/dispatcher)
+  "IconText": "D",                        // string | null (icon glyph; used only if IconImageBase64 is unset)
+  "IconColor_RGB": "#C62828",              // integer (0xRRGGBB) | string ("#RRGGBB") | omitted (icon background color; has a default)
+  "IconImageBase64": null,                // string | null (icon image; takes priority over IconText when set)
+  "Acknowledged": false,                  // boolean (optional). true if already acknowledged
+  "CompactDisplay": false,                // boolean (optional). true = show initially as a small top banner
+  "SectionStartStation": "Ishikawa",      // string | null (section start; station name or station ID)
+  "SectionEndStation": "Kawabe",          // string | null (section end; station name or ID. single station if omitted)
+  "StationsBefore": 1                     // integer (optional, default 1). how many stations before the section to re-display
 }
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `Id` | string | Notification identifier. |
-| `Title` | string | Heading. |
-| `Body` | string | Body text. |
+| `Id` | string | Notification identifier. Serves as the key for acknowledgement ([`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification)). |
+| `OrderNumber` | string | Dispatch/order number. Display only (an operational management number owned by the server/dispatcher). |
+| `Title` | string | Heading. Used by the large popup. |
+| `Summary` | string | Optional summary for the compact banner. When omitted or empty, the client falls back to `Title`; the large popup always uses `Title`. |
+| `Body` | string | Body text. **BBCode** (`[b]…[/b]`, etc.) may be used. Rendering is up to the client implementation. |
 | `Priority` | integer | Importance. Accepted only as a JSON number readable as a 32-bit integer, default `0`. Meaning is server-defined. |
-| `IssuedAt` | string | Issue time. **ISO 8601** (round-trippable form, e.g. `2024-03-01T09:00:00+09:00`). Unset if unparseable. |
+| `IssuedAt` | string | Issue time. A string with a date (`yyyy-MM-dd`) and optional ISO 8601 time/offset is parsed as a date/time. Whether a TZ offset (`Z` or `+HH:mm`/`-HH:mm`) is present changes interpretation (see below). If it cannot be parsed in this form, the client keeps the original string for display instead of interpreting it as a date/time. |
+| `Receiver` | string | Recipient. Display only. |
+| `Sender` | string | Sender/dispatcher. Display only. |
+| `IconText` | string | A short (1-2 character) glyph shown as the icon. Ignored when `IconImageBase64` is set. |
+| `IconColor_RGB` | integer \| string | Background color for `IconText`. Accepted either as a **JSON number** (`0xRRGGBB` in decimal, readable as a 32-bit integer) or as a **`"#RRGGBB"` string** (leading `#` required, case-insensitive). Unset (default color) if neither form parses. A client default is used when omitted. |
+| `IconImageBase64` | string | Base64-encoded icon image binary (may include a data URI prefix such as `data:image/png;base64,...`). Takes priority over `IconText`/`IconColor_RGB` when set. |
+| `Acknowledged` | boolean | Optional. Indicates whether the server considers this client to have already acknowledged this notification. Treated as acknowledged only on JSON `true`; otherwise (`false`/missing) unacknowledged. Used when re-delivering notifications (e.g. after reconnect) so already-acknowledged ones are marked read (the client does not re-popup a read notification). |
+| `CompactDisplay` | boolean | Optional. Only on JSON `true`, the initial display is a small banner at the top of the screen (otherwise/missing: the large centered popup). The acknowledge button is still shown on the small banner, and an acknowledge-required notification (has `Id`) stays until acknowledged. |
+| `SectionStartStation` | string | Optional. The start of the section/station this notification targets, given as a **station name or station ID** (resolved by station-ID match, then station-name match; case-sensitive). After it is acknowledged and hidden, the notification is automatically re-shown (as an acknowledged small banner) once the train reaches `StationsBefore` stations before this section, and auto-hidden after leaving the section. Not re-shown if no matching station exists on the current train's route. |
+| `SectionEndStation` | string | Optional. The end of the section, given as a **station name or station ID**. When omitted, treated as the same single station as `SectionStartStation`. Section direction (which end comes first) does not matter (normalized by route index). |
+| `StationsBefore` | integer | Optional, default `1`. How many stations before the section start to begin re-display. Accepted only as a JSON number readable as a 32-bit integer. Values ≤ 0 are treated as 0 (shown from the section start station). |
+
+**Section/station-linked re-display:**
+- A notification with `SectionStartStation` (and optionally `SectionEndStation`) is hidden once acknowledged, but is re-shown as an acknowledged small banner when the train reaches `StationsBefore` stations before the target section (or single station), and auto-hidden after leaving it.
+- Stations may be given by **name or ID**. The station ID is the normalized station ID in the SQLite format, or each row's `Id` in the JSON format (a per-row Id suffices since resolution is within the current train's route). Either format can fall back to station-name matching.
+
+**How TZ presence in `IssuedAt` affects display:**
+- With a TZ offset (e.g. `2024-03-01T09:00:00+09:00` or `...Z`): the client converts and displays the time **accounting for the device's current TZ**.
+- Without a TZ offset (e.g. `2024-03-01T09:00:00`): the client displays the time **as-is**, with no TZ conversion.
+- A date-only string such as `2024-03-01` is accepted and displayed as-is (no TZ conversion).
+- A string without the `T` date-time separator that is not date-only (for example,
+  `2024-03-01 09:00:00`) is not parsed as a date/time; the original string is
+  displayed as-is. Other arbitrary/unparseable strings behave the same way.
+
+For acknowledgement (client → server), see
+[`AcknowledgeNotification`](client-to-server-messages.md#6-acknowledgenotification).
 
 ## 9. TimeFormat
 
@@ -397,12 +436,12 @@ Common pitfalls for external implementers:
   WS `true` auto-starts operation**. To avoid unintentionally starting
   operation, send an explicit `false`
   ([common-data-model §4](common-data-model.md#4-meaning-of-canstart)).
-- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority`
-  **must be JSON number type** (strings are invalid).
+- `Latitude_deg`/`Longitude_deg`/`Accuracy_m`/`Color_RGB`/`Priority`/`Notification.StationsBefore`
+  **must be JSON number type** (strings are invalid). `StationsBefore` defaults to `1` when missing.
 - Each ID in `SelectTrain` **must be JSON string type**.
 - `OperationCommand.Action` is **required** and only known values are
   valid (case-insensitive).
-- `Notification.IssuedAt` is **ISO 8601** only.
+- `Notification.IssuedAt` is parsed when it has a `yyyy-MM-dd` date and an optional ISO 8601 time/offset. Invalid or non-date strings are displayed unchanged; a TZ offset changes whether the parsed value is converted (see [§8](#8-notification)).
 - `ServerInfo.Features` is a **JSON array**; only string elements are
   kept and non-string elements are ignored (absent/`null` = no extended
   features).

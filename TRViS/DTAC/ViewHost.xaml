@@ -71,5 +71,16 @@
 			<local:VerticalStylePage
 				x:Name="VerticalStylePageView"/>
 		</local:WithRemarksView>
+
+		<!-- 通告 (Notification) の小型バナー。MainGrid の最後の子として重ねることで
+		     タブ内容 (時刻表/ハコ/行路添付) の上に浮かせる。表示/非表示・内容の更新は
+		     ViewHost.xaml.cs が NotificationCenterViewModel の
+		     BannerRequested/BannerDismissed を購読して行う。 -->
+		<local:NotificationBannerView
+			x:Name="NotificationBanner"
+			Grid.Row="2"
+			Margin="8,8,8,0"
+			VerticalOptions="Start"
+			IsVisible="False"/>
 	</Grid>
 </ContentPage>
