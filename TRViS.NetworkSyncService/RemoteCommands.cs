@@ -55,11 +55,113 @@ public class HeaderColorCommand
 public class NotificationData
 {
 	public string? Id { get; set; }
+	/// <summary>指令番号。サーバー・現場運用側の管理番号で、表示のみに用いる。</summary>
+	public string? OrderNumber { get; set; }
 	public string? Title { get; set; }
+	/// <summary>
+	/// 小型バナー表示用の要約。未指定/空文字のときは <see cref="Title"/> をそのまま使う。
+	/// 大型ポップアップでは常に <see cref="Title"/> を表示する (Summary は使わない)。
+	/// </summary>
+	public string? Summary { get; set; }
 	public string? Body { get; set; }
 	/// <summary>0=通常, 1=重要 等。サーバ任意。</summary>
 	public int Priority { get; set; }
+	/// <summary>
+	/// 発信日時。オフセット付き ISO 8601 (例 <c>2024-03-01T09:00:00+09:00</c>) を
+	/// 受信した場合のみ設定され、表示側は端末の現在の TZ に変換して表示する
+	/// (<see cref="DateTimeOffset.LocalDateTime"/>)。オフセット無しの文字列は
+	/// <see cref="IssuedAtIsUnspecifiedTimeZone"/> 側を参照。
+	/// </summary>
 	public DateTimeOffset? IssuedAt { get; set; }
+	/// <summary>
+	/// <see cref="IssuedAt"/> が「TZ 指定無し」の文字列から得られたものかどうか。
+	/// true の場合、表示側は <see cref="IssuedAt"/> の値をそのまま (TZ 変換せず) 表示する。
+	/// </summary>
+	public bool IssuedAtIsUnspecifiedTimeZone { get; set; }
+	/// <summary>
+	/// <see cref="IssuedAt"/> が ISO 8601 (日付部分あり) としてパースできなかったときの
+	/// 生の入力文字列。表示側はこれを (日時として解釈せず) そのまま表示する。
+	/// <see cref="IssuedAt"/> が設定されているときは常に null。
+	/// </summary>
+	public string? IssuedAtRawText { get; set; }
+	/// <summary>受信者。表示のみに用いる。</summary>
+	public string? Receiver { get; set; }
+	/// <summary>指令者 (発信者)。表示のみに用いる。</summary>
+	public string? Sender { get; set; }
+	/// <summary>
+	/// アイコンとして表示する文字 (1〜2文字程度を想定)。<see cref="IconImageBase64"/> が
+	/// 指定されている場合はそちらが優先され、この文字は使用されない。
+	/// </summary>
+	public string? IconText { get; set; }
+	/// <summary><see cref="IconText"/> の背景色 (0xRRGGBB)。未指定時は既定色を使う。</summary>
+	public int? IconColor_RGB { get; set; }
+	/// <summary>
+	/// アイコン画像の Base64 エンコードされたバイナリ (data URI の場合はプレフィックスを含んでいてもよい)。
+	/// 指定されている場合、<see cref="IconText"/>/<see cref="IconColor_RGB"/> より優先して表示する。
+	/// </summary>
+	public string? IconImageBase64 { get; set; }
+	/// <summary>
+	/// サーバーがこのクライアントについて当該通告を「受領済み」と判断しているか。
+	/// true のとき、クライアントは既読扱いとしてポップアップを再表示しない
+	/// (再接続時などに一覧として再配信されたケースを想定)。省略/false は未受領。
+	/// </summary>
+	public bool Acknowledged { get; set; }
+
+	/// <summary>
+	/// 初回表示を小型 (画面上部の 1 行バナー) で行うか。true のとき、大型の中央ポップアップ
+	/// ではなく小型バナーで表示する。未指定/false は大型表示。小型でも受領ボタンは表示され、
+	/// 受領必須の通告 (Id あり) は受領するまで消えない。
+	/// </summary>
+	public bool CompactDisplay { get; set; }
+
+	/// <summary>
+	/// この通告が対象とする区間・駅の開始側。<b>駅名または駅 ID</b> の文字列で指定する
+	/// (照合は ID 一致 → 駅名一致の順)。<see cref="SectionEndStation"/> と併せて区間を表す。
+	/// <see cref="SectionEndStation"/> が未指定の場合は単駅指定 (この駅のみ) とみなす。
+	/// <para>
+	/// 受領後、通告は非表示になるが、この区間の
+	/// <see cref="StationsBefore"/> 駅手前に到達したタイミングで受領済み状態の小型バナーとして
+	/// 自動的に再表示され、区間を抜けると自動的に非表示になる。経路 (現在列車) に該当駅が
+	/// 無い場合は再表示しない。
+	/// </para>
+	/// </summary>
+	public string? SectionStartStation { get; set; }
+
+	/// <summary>
+	/// この通告が対象とする区間の終了側。<b>駅名または駅 ID</b> の文字列で指定する。
+	/// 未指定のとき <see cref="SectionStartStation"/> と同一 (単駅) 扱い。区間の向き
+	/// (開始/終了の前後) は問わない (経路上のインデックスで正規化する)。
+	/// </summary>
+	public string? SectionEndStation { get; set; }
+
+	/// <summary>
+	/// 区間開始の何駅手前から再表示を開始するか。既定 1 (1 駅前)。0 以下は 0 として扱い、
+	/// 区間開始駅から表示する。
+	/// </summary>
+	public int StationsBefore { get; set; } = 1;
+
+	/// <summary>
+	/// <see cref="IconColor_RGB"/> を文字列表現からパースする。JSON では数値
+	/// (0xRRGGBB の 10 進表記) が本来の形式だが、<c>"#RRGGBB"</c> 形式の 16 進文字列も
+	/// 受け付ける (先頭の <c>#</c> は省略可)。UI_TEST の deeplink クエリパラメータ経由での
+	/// 指定にも使う。
+	/// </summary>
+	public static bool TryParseIconColor(string? s, out int rgb)
+	{
+		rgb = 0;
+		if (string.IsNullOrEmpty(s))
+			return false;
+
+		// "#RRGGBB" 形式 (先頭 '#' があるときのみ 16 進として解釈。無いときは従来通り 10 進整数)。
+		if (s.StartsWith('#'))
+		{
+			string hex = s[1..];
+			return hex.Length == 6 && int.TryParse(hex, System.Globalization.NumberStyles.HexNumber,
+				System.Globalization.CultureInfo.InvariantCulture, out rgb);
+		}
+
+		return int.TryParse(s, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out rgb);
+	}
 }
 
 /// <summary>
