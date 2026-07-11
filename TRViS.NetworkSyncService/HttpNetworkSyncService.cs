@@ -155,13 +155,19 @@ public class HttpNetworkSyncService : NetworkSyncServiceBase
 		catch (KeyNotFoundException) { }
 		catch (FormatException) { }
 
-		long time_ms = 0;
+		// Time_ms が null で届く場合 (シナリオ未読込等) は端末時刻で代替する。
+		// GetInt64() は Null に対して InvalidOperationException を投げるため、
+		// 捕捉せず放置すると以後のポーリングが例外で止まり時計が固まる (#308)。
+		long time_ms = (long)DateTime.Now.TimeOfDay.TotalMilliseconds;
 		try
 		{
-			time_ms = root.GetProperty(TIME_MS_JSON_KEY).GetInt64();
+			JsonElement time_ms_element = root.GetProperty(TIME_MS_JSON_KEY);
+			if (time_ms_element.ValueKind != JsonValueKind.Null)
+				time_ms = time_ms_element.GetInt64();
 		}
 		catch (KeyNotFoundException) { }
 		catch (FormatException) { }
+		catch (InvalidOperationException) { }
 
 		// Startできない状態が特殊なため、デフォルトでtrueとする
 		bool canStart = true;

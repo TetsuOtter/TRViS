@@ -19,7 +19,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 
 	// --- サーバー状態 (immutable record + lock で一貫性を保証) ---
 	private sealed record ServerState(
-		long Time_ms,
+		long? Time_ms,
 		double Location_m,
 		bool CanStart,
 		double? Latitude_deg,
@@ -194,8 +194,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 				double? longitude = _state.Longitude_deg;
 				double? accuracy = _state.Accuracy_m;
 
-				if (root.TryGetProperty("Time_ms", out var t) && t.ValueKind != JsonValueKind.Null)
-					time = t.GetInt64();
+				if (root.TryGetProperty("Time_ms", out var t))
+					time = t.ValueKind == JsonValueKind.Null ? null : t.GetInt64();
 				if (root.TryGetProperty("Location_m", out var l))
 					location = l.ValueKind == JsonValueKind.Null ? double.NaN : l.GetDouble();
 				if (root.TryGetProperty("CanStart", out var cs) && cs.ValueKind != JsonValueKind.Null)
