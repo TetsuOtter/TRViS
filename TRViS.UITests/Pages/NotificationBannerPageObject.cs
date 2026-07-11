@@ -18,8 +18,13 @@ public class NotificationBannerPageObject : PageObject
 	public AppiumElement AcknowledgeButton => FindByAutomationId(AutomationIds.Notification.Banner.AcknowledgeButton);
 	public AppiumElement Chevron => FindByAutomationId(AutomationIds.Notification.Banner.Chevron);
 
+	// Root's AutomationId lives on the Border (see NotificationBannerView.xaml),
+	// but Windows MAUI does not expose Border elements via UIA (same limitation
+	// StartHomePageObject.AcceptPrivacyPolicyIfNeeded documents for
+	// PrivacyReconfirmBanner), so a Root-based probe always returns false there.
+	// Summary is a TextBlock/Label child and is reliably exposed on every platform.
 	public bool IsShown(double timeoutSeconds = 10)
-		=> PollDisplayed(AutomationIds.Notification.Banner.Root, timeoutSeconds);
+		=> PollDisplayed(AutomationIds.Notification.Banner.Summary, timeoutSeconds);
 
 	public bool IsAcknowledgeButtonVisible(double timeoutSeconds = 3)
 		=> PollDisplayed(AutomationIds.Notification.Banner.AcknowledgeButton, timeoutSeconds);
@@ -49,7 +54,7 @@ public class NotificationBannerPageObject : PageObject
 		var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
 		while (DateTime.UtcNow < deadline)
 		{
-			if (!PollDisplayed(AutomationIds.Notification.Banner.Root, timeoutSeconds: 0.5))
+			if (!PollDisplayed(AutomationIds.Notification.Banner.Summary, timeoutSeconds: 0.5))
 				return true;
 		}
 		return false;
