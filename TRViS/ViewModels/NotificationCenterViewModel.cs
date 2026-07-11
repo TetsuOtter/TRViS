@@ -224,7 +224,7 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		if (_stations.Count > 0 && _currentStationIndex >= 0)
 		{
 			var targets = candidates.Select(c => new RedisplayTarget(c.Id!, c.SectionStartStation, c.SectionEndStation, c.StationsBefore));
-			visible.UnionWith(NotificationRedisplayEvaluator.EvaluateVisibleKeys(_stations, _currentStationIndex, targets));
+			visible.UnionWith(NotificationRedisplayEvaluator.EvaluateVisibleKeys(_stations, _currentStationIndex, _isRunningToNextStation, targets));
 		}
 
 		// 受領済みになった compact-initial は追跡対象から外す。区間内ならこの後

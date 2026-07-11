@@ -34,6 +34,12 @@ public static class NotificationRedisplayEvaluator
 	/// </para>
 	///
 	/// <para>
+	/// 非表示になるタイミングは区間終了駅 (単駅指定の場合は区間開始駅) の発車後であり、
+	/// その次の駅への到着時ではない。そのため終了側の駅では <paramref name="isRunningToNextStation"/>
+	/// (現在駅を発車し次駅へ向かって走行中かどうか) も参照し、発車済みなら非表示とする。
+	/// </para>
+	///
+	/// <para>
 	/// 同一 Key が複数の <paramref name="targets"/> に現れた場合は、最後に評価された
 	/// 結果を採用する (last-wins)。
 	/// </para>
@@ -41,6 +47,7 @@ public static class NotificationRedisplayEvaluator
 	public static IReadOnlySet<string> EvaluateVisibleKeys(
 		IReadOnlyList<StationRef> stations,
 		int currentStationIndex,
+		bool isRunningToNextStation,
 		IEnumerable<RedisplayTarget> targets)
 	{
 		Dictionary<string, bool> visibilityByKey = [];
@@ -71,7 +78,11 @@ public static class NotificationRedisplayEvaluator
 			int low = resolvedIndices.Min() - stationsBefore;
 			int high = resolvedIndices.Max();
 
-			visibilityByKey[target.Key] = currentStationIndex >= low && currentStationIndex <= high;
+			// 終了駅を発車済み (currentStationIndex == high かつ発車後、または既に通過済み) なら非表示。
+			bool departedEndStation = currentStationIndex > high
+				|| (currentStationIndex == high && isRunningToNextStation);
+
+			visibilityByKey[target.Key] = currentStationIndex >= low && !departedEndStation;
 		}
 
 		HashSet<string> visibleKeys = [];

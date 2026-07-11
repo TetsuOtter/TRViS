@@ -19,9 +19,9 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅C", null, StationsBefore: 2);
 
 		// Act & Assert: index 0 (= 2 駅前) から index 2 (駅C自体) まで表示
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, [target]));
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, [target]));
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, false, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, false, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, false, [target]));
 	}
 
 	[Fact]
@@ -33,7 +33,7 @@ public class NotificationRedisplayEvaluatorTests
 		// Act: window の外側 (low より前) はまだ列にないので、代わりに別の駅リストで検証する。
 		// ここでは currentStationIndex が low(=0) より小さくなるケースとして、
 		// stationsBefore を使い切る前の状態を負のインデックスで表現する。
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, -1, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, -1, false, [target]);
 
 		// Assert
 		Assert.DoesNotContain("k1", result);
@@ -46,7 +46,7 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅C", null, StationsBefore: 2);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, false, [target]);
 
 		// Assert
 		Assert.DoesNotContain("k1", result);
@@ -59,10 +59,10 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅B", "駅D", StationsBefore: 1);
 
 		// Act & Assert
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, [target]));
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, [target]));
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, [target]));
-		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 4, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, false, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, false, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, false, [target]));
+		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 4, false, [target]));
 	}
 
 	[Fact]
@@ -77,9 +77,9 @@ public class NotificationRedisplayEvaluatorTests
 		var reversedVisible = new HashSet<int>();
 		for (int i = 0; i < Stations.Count; i++)
 		{
-			if (NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, i, [forward]).Contains("k1"))
+			if (NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, i, false, [forward]).Contains("k1"))
 				forwardVisible.Add(i);
-			if (NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, i, [reversed]).Contains("k1"))
+			if (NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, i, false, [reversed]).Contains("k1"))
 				reversedVisible.Add(i);
 		}
 
@@ -94,8 +94,8 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅D", null, StationsBefore: 3);
 
 		// Act & Assert
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, [target]));
-		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, -1, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, false, [target]));
+		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, -1, false, [target]));
 	}
 
 	[Fact]
@@ -106,8 +106,8 @@ public class NotificationRedisplayEvaluatorTests
 		var negative = new RedisplayTarget("k2", "駅C", null, StationsBefore: -5);
 
 		// Act
-		var atStation = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, [zero, negative]);
-		var before = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, [zero, negative]);
+		var atStation = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, false, [zero, negative]);
+		var before = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, false, [zero, negative]);
 
 		// Assert
 		Assert.Contains("k1", atStation);
@@ -124,8 +124,8 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅D", null, StationsBefore: 1);
 
 		// Act
-		var beforeWindow = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, [target]);
-		var atLow = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, [target]);
+		var beforeWindow = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, false, [target]);
+		var atLow = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, false, [target]);
 
 		// Assert
 		Assert.DoesNotContain("k1", beforeWindow);
@@ -140,9 +140,31 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅C", "存在しない駅", StationsBefore: 1);
 
 		// Act & Assert
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, [target]));
-		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, [target]));
-		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, false, [target]));
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, false, [target]));
+		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, false, [target]));
+	}
+
+	[Fact]
+	public void EvaluateVisibleKeys_AtEndStation_HiddenOnlyAfterDeparture()
+	{
+		// Arrange: 区間 駅B(1) 〜 駅D(3)。終了駅 (駅D, index 3) では、まだ発車していなければ
+		// 表示を維持し、発車済み (isRunningToNextStation=true) になった時点で非表示にする。
+		// 次の駅 (index 4) への到着を待つ必要はない。
+		var target = new RedisplayTarget("k1", "駅B", "駅D", StationsBefore: 1);
+
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, false, [target]));
+		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 3, true, [target]));
+	}
+
+	[Fact]
+	public void EvaluateVisibleKeys_SingleStation_AtStation_HiddenOnlyAfterDeparture()
+	{
+		// Arrange: 単駅指定 (駅C, index 2) の場合も、区間終了駅と同様にその駅の発車後に非表示。
+		var target = new RedisplayTarget("k1", "駅C", null, StationsBefore: 2);
+
+		Assert.Contains("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, false, [target]));
+		Assert.DoesNotContain("k1", NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, true, [target]));
 	}
 
 	[Fact]
@@ -152,7 +174,7 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅B", "駅D", StationsBefore: 1);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 5, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 5, false, [target]);
 
 		// Assert
 		Assert.DoesNotContain("k1", result);
@@ -165,7 +187,7 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "存在しない駅", null, StationsBefore: 2);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, false, [target]);
 
 		// Assert
 		Assert.DoesNotContain("k1", result);
@@ -178,7 +200,7 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "存在しない駅1", "存在しない駅2", StationsBefore: 2);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 2, false, [target]);
 
 		// Assert
 		Assert.DoesNotContain("k1", result);
@@ -196,7 +218,7 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "id-2", null, StationsBefore: 1);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(stations, 0, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(stations, 0, false, [target]);
 
 		// Assert
 		Assert.Contains("k1", result);
@@ -214,7 +236,7 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "名前B", null, StationsBefore: 1);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(stations, 0, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(stations, 0, false, [target]);
 
 		// Assert
 		Assert.Contains("k1", result);
@@ -229,7 +251,7 @@ public class NotificationRedisplayEvaluatorTests
 		var t3 = new RedisplayTarget("k3", "存在しない駅", null, StationsBefore: 2); // 常に非表示
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, [t1, t2, t3]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 1, false, [t1, t2, t3]);
 
 		// Assert
 		Assert.DoesNotContain("k1", result);
@@ -252,9 +274,9 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅C", null, StationsBefore: 1);
 
 		// Act: フィルタ後のリストでの index 0 (= 駅C の 1 つ前) から表示されるはず
-		var atIndex0 = NotificationRedisplayEvaluator.EvaluateVisibleKeys(filteredStations, 0, [target]);
-		var atIndex1 = NotificationRedisplayEvaluator.EvaluateVisibleKeys(filteredStations, 1, [target]);
-		var atIndex2 = NotificationRedisplayEvaluator.EvaluateVisibleKeys(filteredStations, 2, [target]);
+		var atIndex0 = NotificationRedisplayEvaluator.EvaluateVisibleKeys(filteredStations, 0, false, [target]);
+		var atIndex1 = NotificationRedisplayEvaluator.EvaluateVisibleKeys(filteredStations, 1, false, [target]);
+		var atIndex2 = NotificationRedisplayEvaluator.EvaluateVisibleKeys(filteredStations, 2, false, [target]);
 
 		// Assert
 		Assert.Contains("k1", atIndex0);
@@ -269,7 +291,7 @@ public class NotificationRedisplayEvaluatorTests
 		var target = new RedisplayTarget("k1", "駅A", null, StationsBefore: 1);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys([], 0, [target]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys([], 0, false, [target]);
 
 		// Assert
 		Assert.Empty(result);
@@ -279,7 +301,7 @@ public class NotificationRedisplayEvaluatorTests
 	public void EvaluateVisibleKeys_EmptyTargets_ReturnsEmptySet()
 	{
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, []);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, false, []);
 
 		// Assert
 		Assert.Empty(result);
@@ -295,7 +317,7 @@ public class NotificationRedisplayEvaluatorTests
 
 		// Act
 		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(
-			Stations, 0, [emptyStart, whitespaceStart, nullStart]);
+			Stations, 0, false, [emptyStart, whitespaceStart, nullStart]);
 
 		// Assert
 		Assert.Empty(result);
@@ -309,7 +331,7 @@ public class NotificationRedisplayEvaluatorTests
 		var visible = new RedisplayTarget("k1", "駅A", null, StationsBefore: 0);
 
 		// Act
-		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, [notVisible, visible]);
+		var result = NotificationRedisplayEvaluator.EvaluateVisibleKeys(Stations, 0, false, [notVisible, visible]);
 
 		// Assert: 最後に評価された (visible な) 方が採用される
 		Assert.Contains("k1", result);
