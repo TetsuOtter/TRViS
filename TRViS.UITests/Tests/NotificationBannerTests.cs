@@ -215,6 +215,16 @@ public class NotificationBannerTests : BaseUITest
 
 	private void SubmitDeeplink(string deeplink)
 	{
+		// Callers reach here right after ClearLoaderForTesting(), which sets
+		// Loader=null and triggers StartHome's animated Home→Start mode switch
+		// (ApplyModeForCurrentLoaderAsync). Tapping ConnectServerButton while
+		// that transition is still in flight can have the tap register (click()
+		// succeeds, button reports displayed=true) but the modal push gets
+		// dropped — reproduced on Android CI: ConnectServer.Title never
+		// appears within the 30s wait even though the button click succeeded.
+		// A short settle lets the mode-switch animation finish first.
+		Thread.Sleep(500);
+
 		var dialog = _startHomePage.OpenConnectServerDialog();
 		Assert.That(dialog.IsDisplayed(), Is.True, "Connect dialog should open.");
 
