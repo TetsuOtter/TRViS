@@ -18,6 +18,9 @@ public partial class Remarks : Grid
 	double BottomMargin
 		=> -ContentAreaHeight.Value - BottomSafeAreaHeight;
 
+	/// <summary>IsOpen が変化したとき (開閉アニメーション開始時) に発火する。</summary>
+	public event EventHandler<bool>? IsOpenChanged;
+
 	public Remarks()
 	{
 		logger.Trace("Creating...");
@@ -76,6 +79,7 @@ public partial class Remarks : Grid
 		logger.Info("IsOpen: {0}, BottomMargin: {1}", newValue, BottomMargin);
 		OpenCloseButton.IsOpen = newValue;
 		ResetTextScrollViewPosition(newValue);
+		IsOpenChanged?.Invoke(this, newValue);
 	}
 
 	partial void OnBottomSafeAreaHeightChanged(double newValue)

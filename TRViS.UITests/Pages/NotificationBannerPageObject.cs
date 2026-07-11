@@ -1,4 +1,6 @@
+using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Interactions;
 
 namespace TRViS.UITests.Pages;
 
@@ -53,5 +55,50 @@ public class NotificationBannerPageObject : PageObject
 				return true;
 		}
 		return false;
+	}
+
+	/// <summary>
+	/// Screen Y-coordinate (px) of the banner's top edge. Used to assert the
+	/// docked position (bottom by default, top after an up-swipe) — see
+	/// ViewHost.ApplyNotificationBannerDockPosition.
+	/// </summary>
+	public int GetTopY() => SummaryLabel.Location.Y;
+
+	/// <summary>
+	/// Best-effort upward swipe over the banner to dock it at the top of the
+	/// screen (ViewHost.OnNotificationBannerSwipedUp). No-op on Windows, which
+	/// doesn't accept W3C touch pointer input for MAUI ContentViews here
+	/// (mirrors DTACViewHostPageObject.TrySwipeUp).
+	/// </summary>
+	public void SwipeUp() => Swipe(up: true);
+
+	/// <summary>
+	/// Best-effort downward swipe over the banner to dock it at the bottom of
+	/// the screen (ViewHost.OnNotificationBannerSwipedDown). Same Windows
+	/// no-op caveat as <see cref="SwipeUp"/>.
+	/// </summary>
+	public void SwipeDown() => Swipe(up: false);
+
+	private void Swipe(bool up)
+	{
+		if (IsWindows)
+			return;
+
+		var element = SummaryLabel;
+		var location = element.Location;
+		var size = element.Size;
+		int x = location.X + (size.Width / 2);
+		int centerY = location.Y + (size.Height / 2);
+		int startY = up ? centerY + 40 : centerY - 40;
+		int endY = up ? centerY - 120 : centerY + 120;
+
+		var touch = new PointerInputDevice(PointerKind.Touch, "finger");
+		var seq = new ActionSequence(touch);
+		seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, startY, TimeSpan.Zero));
+		seq.AddAction(touch.CreatePointerDown(MouseButton.Left));
+		seq.AddAction(touch.CreatePointerMove(CoordinateOrigin.Viewport, x, endY, TimeSpan.FromMilliseconds(400)));
+		seq.AddAction(touch.CreatePointerUp(MouseButton.Left));
+		Driver.PerformActions(new List<ActionSequence> { seq });
+		Thread.Sleep(300);
 	}
 }

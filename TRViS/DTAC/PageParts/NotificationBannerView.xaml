@@ -24,6 +24,8 @@
 		</Border.Shadow>
 		<Border.GestureRecognizers>
 			<TapGestureRecognizer Tapped="OnBannerTapped"/>
+			<SwipeGestureRecognizer Direction="Up" Swiped="OnBannerSwipedUp"/>
+			<SwipeGestureRecognizer Direction="Down" Swiped="OnBannerSwipedDown"/>
 		</Border.GestureRecognizers>
 
 		<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="16">

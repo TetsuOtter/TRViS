@@ -35,6 +35,14 @@ public partial class ViewHost : ContentPage
 	// 集合」を追跡し、表示中のものが消えたら残りのうち 1 件を表示し直す。UI スレッド専有。
 	private readonly Dictionary<string, NotificationStore.Entry> _activeBanners = new();
 
+	// 通告バナーの上下固定位置。既定は下部 (注意事項ヘッダーの少し上)。
+	// 上/下スワイプ (NotificationBanner.SwipedUp/SwipedDown) で手動切り替えできる。
+	private const double NotificationBannerSideMargin = 8;
+	private const double NotificationBannerTopDockMargin = 8;
+	private const double NotificationBannerBottomGapAboveRemarks = 8;
+	private bool _isNotificationBannerDockedAtTop;
+	private double _safeAreaBottom;
+
 #if UI_TEST
 	private AppViewModel? _testAppVm;
 #endif
@@ -88,6 +96,10 @@ public partial class ViewHost : ContentPage
 			_appViewModel.NotificationCenter.PopupVisibilityChanged -= OnNotificationPopupVisibilityChanged;
 			NotificationBanner.Tapped -= OnNotificationBannerTapped;
 			NotificationBanner.AcknowledgeClicked -= OnNotificationBannerAcknowledgeClicked;
+			NotificationBanner.SwipedUp -= OnNotificationBannerSwipedUp;
+			NotificationBanner.SwipedDown -= OnNotificationBannerSwipedDown;
+			HakoRemarksView.RemarksIsOpenChanged -= OnRemarksIsOpenChanged;
+			VerticalStylePageRemarksView.RemarksIsOpenChanged -= OnRemarksIsOpenChanged;
 			if (Shell.Current is AppShell appShellForCleanup)
 				appShellForCleanup.SafeAreaMarginChanged -= AppShell_SafeAreaMarginChanged;
 			_presenter.Dispose();
@@ -100,6 +112,10 @@ public partial class ViewHost : ContentPage
 
 		NotificationBanner.Tapped += OnNotificationBannerTapped;
 		NotificationBanner.AcknowledgeClicked += OnNotificationBannerAcknowledgeClicked;
+		NotificationBanner.SwipedUp += OnNotificationBannerSwipedUp;
+		NotificationBanner.SwipedDown += OnNotificationBannerSwipedDown;
+		HakoRemarksView.RemarksIsOpenChanged += OnRemarksIsOpenChanged;
+		VerticalStylePageRemarksView.RemarksIsOpenChanged += OnRemarksIsOpenChanged;
 
 		var state = _presenter.CurrentState;
 		AppBarView.Title = state.TitleText;
@@ -378,6 +394,8 @@ public partial class ViewHost : ContentPage
 	private void AppShell_SafeAreaMarginChanged(object? sender, Thickness oldValue, Thickness newValue)
 	{
 		AppBarView.UpdateSafeAreaMargin(oldValue, newValue);
+		_safeAreaBottom = newValue.Bottom;
+		ApplyNotificationBannerDockPosition();
 	}
 
 	private void MenuButton_Clicked(object? sender, EventArgs e)
@@ -510,6 +528,62 @@ public partial class ViewHost : ContentPage
 	private void OnNotificationPopupVisibilityChanged(object? sender, bool isVisible)
 	{
 		MainThread.BeginInvokeOnMainThread(() => NotificationBanner.SetAcknowledgeBlinkPaused(isVisible));
+	}
+
+	/// <summary>
+	/// 通告バナーを現在の固定位置 (<see cref="_isNotificationBannerDockedAtTop"/>) に配置する。
+	/// 下部固定時は注意事項ヘッダー (<see cref="Remarks.HEADER_HEIGHT"/>) の少し上に浮かせる。
+	/// スワイプでの手動切り替え・セーフエリア変化のいずれでも呼び直すため、常に
+	/// TranslationY を 0 にリセットしてから Margin/VerticalOptions を確定させる
+	/// (OnRemarksIsOpenChanged が付けた追従オフセットを引き継がないようにする)。
+	/// </summary>
+	private void ApplyNotificationBannerDockPosition()
+	{
+		NotificationBanner.TranslationY = 0;
+
+		if (_isNotificationBannerDockedAtTop)
+		{
+			NotificationBanner.VerticalOptions = LayoutOptions.Start;
+			NotificationBanner.Margin = new Thickness(
+				NotificationBannerSideMargin, NotificationBannerTopDockMargin, NotificationBannerSideMargin, 0);
+		}
+		else
+		{
+			NotificationBanner.VerticalOptions = LayoutOptions.End;
+			double bottomMargin = Remarks.HEADER_HEIGHT + NotificationBannerBottomGapAboveRemarks + _safeAreaBottom;
+			NotificationBanner.Margin = new Thickness(
+				NotificationBannerSideMargin, 0, NotificationBannerSideMargin, bottomMargin);
+		}
+	}
+
+	private void OnNotificationBannerSwipedUp(object? sender, EventArgs e)
+	{
+		_isNotificationBannerDockedAtTop = true;
+		ApplyNotificationBannerDockPosition();
+	}
+
+	private void OnNotificationBannerSwipedDown(object? sender, EventArgs e)
+	{
+		_isNotificationBannerDockedAtTop = false;
+		ApplyNotificationBannerDockPosition();
+	}
+
+	/// <summary>
+	/// アクティブなタブの注意事項が開閉されたとき、下部固定中の通告バナーを追従させる。
+	/// 上部固定中 (手動でスワイプ済み) は既に注意事項と重ならないため何もしない。
+	/// HakoRemarksView / VerticalStylePageRemarksView は非表示のタブでも IsOpen=false を
+	/// 強制されて発火し得るので (ApplyTabVisibility 参照)、発火元が現在表示中かどうかで
+	/// 実際に追従が必要かを絞り込む。
+	/// </summary>
+	private void OnRemarksIsOpenChanged(object? sender, bool isOpen)
+	{
+		if (_isNotificationBannerDockedAtTop)
+			return;
+		if (sender is not WithRemarksView view || !view.IsVisible)
+			return;
+
+		double targetTranslationY = isOpen ? -view.RemarksContentAreaHeight : 0;
+		_ = NotificationBanner.TranslateToAsync(0, targetTranslationY, length: 250, easing: Easing.SinInOut);
 	}
 
 	private async void OnNotificationBannerTapped(object? sender, NotificationStore.Entry entry)

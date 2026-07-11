@@ -40,6 +40,12 @@ public partial class NotificationBannerView : ContentView
 	/// <summary>受領ボタンが押されたとき発火する。</summary>
 	public event EventHandler<NotificationStore.Entry>? AcknowledgeClicked;
 
+	/// <summary>バナーが上方向にスワイプされたとき発火する (画面上部への固定を促すジェスチャー)。</summary>
+	public event EventHandler? SwipedUp;
+
+	/// <summary>バナーが下方向にスワイプされたとき発火する (画面下部への固定を促すジェスチャー)。</summary>
+	public event EventHandler? SwipedDown;
+
 	public NotificationBannerView()
 	{
 		InitializeComponent();
@@ -212,4 +218,10 @@ public partial class NotificationBannerView : ContentView
 		if (_entry is NotificationStore.Entry entry)
 			AcknowledgeClicked?.Invoke(this, entry);
 	}
+
+	private void OnBannerSwipedUp(object? sender, SwipedEventArgs e)
+		=> SwipedUp?.Invoke(this, EventArgs.Empty);
+
+	private void OnBannerSwipedDown(object? sender, SwipedEventArgs e)
+		=> SwipedDown?.Invoke(this, EventArgs.Empty);
 }

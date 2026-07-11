@@ -75,12 +75,15 @@
 		<!-- 通告 (Notification) の小型バナー。MainGrid の最後の子として重ねることで
 		     タブ内容 (時刻表/ハコ/行路添付) の上に浮かせる。表示/非表示・内容の更新は
 		     ViewHost.xaml.cs が NotificationCenterViewModel の
-		     BannerRequested/BannerDismissed を購読して行う。 -->
+		     BannerRequested/BannerDismissed を購読して行う。
+		     既定は下部 (注意事項ヘッダーの少し上) に固定表示し、注意事項の展開に追従して
+		     上へ動く。上スワイプ/下スワイプで上部/下部の固定位置を手動で切り替えられる
+		     (ViewHost.xaml.cs の ApplyNotificationBannerDockPosition 参照)。 -->
 		<local:NotificationBannerView
 			x:Name="NotificationBanner"
 			Grid.Row="2"
-			Margin="8,8,8,0"
-			VerticalOptions="Start"
+			Margin="8,8,8,72"
+			VerticalOptions="End"
 			IsVisible="False"/>
 	</Grid>
 </ContentPage>

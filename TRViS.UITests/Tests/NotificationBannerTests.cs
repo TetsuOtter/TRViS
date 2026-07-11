@@ -212,6 +212,46 @@ public class NotificationBannerTests : BaseUITest
 	}
 
 	/// <summary>
+	/// The banner docks near the bottom of the screen by default (just above the
+	/// 注意事項 header), not the top. Swiping up on it re-docks it near the top;
+	/// swiping down docks it back at the bottom. Verified via the banner's
+	/// screen Y-coordinate rather than exact pixels, since the bottom-dock
+	/// offset depends on platform safe-area insets.
+	/// </summary>
+	[Test]
+	public void Banner_DefaultsToBottom_SwipeTogglesDockPosition()
+	{
+		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+
+		const string deeplink =
+			"trvis://_test/notification?id=n-dock-1&title=Dock%20Test&body=body&priority=0&compact=true&reset=true";
+		InjectNotification(deeplink);
+
+		var dtac = LoadSampleAndOpenDTAC();
+		Assert.That(dtac.IsDisplayed(), Is.True);
+
+		var banner = new NotificationBannerPageObject(Driver);
+		Assert.That(banner.IsShown(), Is.True);
+
+		int screenHeight = Driver.Manage().Window.Size.Height;
+		int bottomDockY = banner.GetTopY();
+		Assert.That(bottomDockY, Is.GreaterThan(screenHeight / 2),
+			"Banner should default to the bottom half of the screen, not the top.");
+
+		banner.SwipeUp();
+		Thread.Sleep(500); // let the (non-animated) re-dock settle before reading position
+		int topDockY = banner.GetTopY();
+		Assert.That(topDockY, Is.LessThan(bottomDockY),
+			"Swiping up should move the banner higher on screen (toward the top dock).");
+
+		banner.SwipeDown();
+		Thread.Sleep(500);
+		int backToBottomY = banner.GetTopY();
+		Assert.That(backToBottomY, Is.GreaterThan(topDockY),
+			"Swiping down should move the banner back down toward the bottom dock.");
+	}
+
+	/// <summary>
 	/// Loads the sample data (if not already loaded) and auto-opens the first
 	/// WorkGroup/Work/Train into D-TAC via the UI_TEST seam. Callers that need to
 	/// re-enter D-TAC after a StartHome detour (e.g. to fire a second
