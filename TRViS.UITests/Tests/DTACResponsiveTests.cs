@@ -49,7 +49,7 @@ public class DTACResponsiveTests : BaseUITest
 	// Mirrors VerticalTimetableColumnVisibilityState.ClassifyWidth thresholds.
 	private static string ExpectedMode(int w) =>
 		w >= 768 ? "IPAD_MINI_2_3_4_5_V" :
-		w >= 756 ? "IPAD_MINI_6_V" :
+		w >= 744 ? "IPAD_MINI_6_V" :
 		w >= 736 ? "IPHONE_6_7_8_PLUS_H" :
 		w >= 667 ? "IPHONE_6_7_8_H" :
 		w >= 568 ? "IPHONE_SE_H" :
@@ -128,12 +128,28 @@ public class DTACResponsiveTests : BaseUITest
 
 		// Flags recomputed from the resolved mode. Mirrors the static
 		// predicates in VerticalTimetableColumnVisibilityState (anti-drift).
-		bool expRunTime = modeIdx >= Idx("IPAD_MINI_6_V");
+		//
+		// issue #320: every column is judged from the real view width alone
+		// (no device-full-width fallback). RunInOutLimit is kept the highest
+		// threshold of the ladder so a band exists ([IPHONE_SE_H,
+		// IPHONE_6_7_8_PLUS_H) = [568, 736)pt) where it alone hides while
+		// every other column stays visible — covering iPad 3:7 split widths
+		// (2/3 pane ≈ 0.7 * 1024 ≒ 717pt or narrower) without touching the
+		// iPad mini 6 full-screen portrait width (744pt, E2E-verified).
+		// RunTime's own visibility threshold sits one rung higher
+		// (IPHONE_6_7_8_H = 667pt) — below that its column collapses to a
+		// 4px sliver, so content is hidden there too.
+		bool expRunTime = modeIdx >= Idx("IPHONE_6_7_8_H");
 		bool expRunInOutLimit = modeIdx >= Idx("IPHONE_6_7_8_PLUS_H");
-		bool expRemarks = modeIdx >= Idx("IPHONE_6_7_8_H");
-		bool expMarker = modeIdx >= Idx("IPHONE_6_7_8_H");
+		bool expRemarks = modeIdx >= Idx("IPHONE_SE_H");
+		bool expMarker = modeIdx >= Idx("IPHONE_SE_H");
 		bool expStaNarrow = modeIdx <= Idx("IPHONE_6_7_8_PLUS_V");
 		bool expTrackNarrow = modeIdx <= Idx("IPHONE_6_7_8_PLUS_V");
+		// issue #320: 768pt 未満 (IPAD_MINI_2_3_4_5_V 未満) では運転時分/着線・
+		// 発線のフォントを一段 (-2) 縮める。着線/発線は狭幅表示中は対象外
+		// (狭幅フォント (-4) が優先される)。
+		bool expRunTimeMid = expRunTime && modeIdx < Idx("IPAD_MINI_2_3_4_5_V");
+		bool expTrackNameMid = !expTrackNarrow && modeIdx < Idx("IPAD_MINI_2_3_4_5_V");
 
 		Assert.Multiple(() =>
 		{
@@ -149,6 +165,10 @@ public class DTACResponsiveTests : BaseUITest
 				$"StationName narrow flag drifted from mode {mode}.");
 			Assert.That(Flag("tnn"), Is.EqualTo(expTrackNarrow),
 				$"TrackName narrow flag drifted from mode {mode}.");
+			Assert.That(Flag("rtm"), Is.EqualTo(expRunTimeMid),
+				$"RunTime mid-font flag drifted from mode {mode}.");
+			Assert.That(Flag("tnm"), Is.EqualTo(expTrackNameMid),
+				$"TrackName mid-font flag drifted from mode {mode}.");
 		});
 
 		// The user-facing #41 promise: station names stay readable instead of

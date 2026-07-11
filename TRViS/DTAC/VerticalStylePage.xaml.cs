@@ -591,7 +591,8 @@ public partial class VerticalStylePage : ContentView
 		_testColumnVisibilitySeamLabel.Text =
 			$"{TestColumnVisibilitySeamPrefix}mode={s.CurrentMode}|w={(int)TimetableView.Width}" +
 			$"|rt={B(s.RunTime)}|rl={B(s.RunInOutLimit)}|rm={B(s.Remarks)}" +
-			$"|mk={B(s.Marker)}|snn={B(s.IsStationNameNarrow)}|tnn={B(s.IsTrackNameNarrow)}";
+			$"|mk={B(s.Marker)}|snn={B(s.IsStationNameNarrow)}|tnn={B(s.IsTrackNameNarrow)}" +
+			$"|rtm={B(s.IsRunTimeMid)}|tnm={B(s.IsTrackNameMid)}";
 	}
 #endif
 

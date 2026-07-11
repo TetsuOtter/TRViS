@@ -84,9 +84,16 @@ public static partial class DTACElementStyles
 	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 32 : 30;
 	// 狭い画面で停車場名・着線/発線を詰めて表示するときのフォントサイズ (issue #41)
 	public static readonly double TimetableFontSizeNarrow = TimetableFontSize - 4;
+	// iPad mini 6 等、着線/発線列が 54px に詰まる帯 (768pt 未満・非狭幅表示) 用の
+	// 中間フォントサイズ (issue #320)。狭幅表示 (TimetableFontSizeNarrow) ほどは
+	// 縮めない。
+	public static readonly double TimetableFontSizeMid = TimetableFontSize - 2;
 	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 26 : 24;
 	public static readonly double DriveTimeMMFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+	// 運転時分列が 54px に詰まる帯 (768pt 未満) 用の中間フォントサイズ (issue #320)。
+	public static readonly double DriveTimeMMFontSizeMid = DriveTimeMMFontSize - 2;
 	public static readonly double DriveTimeSSFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 18 : 16;
+	public static readonly double DriveTimeSSFontSizeMid = DriveTimeSSFontSize - 2;
 
 	public const int TRAIN_INFO_HEIGHT = 50;
 	public const int BEFORE_DEPARTURE_HEIGHT = 45;
@@ -122,6 +129,7 @@ public static partial class DTACElementStyles
 	};
 
 	public const double RUN_TIME_COLUMN_WIDTH = 60;
+	private const double RUN_TIME_COLUMN_WIDTH_MID = 54;
 	private const double RUN_TIME_COLUMN_WIDTH_NARROW = 4;
 	private const double STA_NAME_COLUMN_WIDTH = 140;
 	private const double STA_NAME_COLUMN_WIDTH_NARROW = 96;
@@ -129,6 +137,7 @@ public static partial class DTACElementStyles
 	private const double ARR_DEP_COLUMN_WIDTH_NARROW = 110;
 	private const double ARR_DEP_COLUMN_WIDTH_MINI6 = 134;
 	private const double TRACK_NUMBER_COLUMN_WIDTH = 60;
+	private const double TRACK_NUMBER_COLUMN_WIDTH_MID = 54;
 	private const double TRACK_NUMBER_COLUMN_WIDTH_NARROW = 48;
 	private const double SPEED_LIMIT_COLUMN_WIDTH = 60;
 	private const double MARKER_COLUMN_WIDTH = 64;
@@ -178,22 +187,27 @@ public static partial class DTACElementStyles
 			if (grid.Width <= 0)
 				return;
 
-			VerticalTimetableColumnVisibilityState.ViewWidthMode m
+			// 全ての列を実ビュー幅のみで判定する (端末フル幅へのフォールバックなし)。
+			// issue #320: Split View 等で実際に縮んだ幅は、その幅なりに正直に評価する。
+			VerticalTimetableColumnVisibilityState.ViewWidthMode mode
 				= VerticalTimetableColumnVisibilityState.ClassifyWidth(grid.Width);
-			if (lastMode == m)
+			if (lastMode == mode)
 				return;
-			lastMode = m;
-			logger.Debug("TimetableColumnWidthCollection mode -> {0} (width={1})", m, grid.Width);
+			lastMode = mode;
+			logger.Debug("TimetableColumnWidthCollection mode -> {0} (width={1})", mode, grid.Width);
 
-			bool isRunTimeVisible = VerticalTimetableColumnVisibilityState.IsRunTimeVisible(m);
-			bool isStaNameNarrow = VerticalTimetableColumnVisibilityState.IsStationNameNarrowMode(m);
-			bool isTrackNarrow = VerticalTimetableColumnVisibilityState.IsTrackNameNarrowMode(m);
-			bool isSpeedLimitVisible = VerticalTimetableColumnVisibilityState.IsRunInOutLimitVisible(m);
-			bool isRemarksVisible = VerticalTimetableColumnVisibilityState.IsRemarksVisible(m);
-			bool isMarkerVisible = VerticalTimetableColumnVisibilityState.IsMarkerVisible(m);
+			bool isRunTimeVisible = VerticalTimetableColumnVisibilityState.IsRunTimeVisible(mode);
+			bool isStaNameNarrow = VerticalTimetableColumnVisibilityState.IsStationNameNarrowMode(mode);
+			bool isSpeedLimitVisible = VerticalTimetableColumnVisibilityState.IsRunInOutLimitVisible(mode);
+			bool isRemarksVisible = VerticalTimetableColumnVisibilityState.IsRemarksVisible(mode);
+			bool isMarkerVisible = VerticalTimetableColumnVisibilityState.IsMarkerVisible(mode);
+			bool isFullWidth = mode >= VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_2_3_4_5_V;
 
-			// 運転時分: 非表示時も 0 ではなく細い帯を残す (列車情報出発前ヘッダと幅を揃えるため)
-			runTimeColumn.Width = isRunTimeVisible ? RUN_TIME_COLUMN_WIDTH : RUN_TIME_COLUMN_WIDTH_NARROW;
+			// 運転時分: 非表示時も 0 ではなく細い帯を残す (列車情報出発前ヘッダと幅を揃えるため)。
+			// 768pt 未満では表示時も少し詰めて (54px) 幅に余裕を持たせる。
+			runTimeColumn.Width = !isRunTimeVisible
+				? RUN_TIME_COLUMN_WIDTH_NARROW
+				: isFullWidth ? RUN_TIME_COLUMN_WIDTH : RUN_TIME_COLUMN_WIDTH_MID;
 
 			// 停車場名: 後続の記事列が消えたら Star にして余白を吸収する
 			stationNameColumn.Width = new(
@@ -202,18 +216,28 @@ public static partial class DTACElementStyles
 			);
 
 			// 着/発: モードごとに最適幅
-			arrivalDepartureTimeColumn.Width = m switch
+			arrivalDepartureTimeColumn.Width = mode switch
 			{
-				<= VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_6_7_8_PLUS_V
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_SE_H
 					=> ARR_DEP_COLUMN_WIDTH_NARROW,
-				VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_6_V
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_2_3_4_5_V
 					=> ARR_DEP_COLUMN_WIDTH_MINI6,
 				_ => ARR_DEP_COLUMN_WIDTH,
 			};
 
-			// 着線/発線: 後続の制限速度列が消えたら Star にして余白を吸収する
+			// 着線/発線: 768pt 未満では少し詰めて (54px)、568pt 未満 (狭幅表示) では
+			// さらに詰めて (48px) 幅に余裕を持たせる。
+			// 後続の制限速度列が消えたら Star にして余白を吸収する
+			double trackNumberColumnWidth = mode switch
+			{
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_SE_H
+					=> TRACK_NUMBER_COLUMN_WIDTH_NARROW,
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_2_3_4_5_V
+					=> TRACK_NUMBER_COLUMN_WIDTH_MID,
+				_ => TRACK_NUMBER_COLUMN_WIDTH,
+			};
 			trackNumberColumn.Width = new(
-				isTrackNarrow ? TRACK_NUMBER_COLUMN_WIDTH_NARROW : TRACK_NUMBER_COLUMN_WIDTH,
+				trackNumberColumnWidth,
 				isSpeedLimitVisible ? GridUnitType.Absolute : GridUnitType.Star
 			);
 

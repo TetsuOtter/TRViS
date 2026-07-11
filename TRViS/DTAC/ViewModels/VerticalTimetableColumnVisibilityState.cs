@@ -54,6 +54,17 @@ public partial class VerticalTimetableColumnVisibilityState : ObservableObject
 	[ObservableProperty]
 	public partial bool IsTrackNameNarrow { get; set; } = false;
 
+	/// <summary>
+	/// 運転時分・着線/発線が (狭幅表示ではないが) 768pt 未満の詰まった列幅
+	/// (54px) で表示されているか。この帯ではフォントを少し縮める (issue #320)。
+	/// 着線/発線は狭幅表示中 (<see cref="IsTrackNameNarrow"/>) は対象外
+	/// (狭幅フォントが優先される)。
+	/// </summary>
+	[ObservableProperty]
+	public partial bool IsRunTimeMid { get; set; } = false;
+	[ObservableProperty]
+	public partial bool IsTrackNameMid { get; set; } = false;
+
 	public ViewWidthMode CurrentMode { get; private set; } = ViewWidthMode.IPAD_MINI_2_3_4_5_V;
 
 	public VerticalTimetableColumnVisibilityState(int width)
@@ -78,15 +89,18 @@ public partial class VerticalTimetableColumnVisibilityState : ObservableObject
 		IPHONE_6_7_8_H = 667,
 		IPHONE_6_7_8_PLUS_H = 736,
 
-		// iPad mini 6 以降は左右の余白を含めると 12px 狭い (main commit b244d19)
-		IPAD_MINI_6_V = 744 + 12,
+		// iPad mini 6/A17 Pro の実測ポートレート幅は 744pt ちょうど (issue #320 の
+		// screenshot 回帰テストで実機シミュレータの SizeChanged 値として確認済み)。
+		// 旧 "744 + 12 = 756" だと実測値がこの分岐に一切乗らず、iPad mini 6 のフル画面
+		// ポートレートで列車情報ヘッダ/運転時分が常に非表示になっていた。
+		IPAD_MINI_6_V = 744,
 		IPAD_MINI_2_3_4_5_V = 768,
 	}
 
 	public static ViewWidthMode ClassifyWidth(double width) => width switch
 	{
 		>= 768 => ViewWidthMode.IPAD_MINI_2_3_4_5_V,
-		>= 756 => ViewWidthMode.IPAD_MINI_6_V,
+		>= 744 => ViewWidthMode.IPAD_MINI_6_V,
 		>= 736 => ViewWidthMode.IPHONE_6_7_8_PLUS_H,
 		>= 667 => ViewWidthMode.IPHONE_6_7_8_H,
 		>= 568 => ViewWidthMode.IPHONE_SE_H,
@@ -97,11 +111,20 @@ public partial class VerticalTimetableColumnVisibilityState : ObservableObject
 	};
 
 	// --- 単一の真実源となる static 述語 (幅ロジックと表示ロジックの両方が参照する) ---
+	// 全ての列を実ビュー幅 (ClassifyWidth の戻り値) のみで判定する。端末本来の
+	// フル幅へのフォールバック等は行わない — Split View 等で実際に縮んだ幅は、
+	// その幅なりに正直に評価する (issue #320)。
+	//
+	// 制限速度 (IsRunInOutLimitVisible) の閾値だけは他の全列より高く保つ。これにより
+	// iPad の 3:7 分割 (2/3 側 ≈ 0.7 * 1024 ≒ 717pt 以下) のように「他列は表示できる
+	// 余裕はあるが制限速度だけ収まらない」幅で、制限速度だけが単独で非表示になる帯
+	// ([IPHONE_SE_H, IPHONE_6_7_8_PLUS_H) = [568, 736)pt) を確保しつつ、iPad mini 6
+	// 実機フルスクリーン (744pt, E2E 実測済み) では全列を表示できる。
 
 	/// <summary>列車情報ヘッダ (列車番号/最高速度/速度種別/けん引定数) を表示するか。</summary>
-	public static bool IsTrainInfoHeaderVisible(ViewWidthMode m) => m >= ViewWidthMode.IPAD_MINI_6_V;
-	/// <summary>運転時分列を表示するか。</summary>
-	public static bool IsRunTimeVisible(ViewWidthMode m) => m >= ViewWidthMode.IPAD_MINI_6_V;
+	public static bool IsTrainInfoHeaderVisible(ViewWidthMode m) => m >= ViewWidthMode.IPHONE_SE_H;
+	/// <summary>運転時分列を表示するか (幅が狭い帯 (4px) では文字も表示しない)。</summary>
+	public static bool IsRunTimeVisible(ViewWidthMode m) => m >= ViewWidthMode.IPHONE_6_7_8_H;
 	/// <summary>停車場名を狭幅表示にするか。</summary>
 	public static bool IsStationNameNarrowMode(ViewWidthMode m) => m <= ViewWidthMode.IPHONE_6_7_8_PLUS_V;
 	/// <summary>着線/発線を狭幅表示にするか。</summary>
@@ -109,32 +132,35 @@ public partial class VerticalTimetableColumnVisibilityState : ObservableObject
 	/// <summary>制限速度列を表示するか。</summary>
 	public static bool IsRunInOutLimitVisible(ViewWidthMode m) => m >= ViewWidthMode.IPHONE_6_7_8_PLUS_H;
 	/// <summary>記事列を表示するか。</summary>
-	public static bool IsRemarksVisible(ViewWidthMode m) => m >= ViewWidthMode.IPHONE_6_7_8_H;
+	public static bool IsRemarksVisible(ViewWidthMode m) => m >= ViewWidthMode.IPHONE_SE_H;
 	/// <summary>マーカー列を表示するか。</summary>
-	public static bool IsMarkerVisible(ViewWidthMode m) => m >= ViewWidthMode.IPHONE_6_7_8_H;
+	public static bool IsMarkerVisible(ViewWidthMode m) => m >= ViewWidthMode.IPHONE_SE_H;
 
 	public void UpdateState(int width)
 	{
-		ViewWidthMode m = ClassifyWidth(width);
-		CurrentMode = m;
+		ViewWidthMode mode = ClassifyWidth(width);
+		CurrentMode = mode;
 
-		bool trainInfoHeaderVisible = IsTrainInfoHeaderVisible(m);
+		bool trainInfoHeaderVisible = IsTrainInfoHeaderVisible(mode);
 		TrainNumber = trainInfoHeaderVisible;
 		MaxSpeed = trainInfoHeaderVisible;
 		SpeedType = trainInfoHeaderVisible;
 		NominalTractiveCapacity = trainInfoHeaderVisible;
 
-		RunTime = IsRunTimeVisible(m);
+		RunTime = IsRunTimeVisible(mode);
 		// 停車場名・着線/発線・着発時刻は常に表示し、狭い画面では幅/フォントを詰める
 		StationName = true;
 		ArrivalTime = true;
 		DepartureTime = true;
 		TrackName = true;
-		IsStationNameNarrow = IsStationNameNarrowMode(m);
-		IsTrackNameNarrow = IsTrackNameNarrowMode(m);
+		IsStationNameNarrow = IsStationNameNarrowMode(mode);
+		IsTrackNameNarrow = IsTrackNameNarrowMode(mode);
 
-		RunInOutLimit = IsRunInOutLimitVisible(m);
-		Remarks = IsRemarksVisible(m);
-		Marker = IsMarkerVisible(m);
+		IsRunTimeMid = RunTime && mode < ViewWidthMode.IPAD_MINI_2_3_4_5_V;
+		IsTrackNameMid = !IsTrackNameNarrow && mode < ViewWidthMode.IPAD_MINI_2_3_4_5_V;
+
+		RunInOutLimit = IsRunInOutLimitVisible(mode);
+		Remarks = IsRemarksVisible(mode);
+		Marker = IsMarkerVisible(mode);
 	}
 }
