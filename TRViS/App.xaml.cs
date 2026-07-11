@@ -37,11 +37,16 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		Window window = new(new AppShell());
+		AppShell shell = new();
+		Window window = new(shell);
 
 		logger.Info("Window Created");
 
 		window.Destroying += WindowOnDestroying;
+		// Re-evaluate iPadOS 26 window-control clearance (see
+		// AppShell.NotifyWindowGeometryMayHaveChanged) whenever the platform
+		// window's geometry changes, not just once at launch.
+		window.SizeChanged += (_, _) => shell.NotifyWindowGeometryMayHaveChanged();
 
 		return window;
 	}

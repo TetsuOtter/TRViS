@@ -1,5 +1,6 @@
 #if IOS
 using System.Runtime.Versioning;
+using CoreGraphics;
 #endif
 
 using System.Runtime.CompilerServices;
@@ -220,6 +221,26 @@ public partial class AppShell : Shell
 		}
 	}
 
+	/// <summary>
+	/// Hooked up to <c>Microsoft.Maui.Controls.Window.SizeChanged</c> from
+	/// App.xaml.cs. On iOS, MAUI's WindowHandler already KVO-observes
+	/// UIWindowScene.EffectiveGeometry (in addition to UIWindow.Frame) and raises
+	/// Window.SizeChanged whenever either changes -- this fires reliably for
+	/// Stage Manager tile/float transitions and fullscreen toggles on iPadOS 26,
+	/// unlike windowScene:didUpdateCoordinateSpace:, which requires MAUI's own
+	/// UIWindowSceneDelegate to be active and never gets called because this app
+	/// has no UIApplicationSceneManifest in Info.plist. Re-evaluating here keeps
+	/// the window-control clearance current instead of only being set once at
+	/// launch.
+	/// </summary>
+	public void NotifyWindowGeometryMayHaveChanged()
+	{
+#if IOS
+		logger.Info("NotifyWindowGeometryMayHaveChanged (Window.SizeChanged)");
+		UpdateSafeAreaMargin();
+#endif
+	}
+
 #if IOS
 	UIKit.UIWindow? UIWindow = null;
 
@@ -268,8 +289,64 @@ public partial class AppShell : Shell
 
 		if (UIWindow is not null)
 		{
+			double left = UIWindow.SafeAreaInsets.Left.Value;
+			double flyoutTopGap = 0;
+
+			// iPadOS 26 draws macOS-style window controls (close/fullscreen/minimize) in
+			// the top-left corner of windowed/resizable scenes. UIWindow.SafeAreaInsets
+			// does not grow to avoid them; the corner-adaptation variants of the new
+			// UIViewLayoutRegion API do, but they also report a few points of clearance
+			// even when the scene fills the whole display and no controls are drawn at
+			// all (confirmed on-device: a full-bleed screenshot showed a perfectly square
+			// corner while the API still returned >0). There is no public API to ask "are
+			// the controls currently visible", so only trust the corner-adaptation inset
+			// while the window doesn't fill the screen (i.e. it's plausibly
+			// tiled/floating) to avoid nudging the UI in the common full-screen case.
+			// Compare by area, not width/height, since UIScreen.Bounds does not
+			// necessarily rotate with the window's current orientation.
+			// ref: https://developer.apple.com/videos/play/wwdc2025/282 (Make your UIKit app more flexible)
+			if (OperatingSystem.IsIOSVersionAtLeast(26))
+			{
+				CGSize windowSize = UIWindow.Frame.Size;
+				CGSize screenSize = (UIWindow.WindowScene?.Screen ?? UIKit.UIScreen.MainScreen).Bounds.Size;
+				bool isTiledOrFloating = Math.Abs(windowSize.Width * windowSize.Height - screenSize.Width * screenSize.Height) > 1.0;
+				double cornerAwareLeft = 0, cornerAwareTop = 0;
+				if (isTiledOrFloating)
+				{
+					cornerAwareLeft = UIWindow.GetEdgeInsets(
+						UIKit.UIViewLayoutRegion.CreateSafeAreaLayoutRegion(UIKit.UIViewLayoutRegionAdaptivityAxis.Horizontal)
+					).Left;
+					left = Math.Max(left, cornerAwareLeft);
+
+					// The Flyout menu's "Home" entry starts right at the top of the
+					// flyout panel, which puts it directly under the same window
+					// controls. Nudge the flyout content down by the vertical
+					// corner-adaptation clearance so it doesn't sit underneath them.
+					cornerAwareTop = UIWindow.GetEdgeInsets(
+						UIKit.UIViewLayoutRegion.CreateSafeAreaLayoutRegion(UIKit.UIViewLayoutRegionAdaptivityAxis.Vertical)
+					).Top;
+					flyoutTopGap = cornerAwareTop;
+				}
+				// TEMP diagnostic for #313 dynamic-update follow-up: remove once
+				// confirmed on-device that this hook fires and these values are sane
+				// across tile/float/fullscreen transitions. Info, not Debug/Trace,
+				// because release builds' file logger filters below Info
+				// (LoggerService.cs) and this needs to survive in a release-build
+				// device log.
+				logger.Info(
+					"iOS26 window-control probe: windowSize={0}x{1} screenSize={2}x{3} isTiledOrFloating={4} cornerAwareLeft={5} cornerAwareTop={6}",
+					windowSize.Width, windowSize.Height, screenSize.Width, screenSize.Height, isTiledOrFloating, cornerAwareLeft, cornerAwareTop
+				);
+			}
+
+			if (FlyoutTopSpacer.HeightRequest != flyoutTopGap)
+			{
+				logger.Debug("FlyoutTopSpacer.HeightRequest: {0} -> {1}", FlyoutTopSpacer.HeightRequest, flyoutTopGap);
+				FlyoutTopSpacer.HeightRequest = flyoutTopGap;
+			}
+
 			SafeAreaMargin = new(
-				UIWindow.SafeAreaInsets.Left.Value,
+				left,
 				UIWindow.SafeAreaInsets.Top.Value,
 				UIWindow.SafeAreaInsets.Right.Value,
 				UIWindow.SafeAreaInsets.Bottom.Value
