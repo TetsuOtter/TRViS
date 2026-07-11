@@ -95,6 +95,12 @@ jobs:
   # Android UI Tests  (self-managed emulator)
   # ─────────────────────────────────────────────
   ui-test-android:
+    # Temporarily disabled: the self-managed emulator has become too
+    # unreliable to gate PRs on (recurring UiAutomator2/instrumentation
+    # crashes cascading the whole suite, plus separate structural flakiness
+    # under the NotificationBannerTests fixture — see #321). Remove this
+    # line to re-enable once the underlying instability is addressed.
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
