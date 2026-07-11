@@ -471,6 +471,23 @@ class StartHomePageObject {
         return DTACViewHostPageObject(app: app, base: base)
     }
 
+    // MARK: — Notification inject seam (ScreenshotRegressionTests)
+
+    /// Injects a Notification via the UI_TEST-only trvis://_test/notification
+    /// deeplink (see AppViewModel.HandleTestInjectNotification), routed through
+    /// the same Connect-to-Server new-connection form real deeplinks use.
+    /// Requires Start mode (ConnectServerButton reachable) — callers must be on
+    /// StartHome before calling this.
+    func injectNotificationForTesting(deeplink: String) {
+        let dialog = openConnectServerDialog()
+        XCTAssertTrue(dialog.isDisplayed(), "ConnectServer dialog should open for notification inject.")
+        if !dialog.isNewConnectionFormVisible(timeout: 3) {
+            dialog.openNewConnectionForm()
+        }
+        dialog.typeUrl(deeplink)
+        dialog.connectButton.tap()
+    }
+
     // MARK: — Constants (mirror C# StartHomePageObject literals)
 
     /// URLs seeded by seedUrlHistoryForTesting().

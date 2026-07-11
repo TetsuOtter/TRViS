@@ -111,7 +111,8 @@ public class LoaderSQL : ILoader, IDisposable
 								or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
 
 							DefaultMarkerColor_RGB: cj?.RGB,
-							DefaultMarkerText: r.MarkerText
+							DefaultMarkerText: r.MarkerText,
+							StationId: s.Id
 						)
 					).ToArray(),
 					AfterArrive: t.AfterArrive,
@@ -179,7 +180,8 @@ public class LoaderSQL : ILoader, IDisposable
 								or (int)Models.DB.StationRecordType.InfoRow_ForSomeTrain,
 
 							DefaultMarkerColor_RGB: null,
-							DefaultMarkerText: null
+							DefaultMarkerText: null,
+							StationId: s.Id
 						)
 					).ToArray(),
 					AfterArrive: t.AfterArrive,

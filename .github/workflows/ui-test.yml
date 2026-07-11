@@ -641,10 +641,13 @@ jobs:
   # ─────────────────────────────────────────────
   ui-test-windows:
     runs-on: windows-latest
-    # Successful runs take ~18 min; this PR's run hit 20m14s and was killed by
-    # the timeout mid-suite (no test actually failed — see run 28673468160).
-    # 25 min gives headroom as the suite keeps growing.
-    timeout-minutes: 25
+    # Successful runs take ~18 min; a run hit 20m14s and was killed by
+    # the timeout mid-suite (no test actually failed — see run 28673468160),
+    # so the budget was bumped to 25 min. The #254 notification banner suite
+    # (NotificationBannerTests) added enough runtime that a later run hit the
+    # 25 min wall again mid-suite (no failure — see run 29157900680). Bumped
+    # to 35 min for headroom as the suite keeps growing.
+    timeout-minutes: 35
 
     steps:
       - name: Checkout code

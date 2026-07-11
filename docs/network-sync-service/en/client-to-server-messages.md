@@ -12,7 +12,7 @@ Client-sent messages fall into two families:
 | Kind | Discriminator | Section |
 |---|---|---|
 | ID-update message | **no** `MessageType` | [§1](#1-id-update-message) |
-| Request message | **has** `MessageType` | [§2](#2-requestserverinfo) / [§3](#3-requestdiagraminfo) / [§4](#4-searchtrain) / [§5](#5-requesttraintimetable) |
+| Request message | **has** `MessageType` | [§2](#2-requestserverinfo) / [§3](#3-requestdiagraminfo) / [§4](#4-searchtrain) / [§5](#5-requesttraintimetable) / [§6](#6-acknowledgenotification) |
 
 ### Request/response correlation (`RequestId`)
 
@@ -33,6 +33,9 @@ the reply with the request it sent. How each request uses it differs:
 
 These requests are only meaningful against a server that advertises the
 `TrainSearch` [feature](server-to-client-messages.md#3-serverinfo).
+
+[`AcknowledgeNotification`](#6-acknowledgenotification) does not use
+`RequestId` and is unrelated to the train-search feature negotiation.
 
 ---
 
@@ -252,6 +255,56 @@ sequenceDiagram
 
 ---
 
+## 6. AcknowledgeNotification
+
+Acknowledges receipt of a [`Notification`](server-to-client-messages.md#8-notification).
+This is how the crew reports back to the server that they have received
+(acknowledged) a notification. In TRViS it is sent when the user taps the
+"Acknowledge" button on the notification popup.
+
+```jsonc
+{
+  "MessageType": "AcknowledgeNotification",
+  "Id": "n-001"   // Id of the notification to acknowledge (required)
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `Id` | string | The [`Notification.Id`](server-to-client-messages.md#8-notification) to acknowledge. Required. |
+
+- The client only sends this for notifications that have an `Id`
+  (a notification with a `null` `Id` cannot be acknowledged).
+- The server should record the acknowledgement state for that client, and
+  when it later re-delivers notifications it is recommended to set
+  [`Notification.Acknowledged`](server-to-client-messages.md#8-notification)
+  to `true` (to stay consistent with the client's read management).
+- **No response message is specified** (server-defined).
+- Sending is best-effort. The client may update its local read state
+  regardless of whether the send succeeded (while disconnected the message
+  does not reach the server, so the server may treat it as unacknowledged on
+  the next delivery).
+
+```mermaid
+sequenceDiagram
+    participant C as TRViS
+    participant S as External server
+    S-->>C: {"MessageType":"Notification","Id":"n-001", ...}
+    Note over C: user taps the "Acknowledge" button
+    C->>S: {"MessageType":"AcknowledgeNotification","Id":"n-001"}
+    Note over S: record acknowledgement (response optional)
+```
+
+### 6.1 Backward compatibility
+
+`AcknowledgeNotification` is a new request message, but unknown
+`MessageType` values are "silently ignored" per the
+[server-to-client appendix](server-to-client-messages.md#appendix-parsing-behavior-summary),
+so servers that do not support it are unaffected. Therefore no
+`ProtocolVersion` bump is required.
+
+---
+
 ## Appendix: recommended server-side dispatch
 
 ```text
@@ -261,6 +314,7 @@ parse received JSON
 │   ├─ "RequestDiagramInfo"      → reply DiagramInfo (DiagramId optional)
 │   ├─ "SearchTrain"             → reply SearchTrainResponse echoing RequestId (always, even 0 results)
 │   ├─ "RequestTrainTimetable"   → reply Timetable at Train scope (WorkGroupId+WorkId+TrainId+Data)
+│   ├─ "AcknowledgeNotification" → record acknowledgement (Id required; response optional)
 │   └─ otherwise                 → ignore as unknown request, or handle as an extension
 └─ no "MessageType"
     └─ read WorkGroupId/WorkId/TrainId and update subscription state (ID update)
