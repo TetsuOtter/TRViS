@@ -145,7 +145,12 @@ public static partial class JsonModelsConverter
 					is (int)StationRecordType.InfoRow_ForAlmostTrain
 					or (int)StationRecordType.InfoRow_ForSomeTrain,
 				DefaultMarkerColor_RGB: HexStringToRgbInt(v.MarkerColor),
-				DefaultMarkerText: v.MarkerText
+				DefaultMarkerText: v.MarkerText,
+
+				// JSON 形式は駅を正規化した ID (SQLite の Station.Id 相当) を持たないが、
+				// 行ごとの Id を区間照合用の駅 ID として使う。通告の区間再表示は現在列車 1 本の
+				// 経路内でのみ解決するため、列車をまたいで安定した駅 ID でなくても十分。Id 省略時は null。
+				StationId: v.Id
 			))];
 		}
 

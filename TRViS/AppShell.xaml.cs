@@ -112,6 +112,14 @@ public partial class AppShell : Shell
 						logger.Error(t.Exception, "NavigateToHome GoToAsync failed");
 				}, TaskScheduler.Default));
 
+		// サーバーから通告 (Notification) を受信し、未読と判定されたときにポップアップ表示する。
+		// DisplayRequested は NotificationCenter 側で MainThread 上に発火するが、複数同時受信を
+		// 直列化 (一度に 1 つだけモーダル表示) するためキューで管理する。
+		appVm.NotificationCenter.DisplayRequested += OnNotificationDisplayRequested;
+		// WebSocket 切断等で通告が一括破棄されたら、まだ表示していない待機列も空にする
+		// (表示中のポップアップ自体は NotificationPopupPage が自分で閉じる)。
+		appVm.NotificationCenter.Cleared += OnNotificationCenterCleared;
+
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
 		logger.Trace("Display Width/Height: {0}x{1}", InstanceManager.AppViewModel.WindowWidth, InstanceManager.AppViewModel.WindowHeight);
@@ -131,6 +139,65 @@ public partial class AppShell : Shell
 #endif
 
 		logger.Trace("AppShell Created");
+	}
+
+	// 通告ポップアップの表示直列化用。同時に複数受信しても一度に 1 つだけモーダル表示し、
+	// 閉じられたら次を表示する。UI スレッド上でのみアクセスする。
+	readonly Queue<Services.NotificationStore.Entry> _notificationQueue = new();
+	bool _isShowingNotification;
+
+	void OnNotificationCenterCleared(object? sender, EventArgs e)
+	{
+		MainThread.BeginInvokeOnMainThread(() => _notificationQueue.Clear());
+	}
+
+	void OnNotificationDisplayRequested(object? sender, Services.NotificationStore.Entry entry)
+	{
+		// DisplayRequested は MainThread 上で発火する契約だが、キュー操作を確実に UI
+		// スレッドで行うため dispatch する (二重 dispatch は無害)。
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			_notificationQueue.Enqueue(entry);
+			TryShowNextNotification();
+		});
+	}
+
+	void TryShowNextNotification()
+	{
+		if (_isShowingNotification || _notificationQueue.Count == 0)
+			return;
+
+		_isShowingNotification = true;
+		Services.NotificationStore.Entry entry = _notificationQueue.Dequeue();
+		var page = new RootPages.NotificationPopupPage(entry, InstanceManager.AppViewModel.NotificationCenter);
+
+		// 閉じられたら (受領 / 閉じる / OS ジェスチャ) 次の通告を表示する。
+		void OnPopupDisappearing(object? s, EventArgs e)
+		{
+			page.Disappearing -= OnPopupDisappearing;
+			_isShowingNotification = false;
+			TryShowNextNotification();
+		}
+		page.Disappearing += OnPopupDisappearing;
+
+		_ = PushNotificationModalAsync(page);
+	}
+
+	async Task PushNotificationModalAsync(Page page)
+	{
+		try
+		{
+			await Navigation.PushModalAsync(page);
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "Notification PushModalAsync failed");
+			InstanceManager.CrashlyticsWrapper.Log(ex, "AppShell.PushNotificationModalAsync");
+			// push に失敗すると Disappearing が来ないため、ここで表示状態を解除して次へ進む。
+			// (失敗したページに残る Disappearing 購読は破棄されるので無害。)
+			_isShowingNotification = false;
+			TryShowNextNotification();
+		}
 	}
 
 	/// <summary>
