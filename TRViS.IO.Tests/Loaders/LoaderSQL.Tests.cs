@@ -89,8 +89,8 @@ public class LoaderSQLTests
 
 			Assert.That(actual.Rows, Is.EquivalentTo(new TimetableRow[]
 			{
-				new("1", new(1, null, null, null), 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc", false, null, null),
-				new("2", new(2, 135.5, 35.5, 200), 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null, false, null, null)
+				new("1", new(1, null, null, null), 12, 34, "Station1", false, false, false, false, null, new(12, 34, 56, null), "1-1", null, null, "abc", false, null, null, "1"),
+				new("2", new(2, 135.5, 35.5, 200), 12, null, "Station2", false, false, false, true, new(null, null, null, "停車"), null, null, null, null, null, false, null, null, "2")
 			}));
 		});
 	}
