@@ -204,13 +204,15 @@ class ScreenshotRegressionTests: BaseUITestCase {
         settleUntilVisuallyStable(maxWait: 15.0)
         capture(screen: "dtac-timetable", theme: theme, lang: lang, failures: &failures)
 
-        // Hako tab — tap and wait 500 ms for the tab content to render
+        // Hako tab — tap and wait for the tab content to render. A fixed sleep
+        // here occasionally raced the render on CI (half-rendered frame: AppBar
+        // and train boxes missing, e.g. dark/ja), so settle until stable instead.
         if let hakoTab = waitForElement(id: AutomationIds.DTAC.tabHako, timeout: 15) {
             hakoTab.tap()
         } else {
             XCTFail("DTAC.TabHako not found")
         }
-        Thread.sleep(forTimeInterval: 0.5)
+        settleUntilVisuallyStable(maxWait: 10.0)
         capture(screen: "dtac-hako", theme: theme, lang: lang, failures: &failures)
 
         // BBCode / Hiragino font rendering check: 試単9091 selection steps.
