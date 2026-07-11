@@ -129,10 +129,17 @@ public partial class NotificationBannerView : ContentView
 		_acknowledgeBlinkGreenPhase = true;
 		ApplyAcknowledgeBlinkPhase(green: true);
 
+#if UI_TEST
+		// UI_TEST ビルドでは点滅させない (緑固定)。点滅させたままだと、スクリーンショット
+		// 回帰テストの capture が点滅のどちらの位相に当たるかで毎回異なる差分を生み、
+		// 決定的に比較できなくなるため。
+		return;
+#else
 		_acknowledgeBlinkTimer = Dispatcher.CreateTimer();
 		_acknowledgeBlinkTimer.Interval = AcknowledgeBlinkInterval;
 		_acknowledgeBlinkTimer.Tick += OnAcknowledgeBlinkTick;
 		_acknowledgeBlinkTimer.Start();
+#endif
 	}
 
 	private void StopAcknowledgeBlink(bool forceGreen)
