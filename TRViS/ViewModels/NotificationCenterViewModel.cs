@@ -65,6 +65,15 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	/// </summary>
 	public event EventHandler<string>? BannerDismissed;
 
+	/// <summary>
+	/// 指定 Id の通告が削除されたときに発火する (サーバーからの削除指示、または UI_TEST の
+	/// 削除 seam)。開いている大型ポップアップのうち該当 Id のものだけを自己クローズさせ、
+	/// AppShell の表示待ちキューから該当 Id のみを取り除くために使う。表示中の小型バナーは
+	/// <see cref="RemoveNotification"/> が併せて発火する <see cref="BannerDismissed"/> で消える。
+	/// UI スレッド上で発火する。
+	/// </summary>
+	public event EventHandler<string>? NotificationRemoved;
+
 	// 現在表示中の通告ポップアップ (拡大表示) の数。AppShell のキュー直列化により通常は
 	// 同時に 1 つだが、close→次表示の切り替わりの一瞬だけ増減が重なる可能性に備えてカウンタに
 	// している。UI スレッド専有。
@@ -101,11 +110,13 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		if (_locationService is not null)
 		{
 			_locationService.NotificationReceived -= OnNotificationReceived;
+			_locationService.NotificationDeleteRequested -= OnNotificationDeleteRequested;
 			_locationService.LocationStateChanged -= OnLocationStateChanged;
 			_locationService.NetworkConnectionLost -= OnNetworkConnectionLost;
 		}
 		_locationService = locationService;
 		_locationService.NotificationReceived += OnNotificationReceived;
+		_locationService.NotificationDeleteRequested += OnNotificationDeleteRequested;
 		_locationService.LocationStateChanged += OnLocationStateChanged;
 		_locationService.NetworkConnectionLost += OnNetworkConnectionLost;
 	}
@@ -180,6 +191,40 @@ public sealed class NotificationCenterViewModel : ObservableObject
 				}
 			}
 		});
+	}
+
+	/// <summary>
+	/// サーバーからの通告削除指示 (<see cref="DeleteNotificationCommand"/>) を受けて、指定 Id の
+	/// 通告を破棄する。WebSocket 受信スレッドから呼ばれ得るため UI スレッドへ回す。
+	/// </summary>
+	private void OnNotificationDeleteRequested(object? sender, DeleteNotificationCommand cmd)
+	{
+		logger.Info("NotificationDeleteRequested: Id={0}", cmd.Id);
+		MainThread.BeginInvokeOnMainThread(() => RemoveNotification(cmd.Id));
+	}
+
+	/// <summary>
+	/// 指定 Id の通告を、受領済み/未受領・表示中/未表示を問わず破棄する。
+	/// <see cref="NotificationStore"/> から削除し、追跡中の状態
+	/// (<see cref="_pendingCompactKeys"/>/<see cref="_entriesById"/>) からも取り除いた上で、
+	/// 表示中の小型バナーがあれば <see cref="BannerDismissed"/> で消し、開いている大型ポップアップ
+	/// (該当 Id のみ)・AppShell の表示待ちキュー (該当 Id のみ) には <see cref="NotificationRemoved"/>
+	/// で通知する。UI スレッド上でのみ呼ぶこと。
+	/// </summary>
+	private void RemoveNotification(string? id)
+	{
+		if (string.IsNullOrEmpty(id))
+			return;
+
+		bool existed = _store.Remove(id);
+		_pendingCompactKeys.Remove(id);
+		_entriesById.Remove(id);
+
+		if (_shownBannerKeys.Remove(id))
+			BannerDismissed?.Invoke(this, id);
+
+		if (existed)
+			NotificationRemoved?.Invoke(this, id);
 	}
 
 	/// <summary>
@@ -386,6 +431,16 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		if (fakeAck && !string.IsNullOrEmpty(n.Id))
 			_testInjectedIds.Add(n.Id);
 		OnNotificationReceived(this, n);
+	}
+
+	/// <summary>
+	/// UI_TEST 専用: 実サーバー無しで通告削除 (<see cref="DeleteNotificationCommand"/>) をシミュレートする。
+	/// <see cref="RemoveNotification"/> と同じ経路 (本番の削除ハンドラーが呼ぶものと同一) を通す。
+	/// </summary>
+	public void DeleteNotificationForTesting(string id)
+	{
+		_testInjectedIds.Remove(id);
+		RemoveNotification(id);
 	}
 
 	/// <summary>

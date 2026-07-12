@@ -56,6 +56,7 @@ public partial class LocationService : IDisposable
 	public event EventHandler<bool>? OperationStartRequested;
 	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
 	public event EventHandler<NotificationData>? NotificationReceived;
+	public event EventHandler<DeleteNotificationCommand>? NotificationDeleteRequested;
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? NavigateToHomeRequested;
 	public event EventHandler<OpenTimetableCommand>? OpenTimetableRequested;
@@ -243,6 +244,8 @@ void OnIsEnabledChanged(bool value)
 
 	void OnHeaderColorChangeRequested(object? sender, HeaderColorCommand cmd) => HeaderColorChangeRequested?.Invoke(sender, cmd);
 	void OnNotificationReceived(object? sender, NotificationData n) => NotificationReceived?.Invoke(sender, n);
+
+	void OnNotificationDeleteRequested(object? sender, DeleteNotificationCommand cmd) => NotificationDeleteRequested?.Invoke(sender, cmd);
 	void OnTimeFormatChangeRequested(object? sender, TimeFormatCommand cmd) => TimeFormatChangeRequested?.Invoke(sender, cmd);
 	void OnNavigateToHomeRequested(object? sender, EventArgs _) => NavigateToHomeRequested?.Invoke(sender, EventArgs.Empty);
 	void OnOpenTimetableRequested(object? sender, OpenTimetableCommand cmd) => OpenTimetableRequested?.Invoke(sender, cmd);
@@ -347,6 +350,7 @@ void OnIsEnabledChanged(bool value)
 			networkSyncService.OperationCommandReceived -= OnOperationCommandReceived;
 			networkSyncService.HeaderColorChangeRequested -= OnHeaderColorChangeRequested;
 			networkSyncService.NotificationReceived -= OnNotificationReceived;
+			networkSyncService.NotificationDeleteRequested -= OnNotificationDeleteRequested;
 			networkSyncService.TimeFormatChangeRequested -= OnTimeFormatChangeRequested;
 			networkSyncService.NavigateToHomeRequested -= OnNavigateToHomeRequested;
 			networkSyncService.OpenTimetableRequested -= OnOpenTimetableRequested;
@@ -473,6 +477,7 @@ void OnIsEnabledChanged(bool value)
 		nextService.OperationCommandReceived += OnOperationCommandReceived;
 		nextService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
 		nextService.NotificationReceived += OnNotificationReceived;
+		nextService.NotificationDeleteRequested += OnNotificationDeleteRequested;
 		nextService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
 		nextService.NavigateToHomeRequested += OnNavigateToHomeRequested;
 		nextService.OpenTimetableRequested += OnOpenTimetableRequested;
@@ -508,6 +513,7 @@ void OnIsEnabledChanged(bool value)
 			networkSyncService.OperationCommandReceived -= OnOperationCommandReceived;
 			networkSyncService.HeaderColorChangeRequested -= OnHeaderColorChangeRequested;
 			networkSyncService.NotificationReceived -= OnNotificationReceived;
+			networkSyncService.NotificationDeleteRequested -= OnNotificationDeleteRequested;
 			networkSyncService.TimeFormatChangeRequested -= OnTimeFormatChangeRequested;
 			networkSyncService.NavigateToHomeRequested -= OnNavigateToHomeRequested;
 			networkSyncService.OpenTimetableRequested -= OnOpenTimetableRequested;

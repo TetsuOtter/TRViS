@@ -2577,6 +2577,30 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task DeleteNotification_BroadcastFromServer_ClientReceivesEvent()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<DeleteNotificationCommand>(
+				h => service.NotificationDeleteRequested += h,
+				h => service.NotificationDeleteRequested -= h
+			);
+
+			await _control.BroadcastNotificationDeleteAsync("n-1");
+
+			var cmd = await task;
+			Assert.That(cmd.Id, Is.EqualTo("n-1"));
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
 	public async Task TimeFormat_BroadcastSpecificFormat_ClientReceivesFormat()
 	{
 		var service = await ConnectServiceAsync();
