@@ -199,6 +199,7 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<OperationCommand>? OperationCommandReceived;
 	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
 	public event EventHandler<NotificationData>? NotificationReceived;
+	public event EventHandler<DeleteNotificationCommand>? NotificationDeleteRequested;
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? NavigateToHomeRequested;
 	public event EventHandler<OpenTimetableCommand>? OpenTimetableRequested;
@@ -484,6 +485,12 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	{
 		Logger.Info("RaiseNotificationReceived: Id={0}, Title={1}", notification.Id, notification.Title);
 		NotificationReceived?.Invoke(this, notification);
+	}
+
+	protected void RaiseNotificationDeleteRequested(DeleteNotificationCommand command)
+	{
+		Logger.Info("RaiseNotificationDeleteRequested: Id={0}", command.Id);
+		NotificationDeleteRequested?.Invoke(this, command);
 	}
 
 	protected void RaiseTimeFormatChangeRequested(TimeFormatCommand command)

@@ -125,6 +125,44 @@ public class NotificationBannerTests : BaseUITest
 	}
 
 	/// <summary>
+	/// Regression for #327: switching to a different train (via NextTrainButton) must
+	/// discard any notification held for the previously displayed train — including
+	/// still-unacknowledged ones — rather than leaving its banner on screen. The
+	/// notification is injected before the first train is ever selected (null → train),
+	/// which must NOT clear it (nothing was "displayed" yet); only the subsequent
+	/// train → train switch should.
+	/// </summary>
+	[Test]
+	public void Banner_Cleared_WhenNextTrainButtonSwitchesTrain()
+	{
+		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+
+		const string title = "Clear On Switch";
+		const string deeplink =
+			"trvis://_test/notification?id=n-clear-1&title=Clear%20On%20Switch&body=body&priority=0&compact=true&reset=true";
+		InjectNotification(deeplink);
+
+		_startHomePage.LoadSample();
+		_startHomePage.WaitForElement(AutomationIds.StartHome.WorkGroupList);
+		// Cascades to linear-train-1 (NextTrainId = linear-train-2), same seam the
+		// #225 NextTrainButton regression test uses.
+		var dtac = _startHomePage.SeedTrainSelectionWithNextTrain();
+		dtac.SwitchToTimetableTab();
+
+		var banner = new NotificationBannerPageObject(Driver);
+		Assert.That(banner.IsShown(), Is.True,
+			"Banner should backfill once D-TAC is reached for the first-ever train selection.");
+		Assert.That(banner.ReadSummary(), Is.EqualTo(title));
+
+		Assert.That(dtac.IsNextTrainButtonPresent(), Is.True,
+			"NextTrainButton must be reachable before tapping.");
+		dtac.NextTrainButton.Click();
+
+		Assert.That(banner.WaitUntilDismissed(), Is.True,
+			"Switching to the next train must discard the previous train's notification banner (#327).");
+	}
+
+	/// <summary>
 	/// An already-acknowledged notification carrying a section target (<c>sectionstart</c>
 	/// + <c>stationsbefore</c>) does not pop up, but reappears as a (no 受領 button)
 	/// banner once the current train's location enters the section, and disappears
@@ -183,6 +221,45 @@ public class NotificationBannerTests : BaseUITest
 	}
 
 	/// <summary>
+	/// Regression for the server-pushed <c>DeleteNotification</c> command: deleting a
+	/// still-unread (受領必須) notification by Id removes it entirely — including its
+	/// small banner — even though it was never acknowledged. Exercised via the
+	/// UI_TEST-only <c>trvis://_test/notification/delete?id=</c> deeplink, which drives the
+	/// same removal path (<c>NotificationCenterViewModel</c>) a real DeleteNotification
+	/// command does. Deletion is fired from StartHome (same constraint as the redisplay
+	/// test above — the connect dialog seam is only reachable there), then D-TAC is
+	/// reloaded to confirm the banner does not come back.
+	/// </summary>
+	[Test]
+	public void CompactBanner_RemovedOnDelete()
+	{
+		Assume.That(_startHomePage.IsDisplayed(), Is.True);
+
+		const string id = "n-delete-1";
+		const string deeplink =
+			$"trvis://_test/notification?id={id}&title=Delete%20Me&body=body&priority=0&compact=true&reset=true";
+		InjectNotification(deeplink);
+
+		var dtac = LoadSampleAndOpenDTAC();
+		Assert.That(dtac.IsDisplayed(), Is.True);
+
+		var banner = new NotificationBannerPageObject(Driver);
+		Assert.That(banner.IsShown(), Is.True, "Compact banner should be shown once D-TAC is reached.");
+
+		new AppShellPage(Driver).NavigateToHome();
+		_startHomePage = new StartHomePageObject(Driver);
+		_startHomePage.ClearLoaderForTesting();
+
+		DeleteNotification(id);
+
+		dtac = LoadSampleAndOpenDTAC();
+		Assert.That(dtac.IsDisplayed(), Is.True);
+		Assert.That(banner.IsShown(timeoutSeconds: 3), Is.False,
+			"Deleting the notification by Id must remove it (and its banner) entirely, " +
+			"even though it was never acknowledged.");
+	}
+
+	/// <summary>
 	/// Opens the connect dialog, types the given trvis:// deeplink into the
 	/// new-connection form and taps Connect. On success the dialog dismisses.
 	/// Mirrors NotificationPopupTests.InjectNotification, but does not return a
@@ -190,6 +267,13 @@ public class NotificationBannerTests : BaseUITest
 	/// only surfaces once D-TAC is reached.
 	/// </summary>
 	private void InjectNotification(string deeplink) => SubmitDeeplink(deeplink);
+
+	/// <summary>
+	/// Same connect-dialog round trip as <see cref="InjectNotification"/>, for the
+	/// UI_TEST-only <c>trvis://_test/notification/delete?id=</c> seam. Requires Start mode
+	/// (StartBody) to reach ConnectServerButton, same constraint as <see cref="SetLocation"/>.
+	/// </summary>
+	private void DeleteNotification(string id) => SubmitDeeplink($"trvis://_test/notification/delete?id={id}");
 
 	/// <summary>
 	/// Same connect-dialog round trip as <see cref="InjectNotification"/>, used for

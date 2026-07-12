@@ -166,6 +166,18 @@ public partial class AppViewModel
 			return true;
 		}
 
+		// Test-only: delete a previously-injected Notification by Id, mirroring the
+		// server-pushed DeleteNotification command, without a real WebSocket server.
+		// Format: trvis://_test/notification/delete?id=<id>
+		// Must be checked before TestNotificationPrefix below, since it is a longer
+		// prefix of the same path ("trvis://_test/notification").
+		const string TestDeleteNotificationPrefix = "trvis://_test/notification/delete";
+		if (uri.StartsWith(TestDeleteNotificationPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestDeleteNotification(uri);
+			return true;
+		}
+
 		// Test-only: inject a Notification into NotificationCenter so UI tests can
 		// exercise the receive→popup→受領 flow without a real WebSocket server.
 		// Format: trvis://_test/notification?id=<id>&title=<t>&summary=<s>&body=<bbcode>&priority=<n>&acknowledged=<bool>&reset=<bool>
@@ -908,6 +920,38 @@ public partial class AppViewModel
 			await WaitForRoutingModalDismissedAsync();
 			NotificationCenter.InjectNotificationForTesting(n, fakeAck);
 			logger.Info("Test inject notification: dispatched (id={0}, priority={1}, acknowledged={2}, fakeAck={3})", n.Id, n.Priority, n.Acknowledged, fakeAck);
+		});
+	}
+
+	/// <summary>
+	/// Test-only: delete a previously-injected/received Notification by Id via the same
+	/// removal path a real server-pushed DeleteNotification command takes, so UI tests
+	/// can exercise the delete → banner/popup dismissal flow without a real WebSocket server.
+	/// </summary>
+	private void HandleTestDeleteNotification(string uri)
+	{
+		logger.Info("Test delete notification invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		var query = qIndex >= 0
+			? HttpUtility.ParseQueryString(uri.Substring(qIndex + 1))
+			: new System.Collections.Specialized.NameValueCollection();
+
+		string? id = query["id"];
+		if (string.IsNullOrEmpty(id))
+		{
+			logger.Warn("Test delete notification: missing 'id' query parameter");
+			return;
+		}
+
+		// InjectNotification と同じ理由 (仲介 ConnectServerDialog の自己クローズが、
+		// 同期実行した後続の PopModalAsync を巻き込むのを避ける) で、ダイアログが
+		// モーダルスタックから消えてから削除する。
+		MainThread.BeginInvokeOnMainThread(async () =>
+		{
+			await WaitForRoutingModalDismissedAsync();
+			NotificationCenter.DeleteNotificationForTesting(id);
+			logger.Info("Test delete notification: dispatched (id={0})", id);
 		});
 	}
 

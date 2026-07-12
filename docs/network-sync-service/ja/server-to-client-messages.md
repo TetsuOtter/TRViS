@@ -23,6 +23,7 @@ JSON オブジェクトで、必ず `MessageType` フィールド（正確なケ
 | `NavigateToHome` | ホーム画面へ遷移 | [§10](#10-navigatetohome) |
 | `OpenTimetable` | 指定列車の時刻表ビューを開く | [§11](#11-opentimetable) |
 | `SearchTrainResponse` | 列車検索要求への結果応答 | [§12](#12-searchtrainresponse) |
+| `DeleteNotification` | 配信済み通告を Id 指定で削除 | [§13](#13-deletenotification) |
 
 > 表記規約: 「必須」はサーバーが意味のある動作をさせるために事実上
 > 必要なフィールド。「任意」は省略可能。型不一致はおおむね「無視
@@ -409,6 +410,35 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 - 一致判定はリクエストの `MatchMode`
   （[`SearchTrain`](client-to-server-messages.md#4-searchtrain) 参照）
   — `Prefix`（既定）/ `Contains` / `Exact` — によって決まり、サーバー任意ではありません。
+
+---
+
+## 13. DeleteNotification
+
+配信済みの [`Notification`](#8-notification)（§8）を `Id` 指定で
+破棄させる指示です。クライアント側で受領済みかどうかを問わず削除
+します。もう有効でなくなった通告（差し替えられた、誤って発行した、
+乗務員が既に離れた列車に紐づく等）を撤回する用途に使います。
+
+```jsonc
+{
+  "MessageType": "DeleteNotification",
+  "Id": "n-001"   // string（必須）
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `Id` | string | 削除対象の通告 Id。対象 `Notification.Id` と同じ値。**必須**。欠落／空文字は無視されます（ログのみで no-op）。 |
+
+- 既読／受領の状態に関わらず削除します — 未受領の通告も、既に受領済み
+  の通告と同様に破棄されます。
+- 対象の通告が現在大型ポップアップまたは小型バナーとして表示中の場合
+  は即座に閉じます。まだ表示されていない（表示待ちキュー内の）場合は
+  そのキューから取り除かれます。該当 `Id` の通告を保持していない場合
+  は no-op です。
+- 未知の `Id`（既に削除済み・期限切れ・そもそも配信されていない等）は
+  エラーではありません — クライアント側に削除対象が存在しないだけです。
 
 ---
 
