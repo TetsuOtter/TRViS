@@ -44,12 +44,12 @@
 
 				<Grid RowDefinitions="Auto,Auto,*">
 
-					<!-- 指令番号/発信日時/受信者+指令者。ラベル列は各行とも "Auto" 幅 (=そのラベル文字列の
-					     実測幅) にすることで、言語によってラベルの長さが変わっても (例: 英語の
-					     "Order No." は和文の4文字よりずっと長い) 折り返されずに必ず1行に収まる。
-					     以前は全行共通の固定幅 (18pt*4=72) にしてコロン位置を揃えていたが、翻訳文字列
-					     ごとに必要な幅は異なるため固定値では成立しない。受信者/指令者は上段を左右
-					     半分に区切り、それぞれの半分の中で同じ規則 (ラベル列Auto幅+左寄せ) を適用する。
+					<!-- 指令番号/発信日時/受信者+指令者。ラベル列は暫定的に "Auto" 幅 (初回描画・
+					     計測前のフォールバック) にしておき、コードビハインド (Loaded →
+					     OnLoadedApplyLabelColumnWidth) で4つのラベル文字列 (現在の言語) の実測幅の
+					     最大値を求めて全行共通の幅として設定し直す。これにより、どの言語でもラベルが
+					     折り返されず(必要な幅を自動計算)、かつ以前の固定72pt幅と同じくコロンの位置が
+					     4行 (受信者/指令者は左右それぞれの半分の中) で揃う。
 					     このスタック全体に、区切り線 (下記 BoxView) と同じ左余白(16)+右上の最小化
 					     ボタンを避ける余白(32を加えた48)を設定し、内容が区切り線の外側にはみ出さない
 					     ようにする。 -->
@@ -60,25 +60,25 @@
 						Spacing="4">
 
 						<Grid x:Name="OrderNumberRow" ColumnDefinitions="Auto,Auto,*" IsVisible="False">
-							<Label Grid.Column="0" Text="{loc:Translate Notification_OrderNumberLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							<Label x:Name="OrderNumberCaptionLabel" Grid.Column="0" Text="{loc:Translate Notification_OrderNumberLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 							<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 							<Label x:Name="OrderNumberLabel" AutomationId="Notification.OrderNumber" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 						</Grid>
 
 						<Grid x:Name="IssuedAtRow" ColumnDefinitions="Auto,Auto,*" IsVisible="False">
-							<Label Grid.Column="0" Text="{loc:Translate Notification_IssuedAtLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+							<Label x:Name="IssuedAtCaptionLabel" Grid.Column="0" Text="{loc:Translate Notification_IssuedAtLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 							<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 							<Label x:Name="IssuedAtLabel" AutomationId="Notification.IssuedAt" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 						</Grid>
 
 						<Grid ColumnDefinitions="*,*" ColumnSpacing="16">
 							<Grid x:Name="ReceiverRow" Grid.Column="0" ColumnDefinitions="Auto,Auto,*" IsVisible="False">
-								<Label Grid.Column="0" Text="{loc:Translate Notification_ReceiverLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label x:Name="ReceiverCaptionLabel" Grid.Column="0" Text="{loc:Translate Notification_ReceiverLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 								<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 								<Label x:Name="ReceiverLabel" AutomationId="Notification.Receiver" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 							</Grid>
 							<Grid x:Name="SenderRow" Grid.Column="1" ColumnDefinitions="Auto,Auto,*" IsVisible="False">
-								<Label Grid.Column="0" Text="{loc:Translate Notification_SenderLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
+								<Label x:Name="SenderCaptionLabel" Grid.Column="0" Text="{loc:Translate Notification_SenderLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 								<Label Grid.Column="1" Text=":" FontSize="18" FontAutoScalingEnabled="False" Margin="9,0,9,0" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 								<Label x:Name="SenderLabel" AutomationId="Notification.Sender" Grid.Column="2" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
 							</Grid>
