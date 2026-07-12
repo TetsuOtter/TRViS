@@ -227,7 +227,11 @@ public static partial class DTACElementStyles
 
 			// 着線/発線: 768pt 未満では少し詰めて (54px)、568pt 未満 (狭幅表示) では
 			// さらに詰めて (48px) 幅に余裕を持たせる。
-			// 後続の制限速度列が消えたら Star にして余白を吸収する
+			// 後続の制限速度列が消えたら Star にして余白を吸収する。ただし記事列も
+			// 同時に消えている場合は既に停車場名列が Star で余白を吸収しているので、
+			// ここも Star にすると Star 列が 2 つ競合し、この列だけ不自然に伸びて
+			// 表示されてしまう (記事列が非表示のときに発生する表示崩れ)。
+			// その場合は Absolute のまま据え置き、停車場名列だけに吸収を任せる。
 			double trackNumberColumnWidth = mode switch
 			{
 				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_SE_H
@@ -238,7 +242,7 @@ public static partial class DTACElementStyles
 			};
 			trackNumberColumn.Width = new(
 				trackNumberColumnWidth,
-				isSpeedLimitVisible ? GridUnitType.Absolute : GridUnitType.Star
+				(!isSpeedLimitVisible && isRemarksVisible) ? GridUnitType.Star : GridUnitType.Absolute
 			);
 
 			speedLimitColumn.Width = isSpeedLimitVisible ? SPEED_LIMIT_COLUMN_WIDTH : 0;
