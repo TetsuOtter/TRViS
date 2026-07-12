@@ -55,6 +55,7 @@ or remote commands you must implement WebSocket.
 | Operation command | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | Header color (HeaderColor) | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | Notification | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
+| Delete notification (DeleteNotification) | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md#13-deletenotification) |
 | Time format (TimeFormat) | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | Train search (SearchTrain) | ❌ | ✅ ※4 | [client-to-server-messages](client-to-server-messages.md#4-searchtrain) |
 | Client→server ID notification | ✅ ※2 | ✅ | per-transport docs |
@@ -111,3 +112,11 @@ keeps working unchanged. Availability of the feature is **negotiated via
 the [`Features`](server-to-client-messages.md#3-serverinfo) array on
 `ServerInfo`** (advertise `"TrainSearch"`), **not** via the version
 number — the version bump is informational.
+
+**`DeleteNotification`.** The server can also send
+[`DeleteNotification`](server-to-client-messages.md#13-deletenotification)
+to retract an already-delivered notification by `Id`. This does not
+require a protocol version bump: it is a plain additional `MessageType`,
+and a client that predates it simply ignores the unknown message per
+the existing "unknown `MessageType` is ignored" rule — no capability
+negotiation is needed.

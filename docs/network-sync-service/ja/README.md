@@ -54,6 +54,7 @@ HTTP は WebSocket の **厳密なサブセット** です。HTTP では同期�
 | 運行操作（OperationCommand） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | ヘッダ色変更（HeaderColor） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | 通告（Notification） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
+| 通告削除（DeleteNotification） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md#13-deletenotification) |
 | 時刻表示書式（TimeFormat） | ❌ | ✅ | [server-to-client-messages](server-to-client-messages.md) |
 | 列車検索（SearchTrain） | ❌ | ✅ ※4 | [client-to-server-messages](client-to-server-messages.md#4-searchtrain) |
 | クライアント→サーバーの ID 通知 | ✅ ※2 | ✅ | 各トランスポート文書 |
@@ -109,3 +110,10 @@ TRViS は配信されたコマンド（`SelectTrain` / `OperationCommand` /
 **`ServerInfo` の [`Features`](server-to-client-messages.md#3-serverinfo)
 配列でネゴシエーション**され（`"TrainSearch"` を広告）、バージョン番号
 では判定されません（バージョンの更新は情報提供の意味合いです）。
+
+**`DeleteNotification`。** サーバーは配信済みの通告を `Id` 指定で撤回
+する [`DeleteNotification`](server-to-client-messages.md#13-deletenotification)
+も送信できます。これはプロトコルバージョンの更新を必要としません。
+単なる追加の `MessageType` であり、対応していないクライアントは既存の
+「未知の `MessageType` は無視される」規則により単に無視するため、機能
+ネゴシエーションも不要です。
