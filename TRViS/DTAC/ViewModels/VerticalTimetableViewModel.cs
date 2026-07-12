@@ -147,14 +147,19 @@ public partial class VerticalTimetableViewModel : ObservableObject
 		}
 
 		// Step 2: 新しい各行について、再利用できる既存モデルを決定する。
+		// newRows 内に重複 Id が存在する場合 (例: 手編集データで情報行をコピペし Id の
+		// 更新を忘れた等)、同じ oldIdx が 2 回以上マッチし得る。usedOldIndices で
+		// 既に消費済みの oldIdx を弾かないと、同一の VerticalTimetableRowModel
+		// インスタンスが finalModels に複数回入り込み、Step 4 の Move 計算が破綻して
+		// 別々の行が同じ RowIndex に紐付き画面上で二重表示される (issue: 交直切換 重複表示)。
+		// 2 回目以降のマッチは新規行として扱い、必ず別インスタンスを割り当てる。
 		var finalModels = new List<(VerticalTimetableRowModel model, bool isNew)>(newRows.Length);
 		var usedOldIndices = new HashSet<int>(newRows.Length);
 		for (int i = 0; i < newRows.Length; i++)
 		{
-			if (oldIndexById.TryGetValue(newRows[i].Id, out int oldIdx))
+			if (oldIndexById.TryGetValue(newRows[i].Id, out int oldIdx) && usedOldIndices.Add(oldIdx))
 			{
 				finalModels.Add((CurrentRows[oldIdx], false));
-				usedOldIndices.Add(oldIdx);
 			}
 			else
 			{
