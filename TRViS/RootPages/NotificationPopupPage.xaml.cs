@@ -75,6 +75,13 @@ public partial class NotificationPopupPage : ContentPage
 
 		ApplyEntry(entry);
 
+		// 指令番号/発信日時/受信者/指令者のラベル列幅は、Loaded (=ネイティブハンドラーがウィンドウに
+		// アタッチ済み) で一度だけ実測して確定する。OnAppearing はまだ早すぎることがあり
+		// (モーダルの表示アニメーション中などに Measure() が 0 を返すケースがあった)、
+		// コンストラクタ (InitializeComponent 直後) はなおさら不安定 (DiagramHeaderView.cs 参照)
+		// なので、確実にネイティブサイズが取れる Loaded を使う。
+		Loaded += OnLoadedApplyLabelColumnWidth;
+
 		// 小型バナーは、このポップアップ (拡大表示) が出ている間は受領ボタンの点滅を止める
 		// (最小化/閉じたら再開)。ViewHost がこのイベントを購読して NotificationBannerView を操作する。
 		_viewModel.NotifyPopupVisibilityChanged(true);
@@ -82,6 +89,35 @@ public partial class NotificationPopupPage : ContentPage
 		// WebSocket 切断等で保持中の通告が一括破棄されたら、受領必須であってもこのポップアップを
 		// 自分で閉じる (この通告はもうサーバーとの整合性が取れないため)。
 		_viewModel.Cleared += OnNotificationsCleared;
+	}
+
+	private void OnLoadedApplyLabelColumnWidth(object? sender, EventArgs e)
+	{
+		Loaded -= OnLoadedApplyLabelColumnWidth;
+
+		// 4つのラベル文字列 (現在の言語) の実測幅の最大値を、全行共通のラベル列幅として適用する。
+		// これにより、言語ごとにラベルの長さが違っても折り返されず (Auto へのフォールバックで
+		// 保証済み)、かつ以前の固定72pt幅と同じくコロンの位置が4行で揃う。
+		double width = 0;
+		foreach (var caption in new[] { OrderNumberCaptionLabel, IssuedAtCaptionLabel, ReceiverCaptionLabel, SenderCaptionLabel })
+			width = Math.Max(width, caption.Measure(double.PositiveInfinity, double.PositiveInfinity).Width);
+
+		if (width <= 0)
+			return; // 実測できなければ XAML の Auto 幅のまま (折り返されないことだけは保証される)。
+
+		var columnWidth = new GridLength(width);
+		OrderNumberRow.ColumnDefinitions[0].Width = columnWidth;
+		IssuedAtRow.ColumnDefinitions[0].Width = columnWidth;
+		ReceiverRow.ColumnDefinitions[0].Width = columnWidth;
+		SenderRow.ColumnDefinitions[0].Width = columnWidth;
+
+		// ColumnDefinition.Width の変更は通常 Grid の再計測を自動的にトリガーするが、
+		// Loaded ハンドラー内のこのタイミングでは明示的な InvalidateMeasure() が無いと
+		// 変更が実際の描画に反映されないことを実機検証で確認したため、明示的に呼ぶ。
+		OrderNumberRow.InvalidateMeasure();
+		IssuedAtRow.InvalidateMeasure();
+		ReceiverRow.InvalidateMeasure();
+		SenderRow.InvalidateMeasure();
 	}
 
 	private void OnNotificationsCleared(object? sender, EventArgs e)
