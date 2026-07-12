@@ -234,11 +234,12 @@ public static partial class DTACElementStyles
 
 			// 着線/発線: 768pt 未満では少し詰めて (54px)、568pt 未満 (狭幅表示) では
 			// さらに詰めて (48px) 幅に余裕を持たせる。
-			// 後続の制限速度列が消えたら Star にして余白を吸収する。ただし記事列も
-			// 同時に消えている場合は既に停車場名列が Star で余白を吸収しているので、
-			// ここも Star にすると Star 列が 2 つ競合し、この列だけ不自然に伸びて
-			// 表示されてしまう (記事列が非表示のときに発生する表示崩れ)。
-			// その場合は Absolute のまま据え置き、停車場名列だけに吸収を任せる。
+			// 常に Absolute に固定する。記事列は表示中は常に Star(1) (下記)
+			// なので、制限速度が消えた分の余白は記事列が単独で吸収すればよい。
+			// ここを Star にすると記事列 (Star 1) とこの列 (Star 54 相当の幅指定)
+			// が競合し、比重の大きいこの列がほぼ全ての余白を奪って記事列が
+			// 数 px まで潰れてしまう (iPad の 3:7 分割など 568〜735pt 帯で発生した
+			// 「記事だけ実質非表示になる」不具合の原因)。
 			double trackNumberColumnWidth = mode switch
 			{
 				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_SE_H
@@ -247,10 +248,7 @@ public static partial class DTACElementStyles
 					=> TRACK_NUMBER_COLUMN_WIDTH_MID,
 				_ => TRACK_NUMBER_COLUMN_WIDTH,
 			};
-			trackNumberColumn.Width = new(
-				trackNumberColumnWidth,
-				(!isSpeedLimitVisible && isRemarksVisible) ? GridUnitType.Star : GridUnitType.Absolute
-			);
+			trackNumberColumn.Width = trackNumberColumnWidth;
 
 			speedLimitColumn.Width = isSpeedLimitVisible ? SPEED_LIMIT_COLUMN_WIDTH : 0;
 			remarksColumn.Width = isRemarksVisible ? new(1, GridUnitType.Star) : new(0);
