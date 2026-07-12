@@ -190,6 +190,15 @@ public sealed class NotificationCenterViewModel : ObservableObject
 					DisplayRequested?.Invoke(this, result.Entry);
 				}
 			}
+			else if (result.Entry.IsRead && result.Entry.HasRedisplayTarget)
+			{
+				// 受領済み・区間指定付きの通告は ShouldDisplay=false (初回ポップアップ対象外) だが、
+				// 列車遷移直後にサーバーから受領済み一覧として再送された場合、現在位置が既に
+				// その区間内であれば LocationStateChanged が改めて発火するとは限らない
+				// (位置が変わらなければ何も起きない) ため、ここで明示的に再評価しないと
+				// バナーが表示されないまま取り残される。
+				RefreshRedisplay();
+			}
 		});
 	}
 
