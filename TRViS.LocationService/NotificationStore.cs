@@ -187,4 +187,19 @@ public sealed class NotificationStore
 			_byId.Clear();
 		}
 	}
+
+	/// <summary>
+	/// 指定 Id の通告を、既読/未読を問わず破棄する。サーバーからの削除指示
+	/// (<see cref="TRViS.NetworkSyncService.DeleteNotificationCommand"/>) に対応する。
+	/// </summary>
+	/// <returns>該当する通告が存在し削除できたら true。未知の Id なら false。</returns>
+	public bool Remove(string id)
+	{
+		if (string.IsNullOrEmpty(id))
+			return false;
+		lock (_lock)
+		{
+			return _byId.Remove(id);
+		}
+	}
 }

@@ -38,6 +38,17 @@ public class OperationCommand
 }
 
 /// <summary>
+/// サーバーから、既に配信済みの通告 (<see cref="NotificationData"/>) の削除を指示するコマンド。
+/// 受信側は <see cref="Id"/> に一致する通告を、受領/未受領を問わず破棄する
+/// (保持中のポップアップ/バナー表示中であれば、それも閉じる)。
+/// </summary>
+public class DeleteNotificationCommand
+{
+	/// <summary>削除対象の <see cref="NotificationData.Id"/>。</summary>
+	public string Id { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// タイトルバー (ヘッダ) の色変更要求。
 /// <see cref="ResetToDefault"/> が true のとき、端末の設定値に戻す。
 /// false のとき、<see cref="Color_RGB"/> の RGB 値 (0xRRGGBB) を適用する。

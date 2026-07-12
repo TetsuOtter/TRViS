@@ -157,6 +157,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			("POST", "broadcast-operation-command") => await BroadcastOperationCommandAsync(request),
 			("POST", "broadcast-header-color") => await BroadcastHeaderColorAsync(request),
 			("POST", "broadcast-notification") => await BroadcastNotificationAsync(request),
+			("POST", "broadcast-notification-delete") => await BroadcastNotificationDeleteAsync(request),
 			("POST", "broadcast-time-format") => await BroadcastTimeFormatAsync(request),
 			("POST", "broadcast-navigate-to-home") => await BroadcastNavigateToHomeAsync(),
 			("POST", "broadcast-open-timetable") => await BroadcastOpenTimetableAsync(request),
@@ -656,6 +657,30 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 				SectionStartStation = TryGetString(root, "SectionStartStation"),
 				SectionEndStation = TryGetString(root, "SectionEndStation"),
 				StationsBefore = stationsBefore,
+			});
+			await BroadcastTextAsync(msg);
+			return OkJson("{\"ok\":true}");
+		}
+		catch (JsonException ex) { return Error(HttpStatusCode.BadRequest, ex.Message); }
+	}
+
+	/// <summary>
+	/// DeleteNotification: { Id: string }
+	/// </summary>
+	private async Task<HttpResponse> BroadcastNotificationDeleteAsync(HttpRequest request)
+	{
+		try
+		{
+			string body = Encoding.UTF8.GetString(request.Body);
+			using var doc = JsonDocument.Parse(body);
+			var root = doc.RootElement;
+			string? id = TryGetString(root, "Id");
+			if (string.IsNullOrEmpty(id))
+				return Error(HttpStatusCode.BadRequest, "Missing 'Id' field");
+			var msg = JsonSerializer.Serialize(new
+			{
+				MessageType = "DeleteNotification",
+				Id = id,
 			});
 			await BroadcastTextAsync(msg);
 			return OkJson("{\"ok\":true}");
