@@ -504,7 +504,12 @@ public class VerticalTimetableRow : IDisposable
 
 	private void UpdateStationName()
 	{
-		if (!VisibilityState.StationName || string.IsNullOrEmpty(Model.StationName))
+		// InfoRow (交直切換 等) は StationName にも表示文字列が入っているが、その表示は
+		// InfoRowLabel が担う (UpdateInfoRow)。ApplyRowToExistingModel は IsInfoRow の
+		// 行でも StationName を設定するため、後続の ApplySmartDiff で StationName だけが
+		// 変化すると IsInfoRow の PropertyChanged を経由せずここが呼ばれ、InfoRowLabel と
+		// StationNameLabel が同時に表示されてしまう (二重表示バグ)。
+		if (Model.IsInfoRow || !VisibilityState.StationName || string.IsNullOrEmpty(Model.StationName))
 		{
 			RemoveComponent(ref StationNameLabel);
 			return;
