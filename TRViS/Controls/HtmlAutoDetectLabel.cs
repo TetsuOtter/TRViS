@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 using TR.BBCodeLabel.Maui;
 
@@ -7,10 +8,43 @@ using TRViS.Utils;
 
 namespace TRViS.Controls;
 
-public class HtmlAutoDetectLabel : ContentView
+public partial class HtmlAutoDetectLabel : ContentView
 {
 	private readonly HtmlAutoDetectLabelImpl htmlAutoDetectLabelImpl = new();
 	private readonly BBCodeLabel bbCodeLabel = new();
+
+	// .NET MAUI's native Label TextType=Html rendering has a duplicate-render bug
+	// on iOS: some HTML input renders as an overlapping double-exposure of the
+	// same text instead of once (observed with <span style="color:...">, e.g.
+	// timetable info rows like "交直切換"). Since BBCodeLabel renders the
+	// equivalent styling correctly, simple/known HTML constructs are converted
+	// to BBCode and routed there instead; only markup we don't recognize still
+	// falls back to the native HTML label.
+	[GeneratedRegex(@"<br\s*/?>", RegexOptions.IgnoreCase)]
+	private static partial Regex BrTagRegex();
+	[GeneratedRegex("""<span\s+style\s*=\s*"color:\s*([^"]+?)\s*"\s*>(.*?)</span>""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+	private static partial Regex ColoredSpanRegex();
+	[GeneratedRegex(@"<span\s*>(.*?)</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+	private static partial Regex PlainSpanRegex();
+	[GeneratedRegex(@"<b\s*>(.*?)</b\s*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+	private static partial Regex BoldTagRegex();
+	[GeneratedRegex(@"<[^>]+>")]
+	private static partial Regex AnyTagRegex();
+
+	/// <summary>
+	/// Converts known-simple HTML (color spans, plain spans, &lt;b&gt;, &lt;br/&gt;)
+	/// to the equivalent BBCode. Returns null if unrecognized markup remains, so
+	/// the caller can fall back to the native HTML label for content this doesn't
+	/// understand.
+	/// </summary>
+	private static string? TryConvertSimpleHtmlToBBCode(string html)
+	{
+		string s = BrTagRegex().Replace(html, "\n");
+		s = ColoredSpanRegex().Replace(s, "[color=$1]$2[/color]");
+		s = PlainSpanRegex().Replace(s, "$1");
+		s = BoldTagRegex().Replace(s, "[b]$1[/b]");
+		return AnyTagRegex().IsMatch(s) ? null : s;
+	}
 
 	public static readonly BindableProperty TextProperty =
 		BindableProperty.Create(nameof(Text), typeof(string), typeof(HtmlAutoDetectLabel), default(string),
@@ -144,18 +178,29 @@ public class HtmlAutoDetectLabel : ContentView
 		string trimmedText = Text.Trim();
 		if (trimmedText.StartsWith('<') && trimmedText.EndsWith('>'))
 		{
+			string? bbcode = TryConvertSimpleHtmlToBBCode(trimmedText);
+			if (bbcode is not null)
+			{
+				ShowAsBBCode(bbcode);
+				return;
+			}
 			Content = htmlAutoDetectLabelImpl;
 			htmlAutoDetectLabelImpl.Text = Text;
 		}
 		else
 		{
-			Content = bbCodeLabel;
-			bbCodeLabel.BBCodeText = Text;
-			// FIXME: 本来はBBCodeLabel側でやるべきだが、一旦ここで対応する
-			foreach (var v in bbCodeLabel.FormattedText.Spans)
-			{
-				v.FontAutoScalingEnabled = FontAutoScalingEnabled;
-			}
+			ShowAsBBCode(Text);
+		}
+	}
+
+	private void ShowAsBBCode(string bbcode)
+	{
+		Content = bbCodeLabel;
+		bbCodeLabel.BBCodeText = bbcode;
+		// FIXME: 本来はBBCodeLabel側でやるべきだが、一旦ここで対応する
+		foreach (var v in bbCodeLabel.FormattedText.Spans)
+		{
+			v.FontAutoScalingEnabled = FontAutoScalingEnabled;
 		}
 	}
 
