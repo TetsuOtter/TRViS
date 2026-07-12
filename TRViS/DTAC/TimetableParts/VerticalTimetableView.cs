@@ -65,7 +65,10 @@ public partial class VerticalTimetableView : Grid
 
 	public DTACMarkerViewModel MarkerViewModel { get; } = PresenterFactory.GetDTACMarkerViewModel();
 
-	public VerticalTimetableColumnVisibilityState ColumnVisibilityState { get; } = new((int)DeviceDisplay.MainDisplayInfo.Width);
+	// SizeChanged が初回レイアウトで即座に実ビュー幅へ補正するまでの暫定値。
+	// DeviceDisplay (端末フル幅・ピクセル値) には依存しない — 全列を表示しておき、
+	// 補正後に必要な列だけ畳む方が、狭い幅を仮定して一瞬列が消えるより安全。
+	public VerticalTimetableColumnVisibilityState ColumnVisibilityState { get; } = new(int.MaxValue);
 
 	public VerticalTimetableViewModel ViewModel { get; } = new();
 

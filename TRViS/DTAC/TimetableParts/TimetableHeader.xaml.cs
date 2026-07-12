@@ -19,24 +19,25 @@ public partial class TimetableHeader : Grid
 
 		// issue #41: 列幅が 0 へ畳まれた列のヘッダ見出しも非表示にする。
 		// 幅判定は SetTimetableColumnWidthCollection / ColumnVisibilityState と
-		// 同じ static 述語を経由するので食い違わない。
+		// 同じ static 述語 (実ビュー幅のみで判定、端末フル幅へのフォールバックなし。
+		// issue #320) を経由するので食い違わない。
 		VerticalTimetableColumnVisibilityState.ViewWidthMode? lastMode = null;
 		SizeChanged += (_, _) =>
 		{
 			if (Width <= 0)
 				return;
-			VerticalTimetableColumnVisibilityState.ViewWidthMode m
+			VerticalTimetableColumnVisibilityState.ViewWidthMode mode
 				= VerticalTimetableColumnVisibilityState.ClassifyWidth(Width);
-			if (lastMode == m)
+			if (lastMode == mode)
 				return;
-			lastMode = m;
+			lastMode = mode;
 
 			RunTimeLabel.IsVisible = RunTimeSeparator.IsVisible
-				= VerticalTimetableColumnVisibilityState.IsRunTimeVisible(m);
+				= VerticalTimetableColumnVisibilityState.IsRunTimeVisible(mode);
 			LimitLabel.IsVisible = LimitSeparator.IsVisible
-				= VerticalTimetableColumnVisibilityState.IsRunInOutLimitVisible(m);
-			RemarksLabel.IsVisible = VerticalTimetableColumnVisibilityState.IsRemarksVisible(m);
-			MarkerBtn.IsVisible = VerticalTimetableColumnVisibilityState.IsMarkerVisible(m);
+				= VerticalTimetableColumnVisibilityState.IsRunInOutLimitVisible(mode);
+			RemarksLabel.IsVisible = VerticalTimetableColumnVisibilityState.IsRemarksVisible(mode);
+			MarkerBtn.IsVisible = VerticalTimetableColumnVisibilityState.IsMarkerVisible(mode);
 		};
 
 		logger.Trace("Created");
