@@ -80,6 +80,13 @@ public static partial class DTACElementStyles
 	// built via HeaderLabelStyle, in BeforeDeparture_AfterArrive) isn't affected.
 	public const double HakoHeaderFontSize = 20;
 	public const double BEFORE_REMARKS_FONT_SIZE = 17;
+	// 縦の短い画面 (ViewHeightMode.Low) では BeforeRemarks の2行表示が行の枠に
+	// 収まらないため、DestinationLabel (LabelStyleResource / DefaultTextSize) と
+	// 同じフォントサイズまで縮める。
+	public const double BEFORE_REMARKS_FONT_SIZE_LOW = DefaultTextSize;
+	public const double BEFORE_REMARKS_LINE_HEIGHT_LOW = 1.0;
+	public const double BEFORE_REMARKS_BOTTOM_MARGIN = 8;
+	public const double BEFORE_REMARKS_BOTTOM_MARGIN_LOW = 0;
 	public const double AFTER_REMARKS_FONT_SIZE = 20;
 	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 32 : 30;
 	// 狭い画面で停車場名・着線/発線を詰めて表示するときのフォントサイズ (issue #41)
@@ -357,9 +364,35 @@ public static partial class DTACElementStyles
 			_BeforeRemarksStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
 			_BeforeRemarksStyleResource.Setters.Add(Label.FontSizeProperty, BEFORE_REMARKS_FONT_SIZE);
 			_BeforeRemarksStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.25);
-			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(BEFORE_REMARKS_LEFT_MARGIN, -BEFORE_REMARKS_FONT_SIZE, 0, 8));
+			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(BEFORE_REMARKS_LEFT_MARGIN, -BEFORE_REMARKS_FONT_SIZE, 0, BEFORE_REMARKS_BOTTOM_MARGIN));
 
 			return _BeforeRemarksStyleResource;
+		}
+	}
+
+	static Style? _BeforeRemarksStyleResourceLow = null;
+	// ViewHeightMode.Low (縦の短い画面) 用の BeforeRemarks スタイル。行間を詰め
+	// (LineHeight 1.0)、下の余白をなくし (Margin 下端 0)、フォントサイズを
+	// DestinationLabel と揃えることで、縮んだ行の枠内に2行表示を収める。
+	public static Style BeforeRemarksStyleResourceLow
+	{
+		get
+		{
+			if (_BeforeRemarksStyleResourceLow is not null)
+				return _BeforeRemarksStyleResourceLow;
+
+			_BeforeRemarksStyleResourceLow = new Style(typeof(Label))
+			{
+				BasedOn = LabelStyleResource
+			};
+
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.HorizontalOptionsProperty, LayoutOptions.Start);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.FontSizeProperty, BEFORE_REMARKS_FONT_SIZE_LOW);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.LineHeightProperty, BEFORE_REMARKS_LINE_HEIGHT_LOW);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.MarginProperty, new Thickness(BEFORE_REMARKS_LEFT_MARGIN, -BEFORE_REMARKS_FONT_SIZE_LOW, 0, BEFORE_REMARKS_BOTTOM_MARGIN_LOW));
+
+			return _BeforeRemarksStyleResourceLow;
 		}
 	}
 	public static T AfterRemarksStyle<T>() where T : HtmlAutoDetectLabel, new()
