@@ -359,6 +359,15 @@ public sealed class ReferenceServerClient : IDisposable
 		resp.EnsureSuccessStatusCode();
 	}
 
+	public async Task BroadcastNotificationDeleteAsync(string id, CancellationToken ct = default)
+	{
+		var payload = new { Id = id };
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-notification-delete", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
 	public async Task BroadcastTimeFormatAsync(string? format = null, CancellationToken ct = default)
 	{
 		var payload = new { Format = format };

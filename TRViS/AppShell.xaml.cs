@@ -119,6 +119,9 @@ public partial class AppShell : Shell
 		// WebSocket 切断等で通告が一括破棄されたら、まだ表示していない待機列も空にする
 		// (表示中のポップアップ自体は NotificationPopupPage が自分で閉じる)。
 		appVm.NotificationCenter.Cleared += OnNotificationCenterCleared;
+		// サーバーから個別の通告削除指示を受けたら、まだ表示していない待機列から該当 Id
+		// だけを取り除く (表示中のポップアップ自体は NotificationPopupPage が自分で閉じる)。
+		appVm.NotificationCenter.NotificationRemoved += OnNotificationCenterEntryRemoved;
 
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
@@ -149,6 +152,28 @@ public partial class AppShell : Shell
 	void OnNotificationCenterCleared(object? sender, EventArgs e)
 	{
 		MainThread.BeginInvokeOnMainThread(() => _notificationQueue.Clear());
+	}
+
+	void OnNotificationCenterEntryRemoved(object? sender, string id)
+	{
+		// NotificationRemoved は UI スレッド上で発火する契約だが、キュー操作を確実に UI
+		// スレッドで行うため dispatch する (二重 dispatch は無害)。
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			if (_notificationQueue.Count == 0)
+				return;
+
+			// Queue<T> は該当要素だけの削除を提供しないため、丸ごと作り直す。
+			var remaining = new Queue<Services.NotificationStore.Entry>(_notificationQueue.Count);
+			while (_notificationQueue.Count > 0)
+			{
+				var entry = _notificationQueue.Dequeue();
+				if (entry.Id != id)
+					remaining.Enqueue(entry);
+			}
+			while (remaining.Count > 0)
+				_notificationQueue.Enqueue(remaining.Dequeue());
+		});
 	}
 
 	void OnNotificationDisplayRequested(object? sender, Services.NotificationStore.Entry entry)

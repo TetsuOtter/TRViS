@@ -251,4 +251,41 @@ public class NotificationStoreTests
 		Assert.DoesNotThrow(() => store.MarkRead("nonexistent"));
 		Assert.That(store.IsRead("nonexistent"), Is.False);
 	}
+
+	[Test]
+	public void Remove_ExistingId_ReturnsTrue_AndDropsFromRedisplayCandidates()
+	{
+		var store = new NotificationStore();
+		store.Add(Make(id: "n-1", acknowledged: true, sectionStart: "東京"));
+		Assert.That(store.GetRedisplayCandidates(), Has.Count.EqualTo(1));
+
+		bool removed = store.Remove("n-1");
+
+		Assert.That(removed, Is.True);
+		Assert.That(store.GetRedisplayCandidates(), Is.Empty);
+		Assert.That(store.Count, Is.EqualTo(0));
+	}
+
+	[Test]
+	public void Remove_UnknownOrEmptyId_ReturnsFalse_DoesNotThrow()
+	{
+		var store = new NotificationStore();
+		store.Add(Make(id: "n-1"));
+
+		Assert.That(store.Remove("nonexistent"), Is.False);
+		Assert.DoesNotThrow(() => store.Remove(""));
+		Assert.That(store.Count, Is.EqualTo(1));
+	}
+
+	[Test]
+	public void Remove_UnacknowledgedEntry_AlsoRemoved()
+	{
+		// #327-adjacent: Remove must discard an entry regardless of read state
+		// (unread/未受領 notifications must be deletable too, not just read ones).
+		var store = new NotificationStore();
+		store.Add(Make(id: "n-1", acknowledged: false));
+
+		Assert.That(store.Remove("n-1"), Is.True);
+		Assert.That(store.Count, Is.EqualTo(0));
+	}
 }

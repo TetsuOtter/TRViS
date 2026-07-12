@@ -89,6 +89,10 @@ public partial class NotificationPopupPage : ContentPage
 		// WebSocket 切断等で保持中の通告が一括破棄されたら、受領必須であってもこのポップアップを
 		// 自分で閉じる (この通告はもうサーバーとの整合性が取れないため)。
 		_viewModel.Cleared += OnNotificationsCleared;
+
+		// サーバーからこの通告 (Id 一致) の削除指示を受けたら、受領必須であってもこの
+		// ポップアップを自分で閉じる (削除済みの通告に対して受領を送っても意味が無いため)。
+		_viewModel.NotificationRemoved += OnNotificationRemoved;
 	}
 
 	private void OnLoadedApplyLabelColumnWidth(object? sender, EventArgs e)
@@ -123,6 +127,14 @@ public partial class NotificationPopupPage : ContentPage
 	private void OnNotificationsCleared(object? sender, EventArgs e)
 	{
 		if (_isClosing)
+			return;
+		_isClosing = true;
+		_ = CloseAsync();
+	}
+
+	private void OnNotificationRemoved(object? sender, string id)
+	{
+		if (_isClosing || id != _entry.Id)
 			return;
 		_isClosing = true;
 		_ = CloseAsync();
@@ -365,6 +377,7 @@ public partial class NotificationPopupPage : ContentPage
 		// このポップアップが消えるので、小型バナーの受領ボタンの点滅を再開させる。
 		_viewModel.NotifyPopupVisibilityChanged(false);
 		_viewModel.Cleared -= OnNotificationsCleared;
+		_viewModel.NotificationRemoved -= OnNotificationRemoved;
 
 		try
 		{

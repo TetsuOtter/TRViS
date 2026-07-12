@@ -23,6 +23,7 @@ must carry a `MessageType` field (exact case). Unknown/missing
 | `NavigateToHome` | Navigate to home screen | [§10](#10-navigatetohome) |
 | `OpenTimetable` | Open timetable view for a specified train | [§11](#11-opentimetable) |
 | `SearchTrainResponse` | Result of a train-search request | [§12](#12-searchtrainresponse) |
+| `DeleteNotification` | Delete an already-delivered notification by Id | [§13](#13-deletenotification) |
 
 > Notation: "Required" means a field the server effectively needs to
 > produce meaningful behavior. "Optional" may be omitted. A type
@@ -419,6 +420,37 @@ timetable rows — those are fetched separately via
 - Matching semantics are driven by the request's `MatchMode`
   (see [`SearchTrain`](client-to-server-messages.md#4-searchtrain)) —
   `Prefix` (default), `Contains`, or `Exact` — not server-defined.
+
+---
+
+## 13. DeleteNotification
+
+Instructs the client to discard an already-delivered
+[`Notification`](#8-notification) (§8) by `Id`, whether or not the
+client has acknowledged it. Use this to retract a notification that is
+no longer relevant (e.g. superseded, issued in error, or tied to a
+train the crew has since left).
+
+```jsonc
+{
+  "MessageType": "DeleteNotification",
+  "Id": "n-001"   // string (required)
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `Id` | string | Identifier of the notification to delete — the same value as the target `Notification.Id`. **Required**; a missing or empty `Id` is ignored (logged and no-op). |
+
+- Removes the notification regardless of read/acknowledgement state —
+  an unacknowledged notification is discarded too, not just
+  already-acknowledged ones.
+- If the notification is currently shown as the large popup or a small
+  banner, the client dismisses it immediately. If it is only queued
+  (not yet shown), it is removed from the queue instead. If no
+  notification with that `Id` is currently held, the message is a no-op.
+- An unknown `Id` (already deleted, expired, or never delivered) is not
+  an error — the client simply has nothing to remove.
 
 ---
 

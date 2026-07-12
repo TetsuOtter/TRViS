@@ -404,14 +404,41 @@ public partial class AppViewModel : ObservableObject
 	}
 
 	/// <summary>
-	/// 選択列車が切り替わったときに、その駅順を <see cref="NotificationCenter"/> へ反映する。
+	/// 直前に <see cref="NotificationCenter"/> へ駅順を反映した際の選択列車 Id。
+	/// 「表示中の列車から別の列車への遷移」だけを検出するために保持する
+	/// (初回選択 (null → 列車) では、まだ何も表示していないため破棄不要)。
+	/// </summary>
+	string? _lastNotifiedTrainId;
+
+	/// <summary>
+	/// 選択列車が別の列車へ切り替わったときに、保持中の通告をすべて破棄し、その駅順を
+	/// <see cref="NotificationCenter"/> へ反映する。別の列車の通告を破棄せず表示し続けると
+	/// 実際とは異なる列車の通告が残ってしまうため、切り替え時にまず <see cref="NotificationCenterViewModel.ClearAll"/>
+	/// で破棄し、切り替え後にサーバーから送信される通告で更新されるのを待つ。
+	/// 初回選択 (未選択 → 列車) および Home 復帰時の Loader クリア (列車 → 未選択)
+	/// はまだ「別の列車」が表示されていない/されなくなっただけなので対象外。
 	/// <see cref="SelectionManager"/> は選択列車が変わると <see cref="SelectionManager.SelectedTrainData"/>
 	/// で PropertyChanged を発火するので、それをフィルタして拾う。
 	/// </summary>
 	void OnSelectionManagerPropertyChangedForNotificationCenter(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 	{
 		if (e.PropertyName == nameof(SelectedTrainData))
+		{
+			string? newTrainId = SelectedTrainData?.Id;
+			// null を経由する遷移 (Home 復帰時の Loader クリア等) は「表示中の列車から
+			// 別の列車への遷移」ではないため対象外。実際の列車切り替え (NextTrainButton /
+			// SelectTrainCommand / 検索) は SelectedTrainData を null を挟まず直接 A→B へ
+			// 設定するため、ここを非 null 同士の差分に限定しても実切り替えの検出漏れはない。
+			if (_lastNotifiedTrainId is not null && newTrainId is not null && _lastNotifiedTrainId != newTrainId)
+			{
+				// SelectedTrainData の PropertyChanged はサーバー起点 (OnTrainSelectionRequested) の
+				// 場合バックグラウンドスレッドから発火し得るため、UI スレッド専有の ClearAll はここで
+				// 明示的にメインスレッドへ回す。
+				MainThread.BeginInvokeOnMainThread(NotificationCenter.ClearAll);
+			}
+			_lastNotifiedTrainId = newTrainId;
 			PushSelectedTrainStationsToNotificationCenter();
+		}
 	}
 
 	/// <summary>

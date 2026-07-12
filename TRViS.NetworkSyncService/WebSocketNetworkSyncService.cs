@@ -51,6 +51,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_OPERATION_COMMAND = "OperationCommand";
 	private const string MESSAGE_TYPE_HEADER_COLOR = "HeaderColor";
 	private const string MESSAGE_TYPE_NOTIFICATION = "Notification";
+	private const string MESSAGE_TYPE_DELETE_NOTIFICATION = "DeleteNotification";
 	private const string MESSAGE_TYPE_TIME_FORMAT = "TimeFormat";
 	private const string MESSAGE_TYPE_NAVIGATE_TO_HOME = "NavigateToHome";
 	private const string MESSAGE_TYPE_OPEN_TIMETABLE = "OpenTimetable";
@@ -324,6 +325,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			{
 				ProcessNotificationMessage(root);
 			}
+			else if (messageType == MESSAGE_TYPE_DELETE_NOTIFICATION)
+			{
+				ProcessDeleteNotificationMessage(root);
+			}
 			else if (messageType == MESSAGE_TYPE_TIME_FORMAT)
 			{
 				ProcessTimeFormatMessage(root);
@@ -586,6 +591,17 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			TrainId = TryGetStringProperty(root, TRAIN_ID_JSON_KEY),
 		};
 		RaiseTrainSelectionRequested(cmd);
+	}
+
+	private void ProcessDeleteNotificationMessage(JsonElement root)
+	{
+		string? id = TryGetStringProperty(root, "Id");
+		if (string.IsNullOrEmpty(id))
+		{
+			logger.Warn("ProcessDeleteNotificationMessage: Missing 'Id' field");
+			return;
+		}
+		RaiseNotificationDeleteRequested(new DeleteNotificationCommand { Id = id });
 	}
 
 	private void ProcessOpenTimetableMessage(JsonElement root)
