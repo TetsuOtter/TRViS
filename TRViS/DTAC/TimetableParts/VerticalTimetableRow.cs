@@ -371,13 +371,17 @@ public class VerticalTimetableRow : IDisposable
 
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
 #if UI_TEST
-		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
+		// AutomationId may only be set once per element; UpdateInfoRow can run
+		// repeatedly for the same reused label instance, so guard against
+		// re-assigning it (see UpdateStationName).
+		if (string.IsNullOrEmpty(InfoRowLabel.AutomationId))
+			InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
 #endif
 		InfoRowLabel.Text = Model.InfoText;
 #if UI_TEST
 		// Mirror the id onto the inner Label (set synchronously by the Text
 		// setter) so it surfaces as an Android resource-id; see UpdateStationName.
-		if (InfoRowLabel.Content is Element infoInner)
+		if (InfoRowLabel.Content is Element infoInner && string.IsNullOrEmpty(infoInner.AutomationId))
 			infoInner.AutomationId = InfoRowLabel.AutomationId;
 #endif
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
@@ -508,7 +512,11 @@ public class VerticalTimetableRow : IDisposable
 
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
 #if UI_TEST
-		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
+		// AutomationId may only be set once per element; UpdateStationName can run
+		// repeatedly for the same reused label instance (e.g. IsStationNameNarrow
+		// flips across a resize/rotation), so guard against re-assigning it.
+		if (string.IsNullOrEmpty(label.AutomationId))
+			label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
 #endif
 		// issue #41: 狭幅モードでは詰めて表示し、フォントも縮める
 		label.Text = StationNameConverter.Convert(Model.StationName, VisibilityState.IsStationNameNarrow);
@@ -521,7 +529,7 @@ public class VerticalTimetableRow : IDisposable
 		// synchronously by the Text setter above) is a Label subclass, which does
 		// map to a resource-id, so mirror the id onto it. The outer id is kept for
 		// iOS/macOS which find the ContentView wrapper directly.
-		if (label.Content is Element inner)
+		if (label.Content is Element inner && string.IsNullOrEmpty(inner.AutomationId))
 			inner.AutomationId = label.AutomationId;
 #endif
 	}
@@ -765,6 +773,8 @@ public class VerticalTimetableRow : IDisposable
 			return;
 
 		_disposed = true;
+		Model.PropertyChanged -= OnModelPropertyChanged;
+		VisibilityState.PropertyChanged -= OnVisibilityStatePropertyChanged;
 		DisposeComponents();
 	}
 
