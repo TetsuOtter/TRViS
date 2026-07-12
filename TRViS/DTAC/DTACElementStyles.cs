@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Maui.Controls.Shapes;
 
 using TRViS.Controls;
+using TRViS.DTAC.ViewModels;
 using TRViS.Services;
 using TRViS.Utils;
 
@@ -79,11 +80,27 @@ public static partial class DTACElementStyles
 	// built via HeaderLabelStyle, in BeforeDeparture_AfterArrive) isn't affected.
 	public const double HakoHeaderFontSize = 20;
 	public const double BEFORE_REMARKS_FONT_SIZE = 17;
+	// 縦の短い画面 (ViewHeightMode.Low) では BeforeRemarks の2行表示が行の枠に
+	// 収まらないため、DestinationLabel (LabelStyleResource / DefaultTextSize) と
+	// 同じフォントサイズまで縮める。
+	public const double BEFORE_REMARKS_FONT_SIZE_LOW = DefaultTextSize;
+	public const double BEFORE_REMARKS_LINE_HEIGHT_LOW = 1.0;
+	public const double BEFORE_REMARKS_BOTTOM_MARGIN = 8;
+	public const double BEFORE_REMARKS_BOTTOM_MARGIN_LOW = 0;
 	public const double AFTER_REMARKS_FONT_SIZE = 20;
 	public static readonly double TimetableFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 32 : 30;
+	// 狭い画面で停車場名・着線/発線を詰めて表示するときのフォントサイズ (issue #41)
+	public static readonly double TimetableFontSizeNarrow = TimetableFontSize - 4;
+	// iPad mini 6 等、着線/発線列が 54px に詰まる帯 (768pt 未満・非狭幅表示) 用の
+	// 中間フォントサイズ (issue #320)。狭幅表示 (TimetableFontSizeNarrow) ほどは
+	// 縮めない。
+	public static readonly double TimetableFontSizeMid = TimetableFontSize - 2;
 	public static readonly double TimetableRunLimitFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 26 : 24;
 	public static readonly double DriveTimeMMFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 28 : 26;
+	// 運転時分列が 54px に詰まる帯 (768pt 未満) 用の中間フォントサイズ (issue #320)。
+	public static readonly double DriveTimeMMFontSizeMid = DriveTimeMMFontSize - 2;
 	public static readonly double DriveTimeSSFontSize = DeviceInfo.Current.Platform == DevicePlatform.iOS ? 18 : 16;
+	public static readonly double DriveTimeSSFontSizeMid = DriveTimeSSFontSize - 2;
 
 	public const int TRAIN_INFO_HEIGHT = 50;
 	public const int BEFORE_DEPARTURE_HEIGHT = 45;
@@ -119,17 +136,47 @@ public static partial class DTACElementStyles
 	};
 
 	public const double RUN_TIME_COLUMN_WIDTH = 60;
-	private const int DEFAULT_TIME_COLUMN_WIDTH = 140;
-	private const int NARROW_TIME_COLUMN_WIDTH = 134;
+	private const double RUN_TIME_COLUMN_WIDTH_MID = 54;
+	private const double RUN_TIME_COLUMN_WIDTH_NARROW = 4;
+	private const double STA_NAME_COLUMN_WIDTH = 140;
+	private const double STA_NAME_COLUMN_WIDTH_NARROW = 96;
+	private const double ARR_DEP_COLUMN_WIDTH = 140;
+	private const double ARR_DEP_COLUMN_WIDTH_NARROW = 110;
+	private const double ARR_DEP_COLUMN_WIDTH_MINI6 = 134;
+	private const double TRACK_NUMBER_COLUMN_WIDTH = 60;
+	private const double TRACK_NUMBER_COLUMN_WIDTH_MID = 54;
+	private const double TRACK_NUMBER_COLUMN_WIDTH_NARROW = 48;
+	private const double SPEED_LIMIT_COLUMN_WIDTH = 60;
+	private const double MARKER_COLUMN_WIDTH = 64;
+
+	/// <summary>
+	/// 縦型時刻表の 8 列 (運転時分/停車場名/着/発/着線発線/制限速度/記事/マーカー) の
+	/// 列定義を <paramref name="grid"/> に設定し、画面幅に応じて段階的に幅を変える
+	/// SizeChanged ハンドラを取り付ける (issue #41)。
+	///
+	/// <para>
+	/// 旧 main は &lt;768 で着発時刻列を 134px にするだけの単一ブレークポイントだったため、
+	/// 狭い画面で非表示相当の列が幅を占有し続け内容が見切れていた。
+	/// 旧 feature/support-smartphone ブランチの <c>DTACColumnDefinitionsProvider</c> の
+	/// 段階的ロジック (非表示列は 0 幅へ畳む / 停車場名・着線発線は狭幅へ /
+	/// 最後に残る可変列を Star にして余白を埋める) を移植する。
+	/// </para>
+	/// <para>
+	/// 幅判定は必ず <see cref="VerticalTimetableColumnVisibilityState"/> の
+	/// 分類器・述語を経由するため、列の表示/非表示 (内容側) と列幅が食い違わない。
+	/// この grid 自身の幅で判定するので、同じ列構成を持つ複数 grid
+	/// (ヘッダ・出発前・記事前・行本体) は同一幅で一貫した結果になる。
+	/// </para>
+	/// </summary>
 	public static void SetTimetableColumnWidthCollection(Grid grid)
 	{
 		ColumnDefinition runTimeColumn = new(new(RUN_TIME_COLUMN_WIDTH));
-		ColumnDefinition stationNameColumn = new(new(140));
-		ColumnDefinition arrivalDepartureTimeColumn = new(new(140));
-		ColumnDefinition trackNumberColumn = new(new(60));
-		ColumnDefinition speedLimitColumn = new(new(60));
+		ColumnDefinition stationNameColumn = new(new(STA_NAME_COLUMN_WIDTH));
+		ColumnDefinition arrivalDepartureTimeColumn = new(new(ARR_DEP_COLUMN_WIDTH));
+		ColumnDefinition trackNumberColumn = new(new(TRACK_NUMBER_COLUMN_WIDTH));
+		ColumnDefinition speedLimitColumn = new(new(SPEED_LIMIT_COLUMN_WIDTH));
 		ColumnDefinition remarksColumn = new(new(1, GridUnitType.Star));
-		ColumnDefinition markerColumn = new(new(64));
+		ColumnDefinition markerColumn = new(new(MARKER_COLUMN_WIDTH));
 		grid.ColumnDefinitions = [
 			runTimeColumn,
 			stationNameColumn,
@@ -140,22 +187,72 @@ public static partial class DTACElementStyles
 			remarksColumn,
 			markerColumn
 		];
+
+		VerticalTimetableColumnVisibilityState.ViewWidthMode? lastMode = null;
 		grid.SizeChanged += (s, e) =>
 		{
-			logger.Debug("TimetableColumnWidthCollection SizeChanged (height={0}, width={1})", grid.Height, grid.Width);
-			if (0 < grid.Width && grid.Width < 768)
+			if (grid.Width <= 0)
+				return;
+
+			// 全ての列を実ビュー幅のみで判定する (端末フル幅へのフォールバックなし)。
+			// issue #320: Split View 等で実際に縮んだ幅は、その幅なりに正直に評価する。
+			VerticalTimetableColumnVisibilityState.ViewWidthMode mode
+				= VerticalTimetableColumnVisibilityState.ClassifyWidth(grid.Width);
+			if (lastMode == mode)
+				return;
+			lastMode = mode;
+			logger.Debug("TimetableColumnWidthCollection mode -> {0} (width={1})", mode, grid.Width);
+
+			bool isRunTimeVisible = VerticalTimetableColumnVisibilityState.IsRunTimeVisible(mode);
+			bool isStaNameNarrow = VerticalTimetableColumnVisibilityState.IsStationNameNarrowMode(mode);
+			bool isSpeedLimitVisible = VerticalTimetableColumnVisibilityState.IsRunInOutLimitVisible(mode);
+			bool isRemarksVisible = VerticalTimetableColumnVisibilityState.IsRemarksVisible(mode);
+			bool isMarkerVisible = VerticalTimetableColumnVisibilityState.IsMarkerVisible(mode);
+			bool isFullWidth = mode >= VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_2_3_4_5_V;
+
+			// 運転時分: 非表示時も 0 ではなく細い帯を残す (列車情報出発前ヘッダと幅を揃えるため)。
+			// 768pt 未満では表示時も少し詰めて (54px) 幅に余裕を持たせる。
+			runTimeColumn.Width = !isRunTimeVisible
+				? RUN_TIME_COLUMN_WIDTH_NARROW
+				: isFullWidth ? RUN_TIME_COLUMN_WIDTH : RUN_TIME_COLUMN_WIDTH_MID;
+
+			// 停車場名: 後続の記事列が消えたら Star にして余白を吸収する
+			stationNameColumn.Width = new(
+				isStaNameNarrow ? STA_NAME_COLUMN_WIDTH_NARROW : STA_NAME_COLUMN_WIDTH,
+				isRemarksVisible ? GridUnitType.Absolute : GridUnitType.Star
+			);
+
+			// 着/発: モードごとに最適幅
+			arrivalDepartureTimeColumn.Width = mode switch
 			{
-				if (arrivalDepartureTimeColumn.Width.Value != NARROW_TIME_COLUMN_WIDTH)
-				{
-					arrivalDepartureTimeColumn.Width = new(NARROW_TIME_COLUMN_WIDTH);
-					logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: NARROW_TIME_COLUMN_WIDTH");
-				}
-			}
-			else if (arrivalDepartureTimeColumn.Width.Value != DEFAULT_TIME_COLUMN_WIDTH)
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_SE_H
+					=> ARR_DEP_COLUMN_WIDTH_NARROW,
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_2_3_4_5_V
+					=> ARR_DEP_COLUMN_WIDTH_MINI6,
+				_ => ARR_DEP_COLUMN_WIDTH,
+			};
+
+			// 着線/発線: 768pt 未満では少し詰めて (54px)、568pt 未満 (狭幅表示) では
+			// さらに詰めて (48px) 幅に余裕を持たせる。
+			// 常に Absolute に固定する。記事列は表示中は常に Star(1) (下記)
+			// なので、制限速度が消えた分の余白は記事列が単独で吸収すればよい。
+			// ここを Star にすると記事列 (Star 1) とこの列 (Star 54 相当の幅指定)
+			// が競合し、比重の大きいこの列がほぼ全ての余白を奪って記事列が
+			// 数 px まで潰れてしまう (iPad の 3:7 分割など 568〜735pt 帯で発生した
+			// 「記事だけ実質非表示になる」不具合の原因)。
+			double trackNumberColumnWidth = mode switch
 			{
-				arrivalDepartureTimeColumn.Width = new(DEFAULT_TIME_COLUMN_WIDTH);
-				logger.Debug("TimetableColumnWidthCollection SetArrDepCol Width: DEFAULT_TIME_COLUMN_WIDTH");
-			}
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPHONE_SE_H
+					=> TRACK_NUMBER_COLUMN_WIDTH_NARROW,
+				< VerticalTimetableColumnVisibilityState.ViewWidthMode.IPAD_MINI_2_3_4_5_V
+					=> TRACK_NUMBER_COLUMN_WIDTH_MID,
+				_ => TRACK_NUMBER_COLUMN_WIDTH,
+			};
+			trackNumberColumn.Width = trackNumberColumnWidth;
+
+			speedLimitColumn.Width = isSpeedLimitVisible ? SPEED_LIMIT_COLUMN_WIDTH : 0;
+			remarksColumn.Width = isRemarksVisible ? new(1, GridUnitType.Star) : new(0);
+			markerColumn.Width = isMarkerVisible ? MARKER_COLUMN_WIDTH : 0;
 		};
 	}
 
@@ -265,9 +362,35 @@ public static partial class DTACElementStyles
 			_BeforeRemarksStyleResource.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
 			_BeforeRemarksStyleResource.Setters.Add(Label.FontSizeProperty, BEFORE_REMARKS_FONT_SIZE);
 			_BeforeRemarksStyleResource.Setters.Add(Label.LineHeightProperty, DeviceInfo.Platform == DevicePlatform.Android ? 1.0 : 1.25);
-			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(BEFORE_REMARKS_LEFT_MARGIN, -BEFORE_REMARKS_FONT_SIZE, 0, 8));
+			_BeforeRemarksStyleResource.Setters.Add(Label.MarginProperty, new Thickness(BEFORE_REMARKS_LEFT_MARGIN, -BEFORE_REMARKS_FONT_SIZE, 0, BEFORE_REMARKS_BOTTOM_MARGIN));
 
 			return _BeforeRemarksStyleResource;
+		}
+	}
+
+	static Style? _BeforeRemarksStyleResourceLow = null;
+	// ViewHeightMode.Low (縦の短い画面) 用の BeforeRemarks スタイル。行間を詰め
+	// (LineHeight 1.0)、下の余白をなくし (Margin 下端 0)、フォントサイズを
+	// DestinationLabel と揃えることで、縮んだ行の枠内に2行表示を収める。
+	public static Style BeforeRemarksStyleResourceLow
+	{
+		get
+		{
+			if (_BeforeRemarksStyleResourceLow is not null)
+				return _BeforeRemarksStyleResourceLow;
+
+			_BeforeRemarksStyleResourceLow = new Style(typeof(Label))
+			{
+				BasedOn = LabelStyleResource
+			};
+
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.HorizontalOptionsProperty, LayoutOptions.Start);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.VerticalOptionsProperty, LayoutOptions.End);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.FontSizeProperty, BEFORE_REMARKS_FONT_SIZE_LOW);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.LineHeightProperty, BEFORE_REMARKS_LINE_HEIGHT_LOW);
+			_BeforeRemarksStyleResourceLow.Setters.Add(Label.MarginProperty, new Thickness(BEFORE_REMARKS_LEFT_MARGIN, -BEFORE_REMARKS_FONT_SIZE_LOW, 0, BEFORE_REMARKS_BOTTOM_MARGIN_LOW));
+
+			return _BeforeRemarksStyleResourceLow;
 		}
 	}
 	public static T AfterRemarksStyle<T>() where T : HtmlAutoDetectLabel, new()
