@@ -108,10 +108,22 @@ class ScreenshotBaselineHelper {
             switch deviceClass {
             case "ipad-mini-a17":
                 UIRectFill(CGRect(x: 20, y: 15, width: 270, height: 35))
+                // iPad mini 6 has no gesture home indicator (Touch ID, not a
+                // home-button-less Face ID device) — nothing to mask at the bottom.
             default: // iphone
                 if pw < ph { // portrait
                     UIRectFill(CGRect(x: 140, y: 40, width: 150, height: 100))
                 }
+                // Bottom gesture "home indicator" bar: whether it's visible at
+                // capture time is a non-deterministic function of recent touch
+                // timing (it fades in on touch, then dims out after a few
+                // seconds), not of app state — it caused baseline churn across
+                // every screen once test timing shifted slightly. `image.size`
+                // is already orientation-corrected (see comment above), so this
+                // same bottom-center rect covers it in both portrait and
+                // landscape. Sized generously around the ~134pt-wide pill to
+                // tolerate anti-aliasing without reaching into real content.
+                UIRectFill(CGRect(x: CGFloat(pw) / 2 - 350, y: CGFloat(ph) - 70, width: 700, height: 70))
             }
         }
         return masked.pngData() ?? data

@@ -65,7 +65,10 @@ public partial class VerticalTimetableView : Grid
 
 	public DTACMarkerViewModel MarkerViewModel { get; } = PresenterFactory.GetDTACMarkerViewModel();
 
-	public VerticalTimetableColumnVisibilityState ColumnVisibilityState { get; } = new((int)DeviceDisplay.MainDisplayInfo.Width);
+	// SizeChanged が初回レイアウトで即座に実ビュー幅へ補正するまでの暫定値。
+	// DeviceDisplay (端末フル幅・ピクセル値) には依存しない — 全列を表示しておき、
+	// 補正後に必要な列だけ畳む方が、狭い幅を仮定して一瞬列が消えるより安全。
+	public VerticalTimetableColumnVisibilityState ColumnVisibilityState { get; } = new(int.MaxValue);
 
 	public VerticalTimetableViewModel ViewModel { get; } = new();
 
@@ -152,6 +155,17 @@ public partial class VerticalTimetableView : Grid
 		// Setup grid layout
 		Grid.SetColumnSpan(NextTrainButton, 8);
 		DTACElementStyles.SetTimetableColumnWidthCollection(this);
+		// issue #41: 実ビュー幅 (iPad マルチタスク/ウィンドウ分割を含む) に列の
+		// 表示/非表示を追従させる。旧 main は ColumnVisibilityState を生成時に
+		// DeviceDisplay.MainDisplayInfo.Width で一度だけ初期化するのみで、
+		// リサイズ/マルチタスクに一切反応しなかった (#41 の主因)。
+		// 幅ソースは SetTimetableColumnWidthCollection が列幅算出に使うのと同じ
+		// このビュー自身の幅に統一し、表示と幅が食い違わないようにする。
+		SizeChanged += (_, _) =>
+		{
+			if (Width > 0)
+				ColumnVisibilityState.UpdateState((int)Width);
+		};
 		Grid.SetColumnSpan(CurrentLocationLine, 8);
 
 		// Add views to children
