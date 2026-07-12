@@ -14,12 +14,15 @@ public class StationNameConverter : IValueConverter
 		return StationNameConverter.Convert(s);
 	}
 
-	public static string Convert(string s)
+	// issue #41: 狭幅モードでは 4 文字駅名の細スペース挿入を抑え、列幅を節約する
+	public static string Convert(string s, bool isNarrowMode = false)
 		=> s.Length switch
 		{
 			2 => StringUtils.InsertCharBetweenCharAndMakeWide(s, $"{StringUtils.SPACE_CHAR}{StringUtils.SPACE_CHAR}{StringUtils.SPACE_CHAR}{StringUtils.SPACE_CHAR}"),
 			3 => StringUtils.InsertCharBetweenCharAndMakeWide(s, StringUtils.SPACE_CHAR),
-			4 => StringUtils.InsertCharBetweenCharAndMakeWide(s, StringUtils.THIN_SPACE),
+			4 => !isNarrowMode
+				? StringUtils.InsertCharBetweenCharAndMakeWide(s, StringUtils.THIN_SPACE)
+				: s,
 			_ => s
 		};
 

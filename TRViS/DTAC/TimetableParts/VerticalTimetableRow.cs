@@ -158,9 +158,11 @@ public class VerticalTimetableRow : IDisposable
 		switch (e.PropertyName)
 		{
 			case nameof(VerticalTimetableColumnVisibilityState.RunTime):
+			case nameof(VerticalTimetableColumnVisibilityState.IsRunTimeMid):
 				UpdateDriveTime();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.StationName):
+			case nameof(VerticalTimetableColumnVisibilityState.IsStationNameNarrow):
 				UpdateStationName();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.ArrivalTime):
@@ -172,6 +174,8 @@ public class VerticalTimetableRow : IDisposable
 				UpdateOperationOnlyStop();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.TrackName):
+			case nameof(VerticalTimetableColumnVisibilityState.IsTrackNameNarrow):
+			case nameof(VerticalTimetableColumnVisibilityState.IsTrackNameMid):
 				UpdateTrackName();
 				break;
 			case nameof(VerticalTimetableColumnVisibilityState.RunInOutLimit):
@@ -367,13 +371,17 @@ public class VerticalTimetableRow : IDisposable
 
 		EnsureComponent(ref InfoRowLabel, DTACElementStyles.TimetableInfoRowHtmlAutoDetectLabel<HtmlAutoDetectLabel>, STATION_NAME_COLUMN);
 #if UI_TEST
-		InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
+		// AutomationId may only be set once per element; UpdateInfoRow can run
+		// repeatedly for the same reused label instance, so guard against
+		// re-assigning it (see UpdateStationName).
+		if (string.IsNullOrEmpty(InfoRowLabel.AutomationId))
+			InfoRowLabel.AutomationId = $"TimetableRow.{Model.RowIndex}.InfoRow";
 #endif
 		InfoRowLabel.Text = Model.InfoText;
 #if UI_TEST
 		// Mirror the id onto the inner Label (set synchronously by the Text
 		// setter) so it surfaces as an Android resource-id; see UpdateStationName.
-		if (InfoRowLabel.Content is Element infoInner)
+		if (InfoRowLabel.Content is Element infoInner && string.IsNullOrEmpty(infoInner.AutomationId))
 			infoInner.AutomationId = InfoRowLabel.AutomationId;
 #endif
 		InfoRowLabel.HorizontalOptions = LayoutOptions.Start;
@@ -479,17 +487,29 @@ public class VerticalTimetableRow : IDisposable
 		if (!string.IsNullOrEmpty(Model.DriveTimeMM) && DriveTimeMMLabel is not null)
 		{
 			DriveTimeMMLabel.Text = DriveTimeFormatter.FormatMinutes(Model.DriveTimeMM);
+			// iPad mini 6 帯 (768pt 未満) では運転時分列が詰まるため、フォントを少し縮める (issue #320)
+			DriveTimeMMLabel.FontSize = VisibilityState.IsRunTimeMid
+				? DTACElementStyles.DriveTimeMMFontSizeMid
+				: DTACElementStyles.DriveTimeMMFontSize;
 		}
 		if (!string.IsNullOrEmpty(Model.DriveTimeSS) && DriveTimeSSLabel is not null)
 		{
 			DriveTimeSSLabel.Text = DriveTimeFormatter.FormatSeconds(Model.DriveTimeSS);
+			DriveTimeSSLabel.FontSize = VisibilityState.IsRunTimeMid
+				? DTACElementStyles.DriveTimeSSFontSizeMid
+				: DTACElementStyles.DriveTimeSSFontSize;
 		}
 		UpdateDriveTimeTextColor();
 	}
 
 	private void UpdateStationName()
 	{
-		if (!VisibilityState.StationName || string.IsNullOrEmpty(Model.StationName))
+		// InfoRow (交直切換 等) は StationName にも表示文字列が入っているが、その表示は
+		// InfoRowLabel が担う (UpdateInfoRow)。ApplyRowToExistingModel は IsInfoRow の
+		// 行でも StationName を設定するため、後続の ApplySmartDiff で StationName だけが
+		// 変化すると IsInfoRow の PropertyChanged を経由せずここが呼ばれ、InfoRowLabel と
+		// StationNameLabel が同時に表示されてしまう (二重表示バグ)。
+		if (Model.IsInfoRow || !VisibilityState.StationName || string.IsNullOrEmpty(Model.StationName))
 		{
 			RemoveComponent(ref StationNameLabel);
 			return;
@@ -497,16 +517,24 @@ public class VerticalTimetableRow : IDisposable
 
 		var label = EnsureComponent(ref StationNameLabel, CreateStationNameComponent, STATION_NAME_COLUMN);
 #if UI_TEST
-		label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
+		// AutomationId may only be set once per element; UpdateStationName can run
+		// repeatedly for the same reused label instance (e.g. IsStationNameNarrow
+		// flips across a resize/rotation), so guard against re-assigning it.
+		if (string.IsNullOrEmpty(label.AutomationId))
+			label.AutomationId = $"TimetableRow.{Model.RowIndex}.StationName";
 #endif
-		label.Text = StationNameConverter.Convert(Model.StationName);
+		// issue #41: 狭幅モードでは詰めて表示し、フォントも縮める
+		label.Text = StationNameConverter.Convert(Model.StationName, VisibilityState.IsStationNameNarrow);
+		label.FontSize = VisibilityState.IsStationNameNarrow
+			? DTACElementStyles.TimetableFontSizeNarrow
+			: DTACElementStyles.TimetableFontSize;
 #if UI_TEST
 		// HtmlAutoDetectLabel is a ContentView whose AutomationId does not surface
 		// as an Android UIAutomator2 resource-id. Its inner Content (set
 		// synchronously by the Text setter above) is a Label subclass, which does
 		// map to a resource-id, so mirror the id onto it. The outer id is kept for
 		// iOS/macOS which find the ContentView wrapper directly.
-		if (label.Content is Element inner)
+		if (label.Content is Element inner && string.IsNullOrEmpty(inner.AutomationId))
 			inner.AutomationId = label.AutomationId;
 #endif
 	}
@@ -606,7 +634,15 @@ public class VerticalTimetableRow : IDisposable
 
 		var label = EnsureComponent(ref TrackNameLabel, CreateTrackNameComponent, TRACK_NAME_COLUMN);
 		label.Text = Model.TrackName;
-		label.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(Model.TrackName, label.FontSize);
+		// issue #41/#320: 狭幅モードでは縮小したベースサイズから算出する。
+		// label.FontSize を基準にすると再利用時に縮小が複合してしまうため、
+		// 毎回モードに応じたベースサイズを明示的に渡す。
+		double trackBaseFontSize = VisibilityState.IsTrackNameNarrow
+			? DTACElementStyles.TimetableFontSizeNarrow
+			: VisibilityState.IsTrackNameMid
+				? DTACElementStyles.TimetableFontSizeMid
+				: DTACElementStyles.TimetableFontSize;
+		label.FontSize = DTACElementStyles.GetTimetableTrackLabelFontSize(Model.TrackName, trackBaseFontSize);
 	}
 
 	private void UpdateRunInOutLimit()
@@ -742,6 +778,8 @@ public class VerticalTimetableRow : IDisposable
 			return;
 
 		_disposed = true;
+		Model.PropertyChanged -= OnModelPropertyChanged;
+		VisibilityState.PropertyChanged -= OnVisibilityStatePropertyChanged;
 		DisposeComponents();
 	}
 
