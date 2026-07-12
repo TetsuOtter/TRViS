@@ -26,7 +26,13 @@ public partial class VerticalStylePage : ContentView
 	// ヘッダ系の行を縮め、時刻表の表示領域を確保する。旧 feature/support-smartphone
 	// ブランチの DTACRowDefinitionsProvider の Low モード (しきい値 800px / 各行の
 	// 減少量) を、main の const ベース RowDefinitions 構成に移植したもの。
-	const double SHORT_SCREEN_HEIGHT_THRESHOLD = 800;
+	//
+	// iPad mini(6/A17 Pro) の横持ちでは縮小させない。画面短辺の額面値は 744pt だが、
+	// 実際にこのビューへ渡る Height はステータスバー等の chrome を差し引いた値になるため、
+	// 額面値ぎりぎりに閾値を置くと誤差で縮小してしまう。iPhone の横持ち高さ (最大でも
+	// 430pt 程度) を大きく上回りつつ、iPad mini 6 の実測 Height (chrome 分を引いても
+	// 650pt 前後は残る想定) を十分下回る 600pt を閾値とする。
+	const double SHORT_SCREEN_HEIGHT_THRESHOLD = 600;
 	const double DATE_AND_START_BUTTON_ROW_HEIGHT_LOW = DATE_AND_START_BUTTON_ROW_HEIGHT - 6;
 	const double TRAIN_INFO_HEADER_ROW_HEIGHT_LOW = TRAIN_INFO_HEADER_ROW_HEIGHT - 18;
 	const double CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT_LOW = CAR_COUNT_AND_BEFORE_REMARKS_ROW_HEIGHT - 12;
