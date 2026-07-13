@@ -3,6 +3,7 @@ using System.Runtime.Versioning;
 using CoreGraphics;
 #endif
 
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 using TRViS.DTAC;
@@ -122,6 +123,10 @@ public partial class AppShell : Shell
 		// サーバーから個別の通告削除指示を受けたら、まだ表示していない待機列から該当 Id
 		// だけを取り除く (表示中のポップアップ自体は NotificationPopupPage が自分で閉じる)。
 		appVm.NotificationCenter.NotificationRemoved += OnNotificationCenterEntryRemoved;
+		// 通告の受信音・接近音の再生要求 (#329)。NotificationCenter は MainThread 上で発火するが、
+		// 実際の再生 (ネイティブ API 呼び出し) は失敗しても無音になるだけでよいため、
+		// NotificationSoundPlayer 側ですべての例外を握りつぶす。
+		appVm.NotificationCenter.SoundPlayRequested += (_, sound) => InstanceManager.NotificationSoundPlayer.Play(sound);
 
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;
@@ -176,12 +181,25 @@ public partial class AppShell : Shell
 		});
 	}
 
+	// 現在表示中のポップアップの Id (Id 無し通告は null のまま重複判定をスキップ)。
+	// 既に表示中/表示待ちの Id への再度の DisplayRequested (受領済み→未受領への巻き戻り
+	// 再受信など) は二重にポップアップを積まない。内容の更新は
+	// NotificationCenterViewModel.NotificationUpdated (NotificationPopupPage.OnNotificationUpdated)
+	// が表示中のポップアップへその場で反映する。UI スレッド専有。
+	string? _currentlyShownNotificationId;
+
 	void OnNotificationDisplayRequested(object? sender, Services.NotificationStore.Entry entry)
 	{
 		// DisplayRequested は MainThread 上で発火する契約だが、キュー操作を確実に UI
 		// スレッドで行うため dispatch する (二重 dispatch は無害)。
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
+			if (entry.Id is string id && !string.IsNullOrEmpty(id) &&
+				(id == _currentlyShownNotificationId || _notificationQueue.Any(e => e.Id == id)))
+			{
+				return;
+			}
+
 			_notificationQueue.Enqueue(entry);
 			TryShowNextNotification();
 		});
@@ -194,6 +212,7 @@ public partial class AppShell : Shell
 
 		_isShowingNotification = true;
 		Services.NotificationStore.Entry entry = _notificationQueue.Dequeue();
+		_currentlyShownNotificationId = entry.Id;
 		var page = new RootPages.NotificationPopupPage(entry, InstanceManager.AppViewModel.NotificationCenter);
 
 		// 閉じられたら (受領 / 閉じる / OS ジェスチャ) 次の通告を表示する。
@@ -201,6 +220,7 @@ public partial class AppShell : Shell
 		{
 			page.Disappearing -= OnPopupDisappearing;
 			_isShowingNotification = false;
+			_currentlyShownNotificationId = null;
 			TryShowNextNotification();
 		}
 		page.Disappearing += OnPopupDisappearing;

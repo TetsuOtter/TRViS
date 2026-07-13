@@ -209,6 +209,12 @@ public partial class NotificationBannerView : ContentView
 
 	private void OnBannerTapped(object? sender, EventArgs e)
 	{
+		// 通告音を再生中にバナーをタップした場合は、その停止のみを行い大型ポップアップへの
+		// 展開はしない (#329)。停止対象が無かった (音が鳴っていなかった) ときは、従来通り
+		// タップで展開する。
+		if (TRViS.InstanceManager.NotificationSoundPlayer.StopIfPlaying())
+			return;
+
 		if (_entry is NotificationStore.Entry entry)
 			Tapped?.Invoke(this, entry);
 	}

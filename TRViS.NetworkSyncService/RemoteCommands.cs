@@ -49,6 +49,27 @@ public class DeleteNotificationCommand
 }
 
 /// <summary>
+/// 通告の受信音・接近音の既定値を設定するコマンド。受信するたびに両ロールを
+/// フルに置き換える (差分更新ではない)。対象ロールのフィールドが null の場合、
+/// そのロールの既定値は「無し (無音)」にリセットされる。セッション中のみ有効な
+/// メモリ上の状態で、WebSocket 切断時に破棄される。
+/// </summary>
+public class DefaultSoundCommand
+{
+	/// <summary>受信音の既定として使う音声の Base64 エンコードされたバイナリ。</summary>
+	public string? ReceivedSoundBase64 { get; set; }
+
+	/// <summary><see cref="ReceivedSoundBase64"/> の形式 ("wav"/"mp3")。</summary>
+	public string? ReceivedSoundFormat { get; set; }
+
+	/// <summary>接近音の既定として使う音声の Base64 エンコードされたバイナリ。</summary>
+	public string? ApproachSoundBase64 { get; set; }
+
+	/// <summary><see cref="ApproachSoundBase64"/> の形式 ("wav"/"mp3")。</summary>
+	public string? ApproachSoundFormat { get; set; }
+}
+
+/// <summary>
 /// タイトルバー (ヘッダ) の色変更要求。
 /// <see cref="ResetToDefault"/> が true のとき、端末の設定値に戻す。
 /// false のとき、<see cref="Color_RGB"/> の RGB 値 (0xRRGGBB) を適用する。
@@ -150,6 +171,27 @@ public class NotificationData
 	/// 区間開始駅から表示する。
 	/// </summary>
 	public int StationsBefore { get; set; } = 1;
+
+	/// <summary>
+	/// この通告固有の受信音 (初回表示時に再生) の Base64 エンコードされたバイナリ
+	/// (data URI プレフィックスを含んでいてもよい)。未指定/null の場合、
+	/// <see cref="DefaultSoundCommand"/> で設定された受信音の既定値があればそれを使う。
+	/// デコード後 16MiB を超える場合は再生されない (無音)。
+	/// </summary>
+	public string? ReceivedSoundBase64 { get; set; }
+
+	/// <summary><see cref="ReceivedSoundBase64"/> の形式 ("wav"/"mp3")。</summary>
+	public string? ReceivedSoundFormat { get; set; }
+
+	/// <summary>
+	/// この通告固有の接近音 (区間連動の再表示バナー表示時に再生) の Base64 エンコードされた
+	/// バイナリ。未指定/null の場合、<see cref="DefaultSoundCommand"/> の接近音の既定値が
+	/// あればそれを使う。デコード後 16MiB を超える場合は再生されない (無音)。
+	/// </summary>
+	public string? ApproachSoundBase64 { get; set; }
+
+	/// <summary><see cref="ApproachSoundBase64"/> の形式 ("wav"/"mp3")。</summary>
+	public string? ApproachSoundFormat { get; set; }
 
 	/// <summary>
 	/// <see cref="IconColor_RGB"/> を文字列表現からパースする。JSON では数値

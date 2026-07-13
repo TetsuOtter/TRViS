@@ -52,6 +52,7 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string MESSAGE_TYPE_HEADER_COLOR = "HeaderColor";
 	private const string MESSAGE_TYPE_NOTIFICATION = "Notification";
 	private const string MESSAGE_TYPE_DELETE_NOTIFICATION = "DeleteNotification";
+	private const string MESSAGE_TYPE_DEFAULT_SOUND = "DefaultSound";
 	private const string MESSAGE_TYPE_TIME_FORMAT = "TimeFormat";
 	private const string MESSAGE_TYPE_NAVIGATE_TO_HOME = "NavigateToHome";
 	private const string MESSAGE_TYPE_OPEN_TIMETABLE = "OpenTimetable";
@@ -86,6 +87,13 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string DIAGRAM_NAME_JSON_KEY = "Name";
 	private const string DIAGRAM_DESCRIPTION_JSON_KEY = "Description";
 	private const string DIAGRAM_WORK_GROUP_IDS_JSON_KEY = "WorkGroupIds";
+
+	// 受信メッセージ (テキストフレーム蓄積) の生バイト長の上限。音声フィールド
+	// (Base64) を含むメッセージが増えたことに備え、不具合/悪意あるサーバーからの
+	// 際限の無いメモリ確保 (OOM) を防ぐための防御的な上限であり、16MiB のデコード後
+	// 音声サイズ制限 (#329) とは別目的 (Base64 化・JSON の他フィールド分の余裕を見て
+	// 大きめに設定している)。超過したメッセージは破棄しログのみを残す。
+	private const int MAX_MESSAGE_LENGTH_CHARS = 64 * 1024 * 1024;
 
 	private ClientWebSocket _WebSocket;
 	private readonly Uri _Uri;
@@ -231,6 +239,9 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private async Task<int> ReceiveMessagesAsync(int reconnectAttempt, CancellationToken cancellationToken)
 	{
 		StringBuilder messageBuilder = new();
+		// MAX_MESSAGE_LENGTH_CHARS 超過を検知した後、EndOfMessage までの残り断片を
+		// 読み捨てる (蓄積は再開しない) ためのフラグ。
+		bool discardingOversizedMessage = false;
 
 		while (!cancellationToken.IsCancellationRequested && _WebSocket.State == WebSocketState.Open)
 		{
@@ -252,14 +263,34 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 
 			if (result.MessageType == WebSocketMessageType.Text)
 			{
-				messageBuilder.Append(Encoding.UTF8.GetString(_ReceiveBuffer, 0, result.Count));
+				if (!discardingOversizedMessage)
+				{
+					messageBuilder.Append(Encoding.UTF8.GetString(_ReceiveBuffer, 0, result.Count));
+
+					if (messageBuilder.Length > MAX_MESSAGE_LENGTH_CHARS)
+					{
+						logger.Warn(
+							"ReceiveMessagesAsync: Message exceeds {0} chars, discarding",
+							MAX_MESSAGE_LENGTH_CHARS
+						);
+						messageBuilder.Clear();
+						discardingOversizedMessage = true;
+					}
+				}
 
 				if (result.EndOfMessage)
 				{
-					string message = messageBuilder.ToString();
-					messageBuilder.Clear();
-					logger.Debug("ReceiveMessagesAsync: Received message: {0}", message);
-					ProcessMessage(message);
+					if (discardingOversizedMessage)
+					{
+						discardingOversizedMessage = false;
+					}
+					else
+					{
+						string message = messageBuilder.ToString();
+						messageBuilder.Clear();
+						logger.Debug("ReceiveMessagesAsync: Received message: {0}", message);
+						ProcessMessage(message);
+					}
 					reconnectAttempt = 0;  // メッセージ受信成功時は再接続カウントをリセット
 				}
 			}
@@ -328,6 +359,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			else if (messageType == MESSAGE_TYPE_DELETE_NOTIFICATION)
 			{
 				ProcessDeleteNotificationMessage(root);
+			}
+			else if (messageType == MESSAGE_TYPE_DEFAULT_SOUND)
+			{
+				ProcessDefaultSoundMessage(root);
 			}
 			else if (messageType == MESSAGE_TYPE_TIME_FORMAT)
 			{
@@ -646,6 +681,19 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 		RaiseHeaderColorChangeRequested(cmd);
 	}
 
+	private void ProcessDefaultSoundMessage(JsonElement root)
+	{
+		// 毎回、両ロールをフルに置き換える (省略/null のロールは既定値なしにリセット)。
+		var cmd = new DefaultSoundCommand
+		{
+			ReceivedSoundBase64 = TryGetStringProperty(root, "ReceivedSoundBase64"),
+			ReceivedSoundFormat = TryGetStringProperty(root, "ReceivedSoundFormat"),
+			ApproachSoundBase64 = TryGetStringProperty(root, "ApproachSoundBase64"),
+			ApproachSoundFormat = TryGetStringProperty(root, "ApproachSoundFormat"),
+		};
+		RaiseDefaultSoundChanged(cmd);
+	}
+
 	private void ProcessNotificationMessage(JsonElement root)
 	{
 		var n = new NotificationData
@@ -661,6 +709,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			IconImageBase64 = TryGetStringProperty(root, "IconImageBase64"),
 			SectionStartStation = TryGetStringProperty(root, "SectionStartStation"),
 			SectionEndStation = TryGetStringProperty(root, "SectionEndStation"),
+			ReceivedSoundBase64 = TryGetStringProperty(root, "ReceivedSoundBase64"),
+			ReceivedSoundFormat = TryGetStringProperty(root, "ReceivedSoundFormat"),
+			ApproachSoundBase64 = TryGetStringProperty(root, "ApproachSoundBase64"),
+			ApproachSoundFormat = TryGetStringProperty(root, "ApproachSoundFormat"),
 		};
 		if (root.TryGetProperty("Priority", out var p) && p.ValueKind == JsonValueKind.Number
 			&& p.TryGetInt32(out int prio))

@@ -158,6 +158,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			("POST", "broadcast-header-color") => await BroadcastHeaderColorAsync(request),
 			("POST", "broadcast-notification") => await BroadcastNotificationAsync(request),
 			("POST", "broadcast-notification-delete") => await BroadcastNotificationDeleteAsync(request),
+			("POST", "broadcast-default-sound") => await BroadcastDefaultSoundAsync(request),
 			("POST", "broadcast-time-format") => await BroadcastTimeFormatAsync(request),
 			("POST", "broadcast-navigate-to-home") => await BroadcastNavigateToHomeAsync(),
 			("POST", "broadcast-open-timetable") => await BroadcastOpenTimetableAsync(request),
@@ -605,7 +606,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 	/// <summary>
 	/// Notification: { Id?, OrderNumber?, Title?, Body?, Priority?, IssuedAt? (ISO8601),
 	/// Receiver?, Sender?, IconText?, IconColor_RGB?, IconImageBase64?, Acknowledged?,
-	/// CompactDisplay?, SectionStartStation?, SectionEndStation?, StationsBefore? }
+	/// CompactDisplay?, SectionStartStation?, SectionEndStation?, StationsBefore?,
+	/// ReceivedSoundBase64?, ReceivedSoundFormat?, ApproachSoundBase64?, ApproachSoundFormat? }
 	/// </summary>
 	private async Task<HttpResponse> BroadcastNotificationAsync(HttpRequest request)
 	{
@@ -657,6 +659,35 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 				SectionStartStation = TryGetString(root, "SectionStartStation"),
 				SectionEndStation = TryGetString(root, "SectionEndStation"),
 				StationsBefore = stationsBefore,
+				ReceivedSoundBase64 = TryGetString(root, "ReceivedSoundBase64"),
+				ReceivedSoundFormat = TryGetString(root, "ReceivedSoundFormat"),
+				ApproachSoundBase64 = TryGetString(root, "ApproachSoundBase64"),
+				ApproachSoundFormat = TryGetString(root, "ApproachSoundFormat"),
+			});
+			await BroadcastTextAsync(msg);
+			return OkJson("{\"ok\":true}");
+		}
+		catch (JsonException ex) { return Error(HttpStatusCode.BadRequest, ex.Message); }
+	}
+
+	/// <summary>
+	/// DefaultSound: { ReceivedSoundBase64?, ReceivedSoundFormat?, ApproachSoundBase64?,
+	/// ApproachSoundFormat? }。省略/null のロールは既定値なし (無音) にリセットされる (#329)。
+	/// </summary>
+	private async Task<HttpResponse> BroadcastDefaultSoundAsync(HttpRequest request)
+	{
+		try
+		{
+			string body = request.Body.Length > 0 ? Encoding.UTF8.GetString(request.Body) : "{}";
+			using var doc = JsonDocument.Parse(body);
+			var root = doc.RootElement;
+			var msg = JsonSerializer.Serialize(new
+			{
+				MessageType = "DefaultSound",
+				ReceivedSoundBase64 = TryGetString(root, "ReceivedSoundBase64"),
+				ReceivedSoundFormat = TryGetString(root, "ReceivedSoundFormat"),
+				ApproachSoundBase64 = TryGetString(root, "ApproachSoundBase64"),
+				ApproachSoundFormat = TryGetString(root, "ApproachSoundFormat"),
 			});
 			await BroadcastTextAsync(msg);
 			return OkJson("{\"ok\":true}");

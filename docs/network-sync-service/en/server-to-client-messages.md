@@ -24,6 +24,7 @@ must carry a `MessageType` field (exact case). Unknown/missing
 | `OpenTimetable` | Open timetable view for a specified train | [§11](#11-opentimetable) |
 | `SearchTrainResponse` | Result of a train-search request | [§12](#12-searchtrainresponse) |
 | `DeleteNotification` | Delete an already-delivered notification by Id | [§13](#13-deletenotification) |
+| `DefaultSound` | Set default received/approach sound for notifications | [§14](#14-defaultsound) |
 
 > Notation: "Required" means a field the server effectively needs to
 > produce meaningful behavior. "Optional" may be omitted. A type
@@ -254,7 +255,11 @@ A notification (arbitrary announcement). Delivered as a received event
   "CompactDisplay": false,                // boolean (optional). true = show initially as a small top banner
   "SectionStartStation": "Ishikawa",      // string | null (section start; station name or station ID)
   "SectionEndStation": "Kawabe",          // string | null (section end; station name or ID. single station if omitted)
-  "StationsBefore": 1                     // integer (optional, default 1). how many stations before the section to re-display
+  "StationsBefore": 1,                    // integer (optional, default 1). how many stations before the section to re-display
+  "ReceivedSoundBase64": null,            // string | null (per-notification received sound; see §14)
+  "ReceivedSoundFormat": null,            // "wav" | "mp3" | null
+  "ApproachSoundBase64": null,            // string | null (per-notification approach sound; see §14)
+  "ApproachSoundFormat": null             // "wav" | "mp3" | null
 }
 ```
 
@@ -272,11 +277,15 @@ A notification (arbitrary announcement). Delivered as a received event
 | `IconText` | string | A short (1-2 character) glyph shown as the icon. Ignored when `IconImageBase64` is set. |
 | `IconColor_RGB` | integer \| string | Background color for `IconText`. Accepted either as a **JSON number** (`0xRRGGBB` in decimal, readable as a 32-bit integer) or as a **`"#RRGGBB"` string** (leading `#` required, case-insensitive). Unset (default color) if neither form parses. A client default is used when omitted. |
 | `IconImageBase64` | string | Base64-encoded icon image binary (may include a data URI prefix such as `data:image/png;base64,...`). Takes priority over `IconText`/`IconColor_RGB` when set. |
-| `Acknowledged` | boolean | Optional. Indicates whether the server considers this client to have already acknowledged this notification. Treated as acknowledged only on JSON `true`; otherwise (`false`/missing) unacknowledged. Used when re-delivering notifications (e.g. after reconnect) so already-acknowledged ones are marked read (the client does not re-popup a read notification). |
+| `Acknowledged` | boolean | Optional. Indicates whether the server considers this client to have already acknowledged this notification. Treated as acknowledged only on JSON `true`; otherwise (`false`/missing) unacknowledged. Used when re-delivering notifications (e.g. after reconnect) so already-acknowledged ones are marked read (the client does not re-popup a read notification). If the client already holds this `Id` as acknowledged and the server re-sends it with `false` (or omitted), the client discards the held acknowledged state and re-displays the notification as unacknowledged (use this to roll back an acknowledgement server-side). To update the content of an already-acknowledged notification without re-displaying it, re-send with `true` (if currently shown, its displayed content is updated in place, but it is not re-popped). |
 | `CompactDisplay` | boolean | Optional. Only on JSON `true`, the initial display is a small banner at the top of the screen (otherwise/missing: the large centered popup). The acknowledge button is still shown on the small banner, and an acknowledge-required notification (has `Id`) stays until acknowledged. |
 | `SectionStartStation` | string | Optional. The start of the section/station this notification targets, given as a **station name or station ID** (resolved by station-ID match, then station-name match; case-sensitive). After it is acknowledged and hidden, the notification is automatically re-shown (as an acknowledged small banner) once the train reaches `StationsBefore` stations before this section, and auto-hidden after leaving the section. Not re-shown if no matching station exists on the current train's route. |
 | `SectionEndStation` | string | Optional. The end of the section, given as a **station name or station ID**. When omitted, treated as the same single station as `SectionStartStation`. Section direction (which end comes first) does not matter (normalized by route index). |
 | `StationsBefore` | integer | Optional, default `1`. How many stations before the section start to begin re-display. Accepted only as a JSON number readable as a 32-bit integer. Values ≤ 0 are treated as 0 (shown from the section start station). |
+| `ReceivedSoundBase64` | string | Optional. Base64-encoded binary of the sound to play when this notification is first shown (may include a data URI prefix such as `data:audio/mpeg;base64,...`). If unset/null, the client falls back to the received-sound default set via [`DefaultSound`](#14-defaultsound) (§14), if any; otherwise silent. |
+| `ReceivedSoundFormat` | string | Optional. Format of `ReceivedSoundBase64`. Use `"wav"` or `"mp3"` (always supported by the client). Any other value fails to decode/play and is treated as silent. |
+| `ApproachSoundBase64` | string | Optional. Base64-encoded binary of the sound to play when this notification is re-shown as a section-linked small banner (approaching the section). If unset/null, falls back to the approach-sound default via [`DefaultSound`](#14-defaultsound) (§14); otherwise silent. |
+| `ApproachSoundFormat` | string | Optional. Format of `ApproachSoundBase64`. Same rules as `ReceivedSoundFormat`. |
 
 **Section/station-linked re-display:**
 - A notification with `SectionStartStation` (and optionally `SectionEndStation`) is hidden once acknowledged, but is re-shown as an acknowledged small banner when the train reaches `StationsBefore` stations before the target section (or single station), and auto-hidden after leaving it.
@@ -452,6 +461,53 @@ train the crew has since left).
 - An unknown `Id` (already deleted, expired, or never delivered) is not
   an error — the client simply has nothing to remove.
 
+## 14. DefaultSound
+
+Sets the default "received sound" (played when a notification is first
+shown) and "approach sound" (played when a section-linked notification
+is re-shown as the train approaches the target section) used when an
+individual [`Notification`](#8-notification) (§8) does not specify its
+own sound. Audio binaries are never bundled with the app, so sound must
+always come from the server, either via this message or via the
+per-notification fields.
+
+This message **fully replaces both roles' defaults every time it is
+sent** (not a diff). A role whose fields are unset/null has its default
+reset to "none" (silent). The defaults are in-memory session state only
+and are discarded on WebSocket disconnect (resend after reconnect if
+still needed).
+
+```jsonc
+{
+  "MessageType": "DefaultSound",
+  "ReceivedSoundBase64": null, // string | null. Default received sound
+  "ReceivedSoundFormat": null, // "wav" | "mp3" | null
+  "ApproachSoundBase64": null, // string | null. Default approach sound
+  "ApproachSoundFormat": null  // "wav" | "mp3" | null
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `ReceivedSoundBase64` | string | Optional. Base64-encoded binary used as the default received sound. `null`/omitted clears this role's default. |
+| `ReceivedSoundFormat` | string | Optional. Format of `ReceivedSoundBase64`. Use `"wav"` or `"mp3"` (see §8's note). |
+| `ApproachSoundBase64` | string | Optional. Base64-encoded binary used as the default approach sound. `null`/omitted clears this role's default. |
+| `ApproachSoundFormat` | string | Optional. Format of `ApproachSoundBase64`. |
+
+**Resolution order (both received and approach sounds):**
+1. If the individual `Notification` specifies a sound for that role, play it.
+2. Otherwise, play the most recently received `DefaultSound` value for that role, if any.
+3. Otherwise, silent.
+
+**Size limit:** the decoded audio binary must be **16MiB (16 × 1024 ×
+1024 bytes) or smaller** (applies to `ReceivedSoundBase64`/
+`ApproachSoundBase64` in both this message and `Notification`). Since
+Base64 inflates size by roughly 4/3, the field itself may be up to
+roughly 21.3MiB. Audio exceeding this limit is discarded client-side and
+never played — silently (no error is raised), simply treated as no
+sound. This limit carries no particular significance; it is a practical
+guard against unbounded binary payloads.
+
 ---
 
 ## Appendix: parsing behavior summary
@@ -479,3 +535,7 @@ Common pitfalls for external implementers:
   features).
 - Unknown `MessageType`, missing `MessageType`, invalid JSON are
   **silently ignored**.
+- `Notification`/`DefaultSound` sound fields (`*SoundBase64`) **must
+  decode to 16MiB or less**. Anything over the limit, a decode failure,
+  or an unsupported format is treated as silent — never an
+  exception (see [§14](#14-defaultsound)).

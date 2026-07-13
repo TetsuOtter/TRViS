@@ -47,6 +47,12 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	// pending-compact な Key から Entry を解決するために保持する。UI スレッド専有。
 	private readonly Dictionary<string, NotificationStore.Entry> _entriesById = new();
 
+	// サーバーが DefaultSound で設定した受信音・接近音の既定値 (#329)。個別指定が無い
+	// 通告に対するフォールバックとして NotificationSoundResolver が参照する。切断時
+	// (ClearAll) にリセットする、セッション中のみ有効なメモリ上の状態。UI スレッド専有。
+	private SoundRef? _defaultReceivedSound;
+	private SoundRef? _defaultApproachSound;
+
 	/// <summary>
 	/// 未読の通告をポップアップ表示すべきときに発火する。UI スレッド上で発火する。
 	/// AppShell が購読してモーダルを push する。
@@ -73,6 +79,28 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	/// UI スレッド上で発火する。
 	/// </summary>
 	public event EventHandler<string>? NotificationRemoved;
+
+	/// <summary>
+	/// 通告の受信音・接近音を再生すべきときに発火する (#329)。個別指定 → 既定音 → 無音の
+	/// 解決は <see cref="NotificationSoundResolver"/> が行い、解決結果が非 null のときのみ
+	/// 発火する。購読側 (AppShell) が実際の再生 (<see cref="Services.NotificationSoundPlayer"/>)
+	/// を行う。UI スレッド上で発火する。
+	/// </summary>
+	public event EventHandler<SoundRef>? SoundPlayRequested;
+
+	/// <summary>
+	/// 既知の Id を持つ通告が再受信され、内容 (本文・受領状態など) が更新されたときに発火する。
+	/// 新規表示・区間連動の再表示可否とは独立に、現在表示中のポップアップ/バナーがあれば
+	/// その場で表示内容を書き換えるために使う (再表示すべきかどうかは
+	/// <see cref="DisplayRequested"/>/<see cref="BannerRequested"/> 側の責務)。UI スレッド上で発火する。
+	/// </summary>
+	public event EventHandler<NotificationStore.Entry>? NotificationUpdated;
+
+	private void RequestSoundPlay(SoundRef? sound)
+	{
+		if (sound is not null)
+			SoundPlayRequested?.Invoke(this, sound);
+	}
 
 	// 現在表示中の通告ポップアップ (拡大表示) の数。AppShell のキュー直列化により通常は
 	// 同時に 1 つだが、close→次表示の切り替わりの一瞬だけ増減が重なる可能性に備えてカウンタに
@@ -113,12 +141,28 @@ public sealed class NotificationCenterViewModel : ObservableObject
 			_locationService.NotificationDeleteRequested -= OnNotificationDeleteRequested;
 			_locationService.LocationStateChanged -= OnLocationStateChanged;
 			_locationService.NetworkConnectionLost -= OnNetworkConnectionLost;
+			_locationService.DefaultSoundChanged -= OnDefaultSoundChanged;
 		}
 		_locationService = locationService;
 		_locationService.NotificationReceived += OnNotificationReceived;
 		_locationService.NotificationDeleteRequested += OnNotificationDeleteRequested;
 		_locationService.LocationStateChanged += OnLocationStateChanged;
 		_locationService.NetworkConnectionLost += OnNetworkConnectionLost;
+		_locationService.DefaultSoundChanged += OnDefaultSoundChanged;
+	}
+
+	/// <summary>
+	/// サーバーから受信した既定音 (<see cref="DefaultSoundCommand"/>) を保持する。毎回、
+	/// 両ロールをフルに置き換える (省略/null のロールは既定値なしにリセット)。
+	/// WebSocket 受信スレッドから呼ばれ得るため、単純なフィールド書き換えのみを行う
+	/// (読み出しは UI スレッド上の RefreshRedisplay/OnNotificationReceived のみ)。
+	/// </summary>
+	private void OnDefaultSoundChanged(object? sender, DefaultSoundCommand cmd)
+	{
+		_defaultReceivedSound = string.IsNullOrEmpty(cmd.ReceivedSoundBase64)
+			? null : new SoundRef(cmd.ReceivedSoundBase64, cmd.ReceivedSoundFormat);
+		_defaultApproachSound = string.IsNullOrEmpty(cmd.ApproachSoundBase64)
+			? null : new SoundRef(cmd.ApproachSoundBase64, cmd.ApproachSoundFormat);
 	}
 
 	// WebSocket/HTTP 接続が切断されると、未受領のまま残った通告はサーバーとの整合性が
@@ -139,6 +183,8 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		_store.Clear();
 		_pendingCompactKeys.Clear();
 		_entriesById.Clear();
+		_defaultReceivedSound = null;
+		_defaultApproachSound = null;
 
 		foreach (var key in _shownBannerKeys.ToArray())
 			BannerDismissed?.Invoke(this, key);
@@ -164,12 +210,24 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		// 購読側は UI 操作 (モーダル push・バナー表示) を行うため、状態更新も含めて UI スレッドへ回す。
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
+			bool wasKnown = n.Id is string existingId && !string.IsNullOrEmpty(existingId) && _entriesById.ContainsKey(existingId);
+
 			var result = _store.Add(n);
 			if (!string.IsNullOrEmpty(result.Entry.Id))
 				_entriesById[result.Entry.Id] = result.Entry;
 
+			if (wasKnown)
+			{
+				// 表示要求 (Should/BannerRequested) の可否とは独立に、既に表示中のポップアップ/
+				// バナーがあればその場で内容を書き換えさせる。
+				NotificationUpdated?.Invoke(this, result.Entry);
+			}
+
 			if (result.ShouldDisplay)
 			{
+				// 初回表示 (ポップアップ/バナーいずれも) にのみ受信音を鳴らす。#329
+				RequestSoundPlay(NotificationSoundResolver.Resolve(result.Entry.ReceivedSound, _defaultReceivedSound));
+
 				if (result.Entry.CompactDisplay)
 				{
 					// Id 付きは pending-compact として登録し RefreshRedisplay に発火を委ねる。
@@ -177,6 +235,11 @@ public sealed class NotificationCenterViewModel : ObservableObject
 					// Id 無し (受領不可の一過性通告) は Key で追跡できないため直接発火する。
 					if (result.Entry.Id is string id && !string.IsNullOrEmpty(id))
 					{
+						// 既読→未受領へ巻き戻った (revived) 場合、以前は区間連動の再表示バナー
+						// として _shownBannerKeys に載っている可能性がある。載ったままだと
+						// RefreshRedisplay が「表示済み」とみなして BannerRequested を再発火せず、
+						// 受領ボタン付きの表示へ切り替わらないため、ここで一旦外す。
+						_shownBannerKeys.Remove(id);
 						_pendingCompactKeys.Add(id);
 						RefreshRedisplay();
 					}
@@ -244,7 +307,7 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	{
 		_currentStationIndex = e.NewStationIndex;
 		_isRunningToNextStation = e.IsRunningToNextStation;
-		MainThread.BeginInvokeOnMainThread(RefreshRedisplay);
+		MainThread.BeginInvokeOnMainThread(() => RefreshRedisplay(fromLocationChange: true));
 	}
 
 	/// <summary>
@@ -254,7 +317,7 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	public void SetCurrentTrainStations(IReadOnlyList<StationRef> stations)
 	{
 		_stations = stations;
-		MainThread.BeginInvokeOnMainThread(RefreshRedisplay);
+		MainThread.BeginInvokeOnMainThread(() => RefreshRedisplay());
 	}
 
 	/// <summary>
@@ -270,7 +333,12 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	/// </list>
 	/// UI スレッド上でのみ呼ぶこと (フィールドはすべて UI スレッド専有)。
 	/// </summary>
-	private void RefreshRedisplay()
+	/// <param name="fromLocationChange">
+	/// <see cref="OnLocationStateChanged"/> (実際に列車が進行し区間へ「接近」した) からの
+	/// 呼び出しのときのみ true。受領/再接続時の再送・列車切り替え・最小化など、位置の変化を
+	/// 伴わない再評価では false を渡し、接近音 (#329) を鳴らさないようにする。
+	/// </param>
+	private void RefreshRedisplay(bool fromLocationChange = false)
 	{
 		var candidates = _store.GetRedisplayCandidates();
 
@@ -294,6 +362,11 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		_pendingCompactKeys.ExceptWith(justAcknowledged);
 		visible.UnionWith(_pendingCompactKeys);
 
+		// 区間連動の再表示候補 (受領済み・区間指定付き) の Key 集合。この集合に含まれ、かつ
+		// 「今回初めて visible になった」(justAcknowledged による再描画ではない) キーのみが
+		// 実際の「接近」イベントであり、接近音の対象になる。#329
+		var candidateKeys = candidates.Select(c => c.Id).Where(id => id is not null).ToHashSet();
+
 		foreach (var key in visible)
 		{
 			bool alreadyShown = _shownBannerKeys.Contains(key);
@@ -302,7 +375,11 @@ public sealed class NotificationCenterViewModel : ObservableObject
 			var entry = candidates.FirstOrDefault(c => c.Id == key)
 				?? (_entriesById.TryGetValue(key, out var pending) ? pending : null);
 			if (entry is not null)
+			{
 				BannerRequested?.Invoke(this, entry);
+				if (fromLocationChange && !alreadyShown && candidateKeys.Contains(key))
+					RequestSoundPlay(NotificationSoundResolver.Resolve(entry.ApproachSound, _defaultApproachSound));
+			}
 		}
 
 		foreach (var key in _shownBannerKeys)
@@ -395,7 +472,7 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		{
 			_store.MarkRead(id);
 			// 受領直後に対象の区間が既にアクティブなら、そのまま再表示バナーへ切り替える。
-			MainThread.BeginInvokeOnMainThread(RefreshRedisplay);
+			MainThread.BeginInvokeOnMainThread(() => RefreshRedisplay());
 			return true;
 		}
 #endif
@@ -416,7 +493,7 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		// 送信が確定したときにのみ既読化する (失敗した受領がセッション中に失われないように)。
 		_store.MarkRead(id);
 		// 受領直後に対象の区間が既にアクティブなら、そのまま再表示バナーへ切り替える。
-		MainThread.BeginInvokeOnMainThread(RefreshRedisplay);
+		MainThread.BeginInvokeOnMainThread(() => RefreshRedisplay());
 		return true;
 	}
 

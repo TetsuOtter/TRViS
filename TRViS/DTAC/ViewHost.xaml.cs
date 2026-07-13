@@ -84,6 +84,8 @@ public partial class ViewHost : ContentPage
 		_appViewModel.NotificationCenter.BannerDismissed += OnNotificationBannerDismissed;
 		// 大型ポップアップ表示中は、小型バナーの受領ボタンの点滅を一時停止する。
 		_appViewModel.NotificationCenter.PopupVisibilityChanged += OnNotificationPopupVisibilityChanged;
+		// 表示中のバナーが再受信されたら、その場で表示内容を書き換える。
+		_appViewModel.NotificationCenter.NotificationUpdated += OnNotificationUpdated;
 
 #if ANDROID
 		Unloaded += (_, _) =>
@@ -94,6 +96,7 @@ public partial class ViewHost : ContentPage
 			_appViewModel.NotificationCenter.BannerRequested -= OnNotificationBannerRequested;
 			_appViewModel.NotificationCenter.BannerDismissed -= OnNotificationBannerDismissed;
 			_appViewModel.NotificationCenter.PopupVisibilityChanged -= OnNotificationPopupVisibilityChanged;
+			_appViewModel.NotificationCenter.NotificationUpdated -= OnNotificationUpdated;
 			NotificationBanner.Tapped -= OnNotificationBannerTapped;
 			NotificationBanner.AcknowledgeClicked -= OnNotificationBannerAcknowledgeClicked;
 			NotificationBanner.SwipedUp -= OnNotificationBannerSwipedUp;
@@ -525,6 +528,22 @@ public partial class ViewHost : ContentPage
 		NotificationBanner.SetAcknowledgeBlinkPaused(_appViewModel.NotificationCenter.IsPopupVisible);
 	}
 
+	// 表示中 (アクティブ集合に含まれる) のバナーが再受信されたら、キャッシュと画面表示の両方を
+	// 最新内容に差し替える。アクティブでない (現在表示対象になっていない) 通告の更新は無視する
+	// — 表示すべきかどうかの判断は BannerRequested/BannerDismissed 側の責務のため。
+	private void OnNotificationUpdated(object? sender, NotificationStore.Entry entry)
+	{
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			if (entry.Id is not string id || string.IsNullOrEmpty(id) || !_activeBanners.ContainsKey(id))
+				return;
+
+			_activeBanners[id] = entry;
+			if (NotificationBanner.CurrentId == id)
+				NotificationBanner.Configure(entry);
+		});
+	}
+
 	private void OnNotificationPopupVisibilityChanged(object? sender, bool isVisible)
 	{
 		MainThread.BeginInvokeOnMainThread(() => NotificationBanner.SetAcknowledgeBlinkPaused(isVisible));
@@ -601,6 +620,10 @@ public partial class ViewHost : ContentPage
 
 	private async void OnNotificationBannerAcknowledgeClicked(object? sender, NotificationStore.Entry entry)
 	{
+		// 受領操作そのものでも再生中の通告音を止める (#329)。バナーのタップ展開
+		// (OnNotificationBannerTapped) とは別に、受領ボタン自体からも止められるようにする。
+		InstanceManager.NotificationSoundPlayer.StopIfPlaying();
+
 		// 受領後の非表示/切り替えは NotificationCenterViewModel が BannerDismissed /
 		// BannerRequested の再発火で駆動するため、ここではバナーを自分で隠さない。
 		try
