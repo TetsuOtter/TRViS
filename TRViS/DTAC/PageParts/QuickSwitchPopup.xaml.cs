@@ -76,10 +76,11 @@ public partial class QuickSwitchPopup : ContentView
 			TrainNumberEntry.Keyboard = Keyboard.Numeric;
 		}
 
-		// The search tab is available only when connected to a WebSocket server that
-		// advertises the TrainSearch feature (ServerInfo.Features) — this also covers
-		// offline (disconnected/reconnecting), since IsTrainSearchAvailable requires an
-		// active connection.
+		// The search tab is available when data is loaded: for a WebSocket server this
+		// additionally requires it to advertise the TrainSearch feature (ServerInfo.Features)
+		// and be actively connected (hidden while offline/reconnecting); for local loaders
+		// (JSON/SQLite/sample data) it searches the already-loaded data, so any loaded
+		// source is enough. See IsTrainSearchAvailable.
 		SearchTabButton.IsVisible = ViewModel.IsTrainSearchAvailable;
 
 		// Set up tab buttons

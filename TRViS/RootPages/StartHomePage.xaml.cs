@@ -228,6 +228,7 @@ public partial class StartHomePage : ContentPage
 		AddTestSetLanguageJapaneseSeam();
 		AddTestSimulateWebSocketConnectedSeam();
 		AddTestSimulateWebSocketSearchSeam();
+		AddTestSimulateLocalSearchSeam();
 #endif
 
 		logger.Trace("Created");
@@ -1572,6 +1573,71 @@ public partial class StartHomePage : ContentPage
 		catch (Exception ex)
 		{
 			logger.Error(ex, "TestSimulateWebSocketSearchButton failed");
+		}
+	}
+
+	// UI_TEST-only seam: proves train search works against a LOCAL (non-WebSocket)
+	// loader — the JSON-backed SampleDataLoader stands in for a user-opened JSON/SQLite
+	// file (both go through the same ILoader-only code path in
+	// AppViewModel.IsTrainSearchAvailable / SearchTrainAsync). Commits the first
+	// WorkGroup/Work and navigates to DTAC; the E2E then searches sample_data.json's
+	// real "Linear01" train (a different WorkGroup/Work) with no canned data needed,
+	// since local search reads straight out of the loaded ILoader.
+	//
+	// Placed in the fourth column (left=90), one row below the WebSocket search seam,
+	// to stay in the proven-visible seam band without colliding with existing buttons.
+	private const string AutomationIdValueForTestSimulateLocalSearch = "StartHome.TestSimulateLocalSearchButton";
+
+	private void AddTestSimulateLocalSearchSeam()
+	{
+		var seam = new Button
+		{
+			AutomationId = AutomationIdValueForTestSimulateLocalSearch,
+			HorizontalOptions = LayoutOptions.Start,
+			VerticalOptions = LayoutOptions.Start,
+			WidthRequest = 24,
+			HeightRequest = 24,
+			Margin = new Thickness(90, 336, 0, 0),
+			BackgroundColor = Colors.Transparent,
+			BorderColor = Colors.Transparent,
+			Padding = 0,
+		};
+		seam.Clicked += TestSimulateLocalSearchButton_Clicked;
+		Grid.SetRow(seam, 0);
+		RootGrid.Children.Add(seam);
+	}
+
+	async void TestSimulateLocalSearchButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestSimulateLocalSearchButton clicked: JSON-backed loader -> DTAC");
+		try
+		{
+			var sample = await SampleDataLoader.CreateAsync();
+
+			// Committed selection: the first WorkGroup/Work in the sample data.
+			var wg = sample.GetWorkGroupList().FirstOrDefault();
+			var work = wg is null ? null : sample.GetWorkList(wg.Id)?.FirstOrDefault();
+			if (wg is null || work is null)
+			{
+				logger.Warn("TestSimulateLocalSearch: sample data missing — aborting");
+				sample.Dispose();
+				return;
+			}
+
+			await MainThread.InvokeOnMainThreadAsync(async () =>
+			{
+				var previous = viewModel.Loader;
+				viewModel.SetLoader(sample, "sample_data.json");
+				previous?.Dispose();
+				await ApplyModeForCurrentLoaderAsync();
+
+				HomeGrid.CommitPendingSelection(wg, work);
+				await HomeGridView.NavigateToDTACAsync();
+			});
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "TestSimulateLocalSearchButton failed");
 		}
 	}
 
