@@ -225,37 +225,109 @@ public partial class AppViewModel : ObservableObject
 	// ================================================================
 
 	/// <summary>
-	/// サーバーが列車検索に対応し、かつ WebSocket 接続中かどうか。QuickSwitchPopup の
-	/// 検索タブの表示可否に使う。オフライン (接続断/再接続中) の間は検索できないため
-	/// 併せて非表示にする。
+	/// 列車検索が使える状態かどうか。QuickSwitchPopup の検索タブの表示可否に使う。
+	/// WebSocket サーバー接続時はサーバーが列車検索に対応し、かつ接続中であることを要求する
+	/// (オフライン中は検索できないため)。JSON/SQLite などローカルファイルを読み込んでいる
+	/// 場合は、読み込み済みデータの中から検索できるため、ローダーが存在すれば常に利用可能。
 	/// </summary>
 	public bool IsTrainSearchAvailable
 		=> Loader is WebSocketNetworkSyncService ws
-			&& ws.IsFeatureSupported(ServerFeatureIds.TrainSearch)
-			&& ServerConnectionStatus == ServerConnectionStatus.Connected;
+			? ws.IsFeatureSupported(ServerFeatureIds.TrainSearch) && ServerConnectionStatus == ServerConnectionStatus.Connected
+			: Loader is not null;
 
 	/// <summary>
-	/// 列番でサーバーに列車を検索する。<see cref="IsTrainSearchAvailable"/> が true のときのみ有効。
+	/// 列番で列車を検索する。<see cref="IsTrainSearchAvailable"/> が true のときのみ有効。
+	/// WebSocket 接続時はサーバーに問い合わせ、JSON/SQLite などローカルファイル読み込み時は
+	/// 読み込み済みデータの中から <see cref="ILoader"/> 経由で検索する。
 	/// </summary>
 	public Task<IReadOnlyList<TrainSearchResult>> SearchTrainAsync(
 		string trainNumber, TrainSearchMatchMode matchMode = TrainSearchMatchMode.Prefix, System.Threading.CancellationToken cancellationToken = default)
 	{
-		if (Loader is not WebSocketNetworkSyncService ws)
-			throw new InvalidOperationException("Train search requires a WebSocket connection.");
-		return ws.SearchTrainAsync(trainNumber, matchMode, cancellationToken);
+		if (Loader is WebSocketNetworkSyncService ws)
+			return ws.SearchTrainAsync(trainNumber, matchMode, cancellationToken);
+
+		if (Loader is null)
+			throw new InvalidOperationException("Train search requires loaded data.");
+
+		return Task.FromResult(SearchTrainLocal(Loader, trainNumber, matchMode));
 	}
 
 	/// <summary>
 	/// 検索候補の完全な時刻表を取得する (2 段階目)。切替先の行路の列車データを
 	/// キャッシュへ確実に反映させるため、<see cref="SwitchToSearchedTrain"/> の前に呼ぶ。
+	/// ローカルローダーの場合は既に読み込み済みのデータから同期的に取得する。
 	/// </summary>
 	public Task<TrainData?> FetchSearchedTrainTimetableAsync(
 		TrainSearchResult result, System.Threading.CancellationToken cancellationToken = default)
 	{
-		if (Loader is not WebSocketNetworkSyncService ws)
-			throw new InvalidOperationException("Train timetable fetch requires a WebSocket connection.");
-		return ws.FetchSearchedTrainTimetableAsync(result, cancellationToken);
+		if (Loader is WebSocketNetworkSyncService ws)
+			return ws.FetchSearchedTrainTimetableAsync(result, cancellationToken);
+
+		if (Loader is null)
+			throw new InvalidOperationException("Train timetable fetch requires loaded data.");
+
+		if (string.IsNullOrEmpty(result.TrainId))
+			throw new ArgumentException("TrainSearchResult.TrainId must not be empty.", nameof(result));
+
+		return Task.FromResult(Loader.GetTrainData(result.TrainId));
 	}
+
+	/// <summary>
+	/// ローカルローダー (JSON/SQLite/サンプルデータ) の読み込み済みデータから列番で列車を検索する。
+	/// マッチ方式はサーバー側 (<c>ReferenceNetworkSyncServer.MatchesTrainNumber</c>) と同じ
+	/// OrdinalIgnoreCase の前方一致/中間一致/完全一致。
+	/// </summary>
+	private static IReadOnlyList<TrainSearchResult> SearchTrainLocal(
+		ILoader loader, string trainNumber, TrainSearchMatchMode matchMode)
+	{
+		if (string.IsNullOrEmpty(trainNumber))
+			return [];
+
+		List<TrainSearchResult> results = [];
+		foreach (WorkGroup workGroup in loader.GetWorkGroupList())
+		{
+			foreach (Work work in loader.GetWorkList(workGroup.Id))
+			{
+				foreach (TrainData train in loader.GetTrainDataList(work.Id))
+				{
+					if (string.IsNullOrEmpty(train.TrainNumber)
+						|| !MatchesTrainNumber(train.TrainNumber, trainNumber, matchMode))
+						continue;
+
+					// GetTrainDataList (SQLite) omits Rows for performance, so re-fetch the
+					// full record (only for actual matches) to get the start/end station
+					// display. LoaderJson/SampleDataLoader already populate Rows in
+					// GetTrainDataList, so this is a cheap redundant lookup there — but
+					// unconditional keeps both loader kinds on the exact same code path.
+					TrainData? full = loader.GetTrainData(train.Id);
+					TimetableRow? firstRow = full?.Rows?.FirstOrDefault(static r => !r.IsInfoRow);
+					TimetableRow? lastRow = full?.Rows?.LastOrDefault(static r => !r.IsInfoRow);
+
+					results.Add(new TrainSearchResult(
+						WorkGroupId: workGroup.Id,
+						WorkId: work.Id,
+						TrainId: train.Id,
+						TrainNumber: train.TrainNumber,
+						WorkName: work.Name,
+						Direction: train.Direction.ToInt(),
+						StartStationName: firstRow?.StationName,
+						StartTime: (firstRow?.DepartureTime ?? firstRow?.ArriveTime)?.GetTimeString(),
+						EndStationName: lastRow?.StationName,
+						EndTime: (lastRow?.ArriveTime ?? lastRow?.DepartureTime)?.GetTimeString()
+					));
+				}
+			}
+		}
+		return results;
+	}
+
+	private static bool MatchesTrainNumber(string trainNumber, string query, TrainSearchMatchMode matchMode)
+		=> matchMode switch
+		{
+			TrainSearchMatchMode.Contains => trainNumber.Contains(query, StringComparison.OrdinalIgnoreCase),
+			TrainSearchMatchMode.Exact => string.Equals(trainNumber, query, StringComparison.OrdinalIgnoreCase),
+			_ => trainNumber.StartsWith(query, StringComparison.OrdinalIgnoreCase),
+		};
 
 	/// <summary>
 	/// 検索して選択した列車の行路へ完全に切り替える。WorkGroupId/WorkId/TrainId を

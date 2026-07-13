@@ -108,4 +108,60 @@ public class TrainSearchTests : BaseUITest
 		Assert.That(dtac.IsSearchTabPresent(timeoutSeconds: 2), Is.False,
 			"QuickSwitch must be closed at the end of the test so it doesn't leak into the next fixture's shared session.");
 	}
+
+	// Real entry (both the software numeric keypad and Keyboard.Numeric OS keyboard,
+	// see DTACViewHostPageObject.EnterTrainNumber) only ever produces digits, so unlike
+	// the WebSocket test's canned "9999" this test must search for a train number that
+	// actually exists in sample_data.json and is reachable by typing digits alone.
+	// sample_data.json's real train numbers are all kanji-prefixed ("試単9092"), so the
+	// query "9092" is never a Prefix match — Contains mode is required. The matched
+	// train ("試単9092", TrainId "1-1-2") belongs to the SAME WorkGroup/Work as the
+	// initially committed duty, so — unlike the WebSocket test — this does not prove a
+	// cross-duty switch; it proves the local search + select + confirm flow itself works
+	// end-to-end against a JSON-backed (non-WebSocket) loader.
+	private const string LocalSearchedTrainId = "1-1-2";
+
+	[Test]
+	public void TrainSearch_LocalJsonLoader_SearchSelectConfirm()
+	{
+		// No WebSocket involved: SimulateLocalSearchForTesting loads sample_data.json
+		// through the same JSON-backed ILoader a user gets by opening a .json file.
+		// Train search must work here too (the fix this test guards), not just when
+		// connected to a server.
+		_startHomePage.SimulateLocalSearchForTesting();
+
+		var dtac = new DTACViewHostPageObject(Driver);
+		Assert.That(dtac.IsDisplayed(), Is.True,
+			"A JSON-backed loader with a committed selection should land on DTAC.");
+		Assert.That(dtac.ReadTitleViaSeam(), Is.EqualTo(CommittedWorkName),
+			"The header should show the initially committed duty's Work name.");
+
+		// The Search tab must be visible for a local (non-WebSocket) loader too.
+		dtac.OpenQuickSwitch();
+		Assert.That(dtac.IsSearchTabPresent(), Is.True,
+			"The QuickSwitch Search tab must be shown for a loaded JSON/SQLite file, not only a WebSocket connection.");
+
+		dtac.TapSearchTab();
+		dtac.TapMatchModeContains();
+		dtac.EnterTrainNumber("9092");
+		Assert.That(dtac.WaitForSearchResult(LocalSearchedTrainId, timeoutSeconds: 8), Is.True,
+			"Searching sample_data.json's own train number should find it locally, with no server involved.");
+
+		dtac.TapSearchResult(LocalSearchedTrainId);
+		dtac.AcceptConfirmDialog();
+
+		Assert.That(dtac.IsDisplayed(), Is.True,
+			"DTAC should still be displayed after confirming the searched train.");
+		Assert.That(dtac.IsHakoTabPresent(timeoutSeconds: 3), Is.True,
+			"The ハコ tab must remain visible after switching to the searched train.");
+		Assert.That(dtac.ReadTitleViaSeam(), Is.EqualTo(CommittedWorkName),
+			"The searched train belongs to the same duty, so the header's 行路番号 is unchanged.");
+
+		// Leave QuickSwitch closed: this fixture shares its Appium session with
+		// later fixtures, and an open popover breaks their SetUp recovery.
+		dtac.OpenQuickSwitch();
+		dtac.CloseQuickSwitch();
+		Assert.That(dtac.IsSearchTabPresent(timeoutSeconds: 2), Is.False,
+			"QuickSwitch must be closed at the end of the test so it doesn't leak into the next fixture's shared session.");
+	}
 }
