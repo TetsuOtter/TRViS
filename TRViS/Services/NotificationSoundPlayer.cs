@@ -61,6 +61,20 @@ public sealed class NotificationSoundPlayer : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// 再生中の通告音があれば停止する (画面タップによる停止用、#329)。呼び出し時点で実際に
+	/// 再生中だったかどうかを返す — 呼び出し側 (バナーのタップ展開など) が、音を止めただけなのか
+	/// 元々何も鳴っていなかったのかを区別できるようにするため。
+	/// </summary>
+	public bool StopIfPlaying()
+	{
+		if (_currentPlayer is not IAudioPlayer player || !player.IsPlaying)
+			return false;
+
+		player.Stop();
+		return true;
+	}
+
 	public void Dispose()
 	{
 		_currentPlayer?.Stop();

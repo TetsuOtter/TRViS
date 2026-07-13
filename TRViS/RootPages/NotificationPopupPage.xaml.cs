@@ -336,6 +336,12 @@ public partial class NotificationPopupPage : ContentPage
 		return base.OnBackButtonPressed();
 	}
 
+	// 画面タップで再生中の通告音を停止する (#329)。ポップアップ自体は閉じない。
+	private void OnScreenTapped(object? sender, EventArgs e)
+	{
+		InstanceManager.NotificationSoundPlayer.StopIfPlaying();
+	}
+
 	private async void OnAcknowledgeClicked(object? sender, EventArgs e)
 	{
 		if (_isClosing)
