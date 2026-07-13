@@ -52,6 +52,20 @@ public sealed class NotificationStore
 		public string? SectionEndStation => Data.SectionEndStation;
 		public int StationsBefore => Data.StationsBefore;
 
+		/// <summary>
+		/// この通告固有の受信音 (未指定なら null。既定音へのフォールバックは
+		/// <see cref="TRViS.Core.NotificationSoundResolver"/> が担う)。
+		/// </summary>
+		public TRViS.Core.SoundRef? ReceivedSound =>
+			string.IsNullOrEmpty(Data.ReceivedSoundBase64) ? null : new(Data.ReceivedSoundBase64, Data.ReceivedSoundFormat);
+
+		/// <summary>
+		/// この通告固有の接近音 (未指定なら null。既定音へのフォールバックは
+		/// <see cref="TRViS.Core.NotificationSoundResolver"/> が担う)。
+		/// </summary>
+		public TRViS.Core.SoundRef? ApproachSound =>
+			string.IsNullOrEmpty(Data.ApproachSoundBase64) ? null : new(Data.ApproachSoundBase64, Data.ApproachSoundFormat);
+
 		/// <summary>既読 (受領済み) か。</summary>
 		public bool IsRead { get; internal set; }
 
@@ -96,8 +110,11 @@ public sealed class NotificationStore
 	/// 表示判定ルール:
 	/// <list type="bullet">
 	/// <item>Id 付きの新規通告 → <see cref="NotificationData.Acknowledged"/> が false なら表示。</item>
-	/// <item>既知の Id (再受信) → 内容は最新に更新するが再表示はしない (同一セッションでの重複ポップアップ抑止)。
-	///   ただしサーバーが Acknowledged=true を付けてきたら既読へ昇格する。</item>
+	/// <item>既知の Id (再受信)・既読 (受領済み) のまま → 内容は最新に更新するが再表示はしない
+	///   (同一セッションでの重複ポップアップ抑止)。</item>
+	/// <item>既知の Id (再受信)・既読だったものが <see cref="NotificationData.Acknowledged"/> = false
+	///   付きで再送されてきた (=サーバー側で未受領へ巻き戻った) → 過去の既読状態を破棄し、
+	///   未受領の通告として改めて表示する。</item>
 	/// <item>Id 無しの通告 → 重複排除・既読管理ができないため、Acknowledged が false なら都度表示。</item>
 	/// </list>
 	/// アプリ再起動でストアは空になるため、サーバーが Acknowledged 付きで再配信すれば
@@ -116,13 +133,17 @@ public sealed class NotificationStore
 				return new AddResult { Entry = transient, ShouldDisplay = !transient.IsRead };
 			}
 
-			// 既知の Id: 内容を最新へ差し替えつつ既読状態は維持 (サーバー Acknowledged で昇格)。
-			// 同一セッションで一度表示済みなので再表示はしない。
+			// 既知の Id: 内容を最新へ差し替える。
 			if (_byId.TryGetValue(id, out var existing))
 			{
-				var updated = new Entry(n, isRead: existing.IsRead || n.Acknowledged);
+				// 既読 (受領済み) だったものが未受領として再送されてきた場合は、過去の既読状態を
+				// 破棄し、新規受信と同様に未受領の通告として改めて表示する。
+				bool revived = existing.IsRead && !n.Acknowledged;
+				bool isRead = revived ? false : existing.IsRead || n.Acknowledged;
+
+				var updated = new Entry(n, isRead: isRead);
 				_byId[id] = updated;
-				return new AddResult { Entry = updated, ShouldDisplay = false };
+				return new AddResult { Entry = updated, ShouldDisplay = revived };
 			}
 
 			// 新規の Id。

@@ -200,6 +200,8 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	public event EventHandler<HeaderColorCommand>? HeaderColorChangeRequested;
 	public event EventHandler<NotificationData>? NotificationReceived;
 	public event EventHandler<DeleteNotificationCommand>? NotificationDeleteRequested;
+	/// <summary>通告の受信音/接近音の既定値が (再) 設定されたときに発火する (#329)。</summary>
+	public event EventHandler<DefaultSoundCommand>? DefaultSoundChanged;
 	public event EventHandler<TimeFormatCommand>? TimeFormatChangeRequested;
 	public event EventHandler? NavigateToHomeRequested;
 	public event EventHandler<OpenTimetableCommand>? OpenTimetableRequested;
@@ -491,6 +493,13 @@ public abstract class NetworkSyncServiceBase : ILocationService, IDisposable
 	{
 		Logger.Info("RaiseNotificationDeleteRequested: Id={0}", command.Id);
 		NotificationDeleteRequested?.Invoke(this, command);
+	}
+
+	protected void RaiseDefaultSoundChanged(DefaultSoundCommand command)
+	{
+		Logger.Info("RaiseDefaultSoundChanged: HasReceivedSound={0}, HasApproachSound={1}",
+			!string.IsNullOrEmpty(command.ReceivedSoundBase64), !string.IsNullOrEmpty(command.ApproachSoundBase64));
+		DefaultSoundChanged?.Invoke(this, command);
 	}
 
 	protected void RaiseTimeFormatChangeRequested(TimeFormatCommand command)

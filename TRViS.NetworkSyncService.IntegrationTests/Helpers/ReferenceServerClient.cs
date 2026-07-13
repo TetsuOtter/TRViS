@@ -333,6 +333,10 @@ public sealed class ReferenceServerClient : IDisposable
 		int? iconColor_RGB = null,
 		string? iconColorHex = null,
 		string? iconImageBase64 = null,
+		string? receivedSoundBase64 = null,
+		string? receivedSoundFormat = null,
+		string? approachSoundBase64 = null,
+		string? approachSoundFormat = null,
 		CancellationToken ct = default)
 	{
 		// IconColor_RGB は数値 (0xRRGGBB) と "#RRGGBB" 文字列のどちらでも送れる。
@@ -352,6 +356,10 @@ public sealed class ReferenceServerClient : IDisposable
 			IconColor_RGB = iconColor,
 			IconImageBase64 = iconImageBase64,
 			Acknowledged = acknowledged,
+			ReceivedSoundBase64 = receivedSoundBase64,
+			ReceivedSoundFormat = receivedSoundFormat,
+			ApproachSoundBase64 = approachSoundBase64,
+			ApproachSoundFormat = approachSoundFormat,
 		};
 		var content = new StringContent(
 			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
@@ -365,6 +373,26 @@ public sealed class ReferenceServerClient : IDisposable
 		var content = new StringContent(
 			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
 		var resp = await _http.PostAsync("/control/broadcast-notification-delete", content, ct);
+		resp.EnsureSuccessStatusCode();
+	}
+
+	public async Task BroadcastDefaultSoundAsync(
+		string? receivedSoundBase64 = null,
+		string? receivedSoundFormat = null,
+		string? approachSoundBase64 = null,
+		string? approachSoundFormat = null,
+		CancellationToken ct = default)
+	{
+		var payload = new
+		{
+			ReceivedSoundBase64 = receivedSoundBase64,
+			ReceivedSoundFormat = receivedSoundFormat,
+			ApproachSoundBase64 = approachSoundBase64,
+			ApproachSoundFormat = approachSoundFormat,
+		};
+		var content = new StringContent(
+			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+		var resp = await _http.PostAsync("/control/broadcast-default-sound", content, ct);
 		resp.EnsureSuccessStatusCode();
 	}
 

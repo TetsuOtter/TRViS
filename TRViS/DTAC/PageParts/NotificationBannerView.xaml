@@ -23,7 +23,13 @@
 			<Shadow Brush="Black" Opacity="0.3" Radius="8" Offset="0,2"/>
 		</Border.Shadow>
 		<Border.GestureRecognizers>
-			<TapGestureRecognizer Tapped="OnBannerTapped"/>
+			<!-- タップ (OnBannerTapped) はここには付けない — iOS の GesturePlatformManager の
+			     ShouldReceiveTouch は「このジェスチャー認識器を持つビュー自身に GestureRecognizers
+			     があれば、子孫へのタッチも受け取る」判定のため、Border に付けると子孫の
+			     AcknowledgeButton へのタップも横取り対象になり、cancelsTouchesInView との兼ね合いで
+			     ボタンが数回タップしないと反応しなくなる。タップは IconHost/SummaryLabel/
+			     ChevronLabel (いずれもボタンを含まない葉要素) に個別に付ける。スワイプは別種の
+			     ジェスチャーでボタンのクリックと競合しないため、従来通り Border に付けたままでよい。 -->
 			<SwipeGestureRecognizer Direction="Up" Swiped="OnBannerSwipedUp"/>
 			<SwipeGestureRecognizer Direction="Down" Swiped="OnBannerSwipedDown"/>
 		</Border.GestureRecognizers>
@@ -36,6 +42,9 @@
 				x:Name="IconHost"
 				Grid.Column="0"
 				VerticalOptions="Center">
+				<Grid.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnBannerTapped"/>
+				</Grid.GestureRecognizers>
 				<Border
 					x:Name="IconBadge"
 					IsVisible="False"
@@ -74,7 +83,11 @@
 				FontSize="30"
 				LineBreakMode="TailTruncation"
 				VerticalOptions="Center"
-				TextColor="{x:Static root:RootStyles.TableTextColor}"/>
+				TextColor="{x:Static root:RootStyles.TableTextColor}">
+				<Label.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnBannerTapped"/>
+				</Label.GestureRecognizers>
+			</Label>
 
 			<!-- 受領ボタン: !entry.IsRead &amp;&amp; entry.CanAcknowledge のときのみ表示 (Configure が制御)。
 			     「運行開始」ボタン (StartEndRunButton) と同じ緑グラデーションのスタイル。 -->
@@ -108,7 +121,11 @@
 				FontFamily="MaterialIconsRegular"
 				FontSize="48"
 				VerticalOptions="Center"
-				TextColor="{x:Static root:RootStyles.TableDetailColor}"/>
+				TextColor="{x:Static root:RootStyles.TableDetailColor}">
+				<Label.GestureRecognizers>
+					<TapGestureRecognizer Tapped="OnBannerTapped"/>
+				</Label.GestureRecognizers>
+			</Label>
 
 		</Grid>
 	</Border>

@@ -22,13 +22,14 @@ public partial class NotificationPopupPage : ContentPage
 	private static readonly NLog.Logger logger = LoggerService.GetGeneralLogger();
 
 	private readonly NotificationCenterViewModel _viewModel;
-	private readonly NotificationStore.Entry _entry;
+	private NotificationStore.Entry _entry;
 
 	// Id を持ち、かつ未受領の通告は「受領」でしか閉じられないようにする。
 	// このとき「閉じる」ボタン・端末の戻る操作による dismiss を無効化する
 	// (「最小化」は受領扱いではないため、この制限の対象外 — OnMinimizeClicked 参照)。
 	// 既に受領済みの通告 (バナー等からの再表示) は通常の閉じられるポップアップとして扱う。
-	private readonly bool _requireAcknowledge;
+	// 表示中に再受信して未受領へ巻き戻った場合 (OnNotificationUpdated) は再計算するため readonly ではない。
+	private bool _requireAcknowledge;
 
 	// 受領/閉じるの二重発火 (連打・受領直後の閉じる等) で PopModalAsync が
 	// 二重に走るのを防ぐ。
@@ -93,6 +94,10 @@ public partial class NotificationPopupPage : ContentPage
 		// サーバーからこの通告 (Id 一致) の削除指示を受けたら、受領必須であってもこの
 		// ポップアップを自分で閉じる (削除済みの通告に対して受領を送っても意味が無いため)。
 		_viewModel.NotificationRemoved += OnNotificationRemoved;
+
+		// 表示中にこの通告 (Id 一致) が再受信されたら、表示内容をその場で書き換える
+		// (受領済み→未受領への巻き戻りを含む)。
+		_viewModel.NotificationUpdated += OnNotificationUpdated;
 	}
 
 	private void OnLoadedApplyLabelColumnWidth(object? sender, EventArgs e)
@@ -138,6 +143,17 @@ public partial class NotificationPopupPage : ContentPage
 			return;
 		_isClosing = true;
 		_ = CloseAsync();
+	}
+
+	private void OnNotificationUpdated(object? sender, NotificationStore.Entry entry)
+	{
+		if (_isClosing || string.IsNullOrEmpty(_entry.Id) || entry.Id != _entry.Id)
+			return;
+
+		_entry = entry;
+		_requireAcknowledge = entry.CanAcknowledge && !entry.IsRead;
+		StopAcknowledgeBlink();
+		ApplyEntry(entry);
 	}
 
 	private void ApplyEntry(NotificationStore.Entry entry)
@@ -336,11 +352,22 @@ public partial class NotificationPopupPage : ContentPage
 		return base.OnBackButtonPressed();
 	}
 
+	// 画面タップで再生中の通告音を停止する (#329)。ポップアップ自体は閉じない。
+	private void OnScreenTapped(object? sender, EventArgs e)
+	{
+		InstanceManager.NotificationSoundPlayer.StopIfPlaying();
+	}
+
 	private async void OnAcknowledgeClicked(object? sender, EventArgs e)
 	{
 		if (_isClosing)
 			return;
 		_isClosing = true;
+
+		// 受領操作そのものでも再生中の通告音を止める (#329)。ボタンは RootGrid の画面タップ
+		// 検知の対象外 (ShouldReceiveTouch がボタンへのタップを横取りしないため) なので、
+		// ここで明示的に呼ぶ必要がある。
+		InstanceManager.NotificationSoundPlayer.StopIfPlaying();
 
 		// オンライン: 送信が確定したときのみ既読化される (AcknowledgeAsync 内)。
 		// オフライン/送信失敗: 既読化されず、サーバーへは何も送信されない。いずれの場合も
@@ -378,6 +405,7 @@ public partial class NotificationPopupPage : ContentPage
 		_viewModel.NotifyPopupVisibilityChanged(false);
 		_viewModel.Cleared -= OnNotificationsCleared;
 		_viewModel.NotificationRemoved -= OnNotificationRemoved;
+		_viewModel.NotificationUpdated -= OnNotificationUpdated;
 
 		try
 		{
