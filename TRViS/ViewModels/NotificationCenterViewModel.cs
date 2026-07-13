@@ -88,6 +88,14 @@ public sealed class NotificationCenterViewModel : ObservableObject
 	/// </summary>
 	public event EventHandler<SoundRef>? SoundPlayRequested;
 
+	/// <summary>
+	/// 既知の Id を持つ通告が再受信され、内容 (本文・受領状態など) が更新されたときに発火する。
+	/// 新規表示・区間連動の再表示可否とは独立に、現在表示中のポップアップ/バナーがあれば
+	/// その場で表示内容を書き換えるために使う (再表示すべきかどうかは
+	/// <see cref="DisplayRequested"/>/<see cref="BannerRequested"/> 側の責務)。UI スレッド上で発火する。
+	/// </summary>
+	public event EventHandler<NotificationStore.Entry>? NotificationUpdated;
+
 	private void RequestSoundPlay(SoundRef? sound)
 	{
 		if (sound is not null)
@@ -202,9 +210,18 @@ public sealed class NotificationCenterViewModel : ObservableObject
 		// 購読側は UI 操作 (モーダル push・バナー表示) を行うため、状態更新も含めて UI スレッドへ回す。
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
+			bool wasKnown = n.Id is string existingId && !string.IsNullOrEmpty(existingId) && _entriesById.ContainsKey(existingId);
+
 			var result = _store.Add(n);
 			if (!string.IsNullOrEmpty(result.Entry.Id))
 				_entriesById[result.Entry.Id] = result.Entry;
+
+			if (wasKnown)
+			{
+				// 表示要求 (Should/BannerRequested) の可否とは独立に、既に表示中のポップアップ/
+				// バナーがあればその場で内容を書き換えさせる。
+				NotificationUpdated?.Invoke(this, result.Entry);
+			}
 
 			if (result.ShouldDisplay)
 			{
@@ -218,6 +235,11 @@ public sealed class NotificationCenterViewModel : ObservableObject
 					// Id 無し (受領不可の一過性通告) は Key で追跡できないため直接発火する。
 					if (result.Entry.Id is string id && !string.IsNullOrEmpty(id))
 					{
+						// 既読→未受領へ巻き戻った (revived) 場合、以前は区間連動の再表示バナー
+						// として _shownBannerKeys に載っている可能性がある。載ったままだと
+						// RefreshRedisplay が「表示済み」とみなして BannerRequested を再発火せず、
+						// 受領ボタン付きの表示へ切り替わらないため、ここで一旦外す。
+						_shownBannerKeys.Remove(id);
 						_pendingCompactKeys.Add(id);
 						RefreshRedisplay();
 					}

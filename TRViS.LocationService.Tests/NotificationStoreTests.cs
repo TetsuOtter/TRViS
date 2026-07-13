@@ -188,19 +188,39 @@ public class NotificationStoreTests
 	}
 
 	[Test]
-	public void MarkRead_ThenReReceive_StaysReadAndNotDisplayed()
+	public void MarkRead_ThenReReceiveAcknowledged_StaysReadAndNotDisplayed()
 	{
 		var store = new NotificationStore();
 		store.Add(Make(id: "n-1", acknowledged: false));
 
 		store.MarkRead("n-1");
-		var again = store.Add(Make(id: "n-1", acknowledged: false));
+		var again = store.Add(Make(id: "n-1", acknowledged: true));
 
 		Assert.Multiple(() =>
 		{
 			Assert.That(store.IsRead("n-1"), Is.True);
 			Assert.That(again.ShouldDisplay, Is.False);
 			Assert.That(again.Entry.IsRead, Is.True);
+		});
+	}
+
+	[Test]
+	public void MarkRead_ThenReReceiveUnacknowledged_RevivesAsUnreadAndRedisplays()
+	{
+		// 受領済み (既読) の通告が、サーバーから Acknowledged=false 付きで再送されてきた場合は
+		// 過去の既読状態を破棄し、未受領の通告として改めて表示する。
+		var store = new NotificationStore();
+		store.Add(Make(id: "n-1", title: "旧", acknowledged: false));
+		store.MarkRead("n-1");
+
+		var revived = store.Add(Make(id: "n-1", title: "新", acknowledged: false));
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(revived.ShouldDisplay, Is.True);
+			Assert.That(revived.Entry.IsRead, Is.False);
+			Assert.That(revived.Entry.Title, Is.EqualTo("新"));
+			Assert.That(store.IsRead("n-1"), Is.False);
 		});
 	}
 
