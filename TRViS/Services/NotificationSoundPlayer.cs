@@ -29,21 +29,36 @@ public sealed class NotificationSoundPlayer : IDisposable
 	/// <paramref name="sound"/> を再生する。<c>null</c> (無音) のときは何もしない。
 	/// デコード失敗・サイズ超過・非対応形式はすべて無音として扱い、例外を投げない。
 	/// </summary>
+	/// <remarks>
+	/// Base64 デコード (最大 16MiB 分の文字列処理) は呼び出し元スレッド (通常 UI スレッド、
+	/// <see cref="AppShell"/> の <c>SoundPlayRequested</c> 購読から同期呼び出しされる) を
+	/// 長時間ブロックし得るため、バックグラウンドスレッドへ逃がす。ネイティブ再生の開始
+	/// (<see cref="IAudioManager.CreatePlayer"/> / <see cref="IAudioPlayer.Play"/>) は
+	/// プラットフォームによってはメインスレッドを要求するため、そちらのみ MainThread に戻す。
+	/// </remarks>
 	public void Play(SoundRef? sound)
 	{
 		if (sound is null)
 			return;
 
-		byte[]? bytes = NotificationSoundDecoder.TryDecode(sound.DataBase64);
-		if (bytes is null)
+		Task.Run(() =>
 		{
-			logger.Warn(
-				"NotificationSoundPlayer: Failed to decode sound or exceeds {0} bytes (Format={1}), skipping",
-				NotificationSoundDecoder.MaxDecodedBytes, sound.Format
-			);
-			return;
-		}
+			byte[]? bytes = NotificationSoundDecoder.TryDecode(sound.DataBase64);
+			if (bytes is null)
+			{
+				logger.Warn(
+					"NotificationSoundPlayer: Failed to decode sound or exceeds {0} bytes (Format={1}), skipping",
+					NotificationSoundDecoder.MaxDecodedBytes, sound.Format
+				);
+				return;
+			}
 
+			MainThread.BeginInvokeOnMainThread(() => PlayDecoded(bytes, sound.Format));
+		});
+	}
+
+	private void PlayDecoded(byte[] bytes, string? format)
+	{
 		try
 		{
 			// スタックさせない: 直前の再生が残っていれば止めてから差し替える。
@@ -57,7 +72,7 @@ public sealed class NotificationSoundPlayer : IDisposable
 		catch (Exception ex)
 		{
 			// 非対応形式を含め、再生失敗はすべて無音扱い。
-			logger.Warn(ex, "NotificationSoundPlayer: Failed to play sound (Format={0})", sound.Format);
+			logger.Warn(ex, "NotificationSoundPlayer: Failed to play sound (Format={0})", format);
 		}
 	}
 

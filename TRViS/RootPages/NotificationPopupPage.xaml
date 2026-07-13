@@ -20,11 +20,13 @@
 			<ColumnDefinition Width="18*"/>
 			<ColumnDefinition Width="1*"/>
 		</Grid.ColumnDefinitions>
-		<Grid.GestureRecognizers>
-			<!-- 画面タップで再生中の通告音を停止する (#329)。ポップアップ自体は閉じない
-			     (Acknowledge/Dismiss/Minimize の各ボタンとは独立に動作する)。 -->
-			<TapGestureRecognizer Tapped="OnScreenTapped"/>
-		</Grid.GestureRecognizers>
+		<!-- 画面タップで再生中の通告音を停止する (#329)。ここ (RootGrid) には付けない —
+		     iOS の GesturePlatformManager.ShouldReceiveTouch は「タップ対象のビュー、または
+		     このジェスチャー認識器を持つビュー自身のどちらかに GestureRecognizers があれば
+		     受け取る」判定のため、RootGrid 自身に付けると Border 配下の子孫ボタン (Acknowledge/
+		     Dismiss/Minimize) へのタップも横取り対象になり、cancelsTouchesInView との兼ね合いで
+		     ボタンが数回タップしないと反応しなくなる。ボタンを含まない葉要素 (情報欄・区切り線・
+		     アイコン/タイトル・本文) にだけ個別に付けることで、ボタン操作に一切干渉しないようにする。 -->
 
 		<!-- MaximumHeightRequest は XAML の固定 pt ではなく、コードビハインドで
 		     BaseFontSize(18pt) の 25em として計算して設定する (コンストラクタ参照)。 -->
@@ -63,6 +65,9 @@
 						Margin="16,0,48,0"
 						VerticalOptions="Center"
 						Spacing="4">
+						<VerticalStackLayout.GestureRecognizers>
+							<TapGestureRecognizer Tapped="OnScreenTapped"/>
+						</VerticalStackLayout.GestureRecognizers>
 
 						<Grid x:Name="OrderNumberRow" ColumnDefinitions="Auto,Auto,*" IsVisible="False">
 							<Label x:Name="OrderNumberCaptionLabel" Grid.Column="0" Text="{loc:Translate Notification_OrderNumberLabel}" FontSize="18" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" HorizontalOptions="Start" TextColor="{x:Static local:RootStyles.TableDetailColor}"/>
@@ -97,7 +102,11 @@
 						Grid.Row="1"
 						HeightRequest="1"
 						Margin="16,0,16,24"
-						Color="{x:Static local:RootStyles.BorderStrokeColor}"/>
+						Color="{x:Static local:RootStyles.BorderStrokeColor}">
+						<BoxView.GestureRecognizers>
+							<TapGestureRecognizer Tapped="OnScreenTapped"/>
+						</BoxView.GestureRecognizers>
+					</BoxView>
 
 					<!-- 区切り線 (Margin=16,0,16,24) と同じ左右の余白を付け、アイコン/タイトル/本文/
 					     ボタンが区切り線の外側にはみ出さないようにする。 -->
@@ -107,6 +116,9 @@
 							<!-- アイコン(72x72)とタイトル(+重要バッジ)は同じ row。アイコンは
 							     タイトル/重要バッジ列と上下中央揃え。 -->
 							<Grid ColumnDefinitions="Auto,*" Margin="0,0,0,12">
+								<Grid.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnScreenTapped"/>
+								</Grid.GestureRecognizers>
 								<Border
 									x:Name="IconBadge"
 									Grid.Column="0"
@@ -172,7 +184,11 @@
 
 							<!-- 本文 (BBCode、コードビハインドから注入)。アイコン分 (72+12=84) だけ左に
 							     インデントし、タイトルと同じ位置から始まるようにする。 -->
-							<ContentView x:Name="BodyContainer" Margin="84,0,0,12"/>
+							<ContentView x:Name="BodyContainer" Margin="84,0,0,12">
+								<ContentView.GestureRecognizers>
+									<TapGestureRecognizer Tapped="OnScreenTapped"/>
+								</ContentView.GestureRecognizers>
+							</ContentView>
 
 							<VerticalStackLayout Spacing="8">
 								<Button

@@ -601,6 +601,10 @@ public partial class ViewHost : ContentPage
 
 	private async void OnNotificationBannerAcknowledgeClicked(object? sender, NotificationStore.Entry entry)
 	{
+		// 受領操作そのものでも再生中の通告音を止める (#329)。バナーのタップ展開
+		// (OnNotificationBannerTapped) とは別に、受領ボタン自体からも止められるようにする。
+		InstanceManager.NotificationSoundPlayer.StopIfPlaying();
+
 		// 受領後の非表示/切り替えは NotificationCenterViewModel が BannerDismissed /
 		// BannerRequested の再発火で駆動するため、ここではバナーを自分で隠さない。
 		try
