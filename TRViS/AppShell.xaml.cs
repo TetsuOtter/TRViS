@@ -122,6 +122,10 @@ public partial class AppShell : Shell
 		// サーバーから個別の通告削除指示を受けたら、まだ表示していない待機列から該当 Id
 		// だけを取り除く (表示中のポップアップ自体は NotificationPopupPage が自分で閉じる)。
 		appVm.NotificationCenter.NotificationRemoved += OnNotificationCenterEntryRemoved;
+		// 通告の受信音・接近音の再生要求 (#329)。NotificationCenter は MainThread 上で発火するが、
+		// 実際の再生 (ネイティブ API 呼び出し) は失敗しても無音になるだけでよいため、
+		// NotificationSoundPlayer 側ですべての例外を握りつぶす。
+		appVm.NotificationCenter.SoundPlayRequested += (_, sound) => InstanceManager.NotificationSoundPlayer.Play(sound);
 
 		InstanceManager.AppViewModel.WindowWidth = DeviceDisplay.Current.MainDisplayInfo.Width;
 		InstanceManager.AppViewModel.WindowHeight = DeviceDisplay.Current.MainDisplayInfo.Height;

@@ -52,6 +52,20 @@ public sealed class NotificationStore
 		public string? SectionEndStation => Data.SectionEndStation;
 		public int StationsBefore => Data.StationsBefore;
 
+		/// <summary>
+		/// この通告固有の受信音 (未指定なら null。既定音へのフォールバックは
+		/// <see cref="TRViS.Core.NotificationSoundResolver"/> が担う)。
+		/// </summary>
+		public TRViS.Core.SoundRef? ReceivedSound =>
+			string.IsNullOrEmpty(Data.ReceivedSoundBase64) ? null : new(Data.ReceivedSoundBase64, Data.ReceivedSoundFormat);
+
+		/// <summary>
+		/// この通告固有の接近音 (未指定なら null。既定音へのフォールバックは
+		/// <see cref="TRViS.Core.NotificationSoundResolver"/> が担う)。
+		/// </summary>
+		public TRViS.Core.SoundRef? ApproachSound =>
+			string.IsNullOrEmpty(Data.ApproachSoundBase64) ? null : new(Data.ApproachSoundBase64, Data.ApproachSoundFormat);
+
 		/// <summary>既読 (受領済み) か。</summary>
 		public bool IsRead { get; internal set; }
 

@@ -77,6 +77,9 @@ internal static class InstanceManager
 	private static AnalyticsWrapper? _AnalyticsWrapper = null;
 	public static IAnalyticsWrapper AnalyticsWrapper => _AnalyticsWrapper ??= new();
 
+	private static NotificationSoundPlayer? _NotificationSoundPlayer = null;
+	public static NotificationSoundPlayer NotificationSoundPlayer { get => _NotificationSoundPlayer ??= new(); }
+
 	private static IOrientationService? _OrientationService = null;
 	public static IOrientationService OrientationService
 	{
@@ -153,6 +156,7 @@ internal static class InstanceManager
 		DisposeValue(ref _LocationServiceAlertSubscriber);
 		DisposeValue(ref _LocationService);
 		DisposeValue(ref _HttpClient);
+		DisposeValue(ref _NotificationSoundPlayer);
 	}
 
 	/// <summary>
