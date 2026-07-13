@@ -24,6 +24,7 @@ JSON オブジェクトで、必ず `MessageType` フィールド（正確なケ
 | `OpenTimetable` | 指定列車の時刻表ビューを開く | [§11](#11-opentimetable) |
 | `SearchTrainResponse` | 列車検索要求への結果応答 | [§12](#12-searchtrainresponse) |
 | `DeleteNotification` | 配信済み通告を Id 指定で削除 | [§13](#13-deletenotification) |
+| `DefaultSound` | 通告の受信音／接近音の既定値を設定 | [§14](#14-defaultsound) |
 
 > 表記規約: 「必須」はサーバーが意味のある動作をさせるために事実上
 > 必要なフィールド。「任意」は省略可能。型不一致はおおむね「無視
@@ -249,7 +250,11 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
   "CompactDisplay": false,                // boolean（省略可）。true で初回から小型バナー表示
   "SectionStartStation": "石川",          // string | null（区間開始側。駅名 or 駅ID）
   "SectionEndStation": "川部",            // string | null（区間終了側。駅名 or 駅ID。省略時は単駅）
-  "StationsBefore": 1                     // integer（省略可、既定 1）。区間の何駅手前から再表示するか
+  "StationsBefore": 1,                    // integer（省略可、既定 1）。区間の何駅手前から再表示するか
+  "ReceivedSoundBase64": null,            // string | null（この通告固有の受信音。§14 参照）
+  "ReceivedSoundFormat": null,            // "wav" | "mp3" | null
+  "ApproachSoundBase64": null,            // string | null（この通告固有の接近音。§14 参照）
+  "ApproachSoundFormat": null             // "wav" | "mp3" | null
 }
 ```
 
@@ -272,6 +277,10 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 | `SectionStartStation` | string | 任意。この通告が対象とする区間・駅の開始側を**駅名または駅 ID**で指定する（照合は駅 ID 一致 → 駅名一致の順、大文字小文字を区別）。受領後に非表示となった通告は、この区間の `StationsBefore` 駅手前に到達した時点で受領済み状態の小型バナーとして自動再表示され、区間を抜けると自動的に非表示になる。現在列車の経路に該当駅が無い場合は再表示しない。 |
 | `SectionEndStation` | string | 任意。区間の終了側を**駅名または駅 ID**で指定する。未指定のとき `SectionStartStation` と同一（単駅）扱い。区間の向き（開始/終了の前後）は問わない（経路上のインデックスで正規化する）。 |
 | `StationsBefore` | integer | 任意、既定 `1`。区間開始の何駅手前から再表示を開始するか。JSON 数値かつ 32bit 整数のときのみ採用。0 以下は 0 として扱い、区間開始駅から表示する。 |
+| `ReceivedSoundBase64` | string | 任意。この通告を初回表示する際に再生する受信音の Base64 エンコードされたバイナリ（`data:audio/mpeg;base64,...` のような data URI プレフィックスを含んでいてもよい）。未指定/null の場合、[`DefaultSound`](#14-defaultsound)（§14）で設定された受信音の既定値があればそれを再生し、既定値も無ければ無音。 |
+| `ReceivedSoundFormat` | string | 任意。`ReceivedSoundBase64` の形式。`"wav"` または `"mp3"` を指定する（クライアントは必ず対応）。それ以外の値はデコード/再生に失敗し、無音として扱われる。 |
+| `ApproachSoundBase64` | string | 任意。この通告が区間連動で小型バナーとして再表示される（接近する）タイミングで再生する接近音の Base64 エンコードされたバイナリ。未指定/null の場合、[`DefaultSound`](#14-defaultsound)（§14）の接近音の既定値、無ければ無音。 |
+| `ApproachSoundFormat` | string | 任意。`ApproachSoundBase64` の形式。`ReceivedSoundFormat` と同じ規則。 |
 
 **区間・駅連動の再表示について:**
 - `SectionStartStation`（＋任意で `SectionEndStation`）を指定した通告は、受領後にいったん非表示になるが、指定区間（または単駅）の `StationsBefore` 駅手前に到達すると受領済み状態の小型バナーとして再表示され、区間を抜けると自動的に非表示になる。
@@ -440,6 +449,52 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 - 未知の `Id`（既に削除済み・期限切れ・そもそも配信されていない等）は
   エラーではありません — クライアント側に削除対象が存在しないだけです。
 
+## 14. DefaultSound
+
+通告の「受信音」（初回表示時に鳴らす音）と「接近音」（区間連動の
+再表示バナーが出るタイミングで鳴らす音）について、個別の
+[`Notification`](#8-notification)（§8）で指定が無い場合に使われる
+既定値を設定します。音声バイナリはアプリに同梱されないため、必ず
+このメッセージ（または `Notification` の個別フィールド）で
+サーバーから送る必要があります。
+
+このメッセージは**毎回、両ロールの既定値をフルに置き換えます**
+（差分更新ではありません）。対象ロールのフィールドが未指定/null の
+場合、そのロールの既定値は「無し（無音）」にリセットされます。
+既定値はセッション中のみ有効なメモリ上の状態で、WebSocket 切断時に
+破棄されます（再接続後、必要なら再送してください）。
+
+```jsonc
+{
+  "MessageType": "DefaultSound",
+  "ReceivedSoundBase64": null, // string | null。受信音の既定
+  "ReceivedSoundFormat": null, // "wav" | "mp3" | null
+  "ApproachSoundBase64": null, // string | null。接近音の既定
+  "ApproachSoundFormat": null  // "wav" | "mp3" | null
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `ReceivedSoundBase64` | string | 任意。受信音の既定として使う音声の Base64 エンコードされたバイナリ。`null`/省略でこのロールの既定を解除する。 |
+| `ReceivedSoundFormat` | string | 任意。`ReceivedSoundBase64` の形式。`"wav"` または `"mp3"` を指定する（§8 の注記を参照）。 |
+| `ApproachSoundBase64` | string | 任意。接近音の既定として使う音声の Base64 エンコードされたバイナリ。`null`/省略でこのロールの既定を解除する。 |
+| `ApproachSoundFormat` | string | 任意。`ApproachSoundBase64` の形式。 |
+
+**解決順序（受信音・接近音とも共通）:**
+1. 個別の `Notification` に該当ロールの音声指定があればそれを再生する。
+2. 無ければ、最後に受信した `DefaultSound` の該当ロールの既定値を再生する。
+3. どちらも無ければ無音。
+
+**サイズ制限:** デコード後の音声バイナリは **16MiB (16 × 1024 × 1024
+バイト) 以下**にしてください（`ReceivedSoundBase64`/`ApproachSoundBase64`
+のいずれも、このメッセージ・`Notification` メッセージの両方で共通）。
+Base64 表現はデコード後サイズの約 4/3 倍になるため、フィールド長は
+最大で概ね 21.3MiB 程度になります。超過した音声はクライアント側で
+破棄され、再生されません（エラー通知は無く、単に無音として扱われます）。
+この上限に特別な意味はなく、無制限のバイナリ送信を避けるための
+実務上の目安です。
+
 ---
 
 ## 付録: パース挙動の要点
@@ -461,3 +516,6 @@ WorkGroup の上位概念である「ダイヤ」の情報。`RequestDiagramInfo
 - `ServerInfo.Features` は **JSON 配列**で、文字列要素のみ採用し文字列
   以外は無視（欠落／`null` は拡張機能なし）。
 - 未知の `MessageType`・`MessageType` 欠落・不正 JSON は **黙って無視**。
+- `Notification`/`DefaultSound` の音声フィールド（`*SoundBase64`）は
+  **デコード後 16MiB 以下**が必須。超過分・デコード失敗・非対応形式は
+  無音として扱われ、例外にはなりません（[§14](#14-defaultsound) 参照）。

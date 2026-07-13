@@ -103,6 +103,9 @@
 		<PackageReference
 			Include="TR.BBCodeLabel.Maui"
 			Version="0.1.1.2" />
+		<PackageReference
+			Include="Plugin.Maui.Audio"
+			Version="4.0.0" />
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
 		<PackageReference
