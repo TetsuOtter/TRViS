@@ -520,6 +520,15 @@ public class StartHomePageObject : PageObject
 	/// </summary>
 	public void SimulateWebSocketSearchForTesting() => TestSimulateWebSocketSearchButton.Click();
 
+	public AppiumElement TestSimulateLocalSearchButton => FindByAutomationId(AutomationIds.StartHome.TestSimulateLocalSearchButton);
+
+	/// <summary>
+	/// Taps the UI_TEST-only seam that builds a JSON-backed (SampleDataLoader) loader —
+	/// no WebSocket involved — commits the first WG/Work and navigates to DTAC, so the
+	/// QuickSwitch Search tab can be exercised against a local file's already-loaded data.
+	/// </summary>
+	public void SimulateLocalSearchForTesting() => TestSimulateLocalSearchButton.Click();
+
 	/// <summary>
 	/// Filename written by <see cref="SeedSqliteForTesting"/>. Mirrors the
 	/// constant in StartHomePage.xaml.cs so tests can look up the rendered

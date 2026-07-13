@@ -554,6 +554,14 @@ public class DTACViewHostPageObject : PageObject
 		Thread.Sleep(200);
 	}
 
+	/// <summary>Switches the match mode to 中間一致 (Contains) — needed when the query
+	/// isn't a true prefix of the target train number (default mode is Prefix).</summary>
+	public void TapMatchModeContains()
+	{
+		FindByAutomationId(AutomationIds.DTAC.QuickSwitch.SearchMatchModeContains).Click();
+		Thread.Sleep(200);
+	}
+
 	/// <summary>
 	/// Types a train number. On wide screens QuickSwitchPopup shows a software numeric
 	/// keypad and makes TrainNumberEntry read-only (no OS keyboard); on narrow screens

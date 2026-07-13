@@ -135,6 +135,12 @@ public static class AutomationIds
 		// can be E2E-verified without a real server.
 		public const string TestSimulateWebSocketSearchButton = "StartHome.TestSimulateWebSocketSearchButton";
 
+		// Builds a JSON-BACKED loader (SampleDataLoader, no WebSocket involved) with
+		// real sample data, commits the first WG/Work and navigates to DTAC. Proves
+		// the QuickSwitch Search tab and train search also work against a local
+		// JSON/SQLite-loaded file, not just a WebSocket connection.
+		public const string TestSimulateLocalSearchButton = "StartHome.TestSimulateLocalSearchButton";
+
 		// Direct invoker for OnSelectFileClicked. Bypasses the styled
 		// SelectFileButton because Appium UIAutomator2's ACTION_CLICK against
 		// MAUI's PrimaryActionButton-styled Button silently fails to dispatch
