@@ -2601,6 +2601,106 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task Notification_WithSoundFields_ClientReceivesAllFields()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<NotificationData>(
+				h => service.NotificationReceived += h,
+				h => service.NotificationReceived -= h
+			);
+
+			await _control.BroadcastNotificationAsync(
+				id: "n-sound-1",
+				title: "音付き通告",
+				receivedSoundBase64: "UkVDRUlWRUQ=",
+				receivedSoundFormat: "wav",
+				approachSoundBase64: "QVBQUk9BQ0g=",
+				approachSoundFormat: "mp3"
+			);
+			var n = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(n.ReceivedSoundBase64, Is.EqualTo("UkVDRUlWRUQ="));
+				Assert.That(n.ReceivedSoundFormat, Is.EqualTo("wav"));
+				Assert.That(n.ApproachSoundBase64, Is.EqualTo("QVBQUk9BQ0g="));
+				Assert.That(n.ApproachSoundFormat, Is.EqualTo("mp3"));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task DefaultSound_BroadcastFromServer_ClientReceivesEvent()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<DefaultSoundCommand>(
+				h => service.DefaultSoundChanged += h,
+				h => service.DefaultSoundChanged -= h
+			);
+
+			await _control.BroadcastDefaultSoundAsync(
+				receivedSoundBase64: "UkVDRUlWRUQ=",
+				receivedSoundFormat: "wav",
+				approachSoundBase64: "QVBQUk9BQ0g=",
+				approachSoundFormat: "mp3"
+			);
+			var cmd = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(cmd.ReceivedSoundBase64, Is.EqualTo("UkVDRUlWRUQ="));
+				Assert.That(cmd.ReceivedSoundFormat, Is.EqualTo("wav"));
+				Assert.That(cmd.ApproachSoundBase64, Is.EqualTo("QVBQUk9BQ0g="));
+				Assert.That(cmd.ApproachSoundFormat, Is.EqualTo("mp3"));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
+	public async Task DefaultSound_OmittedFields_ClientReceivesNulls()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			var task = WaitForEventAsync<DefaultSoundCommand>(
+				h => service.DefaultSoundChanged += h,
+				h => service.DefaultSoundChanged -= h
+			);
+
+			await _control.BroadcastDefaultSoundAsync();
+			var cmd = await task;
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(cmd.ReceivedSoundBase64, Is.Null);
+				Assert.That(cmd.ApproachSoundBase64, Is.Null);
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	[Test]
 	public async Task TimeFormat_BroadcastSpecificFormat_ClientReceivesFormat()
 	{
 		var service = await ConnectServiceAsync();

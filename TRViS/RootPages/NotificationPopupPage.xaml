@@ -9,7 +9,7 @@
 	BackgroundColor="#99000000"
 	Title="{loc:Translate Notification_Title}">
 
-	<Grid>
+	<Grid x:Name="RootGrid">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="1*"/>
 			<RowDefinition Height="18*"/>
@@ -20,6 +20,11 @@
 			<ColumnDefinition Width="18*"/>
 			<ColumnDefinition Width="1*"/>
 		</Grid.ColumnDefinitions>
+		<Grid.GestureRecognizers>
+			<!-- 画面タップで再生中の通告音を停止する (#329)。ポップアップ自体は閉じない
+			     (Acknowledge/Dismiss/Minimize の各ボタンとは独立に動作する)。 -->
+			<TapGestureRecognizer Tapped="OnScreenTapped"/>
+		</Grid.GestureRecognizers>
 
 		<!-- MaximumHeightRequest は XAML の固定 pt ではなく、コードビハインドで
 		     BaseFontSize(18pt) の 25em として計算して設定する (コンストラクタ参照)。 -->
