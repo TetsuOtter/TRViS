@@ -178,6 +178,10 @@ public static class AutomationIds
 		// HeaderColor override is applied / reset.
 		public const string TestSetHeaderColorOverrideButton = "StartHome.TestSetHeaderColorOverrideButton";
 		public const string TestResetHeaderColorOverrideButton = "StartHome.TestResetHeaderColorOverrideButton";
+
+		// UI_TEST seam: injects a fixed light/dark SVG ServerInfo icon directly
+		// into CurrentServerInfo (Apple ScreenshotRegressionTests server-icon capture).
+		public const string TestInjectServerIconButton = "StartHome.TestInjectServerIconButton";
 	}
 
 	public static class PrivacyDialog
