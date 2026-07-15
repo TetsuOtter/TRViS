@@ -107,6 +107,13 @@ public partial class AppViewModel : ObservableObject
 	public partial DiagramInfo? CurrentDiagramInfo { get; set; }
 
 	/// <summary>
+	/// サーバーから受信した最新のサーバー情報 (名前・アイコン等)。未受信／非接続時は null。
+	/// Home 画面の接続情報カードがアイコン表示のために購読する。
+	/// </summary>
+	[ObservableProperty]
+	public partial ServerInfo? CurrentServerInfo { get; set; }
+
+	/// <summary>
 	/// 現在の <see cref="WebSocketNetworkSyncService"/> ローダーがサーバーとの接続を
 	/// 失っているか。接続断時に Home 画面が「サーバー接続中」のまま表示され続ける問題
 	/// (#261) を解消するため、Home 画面はこの値を購読して切断表示と再接続ボタンを出す。
@@ -537,14 +544,15 @@ public partial class AppViewModel : ObservableObject
 		locationService.HeaderColorChangeRequested += OnHeaderColorChangeRequested;
 		locationService.TimeFormatChangeRequested += OnTimeFormatChangeRequested;
 		locationService.DiagramInfoUpdated += OnDiagramInfoUpdated;
+		locationService.ServerInfoUpdated += OnServerInfoUpdated;
 		locationService.NavigateToHomeRequested += OnNavigateToHomeRequested;
 		locationService.OpenTimetableRequested += OnOpenTimetableRequested;
 		// 通告 (Notification) は NotificationCenter が購読し、未読をポップアップ表示する
-		// (AppShell が DisplayRequested を購読)。OperationCommandReceived / ServerInfo は
+		// (AppShell が DisplayRequested を購読)。OperationCommandReceived は
 		// LocationService 側で受信される。OperationCommand のうち位置情報 ON/OFF は
 		// LocationService が直接適用し、運行開始/終了そのものは
 		// LocationService.OperationStartRequested 経由で DTAC.Adapters.LocationServiceAdapter
-		// → VerticalStylePagePresenter に委譲される。ServerInfo の UI 表示は個別画面側で購読する。
+		// → VerticalStylePagePresenter に委譲される。
 		NotificationCenter.Subscribe(locationService);
 	}
 
@@ -595,6 +603,17 @@ public partial class AppViewModel : ObservableObject
 		CurrentDiagramInfo = info;
 	}
 
+	/// <summary>
+	/// サーバーからサーバー情報 (名前・アイコン等) を受信した際に最新値を保持する。
+	/// WebSocket 受信スレッドから呼ばれるため、UI 反映側 (View) でメインスレッドへの
+	/// マーシャリングを行う。
+	/// </summary>
+	void OnServerInfoUpdated(object? sender, ServerInfo info)
+	{
+		logger.Info("ServerInfoUpdated: Name={0}", info.Name);
+		CurrentServerInfo = info;
+	}
+
 	partial void OnLoaderChanged(ILoader? value)
 	{
 		if (_preserveSelectionOnNextLoaderChange)
@@ -611,11 +630,12 @@ public partial class AppViewModel : ObservableObject
 			// たまたま一致したときに誤って IsEnabled を復元しかねない。
 			_pendingReconnectLocationRestore = null;
 		}
-		// ローダーが切り替わったら以前のダイヤ情報は無効。サーバー接続なら
-		// 接続時に再要求され DiagramInfoUpdated で改めて設定される。SetLoader は
-		// この後に NetworkSyncService を接続するため、ここでのクリアが新しい応答を
-		// 消すことはない。
+		// ローダーが切り替わったら以前のダイヤ情報・サーバー情報は無効。サーバー接続なら
+		// 接続時に再要求/再受信され DiagramInfoUpdated / ServerInfoUpdated で改めて
+		// 設定される。SetLoader はこの後に NetworkSyncService を接続するため、ここでの
+		// クリアが新しい応答を消すことはない。
 		CurrentDiagramInfo = null;
+		CurrentServerInfo = null;
 		if (value is null)
 			LoaderSourceLabel = null;
 

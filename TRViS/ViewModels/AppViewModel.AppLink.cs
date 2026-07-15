@@ -200,6 +200,19 @@ public partial class AppViewModel
 			HandleTestSetStation(uri);
 			return true;
 		}
+
+		// Test-only: inject a ServerInfo (optionally carrying a light/dark icon)
+		// directly into CurrentServerInfo, mirroring a real server-pushed ServerInfo
+		// message, so UI tests can exercise the Home screen's icon display without a
+		// real WebSocket server.
+		// Format: trvis://_test/serverinfo?name=<n>&admin=<a>&version=<v>&protocolversion=<p>
+		//   &iconimage=<base64 or data URI, URL-encoded>&iconimagedark=<... URL-encoded>
+		const string TestServerInfoPrefix = "trvis://_test/serverinfo";
+		if (uri.StartsWith(TestServerInfoPrefix, StringComparison.OrdinalIgnoreCase))
+		{
+			HandleTestInjectServerInfo(uri);
+			return true;
+		}
 #endif
 
 		AppLinkInfo appLinkInfo;
@@ -953,6 +966,35 @@ public partial class AppViewModel
 			NotificationCenter.DeleteNotificationForTesting(id);
 			logger.Info("Test delete notification: dispatched (id={0})", id);
 		});
+	}
+
+	/// <summary>
+	/// Test-only: inject a ServerInfo (optionally carrying a light/dark icon) directly
+	/// into <see cref="CurrentServerInfo"/>, mirroring what a real server-pushed
+	/// ServerInfo message does, so UI tests can exercise the Home screen's icon
+	/// display without a real WebSocket server. Unlike the notification seams above,
+	/// this isn't mediated by <see cref="RootPages.ConnectServerDialog"/> closing, so
+	/// no modal-dismissal wait is needed.
+	/// </summary>
+	private void HandleTestInjectServerInfo(string uri)
+	{
+		logger.Info("Test inject server info invoked: {0}", uri);
+
+		int qIndex = uri.IndexOf('?');
+		var query = qIndex >= 0
+			? HttpUtility.ParseQueryString(uri.Substring(qIndex + 1))
+			: new System.Collections.Specialized.NameValueCollection();
+
+		CurrentServerInfo = new TRViS.NetworkSyncService.ServerInfo
+		{
+			Name = query["name"],
+			Admin = query["admin"],
+			Version = query["version"],
+			ProtocolVersion = query["protocolversion"],
+			IconImage = query["iconimage"],
+			IconImageDark = query["iconimagedark"],
+		};
+		logger.Info("Test inject server info: dispatched (name={0})", CurrentServerInfo.Name);
 	}
 
 	/// <summary>

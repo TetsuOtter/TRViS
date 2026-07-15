@@ -107,7 +107,9 @@ server-initiated broadcast.
   "Admin": "admin@example.com", // string | null
   "Version": "1.2.3",           // string | null
   "ProtocolVersion": "1.1",     // string | null
-  "Features": ["TrainSearch"]   // string[] | null. Optional. Omitted/null = no extended features.
+  "Features": ["TrainSearch"],  // string[] | null. Optional. Omitted/null = no extended features.
+  "IconImage": "data:image/png;base64,iVBORw0KGgo...",     // string | null. Optional.
+  "IconImageDark": "data:image/svg+xml;base64,PHN2Zy4uLg==" // string | null. Optional.
 }
 ```
 
@@ -118,11 +120,19 @@ server-initiated broadcast.
 | `Version` | string | Server implementation version. |
 | `ProtocolVersion` | string | Supported protocol version. Currently `"1.1"`. |
 | `Features` | string[] | Optional. Feature-id strings the server supports. Only string elements are kept; non-string elements are ignored. Absent/`null` means the server advertises no extended features. |
+| `IconImage` | string | Optional. Server icon for light mode. A `data:<mime>;base64,...` data URI, or a plain base64 string (treated as PNG). Supports `image/png`, `image/jpeg`, `image/gif`, and `image/svg+xml`. |
+| `IconImageDark` | string | Optional. Server icon for dark mode. Same format as `IconImage`. If omitted, the client falls back to `IconImage` in dark mode too. |
 
 Each field `null` or missing means "unset". `ProtocolVersion` is the
 handshake-level signal of protocol compatibility (optional capabilities
 are negotiated separately via `Features`, below), so returning a correct
 value is recommended.
+
+**Icon size limit.** The client discards `IconImage` / `IconImageDark`
+individually (keeping the rest of `ServerInfo`) if the decoded image
+would be 16 MiB (16 × 1024 × 1024 bytes) or larger. Images larger than
+the client's display area are shrunk to fit; they are never upscaled
+beyond their natural size.
 
 **Feature negotiation.** `Features` advertises optional capabilities
 that are negotiated independently of the version number. Known feature

@@ -1993,6 +1993,12 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestForceLightThemeButton clicked: forcing app-wide Light theme");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Light;
+		// Dual-set like AppBar's real theme toggle (AppBar.cs): RequestedThemeChanged
+		// is unreliable (see AppViewModel's ctor comment) and, even when it fires,
+		// only updates CurrentAppTheme while UserAppTheme is Unspecified. Without
+		// this, viewModel.CurrentAppTheme-driven UI (e.g. HomeGridView's server
+		// icon) can't be exercised by this seam.
+		viewModel.CurrentAppTheme = AppTheme.Light;
 	}
 
 	void TestForceDarkThemeButton_Clicked(object? sender, EventArgs e)
@@ -2000,6 +2006,8 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestForceDarkThemeButton clicked: forcing app-wide Dark theme");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Dark;
+		// See TestForceLightThemeButton_Clicked for why this direct set is needed.
+		viewModel.CurrentAppTheme = AppTheme.Dark;
 	}
 
 	void TestUnfreezeClockButton_Clicked(object? sender, EventArgs e)
@@ -2019,6 +2027,9 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestResetThemeButton clicked: resetting app-wide theme to Unspecified");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Unspecified;
+		// Undo the direct viewModel.CurrentAppTheme set from the two force-theme
+		// seams above (Unspecified resolves to the current system theme).
+		viewModel.CurrentAppTheme = AppTheme.Unspecified;
 	}
 
 	// UI_TEST-only seam (#310). Fixed test color (0x336699), distinct from the

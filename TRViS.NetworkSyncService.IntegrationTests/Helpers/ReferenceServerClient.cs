@@ -172,6 +172,8 @@ public sealed class ReferenceServerClient : IDisposable
 		string? version = null,
 		string? protocolVersion = null,
 		string[]? features = null,
+		string? iconImage = null,
+		string? iconImageDark = null,
 		CancellationToken ct = default)
 	{
 		var payload = new
@@ -181,6 +183,8 @@ public sealed class ReferenceServerClient : IDisposable
 			Version = version,
 			ProtocolVersion = protocolVersion,
 			Features = features,
+			IconImage = iconImage,
+			IconImageDark = iconImageDark,
 		};
 		var content = new StringContent(
 			JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");

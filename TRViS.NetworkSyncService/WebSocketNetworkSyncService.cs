@@ -83,6 +83,8 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	private const string SERVER_ADMIN_JSON_KEY = "Admin";
 	private const string SERVER_VERSION_JSON_KEY = "Version";
 	private const string SERVER_PROTOCOL_VERSION_JSON_KEY = "ProtocolVersion";
+	private const string SERVER_ICON_IMAGE_JSON_KEY = "IconImage";
+	private const string SERVER_ICON_IMAGE_DARK_JSON_KEY = "IconImageDark";
 	private const string DIAGRAM_ID_JSON_KEY = "DiagramId";
 	private const string DIAGRAM_NAME_JSON_KEY = "Name";
 	private const string DIAGRAM_DESCRIPTION_JSON_KEY = "Description";
@@ -94,6 +96,10 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 	// 音声サイズ制限 (#329) とは別目的 (Base64 化・JSON の他フィールド分の余裕を見て
 	// 大きめに設定している)。超過したメッセージは破棄しログのみを残す。
 	private const int MAX_MESSAGE_LENGTH_CHARS = 64 * 1024 * 1024;
+
+	// ServerInfo.IconImage / IconImageDark のデコード後バイト長の上限。
+	// これを超えるアイコンはサーバー情報全体を捨てず、アイコンだけ破棄する。
+	private const long MAX_ICON_IMAGE_BYTES = 16 * 1024 * 1024;
 
 	private ClientWebSocket _WebSocket;
 	private readonly Uri _Uri;
@@ -528,8 +534,46 @@ public class WebSocketNetworkSyncService : NetworkSyncServiceBase, ILoader
 			// 機能ネゴシエーション結果を公開する (IsFeatureSupported / 検索タブの表示に使用)
 			ServerFeatures = list;
 		}
+		if (root.TryGetProperty(SERVER_ICON_IMAGE_JSON_KEY, out var icon) && icon.ValueKind != JsonValueKind.Null)
+			info.IconImage = ValidateIconImageSize(icon.GetString(), SERVER_ICON_IMAGE_JSON_KEY);
+		if (root.TryGetProperty(SERVER_ICON_IMAGE_DARK_JSON_KEY, out var iconDark) && iconDark.ValueKind != JsonValueKind.Null)
+			info.IconImageDark = ValidateIconImageSize(iconDark.GetString(), SERVER_ICON_IMAGE_DARK_JSON_KEY);
 
 		RaiseServerInfoUpdated(info);
+	}
+
+	/// <summary>
+	/// アイコン画像の base64 文字列 (data URI プレフィックスを含んでいてもよい) の
+	/// デコード後バイト長を、実際にデコードすることなく base64 文字列の長さから見積もり、
+	/// <see cref="MAX_ICON_IMAGE_BYTES"/> 以上であれば破棄して null を返す。
+	/// </summary>
+	internal static string? ValidateIconImageSize(string? raw, string fieldNameForLog)
+	{
+		if (string.IsNullOrEmpty(raw))
+			return raw;
+
+		int commaIndex = raw.IndexOf(',');
+		string payload = raw.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && commaIndex >= 0
+			? raw[(commaIndex + 1)..]
+			: raw;
+
+		int padding = payload.EndsWith("==", StringComparison.Ordinal) ? 2
+			: payload.EndsWith('=') ? 1
+			: 0;
+		long estimatedDecodedBytes = (long)payload.Length / 4 * 3 - padding;
+
+		if (estimatedDecodedBytes >= MAX_ICON_IMAGE_BYTES)
+		{
+			logger.Warn(
+				"ServerInfo.{0} discarded: estimated decoded size {1} bytes exceeds the {2} byte limit",
+				fieldNameForLog,
+				estimatedDecodedBytes,
+				MAX_ICON_IMAGE_BYTES
+			);
+			return null;
+		}
+
+		return raw;
 	}
 
 	private void ProcessDiagramInfoMessage(JsonElement root)
