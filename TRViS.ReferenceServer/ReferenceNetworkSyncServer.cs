@@ -51,7 +51,9 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 		Admin: null,
 		Version: "0.0.0",
 		ProtocolVersion: "1.1",
-		Features: new[] { "TrainSearch" }
+		Features: new[] { "TrainSearch" },
+		IconImage: null,
+		IconImageDark: null
 	);
 
 	// --- 受信した RequestServerInfo / RequestDiagramInfo のログ (テスト用) ---
@@ -352,6 +354,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			Version = info.Version,
 			ProtocolVersion = info.ProtocolVersion,
 			Features = info.Features,
+			IconImage = info.IconImage,
+			IconImageDark = info.IconImageDark,
 		}, JsonOptions));
 	}
 
@@ -378,7 +382,9 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 					Admin: TryGetString(root, "Admin") ?? _serverInfo.Admin,
 					Version: TryGetString(root, "Version") ?? _serverInfo.Version,
 					ProtocolVersion: TryGetString(root, "ProtocolVersion") ?? _serverInfo.ProtocolVersion,
-					Features: features
+					Features: features,
+					IconImage: TryGetString(root, "IconImage") ?? _serverInfo.IconImage,
+					IconImageDark: TryGetString(root, "IconImageDark") ?? _serverInfo.IconImageDark
 				);
 			}
 			return OkJson("{\"ok\":true}");
@@ -408,6 +414,8 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 			Version = info.Version,
 			ProtocolVersion = info.ProtocolVersion,
 			Features = info.Features,
+			IconImage = info.IconImage,
+			IconImageDark = info.IconImageDark,
 		});
 	}
 
@@ -1119,7 +1127,7 @@ public sealed class ReferenceNetworkSyncServer : IDisposable
 		}
 	}
 
-	private sealed record ServerInfoState(string? Name, string? Admin, string? Version, string? ProtocolVersion, string[]? Features);
+	private sealed record ServerInfoState(string? Name, string? Admin, string? Version, string? ProtocolVersion, string[]? Features, string? IconImage, string? IconImageDark);
 	private sealed record DiagramInfoState(string Id, string? Name, string? Description, string[]? WorkGroupIds);
 
 	/// <summary>

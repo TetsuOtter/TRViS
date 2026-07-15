@@ -46,6 +46,13 @@ public class StartHomePageObject : PageObject
 	// WaitForElement: it flips visible asynchronously after IsServerConnectionLost.
 	public AppiumElement ReconnectButton => WaitForElement(AutomationIds.StartHome.ReconnectButton);
 
+	// Shown instead of the loader-type glyph once ServerInfo delivers an icon.
+	public AppiumElement ServerIconImage => FindByAutomationId(AutomationIds.StartHome.ServerIconImage);
+
+	/// <summary>True once the server icon Image is on screen (ServerInfo delivered an icon).</summary>
+	public bool IsServerIconImageVisible(double timeoutSeconds = 5)
+		=> PollDisplayed(AutomationIds.StartHome.ServerIconImage, timeoutSeconds);
+
 	/// <summary>True once the #261 reconnect button is on screen (disconnected state).</summary>
 	public bool IsReconnectButtonVisible(double timeoutSeconds = 20)
 		=> PollDisplayed(AutomationIds.StartHome.ReconnectButton, timeoutSeconds);

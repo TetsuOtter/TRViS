@@ -105,7 +105,9 @@ WebSocket では受信のたびに即座に処理されます（バッファリ�
   "Admin": "admin@example.com", // string | null
   "Version": "1.2.3",           // string | null
   "ProtocolVersion": "1.1",     // string | null
-  "Features": ["TrainSearch"]   // string[] | null。任意。省略/null で拡張機能なし。
+  "Features": ["TrainSearch"],  // string[] | null。任意。省略/null で拡張機能なし。
+  "IconImage": "data:image/png;base64,iVBORw0KGgo...",     // string | null。任意。
+  "IconImageDark": "data:image/svg+xml;base64,PHN2Zy4uLg==" // string | null。任意。
 }
 ```
 
@@ -116,10 +118,18 @@ WebSocket では受信のたびに即座に処理されます（バッファリ�
 | `Version` | string | サーバー実装バージョン。 |
 | `ProtocolVersion` | string | 対応プロトコルバージョン。現行は `"1.1"`。 |
 | `Features` | string[] | 任意。サーバーが対応する機能 ID 文字列。文字列要素のみ採用し、文字列以外は無視。欠落／`null` は拡張機能を提供しないことを意味する。 |
+| `IconImage` | string | 任意。ライトモード用のサーバーアイコン。`data:<mime>;base64,...` の data URI、または素の base64 文字列（この場合 PNG として扱う）。`image/png`・`image/jpeg`・`image/gif`・`image/svg+xml` に対応。 |
+| `IconImageDark` | string | 任意。ダークモード用のサーバーアイコン。書式は `IconImage` と同じ。省略時はダークモードでも `IconImage` を使用する。 |
 
 各フィールドは `null` または欠落で「未設定」扱い。`ProtocolVersion` は
 プロトコル互換性を示すハンドシェイク的シグナルであり（任意機能は下記の
 `Features` で別途ネゴシエーションされます）、正しい値を返すことを推奨します。
+
+**アイコンのサイズ制限。** クライアントは `IconImage` / `IconImageDark` を
+デコード後のサイズが 16MiB（16 × 1024 × 1024 バイト）以上になる場合、
+その画像だけを破棄する（`ServerInfo` の他フィールドはそのまま処理する）。
+表示領域より大きい画像は縮小して表示され、実サイズを超えて拡大される
+ことはない。
 
 **機能ネゴシエーション。** `Features` はバージョン番号とは独立に
 ネゴシエーションされる任意機能を広告します。現在既知の機能 ID は

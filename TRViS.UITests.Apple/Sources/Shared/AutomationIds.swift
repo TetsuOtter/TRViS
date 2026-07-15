@@ -95,6 +95,12 @@ enum AutomationIds {
         // Direct invoker for OnSelectFileClicked — bypasses the styled button
         // to avoid UIAutomator2 dispatch issues; kept here for parity.
         static let testOpenSelectFileDialogButton = "StartHome.TestOpenSelectFileDialogButton"
+
+        // Injects a fixed light/dark SVG ServerInfo icon directly into
+        // CurrentServerInfo (ScreenshotRegressionTests server-icon capture).
+        static let testInjectServerIconButton = "StartHome.TestInjectServerIconButton"
+        // Shown instead of the loader-type glyph once ServerInfo delivers an icon.
+        static let serverIconImage = "StartHome.ServerIconImage"
     }
 
     enum PrivacyDialog {
