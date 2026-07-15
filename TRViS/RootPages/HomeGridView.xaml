@@ -44,6 +44,18 @@
 				FontSize="28"
 				VerticalOptions="Center"
 				TextColor="{x:Static local:RootStyles.TableTextColor}"/>
+			<!-- サーバーが ServerInfo でアイコンを送ってきた場合、上のグリフの代わりに表示する
+			     (#254 系: UpdateServerIconImage が IsVisible を排他的に切り替える)。
+			     表示領域 (28x28) より大きい画像は Aspect=AspectFit で縮小表示される。 -->
+			<Image
+				x:Name="ServerIconImage"
+				AutomationId="StartHome.ServerIconImage"
+				Grid.Column="0"
+				WidthRequest="28"
+				HeightRequest="28"
+				Aspect="AspectFit"
+				VerticalOptions="Center"
+				IsVisible="False"/>
 			<VerticalStackLayout
 				Grid.Column="1"
 				VerticalOptions="Center">

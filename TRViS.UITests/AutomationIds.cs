@@ -46,6 +46,8 @@ public static class AutomationIds
 		// Home mode — selection lists and action buttons
 		public const string LoaderInfoTitle = "StartHome.LoaderInfoTitle";
 		public const string LoaderInfoDetail = "StartHome.LoaderInfoDetail";
+		// Shown instead of the loader-type glyph once ServerInfo delivers an icon.
+		public const string ServerIconImage = "StartHome.ServerIconImage";
 		// Two-step picker: each step has a list (full picker) and a chip (compact summary
 		// shown after selection). Tapping the chip clears the selection and re-opens
 		// the list. Auto-fill happens when a list arrives with exactly one item AND
@@ -176,6 +178,10 @@ public static class AutomationIds
 		// HeaderColor override is applied / reset.
 		public const string TestSetHeaderColorOverrideButton = "StartHome.TestSetHeaderColorOverrideButton";
 		public const string TestResetHeaderColorOverrideButton = "StartHome.TestResetHeaderColorOverrideButton";
+
+		// UI_TEST seam: injects a fixed light/dark SVG ServerInfo icon directly
+		// into CurrentServerInfo (Apple ScreenshotRegressionTests server-icon capture).
+		public const string TestInjectServerIconButton = "StartHome.TestInjectServerIconButton";
 	}
 
 	public static class PrivacyDialog

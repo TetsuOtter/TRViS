@@ -81,6 +81,12 @@ class ScreenshotBaselineHelper {
     ///   The pinned time "9:41" sits in the Dynamic Island / status bar (top-left).
     ///   Mask: x=140, y=40, w=150, h=100 (logical pixels, portrait and landscape).
     ///
+    /// Bottom gesture "home indicator" bar (all device classes):
+    ///   iPad mini (A17 Pro) has no physical Home button either — its Touch ID
+    ///   is integrated into the top button, not a front Home button — so
+    ///   iPadOS shows the same swipe-up gesture bar as Face ID iPhones. It is
+    ///   masked identically to iPhone; see the shared rect below.
+    ///
     /// Orientation note: XCUIScreen landscape screenshots carry an Exif
     /// imageOrientation tag (e.g. .left for iPhone).  UIImage.size already
     /// accounts for that tag (returns logical landscape dimensions); cgImage
@@ -108,23 +114,24 @@ class ScreenshotBaselineHelper {
             switch deviceClass {
             case "ipad-mini-a17":
                 UIRectFill(CGRect(x: 20, y: 15, width: 270, height: 35))
-                // iPad mini 6 has no gesture home indicator (Touch ID, not a
-                // home-button-less Face ID device) — nothing to mask at the bottom.
             default: // iphone
                 if pw < ph { // portrait
                     UIRectFill(CGRect(x: 140, y: 40, width: 150, height: 100))
                 }
-                // Bottom gesture "home indicator" bar: whether it's visible at
-                // capture time is a non-deterministic function of recent touch
-                // timing (it fades in on touch, then dims out after a few
-                // seconds), not of app state — it caused baseline churn across
-                // every screen once test timing shifted slightly. `image.size`
-                // is already orientation-corrected (see comment above), so this
-                // same bottom-center rect covers it in both portrait and
-                // landscape. Sized generously around the ~134pt-wide pill to
-                // tolerate anti-aliasing without reaching into real content.
-                UIRectFill(CGRect(x: CGFloat(pw) / 2 - 350, y: CGFloat(ph) - 70, width: 700, height: 70))
             }
+            // Bottom gesture "home indicator" bar: whether it's visible at
+            // capture time is a non-deterministic function of recent touch
+            // timing (it fades in on touch, then dims out after a few
+            // seconds), not of app state — it caused baseline churn across
+            // every screen once test timing shifted slightly. `image.size`
+            // is already orientation-corrected (see comment above), so this
+            // same bottom-center rect covers it in both portrait and
+            // landscape. Sized generously around the ~134pt-wide pill to
+            // tolerate anti-aliasing without reaching into real content.
+            // Applies to every device class: none of the currently tested
+            // simulators (iPhone 16, iPad mini A17 Pro) has a physical Home
+            // button, so all of them render this software gesture bar.
+            UIRectFill(CGRect(x: CGFloat(pw) / 2 - 350, y: CGFloat(ph) - 70, width: 700, height: 70))
         }
         return masked.pngData() ?? data
     }

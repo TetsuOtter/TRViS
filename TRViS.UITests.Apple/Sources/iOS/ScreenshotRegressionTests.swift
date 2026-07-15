@@ -198,6 +198,18 @@ class ScreenshotRegressionTests: BaseUITestCase {
         settle()
         capture(screen: "startHome-home", theme: theme, lang: lang, failures: &failures)
 
+        // 6b. StartHome — Home mode with a server-pushed icon (SVG light+dark;
+        // PNG/JPEG/GIF share the same decode-and-display path so aren't
+        // separately VRT-covered). Must run after loadSample() above — see
+        // injectServerIconForTesting's doc comment for why.
+        start.injectServerIconForTesting()
+        XCTAssertTrue(
+            start.isServerIconImageVisible(timeout: 5),
+            "Server icon should be visible after TestInjectServerIconButton."
+        )
+        settle()
+        capture(screen: "startHome-serverIcon", theme: theme, lang: lang, failures: &failures)
+
         // 7-9. DTAC (use HT seam so the horizontal-timetable button is present)
         let dtac = start.seedHorizontalTimetableAndOpenForTesting()
         dtac.switchToTimetableTab()

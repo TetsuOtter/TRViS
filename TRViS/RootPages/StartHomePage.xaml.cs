@@ -1146,6 +1146,9 @@ public partial class StartHomePage : ContentPage
 		// WebSocket server.
 		AddSeamButton(host, 7, 1, "StartHome.TestSetHeaderColorOverrideButton", TestSetHeaderColorOverrideButton_Clicked);
 		AddSeamButton(host, 8, 1, "StartHome.TestResetHeaderColorOverrideButton", TestResetHeaderColorOverrideButton_Clicked);
+		// Row 9: injects a fixed light/dark SVG ServerInfo icon directly into
+		// CurrentServerInfo for the ScreenshotRegressionTests server-icon capture.
+		AddSeamButton(host, 9, 1, "StartHome.TestInjectServerIconButton", TestInjectServerIconButton_Clicked);
 
 		// Attach to RootGrid as the LAST child so the seam column is the
 		// topmost Z-order element. Placing it inside BackgroundGrid (one layer
@@ -1993,6 +1996,12 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestForceLightThemeButton clicked: forcing app-wide Light theme");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Light;
+		// Dual-set like AppBar's real theme toggle (AppBar.cs): RequestedThemeChanged
+		// is unreliable (see AppViewModel's ctor comment) and, even when it fires,
+		// only updates CurrentAppTheme while UserAppTheme is Unspecified. Without
+		// this, viewModel.CurrentAppTheme-driven UI (e.g. HomeGridView's server
+		// icon) can't be exercised by this seam.
+		viewModel.CurrentAppTheme = AppTheme.Light;
 	}
 
 	void TestForceDarkThemeButton_Clicked(object? sender, EventArgs e)
@@ -2000,6 +2009,8 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestForceDarkThemeButton clicked: forcing app-wide Dark theme");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Dark;
+		// See TestForceLightThemeButton_Clicked for why this direct set is needed.
+		viewModel.CurrentAppTheme = AppTheme.Dark;
 	}
 
 	void TestUnfreezeClockButton_Clicked(object? sender, EventArgs e)
@@ -2019,6 +2030,37 @@ public partial class StartHomePage : ContentPage
 		logger.Info("TestResetThemeButton clicked: resetting app-wide theme to Unspecified");
 		if (Application.Current is Application app)
 			app.UserAppTheme = AppTheme.Unspecified;
+		// Undo the direct viewModel.CurrentAppTheme set from the two force-theme
+		// seams above (Unspecified resolves to the current system theme).
+		viewModel.CurrentAppTheme = AppTheme.Unspecified;
+	}
+
+	// Fixed light/dark 32x32 SVG circles (blue / orange) used by
+	// TestInjectServerIconButton_Clicked below. A plain solid color is enough
+	// to prove the SVG-rasterization + light/dark swap paths actually paint
+	// something in a screenshot; the two colors are chosen to be unmistakably
+	// distinct from each other and from the surrounding UI.
+	const string TestServerIconLightSvgDataUri =
+		"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiMyRTg2QUIiLz48L3N2Zz4=";
+	const string TestServerIconDarkSvgDataUri =
+		"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiNGMjY0MTkiLz48L3N2Zz4=";
+
+	/// <summary>
+	/// UI_TEST-only seam for ScreenshotRegressionTests: sets CurrentServerInfo
+	/// directly (rather than routing through the Connect-dialog deeplink form,
+	/// which requires Start mode and is unreachable once a loader is active).
+	/// Must be tapped AFTER LoadDemo/LoadSample, since OnLoaderChanged resets
+	/// CurrentServerInfo to null on every loader change.
+	/// </summary>
+	void TestInjectServerIconButton_Clicked(object? sender, EventArgs e)
+	{
+		logger.Info("TestInjectServerIconButton clicked: injecting a fixed light/dark SVG server icon");
+		viewModel.CurrentServerInfo = new ServerInfo
+		{
+			Name = "VRT Test Server",
+			IconImage = TestServerIconLightSvgDataUri,
+			IconImageDark = TestServerIconDarkSvgDataUri,
+		};
 	}
 
 	// UI_TEST-only seam (#310). Fixed test color (0x336699), distinct from the

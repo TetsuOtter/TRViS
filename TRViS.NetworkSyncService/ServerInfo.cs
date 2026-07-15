@@ -31,6 +31,21 @@ public class ServerInfo
 	/// <see cref="ServerFeatureIds"/> を参照。
 	/// </summary>
 	public string[]? Features { get; set; }
+
+	/// <summary>
+	/// サーバーアイコン画像 (ライトモード用)。<c>data:image/png;base64,...</c> のような
+	/// data URI、または素の base64 文字列 (この場合 PNG として扱う)。
+	/// png / jpg / gif / svg (image/svg+xml) に対応する。
+	/// デコード後のバイト列が 16MiB (16 * 1024 * 1024 バイト) 以上になる場合は
+	/// 受信側で破棄される。
+	/// </summary>
+	public string? IconImage { get; set; }
+
+	/// <summary>
+	/// サーバーアイコン画像 (ダークモード用、省略可)。省略時はダークモードでも
+	/// <see cref="IconImage"/> を使用する。書式・サイズ制限は <see cref="IconImage"/> と同じ。
+	/// </summary>
+	public string? IconImageDark { get; set; }
 }
 
 /// <summary>

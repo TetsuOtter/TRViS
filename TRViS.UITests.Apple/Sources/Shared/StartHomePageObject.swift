@@ -488,6 +488,35 @@ class StartHomePageObject {
         dialog.connectButton.tap()
     }
 
+    // MARK: — Server-icon inject seam (ScreenshotRegressionTests)
+
+    /// Taps TestInjectServerIconButton, which sets CurrentServerInfo directly
+    /// with a fixed light/dark SVG icon pair. Unlike injectNotificationForTesting,
+    /// this does NOT go through the Connect-dialog deeplink form — that form
+    /// requires Start mode, but this seam must run AFTER LoadDemo/LoadSample
+    /// (Home mode), since OnLoaderChanged resets CurrentServerInfo to null on
+    /// every loader change. Callers must be on StartHome in Home mode.
+    func injectServerIconForTesting() {
+        base.tapSeam(id: AutomationIds.StartHome.testInjectServerIconButton)
+    }
+
+    /// Polls briefly for the ServerIconImage element becoming visible with a
+    /// non-zero frame, mirroring isHorizontalTimetableButtonVisible.
+    func isServerIconImageVisible(timeout: TimeInterval = 5) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if let el = base.waitForElement(
+                id: AutomationIds.StartHome.serverIconImage, timeout: 0.5
+            ) {
+                let frame = el.frame
+                if frame.size.width > 0 && frame.size.height > 0 {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     // MARK: — Constants (mirror C# StartHomePageObject literals)
 
     /// URLs seeded by seedUrlHistoryForTesting().

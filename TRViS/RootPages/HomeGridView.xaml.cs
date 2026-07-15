@@ -59,6 +59,10 @@ public partial class HomeGridView : Grid
 	// brief visible flicker.
 	bool _committingOpen;
 
+	// Server icon display box (logical points). Matches LoaderInfoGlyphLabel's
+	// FontSize so the swap between glyph <-> image doesn't shift the row layout.
+	const int SERVER_ICON_DISPLAY_SIZE = 28;
+
 	public HomeGridView()
 	{
 		InitializeComponent();
@@ -75,6 +79,12 @@ public partial class HomeGridView : Grid
 				RebuildWorkGroupItems();
 				SyncPendingFromCommitted();
 			});
+
+		// The server icon has a light/dark variant (ServerInfo.IconImage /
+		// IconImageDark); re-pick and re-decode whenever the app's effective
+		// theme flips (mirrors AppBar.cs's OnAppThemeChanged subscription -
+		// AppViewModel is a singleton, so this is never unsubscribed).
+		viewModel.CurrentAppThemeChanged += (_, _) => UpdateServerIconImage();
 	}
 
 	// ----- Parent-driven lifecycle / hooks -----
@@ -89,6 +99,7 @@ public partial class HomeGridView : Grid
 		RebuildWorkGroupItems();
 		SyncPendingFromCommitted();
 		UpdateDiagramInfoLabels();
+		UpdateServerIconImage();
 	}
 
 	/// <summary>
@@ -114,6 +125,11 @@ public partial class HomeGridView : Grid
 			case nameof(AppViewModel.CurrentDiagramInfo):
 				// サーバーがダイヤ情報を送ってきた (RequestDiagramInfo 応答 or ブロードキャスト)。
 				UpdateDiagramInfoLabels();
+				break;
+
+			case nameof(AppViewModel.CurrentServerInfo):
+				// サーバーがサーバー情報 (アイコン含む) を送ってきた。
+				UpdateServerIconImage();
 				break;
 
 			case nameof(AppViewModel.IsServerConnectionLost):
@@ -223,6 +239,32 @@ public partial class HomeGridView : Grid
 		bool hasDescription = !string.IsNullOrWhiteSpace(description);
 		DiagramInfoDescriptionLabel.IsVisible = hasDescription;
 		DiagramInfoDescriptionLabel.Text = hasDescription ? description ?? string.Empty : string.Empty;
+	}
+
+	/// <summary>
+	/// サーバーから受信したアイコン画像 (ServerInfo.IconImage / IconImageDark) を
+	/// LoaderInfoGlyphLabel の位置に表示する。現在のテーマがダークならまず
+	/// IconImageDark を試し、無ければ IconImage にフォールバックする。デコードに
+	/// 失敗した場合、またはアイコン自体が未受信の場合は通常のグリフ表示に戻す。
+	/// </summary>
+	public void UpdateServerIconImage()
+	{
+		ServerInfo? info = viewModel.CurrentServerInfo;
+		bool isDark = viewModel.CurrentAppTheme == AppTheme.Dark;
+		string? icon = (isDark ? info?.IconImageDark : null) ?? info?.IconImage;
+
+		ImageSource? source = null;
+		bool decoded = !string.IsNullOrEmpty(icon)
+			&& ServerIconImageDecoder.TryDecode(
+				icon,
+				(int)Math.Ceiling(SERVER_ICON_DISPLAY_SIZE * DeviceDisplay.Current.MainDisplayInfo.Density),
+				(int)Math.Ceiling(SERVER_ICON_DISPLAY_SIZE * DeviceDisplay.Current.MainDisplayInfo.Density),
+				out source
+			);
+
+		ServerIconImage.Source = decoded ? source : null;
+		ServerIconImage.IsVisible = decoded;
+		LoaderInfoGlyphLabel.IsVisible = !decoded;
 	}
 
 	// ----- Two-step picker (WorkGroup -> Work) -----
