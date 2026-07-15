@@ -2039,6 +2039,60 @@ public class WebSocketIntegrationTests
 	}
 
 	[Test]
+	public async Task ServerInfo_BroadcastWithIcon_ClientReceivesIcon()
+	{
+		var service = await ConnectServiceAsync();
+		try
+		{
+			await WaitForWsClientCountAsync(_control, 1);
+
+			const string lightIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+			const string darkIcon = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=";
+			await _control.SetServerInfoAsync(name: "Iconic Server", iconImage: lightIcon, iconImageDark: darkIcon);
+
+			var infoTask = WaitForEventAsync<ServerInfo>(
+				h => service.ServerInfoUpdated += h,
+				h => service.ServerInfoUpdated -= h
+			);
+			await _control.BroadcastServerInfoAsync();
+
+			var info = await infoTask;
+			Assert.Multiple(() =>
+			{
+				Assert.That(info.Name, Is.EqualTo("Iconic Server"));
+				Assert.That(info.IconImage, Is.EqualTo(lightIcon));
+				Assert.That(info.IconImageDark, Is.EqualTo(darkIcon));
+			});
+		}
+		finally
+		{
+			await DisconnectAsync(service);
+		}
+	}
+
+	// ServerInfo.IconImage/IconImageDark の 16MiB ガードは
+	// WebSocketNetworkSyncService.ValidateIconImageSize (internal,
+	// InternalsVisibleTo 経由でこのアセンブリから直接呼べる) で完結するロジックなので、
+	// 実際に巨大なメッセージを WS で往復させる代わりに直接呼び出して検証する。
+	// (24MB 級のメッセージをテスト用の簡易 WS サーバー越しに送ると、サイズガード自体とは
+	// 無関係な転送性能によりタイムアウトし得るため、往復テストにはしない。)
+	[TestCase(16 * 1024 * 1024 - 1, true, TestName = "ServerInfo_IconImageSizeGuard_JustUnderLimit_Kept")]
+	[TestCase(16 * 1024 * 1024, false, TestName = "ServerInfo_IconImageSizeGuard_ExactlyAtLimit_Discarded")]
+	[TestCase(16 * 1024 * 1024 + 1, false, TestName = "ServerInfo_IconImageSizeGuard_JustOverLimit_Discarded")]
+	public void ServerInfo_IconImageSizeGuard_EnforcesSixteenMebibyteLimit(int decodedByteCount, bool expectKept)
+	{
+		// Convert.ToBase64String's standard '='/'==' padding lets
+		// ValidateIconImageSize's length-based estimate exactly recover
+		// decodedByteCount regardless of decodedByteCount % 3.
+		string base64 = Convert.ToBase64String(new byte[decodedByteCount]);
+		string dataUri = "data:image/png;base64," + base64;
+
+		string? result = WebSocketNetworkSyncService.ValidateIconImageSize(dataUri, "IconImage");
+
+		Assert.That(result, expectKept ? Is.EqualTo(dataUri) : Is.Null);
+	}
+
+	[Test]
 	public async Task DiagramInfo_RequestFromClient_ReceivesResponse()
 	{
 		var service = await ConnectServiceAsync();
