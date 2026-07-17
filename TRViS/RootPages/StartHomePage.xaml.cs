@@ -676,20 +676,25 @@ public partial class StartHomePage : ContentPage
 		{
 			const string RfcptcSsid = "RFCPTC";
 			const string RfcptcAppLink = "trvis://app/open/json?path=wss://zeus.railway-fan-club.com/api/v1/ws-trvis";
+			const string NotConnectedMessage = "RFCPTCへの接続:未接続";
+			const string CheckFailedMessage = "RFCPTCへの接続:確認不可(位置情報サービスをオンにしてください)";
 
 			var permStatus = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
 			if (permStatus != PermissionStatus.Granted)
 				permStatus = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+			logger.Info("WiFi SSID check: Location permission status={0}", permStatus);
 
 			cancellationToken.ThrowIfCancellationRequested();
 
 			string? ssid = await InstanceManager.WifiService.GetCurrentSsidAsync();
 			logger.Info("WiFi SSID check: SSID={0}", ssid ?? "(null)");
 			bool isOnRfcptc = ssid == RfcptcSsid;
+			bool checkFailed = !isOnRfcptc && permStatus != PermissionStatus.Granted;
 
 			cancellationToken.ThrowIfCancellationRequested();
 
 			RfcptcWarningBanner.IsVisible = !isOnRfcptc;
+			RfcptcWarningLabel.Text = checkFailed ? CheckFailedMessage : NotConnectedMessage;
 
 			if (isOnRfcptc && viewModel.Loader is null && !_isAutoConnecting)
 			{
