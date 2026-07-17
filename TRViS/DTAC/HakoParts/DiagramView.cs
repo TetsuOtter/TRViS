@@ -467,7 +467,7 @@ public class DiagramView : Grid
 			PlaceAbsolute(CreateTimeUnit(row.ArriveTime!, row.HasBracket, below: false), boxLeft, lineY - TimeToLineGapAbove - TimeUnitHeight, TimeUnitWidth, TimeUnitHeight);
 
 		if (HasRenderableTime(row.DepartureTime))
-			PlaceAbsolute(CreateTimeUnit(row.DepartureTime!, row.HasBracket, below: true), boxLeft, lineY + TimeToLineGapBelow, TimeUnitWidth, TimeUnitHeight);
+			PlaceAbsolute(CreateTimeUnit(row.DepartureTime!, hasBracket: false, below: true), boxLeft, lineY + TimeToLineGapBelow, TimeUnitWidth, TimeUnitHeight);
 	}
 
 	static bool HasRenderableTime(TimeData? time)
