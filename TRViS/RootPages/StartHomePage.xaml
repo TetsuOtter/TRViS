@@ -103,7 +103,8 @@
 			Padding="8,6"
 			IsVisible="False">
 			<Label
-				Text="RFCPTCに接続されていません"
+				x:Name="RfcptcWarningLabel"
+				Text="RFCPTCへの接続:未接続"
 				TextColor="White"
 				FontSize="13"
 				FontAttributes="Bold"
