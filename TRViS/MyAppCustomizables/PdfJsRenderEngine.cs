@@ -5,25 +5,24 @@ namespace TRViS.MyAppCustomizables;
 /// </summary>
 /// <remarks>
 /// <para>
-/// 既定値は <see cref="V2Svg"/>。これは全 iOS (12 含む) で動作実績があり、
-/// ベクター描画でズーム時もピクセル化しないため安全な初期値となる。
+/// 既定値は <see cref="V3Svg"/>。ベクター描画でズーム時もピクセル化しないため
+/// 安全な初期値となる。
 /// </para>
 /// <para>
 /// pdf.js v4 以降は SVGGraphics が削除されているため、v5 は canvas 描画のみ。
 /// また v5 (pdf.js 公式 legacy ビルド) の対応下限は Safari 16.4 (= iOS 16.4) のため、
-/// 設定 UI では iOS 16.4 未満で v5 を出さない。同様に v3 は Safari 13+ が必要なため
-/// iOS 13 未満では v2 系のみ。保存値がその端末で動作不可の場合は
+/// 設定 UI では iOS 16.4 未満で v5 を出さない。保存値がその端末で動作不可の場合は
 /// <see cref="PdfJsViewerHtmlBuilder"/> 側で安全な値へフォールバックする。
+/// </para>
+/// <para>
+/// v2 (legacy build) は iOS 15 未満向けの互換エンジンだったため撤去済み。旧バージョンの
+/// アプリで保存された値 (0=SVG, 1=canvas) は名前のない <see cref="PdfJsRenderEngine"/> 値として
+/// デシリアライズされ、PdfJsViewerHtmlBuilder の既定分岐で <see cref="V3Svg"/> として
+/// 扱われる (Option B 方針: 設定ファイルの書き換え・移行コードは行わない)。
 /// </para>
 /// </remarks>
 public enum PdfJsRenderEngine
 {
-	/// <summary>pdf.js v2 (legacy build) を SVG 描画で使用する。全 iOS で動作。</summary>
-	V2Svg = 0,
-
-	/// <summary>pdf.js v2 (legacy build) を canvas 描画で使用する。全 iOS で動作。</summary>
-	V2Canvas = 1,
-
 	/// <summary>pdf.js v3 (modern build) を SVG 描画で使用する。iOS 13 以降。</summary>
 	V3Svg = 2,
 

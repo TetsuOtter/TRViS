@@ -14,21 +14,18 @@ namespace TRViS.Services;
 /// 使用する pdf.js のバージョンと描画方式は <see cref="PdfJsRenderEngine"/> で指定する。
 /// </para>
 /// <list type="bullet">
-///   <item>v2 (pdfjs/legacy/, 2.16.105) — classic script。SVG / canvas 両対応。全 iOS で動作。</item>
 ///   <item>v3 (pdfjs/, 3.11.174) — classic script。SVG / canvas 両対応。iOS 13 以降。</item>
 ///   <item>v5 (pdfjs/v5/, 5.7.284 legacy build) — ES module。canvas のみ (v4 以降 SVGGraphics 廃止)。
 ///   pdf.js 公式の対応下限は Safari 16.4 のため iOS 16.4 以降。</item>
 /// </list>
 /// <para>
-/// 保存値がその端末で動作不可 (iOS&lt;13 で v3、iOS&lt;16.4 で v5) の場合は
-/// <see cref="ResolveForPlatform"/> で安全側 (v2 SVG) へフォールバックする。
+/// 保存値がその端末で動作不可 (iOS&lt;16.4 で v5) の場合は
+/// <see cref="ResolveForPlatform"/> で安全側 (v3 SVG) へフォールバックする。
 /// </para>
 /// </remarks>
 internal static class PdfJsViewerHtmlBuilder
 {
 	// classic script (UMD)。pdfjsLib をグローバルに公開する。
-	private const string V2MainAssetPath = "pdfjs/legacy/pdf.min.js";
-	private const string V2WorkerAssetPath = "pdfjs/legacy/pdf.worker.min.js";
 	private const string V3MainAssetPath = "pdfjs/pdf.min.js";
 	private const string V3WorkerAssetPath = "pdfjs/pdf.worker.min.js";
 
@@ -68,38 +65,36 @@ internal static class PdfJsViewerHtmlBuilder
 	}
 
 	/// <summary>
-	/// 端末が実行できないエンジンを安全な既定値 (v2 SVG) へ落とす。
-	/// v3 は Safari 13+ (nullish coalescing) が必要、v5 は iOS 16.4 以降が必要
-	/// (pdf.js 公式 legacy ビルドの対応下限 Safari 16.4)。
+	/// 端末が実行できないエンジンを安全な既定値 (v3 SVG) へ落とす。
+	/// v5 は iOS 16.4 以降が必要 (pdf.js 公式 legacy ビルドの対応下限 Safari 16.4)。
+	/// v3 は Safari 13+ で足り、iOS の最低対応バージョンが 15.1 のため常に利用可能。
 	/// </summary>
 	private static PdfJsRenderEngine ResolveForPlatform(PdfJsRenderEngine engine)
 	{
 		if (!OperatingSystem.IsIOS())
 			return engine;
 
-		bool v3Unusable = (engine is PdfJsRenderEngine.V3Svg or PdfJsRenderEngine.V3Canvas)
-			&& !OperatingSystem.IsIOSVersionAtLeast(13);
 		bool v5Unusable = engine is PdfJsRenderEngine.V5Canvas
 			&& !OperatingSystem.IsIOSVersionAtLeast(16, 4);
 
-		if (v3Unusable || v5Unusable)
+		if (v5Unusable)
 		{
-			logger.Warn("PDF engine {0} is not runnable on this iOS version; falling back to V2Svg", engine);
-			return PdfJsRenderEngine.V2Svg;
+			logger.Warn("PDF engine {0} is not runnable on this iOS version; falling back to V3Svg", engine);
+			return PdfJsRenderEngine.V3Svg;
 		}
 
 		return engine;
 	}
 
+	// 未知の値 (旧バージョンで保存された撤去済み v2 の 0/1 を含む) は V3Svg として扱う。
+	// Option B 方針 (設定ファイルの書き換え・移行コードは行わない) により、当時の SVG/canvas
+	// 選択は区別せずまとめて安全側へフォールバックする。
 	private static (string MainPath, string WorkerPath, bool UseCanvas, bool UseModule) MapEngine(PdfJsRenderEngine engine)
 		=> engine switch
 		{
-			PdfJsRenderEngine.V2Svg => (V2MainAssetPath, V2WorkerAssetPath, false, false),
-			PdfJsRenderEngine.V2Canvas => (V2MainAssetPath, V2WorkerAssetPath, true, false),
-			PdfJsRenderEngine.V3Svg => (V3MainAssetPath, V3WorkerAssetPath, false, false),
 			PdfJsRenderEngine.V3Canvas => (V3MainAssetPath, V3WorkerAssetPath, true, false),
 			PdfJsRenderEngine.V5Canvas => (V5MainAssetPath, V5WorkerAssetPath, true, true),
-			_ => (V2MainAssetPath, V2WorkerAssetPath, false, false),
+			_ => (V3MainAssetPath, V3WorkerAssetPath, false, false),
 		};
 
 	private static async Task<string> ReadAssetAsBase64Async(string path)
@@ -153,8 +148,8 @@ __VIEWER_JS__
 </html>
 """;
 
-	// JS は ES5 互換 (var / function 宣言) で書く。iOS 12 WebView (v2) 含め広い互換性を保つ。
-	// classic build (v2/v3) は <script src=blob> で pdfjsLib をグローバルに読み込む。
+	// JS は ES5 互換 (var / function 宣言) で書く。
+	// classic build (v3) は <script src=blob> で pdfjsLib をグローバルに読み込む。
 	// ES module build (v5) は <script type=module> + 動的 import で名前空間を取得し、
 	// worker は明示的に {type:'module'} で生成して GlobalWorkerOptions.workerPort へ渡す。
 	// SVG/canvas の切り替えは USE_CANVAS で行う (v5 は canvas のみ)。

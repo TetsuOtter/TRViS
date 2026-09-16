@@ -9,8 +9,8 @@
 
 	<AbsoluteLayout x:Name="RootLayout">
 		<!-- The actual camera is inserted only after this page appears. This is
-		     deliberately a neutral host: iOS 12 gets an AVFoundation preview,
-		     while newer iOS and Android get BarcodeScanning.CameraView. -->
+		     deliberately a neutral host for BarcodeScanning.CameraView (both
+		     Android and iOS). -->
 		<ContentView
 			x:Name="CameraHost"
 			AbsoluteLayout.LayoutFlags="All"
