@@ -71,7 +71,7 @@ public partial class SettingFileStructure
 	/// <summary>
 	/// PDF 表示に使用する pdf.js のバージョンと描画方式
 	/// </summary>
-	public PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;
+	public PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V3Svg;
 
 	/// <summary>
 	/// UIの表示言語 (System の場合は端末の言語設定に従う)

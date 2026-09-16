@@ -495,20 +495,15 @@ public partial class EasterEggPage : ContentPage
 		UpdatePdfJsRenderEnginePickerSelection();
 	}
 
-	// v3 は Safari 13+ (nullish coalescing) が必要なため iOS 13 以降で提供する。
 	// v5 (pdf.js 公式 legacy ビルド) の対応下限は Safari 16.4 (= iOS 16.4) のため
-	// iOS 16.4 以降でのみ提供する。iOS 12 系は v2 系のみ。
+	// iOS 16.4 以降でのみ提供する。v3 は Safari 13+ で足り、iOS の最低対応バージョンが
+	// 15 のため常に利用可能。
 	// iOS 以外 (Android/Windows/macCatalyst) は近代 WebView のため全て扱える。
-	private static bool SupportsV3()
-		=> !OperatingSystem.IsIOS() || OperatingSystem.IsIOSVersionAtLeast(13);
-
 	private static bool SupportsV5()
 		=> !OperatingSystem.IsIOS() || OperatingSystem.IsIOSVersionAtLeast(16, 4);
 
 	private static IReadOnlyList<PdfJsRenderEngine> PdfJsRenderEngineOptions()
 	{
-		if (!SupportsV3())
-			return new[] { PdfJsRenderEngine.V2Svg, PdfJsRenderEngine.V2Canvas };
 		if (!SupportsV5())
 			return new[] { PdfJsRenderEngine.V3Svg, PdfJsRenderEngine.V3Canvas };
 		return new[] { PdfJsRenderEngine.V3Svg, PdfJsRenderEngine.V3Canvas, PdfJsRenderEngine.V5Canvas };
@@ -516,16 +511,16 @@ public partial class EasterEggPage : ContentPage
 
 	private static string PdfJsRenderEngineDisplayName(PdfJsRenderEngine engine)
 	{
-		// "pdf.js v2" のバージョン部分は固有名なので翻訳しない。描画方式
+		// "pdf.js v3" のバージョン部分は固有名なので翻訳しない。描画方式
 		// (SVG / canvas) のみローカライズする。
+		// 未知の値 (旧バージョンで保存された撤去済み v2 の 0/1 など) は
+		// PdfJsViewerHtmlBuilder.MapEngine の既定分岐と同じ V3Svg として表示する。
 		(string version, string mode) = engine switch
 		{
-			PdfJsRenderEngine.V2Svg => ("v2", AppResources.Settings_PdfRender_Svg),
-			PdfJsRenderEngine.V2Canvas => ("v2", AppResources.Settings_PdfRender_Canvas),
 			PdfJsRenderEngine.V3Svg => ("v3", AppResources.Settings_PdfRender_Svg),
 			PdfJsRenderEngine.V3Canvas => ("v3", AppResources.Settings_PdfRender_Canvas),
 			PdfJsRenderEngine.V5Canvas => ("v5", AppResources.Settings_PdfRender_Canvas),
-			_ => (engine.ToString(), string.Empty)
+			_ => ("v3", AppResources.Settings_PdfRender_Svg)
 		};
 		return string.Format(AppResources.Settings_PdfEngineDisplayFormat, version, mode);
 	}
@@ -589,7 +584,7 @@ public partial class EasterEggPage : ContentPage
 				}
 			}
 
-			// 保存値がこの端末の選択肢に無い場合 (例: 既定値 V2Svg を iOS 13+ で表示、
+			// 保存値がこの端末の選択肢に無い場合 (例: 旧バージョンで保存された撤去済み v2 の値、
 			// あるいは新しい端末で設定した値が古い端末に同期された場合)。
 			// Picker は未選択にし、現在の実効エンジンはラベルで明示する。
 			PdfJsRenderEnginePicker.SelectedIndex = index;
