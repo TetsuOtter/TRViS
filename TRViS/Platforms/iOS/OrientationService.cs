@@ -18,7 +18,6 @@ public class OrientationService : IOrientationService
 	/// </summary>
 	public static UIInterfaceOrientationMask CurrentOrientationMask { get; private set; } = UIInterfaceOrientationMask.All;
 
-	[SupportedOSPlatform("ios12.2")]
 	public void SetOrientation(AppDisplayOrientation orientation)
 	{
 		UIInterfaceOrientationMask mask = orientation switch
@@ -139,7 +138,6 @@ public class OrientationService : IOrientationService
 	/// <summary>
 	/// Apply orientation changes for iOS 15 and earlier.
 	/// </summary>
-	[SupportedOSPlatform("ios12.2")]
 	private void ApplyOrientationLegacy()
 	{
 		try

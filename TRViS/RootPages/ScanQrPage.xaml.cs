@@ -85,14 +85,6 @@ public partial class ScanQrPage : ContentPage
 #else
 		try
 		{
-#if IOS
-			if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
-			{
-				if (!await StartLegacyIosScannerAsync())
-					await HandlePermissionDeniedAsync();
-				return;
-			}
-#endif
 			await StartModernScannerAsync();
 		}
 		catch (Exception ex)
@@ -259,13 +251,6 @@ public partial class ScanQrPage : ContentPage
 	private void OnTorchClicked(object sender, EventArgs e)
 	{
 #if !UI_TEST
-#if IOS
-		if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
-		{
-			ToggleLegacyIosTorch();
-			return;
-		}
-#endif
 		if (_modernScanner is not null)
 		{
 			_modernScanner.TorchOn = !_modernScanner.TorchOn;
@@ -277,13 +262,6 @@ public partial class ScanQrPage : ContentPage
 #if !UI_TEST
 	private void StopScanner()
 	{
-#if IOS
-		if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
-		{
-			StopLegacyIosScanner();
-			return;
-		}
-#endif
 		if (_modernScanner is not null)
 			_modernScanner.CameraEnabled = false;
 	}
@@ -293,10 +271,6 @@ public partial class ScanQrPage : ContentPage
 	{
 		try
 		{
-#if IOS && !UI_TEST
-			if (!OperatingSystem.IsIOSVersionAtLeast(15, 1))
-				await DisposeLegacyIosScannerAsync();
-#endif
 			await Navigation.PopModalAsync();
 		}
 		catch (Exception ex)

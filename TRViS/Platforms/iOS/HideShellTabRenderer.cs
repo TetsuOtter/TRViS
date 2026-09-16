@@ -21,12 +21,4 @@ public sealed class HideShellTabRenderer : ShellRenderer
 		}
 	}
 	protected override IShellTabBarAppearanceTracker CreateTabBarAppearanceTracker() => new MyShellTabBarAppearanceTracker();
-
-	// Use custom ShellItemRenderer to fix iOS 12.x crashes (NullReferenceException in TraitCollectionDidChange)
-	protected override IShellItemRenderer CreateShellItemRenderer(ShellItem shellItem)
-	{
-		var renderer = new iOS12CompatShellItemRenderer(this);
-		renderer.ShellItem = shellItem;
-		return renderer;
-	}
 }
