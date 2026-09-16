@@ -121,8 +121,15 @@
 	</ItemGroup>
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<BundleResource Include="GoogleService-Info.plist" />
-		<PackageReference Include="AdamE.Firebase.iOS.Analytics" Version="10.16.0" />
-		<PackageReference Include="AdamE.Firebase.iOS.Crashlytics" Version="10.29.0.3" />
+		<!-- Firebase 12.0.0 raised its own minimum to iOS 15.0 for every product,
+		     including Analytics/Crashlytics (which had an iOS 12.0 exception
+		     through the 11.x line). That's why this was pinned to the 10.x line
+		     for a long time: bumping past it while this project's floor was
+		     still iOS 12.2 crashed on iOS 12 devices. Now that the floor is
+		     15.1 (above Firebase 12.x's own 15.0 minimum), it's safe to track
+		     latest again. -->
+		<PackageReference Include="AdamE.Firebase.iOS.Analytics" Version="12.10.0" />
+		<PackageReference Include="AdamE.Firebase.iOS.Crashlytics" Version="12.10.0" />
 		<!--
 			Firebase Crashlytics calls dladdr(&__mh_execute_header) during
 			FIRCLSContext init to locate the executable's load address. The
