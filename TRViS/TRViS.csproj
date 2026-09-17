@@ -3,7 +3,6 @@
 	<PropertyGroup>
 		<TargetFrameworks Condition="$([System.String]::IsNullOrEmpty('$(WITHOUT_ANDROID)'))">net10.0-android;</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
-		<!-- iOS: Using iOS 13.0+ only due to Firebase SDK minimum requirement -->
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 		<UseMauiNuGets>true</UseMauiNuGets>
 		<OutputType>Exe</OutputType>
@@ -21,8 +20,11 @@
 		<!-- Versions -->
 		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
-		<!-- iOS 12.2 supported with Firebase SDK 10.x -->
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">12.2</SupportedOSPlatformVersion>
+		<!-- Apple no longer accepts App Store submissions targeting iOS below 15.
+		     15.1 (not 15.0) is required so BarcodeScanning.Native.Maui's in-app
+		     QR scanner backend can be used unconditionally on iOS; see the
+		     in-app QR scanner note below. -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.1</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
@@ -36,10 +38,9 @@
 		<NeutralLanguage>en</NeutralLanguage>
 		<NoWarn>$(NoWarn);NU1608</NoWarn>
 		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">false</ValidateXcodeVersion>
-		<!-- In-app QR scanner is phone-only. Android and iOS 15.1+ use
-		     BarcodeScanning.Native.Maui; iOS 12.2-15.0 uses an AVFoundation
-		     fallback. The scan page is compiled only for phone TFMs; desktop
-		     keeps the manual-URL flow.
+		<!-- In-app QR scanner is phone-only. Android and iOS both use
+		     BarcodeScanning.Native.Maui (requires iOS 15.1). The scan page is
+		     compiled only for phone TFMs; desktop keeps the manual-URL flow.
 		     The library also supports MacCatalyst/Windows, but scanning a QR with a
 		     desktop webcam is not a target workflow and pulling the native/ZXingCpp
 		     dependencies into those builds is avoided. -->

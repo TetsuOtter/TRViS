@@ -79,7 +79,7 @@ public partial class EasterEggPageViewModel : ObservableObject
 	public partial HorizontalTimetableButtonLabel HorizontalTimetableButtonLabel { get; set; } = HorizontalTimetableButtonLabel.Train;
 
 	[ObservableProperty]
-	public partial PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V2Svg;
+	public partial PdfJsRenderEngine PdfJsRenderEngine { get; set; } = PdfJsRenderEngine.V3Svg;
 
 	[ObservableProperty]
 	public partial AppTheme SelectedAppTheme { get; set; } = AppTheme.Unspecified;
