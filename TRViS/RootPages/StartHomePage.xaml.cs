@@ -368,6 +368,9 @@ public partial class StartHomePage : ContentPage
 	}
 
 	bool _orientationLayoutApplied;
+	bool _isAutoConnecting;
+	bool _isWifiCheckInProgress;
+	CancellationTokenSource? _wifiCheckCts;
 
 	/// <summary>
 	/// Tightens the AppHeader / StartBody styling for narrow-portrait windows
@@ -664,6 +667,71 @@ public partial class StartHomePage : ContentPage
 		}
 	}
 
+	async Task CheckWifiAndAutoConnectAsync(CancellationToken cancellationToken = default)
+	{
+		if (_isWifiCheckInProgress)
+			return;
+		_isWifiCheckInProgress = true;
+		try
+		{
+			const string RfcptcSsid = "RFCPTC";
+			const string RfcptcAppLink = "trvis://app/open/json?path=wss://zeus.railway-fan-club.com/api/v1/ws-trvis";
+			const string NotConnectedMessage = "RFCPTCへの接続:未接続";
+			const string CheckFailedMessage = "RFCPTCへの接続:確認不可(位置情報サービスをオンにしてください)";
+
+			var permStatus = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+			if (permStatus != PermissionStatus.Granted)
+				permStatus = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+			logger.Info("WiFi SSID check: Location permission status={0}", permStatus);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			string? ssid = await InstanceManager.WifiService.GetCurrentSsidAsync();
+			logger.Info("WiFi SSID check: SSID={0}", ssid ?? "(null)");
+			bool isOnRfcptc = ssid == RfcptcSsid;
+			bool checkFailed = !isOnRfcptc && permStatus != PermissionStatus.Granted;
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			RfcptcWarningBanner.IsVisible = !isOnRfcptc;
+			RfcptcWarningLabel.Text = checkFailed ? CheckFailedMessage : NotConnectedMessage;
+
+			if (isOnRfcptc && viewModel.Loader is null && !_isAutoConnecting)
+			{
+				_isAutoConnecting = true;
+				try
+				{
+					logger.Info("RFCPTC WiFi detected, auto-connecting");
+					await viewModel.AutoConnectWebSocketAsync(RfcptcAppLink, cancellationToken);
+				}
+				finally
+				{
+					_isAutoConnecting = false;
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			logger.Debug("WiFi check/auto-connect cancelled");
+		}
+		catch (Exception ex)
+		{
+			logger.Error(ex, "CheckWifiAndAutoConnect failed");
+		}
+		finally
+		{
+			_isWifiCheckInProgress = false;
+		}
+	}
+
+	void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+	{
+		logger.Debug("Connectivity changed: {0}", e.NetworkAccess);
+		_wifiCheckCts?.Cancel();
+		_wifiCheckCts = new CancellationTokenSource();
+		_ = CheckWifiAndAutoConnectAsync(_wifiCheckCts.Token);
+	}
+
 	protected override async void OnAppearing()
 	{
 		base.OnAppearing();
@@ -699,6 +767,11 @@ public partial class StartHomePage : ContentPage
 		// still up could not navigate then; this OnAppearing (after the modal
 		// popped and revealed us) is where that deferred jump finally runs.
 		await TryConsumeAutoNavigateAsync();
+
+		Connectivity.Current.ConnectivityChanged += OnConnectivityChanged;
+		_wifiCheckCts?.Cancel();
+		_wifiCheckCts = new CancellationTokenSource();
+		await CheckWifiAndAutoConnectAsync(_wifiCheckCts.Token);
 	}
 
 	protected override void OnDisappearing()
@@ -707,6 +780,8 @@ public partial class StartHomePage : ContentPage
 		viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 		viewModel.AutoNavigateToTimetableRequested -= OnAutoNavigateToTimetableRequested;
 		viewModel.OpenTimetableViewRequested -= OnOpenTimetableViewRequested;
+		Connectivity.Current.ConnectivityChanged -= OnConnectivityChanged;
+		_wifiCheckCts?.Cancel();
 	}
 
 	// The pending intent is latched on AppViewModel (not a field here): a
